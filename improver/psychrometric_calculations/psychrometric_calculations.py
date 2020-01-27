@@ -42,6 +42,8 @@ from stratify import interpolate
 
 import improver.constants as consts
 from improver import BasePlugin
+from improver.metadata.utilities import (
+    generate_mandatory_attributes, create_new_diagnostic_cube)
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import sort_coord_in_cube
@@ -50,24 +52,158 @@ from improver.utilities.spatial import (
     OccurrenceWithinVicinity, convert_number_of_grid_cells_into_distance)
 
 
-class Utilities:
+def _svp_from_lookup(temperature):
+    """
+    Gets value for saturation vapour pressure in a pure water vapour system
+    from a pre-calculated lookup table. Interpolates linearly between points in
+    the table to the temperatures required.
+
+    Args:
+        temperature (numpy.ndarray):
+            Array of air temperatures (K).
+    Returns:
+        numpy.ndarray:
+            Array of saturated vapour pressures (Pa).
+    """
+    # where temperatures are outside the SVP table range, clip data to
+    # within the available range
+    T_clipped = np.clip(temperature, svp_table.T_MIN,
+                        svp_table.T_MAX - svp_table.T_INCREMENT)
+
+    # interpolate between bracketing values
+    table_position = (T_clipped - svp_table.T_MIN) / svp_table.T_INCREMENT
+    table_index = table_position.astype(int)
+    interpolation_factor = table_position - table_index
+    return ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
+            interpolation_factor * svp_table.DATA[table_index + 1])
+
+
+def calculate_svp_in_air(temperature, pressure):
+    """
+    Calculates the saturation vapour pressure in air.  Looks up the saturation
+    vapour pressure in a pure water vapour system, and pressure-corrects the
+    result to obtain the saturation vapour pressure in air.
+
+    Args:
+        temperature (numpy.ndarray):
+            Array of air temperatures (K).
+        pressure (numpy.ndarray):
+            Array of pressure (Pa).
+
+    Returns:
+        numpy.ndarray:
+            Saturation vapour pressure in air (Pa).
+
+    References:
+        Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
+        Series, Vol. 30; Equation A4.7.
+    """
+    svp = _svp_from_lookup(temperature)
+    temp_celcius = temperature.copy() + consts.ABSOLUTE_ZERO
+    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_celcius ** 2))
+    return svp * correction.astype(np.float32)
+
+
+class WetBulbTemperature(BasePlugin):
 
     """
-    Utilities for psychrometric calculations.
-    """
+    A plugin to calculate wet bulb temperatures from air temperature, relative
+    humidity, and pressure data. Calculations are performed using a Newton
+    iterator, with saturated vapour pressures drawn from a lookup table using
+    linear interpolation.
 
-    def __init__(self):
+    The svp_table used in this plugin is imported (see top of file). It is a
+    table of saturated vapour pressures calculated for a range of temperatures.
+    The import also brings in attributes that describe the range of
+    temperatures covered by the table and the increments in the table.
+
+    """
+    def __init__(self, precision=0.005):
         """
         Initialise class.
-        """
 
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<Utilities>')
-        return result
+        Args:
+            precision (float):
+                The precision to which the Newton iterator must converge before
+                returning wet bulb temperatures.
+        """
+        self.precision = precision
+        self.maximum_iterations = 20
 
     @staticmethod
-    def specific_heat_of_moist_air(mixing_ratio):
+    def _slice_inputs(temperature, relative_humidity, pressure):
+        """Create iterable or iterator over cubes on which to calculate
+        wet bulb temperature"""
+        vertical_coords = None
+        try:
+            vertical_coords = [cube.coord(axis='z').name() for cube in
+                               [temperature, relative_humidity, pressure]
+                               if cube.coord_dims(cube.coord(axis='z')) != ()]
+        except iris.exceptions.CoordinateNotFoundError:
+            pass
+
+        if not vertical_coords:
+            slices = [(temperature, relative_humidity, pressure)]
+        else:
+            if len(set(vertical_coords)) > 1 or len(vertical_coords) != 3:
+                raise ValueError('WetBulbTemperature: Cubes have differing '
+                                 'vertical coordinates.')
+            level_coord, = set(vertical_coords)
+            temperature_over_levels = temperature.slices_over(level_coord)
+            relative_humidity_over_levels = relative_humidity.slices_over(
+                level_coord)
+            pressure_over_levels = pressure.slices_over(level_coord)
+            slices = zip(temperature_over_levels,
+                         relative_humidity_over_levels, pressure_over_levels)
+
+        return slices
+
+    @staticmethod
+    def _calculate_latent_heat(temperature):
+        """
+        Calculate a temperature adjusted latent heat of condensation for water
+        vapour using the relationship employed by the UM.
+
+        Args:
+            temperature (np.ndarray):
+                Array of air temperatures (K).
+        Returns:
+            np.ndarray:
+                Temperature adjusted latent heat of condensation (J kg-1).
+        """
+        temp_celcius = temperature + consts.ABSOLUTE_ZERO
+        latent_heat = (-1. * consts.LATENT_HEAT_T_DEPENDENCE * temp_celcius +
+                       consts.LH_CONDENSATION_WATER)
+        return latent_heat
+
+    @staticmethod
+    def _calculate_mixing_ratio(temperature, pressure):
+        """Function to compute the mixing ratio given temperature and pressure.
+
+        Args:
+            temperature (numpy.ndarray):
+                Array of air temperature (K).
+            pressure (numpy.ndarray):
+                Array of air pressure (Pa).
+
+        Returns
+            numpy.ndarray:
+                Array of mixing ratios.
+
+        Method from referenced documentation. Note that EARTH_REPSILON is
+        simply given as an unnamed constant in the reference (0.62198).
+
+        References:
+            ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
+        """
+        svp = calculate_svp_in_air(temperature, pressure)
+        numerator = (consts.EARTH_REPSILON * svp)
+        denominator = (np.maximum(svp, pressure) - (
+            (1. - consts.EARTH_REPSILON) * svp))
+        return numerator / denominator
+
+    @staticmethod
+    def _calculate_specific_heat(mixing_ratio):
         """
         Calculate the specific heat capacity for moist air by combining that of
         dry air and water vapour in proportion given by the specific humidity.
@@ -84,28 +220,8 @@ class Utilities:
         return specific_heat
 
     @staticmethod
-    def latent_heat_of_condensation(temperature_input):
-        """
-        Calculate a temperature adjusted latent heat of condensation for water
-        vapour using the relationship employed by the UM.
-
-        Args:
-            temperature_input (np.ndarray):
-                A Array of air temperatures (K).
-        Returns:
-            np.ndarray:
-                Temperature adjusted latent heat of condensation (J kg-1).
-        """
-        temp = temperature_input
-        temp = temp + consts.ABSOLUTE_ZERO
-
-        latent_heat = (-1. * consts.LATENT_HEAT_T_DEPENDENCE * temp +
-                       consts.LH_CONDENSATION_WATER)
-        return latent_heat
-
-    @staticmethod
-    def calculate_enthalpy(mixing_ratio, specific_heat, latent_heat,
-                           temperature):
+    def _calculate_enthalpy(
+            mixing_ratio, specific_heat, latent_heat, temperature):
         """
         Calculate the enthalpy (total energy per unit mass) of air (J kg-1).
 
@@ -134,8 +250,8 @@ class Utilities:
         return enthalpy
 
     @staticmethod
-    def calculate_d_enthalpy_dt(mixing_ratio, specific_heat,
-                                latent_heat, temperature):
+    def _calculate_enthalpy_gradient(
+            mixing_ratio, specific_heat, latent_heat, temperature):
         """
         Calculate the enthalpy gradient with respect to temperature.
 
@@ -164,253 +280,11 @@ class Utilities:
         denominator = consts.R_WATER_VAPOUR * temperature ** 2
         return numerator/denominator + specific_heat
 
-    @staticmethod
-    def saturation_vapour_pressure_goff_gratch(temperature):
+    def _calculate_wet_bulb_temperature(
+            self, pressure, relative_humidity, temperature):
         """
-        Saturation Vapour pressure in a water vapour system calculated using
-        the Goff-Gratch Equation (WMO standard method).
-
-        Args:
-            temperature (iris.cube.Cube):
-                Cube of temperature which will be converted to Kelvin
-                prior to calculation. Valid from 173K to 373K
-
-        Returns:
-            iris.cube.Cube:
-                Cube containing the saturation vapour pressure of a pure
-                water vapour system. A correction must be applied to the data
-                when used to convert this to the SVP in air; see the
-                WetBulbTemperature.pressure_correct_svp function.
-
-        References:
-            Numerical data and functional relationships in science and
-            technology. New series. Group V. Volume 4. Meteorology.
-            Subvolume b. Physical and chemical properties of the air, P35.
-        """
-        constants = {1: 10.79574,
-                     2: 5.028,
-                     3: 1.50475E-4,
-                     4: -8.2969,
-                     5: 0.42873E-3,
-                     6: 4.76955,
-                     7: 0.78614,
-                     8: -9.09685,
-                     9: 3.56654,
-                     10: 0.87682,
-                     11: 0.78614}
-        triple_pt = consts.TRIPLE_PT_WATER
-
-        # Values for which method is considered valid (see reference).
-        WetBulbTemperature.check_range(temperature.data, 173., 373.)
-
-        data = temperature.data.copy()
-        for cell in np.nditer(data, op_flags=['readwrite']):
-            if cell > triple_pt:
-                n0 = constants[1] * (1. - triple_pt / cell)
-                n1 = constants[2] * np.log10(cell / triple_pt)
-                n2 = constants[3] * (1. - np.power(10.,
-                                                   (constants[4] *
-                                                    (cell / triple_pt - 1.))))
-                n3 = constants[5] * (np.power(10., (constants[6] *
-                                                    (1. - triple_pt / cell))) -
-                                     1.)
-                log_es = n0 - n1 + n2 + n3 + constants[7]
-                cell[...] = (np.power(10., log_es))
-            else:
-                n0 = constants[8] * ((triple_pt / cell) - 1.)
-                n1 = constants[9] * np.log10(triple_pt / cell)
-                n2 = constants[10] * (1. - (cell / triple_pt))
-                log_es = n0 - n1 + n2 + constants[11]
-                cell[...] = (np.power(10., log_es))
-
-        # Create SVP cube
-        svp = iris.cube.Cube(
-            data, long_name='saturated_vapour_pressure', units='hPa')
-        # Output of the Goff-Gratch is in hPa, but we want to return in Pa.
-        svp.convert_units('Pa')
-        return svp
-
-
-class WetBulbTemperature(BasePlugin):
-
-    """
-    A plugin to calculate wet bulb temperatures from air temperature, relative
-    humidity, and pressure data. Calculations are performed using a Newton
-    iterator, with saturated vapour pressures drawn from a lookup table using
-    linear interpolation.
-
-    The svp_table used in this plugin is imported (see top of file). It is a
-    table of saturated vapour pressures calculated for a range of temperatures.
-    The import also brings in attributes that describe the range of
-    temperatures covered by the table and the increments in the table.
-
-    """
-    def __init__(self, precision=0.005):
-        """
-        Initialise class.
-
-        Args:
-            precision (float):
-                The precision to which the Newton iterator must converge before
-                returning wet bulb temperatures.
-        """
-        self.precision = precision
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<WetBulbTemperature: precision: {}>'.format(self.precision))
-        return result
-
-    @staticmethod
-    def check_range(cube, low, high):
-        """Function to wrap functionality for throwing out temperatures
-        too low or high for a method to use safely.
-
-        Args:
-            cube (numpy.ndarray):
-                Array of temperature.
-
-            low (int or float):
-                Lowest allowable temperature for check
-
-            high (int or float):
-                Highest allowable temperature for check
-
-        Raises:
-            UserWarning : If any of the values in cube.data are outside the
-                          bounds set by the low and high variables.
-        """
-        if cube.max() > high or cube.min() < low:
-            emsg = ("Wet bulb temperatures are being calculated for conditions"
-                    " beyond the valid range of the saturated vapour pressure"
-                    " lookup table (< {}K or > {}K). Input cube has\n"
-                    "Lowest temperature = {}\nHighest temperature = {}")
-            warnings.warn(emsg.format(low, high, cube.min(),
-                                      cube.max()))
-
-    def lookup_svp(self, temperature):
-        """
-        Looks up a value for the saturation vapour pressure of water vapour
-        using the temperature and a table of values. These tabulated values
-        have been calculated using the utilities.ancillary_creation
-        SaturatedVapourPressureTable plugin that uses the Goff-Gratch method.
-
-        Args:
-            temperature (numpy.ndarray):
-                Array of air temperatures (K).
-        Returns:
-            numpy.ndarray:
-                Array of saturated vapour pressures (Pa).
-        """
-        # We subtract T_INCREMENT from T_MAX to get the upper bound to which we
-        # clip input temperatures. This ensures that we do not attempt an
-        # interpolation that requires a value beyond the SVP table maximum.
-        T_max = svp_table.T_MAX - svp_table.T_INCREMENT
-        T_min = svp_table.T_MIN
-        delta_T = svp_table.T_INCREMENT
-        self.check_range(temperature, T_min, T_max)
-        T_clipped = np.clip(temperature, T_min, T_max)
-
-        # Note the indexing below differs by -1 compared with the UM due to
-        # Python vs. Fortran indexing.
-        table_position = (T_clipped - T_min + delta_T)/delta_T - 1.
-        table_index = table_position.astype(int)
-        interpolation_factor = table_position - table_index
-        return ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
-                interpolation_factor * svp_table.DATA[table_index + 1])
-
-    @staticmethod
-    def pressure_correct_svp(svp, temperature, pressure):
-        """
-        Convert saturated vapour pressure in a pure water vapour system into
-        the saturated vapour pressure in air.
-
-        Method from referenced documentation.
-
-        References:
-            Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
-            Series, Vol. 30; Equation A4.7.
-
-        Args:
-            svp (numpy.ndarray):
-                Array of saturated vapour pressures (Pa).
-            temperature (numpy.ndarray):
-                Array of air temperatures (K).
-            pressure (numpy.ndarray):
-                Array of pressure (Pa).
-
-        Returns:
-            numpy.ndarray:
-                The input Array of saturated vapour pressure of air (Pa) is
-                modified by the pressure correction.
-        """
-        temp = temperature.copy()
-        temp = temp + consts.ABSOLUTE_ZERO
-
-        correction = (1. + 1.0E-8 * pressure *
-                      (4.5 + 6.0E-4 * temp ** 2))
-        svp = svp*correction
-        return svp
-
-    def _calculate_mixing_ratio(self, temperature, pressure):
-        """Function to compute the mixing ratio given temperature and pressure.
-
-        Args:
-            temperature (numpy.ndarray):
-                Array of air temperature (K).
-            pressure (numpy.ndarray):
-                Array of air pressure (Pa).
-
-        Returns
-            numpy.ndarray:
-                Array of mixing ratios.
-
-        Method from referenced documentation. Note that EARTH_REPSILON is
-        simply given as an unnamed constant in the reference (0.62198).
-
-        References:
-            ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
-        """
-        svp = self.lookup_svp(temperature)
-        svp = self.pressure_correct_svp(svp, temperature, pressure)
-
-        # Calculation
-        result_numer = (consts.EARTH_REPSILON * svp)
-        max_pressure_term = np.maximum(svp, pressure)
-        result_denom = (max_pressure_term - ((1. - consts.EARTH_REPSILON) *
-                                             svp))
-        return result_numer / result_denom
-
-    def calculate_wet_bulb_temperature(self, temperature, relative_humidity,
-                                       pressure):
-        """Calculates the wet bulb temperature.
-
-        Args:
-            temperature (iris.cube.Cube):
-                Cube of air temperatures (K).
-            relative_humidity (iris.cube.Cube):
-                Cube of relative humidities (%, converted to fractional).
-            pressure (iris.cube.Cube):
-                Cube of air pressures (Pa).
-
-        Returns:
-            iris.cube.Cube:
-                Cube of wet bulb temperature (K).
-
-        """
-        relative_humidity.convert_units(1)
-        pressure.convert_units('Pa')
-        temperature.convert_units('K')
-        wbt_data = self._calculate_wbt(
-            pressure.data, relative_humidity.data, temperature.data)
-
-        wbt = temperature.copy(data=wbt_data)
-        wbt.rename('wet_bulb_temperature')
-        return wbt
-
-    def _calculate_wbt(self, pressure,
-                       relative_humidity, temperature):
-        """Calculates the wet bulb temperature. without using iris.cubes'
+        Calculate an array of wet bulb temperatures from inputs in
+        the correct units.
 
         A Newton iterator is used to minimise the gradient of enthalpy
         against temperature.
@@ -428,56 +302,81 @@ class WetBulbTemperature(BasePlugin):
                 Array of wet bulb temperature (K).
 
         """
-        # Use air temperature as a first guess for wet bulb temperature.
-        wbt_data = temperature.copy()
-        latent_heat = Utilities.latent_heat_of_condensation(temperature)
-        # Calculate mixing ratios.
-        saturation_mixing_ratio = self._calculate_mixing_ratio(temperature,
-                                                               pressure)
+        # Initialise psychrometric variables
+        latent_heat = self._calculate_latent_heat(temperature)
+        saturation_mixing_ratio = self._calculate_mixing_ratio(
+            temperature, pressure)
         mixing_ratio = relative_humidity * saturation_mixing_ratio
-        # Calculate specific and latent heats.
-        specific_heat = Utilities.specific_heat_of_moist_air(mixing_ratio)
+        specific_heat = self._calculate_specific_heat(mixing_ratio)
+        enthalpy = self._calculate_enthalpy(
+            mixing_ratio, specific_heat, latent_heat, temperature)
 
-        # Calculate enthalpy.
-        g_tw = Utilities.calculate_enthalpy(mixing_ratio, specific_heat,
-                                            latent_heat, temperature)
+        # Initialise wet bulb temperature increment
+        delta_wbt = 10. * np.broadcast_to(self.precision, temperature.shape)
+        delta_wbt_prev = None
 
-        precision = np.full(temperature.shape, self.precision)
-
-        delta_wbt = 10. * precision
-        delta_wbt_history = 5. * precision
-        max_iterations = 20
+        # Iterate to find the wet bulb temperature, using temperature as first
+        # guess
+        wbt_data = temperature.copy()
         iteration = 0
+        while (np.abs(delta_wbt) > self.precision).any():
 
-        # Iterate to find the wet bulb temperature
-        while (np.abs(delta_wbt) > precision).any():
-            g_tw_new = Utilities.calculate_enthalpy(
+            enthalpy_new = self._calculate_enthalpy(
                 saturation_mixing_ratio, specific_heat, latent_heat, wbt_data)
-            dg_dt = Utilities.calculate_d_enthalpy_dt(
+            enthalpy_gradient = self._calculate_enthalpy_gradient(
                 saturation_mixing_ratio, specific_heat, latent_heat, wbt_data)
-            delta_wbt = (g_tw - g_tw_new) / dg_dt
+            delta_wbt = (enthalpy - enthalpy_new) / enthalpy_gradient
 
-            # Only change values at those points yet to converge to avoid
-            # oscillating solutions (the now fixed points are still calculated
-            # unfortunately).
-            unfinished = np.where(np.abs(delta_wbt) > precision)
-            wbt_data[unfinished] = (wbt_data[unfinished]
-                                    + delta_wbt[unfinished])
+            # Increment wet bulb temperature at points which have not converged
+            to_update = np.where(np.abs(delta_wbt) > self.precision)
+            wbt_data[to_update] = (wbt_data[to_update] + delta_wbt[to_update])
 
-            # If the errors are identical between two iterations, stop.
-            if (np.array_equal(delta_wbt, delta_wbt_history) or
-                    iteration > max_iterations):
+            # If increment is identical to the previous iteration, stop
+            if (np.array_equal(delta_wbt, delta_wbt_prev) or
+                    iteration > self.maximum_iterations):
                 warnings.warn('No further refinement occurring; breaking out '
                               'of Newton iterator and returning result.')
                 break
-            delta_wbt_history = delta_wbt
-            iteration += 1
 
-            # Recalculate the saturation mixing ratio
+            # Update saturation mixing ratio and iterators
             saturation_mixing_ratio = self._calculate_mixing_ratio(
                 wbt_data, pressure)
 
+            delta_wbt_prev = delta_wbt
+            iteration += 1
+
         return wbt_data
+
+    def create_wet_bulb_temperature_cube(
+            self, temperature, relative_humidity, pressure):
+        """
+        Creates a cube of wet bulb temperature values
+
+        Args:
+            temperature (iris.cube.Cube):
+                Cube of air temperatures.
+            relative_humidity (iris.cube.Cube):
+                Cube of relative humidities.
+            pressure (iris.cube.Cube):
+                Cube of air pressures.
+
+        Returns:
+            iris.cube.Cube:
+                Cube of wet bulb temperature (K).
+
+        """
+        temperature.convert_units('K')
+        relative_humidity.convert_units(1)
+        pressure.convert_units('Pa')
+        wbt_data = self._calculate_wet_bulb_temperature(
+            pressure.data, relative_humidity.data, temperature.data)
+
+        attributes = generate_mandatory_attributes(
+            [temperature, relative_humidity, pressure])
+        wbt = create_new_diagnostic_cube(
+            'wet_bulb_temperature', 'K', temperature, attributes,
+            data=wbt_data)
+        return wbt
 
     def process(self, temperature, relative_humidity, pressure):
         """
@@ -488,87 +387,38 @@ class WetBulbTemperature(BasePlugin):
 
         Args:
             temperature (iris.cube.Cube):
-                Cube of air temperatures (K).
+                Cube of air temperatures.
             relative_humidity (iris.cube.Cube):
-                Cube of relative humidities (%, converted to fractional).
+                Cube of relative humidities.
             pressure (iris.cube.Cube):
-                Cube of air pressures (Pa).
+                Cube of air pressures.
 
         Returns:
             iris.cube.Cube:
                 Cube of wet bulb temperature (K).
         """
-        try:
-            vertical_coords = [cube.coord(axis='z').name() for cube in
-                               [temperature, relative_humidity, pressure]
-                               if cube.coord_dims(cube.coord(axis='z')) != ()]
-        except iris.exceptions.CoordinateNotFoundError:
-            vertical_coords = []
-
-        if len(vertical_coords) == 3 and len(set(vertical_coords)) == 1:
-            level_coord, = set(vertical_coords)
-            temperature_over_levels = temperature.slices_over(level_coord)
-            relative_humidity_over_levels = relative_humidity.slices_over(
-                level_coord)
-            pressure_over_levels = pressure.slices_over(level_coord)
-            slices = zip(temperature_over_levels,
-                         relative_humidity_over_levels, pressure_over_levels)
-        elif len(vertical_coords) > 0 and len(set(vertical_coords)) != 1:
-            raise ValueError('WetBulbTemperature: Cubes have differing '
-                             'vertical coordinates.')
-        else:
-            slices = [(temperature, relative_humidity, pressure)]
+        slices = self._slice_inputs(temperature, relative_humidity, pressure)
 
         cubelist = iris.cube.CubeList([])
         for t_slice, rh_slice, p_slice in slices:
-            cubelist.append(self.calculate_wet_bulb_temperature(
-                t_slice, rh_slice, p_slice))
-
+            cubelist.append(self.create_wet_bulb_temperature_cube(
+                t_slice.copy(), rh_slice.copy(), p_slice.copy()))
         wet_bulb_temperature = cubelist.merge_cube()
-        wet_bulb_temperature = check_cube_coordinates(temperature,
-                                                      wet_bulb_temperature)
+
+        # re-promote any scalar coordinates lost in slice / merge
+        wet_bulb_temperature = check_cube_coordinates(
+            temperature, wet_bulb_temperature)
+
         return wet_bulb_temperature
 
 
 class WetBulbTemperatureIntegral(BasePlugin):
     """Calculate a wet-bulb temperature integral."""
 
-    def __init__(self, coord_name_to_integrate="height",
-                 start_point=None, end_point=None,
-                 direction_of_integration="negative"):
-        """
-        Initialise class.
-
-        Args:
-            coord_name_to_integrate (str):
-                Name of the coordinate to be integrated.
-            start_point (float or None):
-                Point at which to start the integration.
-                Default is None. If start_point is None, integration starts
-                from the first available point.
-            end_point (float or None):
-                Point at which to end the integration.
-                Default is None. If end_point is None, integration will
-                continue until the last available point.
-            direction_of_integration (str):
-                Description of the direction in which to integrate.
-                Options are 'positive' or 'negative'.
-                'positive' corresponds to the values within the array
-                increasing as the array index increases.
-                'negative' corresponds to the values within the array
-                decreasing as the array index increases.
-        """
+    def __init__(self):
+        """Initialise class."""
         self.integration_plugin = Integration(
-            coord_name_to_integrate, start_point=start_point,
-            end_point=end_point,
-            direction_of_integration=direction_of_integration)
-        self.coord_name_to_integrate = coord_name_to_integrate
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = ('<WetBulbTemperatureIntegral: {}>'.format(
-            self.integration_plugin))
-        return result
+            "height", direction_of_integration="negative")
 
     def process(self, wet_bulb_temperature):
         """
@@ -577,25 +427,23 @@ class WetBulbTemperatureIntegral(BasePlugin):
 
         Args:
             wet_bulb_temperature (iris.cube.Cube):
-                Cube of wet bulb temperatures of height levels.
+                Cube of wet bulb temperatures on height levels.
 
         Returns:
             wet_bulb_temperature_integral (iris.cube.Cube):
                 Cube of wet bulb temperature integral (Kelvin-metres).
         """
+        wbt = wet_bulb_temperature.copy()
+        wbt.convert_units('degC')
+        wbt.coord('height').convert_units('m')
         # Touch the data to ensure it is not lazy
         # otherwise vertical interpolation is slow
         # pylint: disable=pointless-statement
-        wet_bulb_temperature.data
-        # Convert to Celsius
-        wet_bulb_temperature.convert_units('celsius')
-        # Integrate.
-        wet_bulb_temperature_integral = (
-            self.integration_plugin.process(wet_bulb_temperature))
-        wet_bulb_temperature_integral.rename("wet_bulb_temperature_integral")
-        units_string = "K {}".format(
-            wet_bulb_temperature.coord(self.coord_name_to_integrate).units)
-        wet_bulb_temperature_integral.units = Unit(units_string)
+        wbt.data
+        wet_bulb_temperature_integral = self.integration_plugin.process(wbt)
+        # although the integral is computed over degC the standard unit is
+        # 'K m', and these are equivalent
+        wet_bulb_temperature_integral.units = Unit('K m')
         return wet_bulb_temperature_integral
 
 
@@ -1027,6 +875,77 @@ class PhaseChangeLevel(BasePlugin):
             radius_in_metres).process(orography_cube)
         return max_in_nbhood_orog
 
+    def _calculate_phase_change_level(
+            self, wet_bulb_temp, wb_integral, orography, max_nbhood_orog,
+            land_sea_data, heights, height_points, highest_height):
+        """
+        Calculate phase change level and fill in missing points
+
+        Args:
+            wet_bulb_temp (numpy.ndarray):
+                Wet bulb temperature data
+            wb_integral (numpy.ndarray):
+                Wet bulb temperature integral
+            orography (numpy.ndarray):
+                Orography heights
+            max_nbhood_orog (numpy.ndarray):
+                Maximum orography height in neighbourhood
+            land_sea_data (numpy.ndarray):
+                Mask of binary land / sea data
+            heights (np.ndarray):
+                All heights of wet bulb temperature input
+            height_points (numpy.ndarray):
+                Heights on wet bulb temperature integral slice
+            highest_height (float):
+                Height of the highest level to which the wet bulb
+                temperature has been integrated
+
+        Returns:
+            np.ndarray:
+                Level at which phase changes
+
+        """
+        phase_change_data = self.find_falling_level(
+            wb_integral, orography, height_points)
+
+        # Fill in missing data
+        self.fill_in_high_phase_change_falling_levels(
+            phase_change_data, orography,
+            wb_integral.max(axis=0), highest_height)
+        self.fill_in_sea_points(
+            phase_change_data, land_sea_data,
+            wb_integral.max(axis=0), wet_bulb_temp, heights)
+        updated_phase_cl = self.fill_in_by_horizontal_interpolation(
+            phase_change_data, max_nbhood_orog, orography)
+        points = np.where(~np.isfinite(phase_change_data))
+        phase_change_data[points] = updated_phase_cl[points]
+
+        # Fill in any remaining points with "missing data" value
+        remaining_points = np.where(np.isnan(phase_change_data))
+        phase_change_data[remaining_points] = self.missing_data
+
+        return phase_change_data
+
+    def create_phase_change_level_cube(self, wbt, phase_change_level):
+        """
+        Populate output cube with phase change data
+
+        Args:
+            wbt (iris.cube.Cube):
+                Wet bulb temperature cube on height levels
+            phase_change_level (numpy.ndarray):
+                Calculated phase change level in metres
+
+        Returns:
+            iris.cube.Cube
+        """
+        name = 'altitude_of_{}_level'.format(self.phase_change_name)
+        attributes = generate_mandatory_attributes([wbt])
+        template = next(wbt.slices_over(['height'])).copy()
+        template.remove_coord('height')
+        return create_new_diagnostic_cube(name, 'm', template, attributes,
+                                          data=phase_change_level)
+
     def process(self, wet_bulb_temperature, wet_bulb_integral, orog,
                 land_sea_mask):
         """
@@ -1060,51 +979,40 @@ class PhaseChangeLevel(BasePlugin):
                                                descending=True)
 
         # Find highest height from height bounds.
-        height_bounds = wet_bulb_integral.coord('height').bounds
-        heights = wet_bulb_temperature.coord('height').points
-        if height_bounds is None:
-            highest_height = heights[-1]
+        wbt_height_points = wet_bulb_temperature.coord('height').points
+        if wet_bulb_integral.coord('height').bounds is None:
+            highest_height = wbt_height_points[-1]
         else:
-            highest_height = height_bounds[0][-1]
+            highest_height = wet_bulb_integral.coord('height').bounds[0][-1]
 
         # Firstly we need to slice over height, x and y
         x_coord = wet_bulb_integral.coord(axis='x').name()
         y_coord = wet_bulb_integral.coord(axis='y').name()
         orography = next(orog.slices([y_coord, x_coord]))
-        orog_data = orography.data
         land_sea_data = next(land_sea_mask.slices([y_coord, x_coord])).data
+        max_nbhood_orog = self.find_max_in_nbhood_orography(orography)
 
-        phase_change = iris.cube.CubeList([])
+        phase_change = None
         slice_list = ['height', y_coord, x_coord]
         for wb_integral, wet_bulb_temp in zip(
                 wet_bulb_integral.slices(slice_list),
                 wet_bulb_temperature.slices(slice_list)):
-            height_points = wb_integral.coord('height').points
-            # Calculate phase change level above sea level.
-            phase_change_cube = wb_integral[0]
-            phase_change_cube.rename(
-                'altitude_of_{}_level'.format(self.phase_change_name))
-            phase_change_cube.units = 'm'
-            phase_change_cube.remove_coord('height')
+            phase_change_data = self._calculate_phase_change_level(
+                wet_bulb_temp.data, wb_integral.data, orography.data,
+                max_nbhood_orog.data, land_sea_data, wbt_height_points,
+                wb_integral.coord('height').points, highest_height)
 
-            phase_change_cube.data = self.find_falling_level(
-                wb_integral.data, orog_data, height_points)
-            # Fill in missing data
-            self.fill_in_high_phase_change_falling_levels(
-                phase_change_cube.data, orog_data,
-                wb_integral.data.max(axis=0), highest_height)
-            self.fill_in_sea_points(
-                phase_change_cube.data, land_sea_data,
-                wb_integral.data.max(axis=0), wet_bulb_temp.data, heights)
-            max_nbhood_orog = self.find_max_in_nbhood_orography(orography)
-            updated_phase_cl = self.fill_in_by_horizontal_interpolation(
-                phase_change_cube.data, max_nbhood_orog.data, orog_data)
-            points = np.where(~np.isfinite(phase_change_cube.data))
-            phase_change_cube.data[points] = updated_phase_cl[points]
-            # Fill in any remaining points with missing data:
-            remaining_points = np.where(np.isnan(phase_change_cube.data))
-            phase_change_cube.data[remaining_points] = self.missing_data
-            phase_change.append(phase_change_cube)
+            # preserve dimensionality of input cube (in case of scalar or
+            # length 1 dimensions)
+            if phase_change is None:
+                phase_change = phase_change_data
+            elif not isinstance(phase_change, list):
+                phase_change = [phase_change]
+                phase_change.append(phase_change_data)
+            else:
+                phase_change.append(phase_change_data)
 
-        phase_change_level = phase_change.merge_cube()
+        phase_change_level = self.create_phase_change_level_cube(
+            wet_bulb_temperature, np.array(phase_change, dtype=np.float32))
+
         return phase_change_level

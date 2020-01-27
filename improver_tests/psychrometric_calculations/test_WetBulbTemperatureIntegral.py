@@ -40,21 +40,7 @@ from iris.tests import IrisTest
 from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperatureIntegral)
 
-from ...set_up_test_cubes import add_coordinate, set_up_variable_cube
-
-
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(WetBulbTemperatureIntegral())
-        msg = ('<WetBulbTemperatureIntegral: <Integration: '
-               'coord_name_to_integrate: '
-               'height, start_point: None, end_point: None, '
-               'direction_of_integration: negative>>')
-        self.assertEqual(result, msg)
+from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 class Test_process(IrisTest):
@@ -93,7 +79,7 @@ class Test_process(IrisTest):
             self.wet_bulb_temperature)
         self.assertIsInstance(wb_temp_int, iris.cube.Cube)
         self.assertEqual(wb_temp_int.name(), "wet_bulb_temperature_integral")
-        self.assertEqual(wb_temp_int.units, Unit('K m'))
+        self.assertEqual(str(wb_temp_int.units), 'K m')
 
     def test_data(self):
         """Test that the wet bulb temperature integral returns a cube

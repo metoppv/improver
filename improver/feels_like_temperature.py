@@ -33,8 +33,8 @@
 import numpy as np
 from cf_units import Unit
 
-from improver.psychrometric_calculations.psychrometric_calculations import (
-    WetBulbTemperature)
+from improver.psychrometric_calculations.psychrometric_calculations \
+    import calculate_svp_in_air
 
 
 def calculate_wind_chill(temperature, wind_speed):
@@ -168,11 +168,8 @@ def calculate_apparent_temperature(temperature, wind_speed,
     temperature.convert_units('K')
     avp = temperature.copy()
     avp.units = Unit('Pa')
-    # look up saturated vapour pressure
-    svp = WetBulbTemperature().lookup_svp(temperature.data)
-    # convert to SVP in air
-    svp = WetBulbTemperature().pressure_correct_svp(
-        svp, temperature.data, pressure.data)
+    # calculate saturation vapour pressure in air
+    svp = calculate_svp_in_air(temperature.data, pressure.data)
     # convert temperature units
     temperature.convert_units('celsius')
     # calculate actual vapour pressure
