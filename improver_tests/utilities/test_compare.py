@@ -163,13 +163,6 @@ def test_compare_netcdf_attrs(dummy_nc):
     assert "float_number" in messages_reported[0]
 
 
-def test_compare_missing_var(dummy_nc):
-    """Check reporting of missing coordinate variable"""
-    actual_nc, expected_nc = dummy_nc
-    realiz = dset.createVariable([0], np.float64, dimensions=(0,))
-
-
-
 def test_compare_data_floats_equal(dummy_nc):
     """Check comparison of floating point data considered exactly equal"""
     actual_nc, expected_nc = dummy_nc
