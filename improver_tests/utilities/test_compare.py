@@ -138,7 +138,7 @@ def test_compare_netcdf_attrs(dummy_nc):
     assert "3.2" in messages_reported[0]
     assert "1.5" in messages_reported[0]
 
-    # Reset that attribute back to original value
+    # Reset attribute back to original value
     actual_ds.setncattr("float_number", 1.5)
     messages_reported = []
 
@@ -161,6 +161,13 @@ def test_compare_netcdf_attrs(dummy_nc):
         "root", actual_ds, expected_ds, message_collector)
     assert len(messages_reported) == 1
     assert "float_number" in messages_reported[0]
+
+
+def test_compare_missing_var(dummy_nc):
+    """Check reporting of missing coordinate variable"""
+    actual_nc, expected_nc = dummy_nc
+    realiz = dset.createVariable([0], np.float64, dimensions=(0,))
+
 
 
 def test_compare_data_floats_equal(dummy_nc):
