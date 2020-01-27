@@ -332,7 +332,7 @@ class LapseRate(BasePlugin):
 
         return height_diff_mask
 
-    def process(self, temperature, orography, land_sea_mask, 
+    def process(self, temperature, orography, land_sea_mask,
                 model_id_attr=None):
         """Calculates the lapse rate from the temperature and orography cubes.
 
