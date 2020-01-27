@@ -49,6 +49,8 @@ def test_basic(tmp_path):
                               f"radiation_flux_in_uv_{x}ward_at_surface.nc")
                    for x in ("up", "down")]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths, "--output", output_path]
+    args = [*input_paths,
+            "--output", output_path,
+            "--model-id-attr", "mosg__model_configuration"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
