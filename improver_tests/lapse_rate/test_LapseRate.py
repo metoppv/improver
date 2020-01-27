@@ -156,13 +156,22 @@ class Test_process(IrisTest):
         warning_types=[RuntimeWarning])
     def test_basic(self):
         """Test that the plugin returns expected data type. """
-
         result = LapseRate(nbhood_radius=1).process(self.temperature,
                                                     self.orography,
                                                     self.land_sea_mask)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "air_temperature_lapse_rate")
         self.assertEqual(result.units, "K m-1")
+
+    def test_dimensions(self):
+        """Test that the output cube has the same shape and dimensions as
+        the input temperature cube"""
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
+        self.assertSequenceEqual(result.shape, self.temperature.shape)
+        self.assertSequenceEqual(result.coords(dim_coords=True),
+                                 self.temperature.coords(dim_coords=True))
 
     def test_fails_if_temperature_is_not_cube(self):
         """Test code raises a Type Error if input temperature cube is
@@ -258,11 +267,11 @@ class Test_process(IrisTest):
         """
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([[0.0082, 0.0081, 0.0081, DALR, DALR],
-                                 [0.0081, 0.008, 0.008, DALR, DALR],
-                                 [0.0081, 0.008, 0.008, DALR, DALR],
-                                 [DALR, DALR, DALR, DALR, DALR],
-                                 [DALR, DALR, DALR, DALR, DALR]])
+        expected_out = np.array([[[0.0082, 0.0081, 0.0081, DALR, DALR],
+                                  [0.0081, 0.008, 0.008, DALR, DALR],
+                                  [0.0081, 0.008, 0.008, DALR, DALR],
+                                  [DALR, DALR, DALR, DALR, DALR],
+                                  [DALR, DALR, DALR, DALR, DALR]]])
 
         self.temperature.data[:, :, :] = 0.08
         # The array should contain non DALR values around this single point
@@ -316,11 +325,11 @@ class Test_process(IrisTest):
         """
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([[0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR]])
+        expected_out = np.array([[[0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR]]])
 
         # West data points should be -3*DALR and East should be DALR.
         self.temperature.data[:, :, 0] = 2
@@ -342,11 +351,11 @@ class Test_process(IrisTest):
         maximum lapse rate."""
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([[0.0392, 0.0392, 0.0, DALR, DALR],
-                                 [0.0392, 0.0392, 0.0, DALR, DALR],
-                                 [0.0392, 0.0392, 0.0, DALR, DALR],
-                                 [0.0392, 0.0392, 0.0, DALR, DALR],
-                                 [0.0392, 0.0392, 0.0, DALR, DALR]])
+        expected_out = np.array([[[0.0392, 0.0392, 0.0, DALR, DALR],
+                                  [0.0392, 0.0392, 0.0, DALR, DALR],
+                                  [0.0392, 0.0392, 0.0, DALR, DALR],
+                                  [0.0392, 0.0392, 0.0, DALR, DALR],
+                                  [0.0392, 0.0392, 0.0, DALR, DALR]]])
 
         # West data points should be -4*DALR and East should be DALR.
         self.temperature.data[:, :, 0] = 2
@@ -371,11 +380,11 @@ class Test_process(IrisTest):
         minimum lapse rate."""
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([[0.0294, 0.0294, 0.0, -0.0196, -0.0196],
-                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
-                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
-                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
-                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196]])
+        expected_out = np.array([[[0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                  [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                  [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                  [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                  [0.0294, 0.0294, 0.0, -0.0196, -0.0196]]])
 
         # West data points should be -3*DALR and East should be 2*DALR.
         self.temperature.data[:, :, 0] = 2
@@ -400,11 +409,11 @@ class Test_process(IrisTest):
         maximum and minimum lapse rate."""
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([[0.0392, 0.0392, 0.0, -0.0196, -0.0196],
-                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
-                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
-                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
-                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196]])
+        expected_out = np.array([[[0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                  [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                  [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                  [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                  [0.0392, 0.0392, 0.0, -0.0196, -0.0196]]])
 
         # West data points should be -4*DALR and East should be 2*DALR.
         self.temperature.data[:, :, 0] = 2
@@ -431,11 +440,11 @@ class Test_process(IrisTest):
         """
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([[0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, DALR, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR]])
+        expected_out = np.array([[[0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, DALR, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR]]])
 
         # West data points should be -3*DALR and East should be DALR.
         self.temperature.data[:, :, 0] = 2
@@ -459,11 +468,11 @@ class Test_process(IrisTest):
         """
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([[0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [DALR, DALR, DALR, DALR, DALR],
-                                 [DALR, DALR, DALR, DALR, DALR]])
+        expected_out = np.array([[[0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [DALR, DALR, DALR, DALR, DALR],
+                                  [DALR, DALR, DALR, DALR, DALR]]])
 
         # West data points should be -3*DALR and East should be DALR, South
         # should be zero.
@@ -488,11 +497,11 @@ class Test_process(IrisTest):
         max_height_diff = 35metres."""
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([[DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.0065517, -0.003],
-                                 [DALR, DALR, DALR, -0.0065517, 0.0],
-                                 [DALR, DALR, DALR, -0.0065517, -0.003],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005]])
+        expected_out = np.array([[[DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.0065517, -0.003],
+                                  [DALR, DALR, DALR, -0.0065517, 0.0],
+                                  [DALR, DALR, DALR, -0.0065517, -0.003],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005]]])
 
         self.temperature.data[:, :, 0:2] = 0.4
         self.temperature.data[:, :, 2] = 0.3
@@ -518,11 +527,11 @@ class Test_process(IrisTest):
         specified, non-default max_height_diff."""
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([[DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.00454128, -0.003],
-                                 [DALR, DALR, DALR, -0.00454128, -0.003],
-                                 [DALR, DALR, DALR, -0.00454128, -0.003],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005]])
+        expected_out = np.array([[[DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.00454128, -0.003],
+                                  [DALR, DALR, DALR, -0.00454128, -0.003],
+                                  [DALR, DALR, DALR, -0.00454128, -0.003],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005]]])
 
         self.temperature.data[:, :, 0:2] = 0.4
         self.temperature.data[:, :, 2] = 0.3
@@ -549,11 +558,11 @@ class Test_process(IrisTest):
         """
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([[DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005]])
+        expected_out = np.array([[[DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005]]])
 
         self.temperature.data[:, :, 0:2] = 0.4
         self.temperature.data[:, :, 2] = 0.3
@@ -577,11 +586,11 @@ class Test_process(IrisTest):
 
         reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
 
-        expected_out = np.array([[DALR, 0.01, 0.01, 0.00642857, 0.005],
-                                 [DALR, 0.01, 0.01, 0.00642857, 0.005],
-                                 [DALR, 0.01, 0.01, 0.00642857, 0.005],
-                                 [DALR, 0.01, 0.01, 0.00642857, 0.005],
-                                 [DALR, 0.01, 0.01, 0.00642857, 0.005]])
+        expected_out = np.array([[[DALR, 0.01, 0.01, 0.00642857, 0.005],
+                                  [DALR, 0.01, 0.01, 0.00642857, 0.005],
+                                  [DALR, 0.01, 0.01, 0.00642857, 0.005],
+                                  [DALR, 0.01, 0.01, 0.00642857, 0.005],
+                                  [DALR, 0.01, 0.01, 0.00642857, 0.005]]])
 
         self.temperature.data[:, :, 0:2] = 0.1
         self.temperature.data[:, :, 2] = 0.2

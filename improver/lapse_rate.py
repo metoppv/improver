@@ -40,7 +40,10 @@ from scipy.ndimage import generic_filter
 from improver import BasePlugin
 from improver.constants import DALR
 from improver.metadata.check_datatypes import check_cube_not_float64
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube, generate_mandatory_attributes)
 from improver.utilities.cube_checker import spatial_coords_match
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
@@ -329,17 +332,17 @@ class LapseRate(BasePlugin):
 
         return height_diff_mask
 
-    def process(self, temperature_cube, orography_cube, land_sea_mask_cube):
+    def process(self, temperature, orography, land_sea_mask):
         """Calculates the lapse rate from the temperature and orography cubes.
 
         Args:
-            temperature_cube (iris.cube.Cube):
+            temperature (iris.cube.Cube):
                 Cube of air temperatures (K).
 
-            orography_cube (iris.cube.Cube):
+            orography (iris.cube.Cube):
                 Cube containing orography data (metres)
 
-            land_sea_mask_cube (iris.cube.Cube):
+            land_sea_mask (iris.cube.Cube):
                 Cube containing a binary land-sea mask. True for land-points
                 and False for Sea.
 
@@ -353,22 +356,22 @@ class LapseRate(BasePlugin):
         ValueError: If input cubes are the wrong units.
 
         """
-
-        if not isinstance(temperature_cube, iris.cube.Cube):
+        if not isinstance(temperature, iris.cube.Cube):
             msg = "Temperature input is not a cube, but {}"
-            raise TypeError(msg.format(type(temperature_cube)))
+            raise TypeError(msg.format(type(temperature)))
 
-        if not isinstance(orography_cube, iris.cube.Cube):
+        if not isinstance(orography, iris.cube.Cube):
             msg = "Orography input is not a cube, but {}"
-            raise TypeError(msg.format(type(orography_cube)))
+            raise TypeError(msg.format(type(orography)))
 
-        if not isinstance(land_sea_mask_cube, iris.cube.Cube):
+        if not isinstance(land_sea_mask, iris.cube.Cube):
             msg = "Land/Sea mask input is not a cube, but {}"
-            raise TypeError(msg.format(type(land_sea_mask_cube)))
+            raise TypeError(msg.format(type(land_sea_mask)))
 
         # Converts cube units.
+        temperature_cube = temperature.copy()
         temperature_cube.convert_units('K')
-        orography_cube.convert_units('metres')
+        orography.convert_units('metres')
 
         check_cube_not_float64(temperature_cube, fix=True)
 
@@ -377,12 +380,12 @@ class LapseRate(BasePlugin):
         y_coord = temperature_cube.coord(axis='y').name()
 
         # Extract orography and land/sea mask data.
-        orography_data = next(orography_cube.slices([y_coord,
-                                                     x_coord])).data
-        land_sea_mask = next(land_sea_mask_cube.slices([y_coord,
+        orography_data = next(orography.slices([y_coord,
+                                                x_coord])).data
+        land_sea_mask_data = next(land_sea_mask.slices([y_coord,
                                                         x_coord])).data
         # Fill sea points with NaN values.
-        orography_data = np.where(land_sea_mask, orography_data, np.nan)
+        orography_data = np.where(land_sea_mask_data, orography_data, np.nan)
 
         # Extract data array dimensions to define output arrays.
         dataarray_shape = next(temperature_cube.slices([y_coord,
@@ -396,27 +399,22 @@ class LapseRate(BasePlugin):
         all_orog_subsections = np.zeros(
             (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
 
-        # Attempts to extract realizations. If cube doesn't contain the
-        # dimension then place within list.
+        # Create slices list over leading "realization" coordinate
         try:
+            enforce_coordinate_ordering(temperature_cube, ["realization"])
             slices_over_realization = temperature_cube.slices_over(
                 "realization")
         except iris.exceptions.CoordinateNotFoundError:
             slices_over_realization = [temperature_cube]
 
-        # Creates cube list to hold lapse rate data.
-        lapse_rate_cube_list = iris.cube.CubeList([])
-
+        # Calculate lapse rate for each realization
+        lapse_rate_data = []
         for temp_slice in slices_over_realization:
-
-            # Create slice to store lapse rate values.
-            lapse_rate_slice = temp_slice
-
             temperature_data = temp_slice.data
 
             # Fill sea points with NaN values. Can't use Numpy mask since not
             # recognised by "generic_filter" function.
-            temperature_data = np.where(land_sea_mask, temperature_data,
+            temperature_data = np.where(land_sea_mask_data, temperature_data,
                                         np.nan)
 
             # Saves all neighbourhoods into "all_temp_subsections".
@@ -459,12 +457,11 @@ class LapseRate(BasePlugin):
                                         self.min_lapse_rate, lapse_rate_array)
             lapse_rate_array = np.where(lapse_rate_array > self.max_lapse_rate,
                                         self.max_lapse_rate, lapse_rate_array)
+            lapse_rate_data.append(lapse_rate_array)
 
-            lapse_rate_slice.data = lapse_rate_array
-            lapse_rate_cube_list.append(lapse_rate_slice)
-
-        lapse_rate_cube = lapse_rate_cube_list.merge_cube()
-        lapse_rate_cube.rename('air_temperature_lapse_rate')
-        lapse_rate_cube.units = 'K m-1'
+        attributes = generate_mandatory_attributes([temperature])
+        lapse_rate_cube = create_new_diagnostic_cube(
+            'air_temperature_lapse_rate', 'K m-1', temperature, attributes,
+            data=np.array(lapse_rate_data, dtype=np.float32))
 
         return lapse_rate_cube
