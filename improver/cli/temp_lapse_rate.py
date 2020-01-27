@@ -46,7 +46,8 @@ def process(temperature: cli.inputcube,
             nbhood_radius: int = 7,
             max_lapse_rate: float = -3*DALR,
             min_lapse_rate: float = DALR,
-            dry_adiabatic=False):
+            dry_adiabatic=False,
+            model_id_attr: str = None):
     """Calculate temperature lapse rates in units of K m-1 over orography grid.
 
     Args:
@@ -73,6 +74,9 @@ def process(temperature: cli.inputcube,
         dry_adiabatic (bool):
             If True, returns a cube containing the dry adiabatic lapse rate
             rather than calculating the true lapse rate.
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending. This is inherited from the input temperature cube.
 
     Returns:
         iris.cube.Cube:
@@ -92,6 +96,9 @@ def process(temperature: cli.inputcube,
 
     if dry_adiabatic:
         attributes = generate_mandatory_attributes([temperature])
+        optional_attributes = (
+            {model_id_attr: temperature.attributes[model_id_attr]}
+            if model_id_attr else None)
         result = create_new_diagnostic_cube(
             'air_temperature_lapse_rate', U_DALR, temperature, attributes,
             data=temperature.data.copy())

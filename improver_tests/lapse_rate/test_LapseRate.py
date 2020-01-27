@@ -138,7 +138,8 @@ class Test_process(IrisTest):
         height = AuxCoord(np.array([1.5], dtype=np.float32),
                           standard_name='height', units='m')
         self.temperature = set_up_variable_cube(
-            data, spatial_grid='equalarea', include_scalar_coords=[height])
+            data, spatial_grid='equalarea', include_scalar_coords=[height],
+            standard_grid_metadata='uk_det')
 
         # Copies temperature cube to create orography cube.
         self.orography = self.temperature.copy()[0]
@@ -172,6 +173,14 @@ class Test_process(IrisTest):
         self.assertSequenceEqual(result.shape, self.temperature.shape)
         self.assertSequenceEqual(result.coords(dim_coords=True),
                                  self.temperature.coords(dim_coords=True))
+
+    def test_model_id_attr(self):
+        """Test model ID attribute can be inherited"""
+        result = LapseRate(nbhood_radius=1).process(
+            self.temperature, self.orography, self.land_sea_mask,
+            model_id_attr="mosg__model_configuration")
+        self.assertEqual(
+            result.attributes["mosg__model_configuration"], "uk_det")
 
     def test_fails_if_temperature_is_not_cube(self):
         """Test code raises a Type Error if input temperature cube is

@@ -332,19 +332,21 @@ class LapseRate(BasePlugin):
 
         return height_diff_mask
 
-    def process(self, temperature, orography, land_sea_mask):
+    def process(self, temperature, orography, land_sea_mask, 
+                model_id_attr=None):
         """Calculates the lapse rate from the temperature and orography cubes.
 
         Args:
             temperature (iris.cube.Cube):
                 Cube of air temperatures (K).
-
             orography (iris.cube.Cube):
                 Cube containing orography data (metres)
-
             land_sea_mask (iris.cube.Cube):
                 Cube containing a binary land-sea mask. True for land-points
                 and False for Sea.
+            model_id_attr (str):
+                Name of the attribute used to identify the source model for
+                blending. This is inherited from the input temperature cube.
 
         Returns:
             iris.cube.Cube:
@@ -460,8 +462,12 @@ class LapseRate(BasePlugin):
             lapse_rate_data.append(lapse_rate_array)
 
         attributes = generate_mandatory_attributes([temperature])
+        optional_attributes = (
+            {model_id_attr: temperature.attributes[model_id_attr]}
+            if model_id_attr else None)
         lapse_rate_cube = create_new_diagnostic_cube(
             'air_temperature_lapse_rate', 'K m-1', temperature, attributes,
+            optional_attributes=optional_attributes,
             data=np.array(lapse_rate_data, dtype=np.float32))
 
         return lapse_rate_cube
