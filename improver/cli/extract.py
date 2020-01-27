@@ -39,7 +39,7 @@ from improver.cli import parameters
 @cli.with_output
 def process(cube: cli.inputcube,
             *,
-            constraints: parameters.multi(min=1),
+            constraints: parameters.multi(min = 1),
             units: cli.comma_separated_list = None,
             ignore_failure=False):
     """ Extract a subset of a single cube.
