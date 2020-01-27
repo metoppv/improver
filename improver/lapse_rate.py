@@ -401,19 +401,16 @@ class LapseRate(BasePlugin):
         all_orog_subsections = np.zeros(
             (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
 
-        # Create slices list over leading "realization" coordinate
-        try:
-            enforce_coordinate_ordering(temperature_cube, ["realization"])
-            slices_over_realization = temperature_cube.slices_over(
-                "realization")
-        except iris.exceptions.CoordinateNotFoundError:
-            slices_over_realization = [temperature_cube]
+        # Create list of arrays over "realization" coordinate
+        if temperature_cube.coords("realization"):
+            enforce_coordinate_ordering(temperature_cube, "realization")
+            temp_slices = temperature_cube.data
+        else:
+            temp_slices = [temperature_cube.data]
 
         # Calculate lapse rate for each realization
-        lapse_rate_data = []
-        for temp_slice in slices_over_realization:
-            temperature_data = temp_slice.data
-
+        lapse_rate_data = None
+        for temperature_data in temp_slices:
             # Fill sea points with NaN values. Can't use Numpy mask since not
             # recognised by "generic_filter" function.
             temperature_data = np.where(land_sea_mask_data, temperature_data,
@@ -459,15 +456,22 @@ class LapseRate(BasePlugin):
                                         self.min_lapse_rate, lapse_rate_array)
             lapse_rate_array = np.where(lapse_rate_array > self.max_lapse_rate,
                                         self.max_lapse_rate, lapse_rate_array)
-            lapse_rate_data.append(lapse_rate_array)
+
+            if lapse_rate_data is None:
+                lapse_rate_data = lapse_rate_array
+            elif not isinstance(lapse_rate_data, list):
+                lapse_rate_data = [lapse_rate_data]
+                lapse_rate_data.append(lapse_rate_array)
+            else:
+                lapse_rate_data.append(lapse_rate_array)
 
         attributes = generate_mandatory_attributes([temperature])
         optional_attributes = (
             {model_id_attr: temperature.attributes[model_id_attr]}
             if model_id_attr else None)
         lapse_rate_cube = create_new_diagnostic_cube(
-            'air_temperature_lapse_rate', 'K m-1', temperature, attributes,
-            optional_attributes=optional_attributes,
+            'air_temperature_lapse_rate', 'K m-1', temperature_cube,
+            attributes, optional_attributes=optional_attributes,
             data=np.array(lapse_rate_data, dtype=np.float32))
 
         return lapse_rate_cube
