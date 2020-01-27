@@ -162,7 +162,7 @@ def calculate_apparent_temperature(temperature, wind_speed,
     rh_cube.convert_units('1')
 
     # calculate saturation vapour pressure in air in Pa
-    svp = calculate_svp_in_air(temperature.data, pressure.data)
+    svp = calculate_svp_in_air(t_cube.data, p_cube.data)
     # calculate actual vapour pressure in kPa
     avp = 0.001 * svp * rh_cube.data
 
