@@ -487,6 +487,23 @@ class Test_process(IrisTest):
             result.coord("height").points, np.array([10., 5.]))
         self.assertArrayAlmostEqual(result.data, expected)
 
+    def test_dimension_preservation(self):
+        """Test the result preserves input dimension order when the coordinate
+        to integrate is not the first dimension (eg there's a leading
+        realization coordinate)
+        """
+        cube = set_up_variable_cube(280*np.ones((3, 3, 3), dtype=np.float32))
+        cube = add_coordinate(
+            cube, np.array([5., 10., 20.]), "height", coord_units="m")
+        cube.transpose([1, 0, 2, 3])
+        expected_coord_order = [
+            coord.name() for coord in cube.coords(dim_coords=True)]
+        result = self.plugin.process(cube)
+        self.assertEqual(result.coord_dims("height"), (1,))
+        result_coord_order = [
+            coord.name() for coord in result.coords(dim_coords=True)]
+        self.assertListEqual(result_coord_order, expected_coord_order)
+
 
 if __name__ == '__main__':
     unittest.main()
