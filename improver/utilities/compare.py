@@ -287,8 +287,9 @@ def compare_data(name, actual_var, desired_var, rtol, atol, reporter):
     Returns:
         None
     """
+    print(actual_var.dtype)
     if actual_var.dtype != desired_var.dtype:
-        msg = f"different type {name} - {actual_var.type} {desired_var.type}"
+        msg = f"different type {name} - {actual_var.dtype} {desired_var.dtype}"
         reporter(msg)
     actual_data = actual_var[:]
     desired_data = desired_var[:]
