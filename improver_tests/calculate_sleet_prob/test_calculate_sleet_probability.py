@@ -36,6 +36,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.calculate_sleet_prob import calculate_sleet_probability
+from improver.utilities.warnings_handler import ManageWarnings
 
 from ..set_up_test_cubes import set_up_probability_cube
 
@@ -97,6 +98,28 @@ class Test_calculate_sleet_probability(IrisTest):
         msg = "Negative values of sleet probability have been calculated."
         with self.assertRaisesRegex(ValueError, msg):
             calculate_sleet_probability(rain, high_prob)
+
+    @ManageWarnings(record=True)
+    def test_negative_values_warning(self, warning_list=None):
+        """Test that a warning is issued for negative values of
+        probability_of_sleet in the cube."""
+        rain = self.rain_prob_cube
+        high_prob = self.high_prob_cube
+        msg = "Negative values of sleet probability have been calculated."
+
+        result = calculate_sleet_probability(rain, high_prob,
+                                             ignore_mismatch=True)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(msg in str(item)
+                            for item in warning_list))
+        expected_result = np.array([[[0.0, 0.2, 0.0],
+                                     [0.2, 0.0, 0.0],
+                                     [0.0, 0.0, 0.0]],
+                                    [[0.0, 0.2, 0.0],
+                                     [0.2, 0.0, 0.0],
+                                     [0.0, 0.0, 0.0]]], dtype=np.float32)
+        self.assertArrayAlmostEqual(result.data, expected_result)
 
     def test_name_of_cube(self):
         """Test that the name has been changed to sleet_probability"""
