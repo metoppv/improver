@@ -101,7 +101,7 @@ def process(temperature: cli.inputcube,
             if model_id_attr else None)
         result = create_new_diagnostic_cube(
             'air_temperature_lapse_rate', U_DALR, temperature, attributes,
-            data=temperature.data.copy())
+            data=np.full_like(temperature.data, DALR).astype(np.float32))
         return result
 
     if min_lapse_rate > max_lapse_rate:
