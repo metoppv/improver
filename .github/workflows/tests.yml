@@ -17,20 +17,11 @@ jobs:
         restore-keys: |
           ${{ runner.OS }}-conda-improver-
 
-    - name: Resolve and install all dependencies
+    - name: Resolve and install dependencies
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda env update -q --file environment.yml --name improver
-        pip install clize
-        conda list --export
-
-    - name: Install clize
-      if: steps.cache.outputs.cache-hit == 'true'
-      run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate improver
-        pip install clize
         conda list --export
 
     - name: Pycodestyle (PEP8 conventions)
