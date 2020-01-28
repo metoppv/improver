@@ -198,22 +198,19 @@ def interrogate_decision_tree(wxtree):
 
     # Diagnostic names and threshold values.
     requirements = {}
-
     for query in queries.values():
         diagnostics = expand_nested_lists(query, 'diagnostic_fields')
         thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
         for diagnostic, threshold in zip(diagnostics, thresholds):
-            unique_thresholds = requirements.setdefault(diagnostic, [])
-            if threshold not in unique_thresholds:
-                unique_thresholds.append(threshold)
+            requirements.setdefault(diagnostic, set()).add(threshold)
 
     # Create a list of formatted strings that will be printed as part of the
     # CLI help.
     output = []
-    for requirement, unique_thresholds in sorted(requirements.items()):
-        units, = set(u for (_, u) in unique_thresholds)  # enforces same units
-        thresh_str = ', '.join(str(v) for (v, _) in unique_thresholds)
-        output.append('{} ({}) at: {}'.format(requirement, units, thresh_str))
+    for requirement, uniq_thresh in sorted(requirements.items()):
+        units, = set(u for (_, u) in uniq_thresh)  # enforces same units
+        thresh_str = ', '.join(map(str, sorted(v for (v, _) in uniq_thresh)))
+        output.append('{} ({}): {}'.format(requirement, units, thresh_str))
 
     n_files = len(output)
     formatted_string = ('{}\n'*n_files)
