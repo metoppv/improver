@@ -402,9 +402,13 @@ class LapseRate(BasePlugin):
             (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
 
         # Create list of arrays over "realization" coordinate
+        has_realization_dimension = False
         if temperature_cube.coords("realization"):
             enforce_coordinate_ordering(temperature_cube, "realization")
             temp_slices = temperature_cube.data
+            if "realization" in [coord.name() for coord in
+                                 temperature_cube.coords(dim_coords=True)]:
+                has_realization_dimension = True
         else:
             temp_slices = [temperature_cube.data]
 
@@ -459,6 +463,8 @@ class LapseRate(BasePlugin):
 
             if lapse_rate_data is None:
                 lapse_rate_data = lapse_rate_array
+                if has_realization_dimension:
+                    lapse_rate_data = [lapse_rate_data]
             elif not isinstance(lapse_rate_data, list):
                 lapse_rate_data = [lapse_rate_data]
                 lapse_rate_data.append(lapse_rate_array)
