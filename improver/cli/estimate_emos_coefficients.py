@@ -43,7 +43,7 @@ def process(*cubes: cli.inputcube,
             truth_attribute,
             cycletime,
             units=None,
-            predictor_of_mean='mean',
+            predictor='mean',
             tolerance: float = 0.01,
             max_iterations: int = 1000):
     """Estimate coefficients for Ensemble Model Output Statistics.
@@ -76,10 +76,11 @@ def process(*cubes: cli.inputcube,
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
-        predictor_of_mean (str):
-            String to specify the input to calculate the calibrated mean.
+        predictor (str):
+            String to specify the form of the predictor used to calculate the
+            location parameter when estimating the EMOS coefficients.
             Currently the ensemble mean ("mean") and the ensemble realizations
-            ("realizations") are supported as the predictors.
+            ("realizations") are supported as options.
         tolerance (float):
             The tolerance for the Continuous Ranked Probability Score (CRPS)
             calculated by the minimisation. Once multiple iterations result in
@@ -90,8 +91,7 @@ def process(*cubes: cli.inputcube,
             converged to a stable solution. If the maximum number of iterations
             is reached but the minimisation has not yet converged to a stable
             solution, then the available solution is used anyway, and a warning
-            is raised.
-            If the predictor_of_mean is "realizations", then the number of
+            is raised. If the predictor is "realizations", then the number of
             iterations may require increasing, as there will be more
             coefficients to solve.
 
@@ -100,62 +100,17 @@ def process(*cubes: cli.inputcube,
             Cube containing the coefficients estimated using EMOS. The cube
             contains a coefficient_index dimension coordinate and a
             coefficient_name auxiliary coordinate.
-
-    Raises:
-        RuntimeError:
-            An unexpected number of distinct cube names were passed in.
-        RuntimeError:
-            More than one cube was identified as a land-sea mask.
-        RuntimeError:
-            Missing truth or historical forecast in input cubes.
-
     """
 
-    from collections import OrderedDict
-    from improver.utilities.cube_manipulation import MergeCubes
-    from improver.ensemble_calibration.ensemble_calibration import (
+    from improver.calibration import split_forecasts_and_truth
+    from improver.calibration.ensemble_calibration import (
         EstimateCoefficientsForEnsembleCalibration)
 
-    grouped_cubes = {}
-    for cube in cubes:
-        grouped_cubes.setdefault(cube.name(), []).append(cube)
-    if len(grouped_cubes) == 1:
-        # Only one group - all forecast/truth cubes
-        land_sea_mask = None
-        diag_name = list(grouped_cubes.keys())[0]
-    elif len(grouped_cubes) == 2:
-        # Two groups - the one with exactly one cube matching a name should
-        # be the land_sea_mask, since we require more than 2 cubes in
-        # the forecast/truth group
-        grouped_cubes = OrderedDict(sorted(grouped_cubes.items(),
-                                           key=lambda kv: len(kv[1])))
-        # landsea name should be the key with the lowest number of cubes (1)
-        landsea_name, diag_name = list(grouped_cubes.keys())
-        land_sea_mask = grouped_cubes[landsea_name][0]
-        if len(grouped_cubes[landsea_name]) != 1:
-            raise RuntimeError('Expected one cube for land-sea mask.')
-    else:
-        raise RuntimeError('Must have cubes with 1 or 2 distinct names.')
-
-    # split non-land_sea_mask cubes on forecast vs truth
-    truth_key, truth_value = truth_attribute.split('=')
-    input_cubes = grouped_cubes[diag_name]
-    grouped_cubes = {'truth': [], 'historical forecast': []}
-    for cube in input_cubes:
-        if cube.attributes.get(truth_key) == truth_value:
-            grouped_cubes['truth'].append(cube)
-        else:
-            grouped_cubes['historical forecast'].append(cube)
-
-    missing_inputs = ' and '.join(k for k, v in grouped_cubes.items() if not v)
-    if missing_inputs:
-        raise RuntimeError('Missing ' + missing_inputs + ' input.')
-
-    truth = MergeCubes()(grouped_cubes['truth'])
-    forecast = MergeCubes()(grouped_cubes['historical forecast'])
+    forecast, truth, land_sea_mask = split_forecasts_and_truth(
+        cubes, truth_attribute)
 
     return EstimateCoefficientsForEnsembleCalibration(
         distribution, cycletime, desired_units=units,
-        predictor_of_mean_flag=predictor_of_mean,
-        tolerance=tolerance, max_iterations=max_iterations).process(
+        predictor=predictor, tolerance=tolerance,
+        max_iterations=max_iterations).process(
             forecast, truth, landsea_mask=land_sea_mask)

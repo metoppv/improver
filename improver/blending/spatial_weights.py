@@ -37,6 +37,7 @@ import numpy as np
 from scipy.ndimage.morphology import distance_transform_edt
 
 from improver import BasePlugin
+from improver.utilities.cube_manipulation import collapsed
 from improver.utilities.rescale import rescale
 
 
@@ -239,8 +240,10 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 The blend_coord will be the leading dimension on the
                 output cube.
         """
-        summed_weights = weights_cube.collapsed(
-            blend_coord, iris.analysis.SUM)
+        summed_weights = collapsed(weights_cube,
+                                   blend_coord,
+                                   iris.analysis.SUM)
+
         result = iris.cube.CubeList()
         # Slice over blend_coord so the dimensions match.
         for weight_slice in (
@@ -312,7 +315,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         coords_to_slice_over = [blend_coord, y_coord, x_coord]
         slices = cube_to_collapse.slices(coords_to_slice_over)
         # Check they all have the same mask
-        first_slice = slices.next()
+        first_slice = next(slices)
         if np.ma.is_masked(first_slice.data):
             first_mask = first_slice.data.mask
             for cube_slice in slices:

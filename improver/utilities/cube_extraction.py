@@ -72,11 +72,7 @@ def is_complex_parsing_required(value):
         bool:
             Flag value to indicate whether the string requires complex parsing.
     """
-    if ":" in value:
-        complex_constraint = True
-    else:
-        complex_constraint = False
-    return complex_constraint
+    return ":" in value
 
 
 def create_constraint(value):
@@ -212,7 +208,7 @@ def apply_extraction(cube, constraint, units=None, use_original_units=True):
             cube.coord(coord).convert_units(units[coord])
         output_cube = cube.extract(constraint)
         if use_original_units:
-            for coord in original_units.keys():
+            for coord in original_units:
                 cube.coord(coord).convert_units(original_units[coord])
                 try:
                     output_cube.coord(coord).convert_units(

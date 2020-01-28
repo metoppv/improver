@@ -120,7 +120,7 @@ class SpotExtraction(BasePlugin):
                 An array of diagnostic values at the grid coordinates found
                 within the coordinate cube.
         """
-        diagnostic_cube = enforce_coordinate_ordering(
+        enforce_coordinate_ordering(
             diagnostic_cube, [diagnostic_cube.coord(axis='x').name(),
                               diagnostic_cube.coord(axis='y').name()])
         spot_values = diagnostic_cube.data[tuple(coordinate_cube.data.T)]
@@ -247,6 +247,6 @@ def check_grid_match(cubes):
 
     for cube in cubes:
         cube_hash = _get_grid_hash(cube)
-        if not cube_hash == reference_hash:
+        if cube_hash != reference_hash:
             raise ValueError('Cubes do not share or originate from the same '
                              'grid, so cannot be used together.')

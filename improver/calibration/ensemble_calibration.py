@@ -29,7 +29,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-This module defines all the "plugins" specific for ensemble calibration.
+This module defines all the "plugins" specific for Ensemble Model Output
+Statistics (EMOS).
+
+.. Further information is available in:
+.. include:: extended_documentation/calibration/ensemble_calibration/
+   ensemble_calibration.rst
 
 """
 import datetime
@@ -43,12 +48,13 @@ from scipy.optimize import minimize
 from scipy.stats import norm
 
 from improver import BasePlugin
-from improver.ensemble_calibration.utilities import (
-    check_predictor_of_mean_flag, convert_cube_data_to_2d,
+from improver.calibration.utilities import (
+    check_predictor, convert_cube_data_to_2d,
     flatten_ignoring_masked_data)
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import time_coords_match
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
+                                                  collapsed)
 from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_iris_time, iris_time_to_datetime)
 
@@ -123,51 +129,13 @@ class ContinuousRankedProbabilityScoreMinimisers:
 
     def process(
             self, initial_guess, forecast_predictor, truth, forecast_var,
-            predictor_of_mean_flag, distribution):
+            predictor, distribution):
         """
         Function to pass a given function to the scipy minimize
         function to estimate optimised values for the coefficients.
 
-        If the predictor_of_mean_flag is the ensemble mean, this function
-        estimates values for alpha, beta, gamma and delta based on the
-        equation:
-        N(a + b * ensemble_mean, c + d * ensemble_variance),
-        where N is a chosen distribution and values of a, b, c and d are
-        solved in the format of alpha, beta, gamma and delta, see the equations
-        below.
-
-        .. math::
-            a = \\alpha
-
-        .. math::
-            b = \\beta
-
-        .. math::
-            c = \\gamma^2
-
-        .. math::
-            d = \\delta^2
-
-        The gamma and delta values are squared to ensure c and d are positive
-        and therefore more interpretable.
-
-        If the predictor_of_mean_flag is the ensemble realizations, this
-        function estimates values for alpha, beta, gamma and delta based on the
-        equation:
-
-        .. math::
-          N(a + b_0 \\times realization0 + b_1 \\times realization1,
-
-          c + d \\times ensemble\\_variance)
-
-        where N is a chosen distribution, the values of a, b, c and d relate
-        to alpha, beta, gamma and delta through the equations above with
-        the exception that :math:`b=\\beta^2`, and the number of beta terms
-        depends on the number of realizations provided. The beta, gamma, and
-        delta values are squared to ensure that b, c and d are positive values
-        and therefore are more easily interpretable. Specifically for the b
-        term, the squaring ensures that the the b values can be interpreted
-        as a weighting for each realization.
+        Further information is available in the :mod:`module level docstring \
+<improver.calibration.ensemble_calibration>`.
 
         Args:
             initial_guess (list):
@@ -179,9 +147,10 @@ class ContinuousRankedProbabilityScoreMinimisers:
             truth (iris.cube.Cube):
                 Cube containing the field, which will be used as truth.
             forecast_var (iris.cube.Cube):
-                Cube containg the field containing the ensemble variance.
-            predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
+                Cube containing the field containing the ensemble variance.
+            predictor (str):
+                String to specify the form of the predictor used to calculate
+                the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
             distribution (str):
@@ -239,19 +208,17 @@ class ContinuousRankedProbabilityScoreMinimisers:
                        distribution, self.minimisation_dict, err))
             raise KeyError(msg)
 
-        # Ensure predictor_of_mean_flag is valid.
-        check_predictor_of_mean_flag(predictor_of_mean_flag)
+        # Ensure predictor is valid.
+        check_predictor(predictor)
 
         # Flatten the data arrays and remove any missing data.
         truth_data = flatten_ignoring_masked_data(truth.data)
         forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
-        if predictor_of_mean_flag.lower() == "mean":
+        if predictor.lower() == "mean":
             forecast_predictor_data = flatten_ignoring_masked_data(
                 forecast_predictor.data)
-        elif predictor_of_mean_flag.lower() == "realizations":
-            forecast_predictor = (
-                enforce_coordinate_ordering(
-                    forecast_predictor, "realization"))
+        elif predictor.lower() == "realizations":
+            enforce_coordinate_ordering(forecast_predictor, "realization")
             # Need to transpose this array so there are columns for each
             # ensemble member rather than rows.
             forecast_predictor_data = flatten_ignoring_masked_data(
@@ -267,7 +234,7 @@ class ContinuousRankedProbabilityScoreMinimisers:
         optimised_coeffs = minimize(
             minimisation_function, initial_guess,
             args=(forecast_predictor_data, truth_data,
-                  forecast_var_data, sqrt_pi, predictor_of_mean_flag),
+                  forecast_var_data, sqrt_pi, predictor),
             method="Nelder-Mead", tol=self.tolerance,
             options={"maxiter": self.max_iterations, "return_all": True})
 
@@ -281,7 +248,7 @@ class ContinuousRankedProbabilityScoreMinimisers:
 
     def calculate_normal_crps(
             self, initial_guess, forecast_predictor, truth, forecast_var,
-            sqrt_pi, predictor_of_mean_flag):
+            sqrt_pi, predictor):
         """
         Calculate the CRPS for a normal distribution.
 
@@ -304,8 +271,9 @@ class ContinuousRankedProbabilityScoreMinimisers:
                 Ensemble variance data.
             sqrt_pi (numpy.ndarray):
                 Square root of Pi
-            predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
+            predictor (str):
+                String to specify the form of the predictor used to calculate
+                the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
 
@@ -315,9 +283,9 @@ class ContinuousRankedProbabilityScoreMinimisers:
                 value across all points.
 
         """
-        if predictor_of_mean_flag.lower() == "mean":
+        if predictor.lower() == "mean":
             beta = initial_guess[2:]
-        elif predictor_of_mean_flag.lower() == "realizations":
+        elif predictor.lower() == "realizations":
             beta = np.array(
                 [initial_guess[2]]+(initial_guess[3:]**2).tolist(),
                 dtype=np.float32
@@ -341,7 +309,7 @@ class ContinuousRankedProbabilityScoreMinimisers:
 
     def calculate_truncated_normal_crps(
             self, initial_guess, forecast_predictor, truth, forecast_var,
-            sqrt_pi, predictor_of_mean_flag):
+            sqrt_pi, predictor):
         """
         Calculate the CRPS for a truncated normal distribution with zero
         as the lower bound.
@@ -366,8 +334,9 @@ class ContinuousRankedProbabilityScoreMinimisers:
                 Ensemble variance data.
             sqrt_pi (numpy.ndarray):
                 Square root of Pi
-            predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
+            predictor (str):
+                String to specify the form of the predictor used to calculate
+                the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
 
@@ -377,9 +346,9 @@ class ContinuousRankedProbabilityScoreMinimisers:
                 value across all points.
 
         """
-        if predictor_of_mean_flag.lower() == "mean":
+        if predictor.lower() == "mean":
             beta = initial_guess[2:]
-        elif predictor_of_mean_flag.lower() == "realizations":
+        elif predictor.lower() == "realizations":
             beta = np.array(
                 [initial_guess[2]]+(initial_guess[3:]**2).tolist(),
                 dtype=np.float32
@@ -420,17 +389,19 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
     def __init__(self, distribution, current_cycle, desired_units=None,
-                 predictor_of_mean_flag="mean", tolerance=0.01,
-                 max_iterations=1000):
+                 predictor="mean", tolerance=0.01, max_iterations=1000):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, calculates coefficients based on historical forecasts and
         applies the coefficients to the current forecast.
 
+        Further information is available in the :mod:`module level docstring \
+<improver.calibration.ensemble_calibration>`.
+
         Args:
             distribution (str):
-                Name of distribution. Assume that the current forecast can be
-                represented using this distribution.
+                Name of distribution. Assume that a calibrated version of the
+                current forecast could be represented using this distribution.
             current_cycle (str):
                 The current cycle in YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
                 This is used to create a forecast_reference_time coordinate
@@ -439,8 +410,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
                 converted as required.
-            predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
+            predictor (str):
+                String to specify the form of the predictor used to calculate
+                the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
             tolerance (float):
@@ -477,9 +449,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.distribution = distribution
         self.current_cycle = current_cycle
         self.desired_units = desired_units
-        # Ensure predictor_of_mean_flag is valid.
-        check_predictor_of_mean_flag(predictor_of_mean_flag)
-        self.predictor_of_mean_flag = predictor_of_mean_flag
+        # Ensure predictor is valid.
+        check_predictor(predictor)
+        self.predictor = predictor
         self.tolerance = tolerance
         self.max_iterations = max_iterations
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
@@ -496,7 +468,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             imp.find_module('statsmodels')
         except ImportError:
             statsmodels_found = False
-            if predictor_of_mean_flag.lower() == "realizations":
+            if predictor.lower() == "realizations":
                 msg = (
                     "The statsmodels can not be imported. "
                     "Will not be able to calculate an initial guess from "
@@ -516,22 +488,22 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                   'distribution: {}; '
                   'current_cycle: {}; '
                   'desired_units: {}; '
-                  'predictor_of_mean_flag: {}; '
+                  'predictor: {}; '
                   'minimiser: {}; '
                   'coeff_names: {}; '
                   'tolerance: {}; '
                   'max_iterations: {}>')
         return result.format(
             self.distribution, self.current_cycle, self.desired_units,
-            self.predictor_of_mean_flag, self.minimiser.__class__,
-            self.coeff_names, self.tolerance, self.max_iterations)
+            self.predictor, self.minimiser.__class__, self.coeff_names,
+            self.tolerance, self.max_iterations)
 
     def create_coefficients_cube(
             self, optimised_coeffs, historic_forecast):
         """Create a cube for storing the coefficients computed using EMOS.
 
         .. See the documentation for examples of these cubes.
-        .. include:: extended_documentation/ensemble_calibration/
+        .. include:: extended_documentation/calibration/
            ensemble_calibration/create_coefficients_cube.rst
 
         Args:
@@ -554,7 +526,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             ValueError: If the number of coefficients in the optimised_coeffs
                 does not match the expected number.
         """
-        if self.predictor_of_mean_flag.lower() == "realizations":
+        if self.predictor.lower() == "realizations":
             realization_coeffs = []
             for realization in historic_forecast.coord("realization").points:
                 realization_coeffs.append(
@@ -633,7 +605,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         return cube
 
     def compute_initial_guess(
-            self, truth, forecast_predictor, predictor_of_mean_flag,
+            self, truth, forecast_predictor, predictor,
             estimate_coefficients_from_linear_model_flag,
             no_of_realizations=None):
         """
@@ -642,36 +614,24 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         of the forecast predictor and the truth, if requested. Otherwise,
         default values for the coefficients will be used.
 
-        If the predictor_of_mean_flag is "mean", then the order of
-        the initial_guess is [gamma, delta, alpha, beta]. Otherwise, if the
-        predictor_of_mean_flag is "realizations" then the order of the
-        initial_guess is [gamma, delta, alpha, beta0, beta1, beta2], where
-        the number of beta variables will correspond to the number of
-        realizations. In this example initial guess with three beta
-        variables, there will correspondingly be three realizations.
-
-        The coefficients relate to adjustments to the ensemble mean or the
-        ensemble realizations, and adjustments to the ensemble variance:
-
-        .. math::
-            alpha + beta * ensemble\\_mean
-
-        or
-
-        .. math::
-            alpha + beta0 * realization0 + beta1 * realization1
-
-        .. math::
-            gamma + delta * ensemble\\_variance
+        If the predictor is "mean", then the order of the initial_guess is
+        [gamma, delta, alpha, beta]. Otherwise, if the predictor is
+        "realizations" then the order of the initial_guess is
+        [gamma, delta, alpha, beta0, beta1, beta2], where the number of beta
+        variables will correspond to the number of realizations. In this
+        example initial guess with three beta variables, there will
+        correspondingly be three realizations.
 
         The default values for the initial guesses are in
         [gamma, delta, alpha, beta] ordering:
+
         * For the ensemble mean, the default initial guess: [0, 1, 0, 1]
-        assumes that the raw forecast is skilful and the expected adjustments
-        are small.
+          assumes that the raw forecast is skilful and the expected adjustments
+          are small.
+
         * For the ensemble realizations, the default initial guess is
-        effectively: [0, 1, 0, 1/3., 1/3., 1/3.], such that
-        each realization is assumed to have equal weight.
+          effectively: [0, 1, 0, 1/3., 1/3., 1/3.], such that
+          each realization is assumed to have equal weight.
 
         If linear regression is enabled, the alpha and beta coefficients
         associated with the ensemble mean or ensemble realizations are
@@ -683,8 +643,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             forecast_predictor (iris.cube.Cube):
                 Cube containing the fields to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
-            predictor_of_mean_flag (str):
-                String to specify the input to calculate the calibrated mean.
+            predictor (str):
+                String to specify the form of the predictor used to calculate
+                the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
             estimate_coefficients_from_linear_model_flag (bool):
@@ -700,16 +661,16 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Order of coefficients is [gamma, delta, alpha, beta].
 
         """
-        if (predictor_of_mean_flag.lower() == "mean" and
+        if (predictor.lower() == "mean" and
                 not estimate_coefficients_from_linear_model_flag):
             initial_guess = [0, 1, 0, 1]
-        elif (predictor_of_mean_flag.lower() == "realizations" and
+        elif (predictor.lower() == "realizations" and
               not estimate_coefficients_from_linear_model_flag):
             initial_guess = [0, 1, 0] + np.repeat(
                 np.sqrt(1. / no_of_realizations), no_of_realizations).tolist()
         elif estimate_coefficients_from_linear_model_flag:
             truth_flattened = flatten_ignoring_masked_data(truth.data)
-            if predictor_of_mean_flag.lower() == "mean":
+            if predictor.lower() == "mean":
                 forecast_predictor_flattened = flatten_ignoring_masked_data(
                     forecast_predictor.data)
                 if (truth_flattened.size == 0) or (
@@ -720,9 +681,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                         stats.linregress(
                             forecast_predictor_flattened, truth_flattened))
                 initial_guess = [0, 1, intercept, gradient]
-            elif predictor_of_mean_flag.lower() == "realizations":
+            elif predictor.lower() == "realizations":
                 if self.statsmodels_found:
-                    forecast_predictor = enforce_coordinate_ordering(
+                    enforce_coordinate_ordering(
                         forecast_predictor, "realization")
                     forecast_predictor_flattened = (
                         flatten_ignoring_masked_data(
@@ -836,7 +797,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         The main contents of this method is:
 
-        1. Check that the predictor_of_mean_flag is valid.
+        1. Check that the predictor is valid.
         2. Filter the historic forecasts and truth to ensure that these
            inputs match in validity time.
         3. Apply unit conversion to ensure that the historic forecasts and
@@ -880,8 +841,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             raise ValueError("historic_forecast and truth cubes must be "
                              "provided.")
 
-        # Ensure predictor_of_mean_flag is valid.
-        check_predictor_of_mean_flag(self.predictor_of_mean_flag)
+        # Ensure predictor is valid.
+        check_predictor(self.predictor)
 
         historic_forecast, truth = (
             self._filter_non_matching_cubes(historic_forecast, truth))
@@ -897,17 +858,17 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                    "the coefficients can be estimated.")
             raise ValueError(msg)
 
-        if self.predictor_of_mean_flag.lower() == "mean":
+        if self.predictor.lower() == "mean":
             no_of_realizations = None
-            forecast_predictor = historic_forecast.collapsed(
-                "realization", iris.analysis.MEAN)
-        elif self.predictor_of_mean_flag.lower() == "realizations":
+            forecast_predictor = collapsed(
+                historic_forecast, "realization", iris.analysis.MEAN)
+        elif self.predictor.lower() == "realizations":
             no_of_realizations = len(
                 historic_forecast.coord("realization").points)
             forecast_predictor = historic_forecast
 
-        forecast_var = historic_forecast.collapsed(
-            "realization", iris.analysis.VARIANCE)
+        forecast_var = collapsed(
+            historic_forecast, "realization", iris.analysis.VARIANCE)
 
         # If a landsea_mask is provided mask out the sea points
         if landsea_mask:
@@ -917,7 +878,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         # Computing initial guess for EMOS coefficients
         initial_guess = self.compute_initial_guess(
-            truth, forecast_predictor, self.predictor_of_mean_flag,
+            truth, forecast_predictor, self.predictor,
             self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
             no_of_realizations=no_of_realizations)
 
@@ -929,7 +890,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 self.minimiser.process(
                     initial_guess, forecast_predictor,
                     truth, forecast_var,
-                    self.predictor_of_mean_flag,
+                    self.predictor,
                     self.distribution.lower()))
         coefficients_cube = (
             self.create_coefficients_cube(optimised_coeffs, historic_forecast))
@@ -954,8 +915,9 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
+
         """
-        check_predictor_of_mean_flag(predictor)
+        check_predictor(predictor)
         self.predictor = predictor
 
     def __repr__(self):
@@ -982,8 +944,8 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 The uncalibrated predictor or variance that will populate
                 regions in which the mask=0.
             calibrated_data (numpy.ndarray):
-                The calibrated predictor or variance data array that will be
-                modified in situ. Those regions of the array that correspond
+                The location parameter or scale parameter data array that will
+                be modified in situ. Those regions of the array that correspond
                 with indices at which the mask=0 will be replaced with data
                 from the original_data array.
             mask (numpy.ndarray):
@@ -1030,16 +992,8 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         Function to calculate the location parameter when the ensemble mean at
         each grid point is the predictor.
 
-        Please see the equations below:
-
-        .. math::
-            location\\_parameter = a + b \\times ensemble\\_mean
-
-        .. math::
-            a = \\alpha
-
-        .. math::
-            b = \\beta
+        Further information is available in the :mod:`module level docstring \
+<improver.calibration.ensemble_calibration>`.
 
         Args:
             optimised_coeffs (dict):
@@ -1050,9 +1004,11 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
             numpy.ndarray:
                 Location parameter calculated using the ensemble mean as the
                 predictor.
+
         """
-        forecast_predictor = self.current_forecast.collapsed(
-            "realization", iris.analysis.MEAN)
+        forecast_predictor = collapsed(self.current_forecast,
+                                       "realization",
+                                       iris.analysis.MEAN)
 
         # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.
@@ -1069,17 +1025,8 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         Function to calculate the location parameter when the ensemble
         realizations are the predictor.
 
-        Please see the equations below:
-
-        .. math::
-            location\\_parameter = a + b_0 \\times realization_0 +
-                ... + b_n \\times realization_n
-
-        .. math::
-            a = \\alpha
-
-        .. math::
-            b = \\beta^2
+        Further information is available in the :mod:`module level docstring \
+<improver.calibration.ensemble_calibration>`.
 
         Args:
             optimised_coeffs (dict):
@@ -1116,17 +1063,9 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         """
         Calculation of the scale parameter using the ensemble variance
         adjusted using the gamma and delta coefficients calculated by EMOS.
-        This follows the equations below, where :math:`S^2` is the ensemble
-        variance and :math:`\\sigma^2` is the scale parameter:
 
-        .. math::
-            \\sigma^2 = c + d \\times S^2
-
-        .. math::
-            c = \\gamma^2
-
-        .. math::
-            d = \\delta^2
+        Further information is available in the :mod:`module level docstring \
+<improver.calibration.ensemble_calibration>`.
 
         Args:
             optimised_coeffs (dict):
@@ -1205,11 +1144,16 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 **location_parameter_cube** (iris.cube.Cube):
                     Cube containing the location parameter of the calibrated
                     distribution calculated using either the ensemble mean or
-                    the ensemble realizations.
+                    the ensemble realizations. The location parameter
+                    represents the point at which a resulting PDF would be
+                    centred.
                 **scale_parameter_cube** (iris.cube.Cube):
                     Cube containing the scale parameter of the calibrated
                     distribution calculated using either the ensemble mean or
-                    the ensemble realizations.
+                    the ensemble realizations. The scale parameter represents
+                    the statistical dispersion of the resulting PDF, so a
+                    larger scale parameter will result in a broader PDF.
+
         """
         self.current_forecast = current_forecast
         self.coefficients_cube = coefficients_cube

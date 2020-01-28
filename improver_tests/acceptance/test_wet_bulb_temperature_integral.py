@@ -50,3 +50,15 @@ def test_basic(tmp_path):
     args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_realizations(tmp_path):
+    """Test wet bulb temperature integral calculation with a realization
+    coord on the input cube"""
+    kgo_dir = acc.kgo_root() / f"wet-bulb-temperature-integral/realizations"
+    kgo_path = kgo_dir / "kgo.nc"
+    output_path = tmp_path / "output.nc"
+    input_path = kgo_dir / "input.nc"
+    args = [input_path, "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

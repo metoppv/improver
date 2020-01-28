@@ -48,7 +48,7 @@ from improver.metadata.forecast_times import (
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.utilities.cube_manipulation import (
     MergeCubes, build_coordinate, enforce_coordinate_ordering,
-    sort_coord_in_cube)
+    sort_coord_in_cube, collapsed)
 from improver.utilities.temporal import cycletime_to_number
 
 
@@ -666,13 +666,13 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         PERCENTILE_BLEND = (Aggregator(
             'mean',  # Use CF-compliant cell method.
             PercentileBlendingAggregator.aggregate))
-        cube_new = cube.collapsed(self.blend_coord,
-                                  PERCENTILE_BLEND,
-                                  arr_percent=percentiles,
-                                  arr_weights=weights_array,
-                                  perc_dim=perc_dim)
-        cube_new.data = cube_new.data.astype(np.float32)
 
+        cube_new = collapsed(cube, self.blend_coord, PERCENTILE_BLEND,
+                             arr_percent=percentiles,
+                             arr_weights=weights_array,
+                             perc_dim=perc_dim)
+
+        cube_new.data = cube_new.data.astype(np.float32)
         # Ensure collapsed coordinates do not promote themselves
         # to float64.
         for coord in cube_new.coords():
@@ -698,9 +698,8 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         weights_array = self.non_percentile_weights(cube, weights)
 
         # Calculate the weighted average.
-        cube_new = cube.collapsed(self.blend_coord,
-                                  iris.analysis.MEAN,
-                                  weights=weights_array)
+        cube_new = collapsed(cube, self.blend_coord, iris.analysis.MEAN,
+                             weights=weights_array)
         cube_new.data = cube_new.data.astype(np.float32)
 
         return cube_new
@@ -848,13 +847,12 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
 
         # Ensure input cube and weights cube are ordered equivalently along
         # blending coordinate.
-        cube = sort_coord_in_cube(cube, self.blend_coord, order="ascending")
+        cube = sort_coord_in_cube(cube, self.blend_coord)
         if weights is not None:
             if not weights.coords(self.blend_coord):
                 msg = 'Coordinate to be collapsed not found in weights cube.'
                 raise CoordinateNotFoundError(msg)
-            weights = sort_coord_in_cube(weights, self.blend_coord,
-                                         order="ascending")
+            weights = sort_coord_in_cube(weights, self.blend_coord)
 
         # Check that the time coordinate is single valued if required.
         self.check_compatible_time_points(cube)

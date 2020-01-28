@@ -43,6 +43,7 @@ from scipy import ndimage, signal
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
 from improver.utilities.cube_checker import check_for_x_and_y_axes
+from improver.utilities.cube_manipulation import collapsed
 from improver.utilities.spatial import check_if_grid_is_equal_area
 
 
@@ -88,7 +89,7 @@ def generate_optical_flow_components(
         """Average input cubelist over time"""
         cube = wind_cubes.merge_cube()
         try:
-            mean = cube.collapsed("time", iris.analysis.MEAN)
+            mean = collapsed(cube, "time", iris.analysis.MEAN)
         except CoordinateCollapseError:
             # collapse will fail if there is only one time point
             return cube

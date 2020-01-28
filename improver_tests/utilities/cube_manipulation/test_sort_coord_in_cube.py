@@ -80,9 +80,6 @@ class Test_sort_coord_in_cube(IrisTest):
         self.assertArrayAlmostEqual(
             self.ascending_height_points,
             result.coord(coord_name).points)
-        self.assertDictEqual(
-            self.ascending_cube.coord(coord_name).attributes,
-            {"positive": "up"})
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_auxcoord(self):
@@ -110,14 +107,12 @@ class Test_sort_coord_in_cube(IrisTest):
         expected_data = np.flip(self.data)
         coord_name = "height"
         result = sort_coord_in_cube(
-            self.ascending_cube, coord_name, order="descending")
+            self.ascending_cube, coord_name, descending=True)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(self.descending_cube.coord_dims(coord_name),
                          result.coord_dims(coord_name))
         self.assertArrayAlmostEqual(
             self.descending_height_points, result.coord(coord_name).points)
-        self.assertDictEqual(
-            result.coord(coord_name).attributes, {"positive": "down"})
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_descending_then_ascending(self):
@@ -132,8 +127,6 @@ class Test_sort_coord_in_cube(IrisTest):
                          result.coord_dims(coord_name))
         self.assertArrayAlmostEqual(
             self.ascending_height_points, result.coord(coord_name).points)
-        self.assertDictEqual(
-            result.coord(coord_name).attributes, {"positive": "up"})
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_descending_then_descending(self):
@@ -143,14 +136,12 @@ class Test_sort_coord_in_cube(IrisTest):
         expected_data = self.data
         coord_name = "height"
         result = sort_coord_in_cube(
-            self.descending_cube, coord_name, order="descending")
+            self.descending_cube, coord_name, descending=True)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(self.descending_cube.coord_dims(coord_name),
                          result.coord_dims(coord_name))
         self.assertArrayAlmostEqual(
             self.descending_height_points, result.coord(coord_name).points)
-        self.assertDictEqual(
-            result.coord(coord_name).attributes, {"positive": "down"})
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_latitude(self):
@@ -171,7 +162,7 @@ class Test_sort_coord_in_cube(IrisTest):
         expected_points = np.flip(self.ascending_cube.coord("latitude").points)
         coord_name = "latitude"
         result = sort_coord_in_cube(
-            self.ascending_cube, coord_name, order="descending")
+            self.ascending_cube, coord_name, descending=True)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(
             self.ascending_cube.coord_dims(coord_name),
@@ -188,7 +179,7 @@ class Test_sort_coord_in_cube(IrisTest):
         coord_name = "latitude"
         self.ascending_cube.coord(coord_name).circular = True
         result = sort_coord_in_cube(
-            self.ascending_cube, coord_name, order="descending")
+            self.ascending_cube, coord_name, descending=True)
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
         warning_msg = "The latitude coordinate is circular."

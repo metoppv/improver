@@ -112,7 +112,7 @@ class ProbabilitiesFromPercentiles2D(BasePlugin):
         percentile_slices = percentiles_cube.slices_over(
             self.percentile_coordinate)
         self.inverse_ordering = False
-        first_percentile = percentile_slices.next().data
+        first_percentile = next(percentile_slices).data
         for percentile_values in percentile_slices:
             last_percentile = percentile_values.data
         if (first_percentile - last_percentile >= 0).all():

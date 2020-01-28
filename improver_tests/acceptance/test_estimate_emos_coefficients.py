@@ -38,13 +38,25 @@ which expand directory names in addition to filenames.
 
 import pytest
 
-from improver.utilities.compare import LOOSE_TOLERANCE
-
 from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
+
+# The EMOS estimation tolerance is defined in units of the variable being
+# calibrated - not in terms of the EMOS coefficients produced by
+# estimate-emos-coefficients and compared against KGOs here.
+# See comments and CLI help messages in
+# improver/cli/estimate_emos_coefficients.py for more detail.
+EST_EMOS_TOLERANCE = 1e-4
+
+# The EMOS coefficients are expected to vary by at most one order of magnitude
+# more than the CRPS tolerance specified.
+COMPARE_EMOS_TOLERANCE = EST_EMOS_TOLERANCE * 10
+
+# Pre-convert to string for easier use in each test
+EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
 
 
 @pytest.mark.slow
@@ -62,16 +74,14 @@ def test_gaussian(tmp_path):
             "--distribution", "gaussian",
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
+            "--tolerance", EST_EMOS_TOL,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(reason="results outside loose tolerance, "
-                          "needs scientific investigation to determine "
-                          "appropriate tolerances")
 def test_trunc_gaussian(tmp_path):
     """
     Test estimate-emos-coefficients for diagnostic with assumed
@@ -86,10 +96,11 @@ def test_trunc_gaussian(tmp_path):
             "--distribution", "truncated_gaussian",
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
+            "--tolerance", EST_EMOS_TOL,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
 
 
 @pytest.mark.slow
@@ -109,15 +120,12 @@ def test_units(tmp_path):
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
 
 
 @pytest.mark.slow
-@pytest.mark.xfail(reason="results outside loose tolerance, "
-                          "needs scientific investigation to determine "
-                          "appropriate tolerances")
 @acc.skip_if_statsmodels
-def test_predictor_of_mean_no_sm(tmp_path):
+def test_using_realizations_as_predictor_no_sm(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
     kgo_path = kgo_dir / "realizations/without_statsmodels_kgo.nc"
@@ -128,16 +136,17 @@ def test_predictor_of_mean_no_sm(tmp_path):
             "--distribution", "gaussian",
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--predictor-of-mean", "realizations",
+            "--predictor", "realizations",
             "--max-iterations", "150",
+            "--tolerance", EST_EMOS_TOL,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
 
 
 @acc.skip_if_no_statsmodels
-def test_predictor_of_mean_sm(tmp_path):
+def test_using_realizations_as_predictor_sm(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
     kgo_path = kgo_dir / "realizations/with_statsmodels_kgo.nc"
@@ -148,51 +157,13 @@ def test_predictor_of_mean_sm(tmp_path):
             "--distribution", "gaussian",
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--predictor-of-mean", "realizations",
+            "--predictor", "realizations",
             "--max-iterations", "150",
+            "--tolerance", EST_EMOS_TOL,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
-
-
-def test_no_inputs():
-    """Test no inputs passed to CLI"""
-    args = ["--distribution", "gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det"]
-    with pytest.raises(RuntimeError, match="Must have cubes"):
-        run_cli(args)
-
-
-def test_missing_dataset(tmp_path):
-    """Test error when only the truth dataset is provided"""
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    truth_path = kgo_dir / "gaussian/truth/*.nc"
-    output_path = tmp_path / "output.nc"
-    args = [truth_path,
-            "--distribution", "gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--output", output_path]
-    with pytest.raises(RuntimeError, match="Missing historical forecast"):
-        run_cli(args)
-
-
-def test_too_many_masks(tmp_path):
-    """Test too many land-sea masks arguments"""
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    lsmask_path = kgo_dir / "landmask.nc"
-    history_path = kgo_dir / "gaussian/history/*.nc"
-    truth_path = kgo_dir / "gaussian/truth/*.nc"
-    output_path = tmp_path / "output.nc"
-    args = [history_path, truth_path, lsmask_path, lsmask_path,
-            "--distribution", "gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--output", output_path]
-    with pytest.raises(RuntimeError, match="one cube for land-sea mask"):
-        run_cli(args)
+                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
 
 
 @pytest.mark.slow
@@ -208,8 +179,8 @@ def test_land_points_only(tmp_path):
             "--distribution", "gaussian",
             "--cycletime", "20170605T0300Z",
             "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--tolerance", "1e-4",
+            "--tolerance", EST_EMOS_TOL,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path,
-                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)

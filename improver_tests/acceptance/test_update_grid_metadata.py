@@ -32,8 +32,6 @@
 Tests for the update-grid-metadata CLI
 """
 
-import shutil
-
 import pytest
 
 from . import acceptance as acc

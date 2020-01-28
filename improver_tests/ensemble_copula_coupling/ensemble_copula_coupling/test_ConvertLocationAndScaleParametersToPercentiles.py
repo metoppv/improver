@@ -30,8 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Unit tests for the
-`ensemble_copula_coupling.GeneratePercentilesFromMeanAndVariance`
-
+`ensemble_copula_coupling.ConvertLocationAndScaleParametersToPercentiles`
 """
 import unittest
 
@@ -40,13 +39,14 @@ import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
-    GeneratePercentilesFromMeanAndVariance as Plugin
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    ConvertLocationAndScaleParametersToPercentiles as Plugin)
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...ensemble_calibration.ensemble_calibration.helper_functions import (
+from ...calibration.ensemble_calibration.helper_functions import (
     add_forecast_reference_time_and_forecast_period,
-    set_up_spot_temperature_cube, set_up_temperature_cube)
+    set_up_spot_temperature_cube,
+    set_up_temperature_cube)
 
 
 class Test__repr__(IrisTest):
@@ -55,15 +55,15 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test string representation"""
-        expected_string = ("<GeneratePercentilesFromMeanAndVariance: "
+        expected_string = ("<ConvertLocationAndScaleParametersToPercentiles: "
                            "distribution: norm; shape_parameters: []>")
         result = str(Plugin())
         self.assertEqual(result, expected_string)
 
 
-class Test__mean_and_variance_to_percentiles(IrisTest):
+class Test__location_and_scale_parameters_to_percentiles(IrisTest):
 
-    """Test the _mean_and_variance_to_percentiles plugin."""
+    """Test the _location_and_scale_parameters_to_percentiles plugin."""
 
     def setUp(self):
         """Set up temperature cube."""
@@ -79,9 +79,10 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
     def test_check_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube matching the expected
-        data values when a cube containing mean and variance is passed in.
-        The resulting data values are the percentiles, which have been
-        generated.
+        data values when a cubes containing location and scale parameters are
+        passed in, which are equivalent to the ensemble mean and ensemble
+        variance. The resulting data values are the percentiles, which have
+        been generated.
         """
         data = np.array([[[[225.568115, 236.818115, 248.068115],
                            [259.318115, 270.568115, 281.818115],
@@ -101,7 +102,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.VARIANCE)
         percentiles = [10, 50, 90]
         plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
+        result = plugin._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertIsInstance(result, Cube)
@@ -112,9 +113,11 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
     def test_simple_data_truncnorm_distribution(self):
         """
         Test that the plugin returns an iris.cube.Cube matching the expected
-        data values when a cube containing mean and variance is passed in.
-        The resulting data values are the percentiles, which have been
-        generated using a truncated normal distribution.
+        data values when cubes containing the location parameter and scale
+        parameter are passed in. In this test, the ensemble mean and variance
+        is used as a proxy for the location and scale parameter. The resulting
+        data values are the percentiles, which have been generated using a
+        truncated normal distribution.
         """
         data = np.array([[[[1, 1, 1],
                            [1, 1, 1],
@@ -126,25 +129,31 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
                            [3, 3, 3],
                            [3, 3, 3]]]])
 
-        result_data = np.array([[[[0.827385, 0.827385, 0.827385],
-                                  [0.827385, 0.827385, 0.827385],
-                                  [0.827385, 0.827385, 0.827385]]],
-                                [[[2.028517, 2.028517, 2.028517],
-                                  [2.028517, 2.028517, 2.028517],
-                                  [2.028517, 2.028517, 2.028517]]],
-                                [[[3.2946239, 3.2946239, 3.2946239],
-                                  [3.2946239, 3.2946239, 3.2946239],
-                                  [3.2946239, 3.2946239, 3.2946239]]]])
+        result_data = np.array([[[[1.3042759, 1.3042759, 1.3042759],
+                                  [1.3042759, 1.3042759, 1.3042759],
+                                  [1.3042759, 1.3042759, 1.3042759]]],
+                                [[[3.0300407, 3.0300407, 3.0300407],
+                                  [3.0300407, 3.0300407, 3.0300407],
+                                  [3.0300407, 3.0300407, 3.0300407]]],
+                                [[[4.8261294, 4.8261294, 4.8261294],
+                                  [4.8261294, 4.8261294, 4.8261294],
+                                  [4.8261294, 4.8261294, 4.8261294]]]])
 
         cube = self.current_temperature_forecast_cube
         cube.data = data
+        # Use an adjusted version of the ensemble mean as a proxy for the
+        # location parameter for the truncated normal distribution.
         current_forecast_predictor = cube.collapsed(
             "realization", iris.analysis.MEAN)
+        current_forecast_predictor.data = current_forecast_predictor.data + 1
+        # Use an adjusted version of the ensemble variance as a proxy for the
+        # scale parameter for the truncated normal distribution.
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
+        current_forecast_variance.data = current_forecast_variance.data + 1
         percentiles = [10, 50, 90]
         plugin = Plugin(distribution="truncnorm", shape_parameters=[0, np.inf])
-        result = plugin._mean_and_variance_to_percentiles(
+        result = plugin._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertIsInstance(result, Cube)
@@ -156,7 +165,8 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         """
         Test that the plugin returns the expected values for the generated
         percentiles when an idealised set of data values between 1 and 3
-        is used to create the mean and the variance.
+        is used to create the mean (location parameter) and the variance
+        (scale parameter).
         """
         data = np.array([[[[1, 1, 1],
                            [1, 1, 1],
@@ -186,7 +196,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.VARIANCE)
         percentiles = [10, 50, 90]
         plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
+        result = plugin._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertArrayAlmostEqual(result.data, result_data)
@@ -227,7 +237,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.VARIANCE)
         percentiles = [10, 50, 90]
         plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
+        result = plugin._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertArrayAlmostEqual(result.data, result_data)
@@ -272,7 +282,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.VARIANCE)
         percentiles = [10, 50, 90]
         plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
+        result = plugin._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertArrayAlmostEqual(result.data, result_data)
@@ -291,7 +301,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.VARIANCE)
         percentiles = np.linspace(1, 99, num=1000, endpoint=True)
         plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
+        result = plugin._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertIsInstance(result, Cube)
@@ -312,7 +322,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
         plugin = Plugin()
         msg = "NaNs are present within the result for the"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin._mean_and_variance_to_percentiles(
+            plugin._location_and_scale_parameters_to_percentiles(
                 current_forecast_predictor, current_forecast_variance, cube,
                 percentiles)
 
@@ -321,9 +331,9 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
     def test_spot_forecasts_check_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube matching the expected
-        data values when a cube containing mean and variance is passed in.
-        The resulting data values are the percentiles, which have been
-        generated for a spot forecast.
+        data values when a cube containing mean (location parameter) and
+        variance (scale parameter) is passed in. The resulting data values are
+        the percentiles, which have been generated for a spot forecast.
         """
         data = np.array([[[225.568115, 236.818115, 248.068115,
                            259.318115, 270.568115, 281.818115,
@@ -343,7 +353,7 @@ class Test__mean_and_variance_to_percentiles(IrisTest):
             "realization", iris.analysis.VARIANCE)
         percentiles = [10, 50, 90]
         plugin = Plugin()
-        result = plugin._mean_and_variance_to_percentiles(
+        result = plugin._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor, current_forecast_variance, cube,
             percentiles)
         self.assertIsInstance(result, Cube)

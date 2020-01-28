@@ -40,9 +40,9 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.ensemble_calibration.ensemble_calibration import \
+from improver.calibration.ensemble_calibration import \
     ContinuousRankedProbabilityScoreMinimisers as Plugin
-from improver.ensemble_calibration.utilities import convert_cube_data_to_2d
+from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
@@ -137,13 +137,13 @@ class Test_calculate_normal_crps(SetupGaussianInputs):
         mean as the predictor. The result indicates the minimum value for the
         CRPS that was achieved by the minimisation.
         """
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
 
         plugin = Plugin()
         result = plugin.calculate_normal_crps(
             self.initial_guess_for_mean, self.forecast_predictor_data,
             self.truth_data, self.forecast_variance_data, self.sqrt_pi,
-            predictor_of_mean_flag)
+            predictor)
 
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 0.2609063)
@@ -156,14 +156,14 @@ class Test_calculate_normal_crps(SetupGaussianInputs):
         realizations as the predictor. The result indicates the minimum value
         for the CRPS that was achieved by the minimisation.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
 
         plugin = Plugin()
         result = plugin.calculate_normal_crps(
             self.initial_guess_for_realization,
             self.forecast_predictor_data_realizations, self.truth_data,
             self.forecast_variance_data, self.sqrt_pi,
-            predictor_of_mean_flag)
+            predictor)
 
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 0.2609061)
@@ -182,12 +182,12 @@ class Test_calculate_normal_crps(SetupGaussianInputs):
         """
         initial_guess = np.array([1e65, 1e65, 1e65, 1e65], dtype=np.float32)
 
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
 
         plugin = Plugin()
         result = plugin.calculate_normal_crps(
             initial_guess, self.forecast_predictor_data, self.truth_data,
-            self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
+            self.forecast_variance_data, self.sqrt_pi, predictor)
 
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, plugin.BAD_VALUE)
@@ -223,11 +223,11 @@ class Test_process_gaussian_distribution(
         Test that the plugin returns a numpy array with the expected
         coefficients. The ensemble mean is the predictor.
         """
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         distribution = "gaussian"
         result = self.plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
-            self.truth, self.forecast_variance, predictor_of_mean_flag,
+            self.truth, self.forecast_variance, predictor,
             distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
@@ -246,12 +246,12 @@ class Test_process_gaussian_distribution(
         Test that the plugin returns a numpy array with the expected
         coefficients. The ensemble realizations are the predictor.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
         distribution = "gaussian"
         result = self.plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
-            self.forecast_variance, predictor_of_mean_flag, distribution)
+            self.forecast_variance, predictor, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
         self.assertEMOSCoefficientsAlmostEqual(
@@ -265,7 +265,7 @@ class Test_process_gaussian_distribution(
         distribution that has been requested was not within the dictionary
         containing the minimisation functions.
         """
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         distribution = "foo"
 
         msg = "Distribution requested"
@@ -273,7 +273,7 @@ class Test_process_gaussian_distribution(
             self.plugin.process(
                 self.initial_guess_for_mean, self.forecast_predictor_mean,
                 self.truth, self.forecast_variance,
-                predictor_of_mean_flag, distribution)
+                predictor, distribution)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -289,7 +289,7 @@ class Test_process_gaussian_distribution(
         minimising the CRPS and using a set default value for the
         initial guess.
         """
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         max_iterations = 400
         distribution = "gaussian"
 
@@ -298,7 +298,7 @@ class Test_process_gaussian_distribution(
         result = plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
             self.truth, self.forecast_variance,
-            predictor_of_mean_flag, distribution)
+            predictor, distribution)
         self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_mean_coefficients)
 
@@ -318,7 +318,7 @@ class Test_process_gaussian_distribution(
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
         max_iterations = 1000
         distribution = "gaussian"
 
@@ -327,7 +327,7 @@ class Test_process_gaussian_distribution(
         result = plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
-            self.forecast_variance, predictor_of_mean_flag, distribution)
+            self.forecast_variance, predictor, distribution)
         self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_realizations_coefficients)
 
@@ -339,13 +339,13 @@ class Test_process_gaussian_distribution(
         Test that a warning is generated if the minimisation
         does not result in a convergence. The ensemble mean is the predictor.
         """
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         distribution = "gaussian"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=10)
         plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
-            self.truth, self.forecast_variance, predictor_of_mean_flag,
+            self.truth, self.forecast_variance, predictor,
             distribution)
         warning_msg = "Minimisation did not result in convergence after"
         self.assertTrue(any(item.category == UserWarning
@@ -365,13 +365,13 @@ class Test_process_gaussian_distribution(
         greater than the tolerated value. The ensemble mean is the predictor.
         """
         initial_guess = np.array([5000, 1, 0, 1], dtype=np.float64)
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         distribution = "gaussian"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=5)
         plugin.process(
             initial_guess, self.forecast_predictor_mean, self.truth,
-            self.forecast_variance, predictor_of_mean_flag, distribution)
+            self.forecast_variance, predictor, distribution)
         warning_msg_min = "Minimisation did not result in convergence after"
         warning_msg_iter = "The final iteration resulted in a percentage "
         self.assertTrue(any(item.category == UserWarning
@@ -432,13 +432,13 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedGaussianInputs):
         is the predictor. The result indicates the minimum value
         for the CRPS that was achieved by the minimisation.
         """
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
 
         plugin = Plugin()
         result = plugin.calculate_truncated_normal_crps(
             self.initial_guess_for_mean, self.forecast_predictor_data,
             self.truth_data, self.forecast_variance_data, self.sqrt_pi,
-            predictor_of_mean_flag)
+            predictor)
 
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 0.1670168)
@@ -451,13 +451,13 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedGaussianInputs):
         realizations are the predictor. The result indicates the minimum value
         for the CRPS that was achieved by the minimisation.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
 
         plugin = Plugin()
         result = plugin.calculate_truncated_normal_crps(
             self.initial_guess_for_realization,
             self.forecast_predictor_data_realizations, self.truth_data,
-            self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
+            self.forecast_variance_data, self.sqrt_pi, predictor)
 
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 0.1670167)
@@ -476,12 +476,12 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedGaussianInputs):
         """
         initial_guess = np.array([1e65, 1e65, 1e65, 1e65], dtype=np.float32)
 
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
 
         plugin = Plugin()
         result = plugin.calculate_truncated_normal_crps(
             initial_guess, self.forecast_predictor_data, self.truth_data,
-            self.forecast_variance_data, self.sqrt_pi, predictor_of_mean_flag)
+            self.forecast_variance_data, self.sqrt_pi, predictor)
 
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, plugin.BAD_VALUE)
@@ -517,13 +517,12 @@ class Test_process_truncated_gaussian_distribution(
         Test that the plugin returns a numpy array. The ensemble mean
         is the predictor.
         """
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         distribution = "truncated_gaussian"
 
         result = self.plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
-            self.truth, self.forecast_variance, predictor_of_mean_flag,
-            distribution)
+            self.truth, self.forecast_variance, predictor, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_mean_coefficients)
@@ -540,13 +539,13 @@ class Test_process_truncated_gaussian_distribution(
         Test that the plugin returns a numpy array with the expected
         coefficients. The ensemble realizations are the predictor.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
         distribution = "truncated_gaussian"
 
         result = self.plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
-            self.forecast_variance, predictor_of_mean_flag, distribution)
+            self.forecast_variance, predictor, distribution)
         self.assertIsInstance(result, np.ndarray)
         self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_realizations_coefficients)
@@ -556,18 +555,17 @@ class Test_process_truncated_gaussian_distribution(
     def test_mean_predictor_keyerror(self):
         """
         Test that an exception is raised when the distribution requested is
-        not an available option when the predictor_of_mean_flag is the
+        not an available option when the predictor is the
         ensemble mean.
         """
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         distribution = "foo"
 
         msg = "Distribution requested"
         with self.assertRaisesRegex(KeyError, msg):
             self.plugin.process(
                 self.initial_guess_for_mean, self.forecast_predictor_mean,
-                self.truth, self.forecast_variance,
-                predictor_of_mean_flag, distribution)
+                self.truth, self.forecast_variance, predictor, distribution)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate.",
@@ -586,7 +584,7 @@ class Test_process_truncated_gaussian_distribution(
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         max_iterations = 400
         distribution = "truncated_gaussian"
 
@@ -594,8 +592,7 @@ class Test_process_truncated_gaussian_distribution(
             tolerance=self.tolerance, max_iterations=max_iterations)
         result = plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
-            self.truth, self.forecast_variance, predictor_of_mean_flag,
-            distribution)
+            self.truth, self.forecast_variance, predictor, distribution)
         self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_mean_coefficients)
 
@@ -615,7 +612,7 @@ class Test_process_truncated_gaussian_distribution(
         calculated by minimising the CRPS and using a set default value for
         the initial guess.
         """
-        predictor_of_mean_flag = "realizations"
+        predictor = "realizations"
         max_iterations = 1000
         distribution = "truncated_gaussian"
 
@@ -624,7 +621,7 @@ class Test_process_truncated_gaussian_distribution(
         result = plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations, self.truth,
-            self.forecast_variance, predictor_of_mean_flag, distribution)
+            self.forecast_variance, predictor, distribution)
         self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_realizations_coefficients)
 
@@ -636,14 +633,13 @@ class Test_process_truncated_gaussian_distribution(
         Test that a warning is generated if the minimisation
         does not result in a convergence. The ensemble mean is the predictor.
         """
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         distribution = "truncated_gaussian"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=10)
         plugin.process(
             self.initial_guess_for_mean, self.forecast_predictor_mean,
-            self.truth, self.forecast_variance, predictor_of_mean_flag,
-            distribution)
+            self.truth, self.forecast_variance, predictor, distribution)
         warning_msg = "Minimisation did not result in convergence after"
         self.assertTrue(any(item.category == UserWarning
                             for item in warning_list))
@@ -664,15 +660,14 @@ class Test_process_truncated_gaussian_distribution(
         """
         initial_guess = np.array([5000, 1, 0, 1], dtype=np.float64)
 
-        predictor_of_mean_flag = "mean"
+        predictor = "mean"
         distribution = "truncated_gaussian"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=5)
 
         plugin.process(
             initial_guess, self.forecast_predictor_mean,
-            self.truth, self.forecast_variance, predictor_of_mean_flag,
-            distribution)
+            self.truth, self.forecast_variance, predictor, distribution)
         warning_msg_min = "Minimisation did not result in convergence after"
         warning_msg_iter = "The final iteration resulted in a percentage "
         self.assertTrue(any(item.category == UserWarning

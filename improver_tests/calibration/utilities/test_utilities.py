@@ -39,8 +39,8 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.ensemble_calibration.utilities import (
-    check_predictor_of_mean_flag, convert_cube_data_to_2d,
+from improver.calibration.utilities import (
+    check_predictor, convert_cube_data_to_2d,
     flatten_ignoring_masked_data)
 
 from ..ensemble_calibration.helper_functions import set_up_temperature_cube
@@ -274,35 +274,35 @@ class Test_flatten_ignoring_masked_data(IrisTest):
                 masked_data_array, preserve_leading_dimension=True)
 
 
-class Test_check_predictor_of_mean_flag(IrisTest):
+class Test_check_predictor(IrisTest):
 
     """
-    Test to check the predictor_of_mean_flag.
+    Test to check the predictor.
     """
 
     def test_mean(self):
         """
         Test that the utility does not raise an exception when
-        predictor_of_mean_flag = "mean".
+        predictor = "mean".
         """
-        check_predictor_of_mean_flag("mean")
+        check_predictor("mean")
 
     def test_realizations(self):
         """
         Test that the utility does not raise an exception when
-        predictor_of_mean_flag = "realizations".
+        predictor = "realizations".
         """
-        check_predictor_of_mean_flag("realizations")
+        check_predictor("realizations")
 
-    def test_invalid_predictor_of_mean_flag(self):
+    def test_invalid_predictor(self):
         """
         Test that the utility raises an exception when
-        predictor_of_mean_flag = "foo", a name not present in the list of
-        accepted values for the predictor_of_mean_flag.
+        predictor = "foo", a name not present in the list of
+        accepted values for the predictor.
         """
-        msg = "The requested value for the predictor_of_mean_flag"
+        msg = "The requested value for the predictor"
         with self.assertRaisesRegex(ValueError, msg):
-            check_predictor_of_mean_flag("foo")
+            check_predictor("foo")
 
 
 if __name__ == '__main__':

@@ -28,42 +28,48 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the sleet-probability CLI
-"""
+"""Unit tests for psychrometric_calculations calculate_svp_in_air"""
 
-import pytest
+import unittest
 
-from . import acceptance as acc
+import numpy as np
+from iris.tests import IrisTest
 
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver.psychrometric_calculations.psychrometric_calculations import (
+    _svp_from_lookup, calculate_svp_in_air)
 
 
-def test_basic(tmp_path):
-    """Test basic snow falling level calculation"""
-    kgo_dir = acc.kgo_root() / "sleet_probability/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    output_path = tmp_path / "output.nc"
-    half_input_path = acc.kgo_root() / "phase-probability/basic/snow_kgo.nc"
-    tenth_input_path = acc.kgo_root() / "phase-probability/basic/rain_kgo.nc"
-    args = [half_input_path, tenth_input_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+class Test_calculate_svp_in_air(IrisTest):
+    """Test the calculate_svp_in_air function"""
+
+    def setUp(self):
+        """Set up test data"""
+        self.temperature = np.array(
+            [[185.0, 260.65, 338.15]], dtype=np.float32)
+        self.pressure = np.array([[1.E5, 9.9E4, 9.8E4]], dtype=np.float32)
+
+    def test_calculate_svp_in_air(self):
+        """Test pressure-corrected SVP values"""
+        expected = np.array([[0.01362905, 208.47170252, 25187.76423485]])
+        result = calculate_svp_in_air(self.temperature, self.pressure)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_values(self):
+        """Basic extraction of SVP values from lookup table"""
+        self.temperature[0, 1] = 260.56833
+        expected = [[1.350531e-02, 2.06000274e+02, 2.501530e+04]]
+        result = _svp_from_lookup(self.temperature)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_beyond_table_bounds(self):
+        """Extracting SVP values from the table with temperatures beyond
+        its valid range. Should return the nearest end of the table."""
+        self.temperature[0, 0] = 150.
+        self.temperature[0, 2] = 400.
+        expected = [[9.664590e-03, 2.075279e+02, 2.501530e+04]]
+        result = _svp_from_lookup(self.temperature)
+        self.assertArrayAlmostEqual(result, expected)
 
 
-def test_sleet_warning(tmp_path):
-    """Test basic snow falling level calculation. When the warning is no
-    longer produced, the ignore-mismatch argument is deprecated and should be
-    removed."""
-    kgo_dir = acc.kgo_root() / "sleet_probability/warning"
-    kgo_path = kgo_dir / "kgo.nc"
-    output_path = tmp_path / "output.nc"
-    snow_input_path = kgo_dir / "snow.nc"
-    rain_input_path = kgo_dir / "rain.nc"
-    args = [snow_input_path, rain_input_path, "--ignore-mismatch",
-            "--output", output_path]
-    with pytest.warns(UserWarning, match="Negative values of sleet prob"):
-        run_cli(args)
-    acc.compare(output_path, kgo_path)
+if __name__ == '__main__':
+    unittest.main()

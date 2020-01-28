@@ -41,7 +41,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     PhaseChangeLevel)
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 
-from ...set_up_test_cubes import add_coordinate, set_up_variable_cube
+from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 class Test__init__(IrisTest):
@@ -506,41 +506,30 @@ class Test_process(IrisTest):
         self.land_sea = set_up_variable_cube(
             data, name='land_binary_mask', units=1, spatial_grid='equalarea')
 
+        wbt_0 = np.array([[271.46216, 271.46216, 271.46216],
+                          [271.46216, 270.20343, 271.46216],
+                          [271.46216, 271.46216, 271.46216]])
+        wbt_1 = np.array([[274.4207, 274.4207, 274.4207],
+                          [274.4207, 271.46216, 274.4207],
+                          [274.4207, 274.4207, 274.4207]])
+        wbt_2 = np.array([[275.0666, 275.0666, 275.0666],
+                          [275.0666, 274.4207, 275.0666],
+                          [275.0666, 275.0666, 275.0666]])
         wbt_data = np.array(
-            [[[[271.46216, 271.46216, 271.46216],
-               [271.46216, 270.20343, 271.46216],
-               [271.46216, 271.46216, 271.46216]],
-              [[271.46216, 271.46216, 271.46216],
-               [271.46216, 270.20343, 271.46216],
-               [271.46216, 271.46216, 271.46216]]],
-             [[[274.4207, 274.4207, 274.4207],
-               [274.4207, 271.46216, 274.4207],
-               [274.4207, 274.4207, 274.4207]],
-              [[274.4207, 274.4207, 274.4207],
-               [274.4207, 271.46216, 274.4207],
-               [274.4207, 274.4207, 274.4207]]],
-             [[[275.0666, 275.0666, 275.0666],
-               [275.0666, 274.4207, 275.0666],
-               [275.0666, 275.0666, 275.0666]],
-              [[275.0666, 275.0666, 275.0666],
-               [275.0666, 274.4207, 275.0666],
-               [275.0666, 275.0666, 275.0666]]]], dtype=np.float32)
+            [np.broadcast_to(wbt_0, (3, 3, 3)),
+             np.broadcast_to(wbt_1, (3, 3, 3)),
+             np.broadcast_to(wbt_2, (3, 3, 3))], dtype=np.float32)
 
         # Note the values below are ordered at [5, 195] m.
-
+        wbti_0 = np.array([[128.68324, 128.68324, 128.68324],
+                           [128.68324, 3.176712, 128.68324],
+                           [128.68324, 128.68324, 128.68324]])
+        wbti_1 = np.array([[7.9681854, 7.9681854, 7.9681854],
+                           [7.9681854, 3.176712, 7.9681854],
+                           [7.9681854, 7.9681854, 7.9681854]])
         wbti_data = np.array(
-            [[[[128.68324, 128.68324, 128.68324],
-               [128.68324, 3.176712, 128.68324],
-               [128.68324, 128.68324, 128.68324]],
-              [[128.68324, 128.68324, 128.68324],
-               [128.68324, 3.176712, 128.68324],
-               [128.68324, 128.68324, 128.68324]]],
-             [[[7.9681854, 7.9681854, 7.9681854],
-               [7.9681854, 3.176712, 7.9681854],
-               [7.9681854, 7.9681854, 7.9681854]],
-              [[7.9681854, 7.9681854, 7.9681854],
-               [7.9681854, 3.176712, 7.9681854],
-               [7.9681854, 7.9681854, 7.9681854]]]], dtype=np.float32)
+            [np.broadcast_to(wbti_0, (3, 3, 3)),
+             np.broadcast_to(wbti_1, (3, 3, 3))], dtype=np.float32)
 
         height_points = [5., 195., 200.]
         height_attribute = {"positive": "up"}
@@ -548,7 +537,7 @@ class Test_process(IrisTest):
         wet_bulb_temperature = set_up_variable_cube(
             data, spatial_grid='equalarea', name='wet_bulb_temperature')
         wet_bulb_temperature = add_coordinate(
-            wet_bulb_temperature, [0, 1], 'realization')
+            wet_bulb_temperature, [0, 1, 2], 'realization')
         self.wet_bulb_temperature_cube = add_coordinate(
             wet_bulb_temperature, height_points, 'height',
             coord_units='m', attributes=height_attribute)
@@ -567,13 +556,16 @@ class Test_process(IrisTest):
             data, spatial_grid='equalarea',
             name='wet_bulb_temperature_integral', units='K m',)
         wet_bulb_integral = add_coordinate(
-            wet_bulb_integral, [0, 1], 'realization')
+            wet_bulb_integral, [0, 1, 2], 'realization')
         self.wet_bulb_integral_cube_inverted = add_coordinate(
             wet_bulb_integral, height_points[0:2], 'height',
             coord_units='m', attributes=height_attribute)
         self.wet_bulb_integral_cube_inverted.data = wbti_data
         self.wet_bulb_integral_cube = sort_coord_in_cube(
-            self.wet_bulb_integral_cube_inverted, 'height', order='descending')
+            self.wet_bulb_integral_cube_inverted, 'height', descending=True)
+
+        self.expected_snow_sleet = (
+            np.ones((3, 3, 3), dtype=np.float32) * 66.88566)
 
     def test_snow_sleet_phase_change(self):
         """Test that process returns a cube with the right name, units and
@@ -584,11 +576,10 @@ class Test_process(IrisTest):
         result = PhaseChangeLevel(phase_change='snow-sleet').process(
             self.wet_bulb_temperature_cube, self.wet_bulb_integral_cube,
             self.orog, self.land_sea)
-        expected = np.ones((2, 3, 3), dtype=np.float32) * 66.88566
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "altitude_of_snow_falling_level")
         self.assertEqual(result.units, Unit('m'))
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
 
     def test_sleet_rain_phase_change(self):
         """Test that process returns a cube with the right name, units and
@@ -602,7 +593,7 @@ class Test_process(IrisTest):
         result = PhaseChangeLevel(phase_change='sleet-rain').process(
             self.wet_bulb_temperature_cube, self.wet_bulb_integral_cube,
             self.orog, self.land_sea)
-        expected = np.ones((2, 3, 3), dtype=np.float32) * 49.178673
+        expected = np.ones((3, 3, 3), dtype=np.float32) * 49.178673
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "altitude_of_rain_falling_level")
         self.assertEqual(result.units, Unit('m'))
@@ -617,8 +608,7 @@ class Test_process(IrisTest):
             self.wet_bulb_temperature_cube,
             self.wet_bulb_integral_cube_inverted,
             self.orog, self.land_sea)
-        expected = np.ones((2, 3, 3), dtype=np.float32) * 66.88566
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
 
     def test_interpolation_from_sea_points(self):
         """Test that the phase change level process returns a cube
@@ -626,7 +616,6 @@ class Test_process(IrisTest):
         non-sea-level point in the orography. The snow falling level is below
         the surface of the sea, so for the single high point falling level is
         interpolated from the surrounding sea-level points."""
-        expected = np.ones((2, 3, 3), dtype=np.float32) * 65.88566
         orog = self.orog
         orog.data = orog.data * 0.0
         orog.data[1, 1] = 100.0
@@ -635,6 +624,7 @@ class Test_process(IrisTest):
         result = PhaseChangeLevel(phase_change='snow-sleet').process(
             self.wet_bulb_temperature_cube, self.wet_bulb_integral_cube,
             orog, land_sea)
+        expected = np.ones((3, 3, 3), dtype=np.float32) * 65.88566
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 

@@ -47,7 +47,7 @@ def process(cube: cli.inputcube,
             randomise=False,
             random_seed: int = None,
             ignore_ecc_bounds=False,
-            predictor_of_mean='mean',
+            predictor='mean',
             shape_parameters: cli.comma_separated_list = None):
     """Applying coefficients for Ensemble Model Output Statistics.
 
@@ -83,8 +83,9 @@ def process(cube: cli.inputcube,
             to produce. If the current forecast is input as probabilities or
             percentiles then this argument is used to create the requested
             number of realizations. In addition, this argument is used to
-            construct the requested number of realizations from the mean and
-            variance output after applying the EMOS coefficients.
+            construct the requested number of realizations from the location
+            parameter and scale parameter output after applying the EMOS
+            coefficients.
         randomise (bool):
             Option to reorder the post-processed forecasts randomly. If not
             set, the ordering of the raw ensemble is used. This option is
@@ -104,11 +105,12 @@ def process(cube: cli.inputcube,
             current forecasts is in the form of probabilities and is
             converted to percentiles, as part of converting the input
             probabilities into realizations.
-        predictor_of_mean (str):
-            String to specify the predictor used to calibrate the forecast
-            mean. Currently the ensemble mean "mean" as the ensemble
-            realization "realization" are supported as options.
-        shape_parameters ():
+        predictor (str):
+            String to specify the form of the predictor used to calculate
+            the location parameter when estimating the EMOS coefficients.
+            Currently the ensemble mean ("mean") and the ensemble
+            realizations ("realizations") are supported as the predictors.
+        shape_parameters (float or str):
             The shape parameters required for defining the distribution
             specified by the distribution argument. The shape parameters
             should either be a number or 'inf' or '-inf' to represent
@@ -138,13 +140,13 @@ def process(cube: cli.inputcube,
     import numpy as np
     from iris.exceptions import CoordinateNotFoundError
 
-    from improver.ensemble_calibration.ensemble_calibration import (
+    from improver.calibration.ensemble_calibration import (
         ApplyCoefficientsFromEnsembleCalibration)
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         EnsembleReordering,
-        GeneratePercentilesFromMeanAndVariance,
-        GeneratePercentilesFromProbabilities,
-        GenerateProbabilitiesFromMeanAndVariance,
+        ConvertLocationAndScaleParametersToPercentiles,
+        ConvertLocationAndScaleParametersToProbabilities,
+        ConvertProbabilitiesToPercentiles,
         RebadgePercentilesAsRealizations,
         ResamplePercentiles)
     from improver.metadata.probabilistic import find_percentile_coordinate
@@ -157,7 +159,7 @@ def process(cube: cli.inputcube,
         warnings.warn(msg)
         return current_forecast
 
-    elif coefficients.name() != 'emos_coefficients':
+    if coefficients.name() != 'emos_coefficients':
         msg = ("The current coefficients cube does not have the "
                "name 'emos_coefficients'")
         raise ValueError(msg)
@@ -176,7 +178,7 @@ def process(cube: cli.inputcube,
     if current_forecast.name().startswith("probability_of"):
         input_forecast_type = "probabilities"
         # If probabilities, convert to percentiles.
-        conversion_plugin = GeneratePercentilesFromProbabilities(
+        conversion_plugin = ConvertProbabilitiesToPercentiles(
             ecc_bounds_warning=ignore_ecc_bounds)
     elif input_forecast_type == "percentiles":
         # If percentiles, resample percentiles so that the percentiles are
@@ -209,9 +211,8 @@ def process(cube: cli.inputcube,
             current_forecast.coord('realization').points)
 
     # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
-    ac = ApplyCoefficientsFromEnsembleCalibration(
-        predictor=predictor_of_mean)
-    calibrated_predictor, calibrated_variance = ac.process(
+    ac = ApplyCoefficientsFromEnsembleCalibration(predictor=predictor)
+    location_parameter, scale_parameter = ac.process(
         current_forecast, coefficients, landsea_mask=land_sea_mask)
 
     if shape_parameters:
@@ -221,26 +222,25 @@ def process(cube: cli.inputcube,
     # If input forecast is percentiles, convert output into percentiles.
     # If input forecast is realizations, convert output into realizations.
     if input_forecast_type == "probabilities":
-        result = GenerateProbabilitiesFromMeanAndVariance(
+        result = ConvertLocationAndScaleParametersToProbabilities(
             distribution=distribution,
             shape_parameters=shape_parameters).process(
-            calibrated_predictor, calibrated_variance,
-            original_current_forecast)
+            location_parameter, scale_parameter, original_current_forecast)
     elif input_forecast_type == "percentiles":
         perc_coord = find_percentile_coordinate(original_current_forecast)
-        result = GeneratePercentilesFromMeanAndVariance(
+        result = ConvertLocationAndScaleParametersToPercentiles(
             distribution=distribution,
             shape_parameters=shape_parameters).process(
-            calibrated_predictor, calibrated_variance,
-            original_current_forecast, percentiles=perc_coord.points)
+            location_parameter, scale_parameter, original_current_forecast,
+            percentiles=perc_coord.points)
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
-        # from mean and variance.
-        percentiles = GeneratePercentilesFromMeanAndVariance(
+        # from the location and scale parameter.
+        percentiles = ConvertLocationAndScaleParametersToPercentiles(
             distribution=distribution,
             shape_parameters=shape_parameters).process(
-            calibrated_predictor, calibrated_variance,
-            original_current_forecast, no_of_percentiles=realizations_count)
+            location_parameter, scale_parameter, original_current_forecast,
+            no_of_percentiles=realizations_count)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
             random_ordering=randomise, random_seed=random_seed)

@@ -61,9 +61,7 @@ class Test_check_for_x_and_y_axes(IrisTest):
     def test_no_y_coordinate(self):
         """Test that the expected exception is raised, if there is no
         y coordinate."""
-        for sliced_cube in self.cube.slices(
-                ["projection_x_coordinate"]):
-            break
+        sliced_cube = next(self.cube.slices(["projection_x_coordinate"]))
         sliced_cube.remove_coord("projection_y_coordinate")
         msg = "The cube does not contain the expected"
         with self.assertRaisesRegex(ValueError, msg):
@@ -72,9 +70,8 @@ class Test_check_for_x_and_y_axes(IrisTest):
     def test_no_x_coordinate(self):
         """Test that the expected exception is raised, if there is no
         x coordinate."""
-        for sliced_cube in self.cube.slices(
-                ["projection_y_coordinate"]):
-            break
+
+        sliced_cube = next(self.cube.slices(["projection_y_coordinate"]))
         sliced_cube.remove_coord("projection_x_coordinate")
         msg = "The cube does not contain the expected"
         with self.assertRaisesRegex(ValueError, msg):

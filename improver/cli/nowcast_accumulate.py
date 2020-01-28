@@ -85,8 +85,6 @@ def process(cube: cli.inputcube,
         ValueError:
             If advection_velocity doesn't contain x and y velocity.
     """
-    from iris import Constraint
-
     import numpy as np
 
     from improver.nowcasting.accumulation import Accumulation

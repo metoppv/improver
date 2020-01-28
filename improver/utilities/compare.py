@@ -76,11 +76,18 @@ def compare_netcdfs(actual_path, desired_path, rtol, atol,
     if reporter is None:
         reporter = raise_reporter
 
-    actual_ds = netCDF4.Dataset(str(actual_path), mode='r')
-    actual_ds.set_auto_maskandscale(False)
-    desired_ds = netCDF4.Dataset(str(desired_path), mode='r')
+    try:
+        actual_ds = netCDF4.Dataset(str(actual_path), mode='r')
+    except OSError as e:
+        reporter(str(e))
+        return
+    try:
+        desired_ds = netCDF4.Dataset(str(desired_path), mode='r')
+    except OSError as e:
+        reporter(str(e))
+        return
     desired_ds.set_auto_maskandscale(False)
-
+    actual_ds.set_auto_maskandscale(False)
     compare_datasets("", actual_ds, desired_ds, rtol, atol,
                      exclude_vars, reporter)
 
@@ -99,6 +106,7 @@ def compare_datasets(name, actual_ds, desired_ds, rtol, atol,
         desired_ds (netCDF.Dataset): dataset considered good
         rtol (float): relative tolerance
         atol (float): absolute tolerance
+        exclude_vars (List[str]): variable names to exclude from comparison
         reporter (Callable[[str], None]): callback function for
             reporting differences
 
@@ -133,6 +141,7 @@ def compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter):
         name (str): group name
         actual_ds (netCDF.Dataset): dataset produced by test run
         desired_ds (netCDF.Dataset): dataset considered good
+        exclude_vars (List[str]): variable names to exclude from comparison
         reporter (Callable[[str], None]): callback function for
             reporting differences
 
@@ -171,6 +180,9 @@ def compare_vars(name, actual_ds, desired_ds, rtol, atol,
         name (str): group name
         actual_ds (netCDF.Dataset): dataset produced by test run
         desired_ds (netCDF.Dataset): dataset considered good
+        rtol (float): relative tolerance
+        atol (float): absolute tolerance
+        exclude_vars (List[str]): variable names to exclude from comparison
         reporter (Callable[[str], None]): callback function for
             reporting differences
 
@@ -265,6 +277,8 @@ def compare_data(name, actual_var, desired_var, rtol, atol, reporter):
         name (str): variable name
         actual_var (netCDF.Variable): variable produced by test run
         desired_var (netCDF.Variable): variable considered good
+        rtol (float): relative tolerance
+        atol (float): absolute tolerance
         reporter (Callable[[str], None]): callback function for
             reporting differences
 
@@ -272,7 +286,7 @@ def compare_data(name, actual_var, desired_var, rtol, atol, reporter):
         None
     """
     if actual_var.dtype != desired_var.dtype:
-        msg = (f"different type {name} - {actual_var.type} {desired_var.type}")
+        msg = f"different type {name} - {actual_var.type} {desired_var.type}"
         reporter(msg)
     actual_data = actual_var[:]
     desired_data = desired_var[:]
