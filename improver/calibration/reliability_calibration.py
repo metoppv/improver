@@ -31,6 +31,7 @@
 """Reliability calibration plugins."""
 
 import iris
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver import BasePlugin
@@ -40,13 +41,13 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.calibration.utilities import filter_non_matching_cubes
 
 
-class ConstructRealizationCalibrationTables(BasePlugin):
+class ConstructReliabilityCalibrationTables(BasePlugin):
 
     """A plugin for creating and populating reliability calibration tables."""
 
     def __init__(self, n_probability_bins=5, single_value_limits=True):
         """
-        Initialise class for creating realization calibration tables. These
+        Initialise class for creating reliability calibration tables. These
         tables include data columns entitled observation_count,
         sum_of_forecast_probabilities, and forecast_count, defined below.
 
@@ -73,7 +74,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
         bin_values = ', '.join(
             ['[{:1.2f} --> {:1.2f}]'.format(*item)
              for item in self.probability_bins])
-        result = ('<ConstructRealizationCalibrationTables: '
+        result = ('<ConstructReliabilityCalibrationTables: '
                   'probability_bins: {}>')
         return result.format(bin_values)
 
@@ -146,7 +147,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
             bounds=self.probability_bins)
         return probability_bins_coord
 
-    def _create_realiability_table_coords(self):
+    def _create_reliability_table_coords(self):
         """
         Construct coordinates that describe the reliability table rows. These
         are observation_count, sum_of_forecast_probabilities, and
@@ -171,20 +172,58 @@ class ConstructRealizationCalibrationTables(BasePlugin):
         return index_coord, name_coord
 
     @staticmethod
-    def _create_cycle_hour_coord(forecast_reference_time):
+    def _get_cycle_hours(forecast_reference_time):
+        """
+        Returns a set of integer representations of the hour of the
+        forecast reference time (the cycle hour).
+
+        Args:
+            forecast_reference_time (iris.coord.DimCoord):
+                The forecast_reference_time coordinate to extract cycle hours
+                from.
+        Returns:
+            set:
+                A list of integer representations of the cycle hours.
+        """
+        cycle_hours = []
+        for frt in forecast_reference_time.cells():
+            cycle_hours.append(np.int32(frt.point.hour))
+        return set(cycle_hours)
+
+    def _check_forecast_consistency(self, forecasts):
+        """
+        Checks that the forecast cubes are all from a consistent cycle and
+        with a consistent forecast period.
+
+        Args:
+            forecasts (iris.cube.Cube):
+        Raises:
+            ValueError: Forecast cubes do not share consistent cycle hour and
+                        forecast period.
+        """
+        n_cycle_hours = len(self._get_cycle_hours(
+            forecasts.coord('forecast_reference_time')))
+        n_forecast_periods, = forecasts.coord('forecast_period').points.shape
+        if n_cycle_hours != 1 or n_forecast_periods != 1:
+            raise ValueError('Forecasts have been provided from differing '
+                             'cycle hours or forecast periods; these should '
+                             'be consistent between forecasts.')
+
+    def _create_cycle_hour_coord(self, forecast_reference_time):
         """
         Constructs a coordinate that contains the cycle hour for which the
         reliability table is valid.
 
         Args:
             forecast_reference_time (iris.coord.DimCoord):
+                The forecast_reference_time coordinate to be uses in the
+                coordinate creation.
         Returns:
             iris.coord.DimCoord:
                 A dimension coordinate containing an integer unitless
                 representation of the cycle hour.
         """
-        dt_object = next(forecast_reference_time.cells()).point
-        cycle_hour = np.int32(dt_object.hour)
+        cycle_hour, = self._get_cycle_hours(forecast_reference_time)
         cycle_coord = iris.coords.DimCoord(cycle_hour, long_name='cycle_hour',
                                            units=1)
         return cycle_coord
@@ -210,60 +249,56 @@ class ConstructRealizationCalibrationTables(BasePlugin):
         attributes["diagnostic_standard_name"] = diagnostic
         return attributes
 
-    def _create_reliability_table_cube(self, reliability_table_data,
-                                       forecast_slice):
+    def _create_reliability_table_cube(self, forecast, threshold_coord):
         """
         Construct a reliability table cube and populate it with the provided
         data.
 
         Args:
-            reliability_table_data (numpy.ndarray):
-                Array of reliability data, with values for each spatial
-                coordinate. The data order should correspond to reliability
-                table coords, then probability bin coords, followed by spatial
-                dimensions.
-            forecast_slice (iris.cube.Cube):
+            forecast (iris.cube.Cube):
                 A cube slice across the spatial dimensions of the forecast
                 data. This slice provides the time and threshold values that
                 relate to the reliability_table_data.
+            threshold_coord (iris.coords.DimCoord):
+                The threshold coordinate.
         Returns:
             iris.cube.Cube:
                 A reliability table cube.
-        Raises:
-            ValueError: If the reliability table data does not match the
-                        expected dimensions.
         """
         def _get_coords_and_dims(coord_names):
             coords_and_dims = []
             leading_coords = [probability_bins_coord, reliability_index_coord]
             for coord_name in coord_names:
-                crd = forecast_slice.coord(coord_name)
+                try:
+                    crd = forecast_slice.coord(coord_name)
+                except CoordinateNotFoundError as err:
+                    msg = ('Required coordinate for reliability calibration '
+                           'cube is missing: {}'.format(err))
+                    raise CoordinateNotFoundError(msg)
                 crd_dim = forecast_slice.coord_dims(crd)
                 crd_dim = crd_dim[0] + len(leading_coords) if crd_dim else ()
                 coords_and_dims.append((crd, crd_dim))
             return coords_and_dims
 
+        forecast_slice = next(forecast.slices_over(['time', threshold_coord]))
         expected_shape = self.expected_table_shape + forecast_slice.shape
-        if not reliability_table_data.shape == expected_shape:
-            msg = ("The reliability table data does not have the expected "
-                   "dimensions.")
-            raise ValueError(msg)
+        dummy_data = np.zeros((expected_shape))
 
-        diagnostic = forecast_slice.coord(var_name='threshold').name()
-        attributes = self._define_metadata(forecast_slice, diagnostic)
+        diagnostic = forecast.coord(var_name='threshold').name()
+        attributes = self._define_metadata(forecast, diagnostic)
 
         # Define reliability table specific coordinates
         probability_bins_coord = self._create_probability_bins_coord()
         reliability_index_coord, reliability_name_coord = (
-            self._create_realiability_table_coords())
+            self._create_reliability_table_coords())
         cycle_coord = self._create_cycle_hour_coord(
-            forecast_slice.coord('forecast_reference_time'))
+            forecast.coord('forecast_reference_time'))
 
-        # List of required non-spatial coordinates from the forecast_slice
+        # List of required non-spatial coordinates from the forecast
         non_spatial_coords = ['forecast_period', diagnostic]
 
         # Construct a list of coordinates in the desired order
-        dim_coords = [forecast_slice.coord(axis=dim).name()
+        dim_coords = [forecast.coord(axis=dim).name()
                       for dim in ['x', 'y']]
         dim_coords_and_dims = _get_coords_and_dims(dim_coords)
         aux_coords_and_dims = _get_coords_and_dims(non_spatial_coords)
@@ -272,7 +307,7 @@ class ConstructRealizationCalibrationTables(BasePlugin):
         dim_coords_and_dims.append((probability_bins_coord, 1))
 
         reliability_cube = iris.cube.Cube(
-            reliability_table_data, units=1, attributes=attributes,
+            dummy_data, units=1, attributes=attributes,
             dim_coords_and_dims=dim_coords_and_dims,
             aux_coords_and_dims=aux_coords_and_dims)
         reliability_cube.add_aux_coord(cycle_coord)
@@ -329,6 +364,8 @@ class ConstructRealizationCalibrationTables(BasePlugin):
         Args:
             historic_forecasts (iris.cube.Cube):
                 A cube containing the historical forecasts used in calibration.
+                These are expected to all have a consistent cycle hour, that is
+                the hour in the forecast reference time.
             truths (iris.cube.Cube):
                 A cube containing the thresholded gridded truths used in
                 calibration.
@@ -337,12 +374,15 @@ class ConstructRealizationCalibrationTables(BasePlugin):
                 A cubelist of reliability table cubes, one for each threshold
                 in the historic forecast cubes.
         """
-
         historic_forecasts, truths = filter_non_matching_cubes(
             historic_forecasts, truths)
 
         threshold_coord = find_threshold_coordinate(historic_forecasts)
         time_coord = historic_forecasts.coord('time')
+
+        self._check_forecast_consistency(historic_forecasts)
+        reliability_cube = self._create_reliability_table_cube(
+            historic_forecasts, threshold_coord)
 
         reliability_tables = iris.cube.CubeList()
         threshold_slices = zip(historic_forecasts.slices_over(threshold_coord),
@@ -364,8 +404,9 @@ class ConstructRealizationCalibrationTables(BasePlugin):
             table_values = np.stack(threshold_reliability)
             table_values = np.sum(table_values, axis=0, dtype=np.float32)
 
-            reliability_cube = self._create_reliability_table_cube(
-                table_values, forecast)
-            reliability_tables.append(reliability_cube)
+            reliability_entry = reliability_cube.copy(data=table_values)
+            reliability_entry.replace_coord(
+                forecast_slice.coord(threshold_coord))
+            reliability_tables.append(reliability_entry)
 
         return MergeCubes()(reliability_tables)

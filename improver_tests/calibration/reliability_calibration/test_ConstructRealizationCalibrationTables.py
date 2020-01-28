@@ -28,24 +28,25 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the ConstructRealizationCalibrationTables plugin."""
+"""Unit tests for the ConstructReliabilityCalibrationTables plugin."""
 
 import unittest
 
 import iris
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_array_equal
 from datetime import datetime
 
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.calibration.reliability_calibration import (
-    ConstructRealizationCalibrationTables as Plugin)
+    ConstructReliabilityCalibrationTables as Plugin)
 from improver_tests.set_up_test_cubes import set_up_probability_cube
 
 
 class Test_Setup(unittest.TestCase):
 
-    """Test class for the Test_ConstructRealizationCalibrationTables tests,
+    """Test class for the Test_ConstructReliabilityCalibrationTables tests,
     setting up cubes to use as inputs."""
 
     def setUp(self):
@@ -166,7 +167,7 @@ class Test__repr__(unittest.TestCase):
         plugin = Plugin(n_probability_bins=2, single_value_limits=False)
         self.assertEqual(
             str(plugin),
-            '<ConstructRealizationCalibrationTables: probability_bins: '
+            '<ConstructReliabilityCalibrationTables: probability_bins: '
             '[0.00 --> 0.50], [0.50 --> 1.00]>')
 
 
@@ -227,9 +228,9 @@ class Test__create_probability_bins_coord(unittest.TestCase):
         assert_almost_equal(result.bounds, expected_bounds)
 
 
-class Test__create_realiability_table_coords(unittest.TestCase):
+class Test__create_reliability_table_coords(unittest.TestCase):
 
-    """Test the _create_realiability_table_coords method."""
+    """Test the _create_reliability_table_coords method."""
 
     def test_coordinates(self):
         """Test the reliability table coordinates have the expected values and
@@ -238,12 +239,71 @@ class Test__create_realiability_table_coords(unittest.TestCase):
         expected_names = np.array(
             ['observation_count', 'sum_of_forecast_probabilities',
              'forecast_count'])
-        index_coord, name_coord = Plugin()._create_realiability_table_coords()
+        index_coord, name_coord = Plugin()._create_reliability_table_coords()
 
         self.assertIsInstance(index_coord, iris.coords.DimCoord)
         self.assertIsInstance(name_coord, iris.coords.AuxCoord)
         assert_array_equal(index_coord.points, expected_indices)
         assert_array_equal(name_coord.points, expected_names)
+
+
+class Test__get_cycle_hours(Test_Setup):
+
+    """Test the _get_cycle_hours method."""
+
+    def test_single_value(self):
+        """Test that the expected cycle hour value is returned in a set."""
+
+        frt = self.forecast_1.coord('forecast_reference_time')
+        result = Plugin()._get_cycle_hours(frt)
+        self.assertEqual(result, set([0]))
+
+    def test_multiple_values(self):
+        """Test that the expected cycle hour values are returned in a set."""
+
+        frt = self.forecast_1.coord('forecast_reference_time')
+        expected = np.array([0, 1, 4])
+        frt = frt.copy(points=3600*expected + frt.points[0])
+        result = Plugin()._get_cycle_hours(frt)
+        self.assertEqual(result, set(expected))
+
+
+class Test__check_forecast_consistency(Test_Setup):
+
+    """Test the _check_forecast_consistency method."""
+
+    def test_matching_forecasts(self):
+        """Test case in which forecasts share cycle hour and forecast period
+        values. No result is expected in this case, hence there is no value
+        comparison; the test is the absence of an exception."""
+
+        Plugin()._check_forecast_consistency(self.forecasts)
+
+    def test_unmatching_cycle_hours(self):
+        """Test case in which forecasts do not share consistent cycle hours."""
+
+        self.forecasts.coord('forecast_reference_time').points = [3600, 7200]
+
+        msg = ('Forecasts have been provided from differing cycle hours or '
+               'forecast periods')
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin()._check_forecast_consistency(self.forecasts)
+
+    def test_unmatching_forecast_periods(self):
+        """Test case in which forecasts do not share consistent forecast
+        periods."""
+
+        forecasts = iris.cube.CubeList()
+        forecast = self.forecasts[0].copy()
+        forecast.coord('forecast_period').points = [3600]
+        forecasts.append(forecast)
+        forecasts.append(self.forecasts[1])
+        forecasts = merge_cubes(forecasts)
+
+        msg = ('Forecasts have been provided from differing cycle hours or '
+               'forecast periods')
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin()._check_forecast_consistency(forecasts)
 
 
 class Test__create_cycle_hour_coord(Test_Setup):
@@ -255,7 +315,7 @@ class Test__create_cycle_hour_coord(Test_Setup):
 
         expected_cycle_hour = 0
         frt = self.forecast_1.coord('forecast_reference_time')
-        result = Plugin._create_cycle_hour_coord(frt)
+        result = Plugin()._create_cycle_hour_coord(frt)
 
         self.assertIsInstance(result, iris.coords.DimCoord)
         assert_array_equal(result.points, expected_cycle_hour)
@@ -297,27 +357,26 @@ class Test__create_reliability_table_cube(Test_Setup):
     def test_valid_inputs(self):
         """Test the cube returned has the structure expected."""
 
-        input_data = np.ones((3, 5, 3, 3))
         forecast_slice = next(self.forecast_1.slices_over('air_temperature'))
-        result = Plugin()._create_reliability_table_cube(input_data,
-                                                         forecast_slice)
+        result = Plugin()._create_reliability_table_cube(
+            forecast_slice, forecast_slice.coord(var_name='threshold'))
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertSequenceEqual(result.shape, input_data.shape)
+        self.assertSequenceEqual(result.shape, self.expected_table_shape)
         self.assertEqual(result.name(), "reliability_calibration_table")
         self.assertEqual(result.attributes, self.expected_attributes)
 
-    def test_invalid_inputs(self):
-        """Test that an exception is raised if the input data is not of the
-        expected dimensions."""
+    def test_missing_coord(self):
+        """Test that an exception is raised if a required coordinate is missing
+        on the source forecast cube."""
 
-        input_data = np.ones((3, 4, 3, 3))
         forecast_slice = next(self.forecast_1.slices_over('air_temperature'))
+        forecast_slice.remove_coord('forecast_period')
 
-        msg = ('The reliability table data does not have the expected '
-               'dimensions.')
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin()._create_reliability_table_cube(input_data,
-                                                    forecast_slice)
+        msg = ('Required coordinate for reliability calibration cube is '
+               'missing')
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            Plugin()._create_reliability_table_cube(
+                forecast_slice, forecast_slice.coord(var_name='threshold'))
 
 
 class Test__populate_reliability_bins(Test_Setup):
@@ -352,9 +411,9 @@ class Test_process(Test_Setup):
     def test_table_values(self):
         """Test that cube values are as expected when process has sliced the
         inputs up for processing and then summed the contributions from the
-        two dates. Note that the table tested here is still for only one
-        threshold (283K), but contains contributions from two forecast/truth
-        pairs."""
+        two dates. Note that the values tested here are for only one of the
+        two processed thresholds (283K). The results contain contributions
+        from two forecast/truth pairs."""
 
         expected = np.sum([self.expected_table, self.expected_table], axis=0)
         result = Plugin().process(self.forecasts, self.truths)
