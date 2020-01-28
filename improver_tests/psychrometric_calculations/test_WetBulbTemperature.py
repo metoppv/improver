@@ -102,7 +102,8 @@ class Test_WetBulbTemperature(IrisTest):
 
     def setUp(self):
         """Set up test input cubes and output data values."""
-        temperature = np.array([[185.0, 260.65, 273.15, 338.15]], dtype=np.float32)
+        temperature = np.array([[185.0, 260.65, 273.15, 338.15]],
+                               dtype=np.float32)
         self.temperature = set_up_variable_cube(temperature)
         humidity = np.array([[60., 70., 75., 80.]], dtype=np.float32)
         self.relative_humidity = set_up_variable_cube(
