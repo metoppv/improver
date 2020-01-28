@@ -265,7 +265,9 @@ def compare_attributes(name, actual_ds, desired_ds, reporter):
                 msg = (f"different attribute value {name}/{key} - "
                        f"{actual_attr} {desired_attr}")
                 reporter(msg)
-        except KeyError:
+        except AttributeError:
+            # if desired attribute is not present on output file - this is
+            # reported above but the error needs catching here
             pass
 
 
