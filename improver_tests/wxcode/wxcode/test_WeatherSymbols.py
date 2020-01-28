@@ -695,7 +695,8 @@ class Test_process(IrisTest):
         self.wxmeaning = " ".join(WX_DICT.values())
 
     def test_basic(self):
-        """Test process returns a weather code cube with right values. """
+        """Test process returns a weather code cube with right values and type.
+        """
         plugin = WeatherSymbols()
         result = plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -707,6 +708,7 @@ class Test_process(IrisTest):
                                     10, 11, 12]).reshape((1, 3, 3))
         self.assertArrayEqual(result.data,
                               expected_wxcode)
+        self.assertEqual(result.dtype, np.int32)
 
     def test_day_night(self):
         """Test process returns the right values for night. """

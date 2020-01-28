@@ -505,7 +505,7 @@ class WeatherSymbols(BasePlugin):
 
         attributes = generate_mandatory_attributes(cubes)
         symbols = create_new_diagnostic_cube(
-            "weather_code", "1", template_cube, attributes)
+            "weather_code", "1", template_cube, attributes, dtype=np.int32)
         return add_weather_code_attribute(symbols)
 
     def process(self, cubes):
