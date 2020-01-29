@@ -95,10 +95,8 @@ def process(temperature: cli.inputcube,
         generate_mandatory_attributes, create_new_diagnostic_cube)
 
     if dry_adiabatic:
-        attributes = generate_mandatory_attributes([temperature])
-        optional_attributes = (
-            {model_id_attr: temperature.attributes[model_id_attr]}
-            if model_id_attr else None)
+        attributes = generate_mandatory_attributes(
+            [temperature], model_id_attr=model_id_attr)
         result = create_new_diagnostic_cube(
             'air_temperature_lapse_rate', U_DALR, temperature, attributes,
             data=np.full_like(temperature.data, DALR).astype(np.float32))

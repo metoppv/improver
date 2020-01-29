@@ -117,18 +117,6 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         self.assertEqual(result.long_name, "RainRate Composite")
         self.assertIsNone(result.standard_name)
 
-    def test_inherit_model_id(self):
-        """Test cube can inherit model identification metadata when
-        specified"""
-        model_id_attr = "mosg__model_configuration"
-        expected_attributes = self.mandatory_attributes.copy()
-        expected_attributes[model_id_attr] = (
-            self.template_cube.attributes[model_id_attr])
-        result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube,
-            self.mandatory_attributes, model_id_attr=model_id_attr)
-        self.assertDictEqual(result.attributes, expected_attributes)
-
 
 class Test_generate_mandatory_attributes(unittest.TestCase):
     """Test the generate_mandatory_attributes utility"""
@@ -176,6 +164,34 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
         result = generate_mandatory_attributes(
             [self.t_cube, self.p_cube, self.rh_cube])
         self.assertDictEqual(result, expected_attributes)
+
+    def test_model_id_consensus(self):
+        """Test model ID attribute can be specified and inherited"""
+        expected_attributes = self.attributes.copy()
+        expected_attributes["mosg__model_configuration"] = "uk_det"
+        result = generate_mandatory_attributes(
+            [self.t_cube, self.p_cube, self.rh_cube],
+            model_id_attr="mosg__model_configuration")
+        self.assertDictEqual(result, expected_attributes)
+
+    def test_model_id_no_consensus(self):
+        """Test error raised when model ID attributes do not agree"""
+        self.t_cube.attributes["mosg__model_configuration"] = "gl_det"
+        msg = "is not the same on all input cubes"
+        with self.assertRaisesRegex(ValueError, msg):
+            generate_mandatory_attributes(
+                [self.t_cube, self.p_cube, self.rh_cube],
+                model_id_attr="mosg__model_configuration")
+
+    def test_model_id_missing(self):
+        """Test error raised when model ID attribute is not present on
+        all input diagnostic cubes"""
+        self.t_cube.attributes.pop("mosg__model_configuration")
+        msg = "is not present on all input cubes"
+        with self.assertRaisesRegex(ValueError, msg):
+            generate_mandatory_attributes(
+                [self.t_cube, self.p_cube, self.rh_cube],
+                model_id_attr="mosg__model_configuration")
 
 
 class Test_generate_hash(unittest.TestCase):

@@ -103,11 +103,9 @@ def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6,
     uv_index.units = Unit("1")
     """
     uv_data = (uv_upward.data + uv_downward.data) * scale_factor
-    attributes = generate_mandatory_attributes([uv_upward, uv_downward])
-    optional_attributes = ({model_id_attr: uv_upward.attributes[model_id_attr]}
-                           if model_id_attr else None)
+    attributes = generate_mandatory_attributes([
+        uv_upward, uv_downward], model_id_attr=model_id_attr)
     uv_index = create_new_diagnostic_cube(
-        "ultraviolet_index", "1", uv_upward, attributes,
-        optional_attributes=optional_attributes, data=uv_data)
+        "ultraviolet_index", "1", uv_upward, attributes, data=uv_data)
 
     return uv_index

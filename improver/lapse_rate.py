@@ -471,13 +471,10 @@ class LapseRate(BasePlugin):
             else:
                 lapse_rate_data.append(lapse_rate_array)
 
-        attributes = generate_mandatory_attributes([temperature])
-        optional_attributes = (
-            {model_id_attr: temperature.attributes[model_id_attr]}
-            if model_id_attr else None)
+        attributes = generate_mandatory_attributes(
+            [temperature], model_id_attr=model_id_attr)
         lapse_rate_cube = create_new_diagnostic_cube(
             'air_temperature_lapse_rate', 'K m-1', temperature_cube,
-            attributes, optional_attributes=optional_attributes,
-            data=np.array(lapse_rate_data, dtype=np.float32))
+            attributes, data=np.array(lapse_rate_data, dtype=np.float32))
 
         return lapse_rate_cube

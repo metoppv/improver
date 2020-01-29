@@ -43,8 +43,7 @@ from improver.metadata.constants.attributes import (
 
 def create_new_diagnostic_cube(
         name, units, template_cube, mandatory_attributes,
-        optional_attributes=None, model_id_attr=None, data=None,
-        dtype=np.float32):
+        optional_attributes=None, data=None, dtype=np.float32):
     """
     Creates a new diagnostic cube with suitable metadata.
 
@@ -63,10 +62,6 @@ def create_new_diagnostic_cube(
             Dictionary of optional attribute names and values.  If values for
             mandatory attributes are included in this dictionary they override
             the values of mandatory_attributes.
-        model_id_attr (str or None):
-            Name of attribute used to identify source model, if required.  This
-            should only be used where the new cube will be input to a
-            multi-model blend.  The value is inherited from template_cube.
         data (numpy.ndarray or None):
             Data array.  If not set, cube is filled with zeros using a lazy
             data object, as this will be overwritten later by the caller
@@ -81,8 +76,6 @@ def create_new_diagnostic_cube(
     attributes = mandatory_attributes
     if optional_attributes is not None:
         attributes.update(optional_attributes)
-    if model_id_attr is not None and model_id_attr not in attributes:
-        attributes[model_id_attr] = template_cube.attributes[model_id_attr]
 
     error_msg = ""
     for attr in MANDATORY_ATTRIBUTES:
@@ -108,7 +101,7 @@ def create_new_diagnostic_cube(
     return cube
 
 
-def generate_mandatory_attributes(diagnostic_cubes):
+def generate_mandatory_attributes(diagnostic_cubes, model_id_attr=None):
     """
     Function to generate mandatory attributes for new diagnostics that are
     generated using several different model diagnostics as input to the
@@ -118,6 +111,9 @@ def generate_mandatory_attributes(diagnostic_cubes):
     Args:
         diagnostic_cubes (list):
             List of diagnostic cubes used in calculating the new diagnostic
+        model_id_attr (str or None):
+            Name of attribute used to identify source model for blending,
+            if required
 
     Returns:
         dict: Dictionary of mandatory attribute "key": "value" pairs.
@@ -133,6 +129,24 @@ def generate_mandatory_attributes(diagnostic_cubes):
             unique_values = np.unique(values)
             if len(unique_values) == 1:
                 attributes[attr] = unique_values[0]
+
+    # for model_id_attr there is no default, so must fail if no consensus
+    if model_id_attr:
+        try:
+            values = [cube.attributes[model_id_attr]
+                      for cube in diagnostic_cubes]
+        except KeyError:
+            msg = 'Required attribute "{}" is not present on all input cubes'
+            raise ValueError(msg.format(model_id_attr))
+        else:
+            unique_values = np.unique(values)
+            if len(unique_values) == 1:
+                attributes[model_id_attr] = unique_values[0]
+            else:
+                msg = ('Required attribute "{}" is not the same on '
+                       'all input cubes')
+                raise ValueError(msg.format(model_id_attr))
+
     return attributes
 
 
