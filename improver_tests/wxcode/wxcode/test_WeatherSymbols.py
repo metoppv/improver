@@ -692,9 +692,9 @@ class Test_process(IrisTest):
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.no_lightning_wxcode = np.array(
-            [1, 3, 5, 6, 7, 8, 10, 11, 12]).reshape(1, 3, 3)
+            [[[1, 3, 5], [6, 7, 8], [10, 11, 12]]])
         self.expected_wxcode = np.array(
-            [14, 15, 17, 18, 23, 24, 26, 27, 27]).reshape(1, 3, 3)
+            [[[14, 15, 17], [18, 23, 24], [26, 27, 27]]])
 
     def test_basic(self):
         """Test process returns a weather code cube with right values and type.
