@@ -73,21 +73,19 @@ WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 
 
-def add_weather_code_attribute(cube):
-    """ Add weather code metadata to a cube
-    Args:
-        cube (iris.cube.Cube):
-            Cube which needs weather code metadata added.
+def weather_code_attributes():
+    """
     Returns:
-        iris.cube.Cube:
-            Cube with weather code metadata added.
+        dict:
+            Attributes defining weather code meanings.
     """
     import numpy as np
+    attributes = {}
     wx_keys = np.array(list(WX_DICT.keys()))
-    cube.attributes.update({'weather_code': wx_keys})
+    attributes.update({'weather_code': wx_keys})
     wxstring = " ".join(WX_DICT.values())
-    cube.attributes.update({'weather_code_meaning': wxstring})
-    return cube
+    attributes.update({'weather_code_meaning': wxstring})
+    return attributes
 
 
 def expand_nested_lists(query, key):

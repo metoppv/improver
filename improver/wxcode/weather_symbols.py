@@ -42,7 +42,7 @@ from improver.metadata.probabilistic import (
 from improver.metadata.utilities import (
     create_new_diagnostic_cube, generate_mandatory_attributes)
 from improver.wxcode.utilities import (
-    add_weather_code_attribute, expand_nested_lists, update_daynight)
+    weather_code_attributes, expand_nested_lists, update_daynight)
 from improver.wxcode.wxcode_decision_tree import (
     START_NODE, wxcode_decision_tree)
 from improver.wxcode.wxcode_decision_tree_global import (
@@ -505,8 +505,9 @@ class WeatherSymbols(BasePlugin):
 
         attributes = generate_mandatory_attributes(cubes)
         symbols = create_new_diagnostic_cube(
-            "weather_code", "1", template_cube, attributes, dtype=np.int32)
-        return add_weather_code_attribute(symbols)
+            "weather_code", "1", template_cube, attributes,
+            optional_attributes=weather_code_attributes(), dtype=np.int32)
+        return symbols
 
     def process(self, cubes):
         """Apply the decision tree to the input cubes to produce weather
