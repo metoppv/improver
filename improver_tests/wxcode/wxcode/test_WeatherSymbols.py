@@ -673,10 +673,8 @@ class Test_create_symbol_cube(IrisTest):
         self.wxmeaning = " ".join(WX_DICT.values())
 
     def test_basic(self):
-        """Test construct_extract_constraint method returns a iris.Constraint.
-            or list of iris.Constraint"""
+        """Test cube is constructed with appropriate metadata"""
         plugin = WeatherSymbols()
-
         result = plugin.create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
@@ -693,6 +691,10 @@ class Test_process(IrisTest):
         self.cubes, self.cubes_no_lightning = set_up_wxcubes()
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
+        self.no_lightning_wxcode = np.array(
+            [1, 3, 5, 6, 7, 8, 10, 11, 12]).reshape(1, 3, 3)
+        self.expected_wxcode = np.array(
+            [14, 15, 17, 18, 23, 24, 26, 27, 27]).reshape(1, 3, 3)
 
     def test_basic(self):
         """Test process returns a weather code cube with right values and type.
@@ -703,11 +705,8 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],
                          self.wxmeaning)
-        expected_wxcode = np.array([1, 3, 5,
-                                    6, 7, 8,
-                                    10, 11, 12]).reshape((1, 3, 3))
         self.assertArrayEqual(result.data,
-                              expected_wxcode)
+                              self.no_lightning_wxcode)
         self.assertEqual(result.dtype, np.int32)
 
     def test_day_night(self):
@@ -727,15 +726,8 @@ class Test_process(IrisTest):
         """Test process returns right values if no lightning. """
         plugin = WeatherSymbols()
         result = plugin.process(self.cubes_no_lightning)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
-        self.assertEqual(result.attributes['weather_code_meaning'],
-                         self.wxmeaning)
-        expected_wxcode = np.array([1, 3, 5,
-                                    6, 7, 8,
-                                    10, 11, 12]).reshape((1, 3, 3))
         self.assertArrayEqual(result.data,
-                              expected_wxcode)
+                              self.no_lightning_wxcode)
 
     def test_lightning(self):
         """Test process returns right values if all lightning. """
@@ -744,10 +736,6 @@ class Test_process(IrisTest):
         cubes = self.cubes
         cubes[7].data = data_lightning
         result = plugin.process(self.cubes)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
-        self.assertEqual(result.attributes['weather_code_meaning'],
-                         self.wxmeaning)
         expected_wxcode = np.ones((1, 3, 3)) * 29
         expected_wxcode[0, 1, 1:] = 30
         expected_wxcode[0, 2, 2] = 30
@@ -790,26 +778,16 @@ class Test_process(IrisTest):
         cubes[5].data = data_cld_low
         cubes[6].data = data_vis
         result = plugin.process(cubes)
-        expected_wxcode = np.array([14, 15, 17,
-                                    18, 23, 24,
-                                    26, 27, 27]).reshape((1, 3, 3))
         self.assertArrayEqual(result.data,
-                              expected_wxcode)
+                              self.expected_wxcode)
 
     def test_basic_global(self):
         """Test process returns a wxcode cube with right values for global. """
         plugin = WeatherSymbols(wxtree='global')
         cubes = set_up_wxcubes_global()
         result = plugin.process(cubes)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
-        self.assertEqual(result.attributes['weather_code_meaning'],
-                         self.wxmeaning)
-        expected_wxcode = np.array([1, 3, 5,
-                                    6, 7, 8,
-                                    10, 11, 12]).reshape((1, 3, 3))
         self.assertArrayEqual(result.data,
-                              expected_wxcode)
+                              self.no_lightning_wxcode)
 
     def test_weather_data_global(self):
         """Test process returns the right weather values global part2 """
@@ -838,11 +816,8 @@ class Test_process(IrisTest):
         cubes[3].data = data_cld_low
         cubes[4].data = data_vis
         result = plugin.process(cubes)
-        expected_wxcode = np.array([14, 15, 17,
-                                    18, 23, 24,
-                                    26, 27, 27]).reshape((1, 3, 3))
         self.assertArrayEqual(result.data,
-                              expected_wxcode)
+                              self.expected_wxcode)
 
 
 if __name__ == '__main__':
