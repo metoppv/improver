@@ -246,7 +246,8 @@ def calculate_feels_like_temperature(
         apparent_temperature.data[t_data > 20])
 
     attributes = generate_mandatory_attributes(
-        [temperature], model_id_attr=model_id_attr)
+        [temperature, wind_speed, relative_humidity, pressure],
+        model_id_attr=model_id_attr)
     feels_like_temperature = create_new_diagnostic_cube(
         "feels_like_temperature", apparent_temperature.units, temperature,
         attributes, data=feels_like_temperature_data)
