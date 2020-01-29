@@ -31,8 +31,6 @@
 """Module for calculating the uv index using radiation flux in UV downward
 at surface and radiation flux in UV upward at the surface."""
 
-from cf_units import Unit
-
 from improver.metadata.utilities import (
     create_new_diagnostic_cube, generate_mandatory_attributes)
 

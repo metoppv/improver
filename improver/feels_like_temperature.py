@@ -31,7 +31,6 @@
 """Module containing feels like temperature calculation plugins"""
 
 import numpy as np
-from cf_units import Unit
 
 from improver.metadata.utilities import (
     generate_mandatory_attributes, create_new_diagnostic_cube)
