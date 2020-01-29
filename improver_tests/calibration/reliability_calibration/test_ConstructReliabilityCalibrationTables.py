@@ -32,11 +32,10 @@
 
 import unittest
 
+from datetime import datetime
 import iris
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 from numpy.testing import assert_almost_equal, assert_array_equal
-from datetime import datetime
 
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.calibration.reliability_calibration import (
@@ -175,7 +174,8 @@ class Test__define_probability_bins(unittest.TestCase):
 
     """Test the _define_probability_bins method."""
 
-    def test_without_single_value_limits(self):
+    @staticmethod
+    def test_without_single_value_limits():
         """Test the generation of probability bins without single value end
         bins. The range 0 to 1 will be divided into 4 equally sized bins."""
         expected = np.array(
@@ -187,7 +187,8 @@ class Test__define_probability_bins(unittest.TestCase):
                                                    single_value_limits=False)
         assert_almost_equal(result, expected)
 
-    def test_with_single_value_limits(self):
+    @staticmethod
+    def test_with_single_value_limits():
         """Test the generation of probability bins with single value end
         bins. The range 0 to 1 will be divided into 2 equally sized bins,
         with 2 end bins holding values approximately equal to 0 and 1."""
