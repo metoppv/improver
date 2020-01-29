@@ -332,6 +332,70 @@ class LapseRate(BasePlugin):
 
         return height_diff_mask
 
+    def _generate_lapse_rate_array(
+            self, temperature_data, orography_data, land_sea_mask_data,
+            all_temp_subsections, all_orog_subsections):
+        """
+        Calculate lapse rates and apply filters
+
+        Args:
+            temperature_data (numpy.ndarray)
+            orography_data (numpy.ndarray)
+            land_sea_mask_data (numpy.ndarray)
+            all_temp_subsections (numpy.ndarray)
+            all_orog_subsections (numpy.ndarray)
+
+        Returns:
+            numpy.ndarray
+                Lapse rate values
+        """
+        # Fill sea points with NaN values. Can't use Numpy mask since not
+        # recognised by "generic_filter" function.
+        temperature_data = np.where(
+            land_sea_mask_data, temperature_data, np.nan)
+
+        # Saves all neighbourhoods into "all_temp_subsections".
+        # cval is value given to points outside the array.
+        fnc = SaveNeighbourhood(allbuffers=all_temp_subsections)
+        generic_filter(temperature_data, fnc.filter,
+                       size=self.nbhood_size,
+                       mode='constant', cval=np.nan)
+
+        fnc = SaveNeighbourhood(allbuffers=all_orog_subsections)
+        generic_filter(orography_data, fnc.filter,
+                       size=self.nbhood_size,
+                       mode='constant', cval=np.nan)
+
+        # height_diff_mask is True for points where the height
+        # difference between the central point and its neighbours
+        # is > max_height_diff.
+        height_diff_mask = self._create_heightdiff_mask(
+            all_orog_subsections)
+
+        # Mask points with extreme height differences as NaN.
+        all_orog_subsections = np.where(height_diff_mask, np.nan,
+                                        all_orog_subsections)
+        all_temp_subsections = np.where(height_diff_mask, np.nan,
+                                        all_temp_subsections)
+
+        # Loop through both arrays and find gradient of each subsection.
+        # The gradient indicates lapse rate - save into another array.
+        # TODO: This for loop is the bottleneck in the code and needs to
+        # be parallelised.
+        lapse_rate_array = [self._calc_lapse_rate(temp, orog)
+                            for temp, orog in zip(all_temp_subsections,
+                                                  all_orog_subsections)]
+
+        lapse_rate_array = np.array(
+            lapse_rate_array, dtype=np.float32).reshape(temperature_data.shape)
+
+        # Enforce upper and lower limits on lapse rate values.
+        lapse_rate_array = np.where(lapse_rate_array < self.min_lapse_rate,
+                                    self.min_lapse_rate, lapse_rate_array)
+        lapse_rate_array = np.where(lapse_rate_array > self.max_lapse_rate,
+                                    self.max_lapse_rate, lapse_rate_array)
+        return lapse_rate_array
+
     def process(self, temperature, orography, land_sea_mask,
                 model_id_attr=None):
         """Calculates the lapse rate from the temperature and orography cubes.
@@ -415,51 +479,9 @@ class LapseRate(BasePlugin):
         # Calculate lapse rate for each realization
         lapse_rate_data = None
         for temperature_data in temp_slices:
-            # Fill sea points with NaN values. Can't use Numpy mask since not
-            # recognised by "generic_filter" function.
-            temperature_data = np.where(land_sea_mask_data, temperature_data,
-                                        np.nan)
-
-            # Saves all neighbourhoods into "all_temp_subsections".
-            # cval is value given to points outside the array.
-            fnc = SaveNeighbourhood(allbuffers=all_temp_subsections)
-            generic_filter(temperature_data, fnc.filter,
-                           size=self.nbhood_size,
-                           mode='constant', cval=np.nan)
-
-            fnc = SaveNeighbourhood(allbuffers=all_orog_subsections)
-            generic_filter(orography_data, fnc.filter,
-                           size=self.nbhood_size,
-                           mode='constant', cval=np.nan)
-
-            # height_diff_mask is True for points where the height
-            # difference between the central point and its neighbours
-            # is > max_height_diff.
-            height_diff_mask = self._create_heightdiff_mask(
-                all_orog_subsections)
-
-            # Mask points with extreme height differences as NaN.
-            all_orog_subsections = np.where(height_diff_mask, np.nan,
-                                            all_orog_subsections)
-            all_temp_subsections = np.where(height_diff_mask, np.nan,
-                                            all_temp_subsections)
-
-            # Loop through both arrays and find gradient of each subsection.
-            # The gradient indicates lapse rate - save into another array.
-            # TODO: This for loop is the bottleneck in the code and needs to
-            # be parallelised.
-            lapse_rate_array = [self._calc_lapse_rate(temp, orog)
-                                for temp, orog in zip(all_temp_subsections,
-                                                      all_orog_subsections)]
-
-            lapse_rate_array = np.array(
-                lapse_rate_array, dtype=np.float32).reshape(dataarray_shape)
-
-            # Enforces upper and lower limits on lapse rate values.
-            lapse_rate_array = np.where(lapse_rate_array < self.min_lapse_rate,
-                                        self.min_lapse_rate, lapse_rate_array)
-            lapse_rate_array = np.where(lapse_rate_array > self.max_lapse_rate,
-                                        self.max_lapse_rate, lapse_rate_array)
+            lapse_rate_array = self._generate_lapse_rate_array(
+                temperature_data, orography_data, land_sea_mask_data,
+                all_temp_subsections, all_orog_subsections)
 
             if lapse_rate_data is None:
                 lapse_rate_data = lapse_rate_array
