@@ -292,9 +292,8 @@ def clizefy(obj=None, helper_class=DocutilizeClizeHelp, **kwargs):
     if hasattr(obj, 'cli'):
         return obj
     if not callable(obj):
-        kwargs.pop('helper_class', None)
         return Clize.get_cli(obj, **kwargs)
-    return Clize.keep(obj, **kwargs)
+    return Clize.keep(obj, helper_class=helper_class, **kwargs)
 
 
 # help command

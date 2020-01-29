@@ -47,9 +47,11 @@ or raise an appropriate exception.
 import netCDF4
 import numpy as np
 
-TIGHT_TOLERANCE = 1e-5
-DEFAULT_TOLERANCE = 1e-4
-LOOSE_TOLERANCE = 1e-3
+from improver.constants import (
+    TIGHT_TOLERANCE,
+    DEFAULT_TOLERANCE,
+    LOOSE_TOLERANCE,
+)
 
 
 def compare_netcdfs(actual_path, desired_path, rtol, atol,

@@ -39,12 +39,12 @@ def _extend_help(fn):
     # (and gets executed at import time)
     from improver.wxcode.utilities import interrogate_decision_tree
     for wxtree in ('high_resolution', 'global'):
-        title = wxtree.title().replace('_', ' ') + ' tree inputs'
-        inputs = interrogate_decision_tree(wxtree).replace('\n', '\n    ')
+        title = wxtree.capitalize().replace('_', ' ') + ' tree inputs'
+        inputs = interrogate_decision_tree(wxtree).replace('\n', '\n        ')
         tree_help = f"""
-{title}:
+    {title}::
 
-    {inputs}
+        {inputs}
     """
         fn.__doc__ += tree_help
     return fn
@@ -62,8 +62,7 @@ def process(*cubes: cli.inputcube,
             A cubelist containing the diagnostics required for the
             weather symbols decision tree, these at co-incident times.
         wxtree (str):
-            Weather Code tree.
-            Choices are high_resolution or global.
+            Weather Code tree: high_resolution or global.
 
     Returns:
         iris.cube.Cube:
