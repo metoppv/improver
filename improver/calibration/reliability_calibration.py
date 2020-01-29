@@ -64,10 +64,11 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         self.single_value_tolerance = 1.0E-6
         self.probability_bins = self._define_probability_bins(
             n_probability_bins, single_value_limits)
-        self.expected_table_shape = (3, n_probability_bins)
         self.table_columns = np.array(
             ['observation_count', 'sum_of_forecast_probabilities',
              'forecast_count'])
+        self.expected_table_shape = (len(self.table_columns),
+                                     n_probability_bins)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -183,7 +184,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                 from.
         Returns:
             set:
-                A list of integer representations of the cycle hours.
+                A set of integer representations of the cycle hours.
         """
         cycle_hours = []
         for frt in forecast_reference_time.cells():
@@ -203,11 +204,17 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         """
         n_cycle_hours = len(self._get_cycle_hours(
             forecasts.coord('forecast_reference_time')))
-        n_forecast_periods, = forecasts.coord('forecast_period').points.shape
+        try:
+            n_forecast_periods, = forecasts.coord('forecast_period').shape
+        except CoordinateNotFoundError:
+            n_forecast_periods = 0
         if n_cycle_hours != 1 or n_forecast_periods != 1:
-            raise ValueError('Forecasts have been provided from differing '
-                             'cycle hours or forecast periods; these should '
-                             'be consistent between forecasts.')
+            msg = ('Forecasts have been provided from differing cycle hours '
+                   'or forecast periods, or without these coordinates. These '
+                   'coordinates should be present and consistent between '
+                   'forecasts. Number of cycle hours found: {}, number of '
+                   'forecast periods found: {}.')
+            raise ValueError(msg.format(n_cycle_hours, n_forecast_periods))
 
     def _create_cycle_hour_coord(self, forecast_reference_time):
         """
@@ -269,12 +276,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             coords_and_dims = []
             leading_coords = [probability_bins_coord, reliability_index_coord]
             for coord_name in coord_names:
-                try:
-                    crd = forecast_slice.coord(coord_name)
-                except CoordinateNotFoundError as err:
-                    msg = ('Required coordinate for reliability calibration '
-                           'cube is missing: {}'.format(err))
-                    raise CoordinateNotFoundError(msg)
+                crd = forecast_slice.coord(coord_name)
                 crd_dim = forecast_slice.coord_dims(crd)
                 crd_dim = crd_dim[0] + len(leading_coords) if crd_dim else ()
                 coords_and_dims.append((crd, crd_dim))

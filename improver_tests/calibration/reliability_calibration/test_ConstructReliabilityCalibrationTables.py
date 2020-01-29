@@ -284,8 +284,12 @@ class Test__check_forecast_consistency(Test_Setup):
 
         self.forecasts.coord('forecast_reference_time').points = [3600, 7200]
 
-        msg = ('Forecasts have been provided from differing cycle hours or '
-               'forecast periods')
+        msg = ('Forecasts have been provided from differing cycle hours '
+               'or forecast periods, or without these coordinates. These '
+               'coordinates should be present and consistent between '
+               'forecasts. Number of cycle hours found: 2, number of '
+               'forecast periods found: 1.')
+
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._check_forecast_consistency(self.forecasts)
 
@@ -300,10 +304,29 @@ class Test__check_forecast_consistency(Test_Setup):
         forecasts.append(self.forecasts[1])
         forecasts = merge_cubes(forecasts)
 
-        msg = ('Forecasts have been provided from differing cycle hours or '
-               'forecast periods')
+        msg = ('Forecasts have been provided from differing cycle hours '
+               'or forecast periods, or without these coordinates. These '
+               'coordinates should be present and consistent between '
+               'forecasts. Number of cycle hours found: 1, number of '
+               'forecast periods found: 2.')
+
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._check_forecast_consistency(forecasts)
+
+    def test_missing_forecast_period(self):
+        """Test case in which forecasts do not have a forecast period
+        coordinate."""
+
+        self.forecasts.remove_coord('forecast_period')
+
+        msg = ('Forecasts have been provided from differing cycle hours '
+               'or forecast periods, or without these coordinates. These '
+               'coordinates should be present and consistent between '
+               'forecasts. Number of cycle hours found: 1, number of '
+               'forecast periods found: 0.')
+
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin()._check_forecast_consistency(self.forecasts)
 
 
 class Test__create_cycle_hour_coord(Test_Setup):
@@ -364,19 +387,6 @@ class Test__create_reliability_table_cube(Test_Setup):
         self.assertSequenceEqual(result.shape, self.expected_table_shape)
         self.assertEqual(result.name(), "reliability_calibration_table")
         self.assertEqual(result.attributes, self.expected_attributes)
-
-    def test_missing_coord(self):
-        """Test that an exception is raised if a required coordinate is missing
-        on the source forecast cube."""
-
-        forecast_slice = next(self.forecast_1.slices_over('air_temperature'))
-        forecast_slice.remove_coord('forecast_period')
-
-        msg = ('Required coordinate for reliability calibration cube is '
-               'missing')
-        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            Plugin()._create_reliability_table_cube(
-                forecast_slice, forecast_slice.coord(var_name='threshold'))
 
 
 class Test__populate_reliability_bins(Test_Setup):
