@@ -85,6 +85,15 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
             self.mandatory_attributes, optional_attributes=attributes)
         self.assertDictEqual(result.attributes, expected_attributes)
 
+    def test_missing_mandatory_attribute(self):
+        """Test error is raised if any mandatory attribute is missing"""
+        self.mandatory_attributes.pop("source")
+        msg = "source attribute is required"
+        with self.assertRaisesRegex(ValueError, msg):
+            create_new_diagnostic_cube(
+                self.name, self.units, self.template_cube,
+                self.mandatory_attributes)
+
     def test_data(self):
         """Test data can be set on the output cube"""
         data = np.arange(3*5*5).reshape((3, 5, 5)).astype(np.float32)

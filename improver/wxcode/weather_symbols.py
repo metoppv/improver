@@ -485,7 +485,7 @@ class WeatherSymbols(BasePlugin):
     @staticmethod
     def create_symbol_cube(cubes):
         """
-        Create an empty weather_symbol cube
+        Create an empty weather symbol cube
 
         Args:
             cubes (list or iris.cube.CubeList):
