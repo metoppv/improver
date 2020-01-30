@@ -859,7 +859,7 @@ class Test_mask_cube(SetupCubes):
             expected_result.data, cube2D.data.data)
         self.assertArrayEqual(
             np.ma.getmask(expected_result),
-            np.ma.getmask(cube2D.data.mask))
+            np.ma.getmask(cube2D.data))
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
