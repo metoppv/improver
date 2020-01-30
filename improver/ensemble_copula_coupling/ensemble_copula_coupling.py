@@ -490,10 +490,10 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
         forecast_at_percentiles = (
             np.empty((len(percentiles),
-                      probabilities_for_cdf.shape[0]),  # pylint: disable=E1136
-                     dtype=np.float32))
-        for index in range(
-                probabilities_for_cdf.shape[0]):  # pylint: disable=E1136
+                      probabilities_for_cdf.shape[0]), dtype=np.float32)) \
+            # pylint: disable=unsubscriptable-object
+        for index in range(probabilities_for_cdf.shape[0]): \
+                # pylint: disable=unsubscriptable-object
             forecast_at_percentiles[:, index] = np.interp(
                 percentiles_as_fractions, probabilities_for_cdf[index, :],
                 threshold_points)
@@ -987,7 +987,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
         for index, threshold in enumerate(thresholds):
             probabilities[index, ...] = np.reshape(
                 probability_method(threshold),
-                probabilities.shape[1:])  # pylint: disable=E1136
+                probabilities.shape[1:]) \
+                # pylint: disable=unsubscriptable-object
 
         probability_cube = probability_cube_template.copy(data=probabilities)
         return probability_cube
