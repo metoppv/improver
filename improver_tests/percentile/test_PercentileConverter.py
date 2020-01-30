@@ -61,7 +61,7 @@ class Test_process(IrisTest):
         """
         data = [[list(range(0, 11, 1))]*11]*3
         data = np.array(data).astype(np.float32)
-        data.resize(3, 11, 11)
+        data.resize((3, 11, 11))
         self.cube = set_up_variable_cube(data, realizations=[0, 1, 2])
         self.default_percentiles = np.array([0, 5, 10, 20, 25, 30, 40, 50,
                                              60, 70, 75, 80, 90, 95, 100])
@@ -99,7 +99,7 @@ class Test_process(IrisTest):
         passed in as a string."""
         data = [[list(range(1, 12, 1))]*11]*3
         data = np.array(data).astype(np.float32)
-        data.resize(3, 11, 11)
+        data.resize((3, 11, 11))
         new_cube = set_up_variable_cube(
             data, time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0), realizations=[0, 1, 2])
