@@ -104,7 +104,7 @@ class Test__init__(Test_RecursiveFilter):
         """
         smoothing_coefficient_x = 0.6
         msg = (r"smoothing_coefficient must be less than "
-               "0.5.*?(smoothing_coefficient_x).*?(: 0\.6)")
+               "0.5.*?(smoothing_coefficient_x).*?(: 0.6)")
         with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(smoothing_coefficient_x=smoothing_coefficient_x)
 
@@ -121,7 +121,7 @@ class Test__init__(Test_RecursiveFilter):
         """
         smoothing_coefficient_y = 0.6
         msg = (r"smoothing_coefficient must be less than "
-               "0.5.*?(smoothing_coefficient_y).*?(: 0\.6)")
+               "0.5.*?(smoothing_coefficient_y).*?(: 0.6)")
         with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(smoothing_coefficient_y=smoothing_coefficient_y)
 

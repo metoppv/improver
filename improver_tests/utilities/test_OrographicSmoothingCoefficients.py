@@ -149,7 +149,7 @@ class Test_gradient_to_smoothing_coefficient(IrisTest):
     def setUp(self):
         """Set up cube & plugin"""
         self.plugin = OrographicSmoothingCoefficients(
-            min_smoothing_coefficient=0.3, max_smoothing_coefficient=0.5)
+            min_smoothing_coefficient=0.5, max_smoothing_coefficient=0.3)
         self.cube = set_up_cube()
         self.gradient_x, self.gradient_y = \
             DifferenceBetweenAdjacentGridSquares(gradient=True).process(
@@ -177,7 +177,8 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up cube & plugin"""
-        self.plugin = OrographicSmoothingCoefficients()
+        self.plugin = OrographicSmoothingCoefficients(
+            min_smoothing_coefficient=1., max_smoothing_coefficient=0.)
         self.cube = set_up_cube()
 
     def test_basic(self):
