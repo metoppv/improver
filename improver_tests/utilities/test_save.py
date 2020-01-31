@@ -50,7 +50,7 @@ from ..set_up_test_cubes import set_up_variable_cube
 def set_up_test_cube():
     """ Set up a temperature cube with additional global attributes. """
     data = np.linspace(
-        -45.0, 45.0, 9, dtype=np.float32).reshape(1, 3, 3) + 273.15
+        -45.0, 45.0, 9, dtype=np.float32).reshape((1, 3, 3)) + 273.15
 
     attributes = {
         'um_version': '10.4',
@@ -244,8 +244,7 @@ class Test__append_metadata_cube(IrisTest):
             cube_list, self.global_keys_ref)
         for cube in metadata_cubelist:
             self.assertTrue(
-                cube.attributes['bald__isPrefixedBy']
-                is 'prefix_list')
+                cube.attributes['bald__isPrefixedBy'] == 'prefix_list')
 
     def test_prefix_cube_attributes(self):
         """Test that metadata prefix cube contains the correct attributes"""

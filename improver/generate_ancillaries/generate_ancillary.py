@@ -134,9 +134,9 @@ class CorrectLandSeaMask(BasePlugin):
             iris.cube.Cube:
                 output landmask of boolean values.
         """
-        mask_sea = np.ma.masked_less(standard_landmask.data, 0.5).mask
+        mask_sea = standard_landmask.data < 0.5
         standard_landmask.data[mask_sea] = False
-        mask_land = np.ma.masked_greater(standard_landmask.data, 0.).mask
+        mask_land = standard_landmask.data > 0.
         standard_landmask.data[mask_land] = True
         standard_landmask.data = standard_landmask.data.astype(np.int32)
         standard_landmask.rename('land_binary_mask')
@@ -183,9 +183,10 @@ class GenerateOrographyBandAncils(BasePlugin):
         points_to_mask = np.logical_not(landmask)
 
         if sea_fill_value is None:
-            mask_data = np.ma.masked_where(points_to_mask, orog_band)
-            sea_fill_value = np.ma.default_fill_value(mask_data.data)
-            mask_data.data[points_to_mask] = sea_fill_value
+            sea_fill_value = np.ma.default_fill_value(orog_band)
+            orog_data = orog_band.copy()
+            orog_data[points_to_mask] = sea_fill_value
+            mask_data = np.ma.masked_array(orog_data, mask=points_to_mask)
         else:
             mask_data = orog_band
             mask_data[points_to_mask] = sea_fill_value
@@ -244,11 +245,9 @@ class GenerateOrographyBandAncils(BasePlugin):
 
         lower_threshold, upper_threshold = thresholds
 
-        orog_band = np.ma.masked_where(
-            np.ma.logical_and(
-                (standard_orography.data > lower_threshold),
-                (standard_orography.data <= upper_threshold)),
-            standard_orography.data).mask.astype(int)
+        orog_band = (
+            (standard_orography.data > lower_threshold) &
+            (standard_orography.data <= upper_threshold)).astype(int)
 
         # If we didn't find any points to mask, set all points to zero i.e
         # masked.

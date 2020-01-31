@@ -308,8 +308,7 @@ class RoughnessCorrectionUtilities:
         """
         wavn = np.full(self.a_over_s.shape, RMDI, dtype=np.float32)
         wavn[self.hcmask] = (
-                (self.a_over_s[self.hcmask] * np.pi) /
-                self.h_over_2[self.hcmask]
+            (self.a_over_s[self.hcmask] * np.pi) / self.h_over_2[self.hcmask]
         )
         wavn[wavn > np.pi / self.dx_min] = np.pi / self.dx_min
         wavn[self.h_over_2 == 0] = RMDI
@@ -446,11 +445,13 @@ class RoughnessCorrectionUtilities:
             hup = h_in[upidx].flatten()
             hlow = h_in[loidx].flatten()
         uup = u_in.take(
-            upidx.flatten() + np.arange(0, upidx.size * u_in.shape[2],
-                                        u_in.shape[2]))
+            upidx.flatten() +
+            np.arange(0, upidx.size * u_in.shape[2], u_in.shape[2])) \
+            # pylint: disable=unsubscriptable-object
         ulow = u_in.take(
-            loidx.flatten() + np.arange(0, loidx.size * u_in.shape[2],
-                                        u_in.shape[2]))
+            loidx.flatten() +
+            np.arange(0, loidx.size * u_in.shape[2], u_in.shape[2])) \
+            # pylint: disable=unsubscriptable-object
         mask = mask.flatten()
         uath = np.full(mask.shape, RMDI, dtype=np.float32)
         if dolog:
@@ -489,9 +490,9 @@ class RoughnessCorrectionUtilities:
         interp = np.full(xup.shape, RMDI, dtype=np.float32)
         diffs = (xup - xlow)
         interp[diffs != 0] = (
-                ylow[diffs != 0] + ((at_x[diffs != 0] - xlow[diffs != 0]) /
-                                    diffs[diffs != 0] * (yup[diffs != 0] -
-                                                         ylow[diffs != 0])))
+            ylow[diffs != 0] + ((at_x[diffs != 0] - xlow[diffs != 0]) /
+                                diffs[diffs != 0] * (yup[diffs != 0] -
+                                                     ylow[diffs != 0])))
         interp[diffs == 0] = at_x[diffs == 0] / xup[diffs == 0] * (
             yup[diffs == 0])
         return interp
@@ -833,9 +834,9 @@ class RoughnessCorrection(BasePlugin):
         oklist = []
         for entry in permutated_ancil_list:
             x_axis_flag = (
-                    entry[0].coord(axis="y") == entry[1].coord(axis="y"))
+                entry[0].coord(axis="y") == entry[1].coord(axis="y"))
             y_axis_flag = (
-                    entry[0].coord(axis="x") == entry[1].coord(axis="x"))
+                entry[0].coord(axis="x") == entry[1].coord(axis="x"))
             oklist.append(x_axis_flag & y_axis_flag)
             # HybridHeightToPhenomOnPressure._cube_compatibility_check(entr[0],
             # entr[1])
