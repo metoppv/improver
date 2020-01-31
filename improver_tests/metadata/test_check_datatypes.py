@@ -33,17 +33,17 @@
 import unittest
 
 import numpy as np
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
+from iris.cube import CubeList
 
 from improver.metadata.check_datatypes import (
-    check_datatypes, check_units, check_dtype)
+    check_mandatory_standards, check_units, check_dtype)
 
 from ..set_up_test_cubes import (
     set_up_percentile_cube, set_up_probability_cube, set_up_variable_cube)
 
 
-class Test_check_datatypes(IrisTest):
+class Test_check_mandatory_standards(IrisTest):
 
     """Test whether a cube contains any float64 values."""
 
@@ -82,11 +82,19 @@ class Test_check_datatypes(IrisTest):
 
     def test_conformant_cubes(self):
         """Test conformant data, percentile and probability cubes all pass
-        (no error is thrown)"""
+        (no error is thrown and cube is not changed)"""
         cubelist = [
             self.cube, self.probability_cube, self.percentile_cube]
         for cube in cubelist:
-            check_datatypes(cube)
+            result = cube.copy()
+            check_mandatory_standards(result)
+            self.assertStringEqual(CubeList([cube]).xml(checksum=True),
+                                   CubeList([result]).xml(checksum=True))
+
+    def test_int64_cube_data(self):
+        """Test conformant data with a cube with 64 bit integer data."""
+        self.cube.data = self.cube.data.astype(np.int64)
+        check_mandatory_standards(self.cube)
 
     def test_float64_cube_data(self):
         """Test a failure of a cube with 64 bit data."""
@@ -94,7 +102,7 @@ class Test_check_datatypes(IrisTest):
         msg = ("does not have required dtype.\n"
                "Expected: float32, Actual: float64")
         with self.assertRaisesRegex(ValueError, msg):
-            check_datatypes(self.cube)
+            check_mandatory_standards(self.cube)
 
     def test_float64_cube_coord_points(self):
         """Test a failure of a cube with 64 bit coord points."""
@@ -105,7 +113,7 @@ class Test_check_datatypes(IrisTest):
         msg = ("does not have required dtype.\n"
                "Expected: float32, Actual \\(points\\): float64")
         with self.assertRaisesRegex(ValueError, msg):
-            check_datatypes(self.cube)
+            check_mandatory_standards(self.cube)
 
     def test_float64_cube_coord_bounds(self):
         """Test a failure of a cube with 64 bit coord bounds."""
@@ -119,7 +127,7 @@ class Test_check_datatypes(IrisTest):
                "Actual \\(points\\): float32, "
                "Actual \\(bounds\\): float64")
         with self.assertRaisesRegex(ValueError, msg):
-            check_datatypes(self.cube)
+            check_mandatory_standards(self.cube)
 
     def test_multiple_errors(self):
         """Test a list of errors is correctly caught and re-raised"""
@@ -135,7 +143,7 @@ class Test_check_datatypes(IrisTest):
                "does not have required dtype.\n"
                "Expected: int32, Actual \\(points\\): int64")
         with self.assertRaisesRegex(ValueError, msg):
-            check_datatypes(self.percentile_cube)
+            check_mandatory_standards(self.percentile_cube)
 
 
 class Test_check_units(IrisTest):
@@ -150,8 +158,11 @@ class Test_check_units(IrisTest):
 
     def test_pass_cube(self):
         """Test return value for cube (no requirement on units)"""
-        result = check_units(self.cube)
+        input_cube = self.cube.copy()
+        result = check_units(input_cube)
         self.assertTrue(result)
+        self.assertStringEqual(CubeList([self.cube]).xml(checksum=True),
+                               CubeList([input_cube]).xml(checksum=True))
 
     def test_pass_coord(self):
         """Test return value for time coordinate with correct units"""
@@ -162,46 +173,6 @@ class Test_check_units(IrisTest):
         """Test return value for time coordinate with wrong units"""
         self.coord.convert_units('minutes')
         result = check_units(self.coord)
-        self.assertFalse(result)
-
-
-class Test_check_dtype(IrisTest):
-    """Test method to check object dtype conformance"""
-
-    def setUp(self):
-        """Set up test cube"""
-        self.cube = set_up_variable_cube(
-            data=275.*np.ones((3, 3, 3), dtype=np.float32),
-            spatial_grid='equalarea')
-        self.coord = self.cube.coord('forecast_period')
-
-    def test_pass_float_cube(self):
-        """Test return value for compliant float cube (data are float32)"""
-        result = check_dtype(self.cube)
-        self.assertTrue(result)
-
-    def test_pass_int_cube(self):
-        """Test return value for compliant float cube"""
-        # allow any int cube to pass through
-        self.cube.data = self.cube.data.astype(np.int64)
-        result = check_dtype(self.cube)
-        self.assertTrue(result)
-
-    def test_fail_cube(self):
-        """Test return value for non-compliant cube (float but not float32)"""
-        self.cube.data = self.cube.data.astype(np.float64)
-        result = check_dtype(self.cube)
-        self.assertFalse(result)
-
-    def test_pass_coord(self):
-        """Test return value for compliant time coordinate"""
-        result = check_dtype(self.coord)
-        self.assertTrue(result)
-
-    def test_fail_coord_points(self):
-        """Test return value for non-compliant time coordinate"""
-        self.coord.points = self.coord.points.astype(np.float32)
-        result = check_dtype(self.coord)
         self.assertFalse(result)
 
 

@@ -235,20 +235,48 @@ class StandardiseGridAndMetadata(BasePlugin):
                 continue
 
     @staticmethod
-    def _standardise_dtypes(cube):
+    def _standardise_dtypes_and_units(cube):
+        """
+        Modify input cube in place to conform to mandatory dtype and unit
+        standards.
+
+        Args:
+            cube (iris.cube.Cube:
+                Cube to be updated in place
+
+        Returns:
+            None
+
+        """
         def as_correct_dtype(obj, required_dtype):
+            """
+            Returns an object updated if necessary to the required dtype
+
+            Args:
+                obj (np.ndarray):
+                    The object to be updated
+                required_dtype (np.dtype):
+                    The dtype required
+
+            Returns:
+                np.ndarray
+            """
             if obj.dtype != required_dtype:
                 return obj.astype(required_dtype)
             return obj
 
-        cube.data = as_correct_dtype(cube.data, get_required_dtype(cube.data))
+        cube.data = as_correct_dtype(cube.data, get_required_dtype(cube))
         for coord in cube.coords():
             if coord.name() in TIME_COORDS and not check_units(coord):
                 coord.convert_units(get_required_units(coord))
             req_dtype = get_required_dtype(coord)
             # ensure points and bounds have the same dtype
+            if np.issubdtype(req_dtype, np.integer):
+                coord.points = np.around(coord.points)
             coord.points = as_correct_dtype(coord.points, req_dtype)
             if coord.has_bounds():
+                if np.issubdtype(req_dtype, np.integer):
+                    coord.bounds = np.around(coord.bounds)
                 coord.bounds = as_correct_dtype(coord.bounds, req_dtype)
 
     def process(self, cube, target_grid=None, new_name=None, new_units=None,

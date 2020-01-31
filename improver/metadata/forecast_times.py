@@ -38,6 +38,7 @@ from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import cycletime_to_datetime
 
@@ -72,6 +73,8 @@ def forecast_period_coord(cube, force_lead_time_calculation=False):
         result_coord = cube.coord("forecast_period").copy()
 
     elif cube.coords("time") and cube.coords("forecast_reference_time"):
+        # Cube must adhere to mandatory standards for safe time calculations
+        check_mandatory_standards(cube)
         # Try to calculate forecast period from forecast reference time and
         # time coordinates
         result_coord = _calculate_forecast_period(
@@ -138,11 +141,9 @@ def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False):
 
     coord_type_spec = TIME_COORDS[result_coord.name()]
     result_coord.convert_units(coord_type_spec.units)
-    result_coord.points = np.around(result_coord.points).astype(
-        coord_type_spec.dtype)
+    result_coord.points = result_coord.points.astype(coord_type_spec.dtype)
     if result_coord.bounds is not None:
-        result_coord.bounds = np.around(result_coord.bounds).astype(
-            coord_type_spec.dtype)
+        result_coord.bounds = result_coord.bounds.astype(coord_type_spec.dtype)
 
     if np.any(result_coord.points < 0):
         msg = ("The values for the time {} and "
