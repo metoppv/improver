@@ -33,14 +33,14 @@
 
 from improver import cli
 
-inputalphas = cli.create_constrained_inputcubelist_converter(
-    'alpha_x', 'alpha_y')
+input_smoothing_coefficients = cli.create_constrained_inputcubelist_converter(
+    'smoothing_coefficients_x', 'smoothing_coefficients_y')
 
 
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube,
-            alphas: inputalphas,
+            smoothing_coefficients: input_smoothing_coefficients,
             mask: cli.inputcube = None,
             *,
             iterations: int = 1,
@@ -48,19 +48,19 @@ def process(cube: cli.inputcube,
     """Module to apply a recursive filter to neighbourhooded data.
 
     Run a recursive filter to convert a square neighbourhood into a
-    Gaussian-like kernel or smooth over short distances. The filter uses an
-    alpha parameter (0 alpha < 1) to control what proportion of the
+    Gaussian-like kernel or smooth over short distances. The filter uses a
+    smoothing_coefficient (between 0 and 1) to control what proportion of the
     probability is passed onto the next grid-square in the x and y directions.
-    The alpha parameter can be set on a grid square by grid-square basis for
-    the x and y directions separately (using two arrays of alpha parameters
-    of the same dimensionality as the domain).
+    The smoothing_coefficient can be set on a grid square by grid-square basis
+    for the x and y directions seperately (using two arrays of
+    smoothing_coefficients of the same dimensionality as the domain).
 
     Args:
         cube (iris.cube.Cube):
             Cube to be processed.
-        alphas (iris.cube.CubeList):
-            CubeList describing the alpha factors to be used for smoothing in
-            in the x and y directions.
+        smoothing_coefficients (iris.cube.CubeList):
+            CubeList describing the smoothing_coefficients to be used in the x
+            and y directions.
         mask (iris.cube.Cube):
             Cube to mask the processed cube.
         iterations (int):
@@ -76,8 +76,10 @@ def process(cube: cli.inputcube,
     """
     from improver.nbhood.recursive_filter import RecursiveFilter
 
-    alphas_x_cube, alphas_y_cube = alphas
-    return RecursiveFilter(
-        iterations=iterations, re_mask=remask).process(
-        cube, alphas_x=alphas_x_cube, alphas_y=alphas_y_cube,
+    smoothing_coefficients_x_cube, smoothing_coefficients_y_cube = (
+        smoothing_coefficients)
+    return RecursiveFilter(iterations=iterations, re_mask=remask).process(
+        cube,
+        smoothing_coefficients_x=smoothing_coefficients_x_cube,
+        smoothing_coefficients_y=smoothing_coefficients_y_cube,
         mask_cube=mask)

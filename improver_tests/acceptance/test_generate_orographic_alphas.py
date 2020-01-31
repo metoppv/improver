@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Tests for the generate-orographic-alphas CLI
+Tests for the generate-orographic-smoothing-coefficients CLI
 """
 
 import pytest
@@ -42,13 +42,13 @@ run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
-    """Test basic generate orographic alphas processing"""
-    kgo_dir = acc.kgo_root() / "generate-orographic-alphas"
+    """Test basic generate orographic smoothing coefficients processing"""
+    kgo_dir = acc.kgo_root() / "generate-orographic-smoothing-coefficients"
     input_path = kgo_dir / "orography.nc"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path,
-            "--max-alpha", "0.5",
+            "--max-smoothing-coefficient", "0.5",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

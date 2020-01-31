@@ -47,25 +47,26 @@ class RecursiveFilter(BasePlugin):
     Apply a recursive filter to the input cube.
     """
 
-    def __init__(self, alpha_x=None, alpha_y=None, iterations=None,
+    def __init__(self, smoothing_coefficient_x=None,
+                 smoothing_coefficient_y=None, iterations=None,
                  edge_width=1, re_mask=False):
         """
         Initialise the class.
 
-        The alpha values determine how much "value" of a cell undergoing
-        filtering is comprised of the current value at that cell and how much
-        comes from the adjacent cell preceding it in the direction in which
-        filtering is being applied.
+        The smoothing_coefficient determines how much "value" of a cell
+        undergoing filtering is comprised of the current value at that cell an
+        how much comes from the adjacent cell preceding it in the direction in
+        which filtering is being applied.
 
         Args:
-            alpha_x (float or None):
+            smoothing_coefficient_x (float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the x-axis. Defined such
-                that 0 < alpha_x < 1.0
-            alpha_y (float or None):
+                that 0 < smoothing_coefficient_x < 1.0
+            smoothing_coefficient_y (float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the y-axis. Defined such
-                that 0 < alpha_y < 1.0
+                that 0 < smoothing_coefficient_y < 1.0
             iterations (int or None):
                 The number of iterations of the recursive filter.
             edge_width (int):
@@ -78,26 +79,30 @@ class RecursiveFilter(BasePlugin):
                 mask is not applied. Therefore, the recursive filtering
                 may result in values being present in areas that were
                 originally masked.
-
         Raises:
-            ValueError: If alpha_x is not set such that 0 < alpha_x <= 0.5
-            ValueError: If alpha_y is not set such that 0 < alpha_y <= 0.5
+            ValueError: If smoothing_coefficient_x is not set such that
+                        0 < smoothing_coefficient_x <= 0.5
+            ValueError: If smoothing_coefficient_y is not set such that
+                        0 < smoothing_coefficient_y <= 0.5
             ValueError: If number of iterations is not None and is set such
                         that iterations is less than 1.
-
         Warns:
             UserWarning:
                 If iterations is higher than 2.
-
-
         """
-        alpha_error = ("alpha must be less than 0.5. A large alpha value"
-                       "leads to poor conservation of probabilities: ")
-        for k, alpha in {'x': alpha_x, 'y': alpha_y}.items():
-            if alpha is not None and not 0 < alpha <= 0.5:
-                message = alpha_error if alpha > 0.5 else ''
-                message += "Invalid alpha_{}: must be > 0 and <= 0.5: {}"
-                raise ValueError(message.format(k, alpha))
+        smoothing_coefficient_error = (
+            "smoothing_coefficient must be less than 0.5. A large "
+            "smoothing_coefficient value leads to poor conservation of "
+            "probabilities: ")
+        for k, smoothing_coefficient in {'x': smoothing_coefficient_x,
+                                         'y': smoothing_coefficient_y}.items():
+            if (smoothing_coefficient is not None and
+                    not 0 < smoothing_coefficient <= 0.5):
+                message = (smoothing_coefficient_error if
+                           smoothing_coefficient > 0.5 else '')
+                message += ("Invalid smoothing_coefficient_{}: must be > 0 "
+                            "and <= 0.5: {}")
+                raise ValueError(message.format(k, smoothing_coefficient))
         if iterations is not None:
             if iterations < 1:
                 raise ValueError(
@@ -107,27 +112,30 @@ class RecursiveFilter(BasePlugin):
                 warnings.warn(
                     "More than two iterations degrades the conservation"
                     "of probability assumption.")
-        self.alpha_x = alpha_x
-        self.alpha_y = alpha_y
+        self.smoothing_coefficient_x = smoothing_coefficient_x
+        self.smoothing_coefficient_y = smoothing_coefficient_y
         self.iterations = iterations
         self.edge_width = edge_width
         self.re_mask = re_mask
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<RecursiveFilter: alpha_x: {}, alpha_y: {}, iterations: {},'
-                  ' edge_width: {}')
-        return result.format(self.alpha_x, self.alpha_y, self.iterations,
-                             self.edge_width)
+        result = ('<RecursiveFilter: smoothing_coefficient_x: {}, '
+                  'smoothing_coefficient_y: {}, iterations: {}, '
+                  'edge_width: {}')
+        return result.format(
+            self.smoothing_coefficient_x, self.smoothing_coefficient_y,
+            self.iterations, self.edge_width)
 
     @staticmethod
-    def _recurse_forward(grid, alphas, axis):
+    def _recurse_forward(grid, smoothing_coefficients, axis):
         """
         Method to run the recursive filter in the forward direction.
 
         In the forward direction:
             Recursive filtering is calculated as:
-                Bi = ((1-alpha) * Ai) + (alpha * Bi-1)
+                Bi = ((1-smoothing_coefficient) * Ai) +
+                     (smoothing_coefficient * Bi-1)
 
             Progressing from gridpoint i-1 to i:
                 Bi = new value at gridpoint i, Ai = Old value at gridpoint i
@@ -137,9 +145,10 @@ class RecursiveFilter(BasePlugin):
             grid (numpy.ndarray):
                 2D array containing the input data to which the recursive
                 filter will be applied.
-            alphas (numpy.ndarray):
-                Matching 2D array of alpha values that will be used when
-                applying the recursive filter along the specified axis.
+            smoothing_coefficients (numpy.ndarray):
+                Matching 2D array of smoothing_coefficient values that will be
+                used when applying the recursive filter along the specified
+                axis.
             axis (int):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
@@ -152,21 +161,22 @@ class RecursiveFilter(BasePlugin):
         lim = grid.shape[axis]
         for i in range(1, lim):
             if axis == 0:
-                grid[i, :] = ((1. - alphas[i, :]) * grid[i, :] +
-                              alphas[i, :] * grid[i-1, :])
+                grid[i, :] = ((1. - smoothing_coefficients[i, :]) * grid[i, :]
+                              + smoothing_coefficients[i, :] * grid[i-1, :])
             if axis == 1:
-                grid[:, i] = ((1. - alphas[:, i]) * grid[:, i] +
-                              alphas[:, i] * grid[:, i-1])
+                grid[:, i] = ((1. - smoothing_coefficients[:, i]) * grid[:, i]
+                              + smoothing_coefficients[:, i] * grid[:, i-1])
         return grid
 
     @staticmethod
-    def _recurse_backward(grid, alphas, axis):
+    def _recurse_backward(grid, smoothing_coefficients, axis):
         """
         Method to run the recursive filter in the backwards direction.
 
         In the backwards direction:
             Recursive filtering is calculated as:
-                Bi = ((1-alpha) * Ai) + (alpha * Bi+1)
+                Bi = ((1-smoothing_coefficient) * Ai) +
+                     (smoothing_coefficient * Bi+1)
 
             Progressing from gridpoint i+1 to i:.
                 Bi = new value at gridpoint i, Ai = Old value at gridpoint i
@@ -176,9 +186,10 @@ class RecursiveFilter(BasePlugin):
             grid (numpy.ndarray):
                 2D array containing the input data to which the recursive
                 filter will be applied.
-            alphas (numpy.ndarray):
-                Matching 2D array of alpha values that will be used when
-                applying the recursive filter along the specified axis.
+            smoothing_coefficients (numpy.ndarray):
+                Matching 2D array of smoothing_coefficient values that will be
+                used when applying the recursive filter along the specified
+                axis.
             axis (int):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
@@ -191,15 +202,16 @@ class RecursiveFilter(BasePlugin):
         lim = grid.shape[axis]
         for i in range(lim-2, -1, -1):
             if axis == 0:
-                grid[i, :] = ((1. - alphas[i, :]) * grid[i, :] +
-                              alphas[i, :] * grid[i+1, :])
+                grid[i, :] = ((1. - smoothing_coefficients[i, :]) * grid[i, :]
+                              + smoothing_coefficients[i, :] * grid[i+1, :])
             if axis == 1:
-                grid[:, i] = ((1. - alphas[:, i]) * grid[:, i] +
-                              alphas[:, i] * grid[:, i+1])
+                grid[:, i] = ((1. - smoothing_coefficients[:, i]) * grid[:, i]
+                              + smoothing_coefficients[:, i] * grid[:, i+1])
         return grid
 
     @staticmethod
-    def _run_recursion(cube, alphas_x, alphas_y, iterations):
+    def _run_recursion(cube, smoothing_coefficients_x,
+                       smoothing_coefficients_y, iterations):
         """
         Method to run the recursive filter.
 
@@ -207,12 +219,14 @@ class RecursiveFilter(BasePlugin):
             cube (iris.cube.Cube):
                 2D cube containing the input data to which the recursive
                 filter will be applied.
-            alphas_x (iris.cube.Cube):
-                2D cube containing array of alpha values that will be used
-                when applying the recursive filter along the x-axis.
-            alphas_y (iris.cube.Cube):
-                2D cube containing array of alpha values that will be used
-                when applying the recursive filter along the y-axis.
+            smoothing_coefficients_x (iris.cube.Cube):
+                2D cube containing array of smoothing_coefficient values that
+                will be used when applying the recursive filter along the
+                x-axis.
+            smoothing_coefficients_y (iris.cube.Cube):
+                2D cube containing array of smoothing_coefficient values that
+                will be used when applying the recursive filter along the
+                y-axis.
             iterations (int):
                 The number of iterations of the recursive filter
 
@@ -226,81 +240,87 @@ class RecursiveFilter(BasePlugin):
         output = cube.data
 
         for _ in range(iterations):
-            output = RecursiveFilter._recurse_forward(output, alphas_x.data,
-                                                      x_index)
-            output = RecursiveFilter._recurse_backward(output, alphas_x.data,
-                                                       x_index)
-            output = RecursiveFilter._recurse_forward(output, alphas_y.data,
-                                                      y_index)
-            output = RecursiveFilter._recurse_backward(output, alphas_y.data,
-                                                       y_index)
+            output = RecursiveFilter._recurse_forward(
+                output, smoothing_coefficients_x.data, x_index)
+            output = RecursiveFilter._recurse_backward(
+                output, smoothing_coefficients_x.data, x_index)
+            output = RecursiveFilter._recurse_forward(
+                output, smoothing_coefficients_y.data, y_index)
+            output = RecursiveFilter._recurse_backward(
+                output, smoothing_coefficients_y.data, y_index)
             cube.data = output
         return cube
 
-    def _set_alphas(self, cube, alpha, alphas_cube):
+    def _set_smoothing_coefficients(self, cube, smoothing_coefficient,
+                                    smoothing_coefficients_cube):
         """
-        Set up the alpha parameter.
+        Set up the smoothing_coefficient parameter.
 
         Args:
             cube (iris.cube.Cube):
                 2D cube containing the input data to which the recursive
                 filter will be applied.
-            alpha (float):
+            smoothing_coefficient (float):
                 The constant used to weight the recursive filter in that
-                direction: Defined such that 0.0 < alpha < 1.0
-            alphas_cube (iris.cube.Cube or None):
-                Cube containing array of alpha values that will be used
-                when applying the recursive filter in a specific direction.
-
+                direction: Defined such that 0.0 < smoothing_coefficient < 1.0
+            smoothing_coefficients_cube (iris.cube.Cube or None):
+                Cube containing array of smoothing_coefficient values that will
+                be used when applying the recursive filter in a specific
+                direction.
         Raises:
-            ValueError: If both alphas_cube and alpha are provided.
-            ValueError: If alpha and alphas_cube are both set to None
-            ValueError: If dimension of alphas array is less than dimension
-                        of data array
-            ValueError: If dimension of alphas array is greater than dimension
-                        of data array
+            ValueError: If both smoothing_coefficients_cube and
+                        smoothing_coefficient are provided.
+            ValueError: If smoothing_coefficient and
+                        smoothing_coefficients_cube are both set to None
+            ValueError: If dimension of smoothing_coefficients array is less
+                        than dimension of data array
+            ValueError: If dimension of smoothing_coefficients array is greater
+                        than dimension of data array
 
         Returns:
             iris.cube.Cube:
-                Cube containing a padded array of alpha values
+                Cube containing a padded array of smoothing_coefficient values
                 for the specified direction.
         """
-        if alpha is not None and alphas_cube is not None:
-            emsg = ("A cube of alpha values and a single float value for alpha"
-                    " have both been provided. Only one of these options can"
-                    " be set.")
+        if (smoothing_coefficient is not None and
+                smoothing_coefficients_cube is not None):
+            emsg = ("A cube of smoothing_coefficient values and a single float"
+                    " value for smoothing_coefficient have both been provided."
+                    " Only one of these options can be set.")
             raise ValueError(emsg)
 
-        if alphas_cube is None:
-            if alpha is None:
-                emsg = ("A value for alpha must be set if alphas_cube is "
-                        "set to None: alpha is currently set as: {}")
-                raise ValueError(emsg.format(alpha))
-            alphas_cube = cube.copy(
-                data=np.ones(cube.data.shape) * alpha)
+        if smoothing_coefficients_cube is None:
+            if smoothing_coefficient is None:
+                emsg = ("A value for smoothing_coefficient must be set if "
+                        "smoothing_coefficients_cube is set to None: "
+                        "smoothing_coefficient is currently set as: {}")
+                raise ValueError(emsg.format(smoothing_coefficient))
+            smoothing_coefficients_cube = cube.copy(
+                data=np.ones(cube.data.shape) * smoothing_coefficient)
 
-        if alphas_cube is not None:
-            if alphas_cube.data.shape != cube.data.shape:
-                emsg = ("Dimensions of alphas array do not match dimensions "
-                        "of data array: {} < {}")
-                raise ValueError(emsg.format(alphas_cube.data.shape,
-                                             cube.data.shape))
+        if smoothing_coefficients_cube is not None:
+            if smoothing_coefficients_cube.data.shape != cube.data.shape:
+                emsg = ("Dimensions of smoothing_coefficients array do not "
+                        "match dimensions of data array: {} < {}")
+                raise ValueError(
+                    emsg.format(smoothing_coefficients_cube.data.shape,
+                                cube.data.shape))
 
-        alphas_cube = pad_cube_with_halo(
-            alphas_cube, 2*self.edge_width, 2*self.edge_width)
-        return alphas_cube
+        smoothing_coefficients_cube = pad_cube_with_halo(
+            smoothing_coefficients_cube, 2*self.edge_width, 2*self.edge_width)
+        return smoothing_coefficients_cube
 
-    def process(self, cube, alphas_x=None, alphas_y=None, mask_cube=None):
+    def process(self, cube, smoothing_coefficients_x=None,
+                smoothing_coefficients_y=None, mask_cube=None):
         """
-        Set up the alpha parameters and run the recursive filter.
-
-        The steps undertaken are:
+        Set up the smoothing_coefficient parameters and run the recursive
+        filter. The steps undertaken are:
 
         1. Split the input cube into slices determined by the co-ordinates in
            the x and y directions.
-        2. Construct an array of filter parameters (alphas_x and alphas_y) for
-           each cube slice that are used to weight the recursive filter in
-           the x- and y-directions.
+        2. Construct an array of filter parameters (smoothing_coefficients_x
+           and smoothing_coefficients_y) for each cube slice that are used to
+           weight the recursive filter in the x- and y-directions.
         3. Pad each cube slice with a square-neighbourhood halo and apply
            the recursive filter for the required number of iterations.
         4. Remove the halo from the cube slice and append the recursed cube
@@ -315,12 +335,12 @@ class RecursiveFilter(BasePlugin):
             cube (iris.cube.Cube):
                 Cube containing the input data to which the recursive filter
                 will be applied.
-            alphas_x (iris.cube.Cube or None):
-                Cube containing array of alpha values that will be used when
-                applying the recursive filter along the x-axis.
-            alphas_y (iris.cube.Cube or None):
-                Cube containing array of alpha values that will be used when
-                applying the recursive filter along the y-axis.
+            smoothing_coefficients_x (iris.cube.Cube or None):
+                Cube containing array of smoothing_coefficient values that will
+                be used when applying the recursive filter along the x-axis.
+            smoothing_coefficients_y (iris.cube.Cube or None):
+                Cube containing array of smoothing_coefficient values that will
+                be used when applying the recursive filter along the y-axis.
             mask_cube (iris.cube.Cube or None):
                 Cube containing an external mask to apply to the cube before
                 applying the recursive filter.
@@ -331,18 +351,25 @@ class RecursiveFilter(BasePlugin):
                 method has been applied.
 
         Raises:
-            ValueError: If any alpha cube value is over 0.5
+            ValueError: If any smoothing_coefficient cube value is over 0.5
         """
-        for alpha in (alphas_x, alphas_y):
-            if alpha is not None and (alpha.data > 0.5).any():
+        for smoothing_coefficient in (smoothing_coefficients_x,
+                                      smoothing_coefficients_y):
+            if (smoothing_coefficient is not None and
+                    (smoothing_coefficient.data > 0.5).any()):
                 raise ValueError(
-                    "All alpha values must be less than 0.5. A large alpha"
-                    "value leads to poor conservation of probabilities")
+                    "All smoothing_coefficient values must be less than 0.5. "
+                    "A large smoothing_coefficient value leads to poor "
+                    "conservation of probabilities")
 
         cube_format = next(cube.slices([cube.coord(axis='y'),
                                         cube.coord(axis='x')]))
-        alphas_x = self._set_alphas(cube_format, self.alpha_x, alphas_x)
-        alphas_y = self._set_alphas(cube_format, self.alpha_y, alphas_y)
+        smoothing_coefficients_x = self._set_smoothing_coefficients(
+            cube_format, self.smoothing_coefficient_x,
+            smoothing_coefficients_x)
+        smoothing_coefficients_y = self._set_smoothing_coefficients(
+            cube_format, self.smoothing_coefficient_y,
+            smoothing_coefficients_y)
 
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis='y'),
@@ -359,8 +386,9 @@ class RecursiveFilter(BasePlugin):
             padded_cube = pad_cube_with_halo(
                 output, 2*self.edge_width, 2*self.edge_width)
 
-            new_cube = self._run_recursion(padded_cube, alphas_x, alphas_y,
-                                           self.iterations)
+            new_cube = self._run_recursion(
+                padded_cube, smoothing_coefficients_x,
+                smoothing_coefficients_y, self.iterations)
             new_cube = remove_halo_from_cube(
                 new_cube, 2*self.edge_width, 2*self.edge_width)
             if self.re_mask:

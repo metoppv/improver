@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI for generating orographic alphas."""
+"""CLI for generating orographic smoothing_coefficients."""
 
 from improver import cli
 
@@ -38,32 +38,36 @@ from improver import cli
 @cli.with_output
 def process(orography: cli.inputcube,
             *,
-            min_alpha: float = 0.0,
-            max_alpha: float = 1.0,
+            min_smoothing_coefficient: float = 0.0,
+            max_smoothing_coefficient: float = 1.0,
             coefficient: float = 1.0,
             power: float = 1.0,
-            invert_alphas=True):
-    """Generate alpha smoothing parameters for recursive filtering based on
+            invert_smoothing_coefficients=True):
+    """Generate smoothing_coefficients for recursive filtering based on
     orography gradients.
 
     Args:
         orography (iris.cube.Cube):
-            A 2D field of orography for the grid to generate alphas for.
-        min_alpha (float):
-            The minimum value of alpha.
-        max_alpha (float):
-            The maximum value of alpha.
+            A 2D field of orography on the grid for which
+            smoothing_coefficients are to be generated.
+        min_smoothing_coefficient (float):
+            The minimum value of smoothing_coefficient.
+        max_smoothing_coefficient (float):
+            The maximum value of smoothing_coefficient.
         coefficient (float):
-            The coefficient for the alpha calculation.
+            The coefficient for the smoothing_coefficient equation.
         power (float):
-            The power for the alpha equation.
-        invert_alphas (bool):
-            If True then the max and min alpha values will be swapped.
+            The power for the smoothing_coefficient equation.
+        invert_smoothing_coefficients (bool):
+            If True then the max and min smoothing_coefficient values will be
+            swapped.
 
     Returns:
         iris.cube.CubeList:
-            Processed CubeList containing alpha_x and alpha_y cubes.
+            Processed CubeList containing smoothing_coefficients_x and
+            smoothing_coefficients_y cubes.
     """
-    from improver.utilities.ancillary_creation import OrographicAlphas
-    return OrographicAlphas(min_alpha, max_alpha, coefficient, power,
-                            invert_alphas).process(orography)
+    from improver.utilities.ancillary_creation import SmoothingCoefficients
+    return SmoothingCoefficients(
+        min_smoothing_coefficient, max_smoothing_coefficient, coefficient,
+        power, invert_smoothing_coefficients).process(orography)
