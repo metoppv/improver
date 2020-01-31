@@ -181,6 +181,45 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
             self.template_cube)
         np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
 
+    def test_NaNs_converted_to_mask(self):
+        """ Test that any input values that are NaNs are changed to masked
+        values within the plugin, and the other values are unchanged."""
+        location_with_nan = np.array([[2, 2, np.nan],
+                                      [2, 2, np.nan],
+                                      [2, 2, np.nan]])
+        expected_mask = [[[0, 0, 1], [0, 0, 1], [0, 0, 1]],
+                         [[0, 0, 1], [0, 0, 1], [0, 0, 1]],
+                         [[0, 0, 1], [0, 0, 1], [0, 0, 1]]]
+        expected = np.ma.masked_array(
+            (np.ones((3, 3, 3)) * [ 0.75, 0.5, 0.25]).T, mask=expected_mask)
+        self.location_parameter_values.data = location_with_nan
+        result = Plugin()._location_and_scale_parameters_to_probabilities(
+            self.location_parameter_values, self.scale_parameter_values,
+            self.template_cube)
+        np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
+        print (result.data)
+
+    def test_mask_above_threshold(self):
+        """ Test that the expected probabilities are returned for a cube in
+        which they are calculated above the thresholds using a masked values
+        for the location_parameter_values and scale_parameter_values.
+        """
+        mask = np.array([[0, 0, 0], [0, 0, 0], [1, 1, 1]]).T
+        expected_mask = [[[0, 0, 1], [0, 0, 1], [0, 0, 1]],
+                         [[0, 0, 1], [0, 0, 1], [0, 0, 1]],
+                         [[0, 0, 1], [0, 0, 1], [0, 0, 1]]]
+        expected = np.ma.masked_array(
+            (np.ones((3, 3, 3)) * [ 0.75, 0.5, 0.25]).T, mask=expected_mask)
+        self.location_parameter_values.data = np.ma.masked_array(
+            self.location_parameter_values.data,
+            mask=mask)
+        self.scale_parameter_values.data = np.ma.masked_array(
+            self.scale_parameter_values.data, mask=mask)
+        result = Plugin()._location_and_scale_parameters_to_probabilities(
+            self.location_parameter_values, self.scale_parameter_values,
+            self.template_cube)
+        np.testing.assert_allclose(result.data, expected, rtol=1.e-4)          
+
     def test_threshold_above_cube_truncnorm(self):
         """Test that the expected probabilities are returned for a cube in
         which they are calculated above the thresholds using a truncated normal

@@ -843,7 +843,6 @@ class ConvertLocationAndScaleParametersToPercentiles(
             ValueError: Ensure that it is not possible to supply
                 "no_of_percentiles" and "percentiles" simultaneously
                 as keyword arguments.
-
         """
         if no_of_percentiles and percentiles:
             msg = ("Please specify either the number of percentiles or "
@@ -993,6 +992,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
                 probability_method(threshold), probabilities.shape[1:])
 
         probability_cube = probability_cube_template.copy(data=probabilities)
+        if (np.isnan(probability_cube.data).any()) == True:
+            probability_cube.data = np.ma.masked_invalid(probability_cube.data)
         return probability_cube
 
     def process(self, location_parameter, scale_parameter,
