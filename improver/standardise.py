@@ -334,7 +334,7 @@ class StandardiseGridAndMetadata(BasePlugin):
             amend_attributes(cube, attributes_dict)
 
         # ensure dtypes follow IMPROVER conventions
-        self._standardise_dtypes(cube)
+        self._standardise_dtypes_and_units(cube)
 
         return cube
 

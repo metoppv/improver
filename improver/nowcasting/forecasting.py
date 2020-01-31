@@ -305,7 +305,7 @@ class AdvectField(BasePlugin):
         forecast_period_seconds = np.int32(timestep.total_seconds())
         forecast_period_coord = AuxCoord(forecast_period_seconds,
                                          standard_name="forecast_period",
-                                         units="s")
+                                         units="seconds")
         try:
             advected_cube.remove_coord("forecast_period")
         except CoordinateNotFoundError:

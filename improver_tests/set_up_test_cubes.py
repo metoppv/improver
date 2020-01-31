@@ -44,7 +44,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
-from improver.metadata.check_datatypes import check_datatypes
+from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants.mo_attributes import MOSG_GRID_DEFINITION
 from improver.metadata.forecast_times import forecast_period_coord
 
@@ -255,7 +255,7 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
     cube.rename(name)
 
     # don't allow unit tests to set up invalid cubes
-    check_datatypes(cube)
+    check_mandatory_standards(cube)
 
     return cube
 

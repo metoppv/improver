@@ -679,7 +679,7 @@ class RoughnessCorrection(BasePlugin):
                 # using whole plugin causes unit tests to fail (presumably due
                 # to collapse scalar dimensions in plugin) - fix tests and/or
                 # this plugin as appropriate.
-                StandardiseGridAndMetadata()._standardise_dtypes(cube)
+                StandardiseGridAndMetadata()._standardise_dtypes_and_units(cube)
 
         # Standard Python 'float' type is either single or double depending on
         # system and there is no reliable method of finding which from the
@@ -960,7 +960,7 @@ class RoughnessCorrection(BasePlugin):
         # using whole plugin causes unit tests to fail (presumably due to
         # collapse scalar dimensions in plugin) - fix tests and/or this plugin
         # as appropriate.
-        StandardiseGridAndMetadata()._standardise_dtypes(input_cube)
+        StandardiseGridAndMetadata()._standardise_dtypes_and_units(input_cube)
         (self.x_name, self.y_name, self.z_name,
          self.t_name) = self.find_coord_names(input_cube)
         xwp, ywp, zwp, twp = self.find_coord_order(input_cube)
