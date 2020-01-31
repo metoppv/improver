@@ -116,17 +116,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         in the plugin. If this is the case it will come up with a
         ValueError.
         """
-        data = np.array([[[[225.568115, 236.818115, 248.068115],
-                           [259.318115, 270.568115, 281.818115],
-                           [293.068115, 304.318115, 315.568115]]],
-                         [[[229.483322, 240.733322, 251.983322],
-                           [263.233307, 274.483307, 285.733307],
-                           [296.983307, 308.233307, 319.483307]]],
-                         [[[233.398529, 244.648529, 255.898529],
-                           [267.148499, 278.398499, 289.648499],
-                           [300.898499, 312.148499, 323.398499]]]],
-                        dtype=np.float32)
-
         cube = self.current_temperature_forecast_cube
         current_forecast_predictor = cube.collapsed(
             "realization", iris.analysis.MEAN)

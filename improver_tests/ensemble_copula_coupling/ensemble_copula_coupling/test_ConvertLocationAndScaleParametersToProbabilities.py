@@ -197,7 +197,6 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
             self.location_parameter_values, self.scale_parameter_values,
             self.template_cube)
         np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
-        print (result.data)
 
     def test_mask_above_threshold(self):
         """ Test that the expected probabilities are returned for a cube in
@@ -218,7 +217,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         result = Plugin()._location_and_scale_parameters_to_probabilities(
             self.location_parameter_values, self.scale_parameter_values,
             self.template_cube)
-        np.testing.assert_allclose(result.data, expected, rtol=1.e-4)          
+        np.testing.assert_allclose(result.data, expected, rtol=1.e-4)       
 
     def test_threshold_above_cube_truncnorm(self):
         """Test that the expected probabilities are returned for a cube in
