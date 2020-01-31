@@ -67,7 +67,8 @@ def process(orography: cli.inputcube,
             Processed CubeList containing smoothing_coefficients_x and
             smoothing_coefficients_y cubes.
     """
-    from improver.utilities.ancillary_creation import SmoothingCoefficients
-    return SmoothingCoefficients(
+    from improver.utilities.ancillary_creation import (
+        OrographicSmoothingCoefficients)
+    return OrographicSmoothingCoefficients(
         min_smoothing_coefficient, max_smoothing_coefficient, coefficient,
         power, invert_smoothing_coefficients).process(orography)
