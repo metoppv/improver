@@ -54,9 +54,11 @@ class RecursiveFilter(BasePlugin):
         Initialise the class.
 
         The smoothing_coefficient determines how much "value" of a cell
-        undergoing filtering is comprised of the current value at that cell an
+        undergoing filtering is comprised of the current value at that cell and
         how much comes from the adjacent cell preceding it in the direction in
-        which filtering is being applied.
+        which filtering is being applied. A larger smoothing_coefficient
+        results in a more significant proportion of a cells new value coming
+        from its neighbouring cell.
 
         Args:
             smoothing_coefficient_x (float or None):

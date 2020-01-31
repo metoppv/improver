@@ -66,7 +66,6 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test default attribute initialisation"""
         result = OrographicSmoothingCoefficients()
-        self.assertTrue(result.invert_smoothing_coefficients)
         self.assertEqual(result.min_smoothing_coefficient, 0.)
         self.assertEqual(result.max_smoothing_coefficient, 1.)
         self.assertEqual(result.coefficient, 1.)
@@ -80,8 +79,8 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         result = str(OrographicSmoothingCoefficients())
         msg = ('<OrographicSmoothingCoefficients: min_smoothing_coefficient: '
-               '{}; max_smoothing_coefficient: {}; coefficient: {}; power: {};'
-               ' invert_smoothing_coefficients: {}>'.format(
+               '{}; max_smoothing_coefficient: {}; coefficient: {}; power: {}'
+               '>'.format(
                    0.0, 1.0, 1, 1, True))
         self.assertEqual(result, msg)
 

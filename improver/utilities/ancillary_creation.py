@@ -43,13 +43,31 @@ from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 class OrographicSmoothingCoefficients(BasePlugin):
 
     """
-    Class to generate smoothing_coefficients for recursive filtering based on
+    Class to generate smoothing coefficients for recursive filtering based on
     orography gradients.
+
+    A smoothing coefficient determines how much "value" of a cell
+    undergoing filtering is comprised of the current value at that cell and
+    how much comes from the adjacent cell preceding it in the direction in
+    which filtering is being applied. A larger smoothing_coefficient results in
+    a more significant proportion of a cells new value coming from its
+    neighbouring cell.
+
+    The smoothing coefficients are calculated from the orography gradient using
+    a simple equation and the user defined values for coefficient and power:
+
+    .. math::
+        \\rm{smoothing\\_coefficient} = \\rm{coefficient} \\times
+        \\rm{gradient}^{\\rm{power}}
+
+    The resulting values are scaled between min_smoothing_coefficient and
+    max_smoothing_coefficient to give the desired range of alpha values. These
+    can be provided in reverse (i.e. min > max) to invert the smoothing
+    coefficients in relation to the orographic gradient.
     """
 
     def __init__(self, min_smoothing_coefficient=0.,
-                 max_smoothing_coefficient=1., coefficient=1, power=1,
-                 invert_smoothing_coefficients=True):
+                 max_smoothing_coefficient=1., coefficient=1, power=1):
         """
         Initialise class.
 
@@ -69,18 +87,16 @@ class OrographicSmoothingCoefficients(BasePlugin):
         self.min_smoothing_coefficient = min_smoothing_coefficient
         self.coefficient = coefficient
         self.power = power
-        self.invert_smoothing_coefficients = invert_smoothing_coefficients
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<OrographicSmoothingCoefficients: '
                   'min_smoothing_coefficient: {}; '
-                  'max_smoothing_coefficient: {}; coefficient: {}; power: {}; '
-                  'invert_smoothing_coefficients: {}>'.format(
+                  'max_smoothing_coefficient: {}; coefficient: {}; power: {}'
+                  '>'.format(
                       self.min_smoothing_coefficient,
                       self.max_smoothing_coefficient,
-                      self.coefficient, self.power,
-                      self.invert_smoothing_coefficients))
+                      self.coefficient, self.power))
 
         return result
 
@@ -184,18 +200,11 @@ class OrographicSmoothingCoefficients(BasePlugin):
         smoothing_coefficient_y = self.unnormalised_smoothing_coefficients(
             gradient_y)
 
-        if self.invert_smoothing_coefficients:
-            smoothing_coefficient_x, smoothing_coefficient_y = (
-                self.scale_smoothing_coefficients(
-                    [smoothing_coefficient_x, smoothing_coefficient_y],
-                    min_output=self.max_smoothing_coefficient,
-                    max_output=self.min_smoothing_coefficient))
-        else:
-            smoothing_coefficient_x, smoothing_coefficient_y = (
-                self.scale_smoothing_coefficients(
-                    [smoothing_coefficient_x, smoothing_coefficient_y],
-                    min_output=self.min_smoothing_coefficient,
-                    max_output=self.max_smoothing_coefficient))
+        smoothing_coefficient_x, smoothing_coefficient_y = (
+            self.scale_smoothing_coefficients(
+                [smoothing_coefficient_x, smoothing_coefficient_y],
+                min_output=self.min_smoothing_coefficient,
+                max_output=self.max_smoothing_coefficient))
         smoothing_coefficient_x = self.update_smoothing_coefficients_metadata(
             smoothing_coefficient_x, 'smoothing_coefficient_x')
         smoothing_coefficient_y = self.update_smoothing_coefficients_metadata(

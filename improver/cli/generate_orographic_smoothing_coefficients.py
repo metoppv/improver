@@ -41,10 +41,26 @@ def process(orography: cli.inputcube,
             min_smoothing_coefficient: float = 0.0,
             max_smoothing_coefficient: float = 1.0,
             coefficient: float = 1.0,
-            power: float = 1.0,
-            invert_smoothing_coefficients=True):
-    """Generate smoothing_coefficients for recursive filtering based on
+            power: float = 1.0):
+    """Generate smoothing coefficients for recursive filtering based on
     orography gradients.
+
+    A smoothing coefficient determines how much "value" of a cell
+    undergoing filtering is comprised of the current value at that cell and
+    how much comes from the adjacent cell preceding it in the direction in
+    which filtering is being applied. A larger smoothing_coefficient results in
+    a more significant proportion of a cells new value coming from its
+    neighbouring cell.
+
+    The smoothing coefficients are calculated from the orography gradient using
+    a simple equation and the user defined values for coefficient and power:
+
+    smoothing_coefficient = coefficient * gradient**power
+
+    The resulting values are scaled between min_smoothing_coefficient and
+    max_smoothing_coefficient to give the desired range of alpha values. These
+    can be provided in reverse (i.e. min > max) to invert the smoothing
+    coefficients in relation to the orographic gradient.
 
     Args:
         orography (iris.cube.Cube):
@@ -58,9 +74,6 @@ def process(orography: cli.inputcube,
             The coefficient for the smoothing_coefficient equation.
         power (float):
             The power for the smoothing_coefficient equation.
-        invert_smoothing_coefficients (bool):
-            If True then the max and min smoothing_coefficient values will be
-            swapped.
 
     Returns:
         iris.cube.CubeList:
@@ -71,4 +84,4 @@ def process(orography: cli.inputcube,
         OrographicSmoothingCoefficients)
     return OrographicSmoothingCoefficients(
         min_smoothing_coefficient, max_smoothing_coefficient, coefficient,
-        power, invert_smoothing_coefficients).process(orography)
+        power).process(orography)
