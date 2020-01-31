@@ -81,7 +81,7 @@ class Test__repr__(IrisTest):
         msg = ('<OrographicSmoothingCoefficients: min_smoothing_coefficient: '
                '{}; max_smoothing_coefficient: {}; coefficient: {}; power: {}'
                '>'.format(
-                   0.0, 1.0, 1, 1, True))
+                   0.0, 1.0, 1, 1))
         self.assertEqual(result, msg)
 
 
