@@ -36,7 +36,7 @@ import warnings
 import cf_units
 import iris
 
-from improver.metadata.check_datatypes import check_datatypes
+from improver.metadata.check_datatypes import check_mandatory_standards
 
 
 def _append_metadata_cube(cubelist, global_keys):
@@ -119,7 +119,7 @@ def _check_metadata(cube):
         ValueError: if cube dataset has unknown units; because this may cause
             misinterpretation on "load"
     """
-    check_datatypes(cube)
+    check_mandatory_standards(cube)
     if cf_units.Unit(cube.units).is_unknown():
         raise ValueError('{} has unknown units'.format(cube.name()))
 
