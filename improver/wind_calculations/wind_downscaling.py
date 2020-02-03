@@ -679,7 +679,8 @@ class RoughnessCorrection(BasePlugin):
                 # using whole plugin causes unit tests to fail (presumably due
                 # to collapse scalar dimensions in plugin) - fix tests and/or
                 # this plugin as appropriate.
-                StandardiseGridAndMetadata()._standardise_dtypes_and_units(cube)
+                StandardiseGridAndMetadata()._standardise_dtypes_and_units(
+                    cube)
 
         # Standard Python 'float' type is either single or double depending on
         # system and there is no reliable method of finding which from the
