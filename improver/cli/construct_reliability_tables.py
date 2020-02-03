@@ -73,10 +73,10 @@ def process(*cubes: cli.inputcube,
     """
     from improver.calibration import split_forecasts_and_truth
     from improver.calibration.reliability_calibration import (
-        ConstructRealizationCalibrationTables)
+        ConstructReliabilityCalibrationTables)
 
     forecast, truth, _ = split_forecasts_and_truth(cubes, truth_attribute)
 
-    return ConstructRealizationCalibrationTables(
+    return ConstructReliabilityCalibrationTables(
         n_probability_bins=n_probability_bins,
         single_value_limits=single_value_limits).process(forecast, truth)
