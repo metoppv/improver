@@ -48,11 +48,10 @@ def test_basic(tmp_path):
     """
     kgo_dir = acc.kgo_root() / "nowcast-accumulate/basic"
     kgo_path = kgo_dir / "kgo.nc"
-    input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
-    input_path = (input_dir /
+    input_path = (kgo_dir /
                   "201811031600_radar_rainrate_composite_UK_regridded.nc")
-    uv_path = input_dir / "kgo.nc"
-    oe_path = input_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
+    uv_path = kgo_dir / "uv.nc"
+    oe_path = kgo_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
 
     output_path = tmp_path / "output.nc"
 
