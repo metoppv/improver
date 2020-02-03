@@ -84,7 +84,8 @@ class Test_forecast_period_coord(IrisTest):
         fp_coord = self.cube.coord("forecast_period").copy()
         # put incorrect data into the existing coordinate so we can test it is
         # correctly recalculated
-        self.cube.coord("forecast_period").points = [-3600]
+        self.cube.coord("forecast_period").points = np.array([-3600],
+                                                             dtype=np.int32)
         result = forecast_period_coord(
             self.cube, force_lead_time_calculation=True)
         self.assertArrayEqual(result.points, fp_coord.points)

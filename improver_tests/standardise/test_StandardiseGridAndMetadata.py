@@ -167,7 +167,7 @@ class Test_process_no_regrid(IrisTest):
         cube.data = cube.data.astype(np.float64)
         result = self.plugin.process(cube)
         self.assertEqual(result.data.dtype, np.float32)
-        self.assertAlmostEqual(self.cube.data, result.data, places=4)
+        self.assertArrayAlmostEqual(self.cube.data, result.data, decimal=4)
 
 
 class Test_process_regrid_options(IrisTest):
