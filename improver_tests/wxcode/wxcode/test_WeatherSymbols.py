@@ -42,6 +42,7 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.wxcode.utilities import WX_DICT
 from improver.wxcode.weather_symbols import WeatherSymbols
 
+from ...set_up_test_cubes import set_up_probability_cube
 from ...calibration.ensemble_calibration.helper_functions import (
     set_up_probability_threshold_cube)
 
@@ -666,20 +667,32 @@ class Test_create_symbol_cube(IrisTest):
         data = np.array([0.1, 0.3, 0.4, 0.2, 0.6, 0.7, 0.4, 0.2, 0.1,
                          0.2, 0.2, 0.5, 0.1, 0.3, 0.9, 0.8, 0.5, 0.3,
                          0.6, 0.3, 0.5, 0.6, 0.8, 0.2,
-                         0.8, 0.1, 0.2]).reshape((3, 1, 3, 3))
-        self.cube = set_up_probability_threshold_cube(
-            data, 'air_temperature', 'K', spp__relative_to_threshold='above')
+                         0.8, 0.1, 0.2]).reshape((3, 3, 3))
+        self.cube = set_up_probability_cube(
+            data.astype(np.float32), np.array([288, 290, 292],
+                                              dtype=np.float32))
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
 
     def test_basic(self):
         """Test cube is constructed with appropriate metadata"""
-        plugin = WeatherSymbols()
-        result = plugin.create_symbol_cube([self.cube])
+        result = WeatherSymbols().create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],
                          self.wxmeaning)
+
+    def test_removes_bounds(self):
+        """Test bounds are removed from time and forecast period coordinate"""
+        self.cube.coord("time").bounds = np.array([
+            self.cube.coord("time").points[0] - 3600,
+            self.cube.coord("time").points[0]], dtype=np.int64)
+        self.cube.coord("forecast_period").bounds = np.array([
+            self.cube.coord("forecast_period").points[0] - 3600,
+            self.cube.coord("forecast_period").points[0]], dtype=np.int32)
+        result = WeatherSymbols().create_symbol_cube([self.cube])
+        self.assertIsNone(result.coord("time").bounds)
+        self.assertIsNone(result.coord("forecast_period").bounds)
 
 
 class Test_process(IrisTest):

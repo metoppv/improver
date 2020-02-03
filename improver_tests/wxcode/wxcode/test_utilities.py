@@ -97,7 +97,7 @@ def _core_wxcube(time_points, num_grid_points):
     Returns:
         iris.cube.Cube:
             cube of weather codes set to 1
-            data shape (time_points, 16, 16)
+            data shape (time_points, num_grid_points, num_grid_points)
     """
     if time_points is None:
         time_points = np.array([datetime_to_numdateval()])
