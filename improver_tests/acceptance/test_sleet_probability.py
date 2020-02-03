@@ -46,8 +46,24 @@ def test_basic(tmp_path):
     kgo_dir = acc.kgo_root() / "sleet_probability/basic"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
-    half_input_path = acc.kgo_root() / "phase-probability/basic/snow_kgo.nc"
-    tenth_input_path = acc.kgo_root() / "phase-probability/basic/rain_kgo.nc"
+    half_input_path = kgo_dir / "half_prob_snow_falling_level.nc"
+    tenth_input_path = kgo_dir / "tenth_prob_snow_falling_level.nc"
     args = [half_input_path, tenth_input_path, "--output", output_path]
     run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_sleet_warning(tmp_path):
+    """Test basic snow falling level calculation. When the warning is no
+    longer produced, the ignore-mismatch argument is deprecated and should be
+    removed."""
+    kgo_dir = acc.kgo_root() / "sleet_probability/warning"
+    kgo_path = kgo_dir / "kgo.nc"
+    output_path = tmp_path / "output.nc"
+    snow_input_path = kgo_dir / "snow.nc"
+    rain_input_path = kgo_dir / "rain.nc"
+    args = [snow_input_path, rain_input_path, "--ignore-mismatch",
+            "--output", output_path]
+    with pytest.warns(UserWarning, match="Negative values of sleet prob"):
+        run_cli(args)
     acc.compare(output_path, kgo_path)

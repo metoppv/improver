@@ -757,7 +757,8 @@ class Test_mask_cube(SetupCubes):
         self.assertArrayAlmostEqual(
             expected_result.data, self.cube3D.data.data)
         self.assertArrayEqual(
-            expected_result.mask, self.cube3D.data.mask)
+            np.ma.getmask(expected_result),
+            np.ma.getmask(self.cube3D.data))
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -773,7 +774,8 @@ class Test_mask_cube(SetupCubes):
         self.assertArrayAlmostEqual(
             expected_result.data, cube2D.data.data)
         self.assertArrayEqual(
-            expected_result.mask, cube2D.data.mask)
+            np.ma.getmask(expected_result),
+            np.ma.getmask(cube2D.data))
 
     @ManageWarnings(
         ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)

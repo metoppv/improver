@@ -33,12 +33,16 @@
 import importlib
 import os
 import pathlib
+import shlex
 import shutil
 
 import pytest
 
 from improver import cli
 from improver.utilities.compare import DEFAULT_TOLERANCE, compare_netcdfs
+
+RECREATE_DIR_ENVVAR = "RECREATE_KGO"
+ACC_TEST_DIR_ENVVAR = "IMPROVER_ACC_TEST_DIR"
 
 
 def run_cli(cli_name, verbose=True):
@@ -78,13 +82,13 @@ def cli_name_with_dashes(dunder_file):
 
 def kgo_recreate():
     """True if KGO should be re-created"""
-    return "RECREATE_KGO" in os.environ
+    return RECREATE_DIR_ENVVAR in os.environ
 
 
 def kgo_root():
     """Path to the root of the KGO directories"""
     try:
-        test_dir = os.environ["IMPROVER_ACC_TEST_DIR"]
+        test_dir = os.environ[ACC_TEST_DIR_ENVVAR]
     except KeyError:
         pytest.skip()
         return pathlib.Path("/")
@@ -93,29 +97,58 @@ def kgo_root():
 
 def kgo_exists():
     """True if KGO files exist"""
-    return "IMPROVER_ACC_TEST_DIR" in os.environ
+    return ACC_TEST_DIR_ENVVAR in os.environ
 
 
-def recreate_if_needed(output_path, kgo_path):
+def recreate_if_needed(output_path, kgo_path, recreate_dir_path=None):
     """
     Re-create a file in the KGO, depending on configuration.
 
     Args:
         output_path (pathlib.Path): Path to output produced by test
-        kgo_path (pathlib.Path): Path to KGO file
+        kgo_path (pathlib.Path): Path to expected/original KGO file
+        recreate_dir_path (Optional[pathlib.Path]): Path to directory where
+            recreated KGOs will be placed. Default is environment variable
+            specified in RECREATE_DIR_ENVVAR constant.
 
     Returns:
-        None
+        bool: True if KGO was recreated
     """
     if not kgo_recreate():
-        return
+        return False
     if not kgo_path.is_absolute():
         raise IOError("KGO path is not absolute")
-    if kgo_root() not in kgo_path.parents:
-        raise IOError("Provided KGO path is not within KGO root directory")
-    kgo_path.parent.mkdir(exist_ok=True)
-    shutil.copyfile(str(output_path), str(kgo_path))
-    return
+    if not output_path.is_file():
+        raise IOError("Expected output file not created by running test")
+    if recreate_dir_path is None:
+        recreate_dir_path = pathlib.Path(os.environ[RECREATE_DIR_ENVVAR])
+    kgo_root_dir = kgo_root()
+    if kgo_root_dir not in kgo_path.parents:
+        raise IOError("KGO path for test is not within KGO root directory")
+    if not recreate_dir_path.is_absolute():
+        raise IOError("Recreate KGO path is not absolute")
+    print("Comparison found differences - recreating KGO for this test")
+    if kgo_path.exists():
+        print(f"Original KGO file is at {kgo_path}")
+    else:
+        print("Original KGO file does not exist")
+    kgo_relative = kgo_path.relative_to(kgo_root_dir)
+    recreate_file_path = recreate_dir_path / kgo_relative
+    if recreate_file_path == kgo_path:
+        err = (f"Recreate KGO path {recreate_file_path} must be different from"
+               f" original KGO path {kgo_path} to avoid overwriting")
+        raise IOError(err)
+    recreate_file_path.parent.mkdir(exist_ok=True, parents=True)
+    if recreate_file_path.exists():
+        recreate_file_path.unlink()
+    shutil.copyfile(str(output_path), str(recreate_file_path))
+    print(f"Updated KGO file is at {recreate_file_path}")
+    print(f"Put the updated KGO file in {ACC_TEST_DIR_ENVVAR} to make this"
+          f" test pass. For example:")
+    quoted_kgo = shlex.quote(str(kgo_path))
+    quoted_recreate = shlex.quote(str(recreate_file_path))
+    print(f"cp {quoted_recreate} {quoted_kgo}")
+    return True
 
 
 def statsmodels_available():
@@ -146,8 +179,6 @@ def compare(output_path, kgo_path, recreate=True,
     __tracebackhide__ = True  # pylint: disable=unused-variable
     assert output_path.is_absolute()
     assert kgo_path.is_absolute()
-    if recreate:
-        recreate_if_needed(output_path, kgo_path)
     if not isinstance(atol, (int, float)):
         raise ValueError("atol")
     if not isinstance(rtol, (int, float)):
@@ -165,6 +196,8 @@ def compare(output_path, kgo_path, recreate=True,
     compare_netcdfs(output_path, kgo_path, atol=atol, rtol=rtol,
                     exclude_vars=exclude_vars, reporter=message_recorder)
     if difference_found:
+        if recreate:
+            recreate_if_needed(output_path, kgo_path)
         raise AssertionError(message)
 
 

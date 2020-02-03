@@ -253,7 +253,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
     def test_4D_input_not_masked_preserve_leading_dim(self):
         """Test input array is unchanged when input in 4D.
            This should give the same answer as the corresponding 3D array."""
-        data_array = self.data_array.reshape(3, 2, 2, 2)
+        data_array = self.data_array.reshape((3, 2, 2, 2))
         result = flatten_ignoring_masked_data(
             data_array, preserve_leading_dimension=True)
         self.assertArrayAlmostEqual(
@@ -281,14 +281,16 @@ class Test_check_predictor(IrisTest):
     Test to check the predictor.
     """
 
-    def test_mean(self):
+    @staticmethod
+    def test_mean():
         """
         Test that the utility does not raise an exception when
         predictor = "mean".
         """
         check_predictor("mean")
 
-    def test_realizations(self):
+    @staticmethod
+    def test_realizations():
         """
         Test that the utility does not raise an exception when
         predictor = "realizations".

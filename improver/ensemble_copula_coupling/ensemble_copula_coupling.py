@@ -62,11 +62,6 @@ class RebadgePercentilesAsRealizations(BasePlugin):
     a subsequent EnsembleReordering step to restore spatial correlations,
     if required.
     """
-    def __init__(self):
-        """
-        Initialise the class.
-        """
-        pass
 
     @staticmethod
     def process(cube, ensemble_realization_numbers=None):
@@ -494,10 +489,11 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             [x/100.0 for x in percentiles], dtype=np.float32)
 
         forecast_at_percentiles = (
-            np.empty((len(percentiles), probabilities_for_cdf.shape[0]),
-                     dtype=np.float32)
-        )
-        for index in range(probabilities_for_cdf.shape[0]):
+            np.empty((len(percentiles),
+                      probabilities_for_cdf.shape[0]), dtype=np.float32)) \
+            # pylint: disable=unsubscriptable-object
+        for index in range(probabilities_for_cdf.shape[0]): \
+                # pylint: disable=unsubscriptable-object
             forecast_at_percentiles[:, index] = np.interp(
                 percentiles_as_fractions, probabilities_for_cdf[index, :],
                 threshold_points)
@@ -894,7 +890,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         msg = ('{} expects a cube with only a leading threshold dimension, '
                'followed by spatial (y/x) dimensions. '
                'Got dimensions: {}'.format(
-                    self.__class__.__name__, dim_coords))
+                   self.__class__.__name__, dim_coords))
 
         try:
             threshold_coord = find_threshold_coordinate(cube)
@@ -990,7 +986,9 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
         for index, threshold in enumerate(thresholds):
             probabilities[index, ...] = np.reshape(
-                probability_method(threshold), probabilities.shape[1:])
+                probability_method(threshold),
+                probabilities.shape[1:]) \
+                # pylint: disable=unsubscriptable-object
 
         probability_cube = probability_cube_template.copy(data=probabilities)
         return probability_cube

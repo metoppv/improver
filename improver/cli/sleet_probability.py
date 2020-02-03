@@ -37,7 +37,9 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(snow: cli.inputcube,
-            rain: cli.inputcube):
+            rain: cli.inputcube,
+            *,
+            ignore_mismatch=False):
     """Calculate sleet probability.
 
     Calculates the sleet probability using the
@@ -48,6 +50,9 @@ def process(snow: cli.inputcube,
             An iris Cube of the probability of snow.
         rain (iris.cube.Cube):
             An iris Cube of the probability of rain.
+        ignore_mismatch (bool):
+            If set, errors relating to mismatches in the rain and snow data
+            are demoted to warnings.
 
 
     Returns:
@@ -56,5 +61,6 @@ def process(snow: cli.inputcube,
     """
 
     from improver.calculate_sleet_prob import calculate_sleet_probability
-    result = calculate_sleet_probability(snow, rain)
+    result = calculate_sleet_probability(snow, rain,
+                                         ignore_mismatch=ignore_mismatch)
     return result

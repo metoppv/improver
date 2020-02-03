@@ -640,7 +640,7 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
             # make a copy of the input cube from which to calculate weights
             inverted_cube = cube.copy()
             inverted_cube = sort_coord_in_cube(
-                inverted_cube, coord_name, order="descending")
+                inverted_cube, coord_name, descending=True)
             cube = inverted_cube
 
         weights = self.nonlinear_weights(len(cube.coord(coord_name).points))

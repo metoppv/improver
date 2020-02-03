@@ -73,6 +73,12 @@ class WeatherSymbols(BasePlugin):
         is zero. It has to be sufficiently small that a valid rainfall rate
         or snowfall rate could not trigger it.
         """
+        def make_thresholds_with_units(items):
+            if isinstance(items, list):
+                return [make_thresholds_with_units(item) for item in items]
+            values, units = items
+            return iris.coords.AuxCoord(values, units=units)
+
         self.wxtree = wxtree
         if wxtree == 'global':
             self.queries = wxcode_decision_tree_global()
@@ -80,6 +86,9 @@ class WeatherSymbols(BasePlugin):
         else:
             self.queries = wxcode_decision_tree()
             self.start_node = START_NODE
+        for query in self.queries.values():
+            query['diagnostic_thresholds'] = make_thresholds_with_units(
+                query['diagnostic_thresholds'])
         self.float_tolerance = 0.01
         self.float_abs_tolerance = 1e-12
         # flag to indicate whether to expect "threshold" as a coordinate name
@@ -287,9 +296,8 @@ class WeatherSymbols(BasePlugin):
                 a numpy.where statement.
                 e.g. (condition 1) & (condition 2)
         """
-        if condition_combination == 'OR':
-            return ('({}) | '*len(conditions)).format(*conditions).strip('| ')
-        return ('({}) & '*len(conditions)).format(*conditions).strip('& ')
+        combinator = ' | ' if condition_combination == 'OR' else ' & '
+        return combinator.join(map('({})'.format, conditions))
 
     def create_condition_chain(self, test_conditions):
         """
@@ -394,33 +402,27 @@ class WeatherSymbols(BasePlugin):
             return constraint_str
 
         # if input is list, loop over and return a list of strings
-        if isinstance(diagnostics, list):
-            constraints = []
-            for diagnostic, threshold in zip(diagnostics, thresholds):
-                if coord_named_threshold:
-                    threshold_coord_name = "threshold"
-                elif diagnostic in self.threshold_coord_names:
-                    threshold_coord_name = (
-                        self.threshold_coord_names[diagnostic])
-                else:
-                    threshold_coord_name = extract_diagnostic_name(diagnostic)
-                threshold_val = threshold.points.item()
-                constraints.append(
-                    _constraint_string(
-                        diagnostic, threshold_coord_name, threshold_val))
+        if not isinstance(diagnostics, list):
+            diagnostics = [diagnostics]
+            thresholds = [thresholds]
+        constraints = []
+        for diagnostic, threshold in zip(diagnostics, thresholds):
+            if coord_named_threshold:
+                threshold_coord_name = "threshold"
+            elif diagnostic in self.threshold_coord_names:
+                threshold_coord_name = (
+                    self.threshold_coord_names[diagnostic])
+            else:
+                threshold_coord_name = extract_diagnostic_name(diagnostic)
+            threshold_val = threshold.points.item()
+            constraints.append(
+                _constraint_string(
+                    diagnostic, threshold_coord_name, threshold_val))
+        if len(constraints) > 1:
             return constraints
 
         # otherwise, return a string
-        if coord_named_threshold:
-            threshold_coord_name = "threshold"
-        elif diagnostics in self.threshold_coord_names:
-            threshold_coord_name = self.threshold_coord_names[diagnostics]
-        else:
-            threshold_coord_name = extract_diagnostic_name(diagnostics)
-        threshold_val = thresholds.points.item()
-        constraint = _constraint_string(
-            diagnostics, threshold_coord_name, threshold_val)
-        return constraint
+        return constraints[0]
 
     @staticmethod
     def find_all_routes(graph, start, end, omit_nodes=None, route=None):

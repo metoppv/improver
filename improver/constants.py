@@ -30,6 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain generally useful constants."""
 
+# Cube comparison tolerances
+TIGHT_TOLERANCE = 1e-5
+DEFAULT_TOLERANCE = 1e-4
+LOOSE_TOLERANCE = 1e-3
 
 # Real Missing Data Indicator
 RMDI = -32767.0

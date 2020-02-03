@@ -165,8 +165,7 @@ def set_up_wxcube_lat_lon(time_points=None):
         time_points = np.array([datetime_to_numdateval()])
 
     data = np.ones((len(time_points), 16, 16))
-    cube = Cube(data,  long_name="weather_code",
-                units="1")
+    cube = Cube(data, long_name="weather_code", units="1")
     cube = add_wxcode_metadata(cube)
 
     time_origin = "hours since 1970-01-01 00:00:00"
@@ -242,7 +241,7 @@ class Test_add_wxcode_metadata(IrisTest):
         data = np.array(
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6],
             dtype=np.int32
-        ).reshape(2, 1, 3, 3)
+        ).reshape((2, 1, 3, 3))
         self.cube = set_up_cube(data, 'air_temperature', 'K',
                                 realizations=np.array([0, 1], dtype=np.int32))
         self.wxcode = np.array(list(WX_DICT.keys()))

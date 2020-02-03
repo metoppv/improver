@@ -46,11 +46,11 @@ def test_snow_sleet(tmp_path):
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
     kgo_path = kgo_dir / "snow_sleet_kgo.nc"
     output_path = tmp_path / "output.nc"
-    input_paths = [acc.kgo_root() / x for x in
-                   ("wet-bulb-temperature/multi_level/kgo.nc",
-                    "wet-bulb-temperature-integral/basic/kgo.nc",
-                    "phase-change-level/basic/orog.nc",
-                    "phase-change-level/basic/land_mask.nc")]
+    input_paths = [kgo_dir / x for x in
+                   ("wet_bulb_temperature.nc",
+                    "wbti.nc",
+                    "orog.nc",
+                    "land_mask.nc")]
     args = [*input_paths,
             "--phase-change", "snow-sleet",
             "--output", output_path]
@@ -63,11 +63,11 @@ def test_sleet_rain(tmp_path):
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
     kgo_path = kgo_dir / "sleet_rain_kgo.nc"
     output_path = tmp_path / "output.nc"
-    input_paths = [acc.kgo_root() / x for x in
-                   ("wet-bulb-temperature/multi_level/kgo.nc",
-                    "wet-bulb-temperature-integral/basic/kgo.nc",
-                    "phase-change-level/basic/orog.nc",
-                    "phase-change-level/basic/land_mask.nc")]
+    input_paths = [kgo_dir / x for x in
+                   ("wet_bulb_temperature.nc",
+                    "wbti.nc",
+                    "orog.nc",
+                    "land_mask.nc")]
     args = [*input_paths,
             "--phase-change", "sleet-rain",
             "--output", output_path]
