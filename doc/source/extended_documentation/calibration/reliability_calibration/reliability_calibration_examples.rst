@@ -2,20 +2,19 @@
 
 The reliability calibration tables returned by this plugin are structured as shown below::
 
-  reliability_calibration_table / (1) (air_temperature: 2; reliability_index: 3; probability_bin: 5; projection_y_coordinate: 970; projection_x_coordinate: 1042)
+  reliability_calibration_table / (1) (air_temperature: 2; table_row_index: 3; probability_bin: 5; projection_y_coordinate: 970; projection_x_coordinate: 1042)
        Dimension coordinates:
-            air_temperature                           x                     -                   -                           -                             -
-            reliability_index                         -                     x                   -                           -                             -
-            probability_bin                           -                     -                   x                           -                             -
-            projection_y_coordinate                   -                     -                   -                           x                             -
-            projection_x_coordinate                   -                     -                   -                           -                             x
+            air_temperature                           x                   -                   -                           -                             -
+            table_row_index                           -                   x                   -                           -                             -
+            probability_bin                           -                   -                   x                           -                             -
+            projection_y_coordinate                   -                   -                   -                           x                             -
+            projection_x_coordinate                   -                   -                   -                           -                             x
        Auxiliary coordinates:
-            reliability_name                          -                     x                   -                           -                             -
+            table_row_name                            -                   x                   -                           -                             -
        Scalar coordinates:
             cycle_hour: 22
             forecast_period: 68400 seconds
        Attributes:
-            diagnostic_standard_name: air_temperature
             institution: Met Office
             source: Met Office Unified Model
             title: Reliability calibration data table

@@ -167,9 +167,9 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         """
         index_coord = iris.coords.DimCoord(
             np.arange(len(self.table_columns), dtype=np.int32),
-            long_name='reliability_index', units=1)
+            long_name='table_row_index', units=1)
         name_coord = iris.coords.AuxCoord(
-            self.table_columns, long_name='reliability_name', units=1)
+            self.table_columns, long_name='table_row_name', units=1)
         return index_coord, name_coord
 
     @staticmethod
@@ -236,7 +236,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         return cycle_coord
 
     @staticmethod
-    def _define_metadata(forecast_slice, diagnostic):
+    def _define_metadata(forecast_slice):
         """
         Define metadata that is specifically required for reliability table
         cubes, whilst ensuring any mandatory attributes are also populated.
@@ -244,8 +244,6 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         Args:
             forecast_slice (iris.cube.Cube):
                 The source cube from which to get pre-existing metadata of use.
-            diagnostic (str):
-                The name of the diagnostic within the cube.
         Returns:
             dict:
                 A dictionary of attributes that are appropriate for the
@@ -253,13 +251,15 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         """
         attributes = generate_mandatory_attributes([forecast_slice])
         attributes["title"] = "Reliability calibration data table"
-        attributes["diagnostic_standard_name"] = diagnostic
         return attributes
 
     def _create_reliability_table_cube(self, forecast, threshold_coord):
         """
         Construct a reliability table cube and populate it with the provided
-        data.
+        data. The returned cube will include a cycle hour coordinate, which
+        describes the model cycle hour at which the forecast data was produced.
+        It will further include the forecast period, threshold coordinate,
+        and spatial coordinates from the forecast cube.
 
         Args:
             forecast (iris.cube.Cube):
@@ -289,7 +289,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         dummy_data = np.zeros((expected_shape))
 
         diagnostic = forecast.coord(var_name='threshold').name()
-        attributes = self._define_metadata(forecast, diagnostic)
+        attributes = self._define_metadata(forecast)
 
         # Define reliability table specific coordinates
         probability_bins_coord = self._create_probability_bins_coord()
@@ -334,7 +334,11 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         Returns:
             numpy.ndarray:
                 An array containing reliability table data for a single time
-                and threshold.
+                and threshold. The leading dimension corresponds to the rows
+                of a calibration table, the second dimension to the number of
+                probability bins, and the trailing dimensions are the spatial
+                dimensions of the forecast and truth cubes (which are
+                equivalent).
         """
         observation_counts = []
         forecast_probabilities = []
@@ -388,11 +392,19 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             iris.cube.CubeList:
                 A cubelist of reliability table cubes, one for each threshold
                 in the historic forecast cubes.
+        Raises:
+            ValueError: If the forecast and truth cubes have differing
+                        threshold coordinates.
         """
         historic_forecasts, truths = filter_non_matching_cubes(
             historic_forecasts, truths)
 
         threshold_coord = find_threshold_coordinate(historic_forecasts)
+        truth_threshold_coord = find_threshold_coordinate(truths)
+        if not threshold_coord == truth_threshold_coord:
+            msg = "Threshold coordinates differ between forecasts and truths."
+            raise ValueError(msg)
+
         time_coord = historic_forecasts.coord('time')
 
         self._check_forecast_consistency(historic_forecasts)

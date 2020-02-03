@@ -35,7 +35,7 @@ import unittest
 from datetime import datetime
 import iris
 import numpy as np
-from numpy.testing import assert_almost_equal, assert_array_equal
+from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.utilities.cube_manipulation import merge_cubes
 from improver.calibration.reliability_calibration import (
@@ -84,12 +84,13 @@ class Test_Setup(unittest.TestCase):
             truth_data, thresholds, time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 4, 0))
         self.truths = merge_cubes([self.truth_1, self.truth_2])
+        self.expected_threshold_coord = self.forecasts.coord(
+            var_name='threshold')
         self.expected_table_shape = (3, 5, 3, 3)
         self.expected_attributes = (
             {'title': 'Reliability calibration data table',
              'source': 'IMPROVER',
-             'institution': 'unknown',
-             'diagnostic_standard_name': 'air_temperature'})
+             'institution': 'unknown'})
 
         # Note the structure of the expected_table is non-trivial to interpret
         # due to the dimension ordering.
@@ -185,7 +186,7 @@ class Test__define_probability_bins(unittest.TestCase):
              [0.75, 1.]])
         result = Plugin()._define_probability_bins(n_probability_bins=4,
                                                    single_value_limits=False)
-        assert_almost_equal(result, expected)
+        assert_allclose(result, expected)
 
     @staticmethod
     def test_with_single_value_limits():
@@ -199,7 +200,7 @@ class Test__define_probability_bins(unittest.TestCase):
              [9.9999899e-01, 1.0000000e+00]])
         result = Plugin()._define_probability_bins(n_probability_bins=4,
                                                    single_value_limits=True)
-        assert_almost_equal(result, expected)
+        assert_allclose(result, expected)
 
     def test_with_single_value_limits_too_few_bins(self):
         """In this test the single_value_limits are requested whilst also
@@ -225,8 +226,8 @@ class Test__create_probability_bins_coord(unittest.TestCase):
         result = plugin._create_probability_bins_coord()
 
         self.assertIsInstance(result, iris.coords.DimCoord)
-        assert_almost_equal(result.points, expected_points)
-        assert_almost_equal(result.bounds, expected_bounds)
+        assert_allclose(result.points, expected_points)
+        assert_allclose(result.bounds, expected_bounds)
 
 
 class Test__create_reliability_table_coords(unittest.TestCase):
@@ -357,8 +358,7 @@ class Test__define_metadata(Test_Setup):
         self.forecast_1.attributes['institution'] = 'Kitten Inc'
         self.expected_attributes['institution'] = 'Kitten Inc'
 
-        diagnostic = self.forecast_1.coord(var_name='threshold').name()
-        result = Plugin._define_metadata(self.forecast_1, diagnostic)
+        result = Plugin._define_metadata(self.forecast_1)
 
         self.assertIsInstance(result, dict)
         self.assertEqual(result, self.expected_attributes)
@@ -367,8 +367,7 @@ class Test__define_metadata(Test_Setup):
         """Test the metadata returned is complete and as expected when the
         forecast cube does not contain all the required metadata to copy."""
 
-        diagnostic = self.forecast_1.coord(var_name='threshold').name()
-        result = Plugin._define_metadata(self.forecast_1, diagnostic)
+        result = Plugin._define_metadata(self.forecast_1)
 
         self.assertIsInstance(result, dict)
         self.assertEqual(result, self.expected_attributes)
@@ -417,7 +416,10 @@ class Test_process(Test_Setup):
         result = Plugin().process(self.forecasts, self.truths)
 
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result[0].name(), "reliability_calibration_table")
+        self.assertEqual(result.name(), "reliability_calibration_table")
+        self.assertEqual(
+            result.coord('air_temperature'), self.expected_threshold_coord)
+        self.assertEqual(result.coord_dims('air_temperature')[0], 0)
 
     def test_table_values(self):
         """Test that cube values are as expected when process has sliced the
@@ -430,6 +432,15 @@ class Test_process(Test_Setup):
         result = Plugin().process(self.forecasts, self.truths)
 
         assert_array_equal(result[0].data, expected)
+
+    def test_mismatching_threshold_coordinates(self):
+        """Test that an exception is raised if the forecast and truth cubes
+        have differing threshold coordinates."""
+
+        self.truths = self.truths[:, 0, ...]
+        msg = "Threshold coordinates differ between forecasts and truths."
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin().process(self.forecasts, self.truths)
 
 
 if __name__ == '__main__':
