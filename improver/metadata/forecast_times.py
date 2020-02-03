@@ -218,7 +218,7 @@ def unify_cycletime(cubes, cycletime):
             frt_points, standard_name=frt_coord_name, bounds=None,
             template_coord=cube.coord(frt_coord_name),
             units=coord_units)
-        
+
         cube.remove_coord(frt_coord_name)
         cube.add_aux_coord(frt_coord, data_dims=None)
 
