@@ -57,9 +57,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             this total.
         single_value_limits (bool):
             Mandates that the extrema bins (0 and 1) should be single valued,
-            with a small precision tolerance, defined below as
-            single_value_tolerance. This gives bins of 0 to
-            single_value_tolerance and (1 - single-value_tolerance) to 1.
+            with a small precision tolerance, defined as 1.0E-6.
+            This gives bins of 0 to 1.0E-6 and (1 - 1.0E-6) to 1.
         """
         self.single_value_tolerance = 1.0E-6
         self.probability_bins = self._define_probability_bins(
@@ -102,7 +101,9 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         Returns:
             numpy.ndarray:
                 An array of 2-element arrays that contain the bounds of the
-                probability bins.
+                probability bins. These bounds are non-overlapping, with
+                adjacent bin boundaries spaced at the smallest representable
+                interval.
         Raises:
             ValueError: If trying to use single_value_limits with 2 or fewer
                         probability bins.
@@ -120,17 +121,16 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         bins = np.stack([bin_lower[:-1], bin_upper[1:]], 1).astype(np.float32)
 
         if single_value_limits:
-            fixed_bin_width = self.single_value_tolerance
             bins[0, 0] = np.nextafter(
-                fixed_bin_width, 1, dtype=np.float32)
+                self.single_value_tolerance, 1, dtype=np.float32)
             bins[-1, 1] = np.nextafter(
-                1. - fixed_bin_width, 0, dtype=np.float32)
-            lowest_bin = np.array([0, fixed_bin_width], dtype=np.float32)
+                1. - self.single_value_tolerance, 0, dtype=np.float32)
+            lowest_bin = np.array([0, self.single_value_tolerance],
+                                  dtype=np.float32)
             highest_bin = np.array(
-                [1. - fixed_bin_width, 1], dtype=np.float32)
+                [1. - self.single_value_tolerance, 1], dtype=np.float32)
             bins = np.vstack(
                 [lowest_bin, bins, highest_bin]).astype(np.float32)
-
         return bins
 
     def _create_probability_bins_coord(self):
@@ -273,6 +273,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                 A reliability table cube.
         """
         def _get_coords_and_dims(coord_names):
+            """Obtain the requested coordinates and their dimension index from
+            the forecast slice cube."""
             coords_and_dims = []
             leading_coords = [probability_bins_coord, reliability_index_coord]
             for coord_name in coord_names:
@@ -362,6 +364,17 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         tables. These are summed over time to give a single table for each
         threshold, constructed from all the provided historic forecasts and
         truths.
+
+        .. See the documentation for an example of the resulting reliability
+           table cube.
+        .. include:: extended_documentation/calibration/
+           reliability_calibration/reliability_calibration_examples.rst
+
+        Note that the forecast and truth data used is probabilistic, i.e. has
+        already been thresholded relative to the thresholds of interest, using
+        the equality operator required. As such this plugin is agnostic as to
+        whether the data is thresholded below or above a given diagnostic
+        threshold.
 
         Args:
             historic_forecasts (iris.cube.Cube):
