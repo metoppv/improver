@@ -58,10 +58,11 @@ def process(orography: cli.inputcube,
     smoothing_coefficient = coefficient * gradient**power
 
     The resulting values are scaled between min_smoothing_coefficient and
-    max_smoothing_coefficient to give the desired range of alpha values. These
-    can be provided in reverse (i.e. min > max) to invert the smoothing
-    coefficients in relation to the orographic gradient, providing smoothing
-    coefficients that are largest where the orography gradient is shallowest.
+    max_smoothing_coefficient to give the desired range of
+    smoothing_coefficients. These can be provided in reverse (i.e. min > max)
+    to invert the smoothing coefficients in relation to the orographic
+    gradient, providing smoothing coefficients that are largest where the
+    orography gradient is shallowest.
 
     Args:
         orography (iris.cube.Cube):

@@ -64,11 +64,11 @@ class RecursiveFilter(BasePlugin):
             smoothing_coefficient_x (float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the x-axis. Defined such
-                that 0 < smoothing_coefficient_x < 1.0
+                that 0 < smoothing_coefficient_x < 0.5
             smoothing_coefficient_y (float or None):
                 Filter parameter: A constant used to weight the
                 recursive filter along the y-axis. Defined such
-                that 0 < smoothing_coefficient_y < 1.0
+                that 0 < smoothing_coefficient_y < 0.5
             iterations (int or None):
                 The number of iterations of the recursive filter.
             edge_width (int):
@@ -136,12 +136,17 @@ class RecursiveFilter(BasePlugin):
 
         In the forward direction:
             Recursive filtering is calculated as:
-                Bi = ((1-smoothing_coefficient) * Ai) +
-                     (smoothing_coefficient * Bi-1)
 
-            Progressing from gridpoint i-1 to i:
-                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-                Bi-1 = New value at gridpoint i-1
+        .. math::
+            B_i = ((1 - \\rm{smoothing\\_coefficient}) * A_i) +
+            (\\rm{smoothing\\_coefficient} * B_{i-1})
+
+        Progressing from gridpoint i-1 to i:
+            :math:`B_i` = new value at gridpoint i
+
+            :math:`A_i` = Old value at gridpoint i
+
+            :math:`B_{i-1}` = New value at gridpoint i - 1
 
         Args:
             grid (numpy.ndarray):
@@ -177,12 +182,17 @@ class RecursiveFilter(BasePlugin):
 
         In the backwards direction:
             Recursive filtering is calculated as:
-                Bi = ((1-smoothing_coefficient) * Ai) +
-                     (smoothing_coefficient * Bi+1)
 
-            Progressing from gridpoint i+1 to i:.
-                Bi = new value at gridpoint i, Ai = Old value at gridpoint i
-                Bi+1 = New value at gridpoint i+1
+        .. math::
+            B_i = ((1 - \\rm{smoothing\\_coefficient}) * A_i) +
+            (\\rm{smoothing\\_coefficient} * B_{i+1})
+
+        Progressing from gridpoint i+1 to i:
+            :math:`B_i` = new value at gridpoint i
+
+            :math:`A_i` = Old value at gridpoint i
+
+            :math:`B_{i+1}` = New value at gridpoint i+1
 
         Args:
             grid (numpy.ndarray):
@@ -273,11 +283,9 @@ class RecursiveFilter(BasePlugin):
             ValueError: If both smoothing_coefficients_cube and
                         smoothing_coefficient are provided.
             ValueError: If smoothing_coefficient and
-                        smoothing_coefficients_cube are both set to None
-            ValueError: If dimension of smoothing_coefficients array is less
-                        than dimension of data array
-            ValueError: If dimension of smoothing_coefficients array is greater
-                        than dimension of data array
+                        smoothing_coefficients_cube are both set to None.
+            ValueError: If the dimensions of the smoothing_coefficients array
+                        do not match the dimensions of the cube data.
 
         Returns:
             iris.cube.Cube:
