@@ -387,7 +387,8 @@ class LapseRate(BasePlugin):
                                                   all_orog_subsections)]
 
         lapse_rate_array = np.array(
-            lapse_rate_array, dtype=np.float32).reshape(temperature_data.shape)
+            lapse_rate_array, dtype=np.float32).reshape(
+                (temperature_data.shape))
 
         # Enforce upper and lower limits on lapse rate values.
         lapse_rate_array = np.where(lapse_rate_array < self.min_lapse_rate,

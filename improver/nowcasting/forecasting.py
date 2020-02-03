@@ -238,7 +238,7 @@ class AdvectField(BasePlugin):
             timestep (datetime.timedelta)
                 Time difference between the advected output and the source
         """
-        original_datetime, = (input_time.units).num2date(input_time.points)
+        original_datetime = next(input_time.cells())[0]
         new_datetime = original_datetime + timestep
         new_time = (input_time.units).date2num(new_datetime)
         advected_cube.coord("time").points = new_time

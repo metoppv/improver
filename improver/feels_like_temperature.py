@@ -223,7 +223,7 @@ def calculate_feels_like_temperature(
     apparent_temperature = calculate_apparent_temperature(
         temperature, wind_speed, relative_humidity, pressure)
 
-    # get temperatures in celcius
+    # get temperatures in Celcius
     t_cube = temperature.copy()
     t_cube.convert_units('degC')
     t_data = t_cube.data
