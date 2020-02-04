@@ -50,7 +50,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
     undergoing filtering is comprised of the current value at that cell and
     how much comes from the adjacent cell preceding it in the direction in
     which filtering is being applied. A larger smoothing_coefficient results in
-    a more significant proportion of a cells new value coming from its
+    a more significant proportion of a cell's new value coming from its
     neighbouring cell.
 
     The smoothing coefficients are calculated from the orography gradient using

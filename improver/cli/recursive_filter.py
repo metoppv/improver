@@ -52,7 +52,7 @@ def process(cube: cli.inputcube,
     smoothing_coefficient (between 0 and 1) to control what proportion of the
     probability is passed onto the next grid-square in the x and y directions.
     The smoothing_coefficient can be set on a grid square by grid-square basis
-    for the x and y directions seperately (using two arrays of
+    for the x and y directions separately (using two arrays of
     smoothing_coefficients of the same dimensionality as the domain).
 
     Args:

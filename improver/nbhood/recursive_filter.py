@@ -57,7 +57,7 @@ class RecursiveFilter(BasePlugin):
         undergoing filtering is comprised of the current value at that cell and
         how much comes from the adjacent cell preceding it in the direction in
         which filtering is being applied. A larger smoothing_coefficient
-        results in a more significant proportion of a cells new value coming
+        results in a more significant proportion of a cell's new value coming
         from its neighbouring cell.
 
         Args:
@@ -138,8 +138,8 @@ class RecursiveFilter(BasePlugin):
             Recursive filtering is calculated as:
 
         .. math::
-            B_i = ((1 - \\rm{smoothing\\_coefficient}) * A_i) +
-            (\\rm{smoothing\\_coefficient} * B_{i-1})
+            B_i = ((1 - \\rm{smoothing\\_coefficient}) \\times A_i) +
+            (\\rm{smoothing\\_coefficient} \\times B_{i-1})
 
         Progressing from gridpoint i-1 to i:
             :math:`B_i` = new value at gridpoint i
@@ -184,8 +184,8 @@ class RecursiveFilter(BasePlugin):
             Recursive filtering is calculated as:
 
         .. math::
-            B_i = ((1 - \\rm{smoothing\\_coefficient}) * A_i) +
-            (\\rm{smoothing\\_coefficient} * B_{i+1})
+            B_i = ((1 - \\rm{smoothing\\_coefficient}) \\times A_i) +
+            (\\rm{smoothing\\_coefficient} \\times B_{i+1})
 
         Progressing from gridpoint i+1 to i:
             :math:`B_i` = new value at gridpoint i
