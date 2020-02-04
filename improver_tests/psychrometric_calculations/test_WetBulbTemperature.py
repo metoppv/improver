@@ -225,25 +225,7 @@ class Test_process(Test_WetBulbTemperature):
         self.assertEqual(result.coord_dims('time')[0], 0)
         self.assertEqual(result.coord_dims('height')[0], 1)
 
-
-class Test__extract_cubes(Test_WetBulbTemperature):
-    """Test the plugins extract method for its required cubes"""
-
-    def test_basic(self):
-        """
-        Tests that the functions can take a cubelist of the right three
-        cubes and extract them.
-        """
-        temp = self.temperature
-        humid = self.relative_humidity
-        pressure = self.pressure
-        temp_result, humid_result, pressure_result = WetBulbTemperature(
-            )._extract_cubes(CubeList([temp, humid, pressure]))
-        self.assertEqual(temp, temp_result)
-        self.assertEqual(humid, humid_result)
-        self.assertEqual(pressure, pressure_result)
-
-    def test_too_many(self):
+    def test_too_many_cubes(self):
         """
         Tests that an error is raised if there are too many arguments.
         """
@@ -255,7 +237,7 @@ class Test__extract_cubes(Test_WetBulbTemperature):
             WetBulbTemperature().process(
                 CubeList([temp, humid, pressure, temp]))
 
-    def test_empty_list(self):
+    def test_empty_cube_list(self):
         """
         Tests that an error is raised if there is an empty list.
         """

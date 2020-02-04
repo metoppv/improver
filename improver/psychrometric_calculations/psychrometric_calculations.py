@@ -989,8 +989,45 @@ class PhaseChangeLevel(BasePlugin):
         return create_new_diagnostic_cube(name, 'm', template, attributes,
                                           data=phase_change_level)
 
-    def process(self, wet_bulb_temperature, wet_bulb_integral, orog,
-                land_sea_mask):
+    @staticmethod
+    def _extract_cubes(cubes):
+        """
+        Separates the input list into the required cubes for this plugin.
+
+        Args:
+            cubes (iris.cube.CubeList or list or iris.cube.Cube):
+                Contains cubes of the altitude of the phase-change level (this
+                can be snow->sleet, or sleet->rain) and the altitude of the
+                orography. The name of the phase-change level cube must be
+                either "altitude_of_snow_falling_level" or
+                "altitude_of_rain_falling_level". The name of the orography
+                cube must be "surface_altitude".
+
+        Raises:
+            ValueError: If cubes with the expected names cannot be extracted.
+            ValueError: If cubes does not have the expected length of 3.
+
+        """
+        if isinstance(cubes, list):
+            cubes = iris.cube.CubeList(cubes)
+        if len(cubes) != 4:
+            raise ValueError(f'Expected 4 cubes, found {len(cubes)}')
+
+        missing = []
+        extacted = []
+        for i in ["wet_bulb_temperature", "wet_bulb_temperature_integral",
+                  "surface_altitude", "land_binary_mask"]:
+            try:
+                extacted.append(cubes.extract_strict(i))
+            except iris.exceptions.ConstraintMismatchError:
+                missing.append(i)
+        if missing:
+            raise ValueError("The following cubes were missing: {}".format(
+                missing
+            ))
+        return tuple(extacted)
+
+    def process(self, cubes):
         """
         Use the wet bulb temperature integral to find the altitude at which a
         phase change occurs (e.g. snow to sleet). This is achieved by finding
@@ -1000,19 +1037,25 @@ class PhaseChangeLevel(BasePlugin):
         data appropriately.
 
         Args:
-            wet_bulb_temperature (iris.cube.Cube):
-                Cube of wet bulb temperatures on height levels.
-            wet_bulb_integral (iris.cube.Cube):
-                Cube of wet bulb temperature integral (Kelvin-metres).
-            orog (iris.cube.Cube):
-                Cube of orography (m).
-            land_sea_mask (iris.cube.Cube):
-                Cube containing a binary land-sea mask.
+        cubes (iris.cube.CubeList or list or iris.cube.Cube):
+            containing:
+                wet_bulb_temperature (iris.cube.Cube):
+                    Cube of wet bulb temperatures on height levels.
+                wet_bulb_integral (iris.cube.Cube):
+                    Cube of wet bulb temperature integral (Kelvin-metres).
+                orog (iris.cube.Cube):
+                    Cube of orography (m).
+                land_sea_mask (iris.cube.Cube):
+                    Cube containing a binary land-sea mask.
 
         Returns:
             iris.cube.Cube:
                 Cube of phase change level above sea level (asl).
         """
+
+        wet_bulb_temperature, wet_bulb_integral, orog, land_sea_mask = \
+            self._extract_cubes(cubes)
+
         wet_bulb_temperature.convert_units('celsius')
         wet_bulb_integral.convert_units('K m')
 
