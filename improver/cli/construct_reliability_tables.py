@@ -45,14 +45,15 @@ def process(*cubes: cli.inputcube,
     Loads historical forecasts and gridded truths that are compared to build
     reliability tables. Reliability tables are returned as a cube with a
     leading threshold dimension that matches that of the forecast probability
-    cubes.
+    cubes and the thresholded truth.
 
     Args:
         cubes (list of iris.cube.Cube):
             A list of cubes containing the historical probability forecasts and
             corresponding truths used for calibration. These cubes must include
-            the same diagnostic name in their names and will be separated based
-            upon the user provided truth attribute.
+            the same diagnostic name in their names, and must both have equivalent
+            threshold coordinates. The cubes will be distinquished using the
+            user provided truth attribute.
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on truth cubes.
