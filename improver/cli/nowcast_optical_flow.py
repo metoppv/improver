@@ -39,7 +39,6 @@ from improver import cli
 @cli.with_output
 def process(orographic_enhancement: cli.inputcube,
             *cubes: cli.inputcube,
-            attributes_config: cli.inputjson = None,
             ofc_box_size: int = 30,
             smart_smoothing_iterations: int = 100):
     """Calculate optical flow components from input fields.
@@ -50,9 +49,6 @@ def process(orographic_enhancement: cli.inputcube,
         cubes (iris.cube.CubeList):
             Cubes from which to calculate optical flow velocities.
             These three cubes will be sorted by their time coords.
-        attributes_config (dict):
-            Dictionary containing required changes to the attributes.
-            Every output file will have the attributes_config applied.
         ofc_box_size (int):
             Size of square 'box' (in grid spaces) within which to solve
             the optical flow equations.
@@ -82,6 +78,6 @@ def process(orographic_enhancement: cli.inputcube,
     # calculate optical flow velocities from T-1 to T and T-2 to T-1, and
     # average to produce the velocities for use in advection
     u_mean, v_mean = generate_optical_flow_components(
-        cube_list, ofc_box_size, smart_smoothing_iterations, attributes_config)
+        cube_list, ofc_box_size, smart_smoothing_iterations)
 
     return CubeList([u_mean, v_mean])
