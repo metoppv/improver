@@ -48,7 +48,7 @@ from improver.grids import ELLIPSOID, STANDARD_GRID_CCRS
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.wxcode.utilities import (
-    WX_DICT, add_wxcode_metadata, expand_nested_lists,
+    WX_DICT, weather_code_attributes, expand_nested_lists,
     interrogate_decision_tree, update_daynight)
 
 from ...calibration.ensemble_calibration.helper_functions import set_up_cube
@@ -84,33 +84,30 @@ def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=43):
     return numdateval
 
 
-def set_up_wxcube(time_points=None):
+def _core_wxcube(time_points, num_grid_points):
     """
-    Set up a wxcube
+    Set up a wxcube with unnamed spatial dimensions
 
     Args:
         time_points (numpy.ndarray):
-           Array of time points
+            Array of time points
+        num_grid_points (int):
+            Side length of square spatial grid
 
     Returns:
         iris.cube.Cube:
             cube of weather codes set to 1
-            data shape (time_points, 16, 16)
-            grid covers 0 to 30km west of origin and
-            0 to 30km north of origin. origin = 54.9N 2.5W
+            data shape (time_points, num_grid_points, num_grid_points)
     """
-
     if time_points is None:
         time_points = np.array([datetime_to_numdateval()])
 
-    num_grid_points = 16
     data = np.ones((len(time_points),
                     num_grid_points,
                     num_grid_points))
 
     cube = Cube(data, long_name="weather_code",
-                units="1")
-    cube = add_wxcode_metadata(cube)
+                units="1", attributes=weather_code_attributes())
 
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
@@ -118,6 +115,26 @@ def set_up_wxcube(time_points=None):
 
     cube.add_dim_coord(DimCoord(time_points,
                                 standard_name="time", units=tunit), 0)
+    return cube
+
+
+def set_up_wxcube(time_points=None):
+    """
+    Set up a wxcube
+
+    Args:
+        time_points (numpy.ndarray):
+            Array of time points
+
+    Returns:
+        iris.cube.Cube:
+            cube of weather codes set to 1
+            data shape (time_points, 16, 16)
+            grid covering 0 to 30km west of origin and
+            0 to 30km north of origin. origin = 54.9N 2.5W
+    """
+    num_grid_points = 16
+    cube = _core_wxcube(time_points, num_grid_points)
 
     step_size = 2000
     y_points = np.arange(0, step_size*num_grid_points, step_size)
@@ -152,31 +169,19 @@ def set_up_wxcube_lat_lon(time_points=None):
 
     Args:
         time_points (numpy.ndarray):
-           Array of time points
+            Array of time points
 
     Returns:
         iris.cube.Cube:
-            lat lon cube of weather codes set to 1
+            cube of weather codes set to 1
             data shape (time_points, 16, 16)
             grid covering 8W to 7E, 49N to 64N
     """
+    num_grid_points = 16
+    cube = _core_wxcube(time_points, num_grid_points)
 
-    if time_points is None:
-        time_points = np.array([datetime_to_numdateval()])
-
-    data = np.ones((len(time_points), 16, 16))
-    cube = Cube(data, long_name="weather_code", units="1")
-    cube = add_wxcode_metadata(cube)
-
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-
-    cube.add_dim_coord(
-        DimCoord(time_points, "time", units=tunit), 0)
-
-    lon_points = np.linspace(-8, 7, 16)
-    lat_points = np.linspace(49, 64, 16)
+    lon_points = np.linspace(-8, 7, num_grid_points)
+    lat_points = np.linspace(49, 64, num_grid_points)
 
     cube.add_dim_coord(
         DimCoord(lat_points,
@@ -233,8 +238,8 @@ class Test_wx_dict(IrisTest):
         self.assertEqual(WX_DICT[30], 'Thunder')
 
 
-class Test_add_wxcode_metadata(IrisTest):
-    """ Test add_wxcode_metadata is working correctly """
+class Test_weather_code_attributes(IrisTest):
+    """ Test weather_code_attributes is working correctly """
 
     def setUp(self):
         """Set up cube """
@@ -242,7 +247,7 @@ class Test_add_wxcode_metadata(IrisTest):
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6],
             dtype=np.int32
         ).reshape((2, 1, 3, 3))
-        self.cube = set_up_cube(data, 'air_temperature', 'K',
+        self.cube = set_up_cube(data, 'weather_code', '1',
                                 realizations=np.array([0, 1], dtype=np.int32))
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
@@ -255,37 +260,17 @@ class Test_add_wxcode_metadata(IrisTest):
         os.remove(self.nc_file)
         os.rmdir(self.data_directory)
 
-    def test_basic(self):
-        """Test that the function returns a cube."""
-        result = add_wxcode_metadata(self.cube)
-        self.assertIsInstance(result, Cube)
-
-    def test_metadata_set(self):
-        """Test that the metadata is set correctly."""
-        result = add_wxcode_metadata(self.cube)
-        self.assertEqual(result.name(), 'weather_code')
-        self.assertEqual(result.units, Unit("1"))
-        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
-        self.assertEqual(result.attributes['weather_code_meaning'],
-                         self.wxmeaning)
-
-    def test_metadata_removes_bounds(self):
-        """Test that the metadata removes bounds from cube."""
-        cube = self.cube.copy()
-        upper_bound = cube.coord('time').points[0]
-        lower_bound = upper_bound - 60*60
-        cube.coord('time').bounds = [lower_bound, upper_bound]
-        result = add_wxcode_metadata(cube)
-        self.assertEqual(result.name(), 'weather_code')
-        self.assertIsNone(result.coord('time').bounds)
+    def test_values(self):
+        """Test attribute values are correctly set."""
+        result = weather_code_attributes()
+        self.assertArrayEqual(result['weather_code'], self.wxcode)
+        self.assertEqual(result['weather_code_meaning'], self.wxmeaning)
 
     def test_metadata_saves(self):
         """Test that the metadata saves as NetCDF correctly."""
-        cube = add_wxcode_metadata(self.cube)
-        save_netcdf(cube, self.nc_file)
+        self.cube.attributes.update(weather_code_attributes())
+        save_netcdf(self.cube, self.nc_file)
         result = load_cube(self.nc_file)
-        self.assertEqual(result.name(), 'weather_code')
-        self.assertEqual(result.units, Unit("1"))
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],
                          self.wxmeaning)

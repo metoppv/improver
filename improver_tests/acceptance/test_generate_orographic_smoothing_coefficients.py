@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
@@ -29,41 +28,28 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI for generating orographic alphas."""
+"""
+Tests for the generate-orographic-smoothing-coefficients CLI
+"""
 
-from improver import cli
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@cli.clizefy
-@cli.with_output
-def process(orography: cli.inputcube,
-            *,
-            min_alpha: float = 0.0,
-            max_alpha: float = 1.0,
-            coefficient: float = 1.0,
-            power: float = 1.0,
-            invert_alphas=True):
-    """Generate alpha smoothing parameters for recursive filtering based on
-    orography gradients.
-
-    Args:
-        orography (iris.cube.Cube):
-            A 2D field of orography for the grid to generate alphas for.
-        min_alpha (float):
-            The minimum value of alpha.
-        max_alpha (float):
-            The maximum value of alpha.
-        coefficient (float):
-            The coefficient for the alpha calculation.
-        power (float):
-            The power for the alpha equation.
-        invert_alphas (bool):
-            If True then the max and min alpha values will be swapped.
-
-    Returns:
-        iris.cube.CubeList:
-            Processed CubeList containing alpha_x and alpha_y cubes.
-    """
-    from improver.utilities.ancillary_creation import OrographicAlphas
-    return OrographicAlphas(min_alpha, max_alpha, coefficient, power,
-                            invert_alphas).process(orography)
+def test_basic(tmp_path):
+    """Test basic generate orographic smoothing coefficients processing"""
+    kgo_dir = acc.kgo_root() / "generate-orographic-smoothing-coefficients"
+    input_path = kgo_dir / "orography.nc"
+    kgo_path = kgo_dir / "kgo.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path,
+            "--max-smoothing-coefficient", "0.",
+            "--min-smoothing-coefficient", "0.5",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
