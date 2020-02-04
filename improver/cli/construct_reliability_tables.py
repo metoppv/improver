@@ -51,9 +51,9 @@ def process(*cubes: cli.inputcube,
         cubes (list of iris.cube.Cube):
             A list of cubes containing the historical probability forecasts and
             corresponding truths used for calibration. These cubes must include
-            the same diagnostic name in their names, and must both have equivalent
-            threshold coordinates. The cubes will be distinquished using the
-            user provided truth attribute.
+            the same diagnostic name in their names, and must both have
+            equivalent threshold coordinates. The cubes will be distinquished
+            using the user provided truth attribute.
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on truth cubes.
