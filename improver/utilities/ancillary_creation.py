@@ -40,64 +40,87 @@ from improver.constants import TRIPLE_PT_WATER
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
-class OrographicAlphas(BasePlugin):
+class OrographicSmoothingCoefficients(BasePlugin):
 
     """
-    Class to generate alpha smoothing parameters for recursive filtering
-    based on orography gradients.
+    Class to generate smoothing coefficients for recursive filtering based on
+    orography gradients.
+
+    A smoothing coefficient determines how much "value" of a cell
+    undergoing filtering is comprised of the current value at that cell and
+    how much comes from the adjacent cell preceding it in the direction in
+    which filtering is being applied. A larger smoothing_coefficient results in
+    a more significant proportion of a cell's new value coming from its
+    neighbouring cell.
+
+    The smoothing coefficients are calculated from the orography gradient using
+    a simple equation and the user defined values for coefficient and power:
+
+    .. math::
+        \\rm{smoothing\\_coefficient} = \\rm{coefficient} \\times
+        \\rm{gradient}^{\\rm{power}}
+
+    The resulting values are scaled between min_smoothing_coefficient and
+    max_smoothing_coefficient to give the desired range of
+    smoothing_coefficients. These can be provided in reverse (i.e. min > max)
+    to invert the smoothing coefficients in relation to the orographic
+    gradient, providing smoothing coefficients that are largest where the
+    orography gradient is shallowest.
     """
 
-    def __init__(self, min_alpha=0., max_alpha=1., coefficient=1, power=1,
-                 invert_alphas=True):
+    def __init__(self, min_smoothing_coefficient=0.,
+                 max_smoothing_coefficient=1., coefficient=1, power=1):
         """
         Initialise class.
 
         Args:
-            min_alpha (float):
-                The minimum value of alpha that you want to go into the
-                recursive filter.
-            max_alpha (float):
-                The maximum value of alpha that you want to go into the
-                recursive filter
+            min_smoothing_coefficient (float):
+                The minimum value of smoothing_coefficient that you want to go
+                into the recursive filter.
+            max_smoothing_coefficient (float):
+                The maximum value of smoothing_coefficient that you want to go
+                into the recursive filter
             coefficient (float):
-                The coefficient for the alpha calculation
+                The coefficient for the smoothing_coefficient equation
             power (float):
-                What power you want for your alpha equation
+                What power you want for your smoothing_coefficient equation
         """
-        self.max_alpha = max_alpha
-        self.min_alpha = min_alpha
+        self.max_smoothing_coefficient = max_smoothing_coefficient
+        self.min_smoothing_coefficient = min_smoothing_coefficient
         self.coefficient = coefficient
         self.power = power
-        self.invert_alphas = invert_alphas
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<OrographicAlphas: min_alpha: {}; max_alpha: {};'
-                  ' coefficient: {}; power: {}; invert_alphas:'
-                  ' {}>'.format(self.min_alpha, self.max_alpha,
-                                self.coefficient, self.power,
-                                self.invert_alphas))
+        result = ('<OrographicSmoothingCoefficients: '
+                  'min_smoothing_coefficient: {}; '
+                  'max_smoothing_coefficient: {}; coefficient: {}; power: {}'
+                  '>'.format(
+                      self.min_smoothing_coefficient,
+                      self.max_smoothing_coefficient,
+                      self.coefficient, self.power))
 
         return result
 
     @staticmethod
-    def scale_alphas(cubes, min_output=0, max_output=1):
+    def scale_smoothing_coefficients(cubes, min_output=0, max_output=1):
         """
-        This scales a set of alphas from input cubes to range between the
-        minimum and maximum alpha values.
+        This scales a set of smoothing_coefficients from input cubes to range
+        between the minimum and maximum smoothing_coefficient values.
 
         Args:
             cubes (iris.cube.CubeList):
-                A list of alpha cubes that we need to take the cube_max and
-                cube_min from.
+                A list of smoothing_coefficient cubes that we need to take the
+                minimum and maximum values from.
             min_output (float):
-                The minimum value we want our alpha to be
+                The minimum value we want our smoothing_coefficient to be.
             max_output (float):
-                The maximum value we want our alpha to be
+                The maximum value we want our smoothing_coefficient to be.
 
         Returns:
             iris.cube.CubeList:
-                A list of alpha cubes scaled to within the range specified.
+                A list of smoothing_coefficient cubes scaled to within the
+                range specified.
         """
         cube_min = min([abs(cube.data).min() for cube in cubes])
         cube_max = max([abs(cube.data).max() for cube in cubes])
@@ -111,11 +134,12 @@ class OrographicAlphas(BasePlugin):
             scaled_cubes.append(scaled_cube)
         return scaled_cubes
 
-    def unnormalised_alphas(self, gradient_cube):
+    def unnormalised_smoothing_coefficients(self, gradient_cube):
         """
-        This generates initial alpha values from gradients using a generalised
-        power law, whose parameters are set at initialisation.  Current
-        defaults give an output alphas_cube equal to the input gradient_cube.
+        This generates initial smoothing_coefficient values from gradients
+        using a generalised power law, whose parameters are set at
+        initialisation. Current defaults give an output
+        smoothing_coefficients_cube equal to the input gradient_cube.
 
         Args:
             gradient_cube (iris.cube.Cube):
@@ -123,38 +147,39 @@ class OrographicAlphas(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                The cube of initial unscaled alphas
+                The cube of initial unscaled smoothing_coefficients
         """
-        alphas_cube = gradient_cube.copy(data=self.coefficient *
-                                         gradient_cube.data**self.power)
-        return alphas_cube
+        smoothing_coefficients_cube = gradient_cube.copy(
+            data=self.coefficient * gradient_cube.data**self.power)
+        return smoothing_coefficients_cube
 
     @staticmethod
-    def update_alphas_metadata(alphas_cube, cube_name):
+    def update_smoothing_coefficients_metadata(smoothing_coefficients_cube,
+                                               cube_name):
         """
-        Update metadata in alphas cube.  Remove any time coordinates and
-        rename.
+        Update metadata in smoothing_coefficients cube. Remove any time
+        coordinates and rename.
 
         Args:
-            alphas_cube (iris.cube.Cube):
-                A cube of alphas with "gradient" metadata
+            smoothing_coefficients_cube (iris.cube.Cube):
+                A cube of smoothing_coefficients with "gradient" metadata
             cube_name (str):
                 A name for the resultant cube
 
         Returns:
             iris.cube.Cube:
-                A cube of alphas with adjusted metadata
+                A cube of smoothing_coefficients with adjusted metadata
         """
-        alphas_cube.rename(cube_name)
-        for coord in alphas_cube.coords(dim_coords=False):
+        smoothing_coefficients_cube.rename(cube_name)
+        for coord in smoothing_coefficients_cube.coords(dim_coords=False):
             if 'time' in coord.name() or 'period' in coord.name():
-                alphas_cube.remove_coord(coord)
-        return alphas_cube
+                smoothing_coefficients_cube.remove_coord(coord)
+        return smoothing_coefficients_cube
 
-    def gradient_to_alpha(self, gradient_x, gradient_y):
+    def gradient_to_smoothing_coefficient(self, gradient_x, gradient_y):
         """
-        Generate alpha smoothing parameters from orography gradients in the
-        x- and y- directions
+        Generate smoothing_coefficients from orography gradients in the
+        x and y directions
 
         Args:
             gradient_x (iris.cube.Cube):
@@ -164,53 +189,57 @@ class OrographicAlphas(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **alpha_x** (iris.cube.Cube): A cube of orography-dependent
-                    alphas calculated in the x direction.
+                **smoothing_coefficient_x** (iris.cube.Cube): A cube of
+                    orography-dependent smoothing_coefficients calculated in
+                    the x direction.
 
-                **alpha_y** (iris.cube.Cube): A cube of orography-dependent
-                    alphas calculated in the y direction.
+                **smoothing_coefficient_y** (iris.cube.Cube): A cube of
+                    orography-dependent smoothing_coefficients calculated in
+                    the y direction.
         """
-        alpha_x = self.unnormalised_alphas(gradient_x)
-        alpha_y = self.unnormalised_alphas(gradient_y)
+        smoothing_coefficient_x = self.unnormalised_smoothing_coefficients(
+            gradient_x)
+        smoothing_coefficient_y = self.unnormalised_smoothing_coefficients(
+            gradient_y)
 
-        if self.invert_alphas:
-            alpha_x, alpha_y = self.scale_alphas([alpha_x, alpha_y],
-                                                 min_output=self.max_alpha,
-                                                 max_output=self.min_alpha)
-        else:
-            alpha_x, alpha_y = self.scale_alphas([alpha_x, alpha_y],
-                                                 min_output=self.min_alpha,
-                                                 max_output=self.max_alpha)
-        alpha_x = self.update_alphas_metadata(alpha_x, 'alpha_x')
-        alpha_y = self.update_alphas_metadata(alpha_y, 'alpha_y')
+        smoothing_coefficient_x, smoothing_coefficient_y = (
+            self.scale_smoothing_coefficients(
+                [smoothing_coefficient_x, smoothing_coefficient_y],
+                min_output=self.min_smoothing_coefficient,
+                max_output=self.max_smoothing_coefficient))
+        smoothing_coefficient_x = self.update_smoothing_coefficients_metadata(
+            smoothing_coefficient_x, 'smoothing_coefficient_x')
+        smoothing_coefficient_y = self.update_smoothing_coefficients_metadata(
+            smoothing_coefficient_y, 'smoothing_coefficient_y')
 
-        return alpha_x, alpha_y
+        return smoothing_coefficient_x, smoothing_coefficient_y
 
     def process(self, cube):
         """
-        This creates the alpha cubes. It returns one for the x direction and
-        one for the y direction. It uses the
+        This creates the smoothing_coefficient cubes. It returns one for the x
+        direction and one for the y direction. It uses the
         DifferenceBetweenAdjacentGridSquares plugin to calculate an average
         gradient across each grid square.  These gradients are then used to
-        calculate "alpha" smoothing arrays that are normalised between a
+        calculate "smoothing_coefficient" arrays that are normalised between a
         user-specified max and min.
 
         Args:
             cube (iris.cube.Cube):
-                A 2D cube of the orography for the grid we want to get alphas
-                for.
-
+                A 2D field of orography on the grid for which
+                smoothing_coefficients are to be generated.
         Returns:
             (iris.cube.CubeList): containing:
-                **alpha_x** (iris.cube.Cube): A cube of orography-dependent
-                    alphas calculated in the x direction.
+                **smoothing_coefficient_x** (iris.cube.Cube): A cube of
+                    orography-dependent smoothing_coefficients calculated in
+                    the x direction.
 
-                **alpha_y** (iris.cube.Cube): A cube of orography-dependent
-                    alphas calculated in the y direction.
+                **smoothing_coefficient_y** (iris.cube.Cube): A cube of
+                    orography-dependent smoothing_coefficients calculated in
+                    the y direction.
         """
         if not isinstance(cube, iris.cube.Cube):
-            raise ValueError('OrographicAlphas() expects cube input, got {}'
-                             .format(type(cube)))
+            raise ValueError('OrographicSmoothingCoefficients() expects cube '
+                             'input, got {}'.format(type(cube)))
 
         if len(cube.data.shape) != 2:
             raise ValueError('Expected orography on 2D grid, got {} dims'
@@ -218,9 +247,11 @@ class OrographicAlphas(BasePlugin):
 
         gradient_x, gradient_y = \
             DifferenceBetweenAdjacentGridSquares(gradient=True).process(cube)
-        alpha_x, alpha_y = self.gradient_to_alpha(gradient_x, gradient_y)
+        smoothing_coefficient_x, smoothing_coefficient_y = (
+            self.gradient_to_smoothing_coefficient(gradient_x, gradient_y))
 
-        return iris.cube.CubeList([alpha_x, alpha_y])
+        return iris.cube.CubeList([smoothing_coefficient_x,
+                                   smoothing_coefficient_y])
 
 
 class SaturatedVapourPressureTable(BasePlugin):
