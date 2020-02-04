@@ -417,12 +417,11 @@ class WetBulbTemperatureIntegral(BasePlugin):
 
     def __init__(self):
         """Initialise class."""
-        self.integration_plugin = Integration(
-            "height", direction_of_integration="negative")
+        self.integration_plugin = Integration("height")
 
     def process(self, wet_bulb_temperature):
         """
-        Calculate the vertical integal of wet bulb temperature from the input
+        Calculate the vertical integral of wet bulb temperature from the input
         wet bulb temperatures on height levels.
 
         Args:
