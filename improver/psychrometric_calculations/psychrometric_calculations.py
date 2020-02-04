@@ -378,7 +378,46 @@ class WetBulbTemperature(BasePlugin):
             data=wbt_data)
         return wbt
 
-    def process(self, temperature, relative_humidity, pressure):
+    @staticmethod
+    def _extract_cubes(cubes):
+        """
+        Separates the input list into the required cubes for this plugin.
+
+        Args:
+            cubes (iris.cube.CubeList or list or iris.cube.Cube):
+                Contains cubes of the altitude of the phase-change level (this
+                can be snow->sleet, or sleet->rain) and the altitude of the
+                orography. The name of the phase-change level cube must be
+                either "altitude_of_snow_falling_level" or
+                "altitude_of_rain_falling_level". The name of the orography
+                cube must be "surface_altitude".
+
+        Raises:
+            ValueError: If cubes with the expected names cannot be extracted.
+            ValueError: If cubes does not have the expected length of 3.
+            ValueError: If the extracted cubes do not have matching spatial
+                        coordinates.
+
+        """
+        if isinstance(cubes, list):
+            cubes = iris.cube.CubeList(cubes)
+        if len(cubes) != 3:
+            raise ValueError(f'Expected 3 cubes, found {len(cubes)}')
+
+        missing = []
+        extacted = []
+        for i in ["air_temperature", "relative_humidity", "air_pressure"]:
+            try:
+                extacted.append(cubes.extract_strict(i))
+            except iris.exceptions.ConstraintMismatchError:
+                missing.append(i)
+        if missing:
+            raise ValueError("The following cubes were missing: {}".format(
+                missing
+            ))
+        return tuple(extacted)
+
+    def process(self, cubes):
         """
         Call the calculate_wet_bulb_temperature function to calculate wet bulb
         temperatures. This process function splits input cubes over vertical
@@ -386,17 +425,22 @@ class WetBulbTemperature(BasePlugin):
         data.
 
         Args:
-            temperature (iris.cube.Cube):
-                Cube of air temperatures.
-            relative_humidity (iris.cube.Cube):
-                Cube of relative humidities.
-            pressure (iris.cube.Cube):
-                Cube of air pressures.
+            cubes (iris.cube.CubeList or list or iris.cube.Cube):
+                containing:
+                    temperature (iris.cube.Cube):
+                        Cube of air temperatures.
+                    relative_humidity (iris.cube.Cube):
+                        Cube of relative humidities.
+                    pressure (iris.cube.Cube):
+                        Cube of air pressures.
 
         Returns:
             iris.cube.Cube:
                 Cube of wet bulb temperature (K).
         """
+
+        temperature, relative_humidity, pressure = self._extract_cubes(cubes)
+
         slices = self._slice_inputs(temperature, relative_humidity, pressure)
 
         cubelist = iris.cube.CubeList([])

@@ -35,7 +35,7 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
@@ -180,7 +180,9 @@ class Test_process(Test_WetBulbTemperature):
         create_wet_bulb_temperature_cube function directly with single
         level data."""
         result = WetBulbTemperature().process(
-            self.temperature, self.relative_humidity, self.pressure)
+            CubeList([self.temperature,
+                      self.relative_humidity,
+                      self.pressure]))
         self.assertArrayAlmostEqual(result.data, self.expected_wbt_data)
         self.assertEqual(result.units, Unit('K'))
 
@@ -191,7 +193,7 @@ class Test_process(Test_WetBulbTemperature):
         relative_humidity = self._make_multi_level(self.relative_humidity)
         pressure = self._make_multi_level(self.pressure)
         result = WetBulbTemperature().process(
-            temperature, relative_humidity, pressure)
+            CubeList([temperature, relative_humidity, pressure]))
         self.assertArrayAlmostEqual(result.data[0], self.expected_wbt_data)
         self.assertArrayAlmostEqual(result.data[1], self.expected_wbt_data)
         self.assertEqual(result.units, Unit('K'))
@@ -207,7 +209,7 @@ class Test_process(Test_WetBulbTemperature):
         msg = 'WetBulbTemperature: Cubes have differing'
         with self.assertRaisesRegex(ValueError, msg):
             WetBulbTemperature().process(
-                temperature, relative_humidity, pressure)
+                CubeList([temperature, relative_humidity, pressure]))
 
     def test_cube_multi_level(self):
         """Check the cube is returned with expected coordinate order after the
@@ -219,9 +221,62 @@ class Test_process(Test_WetBulbTemperature):
         pressure = self._make_multi_level(self.pressure,
                                           time_promote=True)
         result = WetBulbTemperature().process(
-            temperature, relative_humidity, pressure)
+            CubeList([temperature, relative_humidity, pressure]))
         self.assertEqual(result.coord_dims('time')[0], 0)
         self.assertEqual(result.coord_dims('height')[0], 1)
+
+
+class Test__extract_cubes(Test_WetBulbTemperature):
+    """Test the plugins extract method for its required cubes"""
+
+    def test_basic(self):
+        """
+        Tests that the functions can take a cubelist of the right three
+        cubes and extract them.
+        """
+        temp = self.temperature
+        humid = self.relative_humidity
+        pressure = self.pressure
+        temp_result, humid_result, pressure_result = WetBulbTemperature(
+            )._extract_cubes(CubeList([temp, humid, pressure]))
+        self.assertEqual(temp, temp_result)
+        self.assertEqual(humid, humid_result)
+        self.assertEqual(pressure, pressure_result)
+
+    def test_too_many(self):
+        """
+        Tests that an error is raised if there are too many arguments.
+        """
+        temp = self.temperature
+        humid = self.relative_humidity
+        pressure = self.pressure
+        msg = "Expected 3"
+        with self.assertRaisesRegex(ValueError, msg):
+            WetBulbTemperature().process(
+                CubeList([temp, humid, pressure, temp]))
+
+    def test_empty_list(self):
+        """
+        Tests that an error is raised if there is an empty list.
+        """
+        msg = "Expected 3"
+        with self.assertRaisesRegex(ValueError, msg):
+            WetBulbTemperature().process(
+                CubeList([]))
+
+    def test_wrong_cube(self):
+        """
+        Tests that an error is raised if there isn't a correctly named cube.
+        """
+
+        temp = self.temperature
+        humid = self.relative_humidity
+        pressure = self.pressure
+        temp.rename("diplodocus")
+        msg = "The following"
+        with self.assertRaisesRegex(ValueError, msg):
+            WetBulbTemperature().process(
+                CubeList([temp, humid, pressure]))
 
 
 if __name__ == '__main__':
