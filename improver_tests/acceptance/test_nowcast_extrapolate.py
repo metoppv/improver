@@ -66,7 +66,7 @@ def test_metadata(tmp_path):
     kgo_dir = acc.kgo_root() / "nowcast-extrapolate/metadata"
     kgo_path = kgo_dir / "kgo_with_metadata.nc"
     input_path = kgo_dir / ".." / RAINRATE_NC
-    oe_path = kgo_dir /  "../orographic_enhancement.nc"
+    oe_path = kgo_dir / "../orographic_enhancement.nc"
     meta_path = kgo_dir / "precip.json"
     uv_path = kgo_dir / "../uv.nc"
 
