@@ -40,6 +40,8 @@ from scipy.ndimage import uniform_filter1d
 
 from improver import BasePlugin
 from improver.constants import R_WATER_VAPOUR
+from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
+from improver.metadata.utilities import generate_mandatory_attributes
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.psychrometric_calculations.psychrometric_calculations \
     import calculate_svp_in_air
@@ -179,9 +181,8 @@ class OrographicEnhancement(BasePlugin):
                        var_cube.coord(axis='x').name()])
 
         regridder = iris.analysis.Linear()
-        out_cube = (
-            var_cube.copy(var_cube.data.astype(np.float32))).regrid(
-                self.topography, regridder)
+        out_cube = var_cube.regrid(self.topography, regridder)
+        out_cube.data = out_cube.data.astype(np.float32)
         out_cube.convert_units(unit)
         return out_cube
 
@@ -497,12 +498,13 @@ class OrographicEnhancement(BasePlugin):
         for coord in ['time', 'forecast_reference_time', 'forecast_period']:
             aux_coords.append((reference_cube.coord(coord), None))
 
-        attributes = {}
-        for attr in ['institution', 'source', 'mosg__model_configuration']:
+        attributes = generate_mandatory_attributes([reference_cube])
+        attributes["title"] = "unknown"  # remove possible wrong grid info.
+        for key in MOSG_GRID_ATTRIBUTES:
             try:
-                attributes[attr] = reference_cube.attributes[attr]
+                attributes[key] = self.topography.attributes[key]
             except KeyError:
-                continue
+                pass
 
         orog_enhance_cube = iris.cube.Cube(
             orogenh_data, long_name="orographic_enhancement",
@@ -510,10 +512,6 @@ class OrographicEnhancement(BasePlugin):
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
             aux_coords_and_dims=aux_coords)
         orog_enhance_cube.convert_units("m s-1")
-
-        for key, value in self.topography.attributes.items():
-            if 'mosg__grid' in key:
-                orog_enhance_cube.attributes[key] = value
 
         return orog_enhance_cube
 

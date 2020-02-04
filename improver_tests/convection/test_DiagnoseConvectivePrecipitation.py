@@ -154,8 +154,7 @@ class Test__calculate_convective_ratio(IrisTest):
             self.neighbourhood_method,
             self.radii)._calculate_convective_ratio(
                 self.cubelist, self.threshold_list)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result, expected)
 
     def test_no_precipitation(self):
         """If there is no precipitation, then the convective ratio will try
@@ -176,8 +175,7 @@ class Test__calculate_convective_ratio(IrisTest):
             self.neighbourhood_method,
             self.radii)._calculate_convective_ratio(
                 cubelist, self.threshold_list)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result, expected)
 
     def test_catch_infinity_values(self):
         """Test an example where the infinity values are generated.
@@ -241,8 +239,7 @@ class Test__calculate_convective_ratio(IrisTest):
             self.neighbourhood_method,
             radii, lead_times=lead_times
             )._calculate_convective_ratio(cubelist, self.threshold_list)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result, expected)
 
     def test_circular_neighbourhood(self):
         """Test a circular neighbourhood."""
@@ -256,8 +253,7 @@ class Test__calculate_convective_ratio(IrisTest):
             self.lower_threshold, self.higher_threshold,
             neighbourhood_method, self.radii
             )._calculate_convective_ratio(self.cubelist, self.threshold_list)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result, expected)
 
     def test_circular_neighbourhood_weighted_mode(self):
         """Test a circular neighbourhood with the weighted_mode
@@ -274,8 +270,7 @@ class Test__calculate_convective_ratio(IrisTest):
             neighbourhood_method,
             self.radii, weighted_mode=weighted_mode
             )._calculate_convective_ratio(self.cubelist, self.threshold_list)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result, expected)
 
 
 class Test_absolute_differences_between_adjacent_grid_squares(IrisTest):
