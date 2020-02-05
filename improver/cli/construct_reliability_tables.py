@@ -52,7 +52,7 @@ def process(*cubes: cli.inputcube,
             A list of cubes containing the historical probability forecasts and
             corresponding truths used for calibration. These cubes must include
             the same diagnostic name in their names, and must both have
-            equivalent threshold coordinates. The cubes will be distinquished
+            equivalent threshold coordinates. The cubes will be distinguished
             using the user provided truth attribute.
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",

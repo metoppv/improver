@@ -345,6 +345,7 @@ class Test__create_cycle_hour_coord(Test_Setup):
         self.assertIsInstance(result, iris.coords.DimCoord)
         assert_array_equal(result.points, expected_cycle_hour)
         self.assertEqual(result.name(), 'cycle_hour')
+        self.assertEqual(result.units, 'hour')
 
 
 class Test__define_metadata(Test_Setup):
