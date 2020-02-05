@@ -143,9 +143,8 @@ def check_units(obj):
     if not hasattr(obj, 'units'):
         return False
     # check object and string representation to get consistent output
-    # (e.g Unit('second') == Unit('seconds'))
-    return (Unit(obj.units) == Unit(req_units) and
-            str(obj.units) == str(req_units))
+    # (e.g Unit('second') == Unit('seconds') == Unit('s'))
+    return Unit(obj.units) == Unit(req_units)
 
 
 def check_mandatory_standards(cube):

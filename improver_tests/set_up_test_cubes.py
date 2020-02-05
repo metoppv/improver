@@ -103,7 +103,7 @@ def _create_time_point(time):
     """
     coord_spec = TIME_COORDS["time"]
     point = date2num(time, coord_spec.units, coord_spec.calendar)
-    return np.round(point).astype(coord_spec.dtype)
+    return np.around(point).astype(coord_spec.dtype)
 
 
 def construct_scalar_time_coords(time, time_bounds, frt):

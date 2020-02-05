@@ -45,27 +45,28 @@ from ..set_up_test_cubes import (
 
 class Test_check_mandatory_standards(IrisTest):
 
-    """Test whether a cube contains any float64 values."""
+    """Test whether a cube conforms to mandatory dtype and units standards."""
 
     def setUp(self):
         """Set up a test cube with the following data and coordinates, which
-        comply with the IMPROVER datatypes standard:
+        comply with the IMPROVER datatypes and units standard (Units in
+        parentheses are not mandatory):
 
-        +-------------------------+-------------+
-        | Name                    | Datatype    |
-        +=========================+=============+
-        | data (air_temperature)  | np.float32  |
-        +-------------------------+-------------+
-        | projection_x_coordinate | np.float32  |
-        +-------------------------+-------------+
-        | projection_y_coordinate | np.float32  |
-        +-------------------------+-------------+
-        | time                    | np.int64    |
-        +-------------------------+-------------+
-        | forecast_reference_time | np.int64    |
-        +-------------------------+-------------+
-        | forecast_period         | np.int32    |
-        +-------------------------+-------------+
+        +-------------------------+-------------+----------------------+
+        | Name                    | Datatype    | Units
+        +=========================+=============+======================+
+        | data (air_temperature)  | np.float32  | (Kelvin)             |
+        +-------------------------+-------------+----------------------+
+        | projection_x_coordinate | np.float32  | (metres)             |
+        +-------------------------+-------------+----------------------+
+        | projection_y_coordinate | np.float32  | (metres)             |
+        +-------------------------+-------------+----------------------+
+        | time                    | np.int64    | seconds since 1970.. |
+        +-------------------------+-------------+----------------------+
+        | forecast_reference_time | np.int64    | seconds since 1970.. |
+        +-------------------------+-------------+----------------------+
+        | forecast_period         | np.int32    | seconds              |
+        +-------------------------+-------------+----------------------+
         """
         self.cube = set_up_variable_cube(280*np.ones((3, 3), dtype=np.float32),
                                          spatial_grid='equalarea')
@@ -92,12 +93,12 @@ class Test_check_mandatory_standards(IrisTest):
                                    CubeList([result]).xml(checksum=True))
 
     def test_int64_cube_data(self):
-        """Test conformant data with a cube with 64 bit integer data."""
+        """Test conformant data with a cube with 64-bit integer data."""
         self.cube.data = self.cube.data.astype(np.int64)
         check_mandatory_standards(self.cube)
 
     def test_float64_cube_data(self):
-        """Test a failure of a cube with 64 bit data."""
+        """Test a failure of a cube with 64-bit float data."""
         self.cube.data = self.cube.data.astype(np.float64)
         msg = ("does not have required dtype.\n"
                "Expected: float32, Actual: float64")
@@ -105,7 +106,7 @@ class Test_check_mandatory_standards(IrisTest):
             check_mandatory_standards(self.cube)
 
     def test_float64_cube_coord_points(self):
-        """Test a failure of a cube with 64 bit coord points."""
+        """Test a failure of a cube with 64-bit float coord points."""
         self.cube.coord("projection_x_coordinate").points = (
             self.cube.coord("projection_x_coordinate").points.astype(
                 np.float64)
@@ -116,7 +117,7 @@ class Test_check_mandatory_standards(IrisTest):
             check_mandatory_standards(self.cube)
 
     def test_float64_cube_coord_bounds(self):
-        """Test a failure of a cube with 64 bit coord bounds."""
+        """Test a failure of a cube with 64-bit float coord bounds."""
         x_coord = self.cube.coord("projection_x_coordinate")
         x_coord.bounds = (
             np.array([(point - 10., point + 10.) for point in x_coord.points],
@@ -166,6 +167,13 @@ class Test_check_units(IrisTest):
 
     def test_pass_coord(self):
         """Test return value for time coordinate with correct units"""
+        result = check_units(self.coord)
+        self.assertTrue(result)
+
+    def test_pass_coord_synonym(self):
+        """Test return value for time coordinate with units set to a synonym
+        of seconds"""
+        self.coord.convert_units('second')
         result = check_units(self.coord)
         self.assertTrue(result)
 
