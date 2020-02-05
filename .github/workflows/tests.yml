@@ -2,10 +2,8 @@ name: Tests
 
 on: [push, pull_request]
 
-
 jobs:
   Tests:
-
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -16,35 +14,19 @@ jobs:
         key: ${{ runner.os }}-conda-improver-${{ hashFiles('**/environment.yml') }}
         restore-keys: |
           ${{ runner.OS }}-conda-improver-
-
-    - name: Resolve and install dependencies
+    - name: Build conda
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda env update -q --file environment.yml --name improver
         conda list --export
-
+    - name: Source conda
+      run:  echo "::add-path::/usr/share/miniconda/envs/improver/bin"
     - name: Pycodestyle (PEP8 conventions)
-      run:  |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate improver
-        pycodestyle -v  improver improver_tests
-        
-    - name: Sphinx-build (Doc test)	
-      run: |	
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'	
-        conda activate improver	
-        cd doc	
-        make html
-      
+      run:  pycodestyle -v  improver improver_tests
+    - name: Sphinx-build (Doc test)
+      run: make -C doc html
     - name: Pytest (Unit tests)
-      run:  |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate improver
-        pytest -m "not acc"
-
+      run: pytest -m "not acc"
     - name: Pylint (More linting goodness)
-      run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate improver
-        pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests
+      run: pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests
