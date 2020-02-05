@@ -232,6 +232,32 @@ def get_bounds_of_distribution(bounds_pairing_key, desired_units):
         np.array(bounds_pairing), desired_units)
     return bounds_pairing
 
+def convert_mask(location_parameter, scale_parameter):
+    """
+    Checks whether the location_parameter and scale_parameter are masked
+    and if they are it unmasks the data and fills the "masked" areas with
+    ones.
+        Args:
+            location_parameter (numpy.ndarray):
+                Location parameter to be used to scale the shape parameters.
+            scale_parameter (numpy.ndarray):
+                Scale parameter to be used to scale the shape parameters.
+
+        Returns:
+            iris.cube.CubeList:
+                CubeList containing the converted location and scale
+                parameters.
+    """
+    loc = location_parameter.data
+    scale = scale_parameter.data
+    if np.ma.is_masked(loc):
+        print ("location parameter is masked")
+        location_parameter.data = np.ma.filled(loc, 1)
+    if np.ma.is_masked(scale):
+        print ("scale parameter is masked")
+        scale_parameter.data = np.ma.filled(scale, 1)
+    return location_parameter, scale_parameter
+
 
 def insert_lower_and_upper_endpoint_to_1d_array(
         array_1d, low_endpoint, high_endpoint):

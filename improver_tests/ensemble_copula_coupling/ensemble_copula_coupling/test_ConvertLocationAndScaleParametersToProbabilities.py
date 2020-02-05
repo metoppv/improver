@@ -198,6 +198,34 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
             self.template_cube)
         np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
 
+    def test_random_mask(self):
+        """ Test that if I do a random mask I can then predict where this
+            will turn into a NaN."""
+        mask = np.array([[1, 1, 1], [1, 1, 1], [1, 1, 1]])
+#       print (self.location_parameter_values.data)
+#       print (self.scale_parameter_values.data)
+        ones = np.array([[1, 1, 1],
+                         [1, 1, 1],
+                         [1, 1, 1]])
+#       print (ones)
+        self.location_parameter_values.data = ones
+#        print (mask1)
+#        print (mask2)
+        self.location_parameter_values.data = np.ma.masked_array(
+            self.location_parameter_values.data, mask=mask)
+#       print (self.location_parameter_values.data)
+#       self.scale_parameter_values.data = np.ma.masked_array(
+#           self.scale_parameter_values.data, mask=mask)
+#        print (self.location_parameter_values.data)
+#        print (self.scale_parameter_values.data)
+        result = Plugin()._location_and_scale_parameters_to_probabilities(
+            self.location_parameter_values, self.scale_parameter_values,
+            self.template_cube)
+#       print ("result")
+#       print (result.data)
+#       print (np.ma.is_masked(result.data))
+       
+
     def test_mask_above_threshold(self):
         """ Test that the expected probabilities are returned for a cube in
         which they are calculated above the thresholds using a masked values
@@ -217,6 +245,9 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         result = Plugin()._location_and_scale_parameters_to_probabilities(
             self.location_parameter_values, self.scale_parameter_values,
             self.template_cube)
+#        print (self.location_parameter_values.data)
+#        print (self.scale_parameter_values.data)
+#        print (result.data)
         np.testing.assert_allclose(result.data, expected, rtol=1.e-4)       
 
     def test_threshold_above_cube_truncnorm(self):

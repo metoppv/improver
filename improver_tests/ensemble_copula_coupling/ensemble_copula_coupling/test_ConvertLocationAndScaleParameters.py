@@ -106,6 +106,25 @@ class Test__rescale_shape_parameters(IrisTest):
             self.location_parameter, self.scale_parameter)
         self.assertArrayAlmostEqual(plugin.shape_parameters, expected)
 
+    def test_mask(self):
+        """Test scaling discrete shape parameters."""
+        expected = [np.array([-3, -2.666667, -2.5]), np.array([7, 4, 2.5])]
+        mask = np.array([0, 0, 1])
+        mask2 = np.array([1, 0, 0])
+        loc_mask = np.ma.masked_array(self.location_parameter, mask=mask)
+        scale_mask = np.ma.masked_array(self.scale_parameter, mask=mask2)
+#        print (scale_mask)
+        shape_parameters = [-4, 6]
+        plugin = Plugin(distribution="truncnorm",
+                        shape_parameters=shape_parameters)
+#        plugin._rescale_shape_parameters(
+#            self.location_parameter, self.scale_parameter)
+        plugin._rescale_shape_parameters(loc_mask, scale_mask)
+#        print (plugin.shape_parameters[0])
+#        print (plugin.shape_parameters[1])
+#        self.assertArrayAlmostEqual(plugin.shape_parameters, expected)
+
+
     def test_alternative_distribution(self):
         """Test specifying a distribution other than truncated normal. In
         this instance, no rescaling is applied."""
@@ -124,6 +143,7 @@ class Test__rescale_shape_parameters(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             plugin._rescale_shape_parameters(
                 self.location_parameter, self.scale_parameter)
+
 
 
 if __name__ == '__main__':

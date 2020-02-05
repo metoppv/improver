@@ -33,18 +33,20 @@ Unit tests for the
 `ensemble_copula_coupling.EnsemeblCopulaCouplingUtilities` class.
 """
 import unittest
+import iris
 
 import numpy as np
 from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from improver.metadata.probabilistic import find_threshold_coordinate
 from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles, concatenate_2d_array_with_2d_array_endpoints,
     create_cube_with_percentiles, get_bounds_of_distribution,
-    insert_lower_and_upper_endpoint_to_1d_array,
+    insert_lower_and_upper_endpoint_to_1d_array, convert_mask,
     restore_non_probabilistic_dimensions)
 
 from ...calibration.ensemble_calibration.helper_functions import (
@@ -377,6 +379,60 @@ class Test_get_bounds_of_distribution(IrisTest):
         msg = "The bounds_pairing_key"
         with self.assertRaisesRegex(KeyError, msg):
             get_bounds_of_distribution(cube_name, cube_units)
+
+class Test_convert_mask(IrisTest):
+    """Test the mask conversion functions."""
+
+    def setUp(self):
+        """Set up temperature cube."""
+        self.template_cube = (
+            set_up_probability_above_threshold_temperature_cube())
+        self.template_cube = iris.util.squeeze(self.template_cube)
+
+        # Thresholds such that we obtain probabilities of 75%, 50%, and 25% for
+        # the location and scale parameter values set here.
+        threshold_coord = find_threshold_coordinate(self.template_cube)
+        threshold_coord.points = [0.65105, 2., 3.34895]
+        location_parameter_values = np.ones((3, 3)) * 2
+        scale_parameter_values = np.ones((3, 3)) * 4
+        self.location_parameter_values = (
+            self.template_cube[0, :, :].copy(data=location_parameter_values))
+        self.location_parameter_values.units = 'Celsius'
+        self.scale_parameter_values = (
+            self.template_cube[0, :, :].copy(data=scale_parameter_values))
+        self.scale_parameter_values.units = 'Celsius2'
+
+    def test_basic(self):
+        """
+        Basic test to see whether this function works with
+        unmasked data.
+        """
+        loc = self.location_parameter_values.data
+        scale = self.scale_parameter_values.data
+        result = (convert_mask(loc, scale))
+        self.assertArrayAlmostEqual(result[0], loc)
+        self.assertArrayAlmostEqual(result[1], scale)
+
+    def test_with_mask(self):
+        """
+        Basic test to see that the location and scale parameters
+        are correctly unmasked and the mask filled with ones
+        if a mask is present.
+        """
+        expected_location = np.array([[2, 2, 2],
+                                      [2, 1, 2],
+                                      [2, 2, 2]])
+        expected_scale = np.array([[1, 4, 4],
+                                   [4, 4, 4],
+                                   [4, 4, 4]])
+        mask1 = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
+        mask2 = np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
+        loc = np.ma.masked_array(self.location_parameter_values.data, mask=mask1)
+        scale = np.ma.masked_array(self.scale_parameter_values.data, mask=mask2)
+        result = (convert_mask(loc, scale))
+        self.assertArrayAlmostEqual(result[0], expected_location)
+        self.assertArrayAlmostEqual(result[1], expected_scale)
+
 
 
 class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
