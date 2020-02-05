@@ -43,89 +43,16 @@ from ..set_up_test_cubes import set_up_variable_cube
 class Test_calculate_apparent_temperature(IrisTest):
     """Test the apparent temperature function."""
 
-    def setUp(self):
-        """Create cubes to input."""
-        temperature = np.array([[293.65, 304.9, 316.15]], dtype=np.float32)
-        self.temperature_cube = set_up_variable_cube(temperature)
-
-        wind_speed = np.array([[0., 7.5, 15.]], dtype=np.float32)
-        self.wind_speed_cube = set_up_variable_cube(
-            wind_speed, name="wind_speed", units="m s-1")
-
-        pressure = np.array([[99998., 101248., 102498.]], dtype=np.float32)
-        self.pressure_cube = set_up_variable_cube(
-            pressure, name="air_pressure", units="Pa")
-
-        relh = np.array([[0., 0.075, 0.15]], dtype=np.float32)
-        self.relative_humidity_cube = set_up_variable_cube(
-            relh, name="relative_humidity", units="1")
-
-    def test_apparent_temperature_values(self):
+    def test_values(self):
         """Test output values from apparent temperature equation."""
-
-        # use a temperature greater than 20 degress C.
-        self.temperature_cube.data = np.full((1, 3), 295.15)
-        self.wind_speed_cube.data = np.full((1, 3), 5)
-        expected_result = np.array(
-            [[290.07998657, 290.47833252, 290.8767395]],
-            dtype=np.float32
-        )
+        temperature = np.full((1, 3), 22.)
+        wind_speed = np.full((1, 3), 5)
+        pressure = np.array([[99998., 101248., 102498.]])
+        relh = np.array([[0., 0.075, 0.15]])
+        expected_result = np.array([[16.9300, 17.3283, 17.7267]])
         result = calculate_apparent_temperature(
-            self.temperature_cube, self.wind_speed_cube,
-            self.relative_humidity_cube, self.pressure_cube)
-        self.assertArrayAlmostEqual(result.data, expected_result)
-
-    def test_name_and_units(self):
-        """Test correct outputs for name and units."""
-
-        expected_name = "apparent_temperature"
-        expected_units = 'K'
-        result = calculate_apparent_temperature(
-            self.temperature_cube, self.wind_speed_cube,
-            self.relative_humidity_cube, self.pressure_cube)
-        self.assertEqual(result.name(), expected_name)
-        self.assertEqual(result.units, expected_units)
-
-    def test_different_units(self):
-        """Test that values are correct from input cubes with
-        different units"""
-
-        self.temperature_cube.convert_units('fahrenheit')
-        self.wind_speed_cube.convert_units('knots')
-        self.relative_humidity_cube.convert_units('%')
-        self.pressure_cube.convert_units('hPa')
-
-        data = np.array(
-            [[291.77001953, 299.30181885, 308.02746582]])
-        # convert to fahrenheit
-        expected_result = (data * (9.0/5.0) - 459.67).astype(np.float32)
-        result = calculate_apparent_temperature(
-            self.temperature_cube, self.wind_speed_cube,
-            self.relative_humidity_cube, self.pressure_cube)
-        self.assertArrayAlmostEqual(result.data, expected_result, decimal=4)
-
-    def test_unit_conversion(self):
-        """Tests that input cubes have the same units at the end of the
-        function as they do at input"""
-
-        self.temperature_cube.convert_units('fahrenheit')
-        self.wind_speed_cube.convert_units('knots')
-        self.relative_humidity_cube.convert_units('%')
-        self.pressure_cube.convert_units('hPa')
-
-        calculate_apparent_temperature(
-            self.temperature_cube, self.wind_speed_cube,
-            self.relative_humidity_cube, self.pressure_cube)
-
-        temp_units = self.temperature_cube.units
-        wind_speed_units = self.wind_speed_cube.units
-        relative_humidity_units = self.relative_humidity_cube.units
-        pressure_units = self.pressure_cube.units
-
-        self.assertEqual(temp_units, 'fahrenheit')
-        self.assertEqual(wind_speed_units, 'knots')
-        self.assertEqual(relative_humidity_units, '%')
-        self.assertEqual(pressure_units, 'hPa')
+            temperature, wind_speed, relh, pressure)
+        self.assertArrayAlmostEqual(result, expected_result, decimal=4)
 
 
 if __name__ == '__main__':
