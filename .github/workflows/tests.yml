@@ -20,7 +20,7 @@ jobs:
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda env update -q --file environment.yml --name improver
         conda list --export
-    - name: Source conda
+    - name: Activate conda
       run:  echo "::add-path::/usr/share/miniconda/envs/improver/bin"
     - name: Pycodestyle (PEP8 conventions)
       run:  pycodestyle -v  improver improver_tests
