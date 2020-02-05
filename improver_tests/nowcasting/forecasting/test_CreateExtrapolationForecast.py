@@ -116,8 +116,18 @@ class Test__init__(SetUpCubes):
 
     def test_no_orographic_enhancement(self):
         """Test what happens if no orographic enhancement cube is provided"""
-        message = ("For precipitation fields, orographic enhancement cube "
-                   "must be supplied.")
+        message = ("For precipitation or rainfall fields, orographic "
+                   "enhancement cube must be supplied.")
+        with self.assertRaisesRegex(ValueError, message):
+            CreateExtrapolationForecast(
+                self.precip_cube, self.vel_x, self.vel_y)
+
+    def test_no_orographic_enhancement_rainfall_rate(self):
+        """Test what happens if no orographic enhancement cube is provided.
+           for rainfall_rate"""
+        message = ("For precipitation or rainfall fields, orographic "
+                   "enhancement cube must be supplied.")
+        self.precip_cube.rename("rainfall_rate")
         with self.assertRaisesRegex(ValueError, message):
             CreateExtrapolationForecast(
                 self.precip_cube, self.vel_x, self.vel_y)
