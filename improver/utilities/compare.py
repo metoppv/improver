@@ -111,14 +111,16 @@ def compare_datasets(name, actual_ds, desired_ds, rtol, atol,
         None
     """
     compare_attributes("root", actual_ds, desired_ds, reporter)
-    actual_groups = sorted(actual_ds.groups.keys())
-    desired_groups = sorted(desired_ds.groups.keys())
+    actual_groups = set(actual_ds.groups.keys())
+    desired_groups = set(desired_ds.groups.keys())
 
     if actual_groups != desired_groups:
-        msg = f"different groups {name}: {actual_groups} {desired_groups}"
+        msg = (f"different groups {name}: "
+               f"{sorted(actual_groups ^ desired_groups)}")
         reporter(msg)
 
-    for group in desired_groups:
+    check_groups = actual_groups.intersection(desired_groups)
+    for group in check_groups:
         compare_attributes(group, actual_ds.groups[group],
                            desired_ds.groups[group], reporter)
         compare_datasets(group,
@@ -147,25 +149,22 @@ def compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter):
     """
     if exclude_vars is None:
         exclude_vars = []
-    actual_dims = sorted(set(actual_ds.dimensions.keys()) - set(exclude_vars))
-    desired_dims = sorted(
-        set(desired_ds.dimensions.keys()) - set(exclude_vars))
+    actual_dims = set(actual_ds.dimensions.keys()) - set(exclude_vars)
+    desired_dims = set(desired_ds.dimensions.keys()) - set(exclude_vars)
 
     if actual_dims != desired_dims:
         msg = ("different dimensions - "
-               f"{name} {actual_dims} {desired_dims}")
+               f"{name} {sorted(actual_dims ^ desired_dims)}")
         reporter(msg)
 
-    for dim in desired_dims:
-        try:
-            actual_len = actual_ds.dimensions[dim].size
-            desired_len = desired_ds.dimensions[dim].size
-            if actual_len != desired_len:
-                msg = ("different dimension size - "
-                       f"{name}/{dim} {actual_len} {desired_len}")
-                reporter(msg)
-        except KeyError:
-            pass
+    check_dims = actual_dims.intersection(desired_dims)
+    for dim in check_dims:
+        actual_len = actual_ds.dimensions[dim].size
+        desired_len = desired_ds.dimensions[dim].size
+        if actual_len != desired_len:
+            msg = ("different dimension size - "
+                   f"{name}/{dim} {actual_len} {desired_len}")
+            reporter(msg)
 
 
 def compare_vars(name, actual_ds, desired_ds, rtol, atol,
@@ -188,31 +187,28 @@ def compare_vars(name, actual_ds, desired_ds, rtol, atol,
     """
     if exclude_vars is None:
         exclude_vars = []
-    actual_vars = sorted(set(actual_ds.variables.keys()) - set(exclude_vars))
-    desired_vars = sorted(set(desired_ds.variables.keys()) - set(exclude_vars))
+    actual_vars = set(actual_ds.variables) - set(exclude_vars)
+    desired_vars = set(desired_ds.variables) - set(exclude_vars)
 
     if actual_vars != desired_vars:
-        msg = ("different variables - "
-               f"{name} {actual_vars} {desired_vars}")
-
+        msg = ("different variables - {name} "
+               f"{sorted(actual_vars ^ desired_vars)}")
         reporter(msg)
 
-    coords = set()
-    for var in desired_vars:
-        coords = coords.union(desired_ds.variables[var].dimensions)
-    metadata_vars = coords.intersection(desired_vars)
+    check_vars = actual_vars.intersection(desired_vars)
+    # coordinate variables are those used as dimensions on other variables
+    # these should match exactly to avoid mis-alignment issues
+    coord_vars = set()
+    for var in check_vars:
+        coord_vars = coord_vars.union(set(desired_ds[var].dimensions))
+    coord_vars = coord_vars.intersection(check_vars)
 
-    for var in desired_vars:
+    for var in check_vars:
         var_path = f"{name}/{var}"
-        try:
-            actual_var = actual_ds.variables[var]
-            desired_var = desired_ds.variables[var]
-        except KeyError:
-            continue
+        actual_var = actual_ds.variables[var]
+        desired_var = desired_ds.variables[var]
         compare_attributes(var_path, actual_var, desired_var, reporter)
-        if var in exclude_vars:
-            pass
-        elif var in metadata_vars:
+        if var in coord_vars:
             compare_data(var_path, actual_var, desired_var,
                          0.0, 0.0, reporter)
         else:
@@ -234,39 +230,32 @@ def compare_attributes(name, actual_ds, desired_ds, reporter):
     Returns:
         None
     """
-    actual_attrs = sorted(actual_ds.ncattrs())
-    desired_attrs = sorted(desired_ds.ncattrs())
+    actual_attrs = set(actual_ds.ncattrs())
+    desired_attrs = set(desired_ds.ncattrs())
     # ignore history attribute - this often contain datestamps and other
     # overly specific details
-    if "history" in actual_attrs:
-        actual_attrs.remove("history")
-    if "history" in desired_attrs:
-        desired_attrs.remove("history")
+    actual_attrs.discard("history")
+    desired_attrs.discard("history")
 
     if actual_attrs != desired_attrs:
-        msg = (f"different attributes of {name} -"
-               f" {actual_attrs} {desired_attrs}")
+        msg = (f"different attributes of {name} - "
+               f"{sorted(actual_attrs ^ desired_attrs)}")
         reporter(msg)
 
-    for key in desired_attrs:
-        try:
-            actual_attr = actual_ds.getncattr(key)
-            desired_attr = desired_ds.getncattr(key)
-            assert isinstance(desired_attr, type(actual_attr))
-            if isinstance(desired_attr, np.ndarray):
-                if not np.array_equal(actual_attr, desired_attr):
-                    msg = (f"different attribute value {name}/{key} - "
-                           f"{actual_attr} {desired_attr}")
-                    reporter(msg)
-            elif actual_attr != desired_attr:
+    check_attrs = actual_attrs.intersection(desired_attrs)
+    for key in check_attrs:
+        actual_attr = actual_ds.getncattr(key)
+        desired_attr = desired_ds.getncattr(key)
+        assert isinstance(desired_attr, type(actual_attr))
+        if isinstance(desired_attr, np.ndarray):
+            if not np.array_equal(actual_attr, desired_attr):
                 msg = (f"different attribute value {name}/{key} - "
                        f"{actual_attr} {desired_attr}")
                 reporter(msg)
-        except AttributeError:
-            # if desired attribute is not present on output file - this is
-            # reported above but the error needs catching here
-            pass
-
+        elif actual_attr != desired_attr:
+            msg = (f"different attribute value {name}/{key} - "
+                   f"{actual_attr} {desired_attr}")
+            reporter(msg)
 
 def compare_data(name, actual_var, desired_var, rtol, atol, reporter):
     """
@@ -294,7 +283,7 @@ def compare_data(name, actual_var, desired_var, rtol, atol, reporter):
     try:
         if actual_data.dtype.kind in ['b', 'O', 'S', 'U', 'V']:
             # numpy boolean, object, bytestring, unicode and void types don't
-            # have numerical "closeneess" so use exact equality for these
+            # have numerical "closeness" so use exact equality for these
             np.testing.assert_equal(actual_data, desired_data, verbose=True)
         else:
             np.testing.assert_allclose(actual_data, desired_data, rtol, atol,
