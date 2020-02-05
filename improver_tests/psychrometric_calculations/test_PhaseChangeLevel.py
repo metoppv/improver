@@ -584,6 +584,22 @@ class Test_process(IrisTest):
         self.assertEqual(result.units, Unit('m'))
         self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
 
+    def test_snow_sleet_phase_change_reorder_cubes(self):
+        """Test that process returns a cube with the right name, units and
+        values. In this instance the phase change is from snow to sleet. The
+        returned level is consistent across the field, despite a high point
+        that sits above the snow falling level."""
+        self.orog.data[1, 1] = 100.0
+        result = PhaseChangeLevel(phase_change='snow-sleet').process(
+            CubeList([self.wet_bulb_integral_cube,
+                      self.wet_bulb_temperature_cube,
+                      self.orog, self.land_sea])
+            )
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), "altitude_of_snow_falling_level")
+        self.assertEqual(result.units, Unit('m'))
+        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
+
     def test_sleet_rain_phase_change(self):
         """Test that process returns a cube with the right name, units and
         values. In this instance the phase change is from sleet to rain. Note
@@ -596,8 +612,7 @@ class Test_process(IrisTest):
         result = PhaseChangeLevel(phase_change='sleet-rain').process(
             CubeList([self.wet_bulb_temperature_cube,
                       self.wet_bulb_integral_cube,
-                      self.orog, self.land_sea])
-            )
+                      self.orog, self.land_sea]))
         expected = np.ones((3, 3, 3), dtype=np.float32) * 49.178673
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "altitude_of_rain_falling_level")
@@ -612,8 +627,7 @@ class Test_process(IrisTest):
         result = PhaseChangeLevel(phase_change='snow-sleet').process(
             CubeList([self.wet_bulb_temperature_cube,
                       self.wet_bulb_integral_cube,
-                      self.orog, self.land_sea])
-            )
+                      self.orog, self.land_sea]))
         self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
 
     def test_interpolation_from_sea_points(self):
@@ -630,8 +644,7 @@ class Test_process(IrisTest):
         result = PhaseChangeLevel(phase_change='snow-sleet').process(
             CubeList([self.wet_bulb_temperature_cube,
                       self.wet_bulb_integral_cube,
-                      orog, land_sea])
-            )
+                      orog, land_sea]))
         expected = np.ones((3, 3, 3), dtype=np.float32) * 65.88566
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)

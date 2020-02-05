@@ -176,7 +176,6 @@ class Test_prepare_for_integration(IrisTest):
     def test_negative_points(self):
         """Test that the expected coordinate points are returned for each
         cube when the direction of integration is negative."""
-        direction = "negative"
         self.plugin_negative.input_cube.coord("height").points = (
             np.array([20., 10., 5.]))
         result = self.plugin_negative.prepare_for_integration()

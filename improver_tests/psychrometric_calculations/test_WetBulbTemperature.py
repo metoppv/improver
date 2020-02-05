@@ -186,6 +186,17 @@ class Test_process(Test_WetBulbTemperature):
         self.assertArrayAlmostEqual(result.data, self.expected_wbt_data)
         self.assertEqual(result.units, Unit('K'))
 
+    def test_values_single_level_reorder_cubes(self):
+        """Basic wet bulb temperature calculation as if calling the
+        create_wet_bulb_temperature_cube function directly with single
+        level data."""
+        result = WetBulbTemperature().process(
+            CubeList([self.relative_humidity,
+                      self.temperature,
+                      self.pressure]))
+        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data)
+        self.assertEqual(result.units, Unit('K'))
+
     def test_values_multi_level(self):
         """Basic wet bulb temperature calculation using multi-level
         data."""
