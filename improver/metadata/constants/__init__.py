@@ -33,3 +33,4 @@
 import numpy as np
 
 FLOAT_DTYPE = np.float32
+FLOAT_TYPES = [np.float32, np.float64]

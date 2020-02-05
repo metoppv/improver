@@ -37,6 +37,7 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.metadata.constants import FLOAT_TYPES
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.utilities.cube_manipulation import build_coordinate
@@ -141,6 +142,12 @@ def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False):
 
     coord_type_spec = TIME_COORDS[result_coord.name()]
     result_coord.convert_units(coord_type_spec.units)
+
+    if coord_type_spec.dtype not in FLOAT_TYPES:
+        result_coord.points = np.around(result_coord.points)
+        if result_coord.bounds is not None:
+            result_coord.bounds = np.around(result_coord.bounds)
+
     result_coord.points = result_coord.points.astype(coord_type_spec.dtype)
     if result_coord.bounds is not None:
         result_coord.bounds = result_coord.bounds.astype(coord_type_spec.dtype)
