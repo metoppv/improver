@@ -314,13 +314,18 @@ class WetBulbTemperature(BasePlugin):
 
         # Initialise wet bulb temperature increment
         delta_wbt = 10. * np.broadcast_to(self.precision, temperature.shape)
-        delta_wbt_prev = None
 
         # Iterate to find the wet bulb temperature, using temperature as first
         # guess
         wbt_data = temperature.copy()
         iteration = 0
-        while (np.abs(delta_wbt) > self.precision).any():
+        while (np.abs(delta_wbt) > self.precision).any() \
+                and iteration < self.maximum_iterations:
+
+            if iteration > 0:
+                # Update saturation mixing ratio and iterators
+                saturation_mixing_ratio = self._calculate_mixing_ratio(
+                    wbt_data, pressure)
 
             enthalpy_new = self._calculate_enthalpy(
                 saturation_mixing_ratio, specific_heat, latent_heat, wbt_data)
@@ -332,18 +337,6 @@ class WetBulbTemperature(BasePlugin):
             to_update = np.where(np.abs(delta_wbt) > self.precision)
             wbt_data[to_update] = (wbt_data[to_update] + delta_wbt[to_update])
 
-            # If increment is identical to the previous iteration, stop
-            if (np.array_equal(delta_wbt, delta_wbt_prev) or
-                    iteration > self.maximum_iterations):
-                warnings.warn('No further refinement occurring; breaking out '
-                              'of Newton iterator and returning result.')
-                break
-
-            # Update saturation mixing ratio and iterators
-            saturation_mixing_ratio = self._calculate_mixing_ratio(
-                wbt_data, pressure)
-
-            delta_wbt_prev = delta_wbt
             iteration += 1
 
         return wbt_data
