@@ -47,12 +47,6 @@ or raise an appropriate exception.
 import netCDF4
 import numpy as np
 
-from improver.constants import (
-    TIGHT_TOLERANCE,
-    DEFAULT_TOLERANCE,
-    LOOSE_TOLERANCE,
-)
-
 
 def compare_netcdfs(actual_path, desired_path, rtol, atol,
                     exclude_vars=None, reporter=None):
@@ -80,13 +74,13 @@ def compare_netcdfs(actual_path, desired_path, rtol, atol,
 
     try:
         actual_ds = netCDF4.Dataset(str(actual_path), mode='r')
-    except OSError as e:
-        reporter(str(e))
+    except OSError as exc:
+        reporter(str(exc))
         return
     try:
         desired_ds = netCDF4.Dataset(str(desired_path), mode='r')
-    except OSError as e:
-        reporter(str(e))
+    except OSError as exc:
+        reporter(str(exc))
         return
     desired_ds.set_auto_maskandscale(False)
     actual_ds.set_auto_maskandscale(False)

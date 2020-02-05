@@ -39,7 +39,8 @@ import shutil
 import pytest
 
 from improver import cli
-from improver.utilities.compare import DEFAULT_TOLERANCE, compare_netcdfs
+from improver.constants import DEFAULT_TOLERANCE
+from improver.utilities.compare import compare_netcdfs
 
 RECREATE_DIR_ENVVAR = "RECREATE_KGO"
 ACC_TEST_DIR_ENVVAR = "IMPROVER_ACC_TEST_DIR"
