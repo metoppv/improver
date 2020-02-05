@@ -47,9 +47,10 @@ or raise an appropriate exception.
 import netCDF4
 import numpy as np
 
+from improver.constants import DEFAULT_TOLERANCE
 
-def compare_netcdfs(actual_path, desired_path, rtol, atol,
-                    exclude_vars=None, reporter=None):
+def compare_netcdfs(actual_path, desired_path, rtol=DEFAULT_TOLERANCE,
+                    atol=DEFAULT_TOLERANCE, exclude_vars=None, reporter=None):
     """
     Compare two netCDF files.
 

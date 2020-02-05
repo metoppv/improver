@@ -113,6 +113,15 @@ def test_compare_identical_netcdfs(dummy_nc):
         compare.compare_netcdfs(actual_nc, expected_nc, atol=tol, rtol=tol)
 
 
+def test_compare_missing_files(dummy_nc, tmp_path):
+    """Check that comparing missing files raises exception"""
+    actual_nc, expected_nc = dummy_nc
+    with pytest.raises(ValueError):
+        compare.compare_netcdfs(actual_nc, tmp_path / "missing")
+    with pytest.raises(ValueError):
+        compare.compare_netcdfs(tmp_path / "missing", expected_nc)
+
+
 def test_compare_netcdf_attrs(dummy_nc):
     """Check that comparing attributes identifies the changed attribute"""
     actual_nc, expected_nc = dummy_nc
@@ -288,7 +297,7 @@ def test_compare_data_shape(dummy_nc):
     """Check differing data shapes are reported"""
     actual_nc, expected_nc = dummy_nc
     expected_ds = nc.Dataset(expected_nc, mode='r')
-    actual_ds = nc.Dataset(actual_nc, mode='a')
+    actual_ds = nc.Dataset(actual_nc, mode='r')
 
     messages_reported = []
 
@@ -300,3 +309,73 @@ def test_compare_data_shape(dummy_nc):
                          100.0, 100.0, message_collector)
     assert len(messages_reported) == 1
     assert "shape" in messages_reported[0]
+
+
+def test_compare_extra_dimension(dummy_nc):
+    """Check extra dimension is reported"""
+    actual_nc, expected_nc = dummy_nc
+    expected_ds = nc.Dataset(expected_nc, mode='a')
+    actual_ds = nc.Dataset(actual_nc, mode='a')
+
+    actual_ds.createDimension("additional", 100)
+
+    messages_reported = []
+
+    def message_collector(message):
+        messages_reported.append(message)
+
+    compare.compare_dims("", actual_ds, expected_ds, None, message_collector)
+    assert len(messages_reported) == 1
+    assert "dimension" in messages_reported[0]
+
+    messages_reported = []
+    expected_ds.createDimension("additional", 200)
+    compare.compare_dims("", actual_ds, expected_ds, None, message_collector)
+    assert len(messages_reported) == 1
+    assert "dimension" in messages_reported[0]
+    assert "100" in messages_reported[0]
+
+
+@pytest.mark.parametrize('tchange', (DEWPOINT, LAT))
+def test_compare_data_type(dummy_nc, tchange):
+    """Check differing data types are reported"""
+    actual_nc, expected_nc = dummy_nc
+    expected_ds = nc.Dataset(expected_nc, mode='r')
+    actual_ds = nc.Dataset(actual_nc, mode='w')
+
+    # copy the whole dataset except for the tchange variable
+    # netcdf API does not have the concept of deleting a variable
+    for key in expected_ds.ncattrs():
+        actual_ds.setncattr(key, expected_ds.getncattr(key))
+    for dim_name, dim in expected_ds.dimensions.items():
+        actual_ds.createDimension(dim_name, dim.size)
+    for var_name, var in expected_ds.variables.items():
+        if var_name != tchange:
+            new_var = actual_ds.createVariable(var_name, var.datatype,
+                                               var.dimensions)
+            new_var[:] = var[:]
+            for key in var.ncattrs():
+                new_var.setncattr(key, var.getncattr(key))
+    # re-add the tchange variable, but with dtype changed to float64
+    expected_var = expected_ds.variables[tchange]
+    if expected_var.dtype == np.float32:
+        new_type = np.float64
+    else:
+        new_type = np.float32
+    new_dew = actual_ds.createVariable(
+        tchange, new_type, expected_var.dimensions)
+    for key in expected_var.ncattrs():
+        new_dew.setncattr(key, expected_var.getncattr(key))
+    new_dew[:] = expected_var[:].astype(new_type)
+    actual_ds.close()
+    expected_ds.close()
+
+    messages_reported = []
+
+    def message_collector(message):
+        messages_reported.append(message)
+
+    compare.compare_netcdfs(actual_nc, expected_nc,
+                            rtol=0.0, atol=0.0, reporter=message_collector)
+    assert len(messages_reported) == 1
+    assert "type" in messages_reported[0]
