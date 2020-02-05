@@ -232,7 +232,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         """
         cycle_hour, = self._get_cycle_hours(forecast_reference_time)
         cycle_coord = iris.coords.DimCoord(cycle_hour, long_name='cycle_hour',
-                                           units=1)
+                                           units='hour')
         return cycle_coord
 
     @staticmethod
