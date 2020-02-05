@@ -378,45 +378,6 @@ class WetBulbTemperature(BasePlugin):
             data=wbt_data)
         return wbt
 
-    @staticmethod
-    def _extract_cubes(cubes):
-        """
-        Separates the input list into the required cubes for this plugin.
-
-        Args:
-            cubes (iris.cube.CubeList or list or iris.cube.Cube):
-                Contains cubes of the altitude of the phase-change level (this
-                can be snow->sleet, or sleet->rain) and the altitude of the
-                orography. The name of the phase-change level cube must be
-                either "altitude_of_snow_falling_level" or
-                "altitude_of_rain_falling_level". The name of the orography
-                cube must be "surface_altitude".
-
-        Raises:
-            ValueError: If cubes with the expected names cannot be extracted.
-            ValueError: If cubes does not have the expected length of 3.
-            ValueError: If the extracted cubes do not have matching spatial
-                        coordinates.
-
-        """
-        if isinstance(cubes, list):
-            cubes = iris.cube.CubeList(cubes)
-        if len(cubes) != 3:
-            raise ValueError(f'Expected 3 cubes, found {len(cubes)}')
-
-        missing = []
-        extacted = []
-        for i in ["air_temperature", "relative_humidity", "air_pressure"]:
-            try:
-                extacted.append(cubes.extract_strict(i))
-            except iris.exceptions.ConstraintMismatchError:
-                missing.append(i)
-        if missing:
-            raise ValueError("The following cubes were missing: {}".format(
-                missing
-            ))
-        return tuple(extacted)
-
     def process(self, cubes):
         """
         Call the calculate_wet_bulb_temperature function to calculate wet bulb
@@ -439,7 +400,8 @@ class WetBulbTemperature(BasePlugin):
                 Cube of wet bulb temperature (K).
         """
 
-        temperature, relative_humidity, pressure = self._extract_cubes(cubes)
+        temperature, relative_humidity, pressure = self._extract_cubes(
+            cubes, ["air_temperature", "relative_humidity", "air_pressure"])
 
         slices = self._slice_inputs(temperature, relative_humidity, pressure)
 
@@ -989,44 +951,6 @@ class PhaseChangeLevel(BasePlugin):
         return create_new_diagnostic_cube(name, 'm', template, attributes,
                                           data=phase_change_level)
 
-    @staticmethod
-    def _extract_cubes(cubes):
-        """
-        Separates the input list into the required cubes for this plugin.
-
-        Args:
-            cubes (iris.cube.CubeList or list or iris.cube.Cube):
-                Contains cubes of the altitude of the phase-change level (this
-                can be snow->sleet, or sleet->rain) and the altitude of the
-                orography. The name of the phase-change level cube must be
-                either "altitude_of_snow_falling_level" or
-                "altitude_of_rain_falling_level". The name of the orography
-                cube must be "surface_altitude".
-
-        Raises:
-            ValueError: If cubes with the expected names cannot be extracted.
-            ValueError: If cubes does not have the expected length of 3.
-
-        """
-        if isinstance(cubes, list):
-            cubes = iris.cube.CubeList(cubes)
-        if len(cubes) != 4:
-            raise ValueError(f'Expected 4 cubes, found {len(cubes)}')
-
-        missing = []
-        extacted = []
-        for i in ["wet_bulb_temperature", "wet_bulb_temperature_integral",
-                  "surface_altitude", "land_binary_mask"]:
-            try:
-                extacted.append(cubes.extract_strict(i))
-            except iris.exceptions.ConstraintMismatchError:
-                missing.append(i)
-        if missing:
-            raise ValueError("The following cubes were missing: {}".format(
-                missing
-            ))
-        return tuple(extacted)
-
     def process(self, cubes):
         """
         Use the wet bulb temperature integral to find the altitude at which a
@@ -1054,7 +978,10 @@ class PhaseChangeLevel(BasePlugin):
         """
 
         wet_bulb_temperature, wet_bulb_integral, orog, land_sea_mask = \
-            self._extract_cubes(cubes)
+            self._extract_cubes(cubes, ["wet_bulb_temperature",
+                                        "wet_bulb_temperature_integral",
+                                        "surface_altitude",
+                                        "land_binary_mask"])
 
         wet_bulb_temperature.convert_units('celsius')
         wet_bulb_integral.convert_units('K m')
