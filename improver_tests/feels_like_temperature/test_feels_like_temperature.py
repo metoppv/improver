@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the feels_like_temperature.FeelsLikeTemperature plugin."""
+"""Unit tests for the feels_like_temperature module"""
 
 import unittest
 
@@ -36,12 +36,12 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.feels_like_temperature import (
-    calculate_apparent_temperature, calculate_wind_chill,
+    _calculate_apparent_temperature, _calculate_wind_chill,
     calculate_feels_like_temperature)
 from ..set_up_test_cubes import set_up_variable_cube
 
 
-class Test_calculate_apparent_temperature(IrisTest):
+class Test__calculate_apparent_temperature(IrisTest):
     """Test the apparent temperature function."""
 
     def test_values(self):
@@ -51,12 +51,12 @@ class Test_calculate_apparent_temperature(IrisTest):
         pressure = np.array([[99998., 101248., 102498.]])
         relh = np.array([[0., 0.075, 0.15]])
         expected_result = np.array([[16.9300, 17.3283, 17.7267]])
-        result = calculate_apparent_temperature(
+        result = _calculate_apparent_temperature(
             temperature, wind_speed, relh, pressure)
         self.assertArrayAlmostEqual(result, expected_result, decimal=4)
 
 
-class Test_calculate_wind_chill(IrisTest):
+class Test__calculate_wind_chill(IrisTest):
     """Test the wind chill function."""
 
     def test_values(self):
@@ -64,7 +64,7 @@ class Test_calculate_wind_chill(IrisTest):
         temperature = np.full((1, 3), 1.7)
         wind_speed = np.full((1, 3), 3) * 60 * 60 / 1000.
         expected_result = np.full((1, 3), -1.4754, dtype=np.float32)
-        result = calculate_wind_chill(temperature, wind_speed)
+        result = _calculate_wind_chill(temperature, wind_speed)
         self.assertArrayAlmostEqual(result, expected_result, decimal=4)
 
 
