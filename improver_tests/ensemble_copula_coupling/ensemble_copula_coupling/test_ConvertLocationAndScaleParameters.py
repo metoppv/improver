@@ -126,6 +126,5 @@ class Test__rescale_shape_parameters(IrisTest):
                 self.location_parameter, self.scale_parameter)
 
 
-
 if __name__ == '__main__':
     unittest.main()
