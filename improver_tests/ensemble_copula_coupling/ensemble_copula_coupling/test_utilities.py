@@ -40,7 +40,6 @@ from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
-from improver.metadata.probabilistic import find_threshold_coordinate
 from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.utilities import (
@@ -388,11 +387,6 @@ class Test_convert_mask(IrisTest):
         self.template_cube = (
             set_up_probability_above_threshold_temperature_cube())
         self.template_cube = iris.util.squeeze(self.template_cube)
-
-        # Thresholds such that we obtain probabilities of 75%, 50%, and 25% for
-        # the location and scale parameter values set here.
-        threshold_coord = find_threshold_coordinate(self.template_cube)
-        threshold_coord.points = [0.65105, 2., 3.34895]
         location_parameter_values = np.ones((3, 3)) * 2
         scale_parameter_values = np.ones((3, 3)) * 4
         self.location_parameter_values = (
