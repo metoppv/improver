@@ -36,7 +36,6 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.cube import Cube, CubeList
-from iris.exceptions import ConstraintMismatchError
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
