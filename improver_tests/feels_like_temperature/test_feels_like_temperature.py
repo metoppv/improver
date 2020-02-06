@@ -163,7 +163,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
 
     def test_temperature_range_and_bounds(self):
         """Test temperature values across the full range including boundary
-        temperatures 10 degrees Celcius and 20 degrees Celcius"""
+        temperatures 10 degrees Celsius and 20 degrees Celsius"""
 
         temperature_cube = self.temperature_cube[0]
         data = np.linspace(-10, 30, 9).reshape(3, 3)

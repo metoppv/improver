@@ -47,13 +47,13 @@ def calculate_wind_chill(temperature, wind_speed):
 
     Args:
         temperature (numpy.ndarray):
-            Air temperature in degrees Celcius
+            Air temperature in degrees celsius
         wind_speed (numpy.ndarray):
             Wind speed in kilometres per hour
 
     Returns:
         numpy.ndarray:
-            Wind chill temperatures in degrees Celcius
+            Wind chill temperatures in degrees celsius
 
     References:
         Osczevski, R. and Bluestein, M. (2005). THE NEW WIND CHILL EQUIVALENT
@@ -121,7 +121,7 @@ def calculate_apparent_temperature(temperature, wind_speed,
 
     Args:
         temperature (numpy.ndarray):
-            Temperatures in degrees Celcius
+            Temperatures in degrees celsius
         wind_speed (numpy.ndarray):
             10m wind speeds in metres per second
         relative_humidity (iris.cube.Cube):
@@ -131,7 +131,7 @@ def calculate_apparent_temperature(temperature, wind_speed,
 
     Returns:
         numpy.ndarray:
-            Apparent temperatures in degrees Celcius
+            Apparent temperatures in degrees celsius
 
     References:
         Steadman, R. (1984). A Universal Scale of Apparent Temperature.
@@ -147,7 +147,7 @@ def calculate_apparent_temperature(temperature, wind_speed,
 
 def _feels_like_temperature(temperature, apparent_temperature, wind_chill):
     """
-    Calculates feels like temperature from inputs in degrees Celcius using a
+    Calculates feels like temperature from inputs in degrees celsius using a
     combination of the wind chill index and Steadman's apparent temperature
     equation as follows:
 
@@ -209,7 +209,7 @@ def calculate_feels_like_temperature(
     """
     t_cube = temperature.copy()
     t_cube.convert_units('degC')
-    t_celcius = t_cube.data
+    t_celsius = t_cube.data
 
     w_cube = wind_speed.copy()
     w_cube.convert_units('m s-1')
@@ -218,13 +218,13 @@ def calculate_feels_like_temperature(
     rh_cube = relative_humidity.copy()
     rh_cube.convert_units('1')
     apparent_temperature = calculate_apparent_temperature(
-        t_celcius, w_cube.data, rh_cube.data, p_cube.data)
+        t_celsius, w_cube.data, rh_cube.data, p_cube.data)
 
     w_cube.convert_units('km h-1')
-    wind_chill = calculate_wind_chill(t_celcius, w_cube.data)
+    wind_chill = calculate_wind_chill(t_celsius, w_cube.data)
 
     feels_like_temperature = _feels_like_temperature(
-        t_celcius, apparent_temperature, wind_chill)
+        t_celsius, apparent_temperature, wind_chill)
 
     attributes = generate_mandatory_attributes(
         [temperature, wind_speed, relative_humidity, pressure],
