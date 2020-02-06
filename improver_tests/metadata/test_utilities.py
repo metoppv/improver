@@ -177,7 +177,7 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
     def test_model_id_no_consensus(self):
         """Test error raised when model ID attributes do not agree"""
         self.t_cube.attributes["mosg__model_configuration"] = "gl_det"
-        msg = "is not the same on all input cubes"
+        msg = "is missing or not the same on all input cubes"
         with self.assertRaisesRegex(ValueError, msg):
             generate_mandatory_attributes(
                 [self.t_cube, self.p_cube, self.rh_cube],
@@ -187,7 +187,7 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
         """Test error raised when model ID attribute is not present on
         all input diagnostic cubes"""
         self.t_cube.attributes.pop("mosg__model_configuration")
-        msg = "is not present on all input cubes"
+        msg = "is missing or not the same on all input cubes"
         with self.assertRaisesRegex(ValueError, msg):
             generate_mandatory_attributes(
                 [self.t_cube, self.p_cube, self.rh_cube],

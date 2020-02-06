@@ -118,35 +118,18 @@ def generate_mandatory_attributes(diagnostic_cubes, model_id_attr=None):
     Returns:
         dict: Dictionary of mandatory attribute "key": "value" pairs.
     """
+    missing_value = object()
+    attr_dicts = [cube.attributes for cube in diagnostic_cubes]
+    required_attributes = [model_id_attr] if model_id_attr else []
     attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
-    for attr in MANDATORY_ATTRIBUTES:
-        try:
-            values = [cube.attributes[attr] for cube in diagnostic_cubes]
-        except KeyError:
-            # if not all input cubes have this attribute, retain default
-            pass
-        else:
-            unique_values = np.unique(values)
-            if len(unique_values) == 1:
-                attributes[attr] = unique_values[0]
-
-    # for model_id_attr there is no default, so must fail if no consensus
-    if model_id_attr:
-        try:
-            values = [cube.attributes[model_id_attr]
-                      for cube in diagnostic_cubes]
-        except KeyError:
-            msg = 'Required attribute "{}" is not present on all input cubes'
-            raise ValueError(msg.format(model_id_attr))
-        else:
-            unique_values = np.unique(values)
-            if len(unique_values) == 1:
-                attributes[model_id_attr] = unique_values[0]
-            else:
-                msg = ('Required attribute "{}" is not the same on '
-                       'all input cubes')
-                raise ValueError(msg.format(model_id_attr))
-
+    for attr in MANDATORY_ATTRIBUTES + required_attributes:
+        unique_values = set(d.get(attr, missing_value) for d in attr_dicts)
+        if len(unique_values) == 1 and missing_value not in unique_values:
+            attributes[attr], = unique_values
+        elif attr in required_attributes:
+            msg = ('Required attribute "{}" is missing or '
+                   'not the same on all input cubes')
+            raise ValueError(msg.format(attr))
     return attributes
 
 
