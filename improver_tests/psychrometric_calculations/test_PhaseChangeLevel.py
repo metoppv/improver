@@ -36,6 +36,7 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.cube import CubeList
+from iris.exceptions import ConstraintMismatchError
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
@@ -585,10 +586,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
 
     def test_snow_sleet_phase_change_reorder_cubes(self):
-        """Test that process returns a cube with the right name, units and
-        values. In this instance the phase change is from snow to sleet. The
-        returned level is consistent across the field, despite a high point
-        that sits above the snow falling level."""
+        """Same test as test_snow_sleet_phase_change but the cubes are in a
+        different order"""
         self.orog.data[1, 1] = 100.0
         result = PhaseChangeLevel(phase_change='snow-sleet').process(
             CubeList([self.wet_bulb_integral_cube,
@@ -675,8 +674,8 @@ class Test_process(IrisTest):
         """
         orog = self.orog
         orog.rename("Brachiosaurus")
-        msg = "The following .*surface_altitude"
-        with self.assertRaisesRegex(ValueError, msg):
+        msg = "Got 0 cubes for constraint.*surface_altitude"
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
             PhaseChangeLevel(phase_change='snow-sleet').process(
                 CubeList([self.wet_bulb_temperature_cube,
                           self.wet_bulb_integral_cube,

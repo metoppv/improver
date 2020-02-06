@@ -36,6 +36,7 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.cube import Cube, CubeList
+from iris.exceptions import ConstraintMismatchError
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
@@ -187,9 +188,8 @@ class Test_process(Test_WetBulbTemperature):
         self.assertEqual(result.units, Unit('K'))
 
     def test_values_single_level_reorder_cubes(self):
-        """Basic wet bulb temperature calculation as if calling the
-        create_wet_bulb_temperature_cube function directly with single
-        level data."""
+        """Same test as test_values_single_level but the cubes are in a
+        different order."""
         result = WetBulbTemperature().process(
             CubeList([self.relative_humidity,
                       self.temperature,
@@ -266,8 +266,8 @@ class Test_process(Test_WetBulbTemperature):
         humid = self.relative_humidity
         pressure = self.pressure
         temp.rename("diplodocus")
-        msg = "The following"
-        with self.assertRaisesRegex(ValueError, msg):
+        msg = "Got 0 cubes .*air_temperature"
+        with self.assertRaisesRegex(ConstraintMismatchError, msg):
             WetBulbTemperature().process(
                 CubeList([temp, humid, pressure]))
 

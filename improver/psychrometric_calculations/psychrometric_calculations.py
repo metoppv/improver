@@ -35,6 +35,7 @@ import warnings
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import CubeList
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 from scipy.stats import linregress
@@ -399,9 +400,18 @@ class WetBulbTemperature(BasePlugin):
             iris.cube.Cube:
                 Cube of wet bulb temperature (K).
         """
+        names_to_extract = ["air_temperature",
+                            "relative_humidity",
+                            "air_pressure"]
+        if len(cubes) != len(names_to_extract):
+            raise ValueError(
+                f'Expected {len(names_to_extract)} cubes, found {len(cubes)}')
 
-        temperature, relative_humidity, pressure = self._extract_cubes(
-            cubes, ["air_temperature", "relative_humidity", "air_pressure"])
+        temperature, relative_humidity, pressure = tuple(
+            CubeList(cubes).extract_strict(n) for n in names_to_extract)
+
+        # temperature, relative_humidity, pressure = self._extract_cubes(
+        #     cubes, ["air_temperature", "relative_humidity", "air_pressure"])
 
         slices = self._slice_inputs(temperature, relative_humidity, pressure)
 
@@ -977,11 +987,16 @@ class PhaseChangeLevel(BasePlugin):
                 Cube of phase change level above sea level (asl).
         """
 
-        wet_bulb_temperature, wet_bulb_integral, orog, land_sea_mask = \
-            self._extract_cubes(cubes, ["wet_bulb_temperature",
-                                        "wet_bulb_temperature_integral",
-                                        "surface_altitude",
-                                        "land_binary_mask"])
+        names_to_extract = ["wet_bulb_temperature",
+                            "wet_bulb_temperature_integral",
+                            "surface_altitude",
+                            "land_binary_mask"]
+        if len(cubes) != len(names_to_extract):
+            raise ValueError(
+                f'Expected {len(names_to_extract)} cubes, found {len(cubes)}')
+
+        wet_bulb_temperature, wet_bulb_integral, orog, land_sea_mask = tuple(
+            CubeList(cubes).extract_strict(n) for n in names_to_extract)
 
         wet_bulb_temperature.convert_units('celsius')
         wet_bulb_integral.convert_units('K m')
