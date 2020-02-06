@@ -818,7 +818,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
         stack_number = percentile_cube.data.shape[0]
         mask_array = np.stack([mask]*stack_number)
         percentile_cube.data = np.ma.masked_where(
-            mask_array == True, percentile_cube.data)
+            mask_array, percentile_cube.data)
         # Remove cell methods associated with finding the ensemble mean
         percentile_cube.cell_methods = {}
         return percentile_cube

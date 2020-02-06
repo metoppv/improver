@@ -497,7 +497,7 @@ class Test_capture_mask(IrisTest):
         the location and scale parameters are masked.
         """
         mask1 = np.array([[1, 1, 1], [0, 0, 0], [0, 0, 0]])
-        mask2 = mask = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 1]])
+        mask2 = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 1]])
         expected = np.array([[True, True, True],
                              [False, True, False],
                              [False, False, True]])
