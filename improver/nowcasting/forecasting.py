@@ -365,9 +365,10 @@ class CreateExtrapolationForecast(BasePlugin):
         if self.orographic_enhancement_cube:
             input_cube, = ApplyOrographicEnhancement("subtract").process(
                 input_cube, self.orographic_enhancement_cube)
-        elif "precipitation_rate" in input_cube.name():
-            msg = ("For precipitation fields, orographic enhancement "
-                   "cube must be supplied.")
+        elif ("precipitation_rate" in input_cube.name()
+              or "rainfall_rate" in input_cube.name()):
+            msg = ("For precipitation or rainfall fields, orographic "
+                   "enhancement cube must be supplied.")
             raise ValueError(msg)
         self.input_cube = input_cube
         self.advection_plugin = AdvectField(

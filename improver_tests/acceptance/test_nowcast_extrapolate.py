@@ -85,7 +85,8 @@ def test_basic_no_orographic(tmp_path):
     kgo_dir = (acc.kgo_root() /
                "nowcast-extrapolate/extrapolate_no_orographic_enhancement")
     kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / RAINRATE_NC
+    input_path = (kgo_dir /
+                  "20190101T0300Z-PT0000H00M-cloud_amount_of_total_cloud.nc")
     uv_path = kgo_dir / "../uv.nc"
 
     output_path = tmp_path / "output.nc"
