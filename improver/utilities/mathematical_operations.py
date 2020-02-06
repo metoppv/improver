@@ -67,10 +67,9 @@ class Integration(BasePlugin):
                 continue until the last available point.
             positive_integration (bool):
                 Description of the direction in which to integrate.
-                Options are 'positive' or 'negative'.
-                'positive' corresponds to the values within the array
+                True corresponds to the values within the array
                 increasing as the array index increases.
-                'negative' corresponds to the values within the array
+                False corresponds to the values within the array
                 decreasing as the array index increases.
         """
         self.coord_name_to_integrate = coord_name_to_integrate

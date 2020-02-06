@@ -70,8 +70,7 @@ def process(*cubes: cli.inputcube,
     """
     from improver.psychrometric_calculations.psychrometric_calculations \
         import PhaseChangeLevel
-    from iris.cube import CubeList
 
     result = PhaseChangeLevel(
-        phase_change=phase_change).process(CubeList(cubes))
+        phase_change=phase_change).process(cubes)
     return result

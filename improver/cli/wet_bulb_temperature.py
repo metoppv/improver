@@ -68,8 +68,7 @@ def process(*cubes: cli.inputcube,
     """
     from improver.psychrometric_calculations.psychrometric_calculations \
         import WetBulbTemperature
-    from iris.cube import CubeList
 
     result = (WetBulbTemperature(precision=convergence_condition).
-              process(CubeList(cubes)))
+              process(cubes))
     return result

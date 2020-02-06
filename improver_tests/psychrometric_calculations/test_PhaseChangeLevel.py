@@ -649,9 +649,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_too_many_cubes(self):
-        """
-        Tests that an error is raised if there are too many arguments.
-        """
+        """Tests that an error is raised if there are too many cubes."""
         msg = "Expected 4"
         with self.assertRaisesRegex(ValueError, msg):
             PhaseChangeLevel(phase_change='snow-sleet').process(
@@ -660,26 +658,11 @@ class Test_process(IrisTest):
                           self.orog, self.land_sea, self.orog]))
 
     def test_empty_cube_list(self):
-        """
-        Tests that an error is raised if there is an empty list.
-        """
+        """Tests that an error is raised if there is an empty list."""
         msg = "Expected 4"
         with self.assertRaisesRegex(ValueError, msg):
             PhaseChangeLevel(phase_change='snow-sleet').process(
                 CubeList([]))
-
-    def test_wrong_cube(self):
-        """
-        Tests that an error is raised if there isn't a correctly named cube.
-        """
-        orog = self.orog
-        orog.rename("Brachiosaurus")
-        msg = "Got 0 cubes for constraint.*surface_altitude"
-        with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            PhaseChangeLevel(phase_change='snow-sleet').process(
-                CubeList([self.wet_bulb_temperature_cube,
-                          self.wet_bulb_integral_cube,
-                          orog, self.land_sea]))
 
 
 if __name__ == '__main__':

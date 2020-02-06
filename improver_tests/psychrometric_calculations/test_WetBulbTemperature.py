@@ -237,9 +237,7 @@ class Test_process(Test_WetBulbTemperature):
         self.assertEqual(result.coord_dims('height')[0], 1)
 
     def test_too_many_cubes(self):
-        """
-        Tests that an error is raised if there are too many arguments.
-        """
+        """Tests that an error is raised if there are too many cubes."""
         temp = self.temperature
         humid = self.relative_humidity
         pressure = self.pressure
@@ -249,27 +247,11 @@ class Test_process(Test_WetBulbTemperature):
                 CubeList([temp, humid, pressure, temp]))
 
     def test_empty_cube_list(self):
-        """
-        Tests that an error is raised if there is an empty list.
-        """
+        """Tests that an error is raised if there is an empty list."""
         msg = "Expected 3"
         with self.assertRaisesRegex(ValueError, msg):
             WetBulbTemperature().process(
                 CubeList([]))
-
-    def test_wrong_cube(self):
-        """
-        Tests that an error is raised if there isn't a correctly named cube.
-        """
-
-        temp = self.temperature
-        humid = self.relative_humidity
-        pressure = self.pressure
-        temp.rename("diplodocus")
-        msg = "Got 0 cubes .*air_temperature"
-        with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            WetBulbTemperature().process(
-                CubeList([temp, humid, pressure]))
 
 
 if __name__ == '__main__':
