@@ -110,32 +110,117 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_check_mask_data(self):
+    def test_masked_location_parameter(self):
         """
-        Test whether the plugin outputs NaNs if masked data is input
-        in the plugin. If this is the case it will come up with a
-        ValueError.
+        Test that the plugin returns the correctly masked data when
+        given a location parameter that is masked.
         """
+        mask = np.array([[1, 0, 0], [0, 0, 0], [0, 1, 0]])
+        expected_mask = np.array([[[1, 0, 0], [0, 0, 0], [0, 1, 0]],
+                                  [[1, 0, 0], [0, 0, 0], [0, 1, 0]],
+                                  [[1, 0, 0], [0, 0, 0], [0, 1, 0]]])
+        data = np.array([[[[225.568115, 236.818115, 248.068115],
+                           [259.318115, 270.568115, 281.818115],
+                           [293.068115, 304.318115, 315.568115]]],
+                         [[[229.483322, 240.733322, 251.983322],
+                           [263.233307, 274.483307, 285.733307],
+                           [296.983307, 308.233307, 319.483307]]],
+                         [[[233.398529, 244.648529, 255.898529],
+                           [267.148499, 278.398499, 289.648499],
+                           [300.898499, 312.148499, 323.398499]]]],
+                        dtype=np.float32)
+        expected_data = np.ma.masked_array(data, mask=expected_mask)
         cube = self.current_temperature_forecast_cube
-        current_forecast_predictor = cube.collapsed(
+        location_parameter = cube.collapsed(
             "realization", iris.analysis.MEAN)
-        mask = np.array([[0, 0, 0], [0, 0, 0], [1, 1, 1]]).T
-        mask_predictor = np.ma.masked_array(current_forecast_predictor.data,
-            mask=mask)
-        current_forecast_predictor.data = mask_predictor
-        current_forecast_variance = cube.collapsed(
+        location_parameter.data = np.ma.masked_array(
+            location_parameter.data, mask=mask)
+        scale_parameter = cube.collapsed(
             "realization", iris.analysis.VARIANCE)
-        mask_variance = np.ma.masked_array(current_forecast_variance.data,
-            mask=mask)
-        current_forecast_variance.data = mask_variance
         percentiles = [10, 50, 90]
-        msg = "NaNs are present within the result for the"
         plugin = Plugin()
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin._location_and_scale_parameters_to_percentiles(
-                current_forecast_predictor, current_forecast_variance, cube,
-                percentiles)
+        result = plugin._location_and_scale_parameters_to_percentiles(
+            location_parameter, scale_parameter, cube,
+            percentiles)
+        np.testing.assert_allclose(
+            result.data, expected_data, rtol=1.e-4)
 
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_masked_scale_parameter(self):
+        """
+        Test that the plugin returns the correctly masked data when
+        given a scale parameter that is masked.
+        """
+        mask = np.array([[0, 0, 0], [0, 0, 0], [1, 0, 1]])
+        expected_mask = np.array([[[0, 0, 0], [0, 0, 0], [1, 0, 1]],
+                                  [[0, 0, 0], [0, 0, 0], [1, 0, 1]],
+                                  [[0, 0, 0], [0, 0, 0], [1, 0, 1]]])
+        data = np.array([[[[225.568115, 236.818115, 248.068115],
+                           [259.318115, 270.568115, 281.818115],
+                           [293.068115, 304.318115, 315.568115]]],
+                         [[[229.483322, 240.733322, 251.983322],
+                           [263.233307, 274.483307, 285.733307],
+                           [296.983307, 308.233307, 319.483307]]],
+                         [[[233.398529, 244.648529, 255.898529],
+                           [267.148499, 278.398499, 289.648499],
+                           [300.898499, 312.148499, 323.398499]]]],
+                        dtype=np.float32)
+        expected_data = np.ma.masked_array(data, mask=expected_mask)
+        cube = self.current_temperature_forecast_cube
+        location_parameter = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        scale_parameter = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        scale_parameter.data = np.ma.masked_array(
+            scale_parameter.data, mask=mask)
+        percentiles = [10, 50, 90]
+        plugin = Plugin()
+        result = plugin._location_and_scale_parameters_to_percentiles(
+            location_parameter, scale_parameter, cube,
+            percentiles)
+        np.testing.assert_allclose(
+            result.data, expected_data, rtol=1.e-4)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_both_masked(self):
+        """
+        Test that the plugin returns the correctly masked data when
+        both the scale and location parameters are masked.
+        """
+        mask1 = np.array([[0, 1, 0], [0, 0, 0], [0, 0, 0]])
+        mask2 = np.array([[0, 0, 0], [1, 0, 0], [0, 0, 0]])
+        expected_mask = np.array([[[0, 1, 0], [1, 0, 0], [0, 0, 0]],
+                                  [[0, 1, 0], [1, 0, 0], [0, 0, 0]],
+                                  [[0, 1, 0], [1, 0, 0], [0, 0, 0]]])
+        data = np.array([[[[225.568115, 236.818115, 248.068115],
+                           [259.318115, 270.568115, 281.818115],
+                           [293.068115, 304.318115, 315.568115]]],
+                         [[[229.483322, 240.733322, 251.983322],
+                           [263.233307, 274.483307, 285.733307],
+                           [296.983307, 308.233307, 319.483307]]],
+                         [[[233.398529, 244.648529, 255.898529],
+                           [267.148499, 278.398499, 289.648499],
+                           [300.898499, 312.148499, 323.398499]]]],
+                        dtype=np.float32)
+        expected_data = np.ma.masked_array(data, mask=expected_mask)
+        cube = self.current_temperature_forecast_cube
+        location_parameter = cube.collapsed(
+            "realization", iris.analysis.MEAN)
+        location_parameter.data = np.ma.masked_array(
+            location_parameter.data, mask=mask1)
+        scale_parameter = cube.collapsed(
+            "realization", iris.analysis.VARIANCE)
+        scale_parameter.data = np.ma.masked_array(
+            scale_parameter.data, mask=mask2)
+        percentiles = [10, 50, 90]
+        plugin = Plugin()
+        result = plugin._location_and_scale_parameters_to_percentiles(
+            location_parameter, scale_parameter, cube,
+            percentiles)
+        np.testing.assert_allclose(
+            result.data, expected_data, rtol=1.e-4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])

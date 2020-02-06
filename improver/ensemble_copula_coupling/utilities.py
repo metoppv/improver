@@ -251,12 +251,28 @@ def convert_mask(location_parameter, scale_parameter):
     loc = location_parameter.data
     scale = scale_parameter.data
     if np.ma.is_masked(loc):
-        print ("location parameter is masked")
         location_parameter.data = np.ma.filled(loc, 1)
     if np.ma.is_masked(scale):
-        print ("scale parameter is masked")
         scale_parameter.data = np.ma.filled(scale, 1)
     return location_parameter, scale_parameter
+
+def capture_mask(location_parameter, scale_parameter):
+    """
+    This takes in the scale and location parameters, checks whether
+    they are masked. If they are it captures this mask in an array
+    of True/False. Otherwise the array contains False.
+    """
+    loc = location_parameter
+    scale = scale_parameter
+    if np.ma.is_masked(loc):
+        apply_mask = np.ma.masked_where(np.ma.getmask(loc), scale)
+        mask = np.ma.getmaskarray(apply_mask)
+    elif np.ma.is_masked(scale):
+        apply_mask = np.ma.masked_where(np.ma.getmask(scale), loc)
+        mask = np.ma.getmaskarray(apply_mask)
+    else:
+        mask = np.ma.getmaskarray(loc)
+    return mask
 
 
 def insert_lower_and_upper_endpoint_to_1d_array(

@@ -44,7 +44,7 @@ from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles, concatenate_2d_array_with_2d_array_endpoints,
     create_cube_with_percentiles, get_bounds_of_distribution,
-    insert_lower_and_upper_endpoint_to_1d_array,
+    insert_lower_and_upper_endpoint_to_1d_array, convert_mask, capture_mask,
     restore_non_probabilistic_dimensions)
 from improver.metadata.probabilistic import (
     find_percentile_coordinate, find_threshold_coordinate)
@@ -752,8 +752,13 @@ class ConvertLocationAndScaleParametersToPercentiles(
                 nans and these nans are not caused by a scale parameter of
                 zero.
         """
-        location_parameter_data = location_parameter.data.flatten()
-        scale_parameter_data = scale_parameter.data.flatten()
+        # Define a mask to be reapplied later
+        mask = capture_mask(location_parameter.data, scale_parameter.data)
+        # Remove any mask that may be applied to location and scale parameters
+        # and replace with ones
+        mask_to_ones = convert_mask(location_parameter, scale_parameter)
+        location_parameter_data = mask_to_ones[0].data.flatten()
+        scale_parameter_data = mask_to_ones[1].data.flatten()
 
         # Convert percentiles into fractions.
         percentiles = np.array(
@@ -808,6 +813,12 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
         percentile_cube = create_cube_with_percentiles(
             percentiles, template_slice, result)
+        # Make the mask defined above fit the data size and then apply to the
+        # probability cube.
+        stack_number = percentile_cube.data.shape[0]
+        mask_array = np.stack([mask]*stack_number)
+        percentile_cube.data = np.ma.masked_where(
+            mask_array == True, percentile_cube.data)
         # Remove cell methods associated with finding the ensemble mean
         percentile_cube.cell_methods = {}
         return percentile_cube
@@ -894,7 +905,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         msg = ('{} expects a cube with only a leading threshold dimension, '
                'followed by spatial (y/x) dimensions. '
                'Got dimensions: {}'.format(
-                    self.__class__.__name__, dim_coords))
+                   self.__class__.__name__, dim_coords))
 
         try:
             threshold_coord = find_threshold_coordinate(cube)
@@ -965,6 +976,13 @@ class ConvertLocationAndScaleParametersToProbabilities(
                 the provided thresholds in the way described by
                 spp__relative_to_threshold.
         """
+        # Define a mask to be reapplied later
+        mask = capture_mask(location_parameter.data, scale_parameter.data)
+        # Remove any mask that may be applied to location and scale parameters
+        # and replace with ones
+        mask_to_ones = convert_mask(location_parameter, scale_parameter)
+        location_parameter.data = mask_to_ones[0].data
+        scale_parameter.data = mask_to_ones[1].data
         thresholds = (
             find_threshold_coordinate(probability_cube_template).points)
         relative_to_threshold = find_threshold_coordinate(
@@ -993,6 +1011,12 @@ class ConvertLocationAndScaleParametersToProbabilities(
                 probability_method(threshold), probabilities.shape[1:])
 
         probability_cube = probability_cube_template.copy(data=probabilities)
+        # Make the mask defined above fit the data size and then apply to the
+        # probability cube.
+        stack_number = probability_cube.data.shape[0]
+        mask_array = np.array([mask]*stack_number)
+        probability_cube.data = np.ma.masked_where(
+            mask_array is True, probability_cube.data)
         return probability_cube
 
     def process(self, location_parameter, scale_parameter,
