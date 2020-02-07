@@ -323,7 +323,6 @@ class WetBulbTemperature(BasePlugin):
                 and iteration < self.maximum_iterations:
 
             if iteration > 0:
-                # Update saturation mixing ratio and iterators
                 saturation_mixing_ratio = self._calculate_mixing_ratio(
                     wbt_data, pressure)
 
