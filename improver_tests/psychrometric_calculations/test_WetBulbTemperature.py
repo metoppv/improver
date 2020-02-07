@@ -187,7 +187,7 @@ class Test_process(Test_WetBulbTemperature):
                       self.relative_humidity,
                       self.pressure]))
         self.assertArrayAlmostEqual(result.data, self.expected_wbt_data,
-                                   decimal=3)
+                                    decimal=3)
         self.assertEqual(result.units, Unit('K'))
 
     def test_values_single_level_reorder_cubes(self):
@@ -198,7 +198,7 @@ class Test_process(Test_WetBulbTemperature):
                       self.temperature,
                       self.pressure]))
         self.assertArrayAlmostEqual(result.data, self.expected_wbt_data,
-                                   decimal=3)
+                                    decimal=3)
         self.assertEqual(result.units, Unit('K'))
 
     def test_values_multi_level(self):
@@ -210,9 +210,9 @@ class Test_process(Test_WetBulbTemperature):
         result = WetBulbTemperature().process(
             CubeList([temperature, relative_humidity, pressure]))
         self.assertArrayAlmostEqual(result.data[0], self.expected_wbt_data,
-                                   decimal=3)
+                                    decimal=3)
         self.assertArrayAlmostEqual(result.data[1], self.expected_wbt_data,
-                                   decimal=3)
+                                    decimal=3)
         self.assertEqual(result.units, Unit('K'))
         self.assertArrayEqual(result.coord('height').points, [10, 20])
 
