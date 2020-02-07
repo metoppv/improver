@@ -165,7 +165,8 @@ class CubeCombiner(BasePlugin):
         point_val = 'mid' if use_midpoint else 'upper'
         coords_to_expand = {name: point_val for name in expanded_coord_names}
         if coords_to_expand:
-            result = expand_bounds(result, cube_list, coords_to_expand)
+            result = expand_bounds(result, cube_list, expanded_coord_names,
+                                   use_midpoint=use_midpoint)
         result.rename(new_diagnostic_name)
 
         return result
