@@ -221,8 +221,8 @@ def test_regrid_nearest_landmask_multi_realization(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_basic(tmp_path):
-    """Test basic updating file with StaGE version 1.1.0 metadata"""
+def test_stage_v110_basic(tmp_path):
+    """Test updating a file with StaGE version 1.1.0 metadata"""
     kgo_dir = acc.kgo_root() / "standardise/stage-v110"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
