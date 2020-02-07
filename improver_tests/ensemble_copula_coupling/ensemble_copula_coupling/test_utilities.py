@@ -45,8 +45,8 @@ from iris.tests import IrisTest
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles, concatenate_2d_array_with_2d_array_endpoints,
     create_cube_with_percentiles, get_bounds_of_distribution,
-    insert_lower_and_upper_endpoint_to_1d_array, convert_mask,
-    capture_mask, restore_non_probabilistic_dimensions)
+    insert_lower_and_upper_endpoint_to_1d_array,
+    restore_non_probabilistic_dimensions)
 
 from ...calibration.ensemble_calibration.helper_functions import (
     add_forecast_reference_time_and_forecast_period, set_up_cube,
@@ -378,133 +378,6 @@ class Test_get_bounds_of_distribution(IrisTest):
         msg = "The bounds_pairing_key"
         with self.assertRaisesRegex(KeyError, msg):
             get_bounds_of_distribution(cube_name, cube_units)
-
-
-class Test_convert_mask(IrisTest):
-    """Test the mask conversion functions."""
-
-    def setUp(self):
-        """Set up temperature cube."""
-        self.template_cube = (
-            set_up_probability_above_threshold_temperature_cube())
-        self.template_cube = iris.util.squeeze(self.template_cube)
-        location_parameter_values = np.ones((3, 3)) * 2
-        scale_parameter_values = np.ones((3, 3)) * 4
-        self.location_parameter_values = (
-            self.template_cube[0, :, :].copy(data=location_parameter_values))
-        self.location_parameter_values.units = 'Celsius'
-        self.scale_parameter_values = (
-            self.template_cube[0, :, :].copy(data=scale_parameter_values))
-        self.scale_parameter_values.units = 'Celsius2'
-
-    def test_basic(self):
-        """
-        Basic test to see whether this function works with
-        unmasked data.
-        """
-        loc = self.location_parameter_values.data
-        scale = self.scale_parameter_values.data
-        result = (convert_mask(loc, scale))
-        np.testing.assert_allclose(result[0], loc, rtol=1.e-4)
-        np.testing.assert_allclose(result[1], scale, rtol=1.e-4)
-
-    def test_with_mask(self):
-        """
-        Basic test to see that the location and scale parameters
-        are correctly unmasked and the mask filled with ones
-        if a mask is present.
-        """
-        expected_location = np.array([[2, 2, 2],
-                                      [2, 1, 2],
-                                      [2, 2, 2]])
-        expected_scale = np.array([[1, 4, 4],
-                                   [4, 4, 4],
-                                   [4, 4, 4]])
-        mask1 = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
-        mask2 = np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
-        loc = np.ma.masked_array(self.location_parameter_values.data,
-                                 mask=mask1)
-        scale = np.ma.masked_array(self.scale_parameter_values.data,
-                                   mask=mask2)
-        result = (convert_mask(loc, scale))
-        np.testing.assert_allclose(result[0], expected_location, rtol=1.e-4)
-        np.testing.assert_allclose(result[1], expected_scale, rtol=1.e-4)
-
-
-class Test_capture_mask(IrisTest):
-    """Test the capture mask function."""
-
-    def setUp(self):
-        """Set up temperature cube."""
-        self.template_cube = (
-            set_up_probability_above_threshold_temperature_cube())
-        self.template_cube = iris.util.squeeze(self.template_cube)
-        location_parameter_values = np.ones((3, 3)) * 2
-        scale_parameter_values = np.ones((3, 3)) * 4
-        self.location_parameter_values = (
-            self.template_cube[0, :, :].copy(data=location_parameter_values))
-        self.location_parameter_values.units = 'Celsius'
-        self.scale_parameter_values = (
-            self.template_cube[0, :, :].copy(data=scale_parameter_values))
-        self.scale_parameter_values.units = 'Celsius2'
-
-    def test_no_mask(self):
-        """
-        Test that the function captures the correct mask if
-        neither of the location or scale parameters is masked.
-        """
-        expected = np.full((3, 3), False)
-        loc = self.location_parameter_values.data
-        scale = self.scale_parameter_values.data
-        result = capture_mask(loc, scale)
-        np.testing.assert_allclose(result, expected, rtol=1.e-4)
-
-    def test_location_parameter_masked(self):
-        """
-        Test that the function captures the correct mask if
-        the location parameter is masked.
-        """
-        mask = np.array([[1, 1, 1], [0, 0, 0], [0, 0, 0]])
-        expected = np.array([[True, True, True],
-                             [False, False, False],
-                             [False, False, False]])
-        loc = np.ma.masked_array(
-            self.location_parameter_values.data, mask=mask)
-        scale = self.scale_parameter_values.data
-        result = capture_mask(loc, scale)
-        np.testing.assert_allclose(result, expected, rtol=1.e-4)
-
-    def test_scale_parameter_masked(self):
-        """
-        Test that the function captures the correct mask if
-        the scale parameter is masked.
-        """
-        mask = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
-        expected = np.array([[False, False, False],
-                             [False, True, False],
-                             [False, False, False]])
-        loc = self.location_parameter_values.data
-        scale = np.ma.masked_array(
-            self.scale_parameter_values.data, mask=mask)
-        result = capture_mask(loc, scale)
-        np.testing.assert_allclose(result, expected, rtol=1.e-4)
-
-    def test_both_masked(self):
-        """
-        Test that the function captures the correct mask if both
-        the location and scale parameters are masked.
-        """
-        mask1 = np.array([[1, 1, 1], [0, 0, 0], [0, 0, 0]])
-        mask2 = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 1]])
-        expected = np.array([[True, True, True],
-                             [False, True, False],
-                             [False, False, True]])
-        loc = np.ma.masked_array(
-            self.location_parameter_values.data, mask=mask1)
-        scale = np.ma.masked_array(
-            self.scale_parameter_values.data, mask=mask2)
-        result = capture_mask(loc, scale)
-        np.testing.assert_allclose(result, expected, rtol=1.e-4)
 
 
 class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
