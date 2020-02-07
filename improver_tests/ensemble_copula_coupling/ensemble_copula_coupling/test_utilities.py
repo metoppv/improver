@@ -379,6 +379,7 @@ class Test_get_bounds_of_distribution(IrisTest):
         with self.assertRaisesRegex(KeyError, msg):
             get_bounds_of_distribution(cube_name, cube_units)
 
+
 class Test_convert_mask(IrisTest):
     """Test the mask conversion functions."""
 
@@ -421,11 +422,14 @@ class Test_convert_mask(IrisTest):
                                    [4, 4, 4]])
         mask1 = np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]])
         mask2 = np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
-        loc = np.ma.masked_array(self.location_parameter_values.data, mask=mask1)
-        scale = np.ma.masked_array(self.scale_parameter_values.data, mask=mask2)
+        loc = np.ma.masked_array(self.location_parameter_values.data,
+                                 mask=mask1)
+        scale = np.ma.masked_array(self.scale_parameter_values.data,
+                                   mask=mask2)
         result = (convert_mask(loc, scale))
         np.testing.assert_allclose(result[0], expected_location, rtol=1.e-4)
         np.testing.assert_allclose(result[1], expected_scale, rtol=1.e-4)
+
 
 class Test_capture_mask(IrisTest):
     """Test the capture mask function."""
@@ -501,6 +505,7 @@ class Test_capture_mask(IrisTest):
             self.scale_parameter_values.data, mask=mask2)
         result = capture_mask(loc, scale)
         np.testing.assert_allclose(result, expected, rtol=1.e-4)
+
 
 class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
 

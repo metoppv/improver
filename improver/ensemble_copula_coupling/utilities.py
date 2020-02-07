@@ -232,6 +232,7 @@ def get_bounds_of_distribution(bounds_pairing_key, desired_units):
         np.array(bounds_pairing), desired_units)
     return bounds_pairing
 
+
 def convert_mask(location_parameter, scale_parameter):
     """
     Checks whether the location_parameter and scale_parameter are masked
@@ -255,6 +256,7 @@ def convert_mask(location_parameter, scale_parameter):
     if np.ma.is_masked(scale):
         scale_parameter.data = np.ma.filled(scale, 1)
     return location_parameter, scale_parameter
+
 
 def capture_mask(location_parameter, scale_parameter):
     """
