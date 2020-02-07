@@ -98,7 +98,7 @@ def test_mean_temperature(tmp_path):
 def test_midpoint(tmp_path):
     """Test option to use midpoint of expanded coordinates"""
     kgo_dir = acc.kgo_root() / "combine/bounds"
-    kgo_path = kgo_dir / "kgo_mean.nc"
+    kgo_path = kgo_dir / "kgo_midpoint.nc"
     temperatures = sorted(kgo_dir.glob("*temperature_at_screen_level.nc"))
     output_path = tmp_path / "output.nc"
     args = ["--operation", "mean",
