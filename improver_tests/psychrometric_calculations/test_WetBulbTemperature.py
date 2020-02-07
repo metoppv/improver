@@ -35,7 +35,7 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
@@ -183,7 +183,20 @@ class Test_process(Test_WetBulbTemperature):
         create_wet_bulb_temperature_cube function directly with single
         level data."""
         result = WetBulbTemperature().process(
-            self.temperature, self.relative_humidity, self.pressure)
+            CubeList([self.temperature,
+                      self.relative_humidity,
+                      self.pressure]))
+        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data,
+                                    decimal=3)
+        self.assertEqual(result.units, Unit('K'))
+
+    def test_values_single_level_reorder_cubes(self):
+        """Same test as test_values_single_level but the cubes are in a
+        different order."""
+        result = WetBulbTemperature().process(
+            CubeList([self.relative_humidity,
+                      self.temperature,
+                      self.pressure]))
         self.assertArrayAlmostEqual(result.data, self.expected_wbt_data,
                                     decimal=3)
         self.assertEqual(result.units, Unit('K'))
@@ -195,7 +208,7 @@ class Test_process(Test_WetBulbTemperature):
         relative_humidity = self._make_multi_level(self.relative_humidity)
         pressure = self._make_multi_level(self.pressure)
         result = WetBulbTemperature().process(
-            temperature, relative_humidity, pressure)
+            CubeList([temperature, relative_humidity, pressure]))
         self.assertArrayAlmostEqual(result.data[0], self.expected_wbt_data,
                                     decimal=3)
         self.assertArrayAlmostEqual(result.data[1], self.expected_wbt_data,
@@ -213,7 +226,7 @@ class Test_process(Test_WetBulbTemperature):
         msg = 'WetBulbTemperature: Cubes have differing'
         with self.assertRaisesRegex(ValueError, msg):
             WetBulbTemperature().process(
-                temperature, relative_humidity, pressure)
+                CubeList([temperature, relative_humidity, pressure]))
 
     def test_cube_multi_level(self):
         """Check the cube is returned with expected coordinate order after the
@@ -225,9 +238,26 @@ class Test_process(Test_WetBulbTemperature):
         pressure = self._make_multi_level(self.pressure,
                                           time_promote=True)
         result = WetBulbTemperature().process(
-            temperature, relative_humidity, pressure)
+            CubeList([temperature, relative_humidity, pressure]))
         self.assertEqual(result.coord_dims('time')[0], 0)
         self.assertEqual(result.coord_dims('height')[0], 1)
+
+    def test_too_many_cubes(self):
+        """Tests that an error is raised if there are too many cubes."""
+        temp = self.temperature
+        humid = self.relative_humidity
+        pressure = self.pressure
+        msg = "Expected 3"
+        with self.assertRaisesRegex(ValueError, msg):
+            WetBulbTemperature().process(
+                CubeList([temp, humid, pressure, temp]))
+
+    def test_empty_cube_list(self):
+        """Tests that an error is raised if there is an empty list."""
+        msg = "Expected 3"
+        with self.assertRaisesRegex(ValueError, msg):
+            WetBulbTemperature().process(
+                CubeList([]))
 
 
 if __name__ == '__main__':

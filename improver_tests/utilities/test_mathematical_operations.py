@@ -52,8 +52,7 @@ def _set_up_height_cube(height_points, ascending=True):
 
     cube = set_up_variable_cube(data[0].astype(np.float32))
     height_points = np.sort(height_points)
-    cube = add_coordinate(
-        cube, height_points, "height", coord_units="m")
+    cube = add_coordinate(cube, height_points, "height", coord_units="m")
     cube.coord("height").attributes["positive"] = "up"
     cube.data = data.astype(np.float32)
 
@@ -62,20 +61,6 @@ def _set_up_height_cube(height_points, ascending=True):
         cube.coord("height").attributes["positive"] = "down"
 
     return cube
-
-
-class Test__init__(IrisTest):
-
-    """Test the init method."""
-
-    def test_raise_exception(self):
-        """Test that an error is raised, if the direction_of_integration
-        is not valid."""
-        coord_name = "height"
-        direction = "sideways"
-        msg = "The specified direction of integration"
-        with self.assertRaisesRegex(ValueError, msg):
-            Integration(coord_name, direction_of_integration=direction)
 
 
 class Test__repr__(IrisTest):
@@ -88,7 +73,7 @@ class Test__repr__(IrisTest):
         result = str(Integration(coord_name))
         msg = ('<Integration: coord_name_to_integrate: height, '
                'start_point: None, end_point: None, '
-               'direction_of_integration: negative>')
+               'positive_integration: False>')
         self.assertEqual(result, msg)
 
 
@@ -104,10 +89,8 @@ class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
         self.descending_height_points = np.array([20., 10., 5.])
         self.descending_cube = _set_up_height_cube(
             self.descending_height_points, ascending=False)
-        self.plugin_positive = Integration(
-            "height", direction_of_integration="positive")
-        self.plugin_negative = Integration(
-            "height", direction_of_integration="negative")
+        self.plugin_positive = Integration("height", positive_integration=True)
+        self.plugin_negative = Integration("height")
 
     def test_ascending_coordinate_positive(self):
         """Test that for a monotonically ascending coordinate, where the
@@ -162,11 +145,9 @@ class Test_prepare_for_integration(IrisTest):
         """Set up the cube."""
         height_points = np.array([5., 10., 20.])
         cube = _set_up_height_cube(height_points)
-        self.plugin_positive = Integration(
-            "height", direction_of_integration="positive")
+        self.plugin_positive = Integration("height", positive_integration=True)
         self.plugin_positive.input_cube = cube.copy()
-        self.plugin_negative = Integration(
-            "height", direction_of_integration="negative")
+        self.plugin_negative = Integration("height")
         self.plugin_negative.input_cube = cube.copy()
 
     def test_basic(self):
@@ -190,7 +171,6 @@ class Test_prepare_for_integration(IrisTest):
     def test_negative_points(self):
         """Test that the expected coordinate points are returned for each
         cube when the direction of integration is negative."""
-        direction = "negative"
         self.plugin_negative.input_cube.coord("height").points = (
             np.array([20., 10., 5.]))
         result = self.plugin_negative.prepare_for_integration()
@@ -240,11 +220,9 @@ class Test_perform_integration(IrisTest):
               [32.50, 32.50, 32.50],
               [32.50, 32.50, 32.50]]])
 
-        self.plugin_positive = Integration(
-            "height", direction_of_integration="positive")
+        self.plugin_positive = Integration("height", positive_integration=True)
         self.plugin_positive.input_cube = cube.copy()
-        self.plugin_negative = Integration(
-            "height", direction_of_integration="negative")
+        self.plugin_negative = Integration("height")
         self.plugin_negative.input_cube = cube.copy()
 
     def test_basic(self):
@@ -451,8 +429,7 @@ class Test_process(IrisTest):
         data[0, 0, 0] = 6
         cube.data = data
         self.cube = cube
-        self.plugin = Integration(
-            "height", direction_of_integration="negative")
+        self.plugin = Integration("height")
 
     def test_basic(self):
         """Test that a cube with the points on the chosen coordinate are

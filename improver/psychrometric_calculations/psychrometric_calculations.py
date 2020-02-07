@@ -35,6 +35,7 @@ import warnings
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import CubeList
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 from scipy.stats import linregress
@@ -371,7 +372,7 @@ class WetBulbTemperature(BasePlugin):
             data=wbt_data)
         return wbt
 
-    def process(self, temperature, relative_humidity, pressure):
+    def process(self, cubes):
         """
         Call the calculate_wet_bulb_temperature function to calculate wet bulb
         temperatures. This process function splits input cubes over vertical
@@ -379,17 +380,29 @@ class WetBulbTemperature(BasePlugin):
         data.
 
         Args:
-            temperature (iris.cube.Cube):
-                Cube of air temperatures.
-            relative_humidity (iris.cube.Cube):
-                Cube of relative humidities.
-            pressure (iris.cube.Cube):
-                Cube of air pressures.
+            cubes (iris.cube.CubeList or list or iris.cube.Cube):
+                containing:
+                    temperature (iris.cube.Cube):
+                        Cube of air temperatures.
+                    relative_humidity (iris.cube.Cube):
+                        Cube of relative humidities.
+                    pressure (iris.cube.Cube):
+                        Cube of air pressures.
 
         Returns:
             iris.cube.Cube:
                 Cube of wet bulb temperature (K).
         """
+        names_to_extract = ["air_temperature",
+                            "relative_humidity",
+                            "air_pressure"]
+        if len(cubes) != len(names_to_extract):
+            raise ValueError(
+                f'Expected {len(names_to_extract)} cubes, found {len(cubes)}')
+
+        temperature, relative_humidity, pressure = tuple(
+            CubeList(cubes).extract_strict(n) for n in names_to_extract)
+
         slices = self._slice_inputs(temperature, relative_humidity, pressure)
 
         cubelist = iris.cube.CubeList([])
@@ -410,12 +423,11 @@ class WetBulbTemperatureIntegral(BasePlugin):
 
     def __init__(self):
         """Initialise class."""
-        self.integration_plugin = Integration(
-            "height", direction_of_integration="negative")
+        self.integration_plugin = Integration("height")
 
     def process(self, wet_bulb_temperature):
         """
-        Calculate the vertical integal of wet bulb temperature from the input
+        Calculate the vertical integral of wet bulb temperature from the input
         wet bulb temperatures on height levels.
 
         Args:
@@ -939,8 +951,7 @@ class PhaseChangeLevel(BasePlugin):
         return create_new_diagnostic_cube(name, 'm', template, attributes,
                                           data=phase_change_level)
 
-    def process(self, wet_bulb_temperature, wet_bulb_integral, orog,
-                land_sea_mask):
+    def process(self, cubes):
         """
         Use the wet bulb temperature integral to find the altitude at which a
         phase change occurs (e.g. snow to sleet). This is achieved by finding
@@ -950,19 +961,33 @@ class PhaseChangeLevel(BasePlugin):
         data appropriately.
 
         Args:
-            wet_bulb_temperature (iris.cube.Cube):
-                Cube of wet bulb temperatures on height levels.
-            wet_bulb_integral (iris.cube.Cube):
-                Cube of wet bulb temperature integral (Kelvin-metres).
-            orog (iris.cube.Cube):
-                Cube of orography (m).
-            land_sea_mask (iris.cube.Cube):
-                Cube containing a binary land-sea mask.
+        cubes (iris.cube.CubeList or list or iris.cube.Cube):
+            containing:
+                wet_bulb_temperature (iris.cube.Cube):
+                    Cube of wet bulb temperatures on height levels.
+                wet_bulb_integral (iris.cube.Cube):
+                    Cube of wet bulb temperature integral (Kelvin-metres).
+                orog (iris.cube.Cube):
+                    Cube of orography (m).
+                land_sea_mask (iris.cube.Cube):
+                    Cube containing a binary land-sea mask.
 
         Returns:
             iris.cube.Cube:
                 Cube of phase change level above sea level (asl).
         """
+
+        names_to_extract = ["wet_bulb_temperature",
+                            "wet_bulb_temperature_integral",
+                            "surface_altitude",
+                            "land_binary_mask"]
+        if len(cubes) != len(names_to_extract):
+            raise ValueError(
+                f'Expected {len(names_to_extract)} cubes, found {len(cubes)}')
+
+        wet_bulb_temperature, wet_bulb_integral, orog, land_sea_mask = tuple(
+            CubeList(cubes).extract_strict(n) for n in names_to_extract)
+
         wet_bulb_temperature.convert_units('celsius')
         wet_bulb_integral.convert_units('K m')
 
