@@ -41,9 +41,6 @@ from improver.cube_combiner import CubeCombiner
 
 from ..set_up_test_cubes import set_up_probability_cube
 
-TIME_UNIT = 'seconds since 1970-01-01 00:00:00'
-CALENDAR = 'gregorian'
-
 
 class Test__init__(IrisTest):
 
@@ -133,17 +130,26 @@ class Test_process(set_up_cubes):
 
     def test_bounds_expansion(self):
         """Test that the plugin calculates the sum of the input cubes
-        correctly and expands the requested coordinate bounds in the
+        correctly and expands the time coordinate bounds on the
         resulting output."""
         plugin = CubeCombiner('add')
-        coords_to_expand = {'time': 'upper'}
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        result = plugin.process(cubelist, 'new_cube_name',
-                                coords_to_expand=coords_to_expand)
+        result = plugin.process(cubelist, 'new_cube_name')
         expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
         self.assertEqual(result.name(), 'new_cube_name')
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(result.coord('time').points[0], 1447894800)
+        self.assertArrayEqual(result.coord('time').bounds,
+                              [[1447887600, 1447894800]])
+
+    def test_bounds_expansion_midpoint(self):
+        """Test option to use the midpoint between the bounds as the time
+        coordinate point, rather than the (default) maximum."""
+        plugin = CubeCombiner('add')
+        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
+        result = plugin.process(cubelist, 'new_cube_name', use_midpoint=True)
+        self.assertEqual(result.name(), 'new_cube_name')
+        self.assertEqual(result.coord('time').points[0], 1447891200)
         self.assertArrayEqual(result.coord('time').bounds,
                               [[1447887600, 1447894800]])
 
