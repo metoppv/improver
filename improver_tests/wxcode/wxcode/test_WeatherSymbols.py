@@ -154,8 +154,8 @@ class Test_WXCode(IrisTest):
         self.cubes = iris.cube.CubeList([
             snowfall_rate, rainfall_rate, snowfall_vicinity, rainfall_vicinity,
             cloud, cloud_low, visibility, lightning])
-        all = [cube.name() for cube in self.cubes]
-        self.uk_no_lightning = [name for name in all
+        names = [cube.name() for cube in self.cubes]
+        self.uk_no_lightning = [name for name in names
                                 if 'lightning' not in name]
         self.gbl = [name for name in self.uk_no_lightning
                     if 'vicinity' not in name]
