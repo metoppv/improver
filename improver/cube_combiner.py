@@ -160,11 +160,9 @@ class CubeCombiner(BasePlugin):
         if self.operation == 'mean':
             result.data = result.data / len(cube_list)
 
-        # update coordinate bounds and cube name
+        # update any coordinates that have been expanded, and rename output
         expanded_coord_names = self._get_expanded_coord_names(cube_list)
-        point_val = 'mid' if use_midpoint else 'upper'
-        coords_to_expand = {name: point_val for name in expanded_coord_names}
-        if coords_to_expand:
+        if expanded_coord_names:
             result = expand_bounds(result, cube_list, expanded_coord_names,
                                    use_midpoint=use_midpoint)
         result.rename(new_diagnostic_name)
