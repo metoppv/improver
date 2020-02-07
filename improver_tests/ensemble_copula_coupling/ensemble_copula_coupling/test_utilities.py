@@ -33,7 +33,6 @@ Unit tests for the
 `ensemble_copula_coupling.EnsemeblCopulaCouplingUtilities` class.
 """
 import unittest
-import iris
 
 import numpy as np
 from cf_units import Unit
