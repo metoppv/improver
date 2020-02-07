@@ -33,7 +33,10 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
+import iris
 import numpy as np
+
+from improver.utilities.temporal import iris_time_to_datetime
 
 
 def convert_cube_data_to_2d(
@@ -144,3 +147,62 @@ def check_predictor(predictor):
                "value. Accepted values are 'mean' or 'realizations'").format(
                    predictor.lower())
         raise ValueError(msg)
+
+
+def filter_non_matching_cubes(historic_forecast, truth):
+    """
+    Provide filtering for the historic forecast and truth to make sure
+    that these contain matching validity times. This ensures that any
+    mismatch between the historic forecasts and truth is dealt with.
+
+    Args:
+        historic_forecast (iris.cube.Cube):
+            Cube of historic forecasts that potentially contains
+            a mismatch compared to the truth.
+        truth (iris.cube.Cube):
+            Cube of truth that potentially contains a mismatch
+            compared to the historic forecasts.
+
+    Returns:
+        (tuple): tuple containing:
+            **matching_historic_forecasts** (iris.cube.Cube):
+                Cube of historic forecasts where any mismatches with
+                the truth cube have been removed.
+            **matching_truths** (iris.cube.Cube):
+                Cube of truths where any mismatches with
+                the historic_forecasts cube have been removed.
+
+    Raises:
+        ValueError: The filtering has found no matches in validity time
+            between the historic forecasts and the truths.
+
+    """
+    matching_historic_forecasts = iris.cube.CubeList([])
+    matching_truths = iris.cube.CubeList([])
+    for hf_slice in historic_forecast.slices_over("time"):
+        if hf_slice.coord("time").has_bounds():
+            point = iris_time_to_datetime(hf_slice.coord("time"),
+                                          point_or_bound="point")
+            bounds, = iris_time_to_datetime(
+                hf_slice.coord("time"), point_or_bound="bound")
+            coord_values = (
+                {"time": lambda cell: point[0] == cell.point and
+                    bounds[0] == cell.bound[0] and
+                    bounds[1] == cell.bound[1]})
+        else:
+            coord_values = (
+                {"time": iris_time_to_datetime(
+                    hf_slice.coord("time"), point_or_bound="point")})
+
+        constr = iris.Constraint(coord_values=coord_values)
+        truth_slice = truth.extract(constr)
+
+        if truth_slice:
+            matching_historic_forecasts.append(hf_slice)
+            matching_truths.append(truth_slice)
+    if not matching_historic_forecasts and not matching_truths:
+        msg = ("The filtering has found no matches in validity time "
+               "between the historic forecasts and the truths.")
+        raise ValueError(msg)
+    return (matching_historic_forecasts.merge_cube(),
+            matching_truths.merge_cube())

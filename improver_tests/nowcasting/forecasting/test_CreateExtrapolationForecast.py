@@ -116,8 +116,18 @@ class Test__init__(SetUpCubes):
 
     def test_no_orographic_enhancement(self):
         """Test what happens if no orographic enhancement cube is provided"""
-        message = ("For precipitation fields, orographic enhancement cube "
-                   "must be supplied.")
+        message = ("For precipitation or rainfall fields, orographic "
+                   "enhancement cube must be supplied.")
+        with self.assertRaisesRegex(ValueError, message):
+            CreateExtrapolationForecast(
+                self.precip_cube, self.vel_x, self.vel_y)
+
+    def test_no_orographic_enhancement_rainfall_rate(self):
+        """Test what happens if no orographic enhancement cube is provided.
+           for rainfall_rate"""
+        message = ("For precipitation or rainfall fields, orographic "
+                   "enhancement cube must be supplied.")
+        self.precip_cube.rename("rainfall_rate")
         with self.assertRaisesRegex(ValueError, message):
             CreateExtrapolationForecast(
                 self.precip_cube, self.vel_x, self.vel_y)
@@ -125,8 +135,8 @@ class Test__init__(SetUpCubes):
     def test_orographic_enhancement(self):
         """Test what happens if an orographic enhancement cube is provided"""
         plugin = CreateExtrapolationForecast(
-                self.precip_cube, self.vel_x, self.vel_y,
-                orographic_enhancement_cube=self.oe_cube.copy())
+            self.precip_cube, self.vel_x, self.vel_y,
+            orographic_enhancement_cube=self.oe_cube.copy())
         expected_data = np.array([[0.03125, 1.0, 0.03125],
                                   [1.0, 0.03125, 1.0],
                                   [0.0, 2.0, 0.0],
@@ -150,8 +160,8 @@ class Test__repr__(SetUpCubes):
     def test_basic(self):
         """Test string representation"""
         plugin = CreateExtrapolationForecast(
-                self.precip_cube, self.vel_x, self.vel_y,
-                orographic_enhancement_cube=self.oe_cube)
+            self.precip_cube, self.vel_x, self.vel_y,
+            orographic_enhancement_cube=self.oe_cube)
         result = str(plugin)
         expected_result = (
             "<CreateExtrapolationForecast: input_cube = <iris 'Cube' of "
@@ -182,7 +192,7 @@ class Test_extrapolate(SetUpCubes):
         input_cube.rename("air_temperature")
         input_cube.units = "K"
         plugin = CreateExtrapolationForecast(
-                input_cube, self.vel_x, self.vel_y)
+            input_cube, self.vel_x, self.vel_y)
         result = plugin.extrapolate(10)
         expected_result = np.array([[np.nan, np.nan, np.nan],
                                     [np.nan, 1, 2],
@@ -191,7 +201,8 @@ class Test_extrapolate(SetUpCubes):
         expected_result = np.ma.masked_invalid(expected_result)
         expected_forecast_period = np.array([600], dtype=np.int64)
         # Check we get the expected result, and the correct time coordinates.
-        self.assertArrayEqual(expected_result.mask, result.data.mask)
+        self.assertArrayEqual(np.ma.getmask(expected_result),
+                              np.ma.getmask(result.data))
         self.assertArrayAlmostEqual(expected_result.data, result.data.data)
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_forecast_period)
@@ -211,8 +222,8 @@ class Test_extrapolate(SetUpCubes):
         The orographic enhancement has been removed before advecting, then
         added back on afterwards, leading to a different end result."""
         plugin = CreateExtrapolationForecast(
-                self.precip_cube, self.vel_x, self.vel_y,
-                orographic_enhancement_cube=self.oe_cube)
+            self.precip_cube, self.vel_x, self.vel_y,
+            orographic_enhancement_cube=self.oe_cube)
         result = plugin.extrapolate(10)
         expected_result = np.array([[np.nan, np.nan, np.nan],
                                     [np.nan, 1.03125, 1.0],
@@ -221,7 +232,8 @@ class Test_extrapolate(SetUpCubes):
         expected_result = np.ma.masked_invalid(expected_result)
         expected_forecast_period = np.array([600], dtype=np.int64)
         # Check we get the expected result, and the correct time coordinates.
-        self.assertArrayEqual(expected_result.mask, result.data.mask)
+        self.assertArrayEqual(np.ma.getmask(expected_result),
+                              np.ma.getmask(result.data))
         self.assertArrayAlmostEqual(expected_result.data, result.data.data)
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").points, expected_forecast_period)

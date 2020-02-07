@@ -35,6 +35,8 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube, generate_mandatory_attributes)
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.threshold import BasicThreshold
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
@@ -146,8 +148,8 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
                 The list of thresholds.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the convective ratio.
+            numpy.ndarray:
+                Array of convective ratio.
 
         Raises:
             ValueError: If a value of infinity or a value greater than 1.0
@@ -164,30 +166,29 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
 
         # Ignore runtime warnings from divide by 0 errors.
         with np.errstate(invalid='ignore', divide='ignore'):
-            convective_ratio = (
-                neighbourhooded_cube_dict[self.higher_threshold] /
-                neighbourhooded_cube_dict[self.lower_threshold])
+            convective_ratio = np.divide(
+                neighbourhooded_cube_dict[self.higher_threshold].data,
+                neighbourhooded_cube_dict[self.lower_threshold].data)
 
-        infinity_condition = np.sum(np.isinf(convective_ratio.data)) > 0.0
+        infinity_condition = np.sum(np.isinf(convective_ratio)) > 0.0
         with np.errstate(invalid='ignore'):
             greater_than_1_condition = (
-                np.sum(convective_ratio.data > 1.0) > 0.0)
+                np.sum(convective_ratio > 1.0) > 0.0)
 
         if infinity_condition or greater_than_1_condition:
             if infinity_condition:
                 start_msg = ("A value of infinity was found for the "
                              "convective ratio: {}.").format(
-                                 convective_ratio.data)
+                                 convective_ratio)
             elif greater_than_1_condition:
                 start_msg = ("A value of greater than 1.0 was found for the "
                              "convective ratio: {}.").format(
-                                 convective_ratio.data)
+                                 convective_ratio)
             msg = ("{}\nThis value is not plausible as the fraction above the "
                    "higher threshold must be less than the fraction "
                    "above the lower threshold.").format(start_msg)
             raise ValueError(msg)
 
-        convective_ratio.long_name = "convective_ratio"
         return convective_ratio
 
     @staticmethod
@@ -312,10 +313,14 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
                     self.sum_differences_between_adjacent_grid_squares(
                         cube, thresholded_cubes))
         else:
-            cube = [cube]
             for threshold in threshold_list:
-                cubelist.extend(self.iterate_over_threshold(cube, threshold))
+                cubelist.extend(self.iterate_over_threshold([cube], threshold))
 
         convective_ratios = (
             self._calculate_convective_ratio(cubelist, threshold_list))
-        return convective_ratios
+
+        attributes = generate_mandatory_attributes([cube])
+        output_cube = create_new_diagnostic_cube(
+            "convective_ratio", "1", cube, attributes, data=convective_ratios)
+
+        return output_cube

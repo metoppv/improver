@@ -48,12 +48,10 @@ def test_basic(tmp_path):
     """Test basic extrapolation nowcast"""
     kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-extrapolate"
     kgo_path = kgo_dir / "kgo.nc"
-    input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
+    input_dir = acc.kgo_root() / "nowcast-extrapolate"
     input_path = input_dir / RAINRATE_NC
-    oe_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
-    oe_path = oe_dir / "orographic_enhancement.nc"
-
-    uv_path = input_dir / "kgo.nc"
+    oe_path = input_dir / "orographic_enhancement.nc"
+    uv_path = input_dir / "uv.nc"
 
     output_path = tmp_path / "output.nc"
 
@@ -68,16 +66,33 @@ def test_metadata(tmp_path):
     """Test basic extrapolation nowcast with json metadata"""
     kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-extrapolate"
     kgo_path = kgo_dir / "kgo_with_metadata.nc"
-    input_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
-    input_path = input_dir / RAINRATE_NC
-    oe_path = input_dir / f"20181103T1600Z-PT0003H00M-{OE}.nc"
-    meta_path = input_dir / "../metadata/precip.json"
-    uv_path = input_dir / "kgo.nc"
+    input_path = kgo_dir / ".." / RAINRATE_NC
+    oe_path = kgo_dir / "../orographic_enhancement.nc"
+    meta_path = kgo_dir / "precip.json"
+    uv_path = kgo_dir / "../uv.nc"
 
     output_path = tmp_path / "output.nc"
 
     args = [input_path, uv_path, oe_path,
             "--attributes-config", meta_path,
+            "--max-lead-time", "30",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_basic_no_orographic(tmp_path):
+    """Test basic extrapolation nowcast without orographic enhancement"""
+    kgo_dir = (acc.kgo_root() /
+               "nowcast-extrapolate/extrapolate_no_orographic_enhancement")
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = (kgo_dir /
+                  "20190101T0300Z-PT0000H00M-cloud_amount_of_total_cloud.nc")
+    uv_path = kgo_dir / "../uv.nc"
+
+    output_path = tmp_path / "output.nc"
+
+    args = [input_path, uv_path,
             "--max-lead-time", "30",
             "--output", output_path]
     run_cli(args)

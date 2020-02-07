@@ -46,8 +46,7 @@ def test_gaussian(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
-    emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
-    emos_est_path = emos_est_dir / "gaussian/kgo.nc"
+    emos_est_path = kgo_dir / "gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path,
             "--distribution", "norm",
@@ -62,8 +61,7 @@ def test_truncated_gaussian(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/truncated_gaussian"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
-    emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
-    emos_est_path = emos_est_dir / "truncated_gaussian/kgo.nc"
+    emos_est_path = kgo_dir / "truncated_gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path,
             "--distribution", "truncnorm",
@@ -74,13 +72,12 @@ def test_truncated_gaussian(tmp_path):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
-def realizations_as_predictor(tmp_path, status):
+def test_realizations_as_predictor(tmp_path):
     """Implementation of test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/realizations"
-    kgo_path = kgo_dir / f"{status}_statsmodels_kgo.nc"
+    kgo_path = kgo_dir / "realizations_kgo.nc"
     input_path = kgo_dir / "../gaussian/input.nc"
-    emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
-    emos_est_path = emos_est_dir / f"realizations/{status}_statsmodels_kgo.nc"
+    emos_est_path = kgo_dir / "realizations_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path,
             "--distribution", "norm",
@@ -91,27 +88,12 @@ def realizations_as_predictor(tmp_path, status):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
-@acc.skip_if_statsmodels
-def test_realizations_as_predictor_no_sm(tmp_path):
-    """Test using non-default predictor realizations"""
-    sm_status = "without"
-    realizations_as_predictor(tmp_path, sm_status)
-
-
-@acc.skip_if_no_statsmodels
-def test_realizations_as_predictor_sm(tmp_path):
-    """Test using non-default predictor realizations"""
-    sm_status = "with"
-    realizations_as_predictor(tmp_path, sm_status)
-
-
 def test_probabilities(tmp_path):
     """Test using probabilities as input"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/probabilities"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
-    emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
-    emos_est_path = emos_est_dir / "gaussian/kgo.nc"
+    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path,
             "--distribution", "norm",
@@ -126,8 +108,7 @@ def test_probabilities_error(tmp_path):
     """Test using probabilities as input without num_realizations"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/probabilities"
     input_path = kgo_dir / "input.nc"
-    emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
-    emos_est_path = emos_est_dir / "gaussian/kgo.nc"
+    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path,
             "--distribution", "norm",
@@ -141,8 +122,7 @@ def test_percentiles(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/percentiles"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
-    emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
-    emos_est_path = emos_est_dir / "gaussian/kgo.nc"
+    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path,
             "--distribution", "norm",
@@ -157,8 +137,7 @@ def test_percentiles_error(tmp_path):
     """Test using percentiles as input"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/percentiles"
     input_path = kgo_dir / "input.nc"
-    emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
-    emos_est_path = emos_est_dir / "gaussian/kgo.nc"
+    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, emos_est_path,
             "--distribution", "norm",
@@ -171,8 +150,7 @@ def test_rebadged_percentiles(tmp_path):
     """Test using realizations rebadged as percentiles as input"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/percentiles"
     kgo_path = kgo_dir / "kgo.nc"
-    emos_est_dir = kgo_dir / "../../estimate-emos-coefficients"
-    emos_est_path = emos_est_dir / "gaussian/kgo.nc"
+    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [kgo_dir / "../rebadged_percentiles/input.nc", emos_est_path,
             "--distribution", "norm",

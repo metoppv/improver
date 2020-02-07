@@ -18,3 +18,5 @@ dependencies:
   - filelock
   - mock
   - pysteps
+  - pip:
+    - clize

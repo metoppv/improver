@@ -50,13 +50,13 @@ from scipy.stats import norm
 from improver import BasePlugin
 from improver.calibration.utilities import (
     check_predictor, convert_cube_data_to_2d,
-    flatten_ignoring_masked_data)
+    flatten_ignoring_masked_data, filter_non_matching_cubes)
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import time_coords_match
 from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
                                                   collapsed)
 from improver.utilities.temporal import (
-    cycletime_to_datetime, datetime_to_iris_time, iris_time_to_datetime)
+    cycletime_to_datetime, datetime_to_iris_time)
 
 
 class ContinuousRankedProbabilityScoreMinimisers:
@@ -702,65 +702,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         return np.array(initial_guess, dtype=np.float32)
 
     @staticmethod
-    def _filter_non_matching_cubes(historic_forecast, truth):
-        """
-        Provide filtering for the historic forecast and truth to make sure
-        that these contain matching validity times. This ensures that any
-        mismatch between the historic forecasts and truth is dealt with.
-
-        Args:
-            historic_forecast (iris.cube.Cube):
-                Cube of historic forecasts that potentially contains
-                a mismatch compared to the truth.
-            truth (iris.cube.Cube):
-                Cube of truth that potentially contains a mismatch
-                compared to the historic forecasts.
-
-        Returns:
-            (tuple): tuple containing:
-                **matching_historic_forecasts** (iris.cube.Cube):
-                    Cube of historic forecasts where any mismatches with
-                    the truth cube have been removed.
-                **matching_truths** (iris.cube.Cube):
-                    Cube of truths where any mismatches with
-                    the historic_forecasts cube have been removed.
-
-        Raises:
-            ValueError: The filtering has found no matches in validity time
-                between the historic forecasts and the truths.
-
-        """
-        matching_historic_forecasts = iris.cube.CubeList([])
-        matching_truths = iris.cube.CubeList([])
-        for hf_slice in historic_forecast.slices_over("time"):
-            if hf_slice.coord("time").has_bounds():
-                point = iris_time_to_datetime(hf_slice.coord("time"),
-                                              point_or_bound="point")
-                bounds, = iris_time_to_datetime(
-                    hf_slice.coord("time"), point_or_bound="bound")
-                coord_values = (
-                    {"time": lambda cell: point[0] == cell.point and
-                        bounds[0] == cell.bound[0] and
-                        bounds[1] == cell.bound[1]})
-            else:
-                coord_values = (
-                    {"time": iris_time_to_datetime(
-                        hf_slice.coord("time"), point_or_bound="point")})
-
-            constr = iris.Constraint(coord_values=coord_values)
-            truth_slice = truth.extract(constr)
-
-            if truth_slice:
-                matching_historic_forecasts.append(hf_slice)
-                matching_truths.append(truth_slice)
-        if not matching_historic_forecasts and not matching_truths:
-            msg = ("The filtering has found no matches in validity time "
-                   "between the historic forecasts and the truths.")
-            raise ValueError(msg)
-        return (matching_historic_forecasts.merge_cube(),
-                matching_truths.merge_cube())
-
-    @staticmethod
     def mask_cube(cube, landsea_mask):
         """
         Mask the input cube using the given landsea_mask. Sea points are
@@ -845,7 +786,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         check_predictor(self.predictor)
 
         historic_forecast, truth = (
-            self._filter_non_matching_cubes(historic_forecast, truth))
+            filter_non_matching_cubes(historic_forecast, truth))
 
         # Make sure inputs have the same units.
         if self.desired_units:

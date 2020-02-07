@@ -134,7 +134,7 @@ def recreate_if_needed(output_path, kgo_path, recreate_dir_path=None):
         print("Original KGO file does not exist")
     kgo_relative = kgo_path.relative_to(kgo_root_dir)
     recreate_file_path = recreate_dir_path / kgo_relative
-    if recreate_file_path.resolve() == kgo_path.resolve():
+    if recreate_file_path == kgo_path:
         err = (f"Recreate KGO path {recreate_file_path} must be different from"
                f" original KGO path {kgo_path} to avoid overwriting")
         raise IOError(err)

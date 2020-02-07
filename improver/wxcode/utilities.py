@@ -32,11 +32,6 @@
 
 from collections import OrderedDict
 
-import iris
-import numpy as np
-from iris.exceptions import CoordinateNotFoundError
-
-import improver.utilities.solar as solar
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
     wxcode_decision_tree_global)
@@ -78,32 +73,19 @@ WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 
 
-def add_wxcode_metadata(cube):
-    """ Add weather code metadata to a cube
-    Args:
-        cube (iris.cube.Cube):
-            Cube which needs weather code metadata added.
-    Returns:
-        iris.cube.Cube:
-            Cube with weather code metadata added.
+def weather_code_attributes():
     """
-    cube.long_name = "weather_code"
-    cube.standard_name = None
-    cube.var_name = None
-    cube.units = "1"
+    Returns:
+        dict:
+            Attributes defining weather code meanings.
+    """
+    import numpy as np
+    attributes = {}
     wx_keys = np.array(list(WX_DICT.keys()))
-    cube.attributes.update({'weather_code': wx_keys})
+    attributes.update({'weather_code': wx_keys})
     wxstring = " ".join(WX_DICT.values())
-    cube.attributes.update({'weather_code_meaning': wxstring})
-    # If forecast_period or time have bounds remove them
-    # as the weather code cube is not considered to be over a period.
-    for coord_name in ['forecast_period', 'time']:
-        try:
-            if cube.coord(coord_name).bounds is not None:
-                cube.coord(coord_name).bounds = None
-        except iris.exceptions.CoordinateNotFoundError:
-            continue
-    return cube
+    attributes.update({'weather_code_meaning': wxstring})
+    return attributes
 
 
 def expand_nested_lists(query, key):
@@ -144,6 +126,11 @@ def update_daynight(cubewx):
         CoordinateNotFoundError : cube must have time coordinate.
 
     """
+    import iris
+    import numpy as np
+    from iris.exceptions import CoordinateNotFoundError
+    import improver.utilities.solar as solar
+
     if not cubewx.coords("time"):
         msg = ("cube must have time coordinate ")
         raise CoordinateNotFoundError(msg)
@@ -200,35 +187,19 @@ def interrogate_decision_tree(wxtree):
 
     # Diagnostic names and threshold values.
     requirements = {}
-    # How the data has been thresholded relative to these thresholds.
-    relative = {}
-
     for query in queries.values():
         diagnostics = expand_nested_lists(query, 'diagnostic_fields')
-        for index, diagnostic in enumerate(diagnostics):
-            if diagnostic not in requirements:
-                requirements[diagnostic] = []
-                relative[diagnostic] = []
-            requirements[diagnostic].extend(
-                expand_nested_lists(query, 'diagnostic_thresholds')[index])
-            relative[diagnostic].append(
-                expand_nested_lists(query, 'diagnostic_conditions')[index])
+        thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
+        for diagnostic, threshold in zip(diagnostics, thresholds):
+            requirements.setdefault(diagnostic, set()).add(threshold)
 
     # Create a list of formatted strings that will be printed as part of the
     # CLI help.
     output = []
-    for requirement in requirements:
-        entries = np.array([entry for entry in requirements[requirement]])
-        relations = np.array([entry for entry in relative[requirement]])
-        _, thresholds = np.unique(np.array([item.points.item()
-                                            for item in entries]),
-                                  return_index=True)
-        output.append('{}; thresholds: {}'.format(
-            requirement, ', '.join([
-                '{} ({})'.format(str(threshold.points.item()),
-                                 str(threshold.units))
-                for threshold, relation in
-                zip(entries[thresholds], relations[thresholds])])))
+    for requirement, uniq_thresh in sorted(requirements.items()):
+        units, = set(u for (_, u) in uniq_thresh)  # enforces same units
+        thresh_str = ', '.join(map(str, sorted(v for (v, _) in uniq_thresh)))
+        output.append('{} ({}): {}'.format(requirement, units, thresh_str))
 
     n_files = len(output)
     formatted_string = ('{}\n'*n_files)

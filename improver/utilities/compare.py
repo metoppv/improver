@@ -47,9 +47,11 @@ or raise an appropriate exception.
 import netCDF4
 import numpy as np
 
-TIGHT_TOLERANCE = 1e-5
-DEFAULT_TOLERANCE = 1e-4
-LOOSE_TOLERANCE = 1e-3
+from improver.constants import (
+    TIGHT_TOLERANCE,
+    DEFAULT_TOLERANCE,
+    LOOSE_TOLERANCE,
+)
 
 
 def compare_netcdfs(actual_path, desired_path, rtol, atol,
@@ -288,7 +290,7 @@ def compare_data(name, actual_var, desired_var, rtol, atol, reporter):
         None
     """
     if actual_var.dtype != desired_var.dtype:
-        msg = f"different type {name} - {actual_var.type} {desired_var.type}"
+        msg = f"different type {name} - {actual_var.dtype} {desired_var.dtype}"
         reporter(msg)
     actual_data = actual_var[:]
     desired_data = desired_var[:]

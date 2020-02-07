@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the OrographicAlphas utility.
+Unit tests for the OrographicSmoothingCoefficients utility.
 
 """
 
@@ -40,7 +40,8 @@ from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.utilities.ancillary_creation import OrographicAlphas
+from improver.utilities.ancillary_creation import (
+    OrographicSmoothingCoefficients)
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 
@@ -64,10 +65,9 @@ class Test__init__(IrisTest):
 
     def test_basic(self):
         """Test default attribute initialisation"""
-        result = OrographicAlphas()
-        self.assertTrue(result.invert_alphas)
-        self.assertEqual(result.min_alpha, 0.)
-        self.assertEqual(result.max_alpha, 1.)
+        result = OrographicSmoothingCoefficients()
+        self.assertEqual(result.min_smoothing_coefficient, 0.)
+        self.assertEqual(result.max_smoothing_coefficient, 1.)
         self.assertEqual(result.coefficient, 1.)
         self.assertEqual(result.power, 1.)
 
@@ -77,28 +77,29 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(OrographicAlphas())
-        msg = ('<OrographicAlphas: min_alpha: {}; max_alpha: {}; '
-               'coefficient: {}; power: {}; '
-               'invert_alphas: {}>'.format(0.0, 1.0, 1, 1, True))
+        result = str(OrographicSmoothingCoefficients())
+        msg = ('<OrographicSmoothingCoefficients: min_smoothing_coefficient: '
+               '{}; max_smoothing_coefficient: {}; coefficient: {}; power: {}'
+               '>'.format(
+                   0.0, 1.0, 1, 1))
         self.assertEqual(result, msg)
 
 
-class Test_scale_alphas(IrisTest):
-    """Class to test the scale_alphas function"""
+class Test_scale_smoothing_coefficients(IrisTest):
+    """Class to test the scale_smoothing_coefficients function"""
 
     def setUp(self):
         """Set up cube & plugin"""
-        self.plugin = OrographicAlphas()
+        self.plugin = OrographicSmoothingCoefficients()
         cube = set_up_cube()
         self.cubelist = [cube, cube]
 
     def test_basic(self):
         """
-        Test the basic function of scale_alphas, using the
-        standard max and min alphas.
+        Test the basic function of scale_smoothing_coefficients, using the
+        standard max and min smoothing_coefficients.
         """
-        result = self.plugin.scale_alphas(self.cubelist)
+        result = self.plugin.scale_smoothing_coefficients(self.cubelist)
         expected = np.array([[0.1, 0.5, 1.0],
                              [0.3, 0.4, 0.7],
                              [0.0, 0.2, 0.1]])
@@ -107,10 +108,11 @@ class Test_scale_alphas(IrisTest):
 
     def test_maxmin(self):
         """
-        Tests the function of scale_alphas, using a max
-        and min value for alpha.
+        Tests the function of scale_smoothing_coefficients, using a max
+        and min value for smoothing_coefficient.
         """
-        result = self.plugin.scale_alphas(self.cubelist, 0.3, 0.5)
+        result = self.plugin.scale_smoothing_coefficients(
+            self.cubelist, 0.3, 0.5)
         expected = np.array([[0.32, 0.40, 0.50],
                              [0.36, 0.38, 0.44],
                              [0.30, 0.34, 0.32]])
@@ -118,12 +120,13 @@ class Test_scale_alphas(IrisTest):
         self.assertArrayAlmostEqual(result[1].data, expected)
 
 
-class Test_unnormalised_alphas(IrisTest):
-    """Class to test the basic alphas function"""
+class Test_unnormalised_smoothing_coefficients(IrisTest):
+    """Class to test the basic smoothing_coefficients function"""
 
     def setUp(self):
         """Set up cube & plugin"""
-        self.plugin = OrographicAlphas(coefficient=0.5, power=2.)
+        self.plugin = OrographicSmoothingCoefficients(
+            coefficient=0.5, power=2.)
         self.cube = set_up_cube()
 
     def test_basic(self):
@@ -134,32 +137,34 @@ class Test_unnormalised_alphas(IrisTest):
         gradient_x, _ = \
             DifferenceBetweenAdjacentGridSquares(gradient=True).process(
                 self.cube)
-        alpha_x = self.plugin.unnormalised_alphas(gradient_x)
-        self.assertArrayAlmostEqual(alpha_x.data, expected)
+        smoothing_coefficient_x = (
+            self.plugin.unnormalised_smoothing_coefficients(gradient_x))
+        self.assertArrayAlmostEqual(smoothing_coefficient_x.data, expected)
 
 
-class Test_gradient_to_alpha(IrisTest):
+class Test_gradient_to_smoothing_coefficient(IrisTest):
 
-    """Class to test alphas data and metadata output"""
+    """Class to test smoothing_coefficients data and metadata output"""
 
     def setUp(self):
         """Set up cube & plugin"""
-        self.plugin = OrographicAlphas(min_alpha=0.3, max_alpha=0.5)
+        self.plugin = OrographicSmoothingCoefficients(
+            min_smoothing_coefficient=0.5, max_smoothing_coefficient=0.3)
         self.cube = set_up_cube()
         self.gradient_x, self.gradient_y = \
             DifferenceBetweenAdjacentGridSquares(gradient=True).process(
                 self.cube)
 
     def test_basic(self):
-        """Test basic version of gradient to alpha"""
+        """Test basic version of gradient to smoothing_coefficient"""
 
         expected = np.array([[0.40666667, 0.38, 0.35333333],
                              [0.5, 0.44666667, 0.39333333],
                              [0.40666667, 0.48666667, 0.43333333]])
 
-        result = self.plugin.gradient_to_alpha(self.gradient_x,
-                                               self.gradient_y)
-        self.assertEqual(result[0].name(), 'alpha_x')
+        result = self.plugin.gradient_to_smoothing_coefficient(
+            self.gradient_x, self.gradient_y)
+        self.assertEqual(result[0].name(), 'smoothing_coefficient_x')
         self.assertArrayAlmostEqual(result[0].data, expected)
         self.assertNotIn('forecast_period', [coord.name()
                          for coord in result[0].coords()])
@@ -168,11 +173,12 @@ class Test_gradient_to_alpha(IrisTest):
 
 
 class Test_process(IrisTest):
-    """Class to test end-to-end alphas creation"""
+    """Class to test end-to-end smoothing_coefficients creation"""
 
     def setUp(self):
         """Set up cube & plugin"""
-        self.plugin = OrographicAlphas()
+        self.plugin = OrographicSmoothingCoefficients(
+            min_smoothing_coefficient=1., max_smoothing_coefficient=0.)
         self.cube = set_up_cube()
 
     def test_basic(self):
