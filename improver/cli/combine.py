@@ -56,7 +56,7 @@ def process(*cubes: cli.inputcube,
         use_midpoint (bool):
             If False (not set), uses the upper bound as the new coordinate
             point for expanded coordinates (eg time for accumulations / max in
-            period).  If False, uses the mid-point.
+            period).  If True, uses the mid-point.
         check_metadata (bool):
             If True, warn on metadata mismatch between inputs.
 
