@@ -164,6 +164,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         threshold_coord.points = [0.65105, 2., 3.34895]
         location_parameter_values = np.ones((3, 3)) * 2
         scale_parameter_values = np.ones((3, 3)) * 4
+        self.expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
         self.location_parameter_values = (
             self.template_cube[0, :, :].copy(data=location_parameter_values))
         self.location_parameter_values.units = 'Celsius'
@@ -175,11 +176,10 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         """Test that the expected probabilities are returned for a cube in
         which they are calculated above the thresholds."""
 
-        expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
         result = Plugin()._location_and_scale_parameters_to_probabilities(
             self.location_parameter_values, self.scale_parameter_values,
             self.template_cube)
-        np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
+        np.testing.assert_allclose(result.data, self.expected, rtol=1.e-4)
 
     def test_with_location_mask(self):
         """Test that the plugin gets the correct data out when you put in
@@ -188,11 +188,10 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         expected_mask = np.array([[[1, 0, 0], [0, 0, 0], [0, 0, 0]],
                                   [[1, 0, 0], [0, 0, 0], [0, 0, 0]],
                                   [[1, 0, 0], [0, 0, 0], [0, 0, 0]]])
-        expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
         self.location_parameter_values.data = np.ma.masked_array(
             self.location_parameter_values.data, mask=mask)
         expected_with_mask = np.ma.masked_array(
-            expected, mask=expected_mask)
+            self.expected, mask=expected_mask)
         result = Plugin()._location_and_scale_parameters_to_probabilities(
             self.location_parameter_values, self.scale_parameter_values,
             self.template_cube)
@@ -206,11 +205,10 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         expected_mask = np.array([[[0, 0, 0], [1, 0, 1], [0, 0, 1]],
                                   [[0, 0, 0], [1, 0, 1], [0, 0, 1]],
                                   [[0, 0, 0], [1, 0, 1], [0, 0, 1]]])
-        expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
         self.scale_parameter_values.data = np.ma.masked_array(
             self.scale_parameter_values.data, mask=mask)
         expected_with_mask = np.ma.masked_array(
-            expected, mask=expected_mask)
+            self.expected, mask=expected_mask)
         result = Plugin()._location_and_scale_parameters_to_probabilities(
             self.location_parameter_values, self.scale_parameter_values,
             self.template_cube)
@@ -225,13 +223,12 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         expected_mask = np.array([[[1, 0, 0], [0, 1, 0], [1, 0, 0]],
                                   [[1, 0, 0], [0, 1, 0], [1, 0, 0]],
                                   [[1, 0, 0], [0, 1, 0], [1, 0, 0]]])
-        expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
         self.location_parameter_values.data = np.ma.masked_array(
             self.location_parameter_values.data, mask=mask1)
         self.scale_parameter_values.data = np.ma.masked_array(
             self.scale_parameter_values.data, mask=mask2)
         expected_with_mask = np.ma.masked_array(
-            expected, mask=expected_mask)
+            self.expected, mask=expected_mask)
         result = Plugin()._location_and_scale_parameters_to_probabilities(
             self.location_parameter_values, self.scale_parameter_values,
             self.template_cube)

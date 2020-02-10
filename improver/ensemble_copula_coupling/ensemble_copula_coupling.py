@@ -758,7 +758,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
         mask = np.logical_or(loc_mask, scale_mask)
         # Remove any mask that may be applied to location and scale parameters
         # and replace with ones
-        location_parameter_data = np.ma.filled(location_parameter.data, 1).flatten()
+        location_parameter_data = np.ma.filled(
+            location_parameter.data, 1).flatten()
         scale_parameter_data = np.ma.filled(scale_parameter.data, 1).flatten()
 
         # Convert percentiles into fractions.
