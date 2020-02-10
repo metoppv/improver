@@ -111,6 +111,8 @@ class Test_WXCode(IrisTest):
                 'm',
                 spp__relative_to_threshold='below',
                 forecast_thresholds=np.array([1000.0, 5000.0])))
+        visibility.coord(var_name="threshold"
+                         ).attributes['spp__relative_to_threshold'] = 'below'
 
         data_snowv = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
