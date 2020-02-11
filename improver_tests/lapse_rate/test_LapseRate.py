@@ -176,7 +176,7 @@ class Test_process(IrisTest):
         result = LapseRate(nbhood_radius=1).process(temperature,
                                                     self.orography,
                                                     self.land_sea_mask)
-        self.assertSequenceEqual(result.shape, temperature.shape)        
+        self.assertSequenceEqual(result.shape, temperature.shape)
         self.assertSequenceEqual(result.coords(dim_coords=True),
                                  temperature.coords(dim_coords=True))
 
