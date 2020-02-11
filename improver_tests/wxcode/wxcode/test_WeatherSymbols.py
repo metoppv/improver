@@ -53,105 +53,70 @@ class Test_WXCode(IrisTest):
 
     def setUp(self):
         """Set up cubes and constraints required for Weather Symbols """
-        data_snow = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0]).reshape((3, 1, 3, 3))
-        snowfall_rate = (
-            set_up_probability_threshold_cube(
-                data_snow,
-                'lwe_snowfall_rate',
-                'm s-1',
-                spp__relative_to_threshold='above',
-                forecast_thresholds=np.array([8.33333333e-09,
-                                              2.77777778e-08,
-                                              2.77777778e-07])))
+
+        thresholds = np.array([8.33333333e-09, 2.77777778e-08, 2.77777778e-07],
+                              dtype=np.float32)
+        data_snow = np.zeros((3, 3, 3), dtype=np.float32)
+        snowfall_rate = set_up_probability_cube(
+            data_snow, thresholds, variable_name='lwe_snowfall_rate',
+            threshold_units='m s-1')
+
+        snowfall_vicinity = set_up_probability_cube(
+            data_snow, thresholds,
+            variable_name='lwe_snowfall_rate_in_vicinity',
+            threshold_units='m s-1')
 
         data_rain = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0]).reshape((3, 1, 3, 3))
-        rainfall_rate = (
-            set_up_probability_threshold_cube(
-                data_rain,
-                'rainfall_rate',
-                'm s-1',
-                spp__relative_to_threshold='above',
-                forecast_thresholds=np.array([8.33333333e-09,
-                                              2.77777778e-08,
-                                              2.77777778e-07])))
+                              0.0, 0.0, 0.0], dtype=np.float32).reshape(
+                                  (3, 3, 3))
 
+        rainfall_rate = set_up_probability_cube(
+            data_rain, thresholds, variable_name='rainfall_rate',
+            threshold_units='m s-1')
+
+        rainfall_vicinity = set_up_probability_cube(
+            data_rain, thresholds, variable_name='rainfall_rate_in_vicinity',
+            threshold_units='m s-1')
+
+        thresholds = np.array([0.1875, 0.8125], dtype=np.float32)
         data_cloud = np.array([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
                                0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
-                               0.0, 0.0, 1.0]).reshape((2, 1, 3, 3))
-        cloud = (set_up_probability_threshold_cube(
-            data_cloud,
-            'cloud_area_fraction',
-            '1',
-            spp__relative_to_threshold='above',
-            forecast_thresholds=np.array([0.1875, 0.8125])))
+                               0.0, 0.0, 1.0], dtype=np.float32).reshape(
+                                   (2, 3, 3))
 
+        cloud = set_up_probability_cube(
+            data_cloud, thresholds, variable_name='cloud_area_fraction',
+            threshold_units='1')
+
+        thresholds = np.array([0.85], dtype=np.float32)
         data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-                                 0.0, 0.0, 0.0]).reshape((1, 1, 3, 3))
-        cloud_low = (
-            set_up_probability_threshold_cube(
-                data_cld_low,
-                'low_type_cloud_area_fraction',
-                '1',
-                spp__relative_to_threshold='above',
-                forecast_thresholds=np.array([0.85])))
+                                 0.0, 0.0, 0.0], dtype=np.float32).reshape(
+                                     (1, 3, 3))
+        cloud_low = set_up_probability_cube(
+            data_cld_low, thresholds,
+            variable_name='low_type_cloud_area_fraction', threshold_units='1')
 
+        thresholds = np.array([1000.0, 5000.0], dtype=np.float32)
         data_vis = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
-                             0.0, 1.0, 0.0]).reshape((2, 1, 3, 3))
-        visibility = (
-            set_up_probability_threshold_cube(
-                data_vis,
-                'visibility_in_air',
-                'm',
-                spp__relative_to_threshold='below',
-                forecast_thresholds=np.array([1000.0, 5000.0])))
-        visibility.coord(var_name="threshold"
-                         ).attributes['spp__relative_to_threshold'] = 'below'
+                             0.0, 1.0, 0.0], dtype=np.float32).reshape(
+                                 (2, 3, 3))
+        visibility = set_up_probability_cube(
+            data_vis, thresholds, variable_name='visibility_in_air',
+            threshold_units='m', spp__relative_to_threshold='below')
 
-        data_snowv = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0]).reshape((3, 1, 3, 3))
-        snowfall_vicinity = (
-            set_up_probability_threshold_cube(
-                data_snowv,
-                'lwe_snowfall_rate_in_vicinity',
-                'm s-1',
-                spp__relative_to_threshold='above',
-                forecast_thresholds=np.array([8.33333333e-09,
-                                              2.77777778e-08,
-                                              2.77777778e-07])))
+        thresholds = np.array([0.0], dtype=np.float32)
+        data_lightning = np.zeros((1, 3, 3), dtype=np.float32)
+        data_lightning[0, 0, 0] = 0.25
+        data_lightning[0, 0, 1] = 0.30
 
-        data_rainv = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
-                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0]).reshape((3, 1, 3, 3))
-        rainfall_vicinity = (
-            set_up_probability_threshold_cube(
-                data_rainv,
-                'rainfall_rate_in_vicinity',
-                'm s-1',
-                spp__relative_to_threshold='above',
-                forecast_thresholds=np.array([8.33333333e-09,
-                                              2.77777778e-08,
-                                              2.77777778e-07])))
-
-        data_lightning = np.zeros((1, 1, 3, 3))
-        data_lightning[0, 0, 0, 0] = 0.25
-        data_lightning[0, 0, 0, 1] = 0.30
-        lightning = (
-            set_up_probability_threshold_cube(
-                data_lightning,
-                'number_of_lightning_flashes_per_unit_area_in_vicinity',
-                'm-2',
-                spp__relative_to_threshold='above',
-                forecast_thresholds=np.array([0.0])))
+        lightning = set_up_probability_cube(
+            data_lightning, thresholds,
+            variable_name=('number_of_lightning_flashes_per_unit_area_in_'
+                           'vicinity'),
+            threshold_units='m-2')
 
         self.cubes = iris.cube.CubeList([
             snowfall_rate, rainfall_rate, snowfall_vicinity, rainfall_vicinity,
@@ -598,10 +563,9 @@ class Test_create_symbol_cube(IrisTest):
         data = np.array([0.1, 0.3, 0.4, 0.2, 0.6, 0.7, 0.4, 0.2, 0.1,
                          0.2, 0.2, 0.5, 0.1, 0.3, 0.9, 0.8, 0.5, 0.3,
                          0.6, 0.3, 0.5, 0.6, 0.8, 0.2,
-                         0.8, 0.1, 0.2]).reshape((3, 3, 3))
+                         0.8, 0.1, 0.2], dtype=np.float32).reshape((3, 3, 3))
         self.cube = set_up_probability_cube(
-            data.astype(np.float32), np.array([288, 290, 292],
-                                              dtype=np.float32))
+            data, np.array([288, 290, 292], dtype=np.float32))
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
 
@@ -636,13 +600,13 @@ class Test_process(Test_WXCode):
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.expected_wxcode = np.array(
-            [[[1, 29, 5], [6, 7, 8], [10, 11, 12]]])
+            [[1, 29, 5], [6, 7, 8], [10, 11, 12]])
         self.expected_wxcode_night = np.array(
-            [[[0, 28, 5], [6, 7, 8], [9, 11, 12]]])
+            [[0, 28, 5], [6, 7, 8], [9, 11, 12]])
         self.expected_wxcode_no_lightning = np.array(
-            [[[1, 3, 5], [6, 7, 8], [10, 11, 12]]])
+            [[1, 3, 5], [6, 7, 8], [10, 11, 12]])
         self.expected_wxcode_alternate = np.array(
-            [[[14, 15, 17], [18, 23, 24], [26, 27, 27]]])
+            [[14, 15, 17], [18, 23, 24], [26, 27, 27]])
 
     def test_basic(self):
         """Test process returns a weather code cube with right values and type.
@@ -661,7 +625,7 @@ class Test_process(Test_WXCode):
         plugin = WeatherSymbols()
         for i, cube in enumerate(self.cubes):
             self.cubes[i].coord('time').points = (cube.coord('time').points +
-                                                  11.5)
+                                                  3600*12)
         result = plugin.process(self.cubes)
         self.assertArrayEqual(result.data, self.expected_wxcode_night)
 
@@ -691,28 +655,28 @@ class Test_process(Test_WXCode):
         data_snow = np.array([0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1,
                               0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
                               0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
-                              1.0, 1.0, 0.0]).reshape((3, 1, 3, 3))
+                              1.0, 1.0, 0.0]).reshape((3, 3, 3))
         data_rain = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                               1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                               1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0]).reshape((3, 1, 3, 3))
+                              0.0, 0.0, 0.0]).reshape((3, 3, 3))
         data_snowv = np.array([0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
                                0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
                                0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
-                               0.0, 0.0, 1.0]).reshape((3, 1, 3, 3))
+                               0.0, 0.0, 1.0]).reshape((3, 3, 3))
         data_rainv = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0]).reshape((3, 1, 3, 3))
+                               0.0, 0.0, 0.0]).reshape((3, 3, 3))
         data_cloud = np.array([0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0,
                                0.0, 1.0, 0.0, 1.0, 0.0, 1.0,
-                               0.0, 1.0, 1.0]).reshape((2, 1, 3, 3))
+                               0.0, 1.0, 1.0]).reshape((2, 3, 3))
         data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                 0.0, 0.0, 0.0]).reshape((1, 1, 3, 3))
+                                 0.0, 0.0, 0.0]).reshape((1, 3, 3))
         data_vis = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0.0, 0.0]).reshape((2, 1, 3, 3))
-        data_lightning = np.zeros((1, 1, 3, 3))
+                             0.0, 0.0, 0.0]).reshape((2, 3, 3))
+        data_lightning = np.zeros((1, 3, 3))
 
         cubes = self.cubes
         cubes[0].data = data_snow
@@ -740,19 +704,19 @@ class Test_process(Test_WXCode):
         data_snow = np.array([0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1,
                               0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
                               0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
-                              1.0, 1.0, 1.0]).reshape((3, 1, 3, 3))
+                              1.0, 1.0, 1.0]).reshape((3, 3, 3))
         data_rain = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                               1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                               1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0]).reshape((3, 1, 3, 3))
+                              0.0, 0.0, 0.0]).reshape((3, 3, 3))
         data_cloud = np.array([0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0,
                                0.0, 1.0, 0.0, 1.0, 0.0, 1.0,
-                               0.0, 1.0, 1.0]).reshape((2, 1, 3, 3))
+                               0.0, 1.0, 1.0]).reshape((2, 3, 3))
         data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                 0.0, 0.0, 0.0]).reshape((1, 1, 3, 3))
+                                 0.0, 0.0, 0.0]).reshape((1, 3, 3))
         data_vis = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0.0, 0.0]).reshape((2, 1, 3, 3))
+                             0.0, 0.0, 0.0]).reshape((2, 3, 3))
         cubes = self.cubes.extract(self.gbl)
         cubes[0].data = data_snow
         cubes[1].data = data_rain
