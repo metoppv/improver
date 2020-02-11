@@ -193,7 +193,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
 
     def test_different_units(self):
         """Test that values are correct from input cubes with
-        different units"""
+        different units, and that inputs are unmodified"""
 
         self.temperature_cube.convert_units('fahrenheit')
         self.wind_speed_cube.convert_units('knots')
@@ -210,6 +210,11 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.temperature_cube[0], self.wind_speed_cube[0],
             self.relative_humidity_cube[0], self.pressure_cube[0])
         self.assertArrayAlmostEqual(result.data, expected_result, decimal=4)
+        # check inputs are unmodified
+        self.assertEqual(self.temperature_cube.units, 'farenheit')
+        self.assertEqual(self.wind_speed_cube.units, 'knots')
+        self.assertEqual(self.relative_humidity_cube.units, '%')
+        self.assertEqual(self.pressure_cube.convert_units('hPa')
 
     def test_model_id_attr(self):
         """Test model id attribute can be selectively inherited"""

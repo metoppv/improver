@@ -333,17 +333,17 @@ class LapseRate(BasePlugin):
         return height_diff_mask
 
     def _generate_lapse_rate_array(
-            self, temperature_data, orography_data, land_sea_mask_data,
-            all_temp_subsections, all_orog_subsections):
+            self, temperature_data, orography_data, land_sea_mask_data):
         """
         Calculate lapse rates and apply filters
 
         Args:
             temperature_data (numpy.ndarray)
+                2D array (single realization) of temperature data, in Kelvin
             orography_data (numpy.ndarray)
+                2D array of orographies, in metres
             land_sea_mask_data (numpy.ndarray)
-            all_temp_subsections (numpy.ndarray)
-            all_orog_subsections (numpy.ndarray)
+                2D land-sea mask
 
         Returns:
             numpy.ndarray
@@ -354,14 +354,19 @@ class LapseRate(BasePlugin):
         temperature_data = np.where(
             land_sea_mask_data, temperature_data, np.nan)
 
-        # Saves all neighbourhoods into "all_temp_subsections".
-        # cval is value given to points outside the array.
-        fnc = SaveNeighbourhood(allbuffers=all_temp_subsections)
+        # Generate data neighbourhoods on which to calculate lapse rates
+        dataarray_size = temperature_data.shape[0] * temperature_data.shape[1]
+
+        temp_nbhoods = np.zeros(
+            (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
+        fnc = SaveNeighbourhood(allbuffers=temp_nbhoods)
         generic_filter(temperature_data, fnc.filter,
                        size=self.nbhood_size,
                        mode='constant', cval=np.nan)
 
-        fnc = SaveNeighbourhood(allbuffers=all_orog_subsections)
+        orog_nbhoods = np.zeros(
+            (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
+        fnc = SaveNeighbourhood(allbuffers=orog_nbhoods)
         generic_filter(orography_data, fnc.filter,
                        size=self.nbhood_size,
                        mode='constant', cval=np.nan)
@@ -369,22 +374,18 @@ class LapseRate(BasePlugin):
         # height_diff_mask is True for points where the height
         # difference between the central point and its neighbours
         # is > max_height_diff.
-        height_diff_mask = self._create_heightdiff_mask(
-            all_orog_subsections)
+        height_diff_mask = self._create_heightdiff_mask(orog_nbhoods)
 
         # Mask points with extreme height differences as NaN.
-        all_orog_subsections = np.where(height_diff_mask, np.nan,
-                                        all_orog_subsections)
-        all_temp_subsections = np.where(height_diff_mask, np.nan,
-                                        all_temp_subsections)
+        temp_nbhoods = np.where(height_diff_mask, np.nan, temp_nbhoods)
+        orog_nbhoods = np.where(height_diff_mask, np.nan, orog_nbhoods)
 
-        # Loop through both arrays and find gradient of each subsection.
-        # The gradient indicates lapse rate - save into another array.
+        # Loop through both arrays and find gradient of surface temperature
+        # with orography height - ie lapse rate.
         # TODO: This for loop is the bottleneck in the code and needs to
         # be parallelised.
         lapse_rate_array = [self._calc_lapse_rate(temp, orog)
-                            for temp, orog in zip(all_temp_subsections,
-                                                  all_orog_subsections)]
+                            for temp, orog in zip(temp_nbhoods, orog_nbhoods)]
 
         lapse_rate_array = np.array(
             lapse_rate_array, dtype=np.float32).reshape(
@@ -454,18 +455,6 @@ class LapseRate(BasePlugin):
         # Fill sea points with NaN values.
         orography_data = np.where(land_sea_mask_data, orography_data, np.nan)
 
-        # Extract data array dimensions to define output arrays.
-        dataarray_shape = next(temperature_cube.slices([y_coord,
-                                                        x_coord])).shape
-        dataarray_size = dataarray_shape[0] * dataarray_shape[1]
-
-        # Array containing all of the subsections extracted from data array.
-        # Also enforce single precision to speed up calculations.
-        all_temp_subsections = np.zeros(
-            (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
-        all_orog_subsections = np.zeros(
-            (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
-
         # Create list of arrays over "realization" coordinate
         has_realization_dimension = False
         if temperature_cube.coords("realization"):
@@ -481,8 +470,8 @@ class LapseRate(BasePlugin):
         lapse_rate_data = None
         for temperature_data in temp_slices:
             lapse_rate_array = self._generate_lapse_rate_array(
-                temperature_data, orography_data, land_sea_mask_data,
-                all_temp_subsections, all_orog_subsections)
+                temperature_data, orography_data, land_sea_mask_data) #,
+                #all_temp_subsections, all_orog_subsections)
 
             if lapse_rate_data is None:
                 lapse_rate_data = lapse_rate_array
