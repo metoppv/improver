@@ -43,9 +43,7 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.wxcode.utilities import WX_DICT
 from improver.wxcode.weather_symbols import WeatherSymbols
 
-from ...set_up_test_cubes import set_up_probability_cube, construct_xy_coords
-from ...calibration.ensemble_calibration.helper_functions import (
-    set_up_probability_threshold_cube)
+from ...set_up_test_cubes import set_up_probability_cube
 
 
 class Test_WXCode(IrisTest):
