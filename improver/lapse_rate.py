@@ -470,8 +470,7 @@ class LapseRate(BasePlugin):
         lapse_rate_data = None
         for temperature_data in temp_slices:
             lapse_rate_array = self._generate_lapse_rate_array(
-                temperature_data, orography_data, land_sea_mask_data) #,
-                #all_temp_subsections, all_orog_subsections)
+                temperature_data, orography_data, land_sea_mask_data)
 
             if lapse_rate_data is None:
                 lapse_rate_data = lapse_rate_array

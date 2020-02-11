@@ -214,7 +214,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
         self.assertEqual(self.temperature_cube.units, 'farenheit')
         self.assertEqual(self.wind_speed_cube.units, 'knots')
         self.assertEqual(self.relative_humidity_cube.units, '%')
-        self.assertEqual(self.pressure_cube.convert_units('hPa')
+        self.assertEqual(self.pressure_cube.units, 'hPa')
 
     def test_model_id_attr(self):
         """Test model id attribute can be selectively inherited"""
