@@ -36,6 +36,7 @@ from datetime import timedelta
 from iris.coords import AuxCoord
 
 from improver.metadata.amend import (amend_attributes, set_history_attribute)
+from improver.metadata.utilities import generate_mandatory_attributes
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, calculate_grid_spacing)
 from improver.utilities.temporal import (
@@ -70,7 +71,7 @@ class PystepsExtrapolate(object):
         self.interval = interval
         self.num_timesteps = max_lead_time // interval
 
-    def _get_precip_rate(self):
+    def _get_advectable_precip_rate(self):
         """
         From the initial cube, generate a precipitation rate array in mm h-1
         with orographic enhancement subtracted, as required for advection
@@ -129,7 +130,7 @@ class PystepsExtrapolate(object):
         displacement = np.array([udisp, vdisp])
         return displacement
 
-    def _reformat_analysis_cube(self):
+    def _reformat_analysis_cube(self, attribute_changes):
         """
         Add forecast reference time and forecast period coordinates (if they do
         not already exist) and nowcast attributes to analysis cube
@@ -143,10 +144,15 @@ class PystepsExtrapolate(object):
             self.analysis_cube.add_aux_coord(
                 AuxCoord(np.array([0], dtype=np.int32),
                          'forecast_period', 'seconds'))
-        # set nowcast attributes
+
+        self.analysis_cube.attributes = generate_mandatory_attributes(
+            [self.analysis_cube])
         self.analysis_cube.attributes['source'] = 'MONOW'
         self.analysis_cube.attributes['title'] = (
             'MONOW Extrapolation Nowcast on UK 2 km Standard Grid')
+        set_history_attribute(self.analysis_cube, "Nowcast")
+        if attribute_changes is not None:
+            amend_attributes(self.analysis_cube, attribute_changes)
 
     def _set_up_output_cubes(self, all_forecasts):
         """
@@ -196,27 +202,20 @@ class PystepsExtrapolate(object):
                 required lead times, and conforming to the IMPROVER metadata
                 standard.
         """
-        if not attributes_dict:
-            attributes_dict = {}
-
         # re-mask forecast data
         all_forecasts = np.ma.masked_invalid(all_forecasts)
 
-        # generate list of forecast cubes
-        self._reformat_analysis_cube()
+        # put forecast data arrays into cubes
+        self._reformat_analysis_cube(attributes_dict)
         timestamped_cubes = self._set_up_output_cubes(all_forecasts)
 
-        # re-convert units and re-add orographic enhancement
+        # re-convert cubes to original units and add orographic enhancement
         forecast_cubes = []
         for cube in timestamped_cubes:
             cube.convert_units(self.required_units)
             if self.orogenh:
                 cube, = ApplyOrographicEnhancement("add").process(
                     cube, self.orogenh)
-
-            # Update meta-data
-            amend_attributes(cube, attributes_dict)
-            set_history_attribute(cube, "Nowcast")
             forecast_cubes.append(cube)
         return forecast_cubes
 
@@ -255,8 +254,9 @@ class PystepsExtrapolate(object):
         self.required_units = initial_cube.units
         self.orogenh = orographic_enhancement
 
-        # get unmasked precipitation rate array to input into advection
-        precip_rate = self._get_precip_rate()
+        # get unmasked precipitation rate array with orographic enhancement
+        # subtracted to input into advection
+        precip_rate = self._get_advectable_precip_rate()
 
         # calculate displacement in grid squares per time step
         displacement = self._generate_displacement_array(ucube, vcube)
