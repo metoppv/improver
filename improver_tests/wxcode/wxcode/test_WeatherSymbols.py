@@ -34,6 +34,7 @@ import unittest
 
 import iris
 import numpy as np
+from datetime import datetime as dt
 from cf_units import Unit
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
@@ -42,7 +43,7 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.wxcode.utilities import WX_DICT
 from improver.wxcode.weather_symbols import WeatherSymbols
 
-from ...set_up_test_cubes import set_up_probability_cube
+from ...set_up_test_cubes import set_up_probability_cube, construct_xy_coords
 from ...calibration.ensemble_calibration.helper_functions import (
     set_up_probability_threshold_cube)
 
@@ -52,19 +53,36 @@ class Test_WXCode(IrisTest):
     """Test class for the WX code tests, setting up inputs."""
 
     def setUp(self):
-        """Set up cubes and constraints required for Weather Symbols """
+        """Set up cubes and constraints required for Weather Symbols. These
+        cubes are defined with a default time of 4am UK time."""
+
+        time = dt(2017, 1, 10, 3, 0)
+        frt = dt(2017, 1, 10, 3, 0)
+
+        yvals = np.linspace(-45.0, 45.0, 3, dtype=np.float32)
+        xvals = np.linspace(120.0, 180.0, 3, dtype=np.float32)
+
+        y, x = construct_xy_coords(3, 3, 'latlon')
+        y.points = yvals
+        x.points = xvals
 
         thresholds = np.array([8.33333333e-09, 2.77777778e-08, 2.77777778e-07],
                               dtype=np.float32)
         data_snow = np.zeros((3, 3, 3), dtype=np.float32)
         snowfall_rate = set_up_probability_cube(
             data_snow, thresholds, variable_name='lwe_snowfall_rate',
-            threshold_units='m s-1')
+            threshold_units='m s-1',
+            time=time, frt=frt)
+        snowfall_rate.replace_coord(y)
+        snowfall_rate.replace_coord(x)
 
         snowfall_vicinity = set_up_probability_cube(
             data_snow, thresholds,
             variable_name='lwe_snowfall_rate_in_vicinity',
-            threshold_units='m s-1')
+            threshold_units='m s-1',
+            time=time, frt=frt)
+        snowfall_vicinity.replace_coord(y)
+        snowfall_vicinity.replace_coord(x)
 
         data_rain = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
@@ -74,11 +92,17 @@ class Test_WXCode(IrisTest):
 
         rainfall_rate = set_up_probability_cube(
             data_rain, thresholds, variable_name='rainfall_rate',
-            threshold_units='m s-1')
+            threshold_units='m s-1',
+            time=time, frt=frt)
+        rainfall_rate.replace_coord(y)
+        rainfall_rate.replace_coord(x)
 
         rainfall_vicinity = set_up_probability_cube(
             data_rain, thresholds, variable_name='rainfall_rate_in_vicinity',
-            threshold_units='m s-1')
+            threshold_units='m s-1',
+            time=time, frt=frt)
+        rainfall_vicinity.replace_coord(y)
+        rainfall_vicinity.replace_coord(x)
 
         thresholds = np.array([0.1875, 0.8125], dtype=np.float32)
         data_cloud = np.array([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
@@ -88,7 +112,10 @@ class Test_WXCode(IrisTest):
 
         cloud = set_up_probability_cube(
             data_cloud, thresholds, variable_name='cloud_area_fraction',
-            threshold_units='1')
+            threshold_units='1',
+            time=time, frt=frt)
+        cloud.replace_coord(y)
+        cloud.replace_coord(x)
 
         thresholds = np.array([0.85], dtype=np.float32)
         data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
@@ -96,7 +123,10 @@ class Test_WXCode(IrisTest):
                                      (1, 3, 3))
         cloud_low = set_up_probability_cube(
             data_cld_low, thresholds,
-            variable_name='low_type_cloud_area_fraction', threshold_units='1')
+            variable_name='low_type_cloud_area_fraction', threshold_units='1',
+            time=time, frt=frt)
+        cloud_low.replace_coord(y)
+        cloud_low.replace_coord(x)
 
         thresholds = np.array([1000.0, 5000.0], dtype=np.float32)
         data_vis = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -105,7 +135,10 @@ class Test_WXCode(IrisTest):
                                  (2, 3, 3))
         visibility = set_up_probability_cube(
             data_vis, thresholds, variable_name='visibility_in_air',
-            threshold_units='m', spp__relative_to_threshold='below')
+            threshold_units='m', spp__relative_to_threshold='below',
+            time=time, frt=frt)
+        visibility.replace_coord(y)
+        visibility.replace_coord(x)
 
         thresholds = np.array([0.0], dtype=np.float32)
         data_lightning = np.zeros((1, 3, 3), dtype=np.float32)
@@ -116,7 +149,10 @@ class Test_WXCode(IrisTest):
             data_lightning, thresholds,
             variable_name=('number_of_lightning_flashes_per_unit_area_in_'
                            'vicinity'),
-            threshold_units='m-2')
+            threshold_units='m-2',
+            time=time, frt=frt)
+        lightning.replace_coord(y)
+        lightning.replace_coord(x)
 
         self.cubes = iris.cube.CubeList([
             snowfall_rate, rainfall_rate, snowfall_vicinity, rainfall_vicinity,
@@ -639,13 +675,13 @@ class Test_process(Test_WXCode):
     def test_lightning(self):
         """Test process returns right values if all lightning. """
         plugin = WeatherSymbols()
-        data_lightning = np.ones((1, 1, 3, 3))
+        data_lightning = np.ones((1, 3, 3))
         cubes = self.cubes
         cubes[7].data = data_lightning
         result = plugin.process(self.cubes)
-        expected_wxcode = np.ones((1, 3, 3)) * 29
-        expected_wxcode[0, 1, 1:] = 30
-        expected_wxcode[0, 2, 2] = 30
+        expected_wxcode = np.ones((3, 3)) * 29
+        expected_wxcode[1, 1:] = 30
+        expected_wxcode[2, 2] = 30
         self.assertArrayEqual(result.data, expected_wxcode)
 
     def test_weather_data(self):
