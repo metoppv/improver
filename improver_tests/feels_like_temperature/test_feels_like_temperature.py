@@ -211,7 +211,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
             self.relative_humidity_cube[0], self.pressure_cube[0])
         self.assertArrayAlmostEqual(result.data, expected_result, decimal=4)
         # check inputs are unmodified
-        self.assertEqual(self.temperature_cube.units, 'farenheit')
+        self.assertEqual(self.temperature_cube.units, 'fahrenheit')
         self.assertEqual(self.wind_speed_cube.units, 'knots')
         self.assertEqual(self.relative_humidity_cube.units, '%')
         self.assertEqual(self.pressure_cube.units, 'hPa')
