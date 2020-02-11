@@ -1017,7 +1017,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         # probability cube.
         mask_array = np.array([mask]*len(probabilities))
         probability_cube.data = np.ma.masked_where(
-            mask_array is True, probability_cube.data)
+            mask_array, probability_cube.data)
         return probability_cube
 
     def process(self, location_parameter, scale_parameter,
