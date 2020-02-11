@@ -457,12 +457,10 @@ class LapseRate(BasePlugin):
 
         # Create list of arrays over "realization" coordinate
         has_realization_dimension = False
-        if temperature_cube.coords("realization"):
+        if temperature_cube.coords("realization", dim_coords=True):
             enforce_coordinate_ordering(temperature_cube, "realization")
             temp_slices = temperature_cube.data
-            if "realization" in [coord.name() for coord in
-                                 temperature_cube.coords(dim_coords=True)]:
-                has_realization_dimension = True
+            has_realization_dimension = True
         else:
             temp_slices = [temperature_cube.data]
 
