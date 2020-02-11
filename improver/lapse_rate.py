@@ -355,6 +355,7 @@ class LapseRate(BasePlugin):
             land_sea_mask_data, temperature_data, np.nan)
 
         # Generate data neighbourhoods on which to calculate lapse rates
+        # pylint: disable=unsubscriptable-object 
         dataarray_size = temperature_data.shape[0] * temperature_data.shape[1]
 
         temp_nbhoods = np.zeros(
