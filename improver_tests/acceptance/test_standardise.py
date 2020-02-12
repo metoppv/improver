@@ -219,3 +219,16 @@ def test_regrid_nearest_landmask_multi_realization(tmp_path):
             "--regridded-title", GLOBAL_UK_TITLE]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_stage_v110_basic(tmp_path):
+    """Test updating a file with StaGE version 1.1.0 metadata"""
+    kgo_dir = acc.kgo_root() / "standardise/stage-v110"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, target_path,
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

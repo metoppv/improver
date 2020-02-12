@@ -57,6 +57,11 @@ def process(cube: cli.inputcube,
     converting units, updating attributes and / or converting float64 data to
     float32.
 
+    Deprecated behaviour:
+    Translates metadata relating to the grid_id attribute from StaGE
+    version 1.1.0 to StaGE version 1.2.0. Cubes that have no "grid_id"
+    attribute are not recognised as v1.1.0 and are not changed.
+
     Args:
         cube (iris.cube.Cube):
             Source cube to be standardised
@@ -119,6 +124,7 @@ def process(cube: cli.inputcube,
             If regrid_mode is "nearest-with-mask" but no source land_sea_mask
             is provided (from plugin).
     """
+    from improver.metadata.amend import update_stage_v110_metadata
     from improver.standardise import StandardiseGridAndMetadata
 
     if (land_sea_mask and
@@ -126,6 +132,10 @@ def process(cube: cli.inputcube,
         msg = ("Land-mask file supplied without appropriate regrid-mode. "
                "Use --regrid-mode nearest-with-mask.")
         raise ValueError(msg)
+
+    # update_stage_v110_metadata is deprecated. Please ensure metadata is
+    # StaGE version 1.2.0 compatible.
+    update_stage_v110_metadata(cube)
 
     plugin = StandardiseGridAndMetadata(
         regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
