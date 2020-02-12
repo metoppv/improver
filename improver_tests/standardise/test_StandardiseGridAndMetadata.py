@@ -162,7 +162,7 @@ class Test_process_no_regrid(IrisTest):
             "forecast_period", [coord.name() for coord in result.coords()])
 
     def test_float_deescalation(self):
-        """Test precision de-escalation"""
+        """Test precision de-escalation from float64 to float32"""
         cube = self.cube.copy()
         cube.data = cube.data.astype(np.float64)
         result = self.plugin.process(cube)
