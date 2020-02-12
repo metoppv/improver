@@ -135,7 +135,8 @@ class CubeCombiner(BasePlugin):
 
     def process(self, cube_list, new_diagnostic_name, use_midpoint=False):
         """
-        Create a combined cube.
+        Combine data and metadata from a list of input cubes into a single
+        cube, using the specified operation to combine the cube data.
 
         Args:
             cube_list (iris.cube.CubeList or list):
@@ -146,9 +147,11 @@ class CubeCombiner(BasePlugin):
                 Determines the nature of the points and bounds for expanded
                 coordinates.  If False, the upper bound of the coordinate is
                 used as the point values.  If True, the midpoint is used.
+
         Returns:
             iris.cube.Cube:
                 Cube containing the combined data.
+
         Raises:
             ValueError: If the cubelist contains only one cube.
         """
