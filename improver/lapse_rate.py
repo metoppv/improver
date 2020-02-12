@@ -42,6 +42,8 @@ from improver.constants import DALR
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.metadata.utilities import (
     generate_mandatory_attributes, create_new_diagnostic_cube)
+from improver.metadata.constants.mo_attributes import \
+    MOSG_GRID_ATTRIBUTES
 
 
 def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
@@ -458,6 +460,9 @@ class LapseRate(BasePlugin):
 
             # Make output cube slice of lapse rate values.
             attributes = generate_mandatory_attributes([temp_slice])
+            for attr in MOSG_GRID_ATTRIBUTES:
+                if hasattr(temp_slice, attr):
+                    attributes += attr
             lapse_rate_slice = create_new_diagnostic_cube(
                 'air_temperature_lapse_rate', 'K m-1', temp_slice,
                 attributes, data=lapse_rate_array)
