@@ -142,7 +142,8 @@ class Test__calculate_forecast_period(IrisTest):
         result = _calculate_forecast_period(self.time_coord, self.frt_coord,
                                             coord_spec=local_spec)
         self.assertEqual(result.units, 'hours')
-        self.assertArrayAlmostEqual(result.points * 3600., self.fp_coord.points)
+        self.assertArrayAlmostEqual(result.points * 3600.,
+                                    self.fp_coord.points)
         self.assertEqual(result.dtype, np.float64)
 
     def test_bounds(self):
