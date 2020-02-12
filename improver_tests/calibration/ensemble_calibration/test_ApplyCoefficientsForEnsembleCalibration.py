@@ -172,73 +172,6 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test__merge_calibrated_and_uncalibrated_regions(IrisTest):
-
-    """Test the _merge_calibrated_and_uncalibrated_regions method."""
-
-    def setUp(self):
-        """Set up some simple data for testing the merging functionality."""
-        self.original_data = np.ones((5, 5), dtype=np.float32)
-        self.calibrated_data = np.ones((5, 5), dtype=np.float32) * 2
-        self.mask = np.ones((5, 5))
-        self.mask[1:-1, 1:-1] = 0
-        self.plugin = Plugin()
-
-    def test_basic_merging(self):
-        """Test merging the original_data into the calibrated_data array in the
-        areas that are masked with zeroes; that is to say only those points
-        masked with ones will retain the calibrated data."""
-
-        expected = np.ones((5, 5), dtype=np.float32) * 2
-        expected[1:-1, 1:-1] = 1
-        self.plugin._merge_calibrated_and_uncalibrated_regions(
-            self.original_data, self.calibrated_data, self.mask)
-
-        self.assertArrayAlmostEqual(expected, self.calibrated_data)
-
-    def test_all_calibrated(self):
-        """Test that a mask of all ones will result in the calibrated_data
-        being unmodified."""
-
-        self.mask = np.ones((5, 5))
-        expected = self.calibrated_data.copy()
-        self.plugin._merge_calibrated_and_uncalibrated_regions(
-            self.original_data, self.calibrated_data, self.mask)
-
-        self.assertArrayAlmostEqual(expected, self.calibrated_data)
-
-    def test_all_uncalibrated(self):
-        """Test that a mask of all zeroes will result in the calibrated_data
-        being replaced entirely with the original_data. Two test are checked
-        below to ensure that it is the calibrated_data that has been modified.
-        """
-
-        self.mask = np.zeros((5, 5))
-        pre_merging = self.calibrated_data.copy()
-        self.plugin._merge_calibrated_and_uncalibrated_regions(
-            self.original_data, self.calibrated_data, self.mask)
-
-        self.assertArrayAlmostEqual(self.original_data, self.calibrated_data)
-        self.assertFalse(np.allclose(pre_merging, self.calibrated_data))
-
-    def test_mask_broadcasting(self):
-        """Test that when a mask is broadcast to cover an array of unequal
-        dimensions the result is as expected. This behaviour enables use of a
-        single realization mask with multi-realization data."""
-
-        self.original_data = np.stack([self.original_data] * 3)
-        self.calibrated_data = np.stack([self.calibrated_data] * 3)
-
-        expected = np.ones((5, 5), dtype=np.float32) * 2
-        expected[1:-1, 1:-1] = 1
-        expected = np.stack([expected] * 3)
-
-        self.plugin._merge_calibrated_and_uncalibrated_regions(
-            self.original_data, self.calibrated_data, self.mask)
-
-        self.assertArrayAlmostEqual(expected, self.calibrated_data)
-
-
 class Test__spatial_domain_match(SetupCoefficientsCubes):
 
     """ Test the _spatial_domain_match method."""
@@ -335,7 +268,7 @@ class Test__calculate_location_parameter_from_realizations(
         results are similar."""
         optimised_coeffs = dict(
             zip(self.coeffs_from_statsmodels_realizations.coord(
-                    "coefficient_name").points,
+                "coefficient_name").points,
                 self.coeffs_from_statsmodels_realizations.data))
         location_parameter = (
             self.plugin._calculate_location_parameter_from_realizations(
@@ -362,7 +295,7 @@ class Test__calculate_location_parameter_from_realizations(
         are similar."""
         optimised_coeffs = dict(
             zip(self.coeffs_from_no_statsmodels_realizations.coord(
-                    "coefficient_name").points,
+                "coefficient_name").points,
                 self.coeffs_from_no_statsmodels_realizations.data))
         location_parameter = (
             self.plugin._calculate_location_parameter_from_realizations(
@@ -475,36 +408,31 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end_with_mask(self):
-        """An example end-to-end calculation, this time using a mask to limit
-        the application of calibration to regions where the mask=1."""
+        """An example end-to-end calculation, but making sure that the
+        areas that are masked within the landsea mask, are masked at the
+        end."""
 
         # Construct a mask and encapsulate as a cube.
-        mask = np.ones((3, 3))
-        mask[1:, 1:] = 0
-        mask_cube = self.current_temperature_forecast_cube[0].copy(data=mask)
-
-        # Collapse input realizations to get uncalibrated expectation values.
-        forecast_predictors = self.current_temperature_forecast_cube.collapsed(
-            "realization", iris.analysis.MEAN)
-        forecast_vars = self.current_temperature_forecast_cube.collapsed(
-            "realization", iris.analysis.VARIANCE)
-
-        # Manually construct merged calibrated and uncalibrated arrays.
-        self.expected_loc_param_mean[1:, 1:] = (
-            forecast_predictors.data[1:, 1:])
-        self.expected_scale_param_mean[1:, 1:] = (
-            forecast_vars.data[1:, 1:])
-
+        mask = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        mask_cube = self.current_temperature_forecast_cube[0].copy(
+            data=mask)
+        predictor = np.array([[273.78543, 274.69128, 275.4461],
+                              [276.86517, 277.65018, 278.40503],
+                              [279.492, 280.15625, 280.97147]])
+        mask_predictor = np.ma.masked_where(mask, predictor)
+        var = np.array([[0.19524777, 0.19742958, 0.01165767],
+                        [0.02258459, 0.01967215, 0.01165767],
+                        [0.05318265, 0.00291613, 0.0007303]])
+        mask_var = np.ma.masked_where(mask, var)
         calibrated_forecast_predictor, calibrated_forecast_var = (
             self.plugin.process(self.current_temperature_forecast_cube,
                                 self.coeffs_from_mean, landsea_mask=mask_cube))
 
         self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_predictor.data,
-            self.expected_loc_param_mean)
+            calibrated_forecast_predictor.data, mask_predictor)
         self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_var.data,
-            self.expected_scale_param_mean)
+            calibrated_forecast_var.data, mask_var)
+
 
 
 if __name__ == '__main__':

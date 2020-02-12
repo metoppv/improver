@@ -866,46 +866,6 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         result = ('<ApplyCoefficientsFromEnsembleCalibration: predictor: {}>')
         return result.format(self.predictor)
 
-    @staticmethod
-    def _merge_calibrated_and_uncalibrated_regions(
-            original_data, calibrated_data, mask):
-        """
-        If a mask has been provided to this plugin, this function acts to
-        combine calibrated data and uncalibrated data. Those regions where the
-        mask=0 will be populated with uncalibrated data. Those regions where
-        the mask=1 will retain calibrated data. The calibrated data cube will
-        be modified in situ.
-
-        Note that this can be achieved straightforwardly with fancy indexing
-        but there is a need to slice the data to avoid overflowing available
-        memory.
-
-        Args:
-            original_data (numpy.ndarray):
-                The uncalibrated predictor or variance that will populate
-                regions in which the mask=0.
-            calibrated_data (numpy.ndarray):
-                The location parameter or scale parameter data array that will
-                be modified in situ. Those regions of the array that correspond
-                with indices at which the mask=0 will be replaced with data
-                from the original_data array.
-            mask (numpy.ndarray):
-                A mask determining which regions should be returned with
-                calibrated data (1) and which regions should be returned with
-                uncalibrated data (0).
-        """
-        mask = np.broadcast_to(mask, calibrated_data.shape)
-        all_indices = np.split(mask == 0, mask.shape[-1], axis=-1)
-        original_data = np.split(original_data, original_data.shape[-1],
-                                 axis=-1)
-        calibrated_data = np.split(calibrated_data, calibrated_data.shape[-1],
-                                   axis=-1)
-        iterator = zip(original_data, calibrated_data, all_indices)
-
-        for original, calibrated, indices in iterator:
-            calibrated[indices] = original[indices]
-        calibrated_data = np.squeeze(np.stack(calibrated_data, axis=-1))
-
     def _spatial_domain_match(self):
         """
         Check that the domain of the current forecast and coefficients cube
@@ -1098,6 +1058,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         """
         self.current_forecast = current_forecast
         self.coefficients_cube = coefficients_cube
+        self.landsea_mask = landsea_mask
 
         # Check coefficients_cube and forecast cube are compatible.
         time_coords_match(self.current_forecast, self.coefficients_cube)
@@ -1122,24 +1083,11 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
         # Use a mask to confine calibration to regions in which the mask=1.
         if landsea_mask:
-            # Assume that the ensemble mean and the ensemble variance provide
-            # an estimate of the uncalibrated location and scale parameter.
-            # TODO: Improve the handling of the uncalibrated region, so that
-            # the ensemble mean and ensemble variance are not assumed to be
-            # the location and scale parameter, respectively.
-            uncalibrated_location_parameter = (
-                self.current_forecast.collapsed(
-                    "realization", iris.analysis.MEAN))
-            uncalibrated_scale_parameter = (
-                self.current_forecast.collapsed(
-                    "realization", iris.analysis.VARIANCE))
-            self._merge_calibrated_and_uncalibrated_regions(
-                uncalibrated_location_parameter.data,
-                location_parameter_cube.data,
-                landsea_mask.data)
-            self._merge_calibrated_and_uncalibrated_regions(
-                uncalibrated_scale_parameter.data,
-                scale_parameter_cube.data,
-                landsea_mask.data)
+            # Calibration is applied to all grid points, but the areas
+            # where a mask is valid is then masked out at the end.
+            scale_parameter_cube.data = np.ma.masked_where(
+                landsea_mask.data, scale_parameter_cube.data)
+            location_parameter_cube.data = np.ma.masked_where(
+                landsea_mask.data, location_parameter_cube.data)
 
         return location_parameter_cube, scale_parameter_cube
