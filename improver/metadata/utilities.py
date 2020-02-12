@@ -42,17 +42,17 @@ from improver.metadata.constants.attributes import (
 
 
 def create_new_diagnostic_cube(
-        name, units, coordinate_template, mandatory_attributes,
+        name, units, template_cube, mandatory_attributes,
         optional_attributes=None, data=None, dtype=np.float32):
     """
-    Creates a template for a new diagnostic cube with suitable metadata.
+    Creates a new diagnostic cube with suitable metadata.
 
     Args:
         name (str):
             Standard or long name for output cube
         units (str or cf_units.Unit):
             Units for output cube
-        coordinate_template (iris.cube.Cube):
+        template_cube (iris.cube.Cube):
             Cube from which to copy dimensional and auxiliary coordinates
         mandatory_attributes (dict):
             Dictionary containing values for the mandatory attributes
@@ -85,11 +85,11 @@ def create_new_diagnostic_cube(
         raise ValueError(error_msg)
 
     if data is None:
-        data = da.zeros_like(coordinate_template.core_data(), dtype=dtype)
+        data = da.zeros_like(template_cube.core_data(), dtype=dtype)
 
     aux_coords_and_dims, dim_coords_and_dims = [
-        [(coord, coordinate_template.coord_dims(coord))
-         for coord in getattr(coordinate_template, coord_type)]
+        [(coord.copy(), template_cube.coord_dims(coord))
+         for coord in getattr(template_cube, coord_type)]
         for coord_type in ('aux_coords', 'dim_coords')]
 
     cube = iris.cube.Cube(
@@ -101,7 +101,7 @@ def create_new_diagnostic_cube(
     return cube
 
 
-def generate_mandatory_attributes(diagnostic_cubes):
+def generate_mandatory_attributes(diagnostic_cubes, model_id_attr=None):
     """
     Function to generate mandatory attributes for new diagnostics that are
     generated using several different model diagnostics as input to the
@@ -111,21 +111,25 @@ def generate_mandatory_attributes(diagnostic_cubes):
     Args:
         diagnostic_cubes (list):
             List of diagnostic cubes used in calculating the new diagnostic
+        model_id_attr (str or None):
+            Name of attribute used to identify source model for blending,
+            if required
 
     Returns:
         dict: Dictionary of mandatory attribute "key": "value" pairs.
     """
+    missing_value = object()
+    attr_dicts = [cube.attributes for cube in diagnostic_cubes]
+    required_attributes = [model_id_attr] if model_id_attr else []
     attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
-    for attr in MANDATORY_ATTRIBUTES:
-        try:
-            values = [cube.attributes[attr] for cube in diagnostic_cubes]
-        except KeyError:
-            # if not all input cubes have this attribute, retain default
-            pass
-        else:
-            unique_values = np.unique(values)
-            if len(unique_values) == 1:
-                attributes[attr] = unique_values[0]
+    for attr in MANDATORY_ATTRIBUTES + required_attributes:
+        unique_values = set(d.get(attr, missing_value) for d in attr_dicts)
+        if len(unique_values) == 1 and missing_value not in unique_values:
+            attributes[attr], = unique_values
+        elif attr in required_attributes:
+            msg = ('Required attribute "{}" is missing or '
+                   'not the same on all input cubes')
+            raise ValueError(msg.format(attr))
     return attributes
 
 

@@ -100,8 +100,8 @@ def calculate_svp_in_air(temperature, pressure):
         Series, Vol. 30; Equation A4.7.
     """
     svp = _svp_from_lookup(temperature)
-    temp_celcius = temperature.copy() + consts.ABSOLUTE_ZERO
-    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_celcius ** 2))
+    temp_Celsius = temperature.copy() + consts.ABSOLUTE_ZERO
+    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_Celsius ** 2))
     return svp * correction.astype(np.float32)
 
 
@@ -176,8 +176,8 @@ class WetBulbTemperature(BasePlugin):
             np.ndarray:
                 Temperature adjusted latent heat of condensation (J kg-1).
         """
-        temp_celcius = temperature + consts.ABSOLUTE_ZERO
-        latent_heat = (-1. * consts.LATENT_HEAT_T_DEPENDENCE * temp_celcius +
+        temp_Celsius = temperature + consts.ABSOLUTE_ZERO
+        latent_heat = (-1. * consts.LATENT_HEAT_T_DEPENDENCE * temp_Celsius +
                        consts.LH_CONDENSATION_WATER)
         return latent_heat
 

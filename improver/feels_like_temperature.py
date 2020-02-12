@@ -31,13 +31,14 @@
 """Module containing feels like temperature calculation plugins"""
 
 import numpy as np
-from cf_units import Unit
 
+from improver.metadata.utilities import (
+    generate_mandatory_attributes, create_new_diagnostic_cube)
 from improver.psychrometric_calculations.psychrometric_calculations \
     import calculate_svp_in_air
 
 
-def calculate_wind_chill(temperature, wind_speed):
+def _calculate_wind_chill(temperature, wind_speed):
     """
     Calculates the wind chill from 10 m wind speed and temperature based on
     the wind chill temperature index from a linear regression equation detailed
@@ -45,26 +46,23 @@ def calculate_wind_chill(temperature, wind_speed):
     Bluestein, 2005, table 2.
 
     Args:
-      temperature (iris.cube.Cube):
-        Cube of air temperatures
-
-      wind_speed (iris.cube.Cube):
-        Cube of 10m wind speeds
+        temperature (numpy.ndarray):
+            Air temperature in degrees celsius
+        wind_speed (numpy.ndarray):
+            Wind speed in kilometres per hour
 
     Returns:
-      iris.cube.Cube:
-        Cube of wind chill temperatures. The units of wind chill will be the
-        same as the units of the temperature cube when it is input into the
-        function.
+        numpy.ndarray:
+            Wind chill temperatures in degrees celsius
 
     References:
-    Osczevski, R. and Bluestein, M. (2005). THE NEW WIND CHILL EQUIVALENT
-    TEMPERATURE CHART. Bulletin of the American Meteorological Society,
-    86(10), pp.1453-1458.
+        Osczevski, R. and Bluestein, M. (2005). THE NEW WIND CHILL EQUIVALENT
+        TEMPERATURE CHART. Bulletin of the American Meteorological Society,
+        86(10), pp.1453-1458.
 
-    Osczevski, R. and Bluestein, M. (2008). Comments on Inconsistencies in
-    the New Windchill Chart at Low Wind Speeds. Journal of Applied
-    Meteorology and Climatology, 47(10), pp.2737-2738.
+        Osczevski, R. and Bluestein, M. (2008). Comments on Inconsistencies in
+        the New Windchill Chart at Low Wind Speeds. Journal of Applied
+        Meteorology and Climatology, 47(10), pp.2737-2738.
 
     Science background:
     The 2005 Osczevski and Bluestein paper outlines the research and the
@@ -92,26 +90,15 @@ def calculate_wind_chill(temperature, wind_speed):
     assumption being that lower wind speeds are usually not measured or
     reported accurately anyway.
     """
-    temp_units = temperature.copy().units
-    wind_units = wind_speed.copy().units
-    # convert temperature units
-    temperature.convert_units('celsius')
-    # convert wind speed to km/h
-    wind_speed.convert_units('km h-1')
-    eqn_component = (wind_speed.data)**0.16
-    wind_chill_data = (
-        13.12 + 0.6215 * temperature.data - 11.37 * eqn_component +
-        0.3965 * temperature.data * eqn_component).astype(np.float32)
-    wind_chill = temperature.copy(data=wind_chill_data)
-    wind_chill.rename("wind_chill")
-    wind_chill.convert_units(temp_units)
-    temperature.convert_units(temp_units)
-    wind_speed.convert_units(wind_units)
+    eqn_component = (wind_speed)**0.16
+    wind_chill = (
+        13.12 + 0.6215 * temperature - 11.37 * eqn_component +
+        0.3965 * temperature * eqn_component).astype(np.float32)
     return wind_chill
 
 
-def calculate_apparent_temperature(temperature, wind_speed,
-                                   relative_humidity, pressure):
+def _calculate_apparent_temperature(temperature, wind_speed,
+                                    relative_humidity, pressure):
     """
     Calculates the apparent temperature from 10 m wind speed, temperature
     and actual vapour pressure using the linear regression equation
@@ -133,74 +120,36 @@ def calculate_apparent_temperature(temperature, wind_speed,
     the WetBulbTemperature plugin which makes use of the Goff-Gratch method.
 
     Args:
-      temperature (iris.cube.Cube):
-        Cube of air temperatures
-
-      wind_speed (iris.cube.Cube):
-        Cube of 10m wind speeds
-
-      relative_humidity (iris.cube.Cube):
-        Cube of relative humidities
-
-      pressure (iris.cube.Cube):
-        Cube of air pressure
+        temperature (numpy.ndarray):
+            Temperatures in degrees celsius
+        wind_speed (numpy.ndarray):
+            10m wind speeds in metres per second
+        relative_humidity (numpy.ndarray):
+            Relative humidities (fractional)
+        pressure (numpy.ndarray):
+            Pressure in Pa
 
     Returns:
-      iris.cube.Cube:
-        Cube of apparent temperatures. The units of apparent temperature
-        will be the same as the units of the temperature cube when it is input
-        into the function.
+        numpy.ndarray:
+            Apparent temperatures in degrees celsius
 
     References:
-      Steadman, R. (1984). A Universal Scale of Apparent Temperature.
-      Journal of Climate and Applied Meteorology, 23(12), pp.1674-1687
+        Steadman, R. (1984). A Universal Scale of Apparent Temperature.
+        Journal of Climate and Applied Meteorology, 23(12), pp.1674-1687
     """
-    # take a copy of each cube's original units
-    temp_units = temperature.copy().units
-    wind_units = wind_speed.copy().units
-    pressure_units = pressure.copy().units
-    relative_humidity_units = relative_humidity.copy().units
-
-    # ensure units are correct
-    wind_speed.convert_units('m s-1')
-    pressure.convert_units('Pa')
-    relative_humidity.convert_units('1')
-    temperature.convert_units('K')
-    avp = temperature.copy()
-    avp.units = Unit('Pa')
-    # calculate saturation vapour pressure in air
-    svp = calculate_svp_in_air(temperature.data, pressure.data)
-    # convert temperature units
-    temperature.convert_units('celsius')
-    # calculate actual vapour pressure
-    # and convert relative humidities to fractional values
-    avp_data = svp*relative_humidity.data
-    avp = avp.copy(data=avp_data)
-    avp.rename("actual_vapour_pressure")
-    avp.convert_units('kPa')
-    # calculate apparent temperature
-    apparent_temperature_data = (
-        -2.7 + 1.04 * temperature.data + 2.0 * avp.data -
-        0.65 * wind_speed.data).astype(np.float32)
-    apparent_temperature = temperature.copy(data=apparent_temperature_data)
-    apparent_temperature.rename("apparent_temperature")
-    apparent_temperature.convert_units(temp_units)
-
-    # convert units back to input units
-    temperature.convert_units(temp_units)
-    wind_speed.convert_units(wind_units)
-    pressure.convert_units(pressure_units)
-    relative_humidity.convert_units(relative_humidity_units)
-
+    t_kelvin = temperature + 273.15
+    svp = calculate_svp_in_air(t_kelvin, pressure)
+    avp = 0.001 * svp * relative_humidity
+    apparent_temperature = (-2.7 + 1.04 * temperature + 2.0 * avp -
+                            0.65 * wind_speed).astype(np.float32)
     return apparent_temperature
 
 
-def calculate_feels_like_temperature(temperature, wind_speed,
-                                     relative_humidity, pressure):
+def _feels_like_temperature(temperature, apparent_temperature, wind_chill):
     """
-    Calculates the feels like temperature using a combination of
-    the wind chill index and Steadman's apparent temperature equation with
-    the following method:
+    Calculates feels like temperature from inputs in degrees Celsius using a
+    combination of the wind chill index and Steadman's apparent temperature
+    equation as follows:
 
     If temperature < 10 degress C: The feels like temperature is equal to
     the wind chill.
@@ -212,53 +161,77 @@ def calculate_feels_like_temperature(temperature, wind_speed,
     in order to blend between the wind chill and the apparent temperature.
 
     Args:
-      temperature (iris.cube.Cube):
-        Cube of air temperatures
-
-      wind_speed (iris.cube.Cube):
-        Cube of 10m wind speeds
-
-      relative_humidity (iris.cube.Cube):
-        Cube of relative humidities
-
-      pressure (iris.cube.Cube):
-        Cube of air pressure
+        temperature (numpy.ndarray)
+        apparent_temperature (numpy.ndarray)
+        wind_chill (numpy.ndarray)
 
     Returns:
-      iris.cube.Cube:
-        Cube of feels like temperatures. The units of feels like temperature
-        will be the same as the units of the temperature cube when it is input
-        into the function.
+        numpy.ndarray
     """
-    temp_units = temperature.units
-    # convert temperature units
-    temperature.convert_units('celsius')
+    feels_like_temperature = np.zeros(temperature.shape, dtype=np.float32)
+    feels_like_temperature[temperature < 10] = wind_chill[temperature < 10]
 
-    wind_chill = calculate_wind_chill(temperature, wind_speed)
-    apparent_temperature = calculate_apparent_temperature(
-        temperature, wind_speed, relative_humidity, pressure)
+    alpha = (temperature-10.0)/10.0
+    temp_flt = (alpha*apparent_temperature + ((1-alpha)*wind_chill))
+    between = (temperature >= 10) & (temperature <= 20)
+    feels_like_temperature[between] = temp_flt[between]
 
-    t_data = temperature.data
-    feels_like_temperature_data = np.zeros(t_data.shape, dtype=np.float32)
-
-    # if temperature < 10 degrees Celsius:
-    feels_like_temperature_data[t_data < 10] = wind_chill.data[t_data < 10]
-
-    # if temperature >= 10 degrees Celsius and <= 20 degrees Celsius:
-    # calculate weighting and blend between wind chill index
-    # and Steadman equation
-    alpha = (t_data-10.0)/10.0
-    temp_flt = (alpha*apparent_temperature.data + ((1-alpha)*wind_chill.data))
-    t_data_between = (t_data >= 10) & (t_data <= 20)
-    feels_like_temperature_data[t_data_between] = temp_flt[t_data_between]
-
-    # if temperature > 20 Celsius:
-    feels_like_temperature_data[t_data > 20] = (
-        apparent_temperature.data[t_data > 20])
-
-    feels_like_temperature = temperature.copy(data=feels_like_temperature_data)
-    feels_like_temperature.rename("feels_like_temperature")
-    feels_like_temperature.convert_units(temp_units)
-    temperature.convert_units(temp_units)
+    feels_like_temperature[temperature > 20] = (
+        apparent_temperature[temperature > 20])
 
     return feels_like_temperature
+
+
+def calculate_feels_like_temperature(
+        temperature, wind_speed, relative_humidity, pressure,
+        model_id_attr=None):
+    """
+    Calculates the feels like temperature using a combination of
+    the wind chill index and Steadman's apparent temperature equation.
+
+    Args:
+        temperature (iris.cube.Cube):
+            Cube of air temperatures
+        wind_speed (iris.cube.Cube):
+            Cube of 10m wind speeds
+        relative_humidity (iris.cube.Cube):
+            Cube of relative humidities
+        pressure (iris.cube.Cube):
+            Cube of air pressure
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
+
+    Returns:
+        iris.cube.Cube:
+            Cube of feels like temperatures in the same units as the input
+            temperature cube.
+    """
+    t_cube = temperature.copy()
+    t_cube.convert_units('degC')
+    t_celsius = t_cube.data
+
+    w_cube = wind_speed.copy()
+    w_cube.convert_units('m s-1')
+    p_cube = pressure.copy()
+    p_cube.convert_units('Pa')
+    rh_cube = relative_humidity.copy()
+    rh_cube.convert_units('1')
+    apparent_temperature = _calculate_apparent_temperature(
+        t_celsius, w_cube.data, rh_cube.data, p_cube.data)
+
+    w_cube.convert_units('km h-1')
+    wind_chill = _calculate_wind_chill(t_celsius, w_cube.data)
+
+    feels_like_temperature = _feels_like_temperature(
+        t_celsius, apparent_temperature, wind_chill)
+
+    attributes = generate_mandatory_attributes(
+        [temperature, wind_speed, relative_humidity, pressure],
+        model_id_attr=model_id_attr)
+    feels_like_temperature_cube = create_new_diagnostic_cube(
+        "feels_like_temperature", "degC", temperature,
+        attributes, data=feels_like_temperature)
+    feels_like_temperature_cube.convert_units(temperature.units)
+
+    return feels_like_temperature_cube
