@@ -107,7 +107,8 @@ def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False,
             If true, create an iris.coords.DimCoord instance.  Default is to
             create an iris.coords.AuxCoord.
         coord_spec (collections.namedtuple):
-            Specification of units and dtype for the forecast_period coordinate.
+            Specification of units and dtype for the forecast_period
+            coordinate.
 
     Returns:
         iris.coords.Coord:
