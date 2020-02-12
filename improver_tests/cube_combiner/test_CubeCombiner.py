@@ -81,8 +81,7 @@ class set_up_cubes(IrisTest):
             time=datetime(2015, 11, 19, 0),
             time_bounds=(datetime(2015, 11, 18, 23),
                          datetime(2015, 11, 19, 0)),
-            frt=datetime(2015, 11, 18, 22),
-            attributes={'attribute_to_update': 'first_value'})
+            frt=datetime(2015, 11, 18, 22))
 
         data = np.full((1, 2, 2), 0.6, dtype=np.float32)
         self.cube2 = set_up_probability_cube(
@@ -91,8 +90,7 @@ class set_up_cubes(IrisTest):
             time=datetime(2015, 11, 19, 1),
             time_bounds=(datetime(2015, 11, 19, 0),
                          datetime(2015, 11, 19, 1)),
-            frt=datetime(2015, 11, 18, 22),
-            attributes={'attribute_to_update': 'first_value'})
+            frt=datetime(2015, 11, 18, 22))
 
         data = np.full((1, 2, 2), 0.1, dtype=np.float32)
         self.cube3 = set_up_probability_cube(
@@ -101,8 +99,7 @@ class set_up_cubes(IrisTest):
             time=datetime(2015, 11, 19, 1),
             time_bounds=(datetime(2015, 11, 19, 0),
                          datetime(2015, 11, 19, 1)),
-            frt=datetime(2015, 11, 18, 22),
-            attributes={'attribute_to_update': 'first_value'})
+            frt=datetime(2015, 11, 18, 22))
 
 
 class Test_process(set_up_cubes):
@@ -152,6 +149,20 @@ class Test_process(set_up_cubes):
         self.assertEqual(result.coord('time').points[0], 1447891200)
         self.assertArrayEqual(result.coord('time').bounds,
                               [[1447887600, 1447894800]])
+
+    def test_unmatched_scalar_coords(self):
+        """Test a scalar coordinate that is present on the first cube is
+        present unmodified on the output; and if present on a later cube is
+        not present on the output."""
+        height = iris.coords.AuxCoord([1.5], "height", units="m")
+        self.cube1.add_aux_coord(height)
+        result = CubeCombiner('add').process(
+            [self.cube1, self.cube2], 'new_cube_name')
+        self.assertEqual(result.coord("height"), height)
+        result = CubeCombiner('add').process(
+            [self.cube2, self.cube1], 'new_cube_name')
+        result_coords = [coord.name() for coord in result.coords()]
+        self.assertNotIn("height", result_coords)
 
     def test_mean_multi_cube(self):
         """Test that the plugin calculates the mean for three cubes. """

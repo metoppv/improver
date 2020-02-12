@@ -107,7 +107,8 @@ class CubeCombiner(BasePlugin):
     def _get_expanded_coord_names(cube_list):
         """
         Get names of coordinates whose bounds need expanding and points
-        recalculating after combining cubes
+        recalculating after combining cubes. These are the scalar coordinates
+        that are present on all input cubes, but have different values.
 
         Args:
             cube_list (iris.cube.CubeList or list):
@@ -115,15 +116,21 @@ class CubeCombiner(BasePlugin):
 
         Returns:
             list of str:
-                List of coordinate names
+                List of coordinate names to expand
         """
-        reference_coords = cube_list[0].coords(dim_coords=False)
+        shared_scalar_coords = {
+            coord.name() for coord in cube_list[0].coords(dim_coords=False)}
+        for cube in cube_list[1:]:
+            cube_scalar_coords = {
+                coord.name() for coord in cube.coords(dim_coords=False)}
+            shared_scalar_coords = shared_scalar_coords & cube_scalar_coords
+
         expanded_coords = []
         for cube in cube_list[1:]:
-            coords = cube.coords(dim_coords=False)
-            for a, b in zip(coords, reference_coords):
-                if a != b and a.name() not in expanded_coords:
-                    expanded_coords.append(a.name())
+            for coord in shared_scalar_coords:
+                if (cube.coord(coord) != cube_list[0].coord(coord) and
+                        coord not in expanded_coords):
+                    expanded_coords.append(coord)
         return expanded_coords
 
     def process(self, cube_list, new_diagnostic_name, use_midpoint=False):
