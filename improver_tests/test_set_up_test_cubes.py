@@ -42,6 +42,7 @@ from iris.tests import IrisTest
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.utilities.temporal import iris_time_to_datetime
 
 from .set_up_test_cubes import (
@@ -199,6 +200,8 @@ class test_set_up_variable_cube(IrisTest):
         self.assertEqual(result.coord("forecast_period").units, "seconds")
         self.assertEqual(result.coord("forecast_period").points[0], 14400)
 
+        check_mandatory_standards(result)
+
     def test_non_standard_name(self):
         """Test non CF standard cube naming"""
         result = set_up_variable_cube(self.data, name="temp_in_the_air")
@@ -308,6 +311,7 @@ class test_set_up_percentile_cube(IrisTest):
         perc_coord = result.coord("percentile")
         self.assertArrayEqual(perc_coord.points, self.percentiles)
         self.assertEqual(perc_coord.units, "%")
+        check_mandatory_standards(result)
 
     def test_standard_grid_metadata(self):
         """Test standard grid metadata"""
@@ -349,6 +353,7 @@ class test_set_up_probability_cube(IrisTest):
         self.assertEqual(len(thresh_coord.attributes), 1)
         self.assertEqual(
             thresh_coord.attributes['spp__relative_to_threshold'], 'above')
+        check_mandatory_standards(result)
 
     def test_relative_to_threshold(self):
         """Test ability to reset the "spp__relative_to_threshold" attribute"""
@@ -404,6 +409,7 @@ class test_add_coordinate(IrisTest):
             result.coord('height').points, self.height_points)
         self.assertEqual(result.coord('height').dtype, np.float32)
         self.assertEqual(result.coord('height').units, self.height_unit)
+        check_mandatory_standards(result)
 
     def test_adding_coordinate_with_attribute(self):
         """Test addition of a leading height coordinate with an appropriate

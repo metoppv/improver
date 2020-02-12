@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Utilities for datatype checking"""
+"""Utilities for mandatory datatype and units checking"""
 
 import iris
 import numpy as np
@@ -140,8 +140,6 @@ def check_units(obj):
     req_units = get_required_units(obj)
     if req_units is None:
         return True
-    if not hasattr(obj, 'units'):
-        return False
     # check object and string representation to get consistent output
     # (e.g Unit('second') == Unit('seconds') == Unit('s'))
     return Unit(obj.units) == Unit(req_units)
@@ -155,9 +153,6 @@ def check_mandatory_standards(cube):
     Args:
         cube (iris.cube.Cube):
             The cube to be checked for conformance with standards.
-
-    Returns:
-        None
 
     Raises:
         ValueError:

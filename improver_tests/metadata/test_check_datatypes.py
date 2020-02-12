@@ -35,6 +35,7 @@ import unittest
 import numpy as np
 from iris.tests import IrisTest
 from iris.cube import CubeList
+from iris.coords import AuxCoord
 
 from improver.metadata.check_datatypes import (
     check_mandatory_standards, check_units)
@@ -89,8 +90,17 @@ class Test_check_mandatory_standards(IrisTest):
         for cube in cubelist:
             result = cube.copy()
             check_mandatory_standards(result)
+            # The following statement renders each cube into an XML string
+            # describing all aspects of the cube (including a checksum of the
+            # data) to verify that nothing has been changed anywhere on the
+            # cube.
             self.assertStringEqual(CubeList([cube]).xml(checksum=True),
                                    CubeList([result]).xml(checksum=True))
+
+    def test_int32_cube_data(self):
+        """Test conformant data with a cube with 32-bit integer data."""
+        self.cube.data = self.cube.data.astype(np.int32)
+        check_mandatory_standards(self.cube)
 
     def test_int64_cube_data(self):
         """Test conformant data with a cube with 64-bit integer data."""
@@ -130,10 +140,16 @@ class Test_check_mandatory_standards(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             check_mandatory_standards(self.cube)
 
+    def test_string_coord(self):
+        """Test conformant data with a cube with a coord of strings."""
+        self.cube.add_aux_coord(AuxCoord(['kittens'], long_name='animal'))
+        check_mandatory_standards(self.cube)
+
     def test_multiple_errors(self):
         """Test a list of errors is correctly caught and re-raised"""
         self.percentile_cube.coord('percentile').points = (
             self.percentile_cube.coord('percentile').points.astype(np.float64))
+        self.percentile_cube.coord('forecast_period').convert_units('minutes')
         self.percentile_cube.coord('forecast_period').points = (
             self.percentile_cube.coord('forecast_period').points.astype(
                 np.int64))
@@ -142,7 +158,11 @@ class Test_check_mandatory_standards(IrisTest):
                "Expected: float32, Actual \\(points\\): float64\n"
                "forecast_period of type .*DimCoord.* "
                "does not have required dtype.\n"
-               "Expected: int32, Actual \\(points\\): int64")
+               "Expected: int32, Actual \\(points\\): int64\n"
+               "forecast_period of type .*DimCoord.* "
+               "does not have required units.\n"
+               "Expected: seconds, Actual: minutes"
+               )
         with self.assertRaisesRegex(ValueError, msg):
             check_mandatory_standards(self.percentile_cube)
 
@@ -158,10 +178,14 @@ class Test_check_units(IrisTest):
         self.coord = self.cube.coord('forecast_period')
 
     def test_pass_cube(self):
-        """Test return value for cube (no requirement on units)"""
+        """Test input_cube is not changed when nothing needs changing (no
+        requirement on units)"""
         input_cube = self.cube.copy()
         result = check_units(input_cube)
         self.assertTrue(result)
+        # The following statement renders each cube into an XML string
+        # describing all aspects of the cube (including a checksum of the
+        # data) to verify that nothing has been changed anywhere on the cube.
         self.assertStringEqual(CubeList([self.cube]).xml(checksum=True),
                                CubeList([input_cube]).xml(checksum=True))
 
