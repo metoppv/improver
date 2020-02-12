@@ -31,11 +31,10 @@
 """Unit tests for Weather Symbols class."""
 
 import unittest
-
-import iris
-import numpy as np
 from datetime import datetime as dt
+import numpy as np
 from cf_units import Unit
+import iris
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
