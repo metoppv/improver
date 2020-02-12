@@ -104,8 +104,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             self.location_parameter, self.scale_parameter,
             self.temperature_cube, self.percentiles)
         self.assertIsInstance(result, Cube)
-        np.testing.assert_allclose(
-            result.data, self.data, rtol=1.e-4)
+        np.testing.assert_allclose(result.data, self.data, rtol=1.e-4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -115,9 +114,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         given a location parameter that is masked.
         """
         mask = np.array([[1, 0, 0], [0, 0, 0], [0, 1, 0]])
-        expected_mask = np.array([[[1, 0, 0], [0, 0, 0], [0, 1, 0]],
-                                  [[1, 0, 0], [0, 0, 0], [0, 1, 0]],
-                                  [[1, 0, 0], [0, 0, 0], [0, 1, 0]]])
+        expected_mask = np.broadcast_to(mask, (3, 3, 3))
         expected_data = np.ma.masked_array(self.data, mask=expected_mask)
         self.location_parameter.data = np.ma.masked_array(
             self.location_parameter.data, mask=mask)
@@ -125,8 +122,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         result = plugin._location_and_scale_parameters_to_percentiles(
             self.location_parameter, self.scale_parameter,
             self.temperature_cube, self.percentiles)
-        np.testing.assert_allclose(
-            result.data, expected_data, rtol=1.e-4)
+        np.testing.assert_allclose(result.data, expected_data, rtol=1.e-4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -136,9 +132,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         given a scale parameter that is masked.
         """
         mask = np.array([[0, 0, 0], [0, 0, 0], [1, 0, 1]])
-        expected_mask = np.array([[[0, 0, 0], [0, 0, 0], [1, 0, 1]],
-                                  [[0, 0, 0], [0, 0, 0], [1, 0, 1]],
-                                  [[0, 0, 0], [0, 0, 0], [1, 0, 1]]])
+        expected_mask = np.broadcast_to(mask, (3, 3, 3))
         expected_data = np.ma.masked_array(self.data, mask=expected_mask)
         self.scale_parameter.data = np.ma.masked_array(
             self.scale_parameter.data, mask=mask)
@@ -146,8 +140,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         result = plugin._location_and_scale_parameters_to_percentiles(
             self.location_parameter, self.scale_parameter,
             self.temperature_cube, self.percentiles)
-        np.testing.assert_allclose(
-            result.data, expected_data, rtol=1.e-4)
+        np.testing.assert_allclose(result.data, expected_data, rtol=1.e-4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -158,9 +151,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         """
         mask1 = np.array([[0, 1, 0], [0, 0, 0], [0, 0, 0]])
         mask2 = np.array([[0, 0, 0], [1, 0, 0], [0, 0, 0]])
-        expected_mask = np.array([[[0, 1, 0], [1, 0, 0], [0, 0, 0]],
-                                  [[0, 1, 0], [1, 0, 0], [0, 0, 0]],
-                                  [[0, 1, 0], [1, 0, 0], [0, 0, 0]]])
+        expected_mask = np.broadcast_to(mask1+mask2, (3, 3, 3))
         expected_data = np.ma.masked_array(self.data, mask=expected_mask)
         self.location_parameter.data = np.ma.masked_array(
             self.location_parameter.data, mask=mask1)
@@ -170,8 +161,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         result = plugin._location_and_scale_parameters_to_percentiles(
             self.location_parameter, self.scale_parameter,
             self.temperature_cube, self.percentiles)
-        np.testing.assert_allclose(
-            result.data, expected_data, rtol=1.e-4)
+        np.testing.assert_allclose(result.data, expected_data, rtol=1.e-4)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])

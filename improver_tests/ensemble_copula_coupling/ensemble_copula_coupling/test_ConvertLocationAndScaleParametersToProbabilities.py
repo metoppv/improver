@@ -185,9 +185,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         """Test that the plugin gets the correct data out when you put in
         masked location parameter data."""
         mask = np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
-        expected_mask = np.array([[[1, 0, 0], [0, 0, 0], [0, 0, 0]],
-                                  [[1, 0, 0], [0, 0, 0], [0, 0, 0]],
-                                  [[1, 0, 0], [0, 0, 0], [0, 0, 0]]])
+        expected_mask = np.broadcast_to(mask, (3, 3, 3))
         self.location_parameter_values.data = np.ma.masked_array(
             self.location_parameter_values.data, mask=mask)
         expected_with_mask = np.ma.masked_array(
@@ -202,9 +200,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         """Test that the plugin gets the correct data out when you put in
         masked scale parameter data."""
         mask = np.array([[0, 0, 0], [1, 0, 1], [0, 0, 1]])
-        expected_mask = np.array([[[0, 0, 0], [1, 0, 1], [0, 0, 1]],
-                                  [[0, 0, 0], [1, 0, 1], [0, 0, 1]],
-                                  [[0, 0, 0], [1, 0, 1], [0, 0, 1]]])
+        expected_mask = np.broadcast_to(mask, (3, 3, 3))
         self.scale_parameter_values.data = np.ma.masked_array(
             self.scale_parameter_values.data, mask=mask)
         expected_with_mask = np.ma.masked_array(
@@ -220,9 +216,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         masked data for both the scale and location parameters."""
         mask1 = np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
         mask2 = np.array([[0, 0, 0], [0, 1, 0], [1, 0, 0]])
-        expected_mask = np.array([[[1, 0, 0], [0, 1, 0], [1, 0, 0]],
-                                  [[1, 0, 0], [0, 1, 0], [1, 0, 0]],
-                                  [[1, 0, 0], [0, 1, 0], [1, 0, 0]]])
+        expected_mask = np.broadcast_to(mask1+mask2, (3, 3, 3))
         self.location_parameter_values.data = np.ma.masked_array(
             self.location_parameter_values.data, mask=mask1)
         self.scale_parameter_values.data = np.ma.masked_array(

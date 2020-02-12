@@ -753,9 +753,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
                 zero.
         """
         # Define a mask to be reapplied later
-        loc_mask = np.ma.getmaskarray(location_parameter.data)
-        scale_mask = np.ma.getmaskarray(scale_parameter.data)
-        mask = np.logical_or(loc_mask, scale_mask)
+        mask = np.logical_or(np.ma.getmaskarray(location_parameter.data),
+                             np.ma.getmaskarray(scale_parameter.data))
         # Remove any mask that may be applied to location and scale parameters
         # and replace with ones
         location_parameter_data = np.ma.filled(
