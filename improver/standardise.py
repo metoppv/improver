@@ -244,9 +244,6 @@ class StandardiseGridAndMetadata(BasePlugin):
             cube (iris.cube.Cube:
                 Cube to be updated in place
 
-        Returns:
-            None
-
         """
         def as_correct_dtype(obj, required_dtype):
             """
