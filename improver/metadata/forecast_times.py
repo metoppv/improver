@@ -92,7 +92,8 @@ def forecast_period_coord(cube, force_lead_time_calculation=False):
     return result_coord
 
 
-def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False):
+def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False,
+                               coord_spec=TIME_COORDS['forecast_period']):
     """
     Calculate a forecast period from existing time and forecast reference
     time coordinates.
@@ -105,6 +106,8 @@ def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False):
         dim_coord (bool):
             If true, create an iris.coords.DimCoord instance.  Default is to
             create an iris.coords.AuxCoord.
+        coord_spec (collections.namedtuple):
+            Specification of units and dtype for the forecast_period coordinate.
 
     Returns:
         iris.coords.Coord:
@@ -140,17 +143,16 @@ def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False):
         bounds=required_lead_time_bounds,
         units="seconds")
 
-    coord_type_spec = TIME_COORDS[result_coord.name()]
-    result_coord.convert_units(coord_type_spec.units)
+    result_coord.convert_units(coord_spec.units)
 
-    if coord_type_spec.dtype not in FLOAT_TYPES:
+    if coord_spec.dtype not in FLOAT_TYPES:
         result_coord.points = np.around(result_coord.points)
         if result_coord.bounds is not None:
             result_coord.bounds = np.around(result_coord.bounds)
 
-    result_coord.points = result_coord.points.astype(coord_type_spec.dtype)
+    result_coord.points = result_coord.points.astype(coord_spec.dtype)
     if result_coord.bounds is not None:
-        result_coord.bounds = result_coord.bounds.astype(coord_type_spec.dtype)
+        result_coord.bounds = result_coord.bounds.astype(coord_spec.dtype)
 
     if np.any(result_coord.points < 0):
         msg = ("The values for the time {} and "
