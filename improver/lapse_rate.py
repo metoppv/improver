@@ -39,8 +39,9 @@ from scipy.ndimage import generic_filter
 
 from improver import BasePlugin
 from improver.constants import DALR
-from improver.standardise import StandardiseGridAndMetadata
 from improver.utilities.cube_checker import spatial_coords_match
+from improver.metadata.utilities import (
+    generate_mandatory_attributes, create_new_diagnostic_cube)
 
 
 def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
@@ -370,9 +371,6 @@ class LapseRate(BasePlugin):
         temperature_cube.convert_units('K')
         orography_cube.convert_units('metres')
 
-        temperature_cube = StandardiseGridAndMetadata().process(
-            temperature_cube)
-
         # Extract x/y co-ordinates.
         x_coord = temperature_cube.coord(axis='x').name()
         y_coord = temperature_cube.coord(axis='y').name()
@@ -409,9 +407,6 @@ class LapseRate(BasePlugin):
         lapse_rate_cube_list = iris.cube.CubeList([])
 
         for temp_slice in slices_over_realization:
-
-            # Create slice to store lapse rate values.
-            lapse_rate_slice = temp_slice
 
             temperature_data = temp_slice.data
 
@@ -461,11 +456,14 @@ class LapseRate(BasePlugin):
             lapse_rate_array = np.where(lapse_rate_array > self.max_lapse_rate,
                                         self.max_lapse_rate, lapse_rate_array)
 
-            lapse_rate_slice.data = lapse_rate_array
+            # Make output cube slice of lapse rate values.
+            attributes = generate_mandatory_attributes([temp_slice])
+            lapse_rate_slice = create_new_diagnostic_cube(
+                'air_temperature_lapse_rate', 'K m-1', temp_slice,
+                attributes, data=lapse_rate_array)
+
             lapse_rate_cube_list.append(lapse_rate_slice)
 
         lapse_rate_cube = lapse_rate_cube_list.merge_cube()
-        lapse_rate_cube.rename('air_temperature_lapse_rate')
-        lapse_rate_cube.units = 'K m-1'
 
         return lapse_rate_cube

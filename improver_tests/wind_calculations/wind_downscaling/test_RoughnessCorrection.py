@@ -110,7 +110,7 @@ def set_up_cube(num_time_points=1, num_grid_points=1, num_height_levels=7,
     cube = cubel[0]
     if data is not None:
         try:
-            data = np.array(data)
+            data = np.array(data, dtype=np.float32)
             cube.data = data.reshape(cube.data.shape)
         except ValueError as err:
             if err == "total size of new array must be unchanged":
@@ -366,8 +366,8 @@ class Test1D(IrisTest):
     Section 1 are sensible single point tests.
 
     """
-    uin = [20., 20., 20., 20., 20., 20., 20.]
-    hls = [0.2, 3, 13, 33, 133, 333, 1133]
+    uin = np.array([20., 20., 20., 20., 20., 20., 20.], dtype=np.float32)
+    hls = np.array([0.2, 3, 13, 33, 133, 333, 1133], dtype=np.float32)
 
     def test_section0a(self):
         """Test AoS is RMDI, point should not do anything, uin = uout."""
@@ -734,8 +734,8 @@ class Test2D(IrisTest):
     def test_section2d(self):
         """Test whether output is float32."""
         hlvs = 10
-        uin = np.ones(hlvs)*20
-        heights = ((np.arange(hlvs)+1)**2.)*12.
+        uin = (np.ones(hlvs)*20).astype(np.float32)
+        heights = (((np.arange(hlvs)+1)**2.)*12.).astype(np.float32)
         multip_hc_rc = TestMultiPoint(3)
         land_hc_rc = multip_hc_rc.run_hc_rc(uin, dtime=1, height=heights)
         self.assertEqual(land_hc_rc.dtype, np.float32)

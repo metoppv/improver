@@ -40,7 +40,6 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.constants import RMDI
-from improver.standardise import StandardiseGridAndMetadata
 
 # Scale parameter to determine reference height
 ABSOLUTE_CORRECTION_TOL = 0.04
@@ -639,7 +638,7 @@ class RoughnessCorrectionUtilities:
         hc_add = self._calc_height_corr(uhref_orig, hgrid, mask_hc, onemfrac)
         result = unew + hc_add
         result[result < 0.] = 0  # HC can be negative if pporo<modeloro
-        return result
+        return result.astype(np.float32)
 
 
 class RoughnessCorrection(BasePlugin):
@@ -672,16 +671,6 @@ class RoughnessCorrection(BasePlugin):
                 2D - vegetative roughness length in m. If not given, do not do
                 any RC
         """
-        for cube in [a_over_s_cube, sigma_cube, pporo_cube, modoro_cube,
-                     z0_cube, height_levels_cube]:
-            if cube is not None:
-                # TODO: remove call to private method - currently used because
-                # using whole plugin causes unit tests to fail (presumably due
-                # to collapse scalar dimensions in plugin) - fix tests and/or
-                # this plugin as appropriate.
-                StandardiseGridAndMetadata()._standardise_dtypes_and_units(
-                    cube)
-
         # Standard Python 'float' type is either single or double depending on
         # system and there is no reliable method of finding which from the
         # variable. So force to numpy.float32 by default.
@@ -957,11 +946,6 @@ class RoughnessCorrection(BasePlugin):
         if not isinstance(input_cube, iris.cube.Cube):
             msg = "wind input is not a cube, but {}"
             raise TypeError(msg.format(type(input_cube)))
-        # TODO: remove call to private method - currently used because
-        # using whole plugin causes unit tests to fail (presumably due to
-        # collapse scalar dimensions in plugin) - fix tests and/or this plugin
-        # as appropriate.
-        StandardiseGridAndMetadata()._standardise_dtypes_and_units(input_cube)
         (self.x_name, self.y_name, self.z_name,
          self.t_name) = self.find_coord_names(input_cube)
         xwp, ywp, zwp, twp = self.find_coord_order(input_cube)
