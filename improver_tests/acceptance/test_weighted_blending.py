@@ -173,7 +173,6 @@ def test_model(tmp_path):
 def test_fails_no_model_id(tmp_path):
     """Test multi-model blending fails if model_id_attr is not specified"""
     kgo_dir = acc.kgo_root() / "weighted_blending/model"
-    kgo_path = kgo_dir / "kgo.nc"
     ukv_path = kgo_dir / "ukv_input.nc"
     enuk_path = kgo_dir / "enuk_input.nc"
     output_path = tmp_path / "output.nc"
