@@ -298,7 +298,7 @@ class Accumulation(BasePlugin):
         accumulation_cube = expand_bounds(
             cube_subset[0].copy(),
             iris.cube.CubeList(cube_subset),
-            expanded_coords={'time': 'upper', 'forecast_period': 'upper'})
+            ["time", "forecast_period"])
         accumulation_cube.rename(cube_name)
         accumulation_cube.units = 'm'
         return accumulation_cube

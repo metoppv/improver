@@ -87,7 +87,7 @@ class Test_expand_bounds(IrisTest):
             [time_point], bounds=self.expected_bounds_seconds,
             standard_name='time', units=TIME_UNIT)
         result = expand_bounds(
-            self.cubelist[0], self.cubelist, {'time': 'mid'})
+            self.cubelist[0], self.cubelist, ['time'], use_midpoint=True)
         self.assertEqual(result.coord('time'), expected_result)
         self.assertEqual(result.coord('time').dtype, np.int64)
 
@@ -99,7 +99,8 @@ class Test_expand_bounds(IrisTest):
             bounds=np.array([0, 10800], dtype=np.int32),
             standard_name='forecast_period', units='seconds')
         result = expand_bounds(
-            self.cubelist[0], self.cubelist, {'forecast_period': 'mid'})
+            self.cubelist[0], self.cubelist, ['forecast_period'],
+            use_midpoint=True)
         self.assertEqual(result.coord('forecast_period'), expected_result)
         self.assertEqual(result.coord('forecast_period').dtype, np.int32)
 
@@ -114,7 +115,7 @@ class Test_expand_bounds(IrisTest):
             [time_point], bounds=self.expected_bounds_hours,
             standard_name='time', units=time_unit)
         result = expand_bounds(
-            self.cubelist[0], self.cubelist, {'time': 'mid'})
+            self.cubelist[0], self.cubelist, ['time'], use_midpoint=True)
         self.assertEqual(result.coord('time'), expected_result)
         self.assertEqual(result.coord('time').dtype, np.float32)
 
@@ -126,8 +127,7 @@ class Test_expand_bounds(IrisTest):
         expected_result = iris.coords.DimCoord(
             [time_point], bounds=self.expected_bounds_seconds,
             standard_name='time', units=TIME_UNIT)
-        result = expand_bounds(
-            self.cubelist[0], self.cubelist, {'time': 'upper'})
+        result = expand_bounds(self.cubelist[0], self.cubelist, ['time'])
         self.assertEqual(result.coord('time'), expected_result)
 
     def test_multiple_coordinate_expanded(self):
@@ -144,11 +144,9 @@ class Test_expand_bounds(IrisTest):
             standard_name='forecast_period', units='seconds')
 
         result = expand_bounds(self.cubelist[0], self.cubelist,
-                               {'time': 'upper',
-                                'forecast_period': 'upper'})
+                               ['time', 'forecast_period'])
         self.assertEqual(result.coord('time'), expected_result_time)
         self.assertEqual(result.coord('forecast_period'), expected_result_fp)
-
         self.assertEqual(result.coord('time').dtype, np.int64)
 
     def test_basic_no_time_bounds(self):
@@ -168,8 +166,8 @@ class Test_expand_bounds(IrisTest):
             time_point, bounds=time_bounds,
             standard_name='time', units=TIME_UNIT)
 
-        result = expand_bounds(
-            self.cubelist[0], self.cubelist, {'time': 'mid'})
+        result = expand_bounds(self.cubelist[0], self.cubelist, ['time'],
+                               use_midpoint=True)
         self.assertEqual(result.coord('time'), expected_result)
 
     def test_fails_with_multi_point_coord(self):
@@ -178,7 +176,7 @@ class Test_expand_bounds(IrisTest):
         emsg = 'the expand bounds function should only be used on a'
         with self.assertRaisesRegex(ValueError, emsg):
             expand_bounds(
-                self.cubelist[0], self.cubelist, {'latitude': 'mid'})
+                self.cubelist[0], self.cubelist, ['latitude'])
 
 
 if __name__ == '__main__':

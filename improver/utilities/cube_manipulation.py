@@ -823,9 +823,10 @@ def clip_cube_data(cube, minimum_value, maximum_value):
     return result
 
 
-def expand_bounds(result_cube, cubelist, expanded_coords):
-    """Alter a coord such that bounds are expanded to cover
-    the entire range of the input cubes.
+def expand_bounds(result_cube, cubelist, coord_names, use_midpoint=False):
+    """Alter a coordinate on result_cube such that bounds are expanded to cover
+    the entire range of the input cubes (cubelist).  The input result_cube is
+    modified in place and returned.
 
     For example, in the case of time cubes if the input cubes have
     bounds of [0000Z, 0100Z] & [0100Z, 0200Z] then the output cube will
@@ -833,27 +834,24 @@ def expand_bounds(result_cube, cubelist, expanded_coords):
 
     Args:
         result_cube (iris.cube.Cube):
-            A cube with metadata for the results.
+            Cube with coords requiring expansion
         cubelist (iris.cube.CubeList):
-            The list of cubes with coordinates to be combined
-        expanded_coords (dict or None):
-            Coordinates over which bounds should be expanded as a key, with the
-            value indicating whether the upper or mid point of the coordinate
-            should be used as the point value, e.g. {'time': 'upper'}.
-
-                | 'mid' - halfway between the bounds
-                | 'upper' - equal to the upper bound
+            List of input cubes with source coords
+        coord_names (list of str):
+            Coordinates which should be expanded
+        use_midpoint (bool):
+            If True, coordinate points returned are halfway between the
+            expanded bounds.  If False (default), the upper bound is used.
+            Note if the midpoint is used then python will convert
+            result.coord('coord').points[0] to a float UNLESS the coord
+            units contain 'seconds'.  This is to ensure that midpoints are
+            not rounded down, for example when times are in hours.
 
     Returns:
         iris.cube.Cube:
             Cube with coords expanded.
-
-            n.b. If argument point == 'mid' then python will convert
-            result.coord('coord').points[0] to a float UNLESS the coord
-            units contain 'seconds'.  This is to ensure that midpoints are
-            not rounded down, for example when times are in hours.
     """
-    for coord, point in expanded_coords.items():
+    for coord in coord_names:
 
         if len(result_cube.coord(coord).points) != 1:
             emsg = ('the expand bounds function should only be used on a'
@@ -877,7 +875,7 @@ def expand_bounds(result_cube, cubelist, expanded_coords):
         if result_coord.bounds.dtype == np.float64:
             result_coord.bounds = result_coord.bounds.astype(np.float32)
 
-        if point == 'mid':
+        if use_midpoint:
             if 'seconds' in str(result_coord.units):
                 # integer division of seconds required to retain precision
                 dtype_orig = result_coord.dtype
@@ -889,7 +887,7 @@ def expand_bounds(result_cube, cubelist, expanded_coords):
                 # float division of hours required for accuracy
                 result_coord.points = [
                     (new_top_bound - new_low_bound) / 2. + new_low_bound]
-        elif point == 'upper':
+        else:
             result_coord.points = [new_top_bound]
 
         if result_coord.points.dtype == np.float64:

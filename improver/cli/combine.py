@@ -39,7 +39,7 @@ from improver import cli
 def process(*cubes: cli.inputcube,
             operation='+',
             new_name=None,
-            bounds_config: cli.inputjson = None,
+            use_midpoint=False,
             check_metadata=False):
     r"""Combine input cubes.
 
@@ -53,8 +53,10 @@ def process(*cubes: cli.inputcube,
             +, -, \*, add, subtract, multiply, min, max, mean
         new_name (str):
             New name for the resulting dataset.
-        bounds_config (dict):
-            Dictionary containing information on coordinates to expand.
+        use_midpoint (bool):
+            If False (not set), uses the upper bound as the new coordinate
+            point for expanded coordinates (eg time for accumulations / max in
+            period).  If True, uses the mid-point.
         check_metadata (bool):
             If True, warn on metadata mismatch between inputs.
 
@@ -69,6 +71,6 @@ def process(*cubes: cli.inputcube,
     if new_name is None:
         new_name = cubes[0].name()
     result = CubeCombiner(operation, warnings_on=check_metadata).process(
-        CubeList(cubes), new_name, coords_to_expand=bounds_config)
+        CubeList(cubes), new_name, use_midpoint=use_midpoint)
 
     return result

@@ -41,9 +41,6 @@ from improver.cube_combiner import CubeCombiner
 
 from ..set_up_test_cubes import set_up_probability_cube
 
-TIME_UNIT = 'seconds since 1970-01-01 00:00:00'
-CALENDAR = 'gregorian'
-
 
 class Test__init__(IrisTest):
 
@@ -72,7 +69,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class set_up_cubes(IrisTest):
+class CombinerTest(IrisTest):
     """Set up a common set of test cubes for subsequent test classes."""
 
     def setUp(self):
@@ -84,8 +81,7 @@ class set_up_cubes(IrisTest):
             time=datetime(2015, 11, 19, 0),
             time_bounds=(datetime(2015, 11, 18, 23),
                          datetime(2015, 11, 19, 0)),
-            frt=datetime(2015, 11, 18, 22),
-            attributes={'attribute_to_update': 'first_value'})
+            frt=datetime(2015, 11, 18, 22))
 
         data = np.full((1, 2, 2), 0.6, dtype=np.float32)
         self.cube2 = set_up_probability_cube(
@@ -94,8 +90,7 @@ class set_up_cubes(IrisTest):
             time=datetime(2015, 11, 19, 1),
             time_bounds=(datetime(2015, 11, 19, 0),
                          datetime(2015, 11, 19, 1)),
-            frt=datetime(2015, 11, 18, 22),
-            attributes={'attribute_to_update': 'first_value'})
+            frt=datetime(2015, 11, 18, 22))
 
         data = np.full((1, 2, 2), 0.1, dtype=np.float32)
         self.cube3 = set_up_probability_cube(
@@ -104,11 +99,42 @@ class set_up_cubes(IrisTest):
             time=datetime(2015, 11, 19, 1),
             time_bounds=(datetime(2015, 11, 19, 0),
                          datetime(2015, 11, 19, 1)),
-            frt=datetime(2015, 11, 18, 22),
-            attributes={'attribute_to_update': 'first_value'})
+            frt=datetime(2015, 11, 18, 22))
 
 
-class Test_process(set_up_cubes):
+class Test__get_expanded_coord_names(CombinerTest):
+    """Test method to determine coordinates for expansion"""
+
+    def test_basic(self):
+        """Test correct names are returned for scalar coordinates with
+        different values"""
+        expected_coord_set = {'time', 'forecast_period'}
+        result = CubeCombiner('+')._get_expanded_coord_names([
+            self.cube1, self.cube2, self.cube3])
+        self.assertIsInstance(result, list)
+        self.assertSetEqual(set(result), expected_coord_set)
+
+    def test_identical_inputs(self):
+        """Test no coordinates are returned if inputs are identical"""
+        result = CubeCombiner('+')._get_expanded_coord_names([
+            self.cube1, self.cube1, self.cube1])
+        self.assertFalse(result)
+
+    def test_unmatched_coords_ignored(self):
+        """Test coordinates that are not present on all cubes are ignored,
+        regardless of input order"""
+        expected_coord_set = {'time', 'forecast_period'}
+        height = iris.coords.AuxCoord([1.5], "height", units="m")
+        self.cube1.add_aux_coord(height)
+        result = CubeCombiner('+')._get_expanded_coord_names([
+            self.cube1, self.cube2, self.cube3])
+        self.assertSetEqual(set(result), expected_coord_set)
+        result = CubeCombiner('+')._get_expanded_coord_names([
+            self.cube3, self.cube2, self.cube1])
+        self.assertSetEqual(set(result), expected_coord_set)
+
+
+class Test_process(CombinerTest):
 
     """Test the plugin combines the cubelist into a cube."""
 
@@ -133,13 +159,11 @@ class Test_process(set_up_cubes):
 
     def test_bounds_expansion(self):
         """Test that the plugin calculates the sum of the input cubes
-        correctly and expands the requested coordinate bounds in the
+        correctly and expands the time coordinate bounds on the
         resulting output."""
         plugin = CubeCombiner('add')
-        coords_to_expand = {'time': 'upper'}
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        result = plugin.process(cubelist, 'new_cube_name',
-                                coords_to_expand=coords_to_expand)
+        result = plugin.process(cubelist, 'new_cube_name')
         expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
         self.assertEqual(result.name(), 'new_cube_name')
         self.assertArrayAlmostEqual(result.data, expected_data)
@@ -147,8 +171,33 @@ class Test_process(set_up_cubes):
         self.assertArrayEqual(result.coord('time').bounds,
                               [[1447887600, 1447894800]])
 
+    def test_bounds_expansion_midpoint(self):
+        """Test option to use the midpoint between the bounds as the time
+        coordinate point, rather than the (default) maximum."""
+        plugin = CubeCombiner('add')
+        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
+        result = plugin.process(cubelist, 'new_cube_name', use_midpoint=True)
+        self.assertEqual(result.name(), 'new_cube_name')
+        self.assertEqual(result.coord('time').points[0], 1447891200)
+        self.assertArrayEqual(result.coord('time').bounds,
+                              [[1447887600, 1447894800]])
+
+    def test_unmatched_scalar_coords(self):
+        """Test a scalar coordinate that is present on the first cube is
+        present unmodified on the output; and if present on a later cube is
+        not present on the output."""
+        height = iris.coords.AuxCoord([1.5], "height", units="m")
+        self.cube1.add_aux_coord(height)
+        result = CubeCombiner('add').process(
+            [self.cube1, self.cube2], 'new_cube_name')
+        self.assertEqual(result.coord("height"), height)
+        result = CubeCombiner('add').process(
+            [self.cube2, self.cube1], 'new_cube_name')
+        result_coords = [coord.name() for coord in result.coords()]
+        self.assertNotIn("height", result_coords)
+
     def test_mean_multi_cube(self):
-        """Test that the plugin calculates the mean for three cubes. """
+        """Test that the plugin calculates the mean for three cubes."""
         plugin = CubeCombiner('mean')
         cubelist = iris.cube.CubeList([self.cube1,
                                        self.cube2,
