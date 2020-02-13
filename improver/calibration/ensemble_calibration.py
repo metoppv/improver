@@ -1058,7 +1058,6 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         """
         self.current_forecast = current_forecast
         self.coefficients_cube = coefficients_cube
-        self.landsea_mask = landsea_mask
 
         # Check coefficients_cube and forecast cube are compatible.
         time_coords_match(self.current_forecast, self.coefficients_cube)

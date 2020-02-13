@@ -414,25 +414,19 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
         # Construct a mask and encapsulate as a cube.
         mask = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-        mask_cube = self.current_temperature_forecast_cube[0].copy(
-            data=mask)
-        predictor = np.array([[273.78543, 274.69128, 275.4461],
-                              [276.86517, 277.65018, 278.40503],
-                              [279.492, 280.15625, 280.97147]])
-        mask_predictor = np.ma.masked_where(mask, predictor)
-        var = np.array([[0.19524777, 0.19742958, 0.01165767],
-                        [0.02258459, 0.01967215, 0.01165767],
-                        [0.05318265, 0.00291613, 0.0007303]])
-        mask_var = np.ma.masked_where(mask, var)
+        mask_cube = self.current_temperature_forecast_cube[0].copy(data=mask)
+        mask_loc_param = np.ma.masked_where(mask, self.expected_loc_param_mean)
+        mask_scale_param = np.ma.masked_where(
+            mask, self.expected_scale_param_mean)
 
         calibrated_forecast_predictor, calibrated_forecast_var = (
             self.plugin.process(self.current_temperature_forecast_cube,
                                 self.coeffs_from_mean, landsea_mask=mask_cube))
 
         self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_predictor.data, mask_predictor)
+            calibrated_forecast_predictor.data, mask_loc_param)
         self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_var.data, mask_var)
+            calibrated_forecast_var.data, mask_scale_param)
 
 
 if __name__ == '__main__':
