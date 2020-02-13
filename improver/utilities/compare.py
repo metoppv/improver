@@ -49,6 +49,7 @@ import numpy as np
 
 from improver.constants import DEFAULT_TOLERANCE
 
+
 def compare_netcdfs(actual_path, desired_path, rtol=DEFAULT_TOLERANCE,
                     atol=DEFAULT_TOLERANCE, exclude_vars=None, reporter=None):
     """
@@ -256,6 +257,7 @@ def compare_attributes(name, actual_ds, desired_ds, reporter):
             msg = (f"different attribute value {name}/{key} - "
                    f"{actual_attr} {desired_attr}")
             reporter(msg)
+
 
 def compare_data(name, actual_var, desired_var, rtol, atol, reporter):
     """

@@ -128,10 +128,12 @@ def test_compare_missing_files(dummy_nc, tmp_path):
     def message_collector(message):
         messages_reported.append(message)
 
-    compare.compare_netcdfs(actual_nc, tmp_path / "missing", reporter=message_collector)
+    compare.compare_netcdfs(actual_nc, tmp_path / "missing",
+                            reporter=message_collector)
     assert len(messages_reported) == 1
     assert "No such file" in messages_reported[0]
-    compare.compare_netcdfs(tmp_path / "missing", expected_nc, reporter=message_collector)
+    compare.compare_netcdfs(tmp_path / "missing", expected_nc,
+                            reporter=message_collector)
     assert len(messages_reported) == 2
     assert "No such file" in messages_reported[1]
 
@@ -148,7 +150,8 @@ def test_compare_vars_renamed(dummy_nc):
     def message_collector(message):
         messages_reported.append(message)
 
-    compare.compare_vars("root", actual_ds, expected_ds, 0.0, 0.0, [], message_collector)
+    compare.compare_vars("root", actual_ds, expected_ds, 0.0, 0.0, [],
+                         message_collector)
     assert len(messages_reported) == 1
     assert DEWPOINT in messages_reported[0]
     assert "new_dew" in messages_reported[0]
@@ -409,9 +412,10 @@ def test_compare_data_type(dummy_nc, tchange):
     # netcdf API does not have the concept of deleting a variable
     for key in expected_ds.ncattrs():
         actual_ds.setncattr(key, expected_ds.getncattr(key))
-    for dim_name in expected_ds.dimensions:
-        actual_ds.createDimension(dim_name, expected_ds.dimensions[dim_name].size)
-    for var_name in expected_ds.variables:
+    for dim_name in expected_ds.dimensions.keys():
+        actual_ds.createDimension(dim_name,
+                                  expected_ds.dimensions[dim_name].size)
+    for var_name in expected_ds.variables.keys():
         if var_name == tchange:
             continue
         new_var = actual_ds.createVariable(
