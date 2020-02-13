@@ -45,13 +45,6 @@ from improver.utilities.warnings_handler import ManageWarnings
 from ..set_up_test_cubes import set_up_variable_cube
 
 
-def reset_cube_data(temperature_cube, orography_cube, land_sea_mask_cube):
-    """ Resets the cube data to its defaults. """
-    temperature_cube.data[:, :, :] = 0
-    orography_cube.data[:] = 0
-    land_sea_mask_cube.data[:] = 1
-
-
 class Test__repr__(IrisTest):
     """Test the repr method."""
 
@@ -138,16 +131,19 @@ class Test_process(IrisTest):
         height = AuxCoord(np.array([1.5], dtype=np.float32),
                           standard_name='height', units='m')
         self.temperature = set_up_variable_cube(
-            data, spatial_grid='equalarea', include_scalar_coords=[height])
+            data, spatial_grid='equalarea', include_scalar_coords=[height],
+            standard_grid_metadata='uk_det')
 
         # Copies temperature cube to create orography cube.
-        self.orography = self.temperature.copy()[0]
-        self.orography.remove_coord('realization')
-        self.orography.rename('surface_altitude')
-        self.orography.units = cf_units.Unit('m')
+        self.orography = set_up_variable_cube(
+            data[0].copy(), name='surface_altitude', units='m',
+            spatial_grid='equalarea')
+        for coord in ["time", "forecast_period", "forecast_reference_time"]:
+            self.orography.remove_coord(coord)
 
         # Copies orography cube to create land/sea mask cube.
-        self.land_sea_mask = self.orography.copy()
+        self.land_sea_mask = self.orography.copy(
+            data=np.ones((grid_size, grid_size), dtype=np.float32))
         self.land_sea_mask.rename('land_binary_mask')
         self.land_sea_mask.units = cf_units.Unit('1')
 
@@ -156,13 +152,41 @@ class Test_process(IrisTest):
         warning_types=[RuntimeWarning])
     def test_basic(self):
         """Test that the plugin returns expected data type. """
-
         result = LapseRate(nbhood_radius=1).process(self.temperature,
                                                     self.orography,
                                                     self.land_sea_mask)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "air_temperature_lapse_rate")
         self.assertEqual(result.units, "K m-1")
+
+    def test_dimensions(self):
+        """Test that the output cube has the same shape and dimensions as
+        the input temperature cube"""
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
+        self.assertSequenceEqual(result.shape, self.temperature.shape)
+        self.assertSequenceEqual(result.coords(dim_coords=True),
+                                 self.temperature.coords(dim_coords=True))
+
+    def test_scalar_realization(self):
+        """Test dimensions are treated correctly if the realization coordinate
+        is scalar"""
+        temperature = next(self.temperature.slices_over('realization'))
+        result = LapseRate(nbhood_radius=1).process(temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
+        self.assertSequenceEqual(result.shape, temperature.shape)
+        self.assertSequenceEqual(result.coords(dim_coords=True),
+                                 temperature.coords(dim_coords=True))
+
+    def test_model_id_attr(self):
+        """Test model ID attribute can be inherited"""
+        result = LapseRate(nbhood_radius=1).process(
+            self.temperature, self.orography, self.land_sea_mask,
+            model_id_attr="mosg__model_configuration")
+        self.assertEqual(
+            result.attributes["mosg__model_configuration"], "uk_det")
 
     def test_fails_if_temperature_is_not_cube(self):
         """Test code raises a Type Error if input temperature cube is
@@ -256,13 +280,11 @@ class Test_process(IrisTest):
         """Test that the function returns expected DALR values where the
            temperature and orography fields are constant values.
         """
-        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
-
-        expected_out = np.array([[0.0082, 0.0081, 0.0081, DALR, DALR],
-                                 [0.0081, 0.008, 0.008, DALR, DALR],
-                                 [0.0081, 0.008, 0.008, DALR, DALR],
-                                 [DALR, DALR, DALR, DALR, DALR],
-                                 [DALR, DALR, DALR, DALR, DALR]])
+        expected_out = np.array([[[0.0082, 0.0081, 0.0081, DALR, DALR],
+                                  [0.0081, 0.008, 0.008, DALR, DALR],
+                                  [0.0081, 0.008, 0.008, DALR, DALR],
+                                  [DALR, DALR, DALR, DALR, DALR],
+                                  [DALR, DALR, DALR, DALR, DALR]]])
 
         self.temperature.data[:, :, :] = 0.08
         # The array should contain non DALR values around this single point
@@ -314,13 +336,11 @@ class Test_process(IrisTest):
         """Test that the function limits the lapse rate to +DALR and -3*DALR.
            Where DALR = Dry Adiabatic Lapse Rate.
         """
-        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
-
-        expected_out = np.array([[0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR]])
+        expected_out = np.array([[[0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR]]])
 
         # West data points should be -3*DALR and East should be DALR.
         self.temperature.data[:, :, 0] = 2
@@ -340,13 +360,11 @@ class Test_process(IrisTest):
     def test_specified_max_lapse_rate(self):
         """Test that the function correctly applies a specified, non default
         maximum lapse rate."""
-        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
-
-        expected_out = np.array([[0.0392, 0.0392, 0.0, DALR, DALR],
-                                 [0.0392, 0.0392, 0.0, DALR, DALR],
-                                 [0.0392, 0.0392, 0.0, DALR, DALR],
-                                 [0.0392, 0.0392, 0.0, DALR, DALR],
-                                 [0.0392, 0.0392, 0.0, DALR, DALR]])
+        expected_out = np.array([[[0.0392, 0.0392, 0.0, DALR, DALR],
+                                  [0.0392, 0.0392, 0.0, DALR, DALR],
+                                  [0.0392, 0.0392, 0.0, DALR, DALR],
+                                  [0.0392, 0.0392, 0.0, DALR, DALR],
+                                  [0.0392, 0.0392, 0.0, DALR, DALR]]])
 
         # West data points should be -4*DALR and East should be DALR.
         self.temperature.data[:, :, 0] = 2
@@ -369,13 +387,11 @@ class Test_process(IrisTest):
     def test_specified_min_lapse_rate(self):
         """Test that the function correctly applies a specified, non default
         minimum lapse rate."""
-        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
-
-        expected_out = np.array([[0.0294, 0.0294, 0.0, -0.0196, -0.0196],
-                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
-                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
-                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
-                                 [0.0294, 0.0294, 0.0, -0.0196, -0.0196]])
+        expected_out = np.array([[[0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                  [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                  [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                  [0.0294, 0.0294, 0.0, -0.0196, -0.0196],
+                                  [0.0294, 0.0294, 0.0, -0.0196, -0.0196]]])
 
         # West data points should be -3*DALR and East should be 2*DALR.
         self.temperature.data[:, :, 0] = 2
@@ -398,13 +414,11 @@ class Test_process(IrisTest):
     def test_specified_max_and_min_lapse_rate(self):
         """Test that the function correctly applies a specified, non default
         maximum and minimum lapse rate."""
-        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
-
-        expected_out = np.array([[0.0392, 0.0392, 0.0, -0.0196, -0.0196],
-                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
-                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
-                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
-                                 [0.0392, 0.0392, 0.0, -0.0196, -0.0196]])
+        expected_out = np.array([[[0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                  [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                  [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                  [0.0392, 0.0392, 0.0, -0.0196, -0.0196],
+                                  [0.0392, 0.0392, 0.0, -0.0196, -0.0196]]])
 
         # West data points should be -4*DALR and East should be 2*DALR.
         self.temperature.data[:, :, 0] = 2
@@ -429,13 +443,11 @@ class Test_process(IrisTest):
         """Test that the function handles a NaN temperature value by replacing
            it with DALR.
         """
-        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
-
-        expected_out = np.array([[0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, DALR, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR]])
+        expected_out = np.array([[[0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, DALR, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR]]])
 
         # West data points should be -3*DALR and East should be DALR.
         self.temperature.data[:, :, 0] = 2
@@ -457,13 +469,11 @@ class Test_process(IrisTest):
         """Test that the function returns DALR values wherever a land/sea
            mask is true. Mask is True for land-points and False for Sea.
         """
-        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
-
-        expected_out = np.array([[0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [0.0294, 0.0294, 0.0, DALR, DALR],
-                                 [DALR, DALR, DALR, DALR, DALR],
-                                 [DALR, DALR, DALR, DALR, DALR]])
+        expected_out = np.array([[[0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+                                  [DALR, DALR, DALR, DALR, DALR],
+                                  [DALR, DALR, DALR, DALR, DALR]]])
 
         # West data points should be -3*DALR and East should be DALR, South
         # should be zero.
@@ -486,13 +496,11 @@ class Test_process(IrisTest):
         """Test that the function removes neighbours where their height
         difference from the centre point is greater than the default
         max_height_diff = 35metres."""
-        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
-
-        expected_out = np.array([[DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.0065517, -0.003],
-                                 [DALR, DALR, DALR, -0.0065517, 0.0],
-                                 [DALR, DALR, DALR, -0.0065517, -0.003],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005]])
+        expected_out = np.array([[[DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.0065517, -0.003],
+                                  [DALR, DALR, DALR, -0.0065517, 0.0],
+                                  [DALR, DALR, DALR, -0.0065517, -0.003],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005]]])
 
         self.temperature.data[:, :, 0:2] = 0.4
         self.temperature.data[:, :, 2] = 0.3
@@ -516,13 +524,11 @@ class Test_process(IrisTest):
         """ Test that the function removes or leaves neighbours where their
         height difference from the centre point is greater than a
         specified, non-default max_height_diff."""
-        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
-
-        expected_out = np.array([[DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.00454128, -0.003],
-                                 [DALR, DALR, DALR, -0.00454128, -0.003],
-                                 [DALR, DALR, DALR, -0.00454128, -0.003],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005]])
+        expected_out = np.array([[[DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.00454128, -0.003],
+                                  [DALR, DALR, DALR, -0.00454128, -0.003],
+                                  [DALR, DALR, DALR, -0.00454128, -0.003],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005]]])
 
         self.temperature.data[:, :, 0:2] = 0.4
         self.temperature.data[:, :, 2] = 0.3
@@ -547,13 +553,11 @@ class Test_process(IrisTest):
         """ Test code where temperature is decreasing with height. This is the
             expected scenario for lapse rate.
         """
-        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
-
-        expected_out = np.array([[DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005],
-                                 [DALR, DALR, DALR, -0.00642857, -0.005]])
+        expected_out = np.array([[[DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005],
+                                  [DALR, DALR, DALR, -0.00642857, -0.005]]])
 
         self.temperature.data[:, :, 0:2] = 0.4
         self.temperature.data[:, :, 2] = 0.3
@@ -574,14 +578,11 @@ class Test_process(IrisTest):
         warning_types=[RuntimeWarning])
     def test_decr_temp_decr_orog(self):
         """ Test code where the temperature increases with height."""
-
-        reset_cube_data(self.temperature, self.orography, self.land_sea_mask)
-
-        expected_out = np.array([[DALR, 0.01, 0.01, 0.00642857, 0.005],
-                                 [DALR, 0.01, 0.01, 0.00642857, 0.005],
-                                 [DALR, 0.01, 0.01, 0.00642857, 0.005],
-                                 [DALR, 0.01, 0.01, 0.00642857, 0.005],
-                                 [DALR, 0.01, 0.01, 0.00642857, 0.005]])
+        expected_out = np.array([[[DALR, 0.01, 0.01, 0.00642857, 0.005],
+                                  [DALR, 0.01, 0.01, 0.00642857, 0.005],
+                                  [DALR, 0.01, 0.01, 0.00642857, 0.005],
+                                  [DALR, 0.01, 0.01, 0.00642857, 0.005],
+                                  [DALR, 0.01, 0.01, 0.00642857, 0.005]]])
 
         self.temperature.data[:, :, 0:2] = 0.1
         self.temperature.data[:, :, 2] = 0.2

@@ -165,6 +165,34 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
             [self.t_cube, self.p_cube, self.rh_cube])
         self.assertDictEqual(result, expected_attributes)
 
+    def test_model_id_consensus(self):
+        """Test model ID attribute can be specified and inherited"""
+        expected_attributes = self.attributes.copy()
+        expected_attributes["mosg__model_configuration"] = "uk_det"
+        result = generate_mandatory_attributes(
+            [self.t_cube, self.p_cube, self.rh_cube],
+            model_id_attr="mosg__model_configuration")
+        self.assertDictEqual(result, expected_attributes)
+
+    def test_model_id_no_consensus(self):
+        """Test error raised when model ID attributes do not agree"""
+        self.t_cube.attributes["mosg__model_configuration"] = "gl_det"
+        msg = "is missing or not the same on all input cubes"
+        with self.assertRaisesRegex(ValueError, msg):
+            generate_mandatory_attributes(
+                [self.t_cube, self.p_cube, self.rh_cube],
+                model_id_attr="mosg__model_configuration")
+
+    def test_model_id_missing(self):
+        """Test error raised when model ID attribute is not present on
+        all input diagnostic cubes"""
+        self.t_cube.attributes.pop("mosg__model_configuration")
+        msg = "is missing or not the same on all input cubes"
+        with self.assertRaisesRegex(ValueError, msg):
+            generate_mandatory_attributes(
+                [self.t_cube, self.p_cube, self.rh_cube],
+                model_id_attr="mosg__model_configuration")
+
 
 class Test_generate_hash(unittest.TestCase):
     """Test utility to generate md5 hash codes from a multitude of inputs."""

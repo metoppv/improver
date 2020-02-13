@@ -39,7 +39,9 @@ from improver import cli
 def process(temperature: cli.inputcube,
             wind_speed: cli.inputcube,
             relative_humidity: cli.inputcube,
-            pressure: cli.inputcube):
+            pressure: cli.inputcube,
+            *,
+            model_id_attr: str = None):
     """Calculates the feels like temperature using the data in the input cube.
 
     Calculate the feels like temperature using a combination of the wind chill
@@ -64,6 +66,9 @@ def process(temperature: cli.inputcube,
             Cube of relative humidity at screen level
         pressure (iris.cube.Cube):
             Cube of mean sea level pressure
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
 
     Returns:
         iris.cube.Cube:
@@ -74,4 +79,5 @@ def process(temperature: cli.inputcube,
     from improver.feels_like_temperature import (
         calculate_feels_like_temperature)
     return calculate_feels_like_temperature(
-        temperature, wind_speed, relative_humidity, pressure)
+        temperature, wind_speed, relative_humidity, pressure,
+        model_id_attr=model_id_attr)
