@@ -44,6 +44,7 @@ from improver.utilities.compare import compare_netcdfs
 
 RECREATE_DIR_ENVVAR = "RECREATE_KGO"
 ACC_TEST_DIR_ENVVAR = "IMPROVER_ACC_TEST_DIR"
+ACC_TEST_DIR_MISSING = pathlib.Path("/dev/null")
 
 
 def run_cli(cli_name, verbose=True):
@@ -91,14 +92,13 @@ def kgo_root():
     try:
         test_dir = os.environ[ACC_TEST_DIR_ENVVAR]
     except KeyError:
-        pytest.skip()
-        return pathlib.Path("/")
+        return ACC_TEST_DIR_MISSING
     return pathlib.Path(test_dir)
 
 
 def kgo_exists():
     """True if KGO files exist"""
-    return ACC_TEST_DIR_ENVVAR in os.environ
+    return not kgo_root().samefile(ACC_TEST_DIR_MISSING)
 
 
 def recreate_if_needed(output_path, kgo_path, recreate_dir_path=None):
