@@ -69,7 +69,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class set_up_cubes(IrisTest):
+class CombinerTest(IrisTest):
     """Set up a common set of test cubes for subsequent test classes."""
 
     def setUp(self):
@@ -102,7 +102,39 @@ class set_up_cubes(IrisTest):
             frt=datetime(2015, 11, 18, 22))
 
 
-class Test_process(set_up_cubes):
+class Test__get_expanded_coord_names(CombinerTest):
+    """Test method to determine coordinates for expansion"""
+
+    def test_basic(self):
+        """Test correct names are returned for scalar coordinates with
+        different values"""
+        expected_coord_set = {'time', 'forecast_period'}
+        result = CubeCombiner('+')._get_expanded_coord_names([
+            self.cube1, self.cube2, self.cube3])
+        self.assertIsInstance(result, list)
+        self.assertSetEqual(set(result), expected_coord_set)
+
+    def test_identical_inputs(self):
+        """Test no coordinates are returned if inputs are identical"""
+        result = CubeCombiner('+')._get_expanded_coord_names([
+            self.cube1, self.cube1, self.cube1])
+        self.assertFalse(result)
+
+    def test_unmatched_coords_ignored(self):
+        """Test coordinates that are not present on all cubes are ignored,
+        regardless of input order"""
+        expected_coord_set = {'time', 'forecast_period'}
+        height = iris.coords.AuxCoord([1.5], "height", units="m")
+        self.cube1.add_aux_coord(height)
+        result = CubeCombiner('+')._get_expanded_coord_names([
+            self.cube1, self.cube2, self.cube3])
+        self.assertSetEqual(set(result), expected_coord_set)
+        result = CubeCombiner('+')._get_expanded_coord_names([
+            self.cube3, self.cube2, self.cube1])
+        self.assertSetEqual(set(result), expected_coord_set)
+
+
+class Test_process(CombinerTest):
 
     """Test the plugin combines the cubelist into a cube."""
 
@@ -165,7 +197,7 @@ class Test_process(set_up_cubes):
         self.assertNotIn("height", result_coords)
 
     def test_mean_multi_cube(self):
-        """Test that the plugin calculates the mean for three cubes. """
+        """Test that the plugin calculates the mean for three cubes."""
         plugin = CubeCombiner('mean')
         cubelist = iris.cube.CubeList([self.cube1,
                                        self.cube2,
