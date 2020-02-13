@@ -361,8 +361,7 @@ class AdvectField(BasePlugin):
 
         # perform advection and create output cube
         advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
-                                           int(round(timestep.total_seconds()))
-                                           )
+                                           round(timestep.total_seconds()))
         advected_cube = self._create_output_cube(cube, advected_data, timestep)
         return advected_cube
 
