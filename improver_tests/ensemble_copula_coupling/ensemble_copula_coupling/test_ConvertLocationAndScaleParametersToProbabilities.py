@@ -164,6 +164,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         threshold_coord.points = [0.65105, 2., 3.34895]
         location_parameter_values = np.ones((3, 3)) * 2
         scale_parameter_values = np.ones((3, 3)) * 4
+        self.expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
         self.location_parameter_values = (
             self.template_cube[0, :, :].copy(data=location_parameter_values))
         self.location_parameter_values.units = 'Celsius'
@@ -175,11 +176,58 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         """Test that the expected probabilities are returned for a cube in
         which they are calculated above the thresholds."""
 
-        expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
         result = Plugin()._location_and_scale_parameters_to_probabilities(
             self.location_parameter_values, self.scale_parameter_values,
             self.template_cube)
-        np.testing.assert_allclose(result.data, expected, rtol=1.e-4)
+        np.testing.assert_allclose(result.data, self.expected, rtol=1.e-4)
+
+    def test_with_location_mask(self):
+        """Test that the plugin gets the correct data out when you put in
+        masked location parameter data."""
+        mask = np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
+        expected_mask = np.broadcast_to(mask, (3, 3, 3))
+        self.location_parameter_values.data = np.ma.masked_array(
+            self.location_parameter_values.data, mask=mask)
+        expected_with_mask = np.ma.masked_array(
+            self.expected, mask=expected_mask)
+        result = Plugin()._location_and_scale_parameters_to_probabilities(
+            self.location_parameter_values, self.scale_parameter_values,
+            self.template_cube)
+        np.testing.assert_allclose(
+            result.data, expected_with_mask, rtol=1.e-4)
+
+    def test_with_scale_mask(self):
+        """Test that the plugin gets the correct data out when you put in
+        masked scale parameter data."""
+        mask = np.array([[0, 0, 0], [1, 0, 1], [0, 0, 1]])
+        expected_mask = np.broadcast_to(mask, (3, 3, 3))
+        self.scale_parameter_values.data = np.ma.masked_array(
+            self.scale_parameter_values.data, mask=mask)
+        expected_with_mask = np.ma.masked_array(
+            self.expected, mask=expected_mask)
+        result = Plugin()._location_and_scale_parameters_to_probabilities(
+            self.location_parameter_values, self.scale_parameter_values,
+            self.template_cube)
+        np.testing.assert_allclose(
+            result.data, expected_with_mask, rtol=1.e-4)
+
+    def test_both_masked(self):
+        """Test that the plugin returns the correct  data when you put in
+        masked data for both the scale and location parameters."""
+        mask1 = np.array([[1, 0, 0], [0, 0, 0], [0, 0, 0]])
+        mask2 = np.array([[0, 0, 0], [0, 1, 0], [1, 0, 0]])
+        expected_mask = np.broadcast_to(mask1+mask2, (3, 3, 3))
+        self.location_parameter_values.data = np.ma.masked_array(
+            self.location_parameter_values.data, mask=mask1)
+        self.scale_parameter_values.data = np.ma.masked_array(
+            self.scale_parameter_values.data, mask=mask2)
+        expected_with_mask = np.ma.masked_array(
+            self.expected, mask=expected_mask)
+        result = Plugin()._location_and_scale_parameters_to_probabilities(
+            self.location_parameter_values, self.scale_parameter_values,
+            self.template_cube)
+        np.testing.assert_allclose(
+            result.data, expected_with_mask, rtol=1.e-4)
 
     def test_threshold_above_cube_truncnorm(self):
         """Test that the expected probabilities are returned for a cube in

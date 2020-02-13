@@ -748,40 +748,37 @@ class ConvertLocationAndScaleParametersToPercentiles(
                 nans and these nans are not caused by a scale parameter of
                 zero.
         """
-        location_parameter_data = location_parameter.data.flatten()
-        scale_parameter_data = scale_parameter.data.flatten()
+        # Remove any mask that may be applied to location and scale parameters
+        # and replace with ones
+        location_data = np.ma.filled(location_parameter.data, 1).flatten()
+        scale_data = np.ma.filled(scale_parameter.data, 1).flatten()
 
         # Convert percentiles into fractions.
         percentiles = np.array(
             [x/100.0 for x in percentiles], dtype=np.float32)
 
         result = np.zeros((len(percentiles),
-                           location_parameter_data.shape[0]), dtype=np.float32)
+                           location_data.shape[0]), dtype=np.float32)
 
-        self._rescale_shape_parameters(
-            location_parameter_data,
-            np.sqrt(scale_parameter_data))
+        self._rescale_shape_parameters(location_data, np.sqrt(scale_data))
 
         percentile_method = self.distribution(
-            *self.shape_parameters,
-            loc=location_parameter_data,
-            scale=np.sqrt(scale_parameter_data))
+            *self.shape_parameters, loc=location_data,
+            scale=np.sqrt(scale_data))
 
         # Loop over percentiles, and use the distribution as the
         # "percentile_method" with the location and scale parameter to
         # calculate the values at each percentile.
         for index, percentile in enumerate(percentiles):
-            percentile_list = np.repeat(
-                percentile, len(location_parameter_data))
+            percentile_list = np.repeat(percentile, len(location_data))
             result[index, :] = percentile_method.ppf(percentile_list)
             # If percent point function (PPF) returns NaNs, fill in
             # mean instead of NaN values. NaN will only be generated if the
             # variance is zero. Therefore, if the variance is zero, the mean
             # value is used for all gridpoints with a NaN.
-            if np.any(scale_parameter_data == 0):
+            if np.any(scale_data == 0):
                 nan_index = np.argwhere(np.isnan(result[index, :]))
-                result[index, nan_index] = (
-                    location_parameter_data[nan_index])
+                result[index, nan_index] = (location_data[nan_index])
             if np.any(np.isnan(result)):
                 msg = ("NaNs are present within the result for the {} "
                        "percentile. Unable to calculate the percent point "
@@ -804,6 +801,14 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
         percentile_cube = create_cube_with_percentiles(
             percentiles, template_slice, result)
+        # Define a mask to be reapplied later
+        mask = np.logical_or(np.ma.getmaskarray(location_parameter.data),
+                             np.ma.getmaskarray(scale_parameter.data))
+        # Make the mask defined above fit the data size and then apply to the
+        # percentile cube.
+        mask_array = np.stack([mask]*len(percentiles))
+        percentile_cube.data = np.ma.masked_where(
+            mask_array, percentile_cube.data)
         # Remove cell methods associated with finding the ensemble mean
         percentile_cube.cell_methods = {}
         return percentile_cube
@@ -961,6 +966,14 @@ class ConvertLocationAndScaleParametersToProbabilities(
                 the provided thresholds in the way described by
                 spp__relative_to_threshold.
         """
+        # Define a mask to be reapplied later
+        loc_mask = np.ma.getmaskarray(location_parameter.data)
+        scale_mask = np.ma.getmaskarray(scale_parameter.data)
+        mask = np.logical_or(loc_mask, scale_mask)
+        # Remove any mask that may be applied to location and scale parameters
+        # and replace with ones
+        location_parameter.data = np.ma.filled(location_parameter.data, 1)
+        scale_parameter.data = np.ma.filled(scale_parameter.data, 1)
         thresholds = (
             find_threshold_coordinate(probability_cube_template).points)
         relative_to_threshold = find_threshold_coordinate(
@@ -991,6 +1004,11 @@ class ConvertLocationAndScaleParametersToProbabilities(
                 # pylint: disable=unsubscriptable-object
 
         probability_cube = probability_cube_template.copy(data=probabilities)
+        # Make the mask defined above fit the data size and then apply to the
+        # probability cube.
+        mask_array = np.array([mask]*len(probabilities))
+        probability_cube.data = np.ma.masked_where(
+            mask_array, probability_cube.data)
         return probability_cube
 
     def process(self, location_parameter, scale_parameter,
