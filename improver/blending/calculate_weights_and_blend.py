@@ -38,6 +38,7 @@ from improver.blending.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear,
     ChooseWeightsLinear)
 from improver.metadata.amend import amend_attributes
+from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
@@ -195,6 +196,7 @@ class WeightAndBlend(BasePlugin):
             result = cube.copy()
             if attributes_dict is not None:
                 amend_attributes(result, attributes_dict)
+            result, = rebadge_forecasts_as_latest_cycle([result], cycletime)
 
         # otherwise, calculate weights and blend across specified dimension
         else:
