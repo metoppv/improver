@@ -47,7 +47,7 @@ def process(*cubes: cli.inputcube,
             y0val: float = None,
             ynval: float = None,
             cval: float = None,
-            model_id_attr='mosg__model_configuration',
+            model_id_attr: str = None,
             spatial_weights_from_mask=False,
             fuzzy_length=20000.0):
     """Runs weighted blending.
@@ -138,6 +138,9 @@ def process(*cubes: cli.inputcube,
                            ' y0val, ynval')
     if (weighting_method == "dict") and weighting_config is None:
         raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
+    if "model" in coordinate and model_id_attr is None:
+        raise RuntimeError('model_id_attr must be specified for '
+                           'model blending')
 
     plugin = WeightAndBlend(
         coordinate, weighting_method,
