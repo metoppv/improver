@@ -1040,7 +1040,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 The optional cube containing a land-sea mask. If provided sea
                 points will be masked in the output cube.
                 This cube needs to have land points set to 1 and
-                sea points to 0
+                sea points to 0.
 
         Returns:
             (tuple): tuple containing:
@@ -1088,7 +1088,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
             # Calibration is applied to all grid points, but the areas
             # where a mask is valid is then masked out at the end. The cube
             # containing a land-sea mask has sea points defined as zeroes and
-            # the land points as ones. So the mask needs to be flipped here.
+            # the land points as ones, so the mask needs to be flipped here.
             flip_mask = np.logical_not(landsea_mask.data)
             scale_parameter_cube.data = np.ma.masked_where(
                 flip_mask, scale_parameter_cube.data)
