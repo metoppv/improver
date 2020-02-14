@@ -37,8 +37,9 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.metadata.constants.time_types import (
-    TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT, TIME_REFERENCE_UNIT)
+from improver.metadata.constants import FLOAT_TYPES
+from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import cycletime_to_datetime
 
@@ -73,6 +74,8 @@ def forecast_period_coord(cube, force_lead_time_calculation=False):
         result_coord = cube.coord("forecast_period").copy()
 
     elif cube.coords("time") and cube.coords("forecast_reference_time"):
+        # Cube must adhere to mandatory standards for safe time calculations
+        check_mandatory_standards(cube)
         # Try to calculate forecast period from forecast reference time and
         # time coordinates
         result_coord = _calculate_forecast_period(
@@ -89,7 +92,8 @@ def forecast_period_coord(cube, force_lead_time_calculation=False):
     return result_coord
 
 
-def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False):
+def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False,
+                               coord_spec=TIME_COORDS['forecast_period']):
     """
     Calculate a forecast period from existing time and forecast reference
     time coordinates.
@@ -102,6 +106,9 @@ def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False):
         dim_coord (bool):
             If true, create an iris.coords.DimCoord instance.  Default is to
             create an iris.coords.AuxCoord.
+        coord_spec (collections.namedtuple):
+            Specification of units and dtype for the forecast_period
+            coordinate.
 
     Returns:
         iris.coords.Coord:
@@ -136,11 +143,17 @@ def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False):
         standard_name='forecast_period',
         bounds=required_lead_time_bounds,
         units="seconds")
-    result_coord.convert_units(TIME_INTERVAL_UNIT)
 
-    result_coord.points = result_coord.points.astype(TIME_INTERVAL_DTYPE)
+    result_coord.convert_units(coord_spec.units)
+
+    if coord_spec.dtype not in FLOAT_TYPES:
+        result_coord.points = np.around(result_coord.points)
+        if result_coord.bounds is not None:
+            result_coord.bounds = np.around(result_coord.bounds)
+
+    result_coord.points = result_coord.points.astype(coord_spec.dtype)
     if result_coord.bounds is not None:
-        result_coord.bounds = result_coord.bounds.astype(TIME_INTERVAL_DTYPE)
+        result_coord.bounds = result_coord.bounds.astype(coord_spec.dtype)
 
     if np.any(result_coord.points < 0):
         msg = ("The values for the time {} and "
@@ -206,18 +219,17 @@ def unify_cycletime(cubes, cycletime):
     result_cubes = iris.cube.CubeList([])
     for cube in cubes:
         cube = cube.copy()
-        frt_units = cube.coord('forecast_reference_time').units
-        frt_type = cube.coord('forecast_reference_time').dtype
-        new_frt_units = Unit(TIME_REFERENCE_UNIT)
-        frt_points = np.round(
-            [new_frt_units.date2num(cycletime)]).astype(frt_type)
+        frt_coord_name = 'forecast_reference_time'
+        coord_type_spec = TIME_COORDS[frt_coord_name]
+        coord_units = Unit(coord_type_spec.units)
+        frt_points = np.around(
+            [coord_units.date2num(cycletime)]).astype(coord_type_spec.dtype)
         frt_coord = build_coordinate(
-            frt_points, standard_name="forecast_reference_time", bounds=None,
-            template_coord=cube.coord('forecast_reference_time'),
-            units=new_frt_units)
-        frt_coord.convert_units(frt_units)
-        frt_coord.points = frt_coord.points.astype(frt_type)
-        cube.remove_coord("forecast_reference_time")
+            frt_points, standard_name=frt_coord_name, bounds=None,
+            template_coord=cube.coord(frt_coord_name),
+            units=coord_units)
+
+        cube.remove_coord(frt_coord_name)
         cube.add_aux_coord(frt_coord, data_dims=None)
 
         # Update the forecast period for consistency within each cube

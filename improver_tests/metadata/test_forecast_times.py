@@ -42,6 +42,7 @@ from improver.metadata.forecast_times import (
     _calculate_forecast_period, find_latest_cycletime, forecast_period_coord,
     rebadge_forecasts_as_latest_cycle, unify_cycletime)
 from improver.utilities.warnings_handler import ManageWarnings
+from improver.metadata.constants.time_types import TimeSpec
 
 from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
@@ -84,7 +85,8 @@ class Test_forecast_period_coord(IrisTest):
         fp_coord = self.cube.coord("forecast_period").copy()
         # put incorrect data into the existing coordinate so we can test it is
         # correctly recalculated
-        self.cube.coord("forecast_period").points = [-3600]
+        self.cube.coord("forecast_period").points = np.array([-3600],
+                                                             dtype=np.int32)
         result = forecast_period_coord(
             self.cube, force_lead_time_calculation=True)
         self.assertArrayEqual(result.points, fp_coord.points)
@@ -129,6 +131,20 @@ class Test__calculate_forecast_period(IrisTest):
         self.assertArrayAlmostEqual(result.points, self.fp_coord.points)
         self.assertEqual(result.units, self.fp_coord.units)
         self.assertEqual(result.dtype, self.fp_coord.dtype)
+
+    def test_changing_mandatory_types(self):
+        """Test that the data within the coord is as expected with the
+        expected units, when mandatory standards for the forecast_period
+        coordinate are changed.
+        """
+        local_spec = TimeSpec(calendar=None, dtype=np.float64, units="hours")
+
+        result = _calculate_forecast_period(self.time_coord, self.frt_coord,
+                                            coord_spec=local_spec)
+        self.assertEqual(result.units, 'hours')
+        self.assertArrayAlmostEqual(result.points * 3600.,
+                                    self.fp_coord.points)
+        self.assertEqual(result.dtype, np.float64)
 
     def test_bounds(self):
         """Test that the forecast_period coord has bounds where appropriate"""

@@ -41,8 +41,7 @@ from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes, set_history_attribute
-from improver.metadata.constants.time_types import (
-    TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT)
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import (
     create_new_diagnostic_cube, generate_mandatory_attributes)
 from improver.nowcasting.optical_flow import check_input_coords
@@ -240,12 +239,14 @@ class AdvectField(BasePlugin):
         """
         original_datetime = next(input_time.cells())[0]
         new_datetime = original_datetime + timestep
-        new_time = (input_time.units).date2num(new_datetime)
-        advected_cube.coord("time").points = new_time
-        advected_cube.coord("time").convert_units(TIME_REFERENCE_UNIT)
-        advected_cube.coord("time").points = (
-            np.around(advected_cube.coord("time").points).astype(
-                TIME_REFERENCE_DTYPE))
+        new_time = input_time.units.date2num(new_datetime)
+        time_coord_name = "time"
+        time_coord_spec = TIME_COORDS[time_coord_name]
+        time_coord = advected_cube.coord(time_coord_name)
+        time_coord.points = new_time
+        time_coord.convert_units(time_coord_spec.units)
+        time_coord.points = np.around(time_coord.points).astype(
+            time_coord_spec.dtype)
 
     @staticmethod
     def _add_forecast_reference_time(input_time, advected_cube):
@@ -254,12 +255,13 @@ class AdvectField(BasePlugin):
             advected_cube.remove_coord("forecast_reference_time")
         except CoordinateNotFoundError:
             pass
-
+        frt_coord_name = "forecast_reference_time"
+        frt_coord_spec = TIME_COORDS[frt_coord_name]
         frt_coord = input_time.copy()
-        frt_coord.rename("forecast_reference_time")
-        frt_coord.convert_units(TIME_REFERENCE_UNIT)
+        frt_coord.rename(frt_coord_name)
+        frt_coord.convert_units(frt_coord_spec.units)
         frt_coord.points = np.around(frt_coord.points).astype(
-            TIME_REFERENCE_DTYPE)
+            frt_coord_spec.dtype)
         advected_cube.add_aux_coord(frt_coord)
 
     @staticmethod
@@ -359,7 +361,7 @@ class AdvectField(BasePlugin):
 
         # perform advection and create output cube
         advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
-                                           timestep.total_seconds())
+                                           round(timestep.total_seconds()))
         advected_cube = self._create_output_cube(cube, advected_data, timestep)
         return advected_cube
 

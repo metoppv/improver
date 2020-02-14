@@ -127,18 +127,9 @@ def test_fix_float64(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "float64_data.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "--output", output_path, "--fix-float64"]
+    args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_check_float64():
-    """Test detection of float64 data"""
-    kgo_dir = acc.kgo_root() / "standardise/float64"
-    input_path = kgo_dir / "float64_data.nc"
-    args = [input_path]
-    with pytest.raises(TypeError, match=".*64 bit.*"):
-        run_cli(args)
 
 
 @pytest.mark.slow
