@@ -415,18 +415,25 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         # Construct a mask and encapsulate as a cube.
         mask = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
         mask_cube = self.current_temperature_forecast_cube[0].copy(data=mask)
-        mask_loc_param = np.ma.masked_where(mask, self.expected_loc_param_mean)
-        mask_scale_param = np.ma.masked_where(
-            mask, self.expected_scale_param_mean)
+        # Convention for IMPROVER is that land points are ones and sea points
+        # are zeros in land-sea masks. In this case we want to mask sea points.
+        expected_mask = np.array([[False, True, True],
+                                  [True, False, True],
+                                  [True, True, False]])
 
         calibrated_forecast_predictor, calibrated_forecast_var = (
             self.plugin.process(self.current_temperature_forecast_cube,
                                 self.coeffs_from_mean, landsea_mask=mask_cube))
 
         self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_predictor.data, mask_loc_param)
+            calibrated_forecast_predictor.data.data,
+            self.expected_loc_param_mean)
+        self.assertArrayEqual(
+            calibrated_forecast_predictor.data.mask, expected_mask)
         self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_var.data, mask_scale_param)
+            calibrated_forecast_var.data.data, self.expected_scale_param_mean)
+        self.assertArrayEqual(
+            calibrated_forecast_var.data.mask, expected_mask)
 
 
 if __name__ == '__main__':

@@ -1037,8 +1037,10 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 coefficient_name auxiliary coordinate where the points of
                 the coordinate are e.g. gamma, delta, alpha, beta.
             landsea_mask (iris.cube.Cube or None):
-                The optional cube containing a land-sea mask. If provided, only
-                land points are calibrated using the provided coefficients.
+                The optional cube containing a land-sea mask. If provided sea
+                points will be masked in the output cube.
+                This cube needs to have land points set to 1 and
+                sea points to 0
 
         Returns:
             (tuple): tuple containing:
@@ -1087,7 +1089,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
             # where a mask is valid is then masked out at the end. The cube
             # containing a land-sea mask has sea points defined as zeroes and
             # the land points as ones. So the mask needs to be flipped here.
-            flip_mask = np.logical_not(landsea_mask)
+            flip_mask = np.logical_not(landsea_mask.data)
             scale_parameter_cube.data = np.ma.masked_where(
                 flip_mask, scale_parameter_cube.data)
             location_parameter_cube.data = np.ma.masked_where(
