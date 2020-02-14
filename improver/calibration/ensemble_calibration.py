@@ -1080,13 +1080,17 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         location_parameter_cube, scale_parameter_cube = (
             self._create_output_cubes(location_parameter, scale_parameter))
 
-        # Use a mask to confine calibration to regions in which the mask=1.
+        # Use a mask to confine calibration to land regions by masking the
+        # sea.
         if landsea_mask:
             # Calibration is applied to all grid points, but the areas
-            # where a mask is valid is then masked out at the end.
+            # where a mask is valid is then masked out at the end. The cube
+            # containing a land-sea mask has sea points defined as zeroes and
+            # the land points as ones. So the mask needs to be flipped here.
+            flip_mask = np.logical_not(landsea_mask)
             scale_parameter_cube.data = np.ma.masked_where(
-                landsea_mask.data, scale_parameter_cube.data)
+                flip_mask, scale_parameter_cube.data)
             location_parameter_cube.data = np.ma.masked_where(
-                landsea_mask.data, location_parameter_cube.data)
+                flip_mask, location_parameter_cube.data)
 
         return location_parameter_cube, scale_parameter_cube
