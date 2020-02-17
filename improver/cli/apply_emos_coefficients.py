@@ -153,6 +153,10 @@ def process(cube: cli.inputcube,
 
     current_forecast = cube
 
+    if current_forecast.name() == 'emos_coefficients':
+        msg = "The current forecast cube has the name 'emos_coefficients'"
+        raise ValueError(msg)
+
     if coefficients is None:
         msg = ("There are no coefficients provided for calibration. The "
                "uncalibrated forecast will be returned.")
@@ -162,10 +166,6 @@ def process(cube: cli.inputcube,
     if coefficients.name() != 'emos_coefficients':
         msg = ("The current coefficients cube does not have the "
                "name 'emos_coefficients'")
-        raise ValueError(msg)
-
-    if current_forecast.name() == 'emos_coefficients':
-        msg = "The current forecast cube has the name 'emos_coefficients'"
         raise ValueError(msg)
 
     original_current_forecast = current_forecast.copy()

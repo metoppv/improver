@@ -205,3 +205,16 @@ def test_wrong_forecast(tmp_path):
             "--output", output_path]
     with pytest.raises(ValueError, match=".*forecast cube.*"):
         run_cli(args)
+
+
+def test_fails_only_coefficients_provided(tmp_path):
+    """Test fails if coefficents cube is the only cube passed in"""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
+    emos_est_path = kgo_dir / "gaussian_coefficients.nc"
+    output_path = tmp_path / "output.nc"
+    args = [emos_est_path,
+            "--distribution", "norm",
+            "--random-seed", "0",
+            "--output", output_path]
+    with pytest.raises(ValueError, match=".*forecast cube.*"):
+        run_cli(args)
