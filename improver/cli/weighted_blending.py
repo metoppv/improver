@@ -78,8 +78,8 @@ def process(*cubes: cli.inputcube,
         cycletime (str):
             The forecast reference time to be used after blending has been
             applied, in the format YYYYMMDDTHHMMZ. If not provided, the
-            blended file take the latest available forecast reference time
-            from the input cubes supplied.
+            blended file takes the latest available forecast reference time
+            from the input datasets supplied.
         y0val (float):
             The relative value of the weighting start point (lowest value of
             blend coord) for choosing default linear weights.
@@ -95,9 +95,8 @@ def process(*cubes: cli.inputcube,
             Factor used to determine how skewed the non-linear weights will be.
             A value of 1 implies equal weighting.
         model_id_attr (str):
-            The name of the cube attribute to be used to identify the source
-            model for multi-model blends. Default assume Met Office model
-            metadata. Must be present on all if blending over models.
+            The name of the dataset attribute to be used to identify the source
+            model when blending data from different models.
         spatial_weights_from_mask (bool):
             If True, this option will result in the generation of spatially
             varying weights based on the masks of the data we are blending.
