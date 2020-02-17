@@ -65,6 +65,22 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
             Cube that has been loaded from the input filepath given the
             constraints provided.
     """
+    # FIXME: monkey patched nimrod loading in iris, so it works for radar files
+    try:
+        iris.fileformats.nimrod_load_rules.DEFAULT_UNITS
+    except AttributeError:
+        try:
+            from iris_nimrod_patch import nimrod, nimrod_load_rules
+        except ImportError:
+            pass
+        else:
+            for attr in ['general_header_int16s', 'general_header_float32s',
+                         'data_header_int16s', 'data_header_float32s']:
+                setattr(iris.fileformats.nimrod, attr, getattr(nimrod, attr))
+            iris.fileformats.nimrod_load_rules = nimrod_load_rules
+    else:
+        raise RuntimeError('FIXME: nimrod monkey patch is no longer needed')
+
     if filepath is None and allow_none:
         return None
     # Remove metadata prefix cube if present
