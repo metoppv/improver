@@ -153,7 +153,7 @@ def process(cube: cli.inputcube,
 
     current_forecast = cube
 
-    if current_forecast.name() == 'emos_coefficients':
+    if current_forecast.name() in ['emos_coefficients', 'land_binary_mask']:
         msg = "The current forecast cube has the name 'emos_coefficients'"
         raise ValueError(msg)
 
@@ -166,6 +166,11 @@ def process(cube: cli.inputcube,
     if coefficients.name() != 'emos_coefficients':
         msg = ("The current coefficients cube does not have the "
                "name 'emos_coefficients'")
+        raise ValueError(msg)
+
+    if land_sea_mask and land_sea_mask.name() != 'land_binary_mask':
+        msg = ("The land_sea_mask cube does not have the "
+               "name 'land_binary_mask'")
         raise ValueError(msg)
 
     original_current_forecast = current_forecast.copy()
