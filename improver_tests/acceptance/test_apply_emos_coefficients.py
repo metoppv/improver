@@ -217,7 +217,7 @@ def test_wrong_forecast_coefficients(tmp_path):
             "--distribution", "norm",
             "--random-seed", "0",
             "--output", output_path]
-    with pytest.raises(ValueError, match=".*forecast cube.*"):
+    with pytest.raises(ValueError, match=".*forecast cube.*emos_coefficients"):
         run_cli(args)
 
 
@@ -230,5 +230,5 @@ def test_wrong_forecast_land_sea(tmp_path):
             "--distribution", "norm",
             "--random-seed", "0",
             "--output", output_path]
-    with pytest.raises(ValueError, match=".*forecast cube.*"):
+    with pytest.raises(ValueError, match=".*forecast cube.*land_binary_mask"):
         run_cli(args)
