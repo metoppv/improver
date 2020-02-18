@@ -134,28 +134,46 @@ def test_percentile(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_cycletime(tmp_path):
-    """Test cycletime blending"""
+def test_cycletime_use_latest_frt(tmp_path):
+    """Test cycletime blending where the output is expected to have time
+    coordinates that match the latest of the input cubes."""
     kgo_dir = acc.kgo_root() / "weighted_blending/cycletime"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = sorted((kgo_dir.glob("input_temperature*.nc")))
-    print('inputs', input_paths)
     output_path = tmp_path / "output.nc"
     args = ["--coordinate", "forecast_reference_time",
             "--y0val", "1.0",
             "--ynval", "4.0",
-            "--cycletime", "20200218T0600Z",
             *input_paths,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-def test_cycletime_single_file_new_frt(tmp_path):
-    """Test cycletime blending gives an updated forecast reference time when
-    provided with the relevant cycletime argument and only a single input cube
+def test_cycletime_with_specified_frt(tmp_path):
+    """Test cycletime blending where a forecast reference time for the
+    returned cube is user specified."""
+    kgo_dir = acc.kgo_root() / "weighted_blending/cycletime"
+    kgo_path = kgo_dir / "kgo_specified_frt.nc"
+    input_paths = sorted((kgo_dir.glob("input_temperature*.nc")))
+    input_paths.pop(-1)
+    output_path = tmp_path / "output.nc"
+    args = ["--coordinate", "forecast_reference_time",
+            "--y0val", "1.0",
+            "--ynval", "4.0",
+            "--cycletime", "20200218T0500Z",
+            *input_paths,
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_cycletime_with_specified_frt_single_input(tmp_path):
+    """Test cycletime blending where a forecast reference time for the
+    returned cube is user specified. In this case the input is a single cube
     with a different forecast reference time. This is a slightly different
-    route through the code as no blending actually occurs."""
+    route through the code to the preceding test as no blending actually
+    occurs."""
     kgo_dir = acc.kgo_root() / "weighted_blending/cycletime"
     kgo_path = kgo_dir / "kgo_single_input.nc"
     input_path = kgo_dir / "input_temperature_0.nc"
