@@ -192,7 +192,7 @@ def compare_vars(name, actual_ds, desired_ds, rtol, atol,
     desired_vars = set(desired_ds.variables) - set(exclude_vars)
 
     if actual_vars != desired_vars:
-        msg = ("different variables - {name} "
+        msg = (f"different variables - {name} "
                f"{sorted(actual_vars ^ desired_vars)}")
         reporter(msg)
 
