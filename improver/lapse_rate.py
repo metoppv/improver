@@ -42,7 +42,8 @@ from improver.constants import DALR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube, generate_mandatory_attributes)
 from improver.utilities.cube_checker import spatial_coords_match
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_manipulation import (
+    enforce_coordinate_ordering, get_cube_dimensions)
 
 
 def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
@@ -457,8 +458,7 @@ class LapseRate(BasePlugin):
         has_realization_dimension = False
         original_dimension_order = None
         if temperature_cube.coords("realization", dim_coords=True):
-            original_dimension_order = [
-                coord.name() for coord in temperature_cube.coords(dim_coords=True)]
+            original_dimension_order = get_cube_dimensions(temperature_cube)
             enforce_coordinate_ordering(temperature_cube, "realization")
             temp_data_slices = temperature_cube.data
             has_realization_dimension = True

@@ -51,7 +51,7 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_checker import (
     check_cube_coordinates, check_for_x_and_y_axes)
 from improver.utilities.cube_manipulation import (
-    concatenate_cubes, enforce_coordinate_ordering)
+    concatenate_cubes, enforce_coordinate_ordering, get_cube_dimensions)
 from improver.utilities.indexing_operations import choose
 
 
@@ -891,7 +891,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
             ValueError: If cube is not of the expected dimensions.
         """
         check_for_x_and_y_axes(cube, require_dim_coords=True)
-        dim_coords = [coord.name() for coord in cube.coords(dim_coords=True)]
+        dim_coords = get_cube_dimensions(cube)
         msg = ('{} expects a cube with only a leading threshold dimension, '
                'followed by spatial (y/x) dimensions. '
                'Got dimensions: {}'.format(

@@ -37,7 +37,7 @@ from improver import BasePlugin
 from improver.metadata.utilities import (
     generate_mandatory_attributes, create_new_diagnostic_cube)
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, sort_coord_in_cube)
+    enforce_coordinate_ordering, sort_coord_in_cube, get_cube_dimensions)
 
 
 class Integration(BasePlugin):
@@ -209,8 +209,7 @@ class Integration(BasePlugin):
             np.array(bounds).astype(coord_dtype))
 
         # re-order cube to match dimensions of input cube
-        ordered_dimensions = [coord.name() for coord in
-                              self.input_cube.coords(dim_coords=True)]
+        ordered_dimensions = get_cube_dimensions(self.input_cube)
         enforce_coordinate_ordering(integrated_cube, ordered_dimensions)
         return integrated_cube
 

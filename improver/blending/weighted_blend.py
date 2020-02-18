@@ -48,7 +48,7 @@ from improver.metadata.forecast_times import (
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.utilities.cube_manipulation import (
     MergeCubes, build_coordinate, enforce_coordinate_ordering,
-    sort_coord_in_cube, collapsed)
+    sort_coord_in_cube, collapsed, get_cube_dimensions)
 from improver.utilities.temporal import cycletime_to_number
 
 
@@ -485,8 +485,8 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         """
         # Check that a multidimensional weights cube has coordinates that match
         # the diagnostic cube. Checking names only to not to be too exacting.
-        weight_dims = [crd.name() for crd in weights.coords(dim_coords=True)]
-        cube_dims = [crd.name() for crd in cube.coords(dim_coords=True)]
+        weight_dims = get_cube_dimensions(weights)
+        cube_dims = get_cube_dimensions(cube)
         if set(weight_dims) == set(cube_dims):
             enforce_coordinate_ordering(weights, cube_dims)
             weights_array = weights.data.astype(np.float32)
