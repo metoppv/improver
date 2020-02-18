@@ -455,33 +455,34 @@ class LapseRate(BasePlugin):
 
         # Create list of arrays over "realization" coordinate
         has_realization_dimension = False
+        original_dimension_order = None
         if temperature_cube.coords("realization", dim_coords=True):
+            original_dimension_order = [
+                coord.name() for coord in temperature_cube.coords(dim_coords=True)]
             enforce_coordinate_ordering(temperature_cube, "realization")
-            temp_slices = temperature_cube.data
+            temp_data_slices = temperature_cube.data
             has_realization_dimension = True
         else:
-            temp_slices = [temperature_cube.data]
+            temp_data_slices = [temperature_cube.data]
 
         # Calculate lapse rate for each realization
-        lapse_rate_data = None
-        for temperature_data in temp_slices:
+        lapse_rate_data = []
+        for temperature_data in temp_data_slices:
             lapse_rate_array = self._generate_lapse_rate_array(
                 temperature_data, orography_data, land_sea_mask_data)
-
-            if lapse_rate_data is None:
-                lapse_rate_data = lapse_rate_array
-                if has_realization_dimension:
-                    lapse_rate_data = [lapse_rate_data]
-            elif not isinstance(lapse_rate_data, list):
-                lapse_rate_data = [lapse_rate_data]
-                lapse_rate_data.append(lapse_rate_array)
-            else:
-                lapse_rate_data.append(lapse_rate_array)
+            lapse_rate_data.append(lapse_rate_array)
+        lapse_rate_data = np.array(lapse_rate_data, dtype=np.float32)
+        if not has_realization_dimension:
+            lapse_rate_data = np.squeeze(lapse_rate_data)
 
         attributes = generate_mandatory_attributes(
             [temperature], model_id_attr=model_id_attr)
         lapse_rate_cube = create_new_diagnostic_cube(
             'air_temperature_lapse_rate', 'K m-1', temperature_cube,
             attributes, data=np.array(lapse_rate_data, dtype=np.float32))
+
+        if original_dimension_order:
+            enforce_coordinate_ordering(
+                lapse_rate_cube, original_dimension_order)
 
         return lapse_rate_cube
