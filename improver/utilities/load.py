@@ -90,7 +90,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
                          'data_header_int16s', 'data_header_float32s']:
                 setattr(iris.fileformats.nimrod, attr, getattr(nimrod, attr))
             patcher = monkeypatched(iris.fileformats, 'nimrod_load_rules',
-                       nimrod_load_rules)
+                                    nimrod_load_rules)
     else:
         raise RuntimeError('FIXME: nimrod monkey patch is no longer needed')
 
