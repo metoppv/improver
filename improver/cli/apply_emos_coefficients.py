@@ -79,13 +79,8 @@ def process(cube: cli.inputcube,
             estimating the EMOS coefficients. The distributions available are
             those supported by :data:`scipy.stats`.
         realizations_count (int):
-            Optional argument to specify the number of ensemble realizations
-            to produce. If the current forecast is input as probabilities or
-            percentiles then this argument is used to create the requested
-            number of realizations. In addition, this argument is used to
-            construct the requested number of realizations from the location
-            parameter and scale parameter output after applying the EMOS
-            coefficients.
+            Option to specify the number of ensemble realizations that will be
+            created from probabilities or percentiles for input into EMOS.
         randomise (bool):
             Option to reorder the post-processed forecasts randomly. If not
             set, the ordering of the raw ensemble is used. This option is
@@ -131,9 +126,8 @@ def process(cube: cli.inputcube,
             If the coefficients cube does not have the right name of
             "emos_coefficients".
         ValueError:
-            If the forecast type is 'percentiles' or 'probabilities' while no
-            realizations_count are given.
-
+            If the forecast type is 'percentiles' or 'probabilities' and the
+            realizations_count argument is not provided.
     """
     import warnings
 
@@ -177,17 +171,14 @@ def process(cube: cli.inputcube,
 
     if current_forecast.name().startswith("probability_of"):
         input_forecast_type = "probabilities"
-        # If probabilities, convert to percentiles.
         conversion_plugin = ConvertProbabilitiesToPercentiles(
             ecc_bounds_warning=ignore_ecc_bounds)
     elif input_forecast_type == "percentiles":
-        # If percentiles, resample percentiles so that the percentiles are
+        # Initialise plugin to resample percentiles so that the percentiles are
         # evenly spaced.
         conversion_plugin = ResamplePercentiles(
             ecc_bounds_warning=ignore_ecc_bounds)
 
-    # If percentiles, re-sample percentiles and then re-badge.
-    # If probabilities, generate percentiles and then re-badge.
     if input_forecast_type in ["percentiles", "probabilities"]:
         if not realizations_count:
             raise ValueError(
@@ -204,12 +195,6 @@ def process(cube: cli.inputcube,
         current_forecast = (
             RebadgePercentilesAsRealizations().process(current_forecast))
 
-    # Default number of ensemble realizations is the number in
-    # the raw forecast.
-    if not realizations_count:
-        realizations_count = len(
-            current_forecast.coord('realization').points)
-
     # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
     ac = ApplyCoefficientsFromEnsembleCalibration(predictor=predictor)
     location_parameter, scale_parameter = ac.process(
@@ -218,9 +203,8 @@ def process(cube: cli.inputcube,
     if shape_parameters:
         shape_parameters = [np.float32(x) for x in shape_parameters]
 
-    # If input forecast is probabilities, convert output into probabilities.
-    # If input forecast is percentiles, convert output into percentiles.
-    # If input forecast is realizations, convert output into realizations.
+    # Convert the output forecast type (i.e. realizations, percentiles,
+    # probabilities) to match the input forecast type.
     if input_forecast_type == "probabilities":
         result = ConvertLocationAndScaleParametersToProbabilities(
             distribution=distribution,
@@ -236,11 +220,12 @@ def process(cube: cli.inputcube,
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
         # from the location and scale parameter.
+        no_of_percentiles = len(current_forecast.coord('realization').points)
         percentiles = ConvertLocationAndScaleParametersToPercentiles(
             distribution=distribution,
             shape_parameters=shape_parameters).process(
             location_parameter, scale_parameter, original_current_forecast,
-            no_of_percentiles=realizations_count)
+            no_of_percentiles=no_of_percentiles)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
             random_ordering=randomise, random_seed=random_seed)
