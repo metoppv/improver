@@ -134,17 +134,36 @@ def test_percentile(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 def test_cycletime(tmp_path):
     """Test cycletime blending"""
     kgo_dir = acc.kgo_root() / "weighted_blending/cycletime"
     kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "input.nc"
+    input_paths = sorted((kgo_dir.glob("input_temperature*.nc")))
+    print('inputs', input_paths)
     output_path = tmp_path / "output.nc"
     args = ["--coordinate", "forecast_reference_time",
             "--y0val", "1.0",
             "--ynval", "4.0",
-            "--cycletime", "20171129T0900Z",
+            "--cycletime", "20200218T0600Z",
+            *input_paths,
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_cycletime_single_file_new_frt(tmp_path):
+    """Test cycletime blending gives an updated forecast reference time when
+    provided with the relevant cycletime argument and only a single input cube
+    with a different forecast reference time. This is a slightly different
+    route through the code as no blending actually occurs."""
+    kgo_dir = acc.kgo_root() / "weighted_blending/cycletime"
+    kgo_path = kgo_dir / "kgo_single_input.nc"
+    input_path = kgo_dir / "input_temperature_0.nc"
+    output_path = tmp_path / "output.nc"
+    args = ["--coordinate", "forecast_reference_time",
+            "--y0val", "1.0",
+            "--ynval", "4.0",
+            "--cycletime", "20200218T0600Z",
             input_path,
             "--output", output_path]
     run_cli(args)
