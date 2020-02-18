@@ -10,6 +10,7 @@ dependencies:
   - numpy=1.15.4
   - cftime=1.0.1
   - python-stratify=0.1
+  - conda-pack
   - sphinx
   - pytest
   - pylint=2.1.1
@@ -18,4 +19,6 @@ dependencies:
   - filelock
   - mock
   - pip:
+    - od
+    - sigtools>=2.0
     - clize
