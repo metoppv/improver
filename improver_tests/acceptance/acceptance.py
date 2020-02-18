@@ -159,6 +159,13 @@ def statsmodels_available():
     return False
 
 
+def iris_nimrod_patch_available():
+    """True if iris_nimrod_patch library is importable"""
+    if importlib.util.find_spec('iris_nimrod_patch'):
+        return True
+    return False
+
+
 def compare(output_path, kgo_path, recreate=True,
             atol=DEFAULT_TOLERANCE, rtol=DEFAULT_TOLERANCE, exclude_vars=None):
     """
@@ -216,3 +223,9 @@ skip_if_statsmodels = pytest.mark.skipif(
 # pylint: disable=invalid-name
 skip_if_no_statsmodels = pytest.mark.skipif(
     not statsmodels_available(), reason="statsmodels library is not available")
+
+# Pytest decorator to skip tests if iris_nimrod_patch is not available
+# pylint: disable=invalid-name
+skip_if_no_iris_nimrod_patch = pytest.mark.skipif(
+    not iris_nimrod_patch_available(),
+    reason="iris_nimrod_patch library is not available")

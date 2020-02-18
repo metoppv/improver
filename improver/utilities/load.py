@@ -30,12 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for loading cubes."""
 
+import contextlib
 import glob
 
 import iris
 
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, merge_cubes)
+
+
+@contextlib.contextmanager
+def monkeypatched(obj, name, patch):
+    """ Temporarily monkeypatches an object. """
+
+    pre_patched_value = getattr(obj, name)
+    setattr(obj, name, patch)
+    yield obj
+    setattr(obj, name, pre_patched_value)
 
 
 def load_cube(filepath, constraints=None, no_lazy_load=False,
@@ -65,6 +76,24 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
             Cube that has been loaded from the input filepath given the
             constraints provided.
     """
+    # FIXME: monkey patched nimrod loading in iris, so it works for radar files
+    patcher = contextlib.suppress()
+    try:
+        iris.fileformats.nimrod_load_rules.DEFAULT_UNITS
+    except AttributeError:
+        try:
+            from iris_nimrod_patch import nimrod, nimrod_load_rules
+        except ImportError:
+            pass
+        else:
+            for attr in ['general_header_int16s', 'general_header_float32s',
+                         'data_header_int16s', 'data_header_float32s']:
+                setattr(iris.fileformats.nimrod, attr, getattr(nimrod, attr))
+            patcher = monkeypatched(iris.fileformats, 'nimrod_load_rules',
+                                    nimrod_load_rules)
+    else:
+        raise RuntimeError('FIXME: nimrod monkey patch is no longer needed')
+
     if filepath is None and allow_none:
         return None
     # Remove metadata prefix cube if present
@@ -73,12 +102,13 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
 
     # Load each file individually to avoid partial merging (not used
     # iris.load_raw() due to issues with time representation)
-    if isinstance(filepath, str):
-        cubes = iris.load(filepath, constraints=constraints)
-    else:
-        cubes = iris.cube.CubeList([])
-        for item in filepath:
-            cubes.extend(iris.load(item, constraints=constraints))
+    with patcher:
+        if isinstance(filepath, str):
+            cubes = iris.load(filepath, constraints=constraints)
+        else:
+            cubes = iris.cube.CubeList([])
+            for item in filepath:
+                cubes.extend(iris.load(item, constraints=constraints))
 
     # Merge loaded cubes
     if not cubes:
