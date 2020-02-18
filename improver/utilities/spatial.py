@@ -102,7 +102,7 @@ def calculate_grid_spacing(cube, units, axis='x'):
 
 def convert_distance_into_number_of_grid_cells(
         cube, distance, axis='x', max_distance_in_grid_cells=None,
-        int_grid_cells=True):
+        return_int=True):
     """
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.  Requires an equal-area grid on which the spacing
@@ -120,7 +120,7 @@ def convert_distance_into_number_of_grid_cells(
         max_distance_in_grid_cells (int or None):
             Maximum distance in grid cells.  Defaults to None, which bypasses
             the check.
-        int_grid_cells (bool):
+        return_int (bool):
             If true only integer number of grid_cells are returned, rounded
             down. If false the number of grid_cells returned will be a float.
 
@@ -131,7 +131,6 @@ def convert_distance_into_number_of_grid_cells(
 
     Raises:
         ValueError: If a negative distance is provided
-        ValueError: If the projection is not equal-area
         ValueError:
             If the distance in grid cells is larger than the maximum dimension
             of the rectangular domain (measured across the diagonal).  Needed
@@ -151,26 +150,9 @@ def convert_distance_into_number_of_grid_cells(
     # calculate grid spacing along chosen axis
     grid_spacing_metres = calculate_grid_spacing(cube, 'metres', axis=axis)
 
-    # check required distance isn't greater than the size of the domain
-    # (note: this implicitly assumes equal x- and y-spacing)
-    def calculate_domain_extent(coord):
-        """Calculates the coordinate extent in metres"""
-        new_coord = coord.copy()
-        new_coord.convert_units('metres')
-        return max(new_coord.points) - min(new_coord.points)
-
-    x_extent_metres = calculate_domain_extent(cube.coord(axis='x'))
-    y_extent_metres = calculate_domain_extent(cube.coord(axis='y'))
-    max_distance_of_domain = np.sqrt(x_extent_metres**2 + y_extent_metres**2)
-    if distance > max_distance_of_domain:
-        raise ValueError(
-            "{} exceeds max domain distance of {}m".format(
-                d_error, max_distance_of_domain))
-
-    # calculate distance in grid squares
     grid_cells = distance / abs(grid_spacing_metres)
 
-    if int_grid_cells:
+    if return_int:
         grid_cells = int(grid_cells)
         if grid_cells == 0:
             raise ValueError(zero_distance_error)

@@ -221,7 +221,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
     def test_basic_distance_to_grid_cells_float(self):
         """Test the distance in metres to grid cell conversion."""
         result = convert_distance_into_number_of_grid_cells(
-            self.cube, self.DISTANCE, int_grid_cells=False)
+            self.cube, self.DISTANCE, return_int=False)
         self.assertEqual(result, 3.05)
 
     def test_max_distance(self):
@@ -266,15 +266,6 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
             convert_distance_into_number_of_grid_cells(
                 self.cube, distance,
                 max_distance_in_grid_cells=max_distance_in_grid_cells)
-
-    def test_error_range_greater_than_domain_size(self):
-        """Test correct exception raised when the distance is larger than the
-        corner-to-corner distance of the domain."""
-        distance = 42500.0
-        msg = "Distance of 42500.0m exceeds max domain distance of "
-        with self.assertRaisesRegex(ValueError, msg):
-            convert_distance_into_number_of_grid_cells(
-                self.cube, distance)
 
 
 class Test_convert_number_of_grid_cells_into_distance(IrisTest):

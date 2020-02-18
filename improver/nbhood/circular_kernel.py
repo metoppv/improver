@@ -44,13 +44,40 @@ from improver.utilities.spatial import (
 MAX_RADIUS_IN_GRID_CELLS = 500
 
 
-def circular_kernel(fullranges, ranges, weighted_mode):
+def check_required_distance_against_domain(cube, radius):
+    """Check required distance isn't greater than the size of the domain.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube to check.
+        radius (float):
+            Radius in metres for use in specifying the number
+            of grid cells used to create a square neighbourhood.
+
+    """
+
+    def calculate_domain_extent(coord):
+        """Calculates the coordinate extent in metres"""
+        new_coord = coord.copy()
+        new_coord.convert_units('metres')
+        return max(new_coord.points) - min(new_coord.points)
+
+    x_extent_metres = calculate_domain_extent(cube.coord(axis='x'))
+    y_extent_metres = calculate_domain_extent(cube.coord(axis='y'))
+    max_distance_of_domain = np.sqrt(x_extent_metres ** 2 + y_extent_metres ** 2)
+    if radius > max_distance_of_domain:
+        raise ValueError(
+            "{} exceeds max domain distance of {}m".format(
+                "Distance of {}m".format(radius), max_distance_of_domain))
+
+
+def circular_kernel(full_ranges, ranges, weighted_mode):
     """
 
     Method to create a circular kernel.
 
     Args:
-        fullranges (numpy.ndarray):
+        full_ranges (numpy.ndarray):
             Number of grid cells in all dimensions used to create the kernel.
             This should have the value 0 for any dimension other than x and y.
         ranges (tuple):
@@ -69,7 +96,7 @@ def circular_kernel(fullranges, ranges, weighted_mode):
     """
     # Define the size of the kernel based on the number of grid cells
     # contained within the desired radius.
-    kernel = np.ones([int(1 + x * 2) for x in fullranges])
+    kernel = np.ones([int(1 + x * 2) for x in full_ranges])
     # Create an open multi-dimensional meshgrid.
     open_grid = np.array(np.ogrid[[slice(-x, x+1) for x in ranges]])
     if weighted_mode:
@@ -157,16 +184,15 @@ class CircularNeighbourhood:
 
         """
         data = cube.data
-        fullranges = np.zeros([np.ndim(data)])
+        full_ranges = np.zeros([np.ndim(data)])
         axes = []
         for axis in ["x", "y"]:
             coord_name = cube.coord(axis=axis).name()
             axes.append(cube.coord_dims(coord_name)[0])
 
         for axis_index, axis in enumerate(axes):
-            fullranges[axis] = ranges[axis_index]
-        self.kernel = circular_kernel(fullranges, ranges,
-                                      self.weighted_mode)
+            full_ranges[axis] = ranges[axis_index]
+        self.kernel = circular_kernel(full_ranges, ranges, self.weighted_mode)
         # Smooth the data by applying the kernel.
         if self.sum_or_fraction == "sum":
             total_area = 1.0
@@ -420,6 +446,7 @@ class GeneratePercentilesFromACircularNeighbourhood:
         # Take data array and identify X and Y axes indices
         grid_cells_x = convert_distance_into_number_of_grid_cells(
             cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
+        check_required_distance_against_domain(cube, radius)
         ranges_tuple = (grid_cells_x, grid_cells_x)
         ranges_xy = np.array(ranges_tuple)
         kernel = circular_kernel(ranges_xy, ranges_tuple, weighted_mode=False)
