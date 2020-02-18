@@ -54,12 +54,12 @@ def set_up_cubes_for_process_tests():
         np.array([[1., 1.], [1., 1.]], dtype=np.float32),
         name='lwe_thickness_of_precipitation_amount', units='m',
         time=dt(2017, 1, 10, 3, 0), frt=dt(2017, 1, 10, 3, 0),
-        time_bounds=(dt(2017, 1, 10, 1, 0), dt(2017, 1, 10, 4, 0)))
+        time_bounds=(dt(2017, 1, 10, 0, 0), dt(2017, 1, 10, 3, 0)))
     another_cube = set_up_variable_cube(
         np.array([[2., 2.], [2., 2.]], dtype=np.float32),
         name='lwe_thickness_of_precipitation_amount', units='m',
         time=dt(2017, 1, 10, 4, 0), frt=dt(2017, 1, 10, 3, 0),
-        time_bounds=(dt(2017, 1, 10, 2, 0), dt(2017, 1, 10, 5, 0)))
+        time_bounds=(dt(2017, 1, 10, 1, 0), dt(2017, 1, 10, 4, 0)))
     cube = iris.cube.CubeList(
         [central_cube, another_cube]).merge_cube()
     return central_cube, cube
