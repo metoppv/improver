@@ -47,7 +47,7 @@ def process(*cubes: cli.inputcube,
             y0val: float = None,
             ynval: float = None,
             cval: float = None,
-            model_id_attr='mosg__model_configuration',
+            model_id_attr: str = None,
             spatial_weights_from_mask=False,
             fuzzy_length=20000.0):
     """Runs weighted blending.
@@ -78,8 +78,8 @@ def process(*cubes: cli.inputcube,
         cycletime (str):
             The forecast reference time to be used after blending has been
             applied, in the format YYYYMMDDTHHMMZ. If not provided, the
-            blended file take the latest available forecast reference time
-            from the input cubes supplied.
+            blended file takes the latest available forecast reference time
+            from the input datasets supplied.
         y0val (float):
             The relative value of the weighting start point (lowest value of
             blend coord) for choosing default linear weights.
@@ -95,9 +95,8 @@ def process(*cubes: cli.inputcube,
             Factor used to determine how skewed the non-linear weights will be.
             A value of 1 implies equal weighting.
         model_id_attr (str):
-            The name of the cube attribute to be used to identify the source
-            model for multi-model blends. Default assume Met Office model
-            metadata. Must be present on all if blending over models.
+            The name of the dataset attribute to be used to identify the source
+            model when blending data from different models.
         spatial_weights_from_mask (bool):
             If True, this option will result in the generation of spatially
             varying weights based on the masks of the data we are blending.
@@ -138,6 +137,9 @@ def process(*cubes: cli.inputcube,
                            ' y0val, ynval')
     if (weighting_method == "dict") and weighting_config is None:
         raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
+    if "model" in coordinate and model_id_attr is None:
+        raise RuntimeError('model_id_attr must be specified for '
+                           'model blending')
 
     plugin = WeightAndBlend(
         coordinate, weighting_method,

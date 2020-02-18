@@ -170,6 +170,21 @@ def test_model(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_fails_no_model_id(tmp_path):
+    """Test multi-model blending fails if model_id_attr is not specified"""
+    kgo_dir = acc.kgo_root() / "weighted_blending/model"
+    ukv_path = kgo_dir / "ukv_input.nc"
+    enuk_path = kgo_dir / "enuk_input.nc"
+    output_path = tmp_path / "output.nc"
+    args = ["--coordinate", "model_configuration",
+            "--ynval", "1",
+            "--y0val", "1",
+            ukv_path, enuk_path,
+            "--output", output_path]
+    with pytest.raises(RuntimeError):
+        run_cli(args)
+
+
 @pytest.mark.slow
 def test_realization_collapse(tmp_path):
     """Test realization collapsing"""
