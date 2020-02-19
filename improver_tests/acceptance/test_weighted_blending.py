@@ -161,7 +161,7 @@ def test_cycletime_with_specified_frt(tmp_path):
     args = ["--coordinate", "forecast_reference_time",
             "--y0val", "1.0",
             "--ynval", "4.0",
-            "--cycletime", "20200218T0500Z",
+            "--cycletime", "20200218T0600Z",
             *input_paths,
             "--output", output_path]
     run_cli(args)
