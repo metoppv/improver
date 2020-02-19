@@ -40,13 +40,27 @@ from improver.utilities.cube_manipulation import (
 
 
 @contextlib.contextmanager
-def monkeypatched(obj, name, patch):
-    """ Temporarily monkeypatches an object. """
-
-    pre_patched_value = getattr(obj, name)
-    setattr(obj, name, patch)
-    yield obj
-    setattr(obj, name, pre_patched_value)
+def iris_nimrod_patcher():
+    """Temporarily monkey patches iris.fileformats.nimrod* modules."""
+    # FIXME: monkey patched nimrod loading in iris, so it works for radar files
+    if hasattr(iris.fileformats.nimrod_load_rules, 'DEFAULT_UNITS'):
+        raise RuntimeError('FIXME: nimrod monkey patch is no longer needed')
+    try:
+        from iris_nimrod_patch import nimrod, nimrod_load_rules
+    except ImportError:
+        yield
+        return
+    else:
+        header_attrs = ['general_header_int16s', 'general_header_float32s',
+                        'data_header_int16s', 'data_header_float32s']
+        attribs = [{attr: getattr(m, attr) for attr in header_attrs}
+                   for m in [nimrod, iris.fileformats.nimrod]]
+        modules = [nimrod_load_rules, iris.fileformats.nimrod_load_rules]
+        for m, d in zip(modules, attribs):
+            vars(iris.fileformats.nimrod).update(d)
+            iris.fileformats.nimrod_load_rules = m
+            if m is nimrod_load_rules:
+                yield
 
 
 def load_cube(filepath, constraints=None, no_lazy_load=False,
@@ -76,24 +90,6 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
             Cube that has been loaded from the input filepath given the
             constraints provided.
     """
-    # FIXME: monkey patched nimrod loading in iris, so it works for radar files
-    patcher = contextlib.suppress()
-    try:
-        iris.fileformats.nimrod_load_rules.DEFAULT_UNITS
-    except AttributeError:
-        try:
-            from iris_nimrod_patch import nimrod, nimrod_load_rules
-        except ImportError:
-            pass
-        else:
-            for attr in ['general_header_int16s', 'general_header_float32s',
-                         'data_header_int16s', 'data_header_float32s']:
-                setattr(iris.fileformats.nimrod, attr, getattr(nimrod, attr))
-            patcher = monkeypatched(iris.fileformats, 'nimrod_load_rules',
-                                    nimrod_load_rules)
-    else:
-        raise RuntimeError('FIXME: nimrod monkey patch is no longer needed')
-
     if filepath is None and allow_none:
         return None
     # Remove metadata prefix cube if present
@@ -102,7 +98,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
 
     # Load each file individually to avoid partial merging (not used
     # iris.load_raw() due to issues with time representation)
-    with patcher:
+    with iris_nimrod_patcher():
         if isinstance(filepath, str):
             cubes = iris.load(filepath, constraints=constraints)
         else:
