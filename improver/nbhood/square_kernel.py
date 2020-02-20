@@ -34,7 +34,7 @@ import iris
 import numpy as np
 
 from improver.nbhood.circular_kernel import (
-    check_required_distance_against_domain)
+    check_radius_against_distance)
 from improver.utilities.cube_checker import (
     check_cube_coordinates, check_for_x_and_y_axes)
 from improver.utilities.cube_manipulation import clip_cube_data
@@ -483,6 +483,7 @@ class SquareNeighbourhood:
         """
         # If the data is masked, the mask will be processed as well as the
         # original_data * mask array.
+        check_radius_against_distance(cube, radius)
         original_attributes = cube.attributes
         original_methods = cube.cell_methods
         grid_cells_x = (
@@ -490,7 +491,6 @@ class SquareNeighbourhood:
                 cube, radius,
                 max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS))
 
-        check_required_distance_against_domain(cube, radius)
 
         grid_cells_y = grid_cells_x
         result_slices = iris.cube.CubeList()

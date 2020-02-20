@@ -44,31 +44,26 @@ from improver.utilities.spatial import (
 MAX_RADIUS_IN_GRID_CELLS = 500
 
 
-def check_required_distance_against_domain(cube, radius):
+def check_radius_against_distance(cube, radius):
     """Check required distance isn't greater than the size of the domain.
 
     Args:
         cube (iris.cube.Cube):
             The cube to check.
         radius (float):
-            Radius in metres for use in specifying the number
-            of grid cells used to create a square neighbourhood.
+            The radius, which cannot be bigger than the size of the domain.
 
     """
+    axes = []
+    for axis in ['x', 'y']:
+        coord = cube.coord(axis=axis).copy()
+        coord.convert_units('metres')
+        axes.append((max(coord.points) - min(coord.points)))
 
-    def calculate_domain_extent(coord):
-        """Calculates the coordinate extent in metres"""
-        new_coord = coord.copy()
-        new_coord.convert_units('metres')
-        return max(new_coord.points) - min(new_coord.points)
-
-    x_extent_metres = calculate_domain_extent(cube.coord(axis='x'))
-    y_extent_metres = calculate_domain_extent(cube.coord(axis='y'))
-    max_distance_of_domain = np.sqrt(x_extent_metres ** 2 + y_extent_metres ** 2)
-    if radius > max_distance_of_domain:
-        raise ValueError(
-            "{} exceeds max domain distance of {}m".format(
-                "Distance of {}m".format(radius), max_distance_of_domain))
+    max_allowed = np.sqrt(axes[0] ** 2 + axes[1] ** 2)
+    if radius > max_allowed:
+        raise ValueError(f"Distance of {radius}m exceeds max domain "
+                         f"distance of {max_allowed}m")
 
 
 def circular_kernel(full_ranges, ranges, weighted_mode):
@@ -446,7 +441,7 @@ class GeneratePercentilesFromACircularNeighbourhood:
         # Take data array and identify X and Y axes indices
         grid_cells_x = convert_distance_into_number_of_grid_cells(
             cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
-        check_required_distance_against_domain(cube, radius)
+        check_radius_against_distance(cube, radius)
         ranges_tuple = (grid_cells_x, grid_cells_x)
         ranges_xy = np.array(ranges_tuple)
         kernel = circular_kernel(ranges_xy, ranges_tuple, weighted_mode=False)

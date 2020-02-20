@@ -156,7 +156,6 @@ def convert_distance_into_number_of_grid_cells(
         grid_cells = int(grid_cells)
         if grid_cells == 0:
             raise ValueError(zero_distance_error)
-
     if max_distance_in_grid_cells is not None:
         if grid_cells > max_distance_in_grid_cells:
             raise ValueError(
@@ -180,7 +179,7 @@ def convert_number_of_grid_cells_into_distance(cube, grid_points):
         float:
             The radius in metres.
     """
-    check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True)
+    check_if_grid_is_equal_area(cube)
     spacing = calculate_grid_spacing(cube, 'metres')
     radius_in_metres = spacing * grid_points
     return radius_in_metres
