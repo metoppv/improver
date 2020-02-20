@@ -63,7 +63,7 @@ def collapsed(cube, *args, **kwargs):
     return new_cube
 
 
-def get_cube_dimensions(cube):
+def get_dim_coord_names(cube):
     """Returns an ordered list of dimension coordinate names on the cube"""
     return [coord.name() for coord in cube.coords(dim_coords=True)]
 
@@ -757,7 +757,7 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
         coord_names = [coord_names]
 
     # construct a list of dimensions on the cube to be reordered
-    dim_coord_names = get_cube_dimensions(cube)
+    dim_coord_names = get_dim_coord_names(cube)
     coords_to_reorder = []
     for coord in coord_names:
         if coord == "threshold":

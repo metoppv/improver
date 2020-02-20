@@ -38,7 +38,7 @@ from cf_units import Unit
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, get_cube_dimensions)
+    enforce_coordinate_ordering, get_dim_coord_names)
 from improver.utilities.spatial import (
     convert_distance_into_number_of_grid_cells)
 
@@ -278,8 +278,8 @@ def remove_cube_halo(cube, halo_radius):
     result = result_slices.merge_cube()
 
     # re-promote any scalar dimensions lost in slice / merge
-    req_dims = get_cube_dimensions(cube)
-    present_dims = get_cube_dimensions(result)
+    req_dims = get_dim_coord_names(cube)
+    present_dims = get_dim_coord_names(result)
     for coord in req_dims:
         if coord not in present_dims:
             result = iris.util.new_axis(result, coord)
