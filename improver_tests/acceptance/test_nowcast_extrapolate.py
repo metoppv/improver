@@ -47,14 +47,32 @@ OE = "orographic_enhancement_standard_resolution"
 def test_basic(tmp_path):
     """Test basic extrapolation nowcast"""
     kgo_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_path = kgo_dir / "single_orographic_enhancement_kgo.nc"
     input_path = kgo_dir / ".." / RAINRATE_NC
-    oe_path = kgo_dir / "../orographic_enhancement.nc"
+    oe_path_t3 = kgo_dir / "../orographic_enhancement_T3.nc"
     uv_path = kgo_dir / "../uv.nc"
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_path,
+    args = [input_path, uv_path, oe_path_t3,
+            "--max-lead-time", "30",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_multiple_oe_files(tmp_path):
+    """Test basic extrapolation nowcast"""
+    kgo_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
+    kgo_path = kgo_dir / "multiple_orographic_enhancements_kgo.nc"
+    input_path = kgo_dir / ".." / RAINRATE_NC
+    oe_path_t3 = kgo_dir / "../orographic_enhancement_T3.nc"
+    oe_path_t4 = kgo_dir / "../orographic_enhancement_T4.nc"
+    uv_path = kgo_dir / "../uv.nc"
+
+    output_path = tmp_path / "output.nc"
+
+    args = [input_path, uv_path, oe_path_t3, oe_path_t4,
             "--max-lead-time", "90",
             "--output", output_path]
     run_cli(args)
@@ -66,13 +84,13 @@ def test_metadata(tmp_path):
     kgo_dir = acc.kgo_root() / "nowcast-extrapolate/metadata"
     kgo_path = kgo_dir / "kgo_with_metadata.nc"
     input_path = kgo_dir / ".." / RAINRATE_NC
-    oe_path = kgo_dir / "../orographic_enhancement.nc"
+    oe_path_t3 = kgo_dir / "../orographic_enhancement_T3.nc"
     meta_path = kgo_dir / "precip.json"
     uv_path = kgo_dir / "../uv.nc"
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_path,
+    args = [input_path, uv_path, oe_path_t3,
             "--attributes-config", meta_path,
             "--max-lead-time", "30",
             "--output", output_path]
