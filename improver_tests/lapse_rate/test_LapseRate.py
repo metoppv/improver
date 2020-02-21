@@ -40,6 +40,7 @@ from iris.tests import IrisTest
 
 from improver.constants import DALR
 from improver.lapse_rate import LapseRate
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.warnings_handler import ManageWarnings
 
 from ..set_up_test_cubes import set_up_variable_cube
@@ -168,6 +169,16 @@ class Test_process(IrisTest):
         self.assertSequenceEqual(result.shape, self.temperature.shape)
         self.assertSequenceEqual(result.coords(dim_coords=True),
                                  self.temperature.coords(dim_coords=True))
+
+    def test_dimension_order(self):
+        """Test dimension order is preserved if realization is not the leading
+        dimension"""
+        enforce_coordinate_ordering(
+            self.temperature, "realization", anchor_start=False)
+        result = LapseRate(nbhood_radius=1).process(self.temperature,
+                                                    self.orography,
+                                                    self.land_sea_mask)
+        self.assertEqual(result.coord_dims("realization")[0], 2)
 
     def test_scalar_realization(self):
         """Test dimensions are treated correctly if the realization coordinate

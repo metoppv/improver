@@ -63,6 +63,19 @@ def collapsed(cube, *args, **kwargs):
     return new_cube
 
 
+def get_dim_coord_names(cube):
+    """
+    Returns an ordered list of dimension coordinate names on the cube
+
+    Args:
+        cube (iris.cube.Cube)
+
+    Returns:
+        list of str
+    """
+    return [coord.name() for coord in cube.coords(dim_coords=True)]
+
+
 def equalise_cube_attributes(cubes, silent=None):
     """
     Function to remove attributes that do not match between all cubes in the
@@ -752,7 +765,7 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
         coord_names = [coord_names]
 
     # construct a list of dimensions on the cube to be reordered
-    dim_coord_names = [coord.name() for coord in cube.coords(dim_coords=True)]
+    dim_coord_names = get_dim_coord_names(cube)
     coords_to_reorder = []
     for coord in coord_names:
         if coord == "threshold":
