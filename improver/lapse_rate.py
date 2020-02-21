@@ -471,7 +471,7 @@ class LapseRate(BasePlugin):
             lapse_rate_array = self._generate_lapse_rate_array(
                 temperature_data, orography_data, land_sea_mask_data)
             lapse_rate_data.append(lapse_rate_array)
-        lapse_rate_data = np.array(lapse_rate_data, dtype=np.float32)
+        lapse_rate_data = np.array(lapse_rate_data)
         if not has_realization_dimension:
             lapse_rate_data = np.squeeze(lapse_rate_data)
 
@@ -479,7 +479,7 @@ class LapseRate(BasePlugin):
             [temperature], model_id_attr=model_id_attr)
         lapse_rate_cube = create_new_diagnostic_cube(
             'air_temperature_lapse_rate', 'K m-1', temperature_cube,
-            attributes, data=np.array(lapse_rate_data, dtype=np.float32))
+            attributes, data=lapse_rate_data)
 
         if original_dimension_order:
             enforce_coordinate_ordering(

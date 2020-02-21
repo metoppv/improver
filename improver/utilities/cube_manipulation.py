@@ -64,7 +64,15 @@ def collapsed(cube, *args, **kwargs):
 
 
 def get_dim_coord_names(cube):
-    """Returns an ordered list of dimension coordinate names on the cube"""
+    """
+    Returns an ordered list of dimension coordinate names on the cube
+
+    Args:
+        cube (iris.cube.Cube)
+
+    Returns:
+        list of str
+    """
     return [coord.name() for coord in cube.coords(dim_coords=True)]
 
 
