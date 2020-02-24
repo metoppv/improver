@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to manipulate reliability tables."""
+"""CLI to aggregate reliability tables."""
 
 from improver import cli
 
@@ -37,9 +37,8 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(*cubes: cli.inputcube,
-            method=None,
             coordinates: cli.comma_separated_list = None):
-    """Manipulate reliability tables.
+    """Aggregate reliability tables.
 
     Aggregate multiple reliability calibration tables and/or aggregate over
     coordinates within the table(s) to produce a new reliability calibration
@@ -49,13 +48,9 @@ def process(*cubes: cli.inputcube,
         cubes (list of iris.cube.Cube):
             The cube or cubes containing the reliability calibration tables
             to aggregate.
-        method (iris.analysis.WeightedAggregator):
-            The aggregator method to use in aggregating multiple
-            reliability calibration tables or aggregating over coordinates.
-            Summation is the default behaviour.
         coordinates (list):
             A list of coordinates over which to aggregate the reliability
-            calibration table using the chosen aggregator. If the list is empty
+            calibration table using summation. If the list is empty
             and a single cube is provided, this cube will be returned
             unchanged.
     Returns:
@@ -63,7 +58,7 @@ def process(*cubes: cli.inputcube,
             Aggregated reliability table.
     """
     from improver.calibration.reliability_calibration import (
-        ManipulateReliabilityCalibrationTables)
+        AggregateReliabilityCalibrationTables)
 
-    return ManipulateReliabilityCalibrationTables(
-        method=method).process(cubes, coordinates=coordinates)
+    return AggregateReliabilityCalibrationTables().process(
+        cubes, coordinates=coordinates)

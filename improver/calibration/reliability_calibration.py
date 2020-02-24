@@ -442,27 +442,25 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         return MergeCubes()(reliability_tables)
 
 
-class ManipulateReliabilityCalibrationTables:
+class AggregateReliabilityCalibrationTables:
 
     """This plugin enables the aggregation of multiple reliability calibration
     tables, and/or the aggregation over coordinates in the tables."""
 
-    def __init__(self, method=iris.analysis.SUM):
+    def __init__(self):
         """
         Initialise plugin for manipulating reliability calibration tables.
-        This plugin can aggregate the tables or aggregate over coordinates
-        using any aggregator method available in iris.
-
-        Args:
-            method (iris.analysis.WeightedAggregator):
-                The aggregator method to use in aggregating multiple
-                reliability calibration tables or aggregating over coordinates.
-                Summation is the default behaviour.
+        This plugin can aggregate multiple tables or aggregate over coordinates
+        using summation.
         """
-        self.method = method
         self.cube_index_coord = 'cube_coord'
         self.merge_coord = lambda value: iris.coords.DimCoord(
-            [value], long_name=self.cube_index_coord, units=1)
+            np.array([value]).astype(np.int32),
+            long_name=self.cube_index_coord, units=1)
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        return '<AggregateReliabilityCalibrationTables>'
 
     def _construct_single_cube(self, cubes):
         """
@@ -470,7 +468,7 @@ class ManipulateReliabilityCalibrationTables:
         cubes into a single cube.
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes (list or iris.cube.CubeList):
                 The cubes to be merged into a single cube.
         Returns:
             iris.cube.Cube:
@@ -481,12 +479,12 @@ class ManipulateReliabilityCalibrationTables:
         for index, cube in enumerate(cubes):
             local_cube = cube.copy()
             local_cube.add_aux_coord(self.merge_coord(index))
-            merge_list.append(iris.util.new_axis(local_cube,
-                                                 self.cube_index_coord))
+            merge_list.append(
+                iris.util.new_axis(local_cube, self.cube_index_coord))
         cube = merge_list.concatenate()
         return cube.merge_cube()
 
-    def process(self, cubes, coordinates=[]):
+    def process(self, cubes, coordinates=None):
         """
         Aggregate the input reliability calibration table cubes and return the
         result.
@@ -495,12 +493,14 @@ class ManipulateReliabilityCalibrationTables:
             cubes (list or iris.cube.CubeList):
                 The cube or cubes containing the reliability calibration tables
                 to aggregate.
-            coordinates (list):
+            coordinates (list or None):
                 A list of coordinates over which to aggregate the reliability
-                calibration table using the chosen aggregator. If the list is
-                empty and a single cube is provided, this cube will be returned
+                calibration table using summation. If the argument is None and
+                a single cube is provided, this cube will be returned
                 unchanged.
         """
+        coordinates = [] if coordinates is None else coordinates
+
         try:
             cube, = cubes
         except ValueError:
