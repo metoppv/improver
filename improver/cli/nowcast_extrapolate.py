@@ -57,7 +57,7 @@ def process(cube: cli.inputcube,
             precipitation_advection_x_velocity
             precipitation_advection_y_velocity
         orographic_enhancement (list of iris.cube.Cube):
-            Tuple of cubes containing orographic enhancement forecasts for the
+            List of cubes containing orographic enhancement forecasts for the
             lead times at which an extrapolation nowcast is required.
         attributes_config (dict):
             Dictionary containing the required changes to the attributes.
