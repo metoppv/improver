@@ -136,7 +136,7 @@ class Test_WXCode(IrisTest):
         self.uk_no_lightning = [name for name in names
                                 if 'lightning' not in name]
         self.gbl = [name for name in self.uk_no_lightning
-                    if 'vicinity' not in name]
+                    if 'vicinity' not in name and 'sleet' not in name]
 
 
 class Test__repr__(IrisTest):
