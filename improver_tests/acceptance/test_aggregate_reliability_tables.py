@@ -59,7 +59,7 @@ def test_multiple_tables(tmp_path):
     Test aggregation of multiple reliability calibration tables.
     """
     kgo_dir = acc.kgo_root() / "aggregate-reliability-tables/basic"
-    kgo_path = kgo_dir / "collapse_lat_lon_kgo.nc"
+    kgo_path = kgo_dir / "multiple_tables_kgo.nc"
     input_path = kgo_dir / "reliability_table.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, input_path,
