@@ -342,7 +342,7 @@ class WeatherSymbols(BasePlugin):
             extract_constraint = self.construct_extract_constraint(
                 diagnostic, d_threshold, self.coord_named_threshold)
             conditions.append(
-                WeatherSymbols.construct_condition(
+                self.construct_condition(
                     extract_constraint, test_conditions['threshold_condition'],
                     p_threshold, gamma))
         condition_chain = WeatherSymbols.format_condition_chain(

@@ -130,14 +130,14 @@ def wxcode_decision_tree():
             'succeed': 18,
             'fail': 'heavy_rain_or_snow_continuous',
             'probability_thresholds': [0., 0.],
-            'threshold_condition': '>=',
+            'threshold_condition': '>',
             'condition_combination': 'AND',
             'diagnostic_fields':
-                [['probability_of_lwe_snowfall_rate_above_threshold',
-                  'probability_of_rainfall_rate_above_threshold'],
-                 ['probability_of_rainfall_rate_above_threshold',
-                  'probability_of_lwe_snowfall_rate_above_threshold']],
-            'diagnostic_gamma': [0.7, 1.0],
+                [['probability_of_rainfall_rate_above_threshold',
+                  'probability_of_lwe_sleetfall_rate_above_threshold'],
+                 ['probability_of_lwe_snowfall_rate_above_threshold',
+                  'probability_of_lwe_sleetfall_rate_above_threshold']],
+            'diagnostic_gamma': [1.0, 1.0],
             'diagnostic_thresholds': [[(1.0, 'mm hr-1'),
                                        (1.0, 'mm hr-1')],
                                       [(1.0, 'mm hr-1'),
@@ -149,14 +149,14 @@ def wxcode_decision_tree():
             'succeed': 17,
             'fail': 'heavy_rain_or_snow_shower',
             'probability_thresholds': [0., 0.],
-            'threshold_condition': '>=',
+            'threshold_condition': '>',
             'condition_combination': 'AND',
             'diagnostic_fields':
-                [['probability_of_lwe_snowfall_rate_above_threshold',
-                  'probability_of_rainfall_rate_above_threshold'],
-                 ['probability_of_rainfall_rate_above_threshold',
-                  'probability_of_lwe_snowfall_rate_above_threshold']],
-            'diagnostic_gamma': [0.7, 1.0],
+                [['probability_of_rainfall_rate_above_threshold',
+                  'probability_of_lwe_sleetfall_rate_above_threshold'],
+                 ['probability_of_lwe_snowfall_rate_above_threshold',
+                  'probability_of_lwe_sleetfall_rate_above_threshold']],
+            'diagnostic_gamma': [1.0, 1.0],
             'diagnostic_thresholds': [[(1.0, 'mm hr-1'),
                                        (1.0, 'mm hr-1')],
                                       [(1.0, 'mm hr-1'),
@@ -220,14 +220,14 @@ def wxcode_decision_tree():
             'succeed': 18,
             'fail': 'light_rain_or_snow_continuous',
             'probability_thresholds': [0., 0.],
-            'threshold_condition': '>=',
+            'threshold_condition': '>',
             'condition_combination': 'AND',
             'diagnostic_fields':
-                [['probability_of_lwe_snowfall_rate_above_threshold',
-                  'probability_of_rainfall_rate_above_threshold'],
-                 ['probability_of_rainfall_rate_above_threshold',
-                  'probability_of_lwe_snowfall_rate_above_threshold']],
-            'diagnostic_gamma': [0.7, 1.0],
+                [['probability_of_rainfall_rate_above_threshold',
+                  'probability_of_lwe_sleetfall_rate_above_threshold'],
+                 ['probability_of_lwe_snowfall_rate_above_threshold',
+                  'probability_of_lwe_sleetfall_rate_above_threshold']],
+            'diagnostic_gamma': [1.0, 1.0],
             'diagnostic_thresholds': [[(0.1, 'mm hr-1'),
                                        (0.1, 'mm hr-1')],
                                       [(0.1, 'mm hr-1'),
@@ -253,14 +253,14 @@ def wxcode_decision_tree():
             'succeed': 17,
             'fail': 'light_rain_or_snow_shower',
             'probability_thresholds': [0., 0.],
-            'threshold_condition': '>=',
+            'threshold_condition': '>',
             'condition_combination': 'AND',
             'diagnostic_fields':
-                [['probability_of_lwe_snowfall_rate_above_threshold',
-                  'probability_of_rainfall_rate_above_threshold'],
-                 ['probability_of_rainfall_rate_above_threshold',
-                  'probability_of_lwe_snowfall_rate_above_threshold']],
-            'diagnostic_gamma': [0.7, 1.0],
+                [['probability_of_rainfall_rate_above_threshold',
+                  'probability_of_lwe_sleetfall_rate_above_threshold'],
+                 ['probability_of_lwe_snowfall_rate_above_threshold',
+                  'probability_of_lwe_sleetfall_rate_above_threshold']],
+            'diagnostic_gamma': [1.0, 1.0],
             'diagnostic_thresholds': [[(0.1, 'mm hr-1'),
                                        (0.1, 'mm hr-1')],
                                       [(0.1, 'mm hr-1'),
@@ -346,31 +346,28 @@ def wxcode_decision_tree():
         'precipitation_in_vicinity': {
             'succeed': 'sleet_in_vicinity',
             'fail': 'light_precipitation',
-            'probability_thresholds': [0.5, 0.5],
+            'probability_thresholds': [0.5],
             'threshold_condition': '>=',
-            'condition_combination': 'OR',
+            'condition_combination': '',
             'diagnostic_fields': [
-                'probability_of_rainfall_rate_in_vicinity_above_threshold',
-                'probability_of_lwe_snowfall_rate_in_vicinity_'
-                'above_threshold'],
-            'diagnostic_thresholds': [(0.1, 'mm hr-1'),
-                                      (0.1, 'mm hr-1')],
-            'diagnostic_conditions': ['above', 'above']},
+                'probability_of_lwe_precipitation_rate_in_vicinity_'
+                'above_threshold',
+                ],
+            'diagnostic_thresholds': [(0.1, 'mm hr-1')],
+            'diagnostic_conditions': ['above']},
 
         'sleet_in_vicinity': {
             'succeed': 17,
             'fail': 'rain_or_snow_in_vicinity',
             'probability_thresholds': [0., 0.],
-            'threshold_condition': '>=',
+            'threshold_condition': '>',
             'condition_combination': 'AND',
-            'diagnostic_fields': [
-                ['probability_of_lwe_snowfall_rate_in_vicinity_'
-                 'above_threshold',
-                 'probability_of_rainfall_rate_in_vicinity_above_threshold'],
-                ['probability_of_rainfall_rate_in_vicinity_above_threshold',
-                 'probability_of_lwe_snowfall_rate_in_vicinity_'
-                 'above_threshold']],
-            'diagnostic_gamma': [0.7, 1.0],
+            'diagnostic_fields':
+                [['probability_of_rainfall_rate_above_threshold',
+                  'probability_of_lwe_sleetfall_rate_above_threshold'],
+                 ['probability_of_lwe_snowfall_rate_above_threshold',
+                  'probability_of_lwe_sleetfall_rate_above_threshold']],
+            'diagnostic_gamma': [1.0, 1.0],
             'diagnostic_thresholds': [[(0.1, 'mm hr-1'),
                                        (0.1, 'mm hr-1')],
                                       [(0.1, 'mm hr-1'),
@@ -385,9 +382,8 @@ def wxcode_decision_tree():
             'threshold_condition': '>=',
             'condition_combination': '',
             'diagnostic_fields': [
-                ['probability_of_lwe_snowfall_rate_in_vicinity_'
-                 'above_threshold',
-                 'probability_of_rainfall_rate_in_vicinity_above_threshold']],
+                ['probability_of_lwe_snowfall_rate_above_threshold',
+                 'probability_of_rainfall_rate_above_threshold']],
             'diagnostic_gamma': [1.],
             'diagnostic_thresholds': [[(0.1, 'mm hr-1'),
                                        (0.1, 'mm hr-1')]],
@@ -411,7 +407,7 @@ def wxcode_decision_tree():
             'threshold_condition': '>=',
             'condition_combination': '',
             'diagnostic_fields': [
-                'probability_of_lwe_snowfall_rate_in_vicinity_'
+                'probability_of_lwe_precipitation_rate_in_vicinity_'
                 'above_threshold'],
             'diagnostic_thresholds': [(1.0, 'mm hr-1')],
             'diagnostic_conditions': ['above']},
@@ -423,7 +419,7 @@ def wxcode_decision_tree():
             'threshold_condition': '>=',
             'condition_combination': '',
             'diagnostic_fields': [
-                'probability_of_lwe_snowfall_rate_in_vicinity_'
+                'probability_of_lwe_precipitation_rate_in_vicinity_'
                 'above_threshold'],
             'diagnostic_thresholds': [(1.0, 'mm hr-1')],
             'diagnostic_conditions': ['above']},
@@ -446,7 +442,8 @@ def wxcode_decision_tree():
             'threshold_condition': '>=',
             'condition_combination': '',
             'diagnostic_fields': [
-                'probability_of_rainfall_rate_in_vicinity_above_threshold'],
+                'probability_of_lwe_precipitation_rate_in_vicinity_'
+                'above_threshold'],
             'diagnostic_thresholds': [(1.0, 'mm hr-1')],
             'diagnostic_conditions': ['above']},
 
@@ -457,7 +454,8 @@ def wxcode_decision_tree():
             'threshold_condition': '>=',
             'condition_combination': '',
             'diagnostic_fields': [
-                'probability_of_rainfall_rate_in_vicinity_above_threshold'],
+                'probability_of_lwe_precipitation_rate_in_vicinity_'
+                'above_threshold'],
             'diagnostic_thresholds': [(1.0, 'mm hr-1')],
             'diagnostic_conditions': ['above']},
 

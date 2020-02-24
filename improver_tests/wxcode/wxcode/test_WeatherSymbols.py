@@ -63,9 +63,10 @@ class Test_WXCode(IrisTest):
             threshold_units='m s-1',
             time=time, frt=frt)
 
-        snowfall_vicinity = set_up_probability_cube(
-            data_snow, thresholds,
-            variable_name='lwe_snowfall_rate_in_vicinity',
+        data_sleet = np.zeros((3, 3, 3), dtype=np.float32)
+
+        sleetfall_rate = set_up_probability_cube(
+            data_sleet, thresholds, variable_name='lwe_sleetfall_rate',
             threshold_units='m s-1',
             time=time, frt=frt)
 
@@ -80,8 +81,9 @@ class Test_WXCode(IrisTest):
             threshold_units='m s-1',
             time=time, frt=frt)
 
-        rainfall_vicinity = set_up_probability_cube(
-            data_rain, thresholds, variable_name='rainfall_rate_in_vicinity',
+        precip_vicinity = set_up_probability_cube(
+            data_rain, thresholds,
+            variable_name='lwe_precipitation_rate_in_vicinity',
             threshold_units='m s-1',
             time=time, frt=frt)
 
@@ -128,7 +130,7 @@ class Test_WXCode(IrisTest):
             time=time, frt=frt)
 
         self.cubes = iris.cube.CubeList([
-            snowfall_rate, rainfall_rate, snowfall_vicinity, rainfall_vicinity,
+            snowfall_rate, sleetfall_rate, rainfall_rate, precip_vicinity,
             cloud, cloud_low, visibility, lightning])
         names = [cube.name() for cube in self.cubes]
         self.uk_no_lightning = [name for name in names
@@ -661,22 +663,22 @@ class Test_process(Test_WXCode):
         """Test process returns the right weather values with a different
         set of data to walk the tree differently."""
         plugin = WeatherSymbols()
-        data_snow = np.array([0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1,
-                              0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
+        data_snow = np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.1,
+                              0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
                               0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
                               1.0, 1.0, 0.0]).reshape((3, 3, 3))
-        data_rain = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                              1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        data_sleet = np.array([0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                               0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                               0.0, 0.0, 0.0]).reshape((3, 3, 3))
+        data_rain = np.array([1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                               1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
                               0.0, 0.0, 0.0]).reshape((3, 3, 3))
-        data_snowv = np.array([0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                               0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                               0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
-                               0.0, 0.0, 1.0]).reshape((3, 3, 3))
-        data_rainv = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0]).reshape((3, 3, 3))
+        data_precipv = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                 1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
+                                 0.0, 0.0, 1.0]).reshape((3, 3, 3))
         data_cloud = np.array([0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0,
                                0.0, 1.0, 0.0, 1.0, 0.0, 1.0,
                                0.0, 1.0, 1.0]).reshape((2, 3, 3))
@@ -689,9 +691,9 @@ class Test_process(Test_WXCode):
 
         cubes = self.cubes
         cubes[0].data = data_snow
-        cubes[1].data = data_rain
-        cubes[2].data = data_snowv
-        cubes[3].data = data_rainv
+        cubes[1].data = data_sleet
+        cubes[2].data = data_rain
+        cubes[3].data = data_precipv
         cubes[4].data = data_cloud
         cubes[5].data = data_cld_low
         cubes[6].data = data_vis
