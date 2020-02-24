@@ -143,6 +143,7 @@ def process(cube: cli.inputcube,
         ConvertProbabilitiesToPercentiles,
         RebadgePercentilesAsRealizations,
         ResamplePercentiles)
+    from improver.ensemble_copula_coupling.utilities import merge_land_and_sea
     from improver.metadata.probabilistic import find_percentile_coordinate
 
     current_forecast = cube
@@ -234,4 +235,7 @@ def process(cube: cli.inputcube,
         result = EnsembleReordering().process(
             percentiles, current_forecast,
             random_ordering=randomise, random_seed=random_seed)
+    if land_sea_mask:
+        # Fill in masked sea points with uncalibrated data.
+        merge_land_and_sea(result, original_current_forecast)
     return result
