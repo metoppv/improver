@@ -44,7 +44,7 @@ class Test_circular_kernel(IrisTest):
 
     def test_basic(self):
         """Test that the plugin returns a Numpy array."""
-        ranges = (2, 2)
+        ranges = 2
         fullranges = (0, 2, 2)
         weighted_mode = False
         result = (
@@ -53,7 +53,7 @@ class Test_circular_kernel(IrisTest):
 
     def test_single_point_weighted(self):
         """Test behaviour for a unitary range, with weighting."""
-        ranges = (1, 1)
+        ranges = 1
         fullranges = (1, 1)
         weighted_mode = True
         expected = [[0., 0., 0.], [0., 1., 0.], [0., 0., 0.]]
@@ -66,7 +66,7 @@ class Test_circular_kernel(IrisTest):
         Note that this gives one more grid cell range than weighted! As the
         affected area is one grid cell more in each direction, an equivalent
         range of 2 was chosen for this test."""
-        ranges = (1, 1)
+        ranges = 1
         fullranges = (1, 1)
         weighted_mode = False
         expected = [[0., 1., 0.], [1., 1., 1.], [0., 1., 0.]]
@@ -76,7 +76,7 @@ class Test_circular_kernel(IrisTest):
 
     def test_range5_weighted(self):
         """Test behaviour for a range of 5, with weighting."""
-        ranges = (5, 5)
+        ranges = 5
         fullranges = (5, 5)
         weighted_mode = True
         expected = [
@@ -97,7 +97,7 @@ class Test_circular_kernel(IrisTest):
 
     def test_range5_unweighted(self):
         """Test behaviour for a range of 5 without weighting."""
-        ranges = (5, 5)
+        ranges = 5
         fullranges = (5, 5)
         weighted_mode = False
         expected = [[0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.],
@@ -118,7 +118,7 @@ class Test_circular_kernel(IrisTest):
     def test_single_point_weighted_extra_dims(self):
         """Test behaviour for a unitary range, with weighting.
         And added dimensions."""
-        ranges = (1, 1)
+        ranges = 1
         fullranges = (0, 0, 1, 1)
         weighted_mode = True
         expected = [[[[0., 0., 0.], [0., 1., 0.], [0., 0., 0.]]]]
@@ -129,7 +129,7 @@ class Test_circular_kernel(IrisTest):
     def test_single_point_unweighted_extra_dims(self):
         """Test behaviour for a unitary range without weighting.
         And added dimensions."""
-        ranges = (1, 1)
+        ranges = 1
         fullranges = (0, 0, 1, 1)
         weighted_mode = False
         expected = [[[[0., 1., 0.], [1., 1., 1.], [0., 1., 0.]]]]
@@ -139,7 +139,7 @@ class Test_circular_kernel(IrisTest):
 
     def test_range5_weighted_extra_dims(self):
         """Test behaviour for a range of 5, with weighting."""
-        ranges = (5, 5)
+        ranges = 5
         fullranges = (0, 0, 5, 5)
         weighted_mode = True
         expected = [[[
@@ -161,7 +161,7 @@ class Test_circular_kernel(IrisTest):
 
     def test_range5_unweighted_extra_dims(self):
         """Test behaviour for a range of 5 without weighting."""
-        ranges = (5, 5)
+        ranges = 5
         fullranges = (0, 0, 5, 5)
         weighted_mode = False
         expected = [[[[0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.],

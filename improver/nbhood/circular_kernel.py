@@ -33,6 +33,7 @@
 import iris
 import numpy as np
 import scipy.ndimage.filters
+from scipy.ndimage.filters import correlate
 
 from improver.constants import DEFAULT_PERCENTILES
 from improver.utilities.cube_checker import (
@@ -75,7 +76,7 @@ def circular_kernel(full_ranges, ranges, weighted_mode):
         full_ranges (numpy.ndarray):
             Number of grid cells in all dimensions used to create the kernel.
             This should have the value 0 for any dimension other than x and y.
-        ranges (tuple):
+        ranges (int):
             Number of grid cells in the x and y direction used to create
             the kernel.
         weighted_mode (bool):
@@ -89,22 +90,23 @@ def circular_kernel(full_ranges, ranges, weighted_mode):
             This will have the same number of dimensions as fullranges.
 
     """
+    # The range is square
+
+    area = ranges * ranges
     # Define the size of the kernel based on the number of grid cells
     # contained within the desired radius.
     kernel = np.ones([int(1 + x * 2) for x in full_ranges])
     # Create an open multi-dimensional meshgrid.
-    open_grid = np.array(np.ogrid[[slice(-x, x+1) for x in ranges]])
+    open_grid = np.array(np.ogrid[[slice(-x, x+1) for x in (ranges, ranges)]])
     if weighted_mode:
         # Create a kernel, such that the central grid point has the
         # highest weighting, with the weighting decreasing with distance
         # away from the central grid point.
         open_grid_summed_squared = np.sum(open_grid**2.).astype(float)
-        kernel[:] = (
-            (np.prod(ranges) - open_grid_summed_squared) / np.prod(ranges))
+        kernel[:] = (area - open_grid_summed_squared) / area
         mask = kernel < 0.
     else:
-        mask = np.reshape(
-            np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
+        mask = np.reshape(np.sum(open_grid**2) > area, np.shape(kernel))
     kernel[mask] = 0.
     return kernel
 
@@ -168,7 +170,7 @@ class CircularNeighbourhood:
             cube (iris.cube.Cube):
                 Cube containing to array to apply CircularNeighbourhood
                 processing to.
-            ranges (tuple):
+            ranges (int):
                 Number of grid cells in the x and y direction used to create
                 the kernel.
 
@@ -186,7 +188,7 @@ class CircularNeighbourhood:
             axes.append(cube.coord_dims(coord_name)[0])
 
         for axis_index, axis in enumerate(axes):
-            full_ranges[axis] = ranges[axis_index]
+            full_ranges[axis] = ranges
         self.kernel = circular_kernel(full_ranges, ranges, self.weighted_mode)
         # Smooth the data by applying the kernel.
         if self.sum_or_fraction == "sum":
@@ -195,8 +197,7 @@ class CircularNeighbourhood:
             # sum_or_fraction is in fraction mode
             total_area = np.sum(self.kernel)
 
-        cube.data = scipy.ndimage.filters.correlate(
-            data, self.kernel, mode='nearest') / total_area
+        cube.data = correlate(data, self.kernel, mode='nearest') / total_area
         return cube
 
     def run(self, cube, radius, mask_cube=None):
@@ -230,8 +231,7 @@ class CircularNeighbourhood:
         check_if_grid_is_equal_area(cube)
         grid_cells_x = convert_distance_into_number_of_grid_cells(
             cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
-        ranges = (grid_cells_x, grid_cells_x)
-        cube = self.apply_circular_kernel(cube, ranges)
+        cube = self.apply_circular_kernel(cube, grid_cells_x)
         return cube
 
 
@@ -444,7 +444,7 @@ class GeneratePercentilesFromACircularNeighbourhood:
         check_radius_against_distance(cube, radius)
         ranges_tuple = (grid_cells_x, grid_cells_x)
         ranges_xy = np.array(ranges_tuple)
-        kernel = circular_kernel(ranges_xy, ranges_tuple, weighted_mode=False)
+        kernel = circular_kernel(ranges_xy, grid_cells_x, weighted_mode=False)
         # Loop over each 2D slice to reduce memory demand and derive
         # percentiles on the kernel. Will return an extra dimension.
         pctcubelist = iris.cube.CubeList()
