@@ -1191,7 +1191,8 @@ class EnsembleReordering(BasePlugin):
             mask = np.ma.getmask(calfc.data)
             calfc.data = choose(ranking, calfc.data)
             if mask is not np.ma.nomask:
-                calfc.data = np.ma.MaskedArray(calfc.data, mask)
+                calfc.data = np.ma.MaskedArray(
+                    calfc.data, mask, dtype=np.float32)
             results.append(calfc)
         # Ensure we haven't lost any dimensional coordinates with only one
         # value in.

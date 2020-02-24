@@ -607,6 +607,7 @@ class Test_merge_land_and_sea(IrisTest):
             expected_cube.xml(checksum=True),
             self.percentiles_land.xml(checksum=True))
         self.assertFalse(np.ma.is_masked(self.percentiles_land.data))
+        self.assertEqual(self.percentiles_land.data.dtype, np.float32)
 
     def test_nothing_to_merge(self):
         """Test case where there is no missing data to fill in."""
@@ -620,6 +621,7 @@ class Test_merge_land_and_sea(IrisTest):
             expected_cube.xml(checksum=True),
             self.percentiles_land.xml(checksum=True))
         self.assertFalse(np.ma.is_masked(self.percentiles_land.data))
+        self.assertEqual(self.percentiles_land.data.dtype, np.float32)
 
     def test_input_not_masked(self):
         """Test case where input cube is not masked."""
@@ -631,6 +633,7 @@ class Test_merge_land_and_sea(IrisTest):
         self.assertEqual(
             expected_cube.xml(checksum=True),
             self.percentiles_land.xml(checksum=True))
+        self.assertEqual(self.percentiles_land.data.dtype, np.float32)
 
 
 if __name__ == '__main__':

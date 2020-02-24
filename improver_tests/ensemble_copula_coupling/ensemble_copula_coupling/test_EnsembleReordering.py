@@ -434,14 +434,14 @@ class Test_rank_ecc(IrisTest):
         calibrated_data = np.ma.MaskedArray(
             [[[1, 1]],
              [[2, 2]],
-             [[3, 3]]], mask=mask)
+             [[3, 3]]], mask=mask, dtype=np.float32)
 
         # Reordering of the calibrated_data array to match
         # the raw_data ordering
         result_data = np.array(
             [[[np.nan, 1]],
              [[np.nan, 2]],
-             [[np.nan, 3]]])
+             [[np.nan, 3]]], dtype=np.float32)
 
         cube = self.cube.copy()
         cube = cube[:, :, :2, 0]
@@ -457,6 +457,7 @@ class Test_rank_ecc(IrisTest):
         print(result.data)
         self.assertArrayAlmostEqual(result.data.data, result_data)
         self.assertArrayEqual(result.data.mask, mask)
+        self.assertEqual(result.data.dtype, np.float32)
 
     def test_3d_cube_masked_nans(self):
         """Test that the plugin returns the correct cube data for a
@@ -473,14 +474,14 @@ class Test_rank_ecc(IrisTest):
         calibrated_data = np.ma.MaskedArray(
             [[[np.nan, 1]],
              [[np.nan, 2]],
-             [[np.nan, 3]]], mask=mask)
+             [[np.nan, 3]]], mask=mask, dtype=np.float32)
 
         # Reordering of the calibrated_data array to match
         # the raw_data ordering
         result_data = np.array(
             [[[np.nan, 1]],
              [[np.nan, 2]],
-             [[np.nan, 3]]])
+             [[np.nan, 3]]], dtype=np.float32)
 
         cube = self.cube.copy()
         cube = cube[:, :, :2, 0]
@@ -496,6 +497,7 @@ class Test_rank_ecc(IrisTest):
         print(result.data)
         self.assertArrayAlmostEqual(result.data.data, result_data)
         self.assertArrayEqual(result.data.mask, mask)
+        self.assertEqual(result.data.dtype, np.float32)
 
     def test_3d_cube_tied_values(self):
         """
