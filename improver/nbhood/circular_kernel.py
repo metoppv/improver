@@ -32,7 +32,6 @@
 
 import iris
 import numpy as np
-import scipy.ndimage.filters
 from scipy.ndimage.filters import correlate
 
 from improver.constants import DEFAULT_PERCENTILES
@@ -154,6 +153,7 @@ class CircularNeighbourhood:
             raise ValueError(msg)
         self.sum_or_fraction = sum_or_fraction
         self.re_mask = re_mask
+        self.kernel = None
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""

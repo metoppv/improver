@@ -86,8 +86,7 @@ class Test_cumulate_array(IrisTest):
                          [4., 8., 11., 15., 19.],
                          [5., 10., 14., 19., 24.]])
         cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
-            num_grid_points=5)
+            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
         cube = iris.util.squeeze(cube)
         result_cube = SquareNeighbourhood().cumulate_array(cube)
         self.assertIsInstance(result_cube, Cube)
@@ -357,7 +356,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
              [0.75, 0.66666667, 1., 1., 1., np.nan, 1.],
              [1., 1., 0.83333333, 0.85714286, 0.75, 1., 0.85714286]])
 
-        grid_cells =  1
+        grid_cells = 1
         cube = self.cube
         mask_cube = cube.copy()
         mask_cube.data[::] = 1.0

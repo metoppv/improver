@@ -305,7 +305,7 @@ def remove_halo_from_cube(cube, width_x, width_y):
             The width in x directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.
-        width_y (int):
+        width_y (int or float):
             The width in y directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.

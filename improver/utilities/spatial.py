@@ -317,15 +317,13 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                     x axis.
 
         """
-        diff_along_y_cube = self.calculate_difference(cube, "y")
-        diff_along_x_cube = self.calculate_difference(cube, "x")
-
+        xy = ['x', 'y']
+        diffs = [self.calculate_difference(cube, axis) for axis in xy]
         if self.is_gradient:
-            diff_along_y_cube = self.gradient_from_diff(diff_along_y_cube,
-                                                        cube, "y")
-            diff_along_x_cube = self.gradient_from_diff(diff_along_x_cube,
-                                                        cube, "x")
-        return diff_along_x_cube, diff_along_y_cube
+            diffs = [self.gradient_from_diff(diff, cube, axis)
+                     for diff, axis in zip(diffs, xy)]
+
+        return diffs[0], diffs[1]
 
 
 class OccurrenceWithinVicinity:

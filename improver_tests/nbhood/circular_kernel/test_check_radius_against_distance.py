@@ -39,7 +39,7 @@ from improver_tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import \
     set_up_cube
 
 
-class Test_circular_kernel(IrisTest):
+class Test_check_radius_against_distance(IrisTest):
 
     """Test check_radius_against_distance function."""
 
@@ -59,7 +59,6 @@ class Test_circular_kernel(IrisTest):
         """Test no exception raised when the distance is smaller than the
         corner-to-corner distance of the domain."""
         distance = 6100
-        msg = "Distance of 42500.0m exceeds max domain distance of "
         check_radius_against_distance(self.cube, distance)
 
 

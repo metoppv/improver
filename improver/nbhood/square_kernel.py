@@ -405,8 +405,7 @@ class SquareNeighbourhood:
 
     def _remove_padding_and_mask(
             self, neighbourhood_averaged_cube,
-            original_cube, mask,
-            grid_cells):
+            original_cube, mask, grid_cells):
         """
         Remove the halo from the padded array and apply the mask, if required.
         If fraction option set, clip the data so values lie within
@@ -510,5 +509,3 @@ class SquareNeighbourhood:
         neighbourhood_averaged_cube = check_cube_coordinates(
             cube, neighbourhood_averaged_cube)
         return neighbourhood_averaged_cube
-
-
