@@ -207,12 +207,16 @@ def create_constrained_inputcubelist_converter(*constraints):
     These cubes get loaded and returned as a CubeList.
 
     Args:
-        *constraints (str):
-            constraints to be used in the loading of cubes against a cubeList.
+        *constraints (str or list):
+            Constraints to be used in the loading of cubes into a CubeList.
+            If multiple constraints are specified in a list, all provided
+            constraints will be tried as possible options. Only one must
+            identify valid input, otherwise an error will be raised.
 
     Returns:
         function:
             A function with the constraints used for a list comprehension.
+
     """
     @value_converter
     def constrained_inputcubelist_converter(to_convert):
@@ -225,11 +229,34 @@ def create_constrained_inputcubelist_converter(*constraints):
         Returns:
             iris.cube.CubeList:
                 The loaded cubelist of constrained cubes.
+
+        Raises:
+            ValueError:
+                If multiple possible constraints are provided using a list,
+                then only one constraint must be valid.
         """
         from improver.utilities.load import load_cube
         from iris.cube import CubeList
-        return CubeList(maybe_coerce_with(load_cube, to_convert, constraints=j)
-                        for j in constraints)
+
+        cubelist = CubeList()
+        for constr in constraints:
+            constr_list = [constr] if isinstance(constr, str) else constr
+            found_cubes = []
+            for constr_item in constr_list:
+                try:
+                    found_cubes.append(maybe_coerce_with(
+                        load_cube, to_convert, constraints=constr_item))
+                except ValueError:
+                    pass
+            if len(found_cubes) != 1:
+                msg = (f"Incorrect number of valid inputs available for the "
+                       "{constr} constraint. "
+                       f"Number of valid inputs: {len(found_cubes)} "
+                       f"The valid inputs found are: {found_cubes}")
+                raise ValueError(msg)
+            cubelist.extend(found_cubes)
+
+        return cubelist
 
     return constrained_inputcubelist_converter
 

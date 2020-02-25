@@ -36,7 +36,8 @@ from improver import cli
 
 # Creates the value_converter that clize needs.
 inputadvection = cli.create_constrained_inputcubelist_converter(
-    'precipitation_advection_x_velocity', 'precipitation_advection_y_velocity')
+    ['precipitation_advection_x_velocity', 'grid_eastward_wind'],
+    ['precipitation_advection_y_velocity', 'grid_northward_wind'])
 
 
 @cli.clizefy
@@ -47,16 +48,16 @@ def process(cube: cli.inputcube,
             *,
             attributes_config: cli.inputjson = None,
             max_lead_time: int = 360, lead_time_interval: int = 15):
-    """Module  to extrapolate input cubes given advection velocity fields.
+    """Module to extrapolate input cubes given advection velocity fields.
 
     Args:
         cube (iris.cube.Cube):
             The data to be advected.
         advection_velocity (iris.cube.CubeList):
             Advection cubes of U and V.
-            These must have the names of.
-            precipitation_advection_x_velocity
-            precipitation_advection_y_velocity
+            These must have the names of either:
+            precipitation_advection_x_velocity or grid_eastward_wind
+            precipitation_advection_y_velocity or grid_northward_wind
         orographic_enhancement (iris.cube.Cube):
             Cube containing orographic enhancement forecasts for the lead times
             at which an extrapolation nowcast is required.

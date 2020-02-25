@@ -206,6 +206,17 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         m.assert_any_call(load_cube, "foo", constraints='wind_from_direction')
         self.assertEqual(m.call_count, 2)
 
+    @patch('improver.cli.maybe_coerce_with', return_value='return')
+    def test_list(self, m):
+        """Tests that a list returns a function which itself returns 2 cubes"""
+        result = create_constrained_inputcubelist_converter(
+            ['wind_speed'], ['wind_from_direction'])
+        result("foo")
+        m.assert_any_call(load_cube, "foo", constraints='wind_speed')
+        m.assert_any_call(
+            load_cube, "foo", constraints='wind_from_direction')
+        self.assertEqual(m.call_count, 2)
+
 
 class Test_clizefy(unittest.TestCase):
     """Test the clizefy decorator function"""
