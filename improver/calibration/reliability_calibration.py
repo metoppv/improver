@@ -216,24 +216,26 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                    'forecast periods found: {}.')
             raise ValueError(msg.format(n_cycle_hours, n_forecast_periods))
 
-    def _create_cycle_hour_coord(self, forecast_reference_time):
+    def _create_unified_frt_coord(self, forecast_reference_time):
         """
-        Constructs a coordinate that contains the cycle hour for which the
-        reliability table is valid.
+        Constructs a forecast reference time coordinate for the reliability
+        calibration cube that records the range of forecast reference times
+        of the forecasts used in populating the table.
 
         Args:
             forecast_reference_time (iris.coord.DimCoord):
-                The forecast_reference_time coordinate to be uses in the
+                The forecast_reference_time coordinate to be used in the
                 coordinate creation.
         Returns:
             iris.coord.DimCoord:
-                A dimension coordinate containing an integer unitless
-                representation of the cycle hour.
+                A dimension coordinate containing the forecast reference time
+                coordinate with suitable bounds. The coordinate point is that
+                of the latest contributing forecast.
         """
-        cycle_hour, = self._get_cycle_hours(forecast_reference_time)
-        cycle_coord = iris.coords.DimCoord(cycle_hour, long_name='cycle_hour',
-                                           units='hour')
-        return cycle_coord
+        frt_point = forecast_reference_time.points.max()
+        frt_bounds = (forecast_reference_time.points.min(), frt_point)
+        return forecast_reference_time[0].copy(points=frt_point,
+                                               bounds=frt_bounds)
 
     @staticmethod
     def _define_metadata(forecast_slice):
@@ -295,7 +297,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         probability_bins_coord = self._create_probability_bins_coord()
         reliability_index_coord, reliability_name_coord = (
             self._create_reliability_table_coords())
-        cycle_coord = self._create_cycle_hour_coord(
+        frt_coord = self._create_unified_frt_coord(
             forecast.coord('forecast_reference_time'))
 
         # List of required non-spatial coordinates from the forecast
@@ -314,7 +316,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             dummy_data, units=1, attributes=attributes,
             dim_coords_and_dims=dim_coords_and_dims,
             aux_coords_and_dims=aux_coords_and_dims)
-        reliability_cube.add_aux_coord(cycle_coord)
+        reliability_cube.add_aux_coord(frt_coord)
         reliability_cube.rename("reliability_calibration_table")
 
         return reliability_cube
