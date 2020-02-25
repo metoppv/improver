@@ -503,14 +503,6 @@ class Test_run(IrisTest):
                     cube, radius))
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_single_point_range_0(self):
-        """Test behaviour with zero range."""
-        cube = self.cube
-        radius = 0.
-        msg = "Distance of {0}m gives zero cell extent".format(radius)
-        with self.assertRaisesRegex(ValueError, msg):
-            GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)
-
     def test_point_pair(self):
         """Test behaviour for two nearby non-zero grid cells."""
         expected = np.array(

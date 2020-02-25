@@ -130,8 +130,7 @@ def convert_distance_into_number_of_grid_cells(
             requested distance in metres.
 
     Raises:
-        ValueError: If the distance in grid cells is zero.
-        ValueError: If a negative distance is provided
+        ValueError: If a non-positive distance is provided
         ValueError:
             If the distance in grid cells is larger than the maximum dimension
             of the rectangular domain (measured across the diagonal).  Needed
@@ -140,21 +139,19 @@ def convert_distance_into_number_of_grid_cells(
             If max_distance_in_grid_cells is set and the distance in grid cells
             exceeds this value.  Needed for neighbourhood processing.
     """
-    d_error = "Distance of {}m".format(distance)
-    zero_distance_error = ("{} gives zero cell extent".format(d_error))
-    if distance == 0:
-        raise ValueError(zero_distance_error)
-    if distance < 0:
-        raise ValueError("Please specify a positive distance in metres")
+    d_error = f"Distance of {distance}m"
+    if distance <= 0:
+        raise ValueError(
+            f"Please specify a positive distance in metres. {d_error}")
 
     # calculate grid spacing along chosen axis
     grid_spacing_metres = calculate_grid_spacing(cube, 'metres', axis=axis)
-
     grid_cells = distance / abs(grid_spacing_metres)
 
     if return_int:
         grid_cells = int(grid_cells)
         if grid_cells == 0:
+            zero_distance_error = f"{d_error} gives zero cell extent"
             raise ValueError(zero_distance_error)
     if max_distance_in_grid_cells is not None:
         if grid_cells > max_distance_in_grid_cells:

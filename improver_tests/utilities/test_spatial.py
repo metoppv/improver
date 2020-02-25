@@ -267,6 +267,14 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
                 self.cube, distance,
                 max_distance_in_grid_cells=max_distance_in_grid_cells)
 
+    def test_single_point_range_0(self):
+        """Test behaviour with zero range."""
+        cube = self.cube
+        radius = 0.
+        msg = "Please specify a positive distance in metres"
+        with self.assertRaisesRegex(ValueError, msg):
+            convert_distance_into_number_of_grid_cells(cube, radius)
+
 
 class Test_convert_number_of_grid_cells_into_distance(IrisTest):
 

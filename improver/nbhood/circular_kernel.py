@@ -449,8 +449,8 @@ class GeneratePercentilesFromACircularNeighbourhood:
         pctcubelist = iris.cube.CubeList()
         for slice_2d in cube.slices(['projection_y_coordinate',
                                      'projection_x_coordinate']):
-            pctcubelist.append(
-                self.pad_and_unpad_cube(slice_2d, kernel))
+            pctcubelist.append(self.pad_and_unpad_cube(slice_2d, kernel))
+
         result = pctcubelist.merge_cube()
         exception_coordinates = (
             find_dimension_coordinate_mismatch(
