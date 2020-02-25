@@ -229,9 +229,9 @@ class CircularNeighbourhood:
 
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
-        grid_cells_x = convert_distance_into_number_of_grid_cells(
+        grid_cells = convert_distance_into_number_of_grid_cells(
             cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
-        cube = self.apply_circular_kernel(cube, grid_cells_x)
+        cube = self.apply_circular_kernel(cube, grid_cells)
         return cube
 
 
@@ -439,12 +439,11 @@ class GeneratePercentilesFromACircularNeighbourhood:
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
         # Take data array and identify X and Y axes indices
-        grid_cells_x = convert_distance_into_number_of_grid_cells(
+        grid_cell = convert_distance_into_number_of_grid_cells(
             cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
         check_radius_against_distance(cube, radius)
-        ranges_tuple = (grid_cells_x, grid_cells_x)
-        ranges_xy = np.array(ranges_tuple)
-        kernel = circular_kernel(ranges_xy, grid_cells_x, weighted_mode=False)
+        ranges_xy = np.array((grid_cell, grid_cell))
+        kernel = circular_kernel(ranges_xy, grid_cell, weighted_mode=False)
         # Loop over each 2D slice to reduce memory demand and derive
         # percentiles on the kernel. Will return an extra dimension.
         pctcubelist = iris.cube.CubeList()

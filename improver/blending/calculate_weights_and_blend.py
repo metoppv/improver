@@ -147,8 +147,8 @@ class WeightAndBlend(BasePlugin):
         check_if_grid_is_equal_area(cube)
         grid_cells = convert_distance_into_number_of_grid_cells(
             cube, fuzzy_length, return_int=False)
-        SpatialWeightsPlugin = SpatiallyVaryingWeightsFromMask(grid_cells)
-        weights = SpatialWeightsPlugin.process(cube, weights, self.blend_coord)
+        plugin = SpatiallyVaryingWeightsFromMask(grid_cells)
+        weights = plugin.process(cube, weights, self.blend_coord)
         return weights
 
     def process(self, cubelist, cycletime=None, model_id_attr=None,

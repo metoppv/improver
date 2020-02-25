@@ -65,9 +65,9 @@ def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
             axis (from calculate_grid_spacing)
         ValueError: If point spacing is not equal for the two spatial axes
     """
-    xdiff = calculate_grid_spacing(cube, 'metres', axis='x')
-    ydiff = calculate_grid_spacing(cube, 'metres', axis='y')
-    if require_equal_xy_spacing and not np.isclose(xdiff, ydiff):
+    x_diff = calculate_grid_spacing(cube, 'metres', axis='x')
+    y_diff = calculate_grid_spacing(cube, 'metres', axis='y')
+    if require_equal_xy_spacing and not np.isclose(x_diff, y_diff):
         raise ValueError(
             "Grid does not have equal spacing in x and y dimensions")
 
@@ -114,11 +114,11 @@ def convert_distance_into_number_of_grid_cells(
             calculating the number of grid cells in the x and y direction,
             which equates to the requested distance in the x and y direction.
         distance (float):
-            Distance in metres.  Must be positive.
+            Distance in metres. Must be positive.
         axis (str):
             Axis ('x' or 'y') to use in determining grid spacing
         max_distance_in_grid_cells (int or None):
-            Maximum distance in grid cells.  Defaults to None, which bypasses
+            Maximum distance in grid cells. Defaults to None, which bypasses
             the check.
         return_int (bool):
             If true only integer number of grid_cells are returned, rounded
@@ -130,12 +130,12 @@ def convert_distance_into_number_of_grid_cells(
             requested distance in metres.
 
     Raises:
+        ValueError: If the distance in grid cells is zero.
         ValueError: If a negative distance is provided
         ValueError:
             If the distance in grid cells is larger than the maximum dimension
             of the rectangular domain (measured across the diagonal).  Needed
             for neighbourhood processing.
-        ValueError: If the distance in grid cells is zero.
         Value Error:
             If max_distance_in_grid_cells is set and the distance in grid cells
             exceeds this value.  Needed for neighbourhood processing.
@@ -159,8 +159,7 @@ def convert_distance_into_number_of_grid_cells(
     if max_distance_in_grid_cells is not None:
         if grid_cells > max_distance_in_grid_cells:
             raise ValueError(
-                "{} exceeds maximum permitted grid cell extent".format(
-                    d_error))
+                f"{d_error} exceeds maximum permitted grid cell extent")
 
     return grid_cells
 
@@ -372,10 +371,9 @@ class OccurrenceWithinVicinity:
                 vicinity defined using the specified distance.
 
         """
-        grid_spacing = (
-            convert_distance_into_number_of_grid_cells(
-                cube, self.distance,
-                max_distance_in_grid_cells=MAX_DISTANCE_IN_GRID_CELLS))
+        grid_spacing = convert_distance_into_number_of_grid_cells(
+            cube, self.distance,
+            max_distance_in_grid_cells=MAX_DISTANCE_IN_GRID_CELLS)
 
         # Convert the number of grid points (i.e. grid_spacing) represented
         # by self.distance, e.g. where grid_spacing=1 is an increment to
@@ -390,8 +388,7 @@ class OccurrenceWithinVicinity:
             unmasked_cube_data[cube.data.mask] = np.nan
         # The following command finds the maximum value for each grid point
         # from within a square of length "size"
-        max_data = (
-            maximum_filter(unmasked_cube_data, size=grid_cells))
+        max_data = (maximum_filter(unmasked_cube_data, size=grid_cells))
         if np.ma.is_masked(cube.data):
             # Update only the unmasked values
             max_cube.data.data[~cube.data.mask] = max_data[~cube.data.mask]
