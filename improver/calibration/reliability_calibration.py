@@ -216,7 +216,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                    'forecast periods found: {}.')
             raise ValueError(msg.format(n_cycle_hours, n_forecast_periods))
 
-    def _create_unified_frt_coord(self, forecast_reference_time):
+    @staticmethod
+    def _create_unified_frt_coord(forecast_reference_time):
         """
         Constructs a forecast reference time coordinate for the reliability
         calibration cube that records the range of forecast reference times
