@@ -55,7 +55,8 @@ def process(orography: cli.inputcube,
         orography (iris.cube.Cube):
             The orography on a standard grid.
         land_sea_mask (iris.cube.Cube):
-            Land mask on a standard grid. If provided, sea points will be
+            Land mask on a standard grid, with land points set to one and
+            sea points set to zero. If provided, sea points will be
             masked and set to the default fill value. If no land mask is
             provided, weights will be generated for sea points as well as land
             in the appropriate topographic band.

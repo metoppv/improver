@@ -970,7 +970,8 @@ class PhaseChangeLevel(BasePlugin):
                 orog (iris.cube.Cube):
                     Cube of orography (m).
                 land_sea_mask (iris.cube.Cube):
-                    Cube containing a binary land-sea mask.
+                    Cube containing a binary land-sea mask, with land points
+                    set to one and sea points set to zero. 
 
         Returns:
             iris.cube.Cube:

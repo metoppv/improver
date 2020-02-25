@@ -422,7 +422,8 @@ class NeighbourSelection(BasePlugin):
                 A cube of orography, used to obtain the grid point altitudes.
             land_mask (iris.cube.Cube):
                 A land mask cube for the model/grid from which grid point
-                neighbours are being selected.
+                neighbours are being selected, with land points set to one and
+                sea points set to zero.
         Returns:
             iris.cube.Cube:
                 A cube containing both the spot site information and for each

@@ -284,7 +284,8 @@ class GenerateOrographyBandAncils(BasePlugin):
                     {'bounds':[[0,100], [100,200]], 'units': "m"}
 
             landmask (iris.cube.Cube):
-                land mask on standard grid. If provided sea points are set to
+                land mask on standard grid, with land points set to one and
+                sea points set to zero. If provided sea points are set to
                 zero in every band.
 
         Returns:

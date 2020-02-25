@@ -120,7 +120,8 @@ class StandardiseGridAndMetadata(BasePlugin):
                 Mode to fill regions outside the domain in regridding.
             landmask (iris.cube.Cube or None):
                 Land-sea mask ("land_binary_mask") on the input cube grid.
-                Required for "nearest-with-mask" regridding option.
+                Required for "nearest-with-mask" regridding option,
+                with land points set to one and sea points set to zero. 
             landmask_vicinity (float):
                 Radius of vicinity to search for a coastline, in metres
 
