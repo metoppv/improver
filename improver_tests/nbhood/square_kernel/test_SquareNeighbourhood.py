@@ -359,7 +359,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
              [0.75, 0.66666667, 1., 1., 1., np.nan, 1.],
              [1., 1., 0.83333333, 0.85714286, 0.75, 1., 0.85714286]])
 
-        grid_cells_x = grid_cells_y = 1
+        grid_cells =  1
         cube = self.cube
         mask_cube = cube.copy()
         mask_cube.data[::] = 1.0
@@ -372,7 +372,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
 
         nbcube = (
             SquareNeighbourhood()._pad_and_calculate_neighbourhood(
-                cube, mask_cube, grid_cells_x, grid_cells_y))
+                cube, mask_cube, grid_cells))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected_data)
 
@@ -414,7 +414,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
         self.cube.data = WindDirection.deg_to_complex(30.*self.cube.data + 30.)
         nbcube = (
             SquareNeighbourhood()._pad_and_calculate_neighbourhood(
-                self.cube, self.mask, 1, 1))
+                self.cube, self.mask, 1))
         self.assertTrue(np.any(np.iscomplex(nbcube.data)))
         self.assertArrayAlmostEqual(nbcube.data, expected_data_complex)
         self.assertArrayAlmostEqual(WindDirection.complex_to_deg(nbcube.data),
@@ -437,7 +437,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
 
         nbcube = (
             SquareNeighbourhood()._pad_and_calculate_neighbourhood(
-                self.cube, mask_cube, 1, 1))
+                self.cube, mask_cube, 1))
         self.assertIsInstance(nbcube, Cube)
 
 

@@ -35,7 +35,7 @@ import copy
 import cartopy.crs as ccrs
 import iris
 import numpy as np
-import scipy.ndimage
+from scipy.ndimage.filters import maximum_filter
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 
@@ -56,7 +56,7 @@ def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
     Args:
         cube (iris.cube.Cube):
             Cube with coordinates that will be checked.
-        require_equal_spacing (bool):
+        require_equal_xy_spacing (bool):
             Flag to require the grid is equally spaced in the two spatial
             dimensions (not strictly required for equal-area criterion).
 
@@ -296,7 +296,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                 A cube of the gradients in the coordinate direction specified.
         """
         grid_spacing = np.diff(diff_cube.coord(axis=coord_axis).points)[0]
-        gradient = diff_cube.copy(data=(diff_cube.data) / grid_spacing)
+        gradient = diff_cube.copy(data=diff_cube.data / grid_spacing)
         gradient = gradient.regrid(ref_cube, iris.analysis.Linear())
         gradient.rename(diff_cube.name().replace('difference_', 'gradient_'))
         return gradient
@@ -391,8 +391,7 @@ class OccurrenceWithinVicinity:
         # The following command finds the maximum value for each grid point
         # from within a square of length "size"
         max_data = (
-            scipy.ndimage.filters.maximum_filter(unmasked_cube_data,
-                                                 size=grid_cells))
+            maximum_filter(unmasked_cube_data, size=grid_cells))
         if np.ma.is_masked(cube.data):
             # Update only the unmasked values
             max_cube.data.data[~cube.data.mask] = max_data[~cube.data.mask]

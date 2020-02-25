@@ -357,7 +357,7 @@ class SquareNeighbourhood:
         return cube, mask, nan_array
 
     def _pad_and_calculate_neighbourhood(
-            self, cube, mask, grid_cells_x, grid_cells_y):
+            self, cube, mask, grid_cells):
         """
         Apply neighbourhood processing consisting of the following steps:
 
@@ -371,11 +371,8 @@ class SquareNeighbourhood:
                 Cube with masked or NaN values set to 0.0
             mask (iris.cube.Cube):
                 Cube with masked or NaN values set to 0.0
-            grid_cells_x (float):
+            grid_cells (float):
                 The number of grid cells along the x axis used to create a
-                square neighbourhood.
-            grid_cells_y (float):
-                The number of grid cells along the y axis used to create a
                 square neighbourhood.
 
         Returns:
@@ -387,9 +384,9 @@ class SquareNeighbourhood:
         # Since the neighbourhood size is 2*radius + 1, this means that all
         # grid points within the original domain will have data available for
         # the full neighbourhood size.  The halo is removed later.
-        padded_cube = pad_cube_with_halo(cube, grid_cells_x+1, grid_cells_y+1,
+        padded_cube = pad_cube_with_halo(cube, grid_cells+1, grid_cells+1,
                                          halo_mean_data=False)
-        padded_mask = pad_cube_with_halo(mask, grid_cells_x+1, grid_cells_y+1,
+        padded_mask = pad_cube_with_halo(mask, grid_cells+1, grid_cells+1,
                                          halo_mean_data=False)
 
         # Check whether cube contains complex values
@@ -399,7 +396,7 @@ class SquareNeighbourhood:
         summed_up_mask = self.cumulate_array(padded_mask)
         neighbourhood_averaged_cube = (
             self.mean_over_neighbourhood(summed_up_cube, summed_up_mask,
-                                         grid_cells_x, grid_cells_y,
+                                         grid_cells, grid_cells,
                                          is_complex))
         if neighbourhood_averaged_cube.dtype in [np.float64, np.longdouble]:
             neighbourhood_averaged_cube.data = (
@@ -502,7 +499,7 @@ class SquareNeighbourhood:
             neighbourhood_averaged_cube = (
                 self._pad_and_calculate_neighbourhood(
                     cube_slice, mask,
-                    grid_cells_x, grid_cells_y))
+                    grid_cells_x))
             neighbourhood_averaged_cube = (
                 self._remove_padding_and_mask(
                     neighbourhood_averaged_cube,
