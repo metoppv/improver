@@ -331,49 +331,6 @@ class Test__check_forecast_consistency(Test_Setup):
             Plugin()._check_forecast_consistency(self.forecasts)
 
 
-class Test__create_unified_frt_coord(Test_Setup):
-
-    """Test the _create_unified_frt_coord method."""
-
-    def test_coordinate(self):
-        """Test the forecast reference time coordinate has the expected point,
-        bounds, and type for an input with multiple forecast reference time
-        points."""
-
-        frt = 'forecast_reference_time'
-        frt_coord = self.forecasts.coord(frt)
-
-        expected_points = self.forecast_2.coord(frt).points[0]
-        expected_bounds = [[self.forecast_1.coord(frt).points[0],
-                            expected_points]]
-        result = Plugin()._create_unified_frt_coord(frt_coord)
-
-        self.assertIsInstance(result, iris.coords.DimCoord)
-        assert_array_equal(result.points, expected_points)
-        assert_array_equal(result.bounds, expected_bounds)
-        self.assertEqual(result.name(), frt_coord.name())
-        self.assertEqual(result.units, frt_coord.units)
-
-    def test_coordinate_single_frt_input(self):
-        """Test the forecast reference time coordinate has the expected point,
-        bounds, and type for an input with a single forecast reference time
-        point."""
-
-        frt = 'forecast_reference_time'
-        frt_coord = self.forecast_1.coord(frt)
-
-        expected_points = self.forecast_1.coord(frt).points[0]
-        expected_bounds = [[self.forecast_1.coord(frt).points[0],
-                            expected_points]]
-        result = Plugin()._create_unified_frt_coord(frt_coord)
-
-        self.assertIsInstance(result, iris.coords.DimCoord)
-        assert_array_equal(result.points, expected_points)
-        assert_array_equal(result.bounds, expected_bounds)
-        self.assertEqual(result.name(), frt_coord.name())
-        self.assertEqual(result.units, frt_coord.units)
-
-
 class Test__define_metadata(Test_Setup):
 
     """Test the _define_metadata method."""

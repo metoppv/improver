@@ -36,7 +36,6 @@ import types
 import numpy as np
 from numpy.testing import assert_array_equal
 import iris
-from iris.exceptions import MergeError
 
 from improver.calibration.reliability_calibration import (
     AggregateReliabilityCalibrationTables as Plugin)
@@ -57,9 +56,19 @@ class Test_Aggregation(Test_Setup):
 
         super().setUp()
         reliability_cube_format = CalPlugin()._create_reliability_table_cube(
-            self.forecast_1, self.expected_threshold_coord)
+            self.forecasts, self.expected_threshold_coord)
         self.reliability_cube = reliability_cube_format.copy(
             data=self.expected_table)
+        self.different_frt = self.reliability_cube.copy()
+        new_frt = self.different_frt.coord('forecast_reference_time')
+        new_frt.points = new_frt.points + 48*3600
+        new_frt.bounds = new_frt.bounds + 48*3600
+
+        self.overlapping_frt = self.reliability_cube.copy()
+        new_frt = self.overlapping_frt.coord('forecast_reference_time')
+        new_frt.points = new_frt.points + 6*3600
+        new_frt.bounds = new_frt.bounds + 6*3600
+
         self.lat_lon_collapse = np.array([[0., 0., 1., 2., 1.],
                                           [0., 0.375, 1.5, 1.625, 1.],
                                           [1., 2., 3., 2., 1.]])
@@ -87,36 +96,26 @@ class Test__repr__(unittest.TestCase):
             str(Plugin()), '<AggregateReliabilityCalibrationTables>')
 
 
-class Test__construct_single_cube(Test_Aggregation):
+class Test__check_frt_coord(Test_Aggregation):
 
-    """Test the _construct_single_cube method."""
+    """Test the _check_frt_coord method."""
 
-    def test_construction_of_cube(self):
-        """Test that the method returns a single cube when given multiple
-        input cubes. The length of the leading coordinate of the returned
-        cube will be equal in length to the number of cubes passed in."""
-
-        plugin = Plugin()
-        cube_index_coord = plugin.cube_index_coord
-
-        result = plugin._construct_single_cube([self.reliability_cube,
-                                                self.reliability_cube])
-        self.assertIsInstance(result.coord(cube_index_coord),
-                              iris.coords.DimCoord)
-        assert_array_equal(result.coord(cube_index_coord).points, [0, 1])
-
-    def test_unmatched_cubes(self):
-        """Test that an exception is raised when cubes that cannot be merged
-        are provided. This exception is raised by iris."""
+    def test_valid_bounds(self):
+        """Test that no exception is raised if the input cubes have forecast
+        reference time bounds that do not overlap."""
 
         plugin = Plugin()
-        second_cube = self.reliability_cube.copy()
-        second_cube.add_aux_coord(
-            iris.coords.AuxCoord([0], long_name='unmatched', units=1))
+        plugin._check_frt_coord([self.reliability_cube, self.different_frt])
 
-        msg = "failed to merge into a single cube"
-        with self.assertRaisesRegex(MergeError, msg):
-            plugin._construct_single_cube([self.reliability_cube, second_cube])
+    def test_invalid_bounds(self):
+        """Test that an exception is raised if the input cubes have forecast
+        reference time bounds that overlap."""
+
+        plugin = Plugin()
+        msg = "Reliability calibration tables have overlapping"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin._check_frt_coord([self.reliability_cube,
+                                     self.overlapping_frt])
 
 
 class Test_process(Test_Aggregation):
@@ -127,30 +126,62 @@ class Test_process(Test_Aggregation):
         """Test of aggregating two cubes without any additional coordinate
         collapsing."""
 
-        plugin = Plugin()
-        result = plugin.process([self.reliability_cube, self.reliability_cube])
+        frt = 'forecast_reference_time'
+        expected_points = self.different_frt.coord(frt).points
+        expected_bounds = [[self.reliability_cube.coord(frt).bounds[0][0],
+                            self.different_frt.coord(frt).bounds[-1][1]]]
 
+        plugin = Plugin()
+        result = plugin.process([self.reliability_cube, self.different_frt])
+        print(result)
         assert_array_equal(result.data, self.expected_table * 2)
         assert_array_equal(result.shape, (3, 5, 3, 3))
+        self.assertEqual(result.coord(frt).points, expected_points)
+        assert_array_equal(result.coord(frt).bounds, expected_bounds)
+
+    def test_aggregating_cubes_with_overlapping_frt(self):
+        """Test that attempting to aggregate reliability calibration tables
+        with overlapping forecast reference time bounds raises an exception.
+        The presence of overlapping forecast reference time bounds indicates
+        that the same forecast data has contributed to both tables, thus
+        aggregating them would double count these contributions."""
+
+        plugin = Plugin()
+        msg = "Reliability calibration tables have overlapping"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process([self.reliability_cube, self.overlapping_frt])
 
     def test_aggregating_over_single_cube_coordinates(self):
         """Test of aggregating over coordinates of a single cube. In this
         instance the latitude and longitude coordinates are collapsed."""
 
+        frt = 'forecast_reference_time'
+        expected_points = self.reliability_cube.coord(frt).points
+        expected_bounds = self.reliability_cube.coord(frt).bounds
+
         plugin = Plugin()
         result = plugin.process([self.reliability_cube],
                                 coordinates=['latitude', 'longitude'])
         assert_array_equal(result.data, self.lat_lon_collapse)
+        self.assertEqual(result.coord(frt).points, expected_points)
+        assert_array_equal(result.coord(frt).bounds, expected_bounds)
 
     def test_aggregating_over_cubes_and_coordinates(self):
         """Test of aggregating over coordinates and cubes in a single call. In
         this instance the latitude and longitude coordinates are collapsed and
         the values from two input cube combined."""
 
+        frt = 'forecast_reference_time'
+        expected_points = self.different_frt.coord(frt).points
+        expected_bounds = [[self.reliability_cube.coord(frt).bounds[0][0],
+                            self.different_frt.coord(frt).bounds[-1][1]]]
+
         plugin = Plugin()
-        result = plugin.process([self.reliability_cube, self.reliability_cube],
+        result = plugin.process([self.reliability_cube, self.different_frt],
                                 coordinates=['latitude', 'longitude'])
         assert_array_equal(result.data, self.lat_lon_collapse * 2)
+        self.assertEqual(result.coord(frt).points, expected_points)
+        assert_array_equal(result.coord(frt).bounds, expected_bounds)
 
     def test_single_cube(self):
         """Test the plugin returns an unaltered cube if only one is passed in
