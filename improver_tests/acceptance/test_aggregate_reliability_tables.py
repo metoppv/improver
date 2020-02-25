@@ -41,7 +41,7 @@ run_cli = acc.run_cli(CLI)
 
 def test_coordinate_collapse(tmp_path):
     """
-    Test aggregation of values by collapsing spatial coordianates.
+    Test aggregation of values by collapsing spatial coordinates.
     """
     kgo_dir = acc.kgo_root() / "aggregate-reliability-tables/basic"
     kgo_path = kgo_dir / "collapse_lat_lon_kgo.nc"

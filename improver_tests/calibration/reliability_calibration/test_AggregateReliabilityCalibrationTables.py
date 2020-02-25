@@ -143,8 +143,9 @@ class Test_process(Test_Aggregation):
         assert_array_equal(result.data, self.lat_lon_collapse)
 
     def test_aggregating_over_cubes_and_coordinates(self):
-        """Test of aggregating over coordinates of a single cube. In this
-        instance the latitude and longitude coordinates are collapsed."""
+        """Test of aggregating over coordinates and cubes in a single call. In
+        this instance the latitude and longitude coordinates are collapsed and
+        the values from two input cube combined."""
 
         plugin = Plugin()
         result = plugin.process([self.reliability_cube, self.reliability_cube],
