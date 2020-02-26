@@ -121,7 +121,7 @@ class StandardiseGridAndMetadata(BasePlugin):
             landmask (iris.cube.Cube or None):
                 Land-sea mask ("land_binary_mask") on the input cube grid.
                 Required for "nearest-with-mask" regridding option,
-                with land points set to one and sea points set to zero. 
+                with land points set to one and sea points set to zero.
             landmask_vicinity (float):
                 Radius of vicinity to search for a coastline, in metres
 
@@ -445,7 +445,8 @@ class AdjustLandSeaPoints:
             input_land (iris.cube.Cube):
                 Cube of land_binary_mask data on the grid from which "cube" has
                 been reprojected (it is expected that the iris.analysis.Nearest
-                method would have been used).
+                method would have been used). Land points should be set to one
+                and sea points set to zero.
                 This is used to determine where the input model data is
                 representing land and sea points.
             output_land (iris.cube.Cube):

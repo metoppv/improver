@@ -68,7 +68,7 @@ def process(orography: cli.inputcube,
         land_sea_mask (iris.cube.Cube):
             Cube of model land mask for the model grid on which neighbours are
             being found, with land points set to one and sea points set to
-            zero. 
+            zero.
         site_list (dict):
             Dictionary that contains the spot sites for which neighbouring grid
             points are to be found.
