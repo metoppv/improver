@@ -34,6 +34,7 @@ import warnings
 
 import iris
 import numpy as np
+import numba
 from cf_units import Unit
 from iris.cube import CubeList
 from scipy.interpolate import griddata
@@ -53,6 +54,7 @@ from improver.utilities.spatial import (
     OccurrenceWithinVicinity, convert_number_of_grid_cells_into_distance)
 
 
+@numba.jit
 def _svp_from_lookup(temperature):
     """
     Gets value for saturation vapour pressure in a pure water vapour system
@@ -79,6 +81,7 @@ def _svp_from_lookup(temperature):
             interpolation_factor * svp_table.DATA[table_index + 1])
 
 
+@numba.jit
 def calculate_svp_in_air(temperature, pressure):
     """
     Calculates the saturation vapour pressure in air.  Looks up the saturation
@@ -101,7 +104,8 @@ def calculate_svp_in_air(temperature, pressure):
     """
     svp = _svp_from_lookup(temperature)
     temp_Celsius = temperature.copy() + consts.ABSOLUTE_ZERO
-    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_Celsius ** 2))
+    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_Celsius *
+                                            temp_Celsius))
     return svp * correction.astype(np.float32)
 
 
@@ -164,6 +168,7 @@ class WetBulbTemperature(BasePlugin):
         return slices
 
     @staticmethod
+    @numba.jit
     def _calculate_latent_heat(temperature):
         """
         Calculate a temperature adjusted latent heat of condensation for water
@@ -182,6 +187,7 @@ class WetBulbTemperature(BasePlugin):
         return latent_heat
 
     @staticmethod
+    @numba.jit
     def _calculate_mixing_ratio(temperature, pressure):
         """Function to compute the mixing ratio given temperature and pressure.
 
@@ -208,6 +214,7 @@ class WetBulbTemperature(BasePlugin):
         return numerator / denominator
 
     @staticmethod
+    @numba.jit
     def _calculate_specific_heat(mixing_ratio):
         """
         Calculate the specific heat capacity for moist air by combining that of
@@ -225,6 +232,7 @@ class WetBulbTemperature(BasePlugin):
         return specific_heat
 
     @staticmethod
+    @numba.jit
     def _calculate_enthalpy(
             mixing_ratio, specific_heat, latent_heat, temperature):
         """
@@ -255,6 +263,7 @@ class WetBulbTemperature(BasePlugin):
         return enthalpy
 
     @staticmethod
+    @numba.jit
     def _calculate_enthalpy_gradient(
             mixing_ratio, specific_heat, latent_heat, temperature):
         """
@@ -334,7 +343,7 @@ class WetBulbTemperature(BasePlugin):
             delta_wbt = (enthalpy - enthalpy_new) / enthalpy_gradient
 
             # Increment wet bulb temperature at points which have not converged
-            to_update = np.where(np.abs(delta_wbt) > self.precision)
+            to_update = np.abs(delta_wbt) > self.precision
             wbt_data[to_update] = (wbt_data[to_update] + delta_wbt[to_update])
 
             iteration += 1
