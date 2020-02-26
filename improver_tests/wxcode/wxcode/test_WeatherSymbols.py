@@ -81,6 +81,13 @@ class Test_WXCode(IrisTest):
             threshold_units='m s-1',
             time=time, frt=frt)
 
+        data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
+
+        precip_rate = set_up_probability_cube(
+            data_precip, thresholds, variable_name='lwe_precipitation_rate',
+            threshold_units='m s-1',
+            time=time, frt=frt)
+
         precip_vicinity = set_up_probability_cube(
             data_rain, thresholds,
             variable_name='lwe_precipitation_rate_in_vicinity',
@@ -131,11 +138,11 @@ class Test_WXCode(IrisTest):
 
         self.cubes = iris.cube.CubeList([
             snowfall_rate, sleetfall_rate, rainfall_rate, precip_vicinity,
-            cloud, cloud_low, visibility, lightning])
+            cloud, cloud_low, visibility, lightning, precip_rate])
         names = [cube.name() for cube in self.cubes]
         self.uk_no_lightning = [name for name in names
                                 if 'lightning' not in name]
-        self.gbl = [name for name in self.uk_no_lightning
+        self.gbl = [name for name in self.uk_no_lightning[:-1]
                     if 'vicinity' not in name and 'sleet' not in name]
 
 
@@ -675,6 +682,7 @@ class Test_process(Test_WXCode):
                               1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                               1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
                               0.0, 0.0, 0.0]).reshape((3, 3, 3))
+        data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
         data_precipv = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
                                  1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
                                  1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
@@ -698,6 +706,7 @@ class Test_process(Test_WXCode):
         cubes[5].data = data_cld_low
         cubes[6].data = data_vis
         cubes[7].data = data_lightning
+        cubes[8].data = data_precip
         result = plugin.process(cubes)
         self.assertArrayEqual(result.data, self.expected_wxcode_alternate)
 

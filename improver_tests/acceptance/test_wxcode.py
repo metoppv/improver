@@ -44,14 +44,15 @@ def test_basic(tmp_path):
     """Test basic wxcode processing"""
     kgo_dir = acc.kgo_root() / "wxcode/basic"
     kgo_path = kgo_dir / "kgo.nc"
-    params = ["lightning_flashes_per_unit_area_in_vicinity_above",
-              "cloud_area_fraction_above",
-              "rainfall_rate_above",
-              "rainfall_rate_in_vicinity_above",
+    params = ["cloud_area_fraction_above",
+              "lightning_flashes_per_unit_area_in_vicinity_above",
+              "low_type_cloud_area_fraction_above",
+              "lwe_precipitation_rate_above",
+              "lwe_precipitation_rate_in_vicinity_above",
+              "lwe_sleetfall_rate_above",
               "lwe_snowfall_rate_above",
-              "lwe_snowfall_rate_in_vicinity_above",
-              "visibility_in_air_below",
-              "low_type_cloud_area_fraction_above"]
+              "rainfall_rate_above",
+              "visibility_in_air_below"]
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
                    for p in params]
     output_path = tmp_path / "output.nc"
@@ -63,18 +64,22 @@ def test_basic(tmp_path):
 
 @pytest.mark.slow
 def test_native_units(tmp_path):
-    """Test wxcode processing with native units"""
+    """Test wxcode processing with non-SI units for threshold coordinates:
+    precipitation: mm h-1
+    visibility: feet
+    """
     kgo_dir = acc.kgo_root() / "wxcode/basic"
     input_dir = acc.kgo_root() / "wxcode/native_units"
     kgo_path = kgo_dir / "kgo.nc"
-    params = ["rainfall_rate_above",
-              "rainfall_rate_in_vicinity_above",
-              "lwe_snowfall_rate_above",
-              "lwe_snowfall_rate_in_vicinity_above",
-              "visibility_in_air_below",
-              "cloud_area_fraction_above",
+    params = ["cloud_area_fraction_above",
+              "lightning_flashes_per_unit_area_in_vicinity_above",
               "low_type_cloud_area_fraction_above",
-              "lightning_flashes_per_unit_area_in_vicinity_above"]
+              "lwe_precipitation_rate_above",
+              "lwe_precipitation_rate_in_vicinity_above",
+              "lwe_sleetfall_rate_above",
+              "lwe_snowfall_rate_above",
+              "rainfall_rate_above",
+              "visibility_in_air_below"]
     param_paths = [input_dir / f"probability_of_{p}_threshold.nc"
                    for p in params]
     output_path = tmp_path / "output.nc"
@@ -107,7 +112,7 @@ def test_insufficent_files(tmp_path):
     """Test wxcode processing with insufficent files"""
     kgo_dir = acc.kgo_root() / "wxcode/global"
     params = ["rainfall_rate_above",
-              "snowfall_rate_above",
+              "lwe_snowfall_rate_above",
               "cloud_area_fraction_above",
               "low_type_cloud_area_fraction_above"]
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
@@ -125,13 +130,14 @@ def test_no_lightning(tmp_path):
     """Test wxcode processing with no lightning"""
     kgo_dir = acc.kgo_root() / "wxcode/basic"
     kgo_path = kgo_dir / "kgo_no_lightning.nc"
-    params = ["rainfall_rate_above",
-              "rainfall_rate_in_vicinity_above",
+    params = ["cloud_area_fraction_above",
+              "low_type_cloud_area_fraction_above",
+              "lwe_precipitation_rate_above",
+              "lwe_precipitation_rate_in_vicinity_above",
+              "lwe_sleetfall_rate_above",
               "lwe_snowfall_rate_above",
-              "lwe_snowfall_rate_in_vicinity_above",
-              "visibility_in_air_below",
-              "cloud_area_fraction_above",
-              "low_type_cloud_area_fraction_above"]
+              "rainfall_rate_above",
+              "visibility_in_air_below"]
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
                    for p in params]
     output_path = tmp_path / "output.nc"
