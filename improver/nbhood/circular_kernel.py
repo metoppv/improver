@@ -38,7 +38,7 @@ from improver.constants import DEFAULT_PERCENTILES
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
 from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
+    check_if_grid_is_equal_area, distance_to_number_of_grid_cells)
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
@@ -229,7 +229,7 @@ class CircularNeighbourhood:
 
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
-        grid_cells = convert_distance_into_number_of_grid_cells(
+        grid_cells = distance_to_number_of_grid_cells(
             cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(cube, grid_cells)
         return cube
@@ -439,7 +439,7 @@ class GeneratePercentilesFromACircularNeighbourhood:
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
         # Take data array and identify X and Y axes indices
-        grid_cell = convert_distance_into_number_of_grid_cells(
+        grid_cell = distance_to_number_of_grid_cells(
             cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
         check_radius_against_distance(cube, radius)
         ranges_xy = np.array((grid_cell, grid_cell))

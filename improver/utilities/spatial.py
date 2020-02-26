@@ -100,7 +100,7 @@ def calculate_grid_spacing(cube, units, axis='x'):
     return diffs[0]
 
 
-def convert_distance_into_number_of_grid_cells(
+def distance_to_number_of_grid_cells(
         cube, distance, axis='x', max_distance_in_grid_cells=None,
         return_int=True):
     """
@@ -366,7 +366,7 @@ class OccurrenceWithinVicinity:
                 vicinity defined using the specified distance.
 
         """
-        grid_spacing = convert_distance_into_number_of_grid_cells(
+        grid_spacing = distance_to_number_of_grid_cells(
             cube, self.distance,
             max_distance_in_grid_cells=MAX_DISTANCE_IN_GRID_CELLS)
 

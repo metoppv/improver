@@ -40,7 +40,7 @@ from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, get_dim_coord_names)
 from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
+    distance_to_number_of_grid_cells)
 
 
 def pad_coord(coord, width, method):
@@ -114,9 +114,9 @@ def create_cube_with_halo(cube, halo_radius):
         iris.cube.Cube:
             New cube defining the halo-padded grid (data set to zero)
     """
-    halo_size_x = convert_distance_into_number_of_grid_cells(
+    halo_size_x = distance_to_number_of_grid_cells(
         cube, halo_radius, axis='x')
-    halo_size_y = convert_distance_into_number_of_grid_cells(
+    halo_size_y = distance_to_number_of_grid_cells(
         cube, halo_radius, axis='y')
 
     # create padded x- and y- coordinates
@@ -263,9 +263,9 @@ def remove_cube_halo(cube, halo_radius):
         iris.cube.Cube:
             New cube with the halo removed.
     """
-    halo_size_x = convert_distance_into_number_of_grid_cells(
+    halo_size_x = distance_to_number_of_grid_cells(
         cube, halo_radius, axis='x')
-    halo_size_y = convert_distance_into_number_of_grid_cells(
+    halo_size_y = distance_to_number_of_grid_cells(
         cube, halo_radius, axis='y')
 
     result_slices = iris.cube.CubeList()

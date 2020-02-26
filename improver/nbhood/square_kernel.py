@@ -41,7 +41,7 @@ from improver.utilities.cube_manipulation import clip_cube_data
 from improver.utilities.pad_spatial import (
     pad_cube_with_halo, remove_halo_from_cube)
 from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
+    distance_to_number_of_grid_cells)
 
 # Maximum radius of the neighbourhood width in grid cells.
 MAX_RADIUS_IN_GRID_CELLS = 500
@@ -479,7 +479,7 @@ class SquareNeighbourhood:
         original_attributes = cube.attributes
         original_methods = cube.cell_methods
         grid_cells = (
-            convert_distance_into_number_of_grid_cells(
+            distance_to_number_of_grid_cells(
                 cube, radius,
                 max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS))
 
