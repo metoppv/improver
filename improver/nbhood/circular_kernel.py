@@ -229,8 +229,8 @@ class CircularNeighbourhood:
 
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
-        grid_cells = distance_to_number_of_grid_cells(
-            cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
+        grid_cells = distance_to_number_of_grid_cells(cube, radius,
+                                                      MAX_RADIUS_IN_GRID_CELLS)
         cube = self.apply_circular_kernel(cube, grid_cells)
         return cube
 
@@ -439,8 +439,8 @@ class GeneratePercentilesFromACircularNeighbourhood:
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
         # Take data array and identify X and Y axes indices
-        grid_cell = distance_to_number_of_grid_cells(
-            cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
+        grid_cell = distance_to_number_of_grid_cells(cube, radius,
+                                                     MAX_RADIUS_IN_GRID_CELLS)
         check_radius_against_distance(cube, radius)
         ranges_xy = np.array((grid_cell, grid_cell))
         kernel = circular_kernel(ranges_xy, grid_cell, weighted_mode=False)

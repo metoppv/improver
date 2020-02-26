@@ -100,9 +100,9 @@ def calculate_grid_spacing(cube, units, axis='x'):
     return diffs[0]
 
 
-def distance_to_number_of_grid_cells(
-        cube, distance, axis='x', max_distance_in_grid_cells=None,
-        return_int=True):
+def distance_to_number_of_grid_cells(cube, distance,
+                                     max_distance_in_grid_cells=None,
+                                     return_int=True, axis='x'):
     """
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.  Requires an equal-area grid on which the spacing
@@ -115,14 +115,14 @@ def distance_to_number_of_grid_cells(
             which equates to the requested distance in the x and y direction.
         distance (float):
             Distance in metres. Must be positive.
-        axis (str):
-            Axis ('x' or 'y') to use in determining grid spacing
         max_distance_in_grid_cells (int or None):
             Maximum distance in grid cells. Defaults to None, which bypasses
             the check.
         return_int (bool):
             If true only integer number of grid_cells are returned, rounded
             down. If false the number of grid_cells returned will be a float.
+        axis (str):
+            Axis ('x' or 'y') to use in determining grid spacing
 
     Returns:
         int or float:
@@ -367,8 +367,7 @@ class OccurrenceWithinVicinity:
 
         """
         grid_spacing = distance_to_number_of_grid_cells(
-            cube, self.distance,
-            max_distance_in_grid_cells=MAX_DISTANCE_IN_GRID_CELLS)
+            cube, self.distance, MAX_DISTANCE_IN_GRID_CELLS)
 
         # Convert the number of grid points (i.e. grid_spacing) represented
         # by self.distance, e.g. where grid_spacing=1 is an increment to

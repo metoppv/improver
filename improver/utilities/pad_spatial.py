@@ -114,10 +114,8 @@ def create_cube_with_halo(cube, halo_radius):
         iris.cube.Cube:
             New cube defining the halo-padded grid (data set to zero)
     """
-    halo_size_x = distance_to_number_of_grid_cells(
-        cube, halo_radius, axis='x')
-    halo_size_y = distance_to_number_of_grid_cells(
-        cube, halo_radius, axis='y')
+    halo_size_x = distance_to_number_of_grid_cells(cube, halo_radius, axis='x')
+    halo_size_y = distance_to_number_of_grid_cells(cube, halo_radius, axis='y')
 
     # create padded x- and y- coordinates
     x_coord = pad_coord(cube.coord(axis='x'), halo_size_x, 'add')
@@ -263,10 +261,8 @@ def remove_cube_halo(cube, halo_radius):
         iris.cube.Cube:
             New cube with the halo removed.
     """
-    halo_size_x = distance_to_number_of_grid_cells(
-        cube, halo_radius, axis='x')
-    halo_size_y = distance_to_number_of_grid_cells(
-        cube, halo_radius, axis='y')
+    halo_size_x = distance_to_number_of_grid_cells(cube, halo_radius, axis='x')
+    halo_size_y = distance_to_number_of_grid_cells(cube, halo_radius, axis='y')
 
     result_slices = iris.cube.CubeList()
     for cube_slice in cube.slices([cube.coord(axis='y'),
