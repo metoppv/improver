@@ -187,7 +187,7 @@ class CircularNeighbourhood:
             coord_name = cube.coord(axis=axis).name()
             axes.append(cube.coord_dims(coord_name)[0])
 
-        for axis_index, axis in enumerate(axes):
+        for axis in axes:
             full_ranges[axis] = ranges
         self.kernel = circular_kernel(full_ranges, ranges, self.weighted_mode)
         # Smooth the data by applying the kernel.
