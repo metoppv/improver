@@ -601,7 +601,7 @@ class Test_merge_land_and_sea(IrisTest):
         expected_cube = self.percentiles_land.copy()
         expected_cube.data = expected_merged_data
         merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
-        self.assertArrayAlmostEqual(
+        self.assertArrayEqual(
             self.percentiles_land.data, expected_merged_data)
         self.assertEqual(
             expected_cube.xml(checksum=True),
@@ -615,7 +615,7 @@ class Test_merge_land_and_sea(IrisTest):
         self.percentiles_land.data.mask = input_mask
         expected_cube = self.percentiles_land.copy()
         merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
-        self.assertArrayAlmostEqual(
+        self.assertArrayEqual(
             self.percentiles_land.data, expected_cube.data)
         self.assertEqual(
             expected_cube.xml(checksum=True),
@@ -628,7 +628,7 @@ class Test_merge_land_and_sea(IrisTest):
         self.percentiles_land.data = np.ones((2, 3, 4), dtype=np.float32)
         expected_cube = self.percentiles_land.copy()
         merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
-        self.assertArrayAlmostEqual(
+        self.assertArrayEqual(
             self.percentiles_land.data, expected_cube.data)
         self.assertEqual(
             expected_cube.xml(checksum=True),
