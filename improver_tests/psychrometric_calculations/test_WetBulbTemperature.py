@@ -35,7 +35,7 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
@@ -61,7 +61,7 @@ class Test_psychrometric_variables(IrisTest):
         """Test latent heat calculation"""
         expected = [2707271., 2530250., 2348900.]
         result = WetBulbTemperature()._calculate_latent_heat(self.temperature)
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, expected, decimal=0)
 
     def test_calculate_mixing_ratio(self):
         """Test mixing ratio calculation"""
@@ -69,14 +69,14 @@ class Test_psychrometric_variables(IrisTest):
         expected = [6.06744631e-08, 1.31079322e-03, 1.77063149e-01]
         result = WetBulbTemperature()._calculate_mixing_ratio(
             self.temperature, pressure)
-        self.assertArrayAlmostEqual(result, expected)
+        self.assertArrayAlmostEqual(result, expected, decimal=7)
 
     def test_calculate_specific_heat(self):
         """Test specific heat calculation"""
         expected = np.array([1089.5, 1174., 1258.5], dtype=np.float32)
         result = WetBulbTemperature()._calculate_specific_heat(
             self.mixing_ratio)
-        self.assertArrayAlmostEqual(result, expected)
+        self.assertArrayAlmostEqual(result, expected, decimal=2)
 
     def test_calculate_enthalpy(self):
         """Basic calculation of some enthalpies. Comparison adjusted for
@@ -102,19 +102,20 @@ class Test_WetBulbTemperature(IrisTest):
 
     def setUp(self):
         """Set up test input cubes and output data values."""
-        temperature = np.array([[185.0, 260.65, 338.15]], dtype=np.float32)
+        temperature = np.array([[185.0, 260.65, 273.15, 338.15]],
+                               dtype=np.float32)
         self.temperature = set_up_variable_cube(temperature)
-        humidity = np.array([[60., 70., 80.]], dtype=np.float32)
+        humidity = np.array([[60., 70., 75., 80.]], dtype=np.float32)
         self.relative_humidity = set_up_variable_cube(
             humidity, name='relative_humidity', units='%')
-        pressure = np.array([[1.E5, 9.9E4, 9.8E4]], dtype=np.float32)
+        pressure = np.array([[1.E5, 9.9E4, 9.85E4, 9.8E4]], dtype=np.float32)
         self.pressure = set_up_variable_cube(
             pressure, name='air_pressure', units='Pa')
-        mixing_ratio = np.array([[0.1, 0.2, 0.3]], dtype=np.float32)
+        mixing_ratio = np.array([[0.1, 0.2, 0.25, 0.3]], dtype=np.float32)
         self.mixing_ratio = set_up_variable_cube(
             mixing_ratio, name='humidity_mixing_ratio', units='1')
         self.expected_wbt_data = np.array(
-            [[185.0, 259.88306, 333.96066]], dtype=np.float32)
+            [[185.0, 259.88306, 271.78006, 333.96066]], dtype=np.float32)
 
 
 class Test_create_wet_bulb_temperature_cube(Test_WetBulbTemperature):
@@ -133,7 +134,8 @@ class Test_create_wet_bulb_temperature_cube(Test_WetBulbTemperature):
         """Basic wet bulb temperature calculation."""
         result = WetBulbTemperature().create_wet_bulb_temperature_cube(
             self.temperature, self.relative_humidity, self.pressure)
-        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data)
+        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data,
+                                    decimal=3)
 
     def test_different_units(self):
         """Wet bulb temperature calculation with unit conversion."""
@@ -142,7 +144,8 @@ class Test_create_wet_bulb_temperature_cube(Test_WetBulbTemperature):
         self.pressure.convert_units('kPa')
         result = WetBulbTemperature().create_wet_bulb_temperature_cube(
             self.temperature, self.relative_humidity, self.pressure)
-        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data)
+        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data,
+                                    decimal=3)
         self.assertEqual(result.units, Unit('K'))
 
 
@@ -180,8 +183,22 @@ class Test_process(Test_WetBulbTemperature):
         create_wet_bulb_temperature_cube function directly with single
         level data."""
         result = WetBulbTemperature().process(
-            self.temperature, self.relative_humidity, self.pressure)
-        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data)
+            CubeList([self.temperature,
+                      self.relative_humidity,
+                      self.pressure]))
+        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data,
+                                    decimal=3)
+        self.assertEqual(result.units, Unit('K'))
+
+    def test_values_single_level_reorder_cubes(self):
+        """Same test as test_values_single_level but the cubes are in a
+        different order."""
+        result = WetBulbTemperature().process(
+            CubeList([self.relative_humidity,
+                      self.temperature,
+                      self.pressure]))
+        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data,
+                                    decimal=3)
         self.assertEqual(result.units, Unit('K'))
 
     def test_values_multi_level(self):
@@ -191,9 +208,11 @@ class Test_process(Test_WetBulbTemperature):
         relative_humidity = self._make_multi_level(self.relative_humidity)
         pressure = self._make_multi_level(self.pressure)
         result = WetBulbTemperature().process(
-            temperature, relative_humidity, pressure)
-        self.assertArrayAlmostEqual(result.data[0], self.expected_wbt_data)
-        self.assertArrayAlmostEqual(result.data[1], self.expected_wbt_data)
+            CubeList([temperature, relative_humidity, pressure]))
+        self.assertArrayAlmostEqual(result.data[0], self.expected_wbt_data,
+                                    decimal=3)
+        self.assertArrayAlmostEqual(result.data[1], self.expected_wbt_data,
+                                    decimal=3)
         self.assertEqual(result.units, Unit('K'))
         self.assertArrayEqual(result.coord('height').points, [10, 20])
 
@@ -207,7 +226,7 @@ class Test_process(Test_WetBulbTemperature):
         msg = 'WetBulbTemperature: Cubes have differing'
         with self.assertRaisesRegex(ValueError, msg):
             WetBulbTemperature().process(
-                temperature, relative_humidity, pressure)
+                CubeList([temperature, relative_humidity, pressure]))
 
     def test_cube_multi_level(self):
         """Check the cube is returned with expected coordinate order after the
@@ -219,9 +238,26 @@ class Test_process(Test_WetBulbTemperature):
         pressure = self._make_multi_level(self.pressure,
                                           time_promote=True)
         result = WetBulbTemperature().process(
-            temperature, relative_humidity, pressure)
+            CubeList([temperature, relative_humidity, pressure]))
         self.assertEqual(result.coord_dims('time')[0], 0)
         self.assertEqual(result.coord_dims('height')[0], 1)
+
+    def test_too_many_cubes(self):
+        """Tests that an error is raised if there are too many cubes."""
+        temp = self.temperature
+        humid = self.relative_humidity
+        pressure = self.pressure
+        msg = "Expected 3"
+        with self.assertRaisesRegex(ValueError, msg):
+            WetBulbTemperature().process(
+                CubeList([temp, humid, pressure, temp]))
+
+    def test_empty_cube_list(self):
+        """Tests that an error is raised if there is an empty list."""
+        msg = "Expected 3"
+        with self.assertRaisesRegex(ValueError, msg):
+            WetBulbTemperature().process(
+                CubeList([]))
 
 
 if __name__ == '__main__':

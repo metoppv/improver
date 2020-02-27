@@ -161,11 +161,13 @@ class Test_process_no_regrid(IrisTest):
         self.assertNotIn(
             "forecast_period", [coord.name() for coord in result.coords()])
 
-    def test_fix_float64(self):
-        """Test precision de-escalation"""
-        self.cube.data = self.cube.data.astype(np.float64)
-        result = self.plugin.process(self.cube, fix_float64=True)
+    def test_float_deescalation(self):
+        """Test precision de-escalation from float64 to float32"""
+        cube = self.cube.copy()
+        cube.data = cube.data.astype(np.float64)
+        result = self.plugin.process(cube)
         self.assertEqual(result.data.dtype, np.float32)
+        self.assertArrayAlmostEqual(self.cube.data, result.data, decimal=4)
 
 
 class Test_process_regrid_options(IrisTest):

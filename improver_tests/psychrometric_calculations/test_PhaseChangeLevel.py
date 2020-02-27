@@ -35,6 +35,7 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import CubeList
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
@@ -574,8 +575,24 @@ class Test_process(IrisTest):
         that sits above the snow falling level."""
         self.orog.data[1, 1] = 100.0
         result = PhaseChangeLevel(phase_change='snow-sleet').process(
-            self.wet_bulb_temperature_cube, self.wet_bulb_integral_cube,
-            self.orog, self.land_sea)
+            CubeList([self.wet_bulb_temperature_cube,
+                      self.wet_bulb_integral_cube,
+                      self.orog, self.land_sea])
+            )
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), "altitude_of_snow_falling_level")
+        self.assertEqual(result.units, Unit('m'))
+        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
+
+    def test_snow_sleet_phase_change_reorder_cubes(self):
+        """Same test as test_snow_sleet_phase_change but the cubes are in a
+        different order"""
+        self.orog.data[1, 1] = 100.0
+        result = PhaseChangeLevel(phase_change='snow-sleet').process(
+            CubeList([self.wet_bulb_integral_cube,
+                      self.wet_bulb_temperature_cube,
+                      self.orog, self.land_sea])
+            )
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "altitude_of_snow_falling_level")
         self.assertEqual(result.units, Unit('m'))
@@ -589,10 +606,11 @@ class Test_process(IrisTest):
         consistent across the field, despite a high point that sits above the
         rain falling level."""
         self.orog.data[1, 1] = 100.0
-        self.wet_bulb_integral_cube = self.wet_bulb_integral_cube * 2.
+        self.wet_bulb_integral_cube.data *= 2.
         result = PhaseChangeLevel(phase_change='sleet-rain').process(
-            self.wet_bulb_temperature_cube, self.wet_bulb_integral_cube,
-            self.orog, self.land_sea)
+            CubeList([self.wet_bulb_temperature_cube,
+                      self.wet_bulb_integral_cube,
+                      self.orog, self.land_sea]))
         expected = np.ones((3, 3, 3), dtype=np.float32) * 49.178673
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "altitude_of_rain_falling_level")
@@ -605,9 +623,9 @@ class Test_process(IrisTest):
         ascending order rather than the expected descending order."""
         self.orog.data[1, 1] = 100.0
         result = PhaseChangeLevel(phase_change='snow-sleet').process(
-            self.wet_bulb_temperature_cube,
-            self.wet_bulb_integral_cube_inverted,
-            self.orog, self.land_sea)
+            CubeList([self.wet_bulb_temperature_cube,
+                      self.wet_bulb_integral_cube,
+                      self.orog, self.land_sea]))
         self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
 
     def test_interpolation_from_sea_points(self):
@@ -622,11 +640,28 @@ class Test_process(IrisTest):
         land_sea = self.land_sea
         land_sea.data[1, 1] = 1
         result = PhaseChangeLevel(phase_change='snow-sleet').process(
-            self.wet_bulb_temperature_cube, self.wet_bulb_integral_cube,
-            orog, land_sea)
+            CubeList([self.wet_bulb_temperature_cube,
+                      self.wet_bulb_integral_cube,
+                      orog, land_sea]))
         expected = np.ones((3, 3, 3), dtype=np.float32) * 65.88566
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_too_many_cubes(self):
+        """Tests that an error is raised if there are too many cubes."""
+        msg = "Expected 4"
+        with self.assertRaisesRegex(ValueError, msg):
+            PhaseChangeLevel(phase_change='snow-sleet').process(
+                CubeList([self.wet_bulb_temperature_cube,
+                          self.wet_bulb_integral_cube,
+                          self.orog, self.land_sea, self.orog]))
+
+    def test_empty_cube_list(self):
+        """Tests that an error is raised if there is an empty list."""
+        msg = "Expected 4"
+        with self.assertRaisesRegex(ValueError, msg):
+            PhaseChangeLevel(phase_change='snow-sleet').process(
+                CubeList([]))
 
 
 if __name__ == '__main__':

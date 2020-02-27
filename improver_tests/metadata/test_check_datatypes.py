@@ -33,138 +33,44 @@
 import unittest
 
 import numpy as np
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
+from iris.cube import CubeList
+from iris.coords import AuxCoord
 
 from improver.metadata.check_datatypes import (
-    _check_units_and_dtype, _construct_object_list, check_cube_not_float64,
-    check_datatypes, check_time_coordinate_metadata)
+    check_mandatory_standards, check_units)
 
 from ..set_up_test_cubes import (
     set_up_percentile_cube, set_up_probability_cube, set_up_variable_cube)
 
 
-class Test_check_cube_not_float64(IrisTest):
+class Test_check_mandatory_standards(IrisTest):
 
-    """Test whether a cube contains any float64 values."""
+    """Test whether a cube conforms to mandatory dtype and units standards."""
 
     def setUp(self):
         """Set up a test cube with the following data and coordinates, which
-        comply with the IMPROVER datatypes standard:
+        comply with the IMPROVER datatypes and units standard (Units in
+        parentheses are not mandatory):
 
-        +-------------------------+-------------+
-        | Name                    | Datatype    |
-        +=========================+=============+
-        | data (air_temperature)  | np.float32  |
-        +-------------------------+-------------+
-        | projection_x_coordinate | np.float32  |
-        +-------------------------+-------------+
-        | projection_y_coordinate | np.float32  |
-        +-------------------------+-------------+
-        | time                    | np.int64    |
-        +-------------------------+-------------+
-        | forecast_reference_time | np.int64    |
-        +-------------------------+-------------+
-        | forecast_period         | np.int32    |
-        +-------------------------+-------------+
+        +-------------------------+-------------+----------------------+
+        | Name                    | Datatype    | Units
+        +=========================+=============+======================+
+        | data (air_temperature)  | np.float32  | (Kelvin)             |
+        +-------------------------+-------------+----------------------+
+        | projection_x_coordinate | np.float32  | (metres)             |
+        +-------------------------+-------------+----------------------+
+        | projection_y_coordinate | np.float32  | (metres)             |
+        +-------------------------+-------------+----------------------+
+        | time                    | np.int64    | seconds since 1970.. |
+        +-------------------------+-------------+----------------------+
+        | forecast_reference_time | np.int64    | seconds since 1970.. |
+        +-------------------------+-------------+----------------------+
+        | forecast_period         | np.int32    | seconds              |
+        +-------------------------+-------------+----------------------+
         """
-        self.cube = set_up_variable_cube(280*np.ones((5, 5), dtype=np.float32),
+        self.cube = set_up_variable_cube(280*np.ones((3, 3), dtype=np.float32),
                                          spatial_grid='equalarea')
-
-    def test_success(self):
-        """Test a cube that should pass does not throw an error."""
-        check_cube_not_float64(self.cube)
-
-    def test_float64_cube_data(self):
-        """Test a failure of a cube with 64 bit data."""
-        self.cube.data = self.cube.data.astype(np.float64)
-        msg = "64 bit cube not allowed"
-        with self.assertRaisesRegex(TypeError, msg):
-            check_cube_not_float64(self.cube)
-
-    def test_float64_cube_data_with_fix(self):
-        """Test a cube with 64 bit data is converted to 32 bit data."""
-        self.cube.data = self.cube.data.astype(np.float64)
-        check_cube_not_float64(self.cube, fix=True)
-        self.assertEqual(self.cube.data.dtype, np.float32)
-
-    def test_float64_cube_coord_points(self):
-        """Test a failure of a cube with 64 bit coord points."""
-        self.cube.coord("projection_x_coordinate").points = (
-            self.cube.coord("projection_x_coordinate").points.astype(
-                np.float64)
-        )
-        msg = "64 bit coord points not allowed"
-        with self.assertRaisesRegex(TypeError, msg):
-            check_cube_not_float64(self.cube)
-
-    def test_float64_cube_coord_points_with_fix(self):
-        """Test a failure of a cube with 64 bit coord points."""
-        self.cube.coord("projection_x_coordinate").points = (
-            self.cube.coord("projection_x_coordinate").points.astype(
-                np.float64))
-        check_cube_not_float64(self.cube, fix=True)
-        coord = self.cube.coord("projection_x_coordinate")
-        self.assertEqual(coord.points.dtype, np.float32)
-
-    def test_float64_cube_coord_bounds(self):
-        """Test a failure of a cube with 64 bit coord bounds."""
-        x_coord = self.cube.coord("projection_x_coordinate")
-        # Default np.array for float input is np.float64.
-        x_coord.bounds = (
-            np.array([(point - 10., point + 10.) for point in x_coord.points])
-        )
-        msg = "64 bit coord bounds not allowed"
-        with self.assertRaisesRegex(TypeError, msg):
-            check_cube_not_float64(self.cube)
-
-    def test_float64_cube_coord_bounds_with_fix(self):
-        """Test a failure of a cube with 64 bit coord bounds."""
-        x_coord = self.cube.coord("projection_x_coordinate")
-        # Default np.array for float input is np.float64.
-        x_coord.bounds = (
-            np.array([(point - 10., point + 10.) for point in x_coord.points])
-        )
-        check_cube_not_float64(self.cube, fix=True)
-        coord = self.cube.coord("projection_x_coordinate")
-        self.assertEqual(coord.points.dtype, np.float32)
-        self.assertEqual(coord.bounds.dtype, np.float32)
-
-
-class Test__construct_object_list(IrisTest):
-    """Test the private _construct_object_list method"""
-
-    def setUp(self):
-        """Make a template cube"""
-        self.cube = set_up_variable_cube(
-            278*np.ones((3, 4, 4), dtype=np.float32))
-
-    def test_basic(self):
-        """Test it works for all coordinates"""
-        expected_result = {
-            self.cube, self.cube.coord('realization'),
-            self.cube.coord('latitude'), self.cube.coord('longitude'),
-            self.cube.coord('time'), self.cube.coord('forecast_period'),
-            self.cube.coord('forecast_reference_time')}
-        result = _construct_object_list(self.cube, None)
-        self.assertSetEqual(set(result), expected_result)
-
-    def test_subset(self):
-        """Test it works on a subset and ignores any missing coordinates"""
-        expected_result = {
-            self.cube, self.cube.coord('realization'), self.cube.coord('time')}
-        result = _construct_object_list(
-            self.cube, ['realization', 'time', 'kittens'])
-        self.assertSetEqual(set(result), expected_result)
-
-
-class Test_check_datatypes(IrisTest):
-    """Test datatype checking"""
-
-    def setUp(self):
-        """Set up some conformant cubes of air_temperature to test"""
-        data = 275*np.ones((3, 3), dtype=np.float32)
-        self.data_cube = set_up_variable_cube(data, spatial_grid='equalarea')
 
         data = np.ones((3, 3, 3), dtype=np.float32)
         thresholds = np.array([272, 273, 274], dtype=np.float32)
@@ -178,128 +84,128 @@ class Test_check_datatypes(IrisTest):
 
     def test_conformant_cubes(self):
         """Test conformant data, percentile and probability cubes all pass
-        (no error is thrown)"""
+        (no error is thrown and cube is not changed)"""
         cubelist = [
-            self.data_cube, self.probability_cube, self.percentile_cube]
+            self.cube, self.probability_cube, self.percentile_cube]
         for cube in cubelist:
-            check_datatypes(cube)
+            result = cube.copy()
+            check_mandatory_standards(result)
+            # The following statement renders each cube into an XML string
+            # describing all aspects of the cube (including a checksum of the
+            # data) to verify that nothing has been changed anywhere on the
+            # cube.
+            self.assertStringEqual(CubeList([cube]).xml(checksum=True),
+                                   CubeList([result]).xml(checksum=True))
+
+    def test_int32_cube_data(self):
+        """Test conformant data with a cube with 32-bit integer data."""
+        self.cube.data = self.cube.data.astype(np.int32)
+        check_mandatory_standards(self.cube)
+
+    def test_int64_cube_data(self):
+        """Test conformant data with a cube with 64-bit integer data."""
+        self.cube.data = self.cube.data.astype(np.int64)
+        check_mandatory_standards(self.cube)
+
+    def test_float64_cube_data(self):
+        """Test a failure of a cube with 64-bit float data."""
+        self.cube.data = self.cube.data.astype(np.float64)
+        msg = ("does not have required dtype.\n"
+               "Expected: float32, Actual: float64")
+        with self.assertRaisesRegex(ValueError, msg):
+            check_mandatory_standards(self.cube)
+
+    def test_float64_cube_coord_points(self):
+        """Test a failure of a cube with 64-bit float coord points."""
+        self.cube.coord("projection_x_coordinate").points = (
+            self.cube.coord("projection_x_coordinate").points.astype(
+                np.float64)
+        )
+        msg = ("does not have required dtype.\n"
+               "Expected: float32, Actual \\(points\\): float64")
+        with self.assertRaisesRegex(ValueError, msg):
+            check_mandatory_standards(self.cube)
+
+    def test_float64_cube_coord_bounds(self):
+        """Test a failure of a cube with 64-bit float coord bounds."""
+        x_coord = self.cube.coord("projection_x_coordinate")
+        x_coord.bounds = (
+            np.array([(point - 10., point + 10.) for point in x_coord.points],
+                     dtype=np.float64)
+        )
+        msg = ("does not have required dtype.\n"
+               "Expected: float32, "
+               "Actual \\(points\\): float32, "
+               "Actual \\(bounds\\): float64")
+        with self.assertRaisesRegex(ValueError, msg):
+            check_mandatory_standards(self.cube)
 
     def test_string_coord(self):
-        """Test string coordinate does not throw an error"""
-        self.data_cube.add_aux_coord(
-            AuxCoord(["ukv"], long_name="model", units="no_unit"))
-        check_datatypes(self.data_cube)
-
-    def test_data_datatype_fail(self):
-        """Test error is raised for 64-bit data"""
-        self.percentile_cube.data = (
-            self.percentile_cube.data.astype(np.float64))
-        msg = "does not conform"
-        with self.assertRaisesRegex(ValueError, msg):
-            check_datatypes(self.percentile_cube)
-
-    def test_coord_datatype_fail(self):
-        """Test error is raised for 64-bit coordinate"""
-        self.percentile_cube.coord('percentile').points = (
-            self.percentile_cube.coord('percentile').points.astype(np.float64))
-        msg = "does not conform"
-        with self.assertRaisesRegex(ValueError, msg):
-            check_datatypes(self.percentile_cube)
-
-    def test_coord_bounds_datatype_fail(self):
-        """Test error is raised for a coordinate whose bounds datatype is
-        incorrect, but points are correct"""
-        time_bounds = np.array(
-            [self.data_cube.coord("time").points[0] - 3600,
-             self.data_cube.coord("time").points[0] + 3600], dtype=np.int32)
-        self.data_cube.coord("time").bounds = [time_bounds]
-        msg = "does not conform"
-        with self.assertRaisesRegex(ValueError, msg):
-            check_datatypes(self.data_cube)
-
-    def test_subset_of_coordinates(self):
-        """Test function can check a selected subset of coordinates and
-        ignore others"""
-        self.percentile_cube.coord('percentile').points = (
-            self.percentile_cube.coord('percentile').points.astype(np.float64))
-        check_datatypes(
-            self.percentile_cube, coords=["forecast_period"])
-        self.assertEqual(
-            self.percentile_cube.coord('percentile').dtype, np.float64)
+        """Test conformant data with a cube with a coord of strings."""
+        self.cube.add_aux_coord(AuxCoord(['kittens'], long_name='animal'))
+        check_mandatory_standards(self.cube)
 
     def test_multiple_errors(self):
         """Test a list of errors is correctly caught and re-raised"""
         self.percentile_cube.coord('percentile').points = (
             self.percentile_cube.coord('percentile').points.astype(np.float64))
+        self.percentile_cube.coord('forecast_period').convert_units('minutes')
         self.percentile_cube.coord('forecast_period').points = (
             self.percentile_cube.coord('forecast_period').points.astype(
                 np.int64))
-        msg = ("percentile datatype float64 does not conform to expected "
-               "standard \\(\\<class 'numpy.float32'\\>\\)\n"
-               "forecast_period datatype int64 does not conform to expected "
-               "standard \\(\\<class 'numpy.int32'\\>\\)\n")
+        msg = ("percentile of type .*DimCoord.* "
+               "does not have required dtype.\n"
+               "Expected: float32, Actual \\(points\\): float64\n"
+               "forecast_period of type .*DimCoord.* "
+               "does not have required dtype.\n"
+               "Expected: int32, Actual \\(points\\): int64\n"
+               "forecast_period of type .*DimCoord.* "
+               "does not have required units.\n"
+               "Expected: seconds, Actual: minutes"
+               )
         with self.assertRaisesRegex(ValueError, msg):
-            check_datatypes(self.percentile_cube)
+            check_mandatory_standards(self.percentile_cube)
 
 
-class Test__check_units_and_dtype(IrisTest):
-    """Test method to check object conformance"""
+class Test_check_units(IrisTest):
+    """Test method to check object units"""
 
     def setUp(self):
         """Set up test cube"""
         self.cube = set_up_variable_cube(
             data=275.*np.ones((3, 3), dtype=np.float32),
             spatial_grid='equalarea')
-        self.coord = self.cube.coord('projection_x_coordinate')
+        self.coord = self.cube.coord('forecast_period')
 
     def test_pass_cube(self):
-        """Test return value for compliant cube"""
-        result = _check_units_and_dtype(self.cube, 'K', np.float32)
+        """Test input_cube is not changed when nothing needs changing (no
+        requirement on units)"""
+        input_cube = self.cube.copy()
+        result = check_units(input_cube)
         self.assertTrue(result)
-
-    def test_fail_cube(self):
-        """Test return value for non-compliant cube"""
-        result = _check_units_and_dtype(
-            self.cube, 'degC', np.float32)
-        self.assertFalse(result)
+        # The following statement renders each cube into an XML string
+        # describing all aspects of the cube (including a checksum of the
+        # data) to verify that nothing has been changed anywhere on the cube.
+        self.assertStringEqual(CubeList([self.cube]).xml(checksum=True),
+                               CubeList([input_cube]).xml(checksum=True))
 
     def test_pass_coord(self):
-        """Test return value for compliant coordinate"""
-        result = _check_units_and_dtype(
-            self.coord, 'm', np.float32)
+        """Test return value for time coordinate with correct units"""
+        result = check_units(self.coord)
+        self.assertTrue(result)
+
+    def test_pass_coord_synonym(self):
+        """Test return value for time coordinate with units set to a synonym
+        of seconds"""
+        self.coord.convert_units('second')
+        result = check_units(self.coord)
         self.assertTrue(result)
 
     def test_fail_coord(self):
-        """Test return value for non-compliant coordinate"""
-        result = _check_units_and_dtype(self.coord, 'm', np.int32)
+        """Test return value for time coordinate with wrong units"""
+        self.coord.convert_units('minutes')
+        result = check_units(self.coord)
         self.assertFalse(result)
-
-
-class Test_check_time_coordinate_metadata(IrisTest):
-    """Test check_time_coordinate_metatadata function"""
-
-    def setUp(self):
-        """Set up a test cube"""
-        self.cube = set_up_variable_cube(278*np.ones((4, 4), dtype=np.float32))
-
-    def test_basic(self):
-        """Test success"""
-        check_time_coordinate_metadata(self.cube)
-
-    def test_fails_wrong_datatype(self):
-        """Test failure if any coordinate datatype is wrong"""
-        self.cube.coord("time").points = (
-            self.cube.coord("time").points.astype(np.float64))
-        msg = 'Coordinate time does not match required standard'
-        with self.assertRaisesRegex(ValueError, msg):
-            check_time_coordinate_metadata(self.cube)
-
-    def test_fails_wrong_units(self):
-        """Test failure if any coordinate unit is wrong"""
-        self.cube.coord("forecast_period").convert_units("hours")
-        msg = 'Coordinate forecast_period does not match required standard'
-        with self.assertRaisesRegex(ValueError, msg):
-            check_time_coordinate_metadata(self.cube)
 
 
 if __name__ == '__main__':

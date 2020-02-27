@@ -35,6 +35,7 @@ import warnings
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import CubeList
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 from scipy.stats import linregress
@@ -99,8 +100,8 @@ def calculate_svp_in_air(temperature, pressure):
         Series, Vol. 30; Equation A4.7.
     """
     svp = _svp_from_lookup(temperature)
-    temp_celcius = temperature.copy() + consts.ABSOLUTE_ZERO
-    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_celcius ** 2))
+    temp_Celsius = temperature.copy() + consts.ABSOLUTE_ZERO
+    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_Celsius ** 2))
     return svp * correction.astype(np.float32)
 
 
@@ -116,6 +117,10 @@ class WetBulbTemperature(BasePlugin):
     table of saturated vapour pressures calculated for a range of temperatures.
     The import also brings in attributes that describe the range of
     temperatures covered by the table and the increments in the table.
+
+    References:
+        Met Office UM Documentation Paper 080, UM Version 10.8,
+        last updated 2014-12-05.
 
     """
     def __init__(self, precision=0.005):
@@ -171,8 +176,8 @@ class WetBulbTemperature(BasePlugin):
             np.ndarray:
                 Temperature adjusted latent heat of condensation (J kg-1).
         """
-        temp_celcius = temperature + consts.ABSOLUTE_ZERO
-        latent_heat = (-1. * consts.LATENT_HEAT_T_DEPENDENCE * temp_celcius +
+        temp_Celsius = temperature + consts.ABSOLUTE_ZERO
+        latent_heat = (-1. * consts.LATENT_HEAT_T_DEPENDENCE * temp_Celsius +
                        consts.LH_CONDENSATION_WATER)
         return latent_heat
 
@@ -257,10 +262,6 @@ class WetBulbTemperature(BasePlugin):
 
         Method from referenced UM documentation.
 
-        References:
-            Met Office UM Documentation Paper 080, UM Version 10.8,
-            last updated 2014-12-05.
-
         Args:
             mixing_ratio (numpy.ndarray):
                 Array of mixing ratios.
@@ -287,7 +288,8 @@ class WetBulbTemperature(BasePlugin):
         the correct units.
 
         A Newton iterator is used to minimise the gradient of enthalpy
-        against temperature.
+        against temperature. Assumes that the variation of latent heat with
+        temperature can be ignored.
 
         Args:
             pressure (numpy.ndarray):
@@ -313,13 +315,17 @@ class WetBulbTemperature(BasePlugin):
 
         # Initialise wet bulb temperature increment
         delta_wbt = 10. * np.broadcast_to(self.precision, temperature.shape)
-        delta_wbt_prev = None
 
         # Iterate to find the wet bulb temperature, using temperature as first
         # guess
         wbt_data = temperature.copy()
         iteration = 0
-        while (np.abs(delta_wbt) > self.precision).any():
+        while (np.abs(delta_wbt) > self.precision).any() \
+                and iteration < self.maximum_iterations:
+
+            if iteration > 0:
+                saturation_mixing_ratio = self._calculate_mixing_ratio(
+                    wbt_data, pressure)
 
             enthalpy_new = self._calculate_enthalpy(
                 saturation_mixing_ratio, specific_heat, latent_heat, wbt_data)
@@ -331,18 +337,6 @@ class WetBulbTemperature(BasePlugin):
             to_update = np.where(np.abs(delta_wbt) > self.precision)
             wbt_data[to_update] = (wbt_data[to_update] + delta_wbt[to_update])
 
-            # If increment is identical to the previous iteration, stop
-            if (np.array_equal(delta_wbt, delta_wbt_prev) or
-                    iteration > self.maximum_iterations):
-                warnings.warn('No further refinement occurring; breaking out '
-                              'of Newton iterator and returning result.')
-                break
-
-            # Update saturation mixing ratio and iterators
-            saturation_mixing_ratio = self._calculate_mixing_ratio(
-                wbt_data, pressure)
-
-            delta_wbt_prev = delta_wbt
             iteration += 1
 
         return wbt_data
@@ -378,7 +372,7 @@ class WetBulbTemperature(BasePlugin):
             data=wbt_data)
         return wbt
 
-    def process(self, temperature, relative_humidity, pressure):
+    def process(self, cubes):
         """
         Call the calculate_wet_bulb_temperature function to calculate wet bulb
         temperatures. This process function splits input cubes over vertical
@@ -386,17 +380,29 @@ class WetBulbTemperature(BasePlugin):
         data.
 
         Args:
-            temperature (iris.cube.Cube):
-                Cube of air temperatures.
-            relative_humidity (iris.cube.Cube):
-                Cube of relative humidities.
-            pressure (iris.cube.Cube):
-                Cube of air pressures.
+            cubes (iris.cube.CubeList or list or iris.cube.Cube):
+                containing:
+                    temperature (iris.cube.Cube):
+                        Cube of air temperatures.
+                    relative_humidity (iris.cube.Cube):
+                        Cube of relative humidities.
+                    pressure (iris.cube.Cube):
+                        Cube of air pressures.
 
         Returns:
             iris.cube.Cube:
                 Cube of wet bulb temperature (K).
         """
+        names_to_extract = ["air_temperature",
+                            "relative_humidity",
+                            "air_pressure"]
+        if len(cubes) != len(names_to_extract):
+            raise ValueError(
+                f'Expected {len(names_to_extract)} cubes, found {len(cubes)}')
+
+        temperature, relative_humidity, pressure = tuple(
+            CubeList(cubes).extract_strict(n) for n in names_to_extract)
+
         slices = self._slice_inputs(temperature, relative_humidity, pressure)
 
         cubelist = iris.cube.CubeList([])
@@ -417,12 +423,11 @@ class WetBulbTemperatureIntegral(BasePlugin):
 
     def __init__(self):
         """Initialise class."""
-        self.integration_plugin = Integration(
-            "height", direction_of_integration="negative")
+        self.integration_plugin = Integration("height")
 
     def process(self, wet_bulb_temperature):
         """
-        Calculate the vertical integal of wet bulb temperature from the input
+        Calculate the vertical integral of wet bulb temperature from the input
         wet bulb temperatures on height levels.
 
         Args:
@@ -946,8 +951,7 @@ class PhaseChangeLevel(BasePlugin):
         return create_new_diagnostic_cube(name, 'm', template, attributes,
                                           data=phase_change_level)
 
-    def process(self, wet_bulb_temperature, wet_bulb_integral, orog,
-                land_sea_mask):
+    def process(self, cubes):
         """
         Use the wet bulb temperature integral to find the altitude at which a
         phase change occurs (e.g. snow to sleet). This is achieved by finding
@@ -957,19 +961,33 @@ class PhaseChangeLevel(BasePlugin):
         data appropriately.
 
         Args:
-            wet_bulb_temperature (iris.cube.Cube):
-                Cube of wet bulb temperatures on height levels.
-            wet_bulb_integral (iris.cube.Cube):
-                Cube of wet bulb temperature integral (Kelvin-metres).
-            orog (iris.cube.Cube):
-                Cube of orography (m).
-            land_sea_mask (iris.cube.Cube):
-                Cube containing a binary land-sea mask.
+        cubes (iris.cube.CubeList or list or iris.cube.Cube):
+            containing:
+                wet_bulb_temperature (iris.cube.Cube):
+                    Cube of wet bulb temperatures on height levels.
+                wet_bulb_integral (iris.cube.Cube):
+                    Cube of wet bulb temperature integral (Kelvin-metres).
+                orog (iris.cube.Cube):
+                    Cube of orography (m).
+                land_sea_mask (iris.cube.Cube):
+                    Cube containing a binary land-sea mask.
 
         Returns:
             iris.cube.Cube:
                 Cube of phase change level above sea level (asl).
         """
+
+        names_to_extract = ["wet_bulb_temperature",
+                            "wet_bulb_temperature_integral",
+                            "surface_altitude",
+                            "land_binary_mask"]
+        if len(cubes) != len(names_to_extract):
+            raise ValueError(
+                f'Expected {len(names_to_extract)} cubes, found {len(cubes)}')
+
+        wet_bulb_temperature, wet_bulb_integral, orog, land_sea_mask = tuple(
+            CubeList(cubes).extract_strict(n) for n in names_to_extract)
+
         wet_bulb_temperature.convert_units('celsius')
         wet_bulb_integral.convert_units('K m')
 

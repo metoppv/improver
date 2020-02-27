@@ -43,6 +43,9 @@ LON = "longitude"
 BOUNDS = "bounds"
 DEWPOINT = "dewpoint"
 CAT = "category"
+ALTITUDE = "altitude"
+SETTINGS = "settings"
+SCALARS = "scalars"
 
 
 @pytest.fixture(scope='function', name='dummy_nc')
@@ -51,7 +54,7 @@ def dummy_netcdf_dataset(tmp_path):
     Create an example netcdf dataset for use in testing comparison functions
     """
     expected_nc = tmp_path / "expected.nc"
-    dset = nc.Dataset(expected_nc, mode='w', format='NETCDF4_CLASSIC')
+    dset = nc.Dataset(expected_nc, mode='w', format='NETCDF4')
     dset.createDimension(LAT, 10)
     dset.createDimension(LON, 12)
     dset.createDimension(BOUNDS, 2)
@@ -63,6 +66,9 @@ def dummy_netcdf_dataset(tmp_path):
         f"{LON}_{BOUNDS}", np.float64, dimensions=(LON, BOUNDS))
     dpoint = dset.createVariable(DEWPOINT, np.float32, dimensions=(LAT, LON))
     categ = dset.createVariable(CAT, np.int8, dimensions=(LAT, LON))
+    scalar_group = dset.createGroup(SCALARS)
+    altitude = scalar_group.createVariable(ALTITUDE, np.float32)
+    settings = scalar_group.createVariable(SETTINGS, "S1")
 
     dset.setncattr("grid_id_string", "example")
     dset.setncattr("float_number", 1.5)
@@ -83,15 +89,16 @@ def dummy_netcdf_dataset(tmp_path):
     lat_fill = np.broadcast_to(lat_fill[:, np.newaxis], (10, 12))
     lon_fill = np.linspace(0.0, np.pi, 12)
     lon_fill = np.broadcast_to(lon_fill[np.newaxis, :], (10, 12))
-    grid_fill = lat_fill * lon_fill
-    dewpoint_grid = 273.15 + np.cos(grid_fill)
-    dpoint[:] = dewpoint_grid
+    dpoint[:] = 273.15 + np.cos(lat_fill * lon_fill)
     dpoint.setncattr("units", "K")
     dpoint.setncattr("standard_name", "dew_point_temperature")
-    category_grid = np.where(dewpoint_grid > 273.15, -1, 1)
-    category_discrete = category_grid.astype(np.int8)
-    categ[:] = category_discrete
-    dpoint.setncattr("long_name", "threshold categorisation")
+    categ[:] = np.where(dpoint[:] > 273.15, -1, 1).astype(np.int8)
+    categ.setncattr("long_name", "threshold categorisation")
+    categ.setncattr("additional_numbers", np.linspace(0.0, 1.0, 11))
+
+    altitude[:] = 2.0
+    settings[:] = "y"
+
     dset.close()
 
     actual_nc = tmp_path / "actual.nc"
@@ -113,6 +120,62 @@ def test_compare_identical_netcdfs(dummy_nc):
         compare.compare_netcdfs(actual_nc, expected_nc, atol=tol, rtol=tol)
 
 
+def test_compare_missing_files(dummy_nc, tmp_path):
+    """Check that comparing missing files raises exception"""
+    actual_nc, expected_nc = dummy_nc
+    messages_reported = []
+
+    def message_collector(message):
+        messages_reported.append(message)
+
+    compare.compare_netcdfs(actual_nc, tmp_path / "missing",
+                            reporter=message_collector)
+    assert len(messages_reported) == 1
+    assert "No such file" in messages_reported[0]
+    compare.compare_netcdfs(tmp_path / "missing", expected_nc,
+                            reporter=message_collector)
+    assert len(messages_reported) == 2
+    assert "No such file" in messages_reported[1]
+
+
+def test_compare_vars_renamed(dummy_nc):
+    """Check that renaming a variable is identified"""
+    actual_nc, expected_nc = dummy_nc
+    expected_ds = nc.Dataset(expected_nc, mode='r')
+    actual_ds = nc.Dataset(actual_nc, mode='a')
+    actual_ds.renameVariable(DEWPOINT, "new_dew")
+
+    messages_reported = []
+
+    def message_collector(message):
+        messages_reported.append(message)
+
+    compare.compare_vars("root", actual_ds, expected_ds, 0.0, 0.0, [],
+                         message_collector)
+    assert len(messages_reported) == 1
+    assert DEWPOINT in messages_reported[0]
+    assert "new_dew" in messages_reported[0]
+
+
+def test_compare_groups_renamed(dummy_nc):
+    """Check that renaming a netCDF group is identified"""
+    actual_nc, expected_nc = dummy_nc
+    expected_ds = nc.Dataset(expected_nc, mode='r')
+    actual_ds = nc.Dataset(actual_nc, mode='a')
+    actual_ds.renameGroup(SCALARS, "new_scalars")
+
+    messages_reported = []
+
+    def message_collector(message):
+        messages_reported.append(message)
+
+    compare.compare_datasets(
+        "grp", actual_ds, expected_ds, 0.0, 0.0, [DEWPOINT], message_collector)
+    assert len(messages_reported) == 1
+    assert SCALARS in messages_reported[0]
+    assert "new_scalars" in messages_reported[0]
+
+
 def test_compare_netcdf_attrs(dummy_nc):
     """Check that comparing attributes identifies the changed attribute"""
     actual_nc, expected_nc = dummy_nc
@@ -129,7 +192,7 @@ def test_compare_netcdf_attrs(dummy_nc):
         "root", actual_ds, expected_ds, message_collector)
     assert len(messages_reported) == 0
 
-    # Check modifying an attribute
+    # Check modifying a simple attribute
     actual_ds.setncattr("float_number", 3.2)
     compare.compare_attributes(
         "root", actual_ds, expected_ds, message_collector)
@@ -140,6 +203,17 @@ def test_compare_netcdf_attrs(dummy_nc):
 
     # Reset attribute back to original value
     actual_ds.setncattr("float_number", 1.5)
+    messages_reported = []
+
+    # Check modifying an array attribute
+    actual_ds[CAT].setncattr("additional_numbers", np.linspace(0.0, 0.8, 11))
+    compare.compare_attributes(
+        "root", actual_ds[CAT], expected_ds[CAT], message_collector)
+    assert len(messages_reported) == 1
+    assert "additional_numbers" in messages_reported[0]
+
+    # Reset attribute back to original value
+    actual_ds[CAT].setncattr("additional_numbers", np.linspace(0.0, 1.0, 11))
     messages_reported = []
 
     # Check adding another attribute
@@ -288,7 +362,7 @@ def test_compare_data_shape(dummy_nc):
     """Check differing data shapes are reported"""
     actual_nc, expected_nc = dummy_nc
     expected_ds = nc.Dataset(expected_nc, mode='r')
-    actual_ds = nc.Dataset(actual_nc, mode='a')
+    actual_ds = nc.Dataset(actual_nc, mode='r')
 
     messages_reported = []
 
@@ -300,3 +374,78 @@ def test_compare_data_shape(dummy_nc):
                          100.0, 100.0, message_collector)
     assert len(messages_reported) == 1
     assert "shape" in messages_reported[0]
+
+
+def test_compare_extra_dimension(dummy_nc):
+    """Check an additional (but unused) dimension is reported"""
+    actual_nc, expected_nc = dummy_nc
+    expected_ds = nc.Dataset(expected_nc, mode='a')
+    actual_ds = nc.Dataset(actual_nc, mode='a')
+
+    actual_ds.createDimension("additional", 100)
+
+    messages_reported = []
+
+    def message_collector(message):
+        messages_reported.append(message)
+
+    compare.compare_dims("", actual_ds, expected_ds, None, message_collector)
+    assert len(messages_reported) == 1
+    assert "dimension" in messages_reported[0]
+
+    messages_reported = []
+    expected_ds.createDimension("additional", 200)
+    compare.compare_dims("", actual_ds, expected_ds, None, message_collector)
+    assert len(messages_reported) == 1
+    assert "dimension" in messages_reported[0]
+    assert "100" in messages_reported[0]
+
+
+@pytest.mark.parametrize('tchange', (DEWPOINT, LAT))
+def test_compare_data_type(dummy_nc, tchange):
+    """Check differing data types are reported"""
+    actual_nc, expected_nc = dummy_nc
+    expected_ds = nc.Dataset(expected_nc, mode='r')
+    actual_ds = nc.Dataset(actual_nc, mode='w')
+
+    # copy the whole dataset except for the tchange variable
+    # netcdf API does not have the concept of deleting a variable
+    for key in expected_ds.ncattrs():
+        actual_ds.setncattr(key, expected_ds.getncattr(key))
+    # pylint: disable=no-member
+    for dim_name in expected_ds.dimensions.keys():
+        # pylint: disable=unsubscriptable-object
+        actual_ds.createDimension(dim_name,
+                                  expected_ds.dimensions[dim_name].size)
+    # pylint: disable=no-member
+    for var_name in expected_ds.variables.keys():
+        if var_name == tchange:
+            continue
+        new_var = actual_ds.createVariable(
+            var_name, expected_ds[var_name].datatype,
+            expected_ds[var_name].dimensions)
+        new_var[:] = expected_ds[var_name][:]
+        for key in expected_ds[var_name].ncattrs():
+            new_var.setncattr(key, expected_ds[var_name].getncattr(key))
+
+    # re-add the type-changed variable, but with a different float type
+    expected_var = expected_ds[tchange]
+    if expected_var.dtype == np.float32:
+        new_type = np.float64
+    else:
+        new_type = np.float32
+    new_dew = actual_ds.createVariable(
+        tchange, new_type, expected_var.dimensions)
+    for key in expected_var.ncattrs():
+        new_dew.setncattr(key, expected_var.getncattr(key))
+    new_dew[:] = expected_var[:].astype(new_type)
+
+    messages_reported = []
+
+    def message_collector(message):
+        messages_reported.append(message)
+
+    compare.compare_vars(
+        "root", actual_ds, expected_ds, 0.0, 0.0, None, message_collector)
+    assert len(messages_reported) == 1
+    assert "type" in messages_reported[0]

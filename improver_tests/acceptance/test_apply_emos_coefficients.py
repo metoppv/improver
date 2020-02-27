@@ -32,7 +32,7 @@
 
 import pytest
 
-from improver.utilities.compare import LOOSE_TOLERANCE
+from improver.constants import LOOSE_TOLERANCE
 
 from . import acceptance as acc
 
@@ -194,14 +194,41 @@ def test_wrong_coefficients(tmp_path):
         run_cli(args)
 
 
-def test_wrong_forecast(tmp_path):
-    """Test forecast cube being a coefficients cube"""
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/gaussian"
-    kgo_path = kgo_dir / "kgo.nc"
+def test_wrong_land_sea_mask(tmp_path):
+    """Test wrong land_sea_mask provided"""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
+    emos_est_path = kgo_dir / "gaussian_coefficients.nc"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [kgo_path, kgo_path,
+    args = [input_path, emos_est_path, emos_est_path,
             "--distribution", "norm",
             "--random-seed", "0",
             "--output", output_path]
-    with pytest.raises(ValueError, match=".*forecast cube.*"):
+    with pytest.raises(ValueError, match=".*land_sea_mask.*"):
+        run_cli(args)
+
+
+def test_wrong_forecast_coefficients(tmp_path):
+    """Test forecast cube being a coefficients cube"""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
+    emos_est_path = kgo_dir / "gaussian_coefficients.nc"
+    output_path = tmp_path / "output.nc"
+    args = [emos_est_path,
+            "--distribution", "norm",
+            "--random-seed", "0",
+            "--output", output_path]
+    with pytest.raises(ValueError, match=".*forecast cube.*emos_coefficients"):
+        run_cli(args)
+
+
+def test_wrong_forecast_land_sea(tmp_path):
+    """Test forecast cube being a land_sea_mask cube"""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/land_sea"
+    land_sea_path = kgo_dir / "landmask.nc"
+    output_path = tmp_path / "output.nc"
+    args = [land_sea_path,
+            "--distribution", "norm",
+            "--random-seed", "0",
+            "--output", output_path]
+    with pytest.raises(ValueError, match=".*forecast cube.*land_binary_mask"):
         run_cli(args)

@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Tests for the update-grid-metadata CLI
+Tests for the merge CLI
 """
 
 import pytest
@@ -41,11 +41,11 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_basic(tmp_path):
-    """Test basic updating"""
-    kgo_dir = acc.kgo_root() / "update-grid-metadata/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "input.nc"
+def test_single_file(tmp_path):
+    """Test merging with one file"""
+    kgo_dir = acc.kgo_root() / "merge"
+    kgo_path = kgo_dir / "single_file_kgo.nc"
+    input_path = kgo_dir / "orographic_enhancement_T3.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path,
             "--output", output_path]
@@ -53,12 +53,14 @@ def test_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_no_change(tmp_path):
-    """Test updating with no change"""
-    kgo_dir = acc.kgo_root() / "update-grid-metadata/basic"
-    kgo_path = kgo_dir / "kgo.nc"
+def test_multiple_files(tmp_path):
+    """Test merging multiple files"""
+    kgo_dir = acc.kgo_root() / "merge"
+    kgo_path = kgo_dir / "multiple_file_kgo.nc"
+    input_path_t3 = kgo_dir / "orographic_enhancement_T3.nc"
+    input_path_t4 = kgo_dir / "orographic_enhancement_T4.nc"
     output_path = tmp_path / "output.nc"
-    args = [kgo_path,
+    args = [input_path_t3, input_path_t4,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

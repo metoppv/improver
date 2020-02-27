@@ -37,7 +37,7 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
-from improver.metadata.check_datatypes import check_time_coordinate_metadata
+from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.utilities.cube_manipulation import expand_bounds
 
 
@@ -136,7 +136,7 @@ class Accumulation(BasePlugin):
         # Standardise inputs to expected units
         standardised_cubes = []
         for cube in cubes:
-            check_time_coordinate_metadata(cube)
+            check_mandatory_standards(cube)
             new_cube = cube.copy()
             new_cube.convert_units('m s-1')
             standardised_cubes.append(new_cube)
@@ -298,7 +298,7 @@ class Accumulation(BasePlugin):
         accumulation_cube = expand_bounds(
             cube_subset[0].copy(),
             iris.cube.CubeList(cube_subset),
-            expanded_coords={'time': 'upper', 'forecast_period': 'upper'})
+            ["time", "forecast_period"])
         accumulation_cube.rename(cube_name)
         accumulation_cube.units = 'm'
         return accumulation_cube

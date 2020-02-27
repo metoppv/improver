@@ -127,18 +127,9 @@ def test_fix_float64(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "float64_data.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "--output", output_path, "--fix-float64"]
+    args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_check_float64():
-    """Test detection of float64 data"""
-    kgo_dir = acc.kgo_root() / "standardise/float64"
-    input_path = kgo_dir / "float64_data.nc"
-    args = [input_path]
-    with pytest.raises(TypeError, match=".*64 bit.*"):
-        run_cli(args)
 
 
 @pytest.mark.slow
@@ -217,5 +208,44 @@ def test_regrid_nearest_landmask_multi_realization(tmp_path):
             "--output", output_path,
             "--regrid-mode", "nearest-with-mask",
             "--regridded-title", GLOBAL_UK_TITLE]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_stage_v110_basic(tmp_path):
+    """Test updating a file with StaGE version 1.1.0 metadata"""
+    kgo_dir = acc.kgo_root() / "standardise/stage-v110"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, target_path,
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@acc.skip_if_no_iris_nimrod_patch
+def test_nimrod_radarrate_basic(tmp_path):
+    """Test updating a file with Nimrod-format Radarnet data"""
+    kgo_dir = acc.kgo_root() / "standardise/radarnet"
+    kgo_path = kgo_dir / "kgo_preciprate.nc"
+    input_path = kgo_dir / "input_preciprate.nimrod"
+    output_path = tmp_path / "output.nc"
+    args = [input_path,
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@acc.skip_if_no_iris_nimrod_patch
+def test_nimrod_radarcoverage_basic(tmp_path):
+    """Test updating a file with Nimrod-format Radarnet data"""
+    kgo_dir = acc.kgo_root() / "standardise/radarnet"
+    kgo_path = kgo_dir / "kgo_coverage.nc"
+    input_path = kgo_dir / "input_coverage.nimrod"
+    output_path = tmp_path / "output.nc"
+    args = [input_path,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

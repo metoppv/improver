@@ -80,7 +80,8 @@ def test_basic(tmp_path):
     landmask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, orography_path, landmask_path,
-            "--output", output_path]
+            "--output", output_path,
+            "--model-id-attr", "mosg__model_configuration"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

@@ -36,11 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(wet_bulb_temperature: cli.inputcube,
-            wet_bulb_integral: cli.inputcube,
-            orography: cli.inputcube,
-            land_sea_mask: cli.inputcube,
-            *,
+def process(*cubes: cli.inputcube,
             phase_change):
     """Height of precipitation phase change relative to sea level.
 
@@ -49,16 +45,18 @@ def process(wet_bulb_temperature: cli.inputcube,
     threshold that is expected to correspond with the phase change.
 
     Args:
-        wet_bulb_temperature (iris.cube.Cube):
-            Cube of wet bulb temperatures on height levels.
-        wet_bulb_integral (iris.cube.Cube):
-            Cube of wet bulb temperature integrals calculated vertically
-            downwards to height levels.
-        orography (iris.cube.Cube):
-            Cube of the orography height in m.
-        land_sea_mask (iris.cube.Cube):
-            Cube containing the binary land-sea mask. Land points are set to 1,
-            sea points are set to 0.
+        cubes (iris.cube.CubeList or list of iris.cube.Cube):
+            containing:
+                wet_bulb_temperature (iris.cube.Cube):
+                    Cube of wet bulb temperatures on height levels.
+                wet_bulb_integral (iris.cube.Cube):
+                    Cube of wet bulb temperature integrals calculated
+                    vertically downwards to height levels.
+                orography (iris.cube.Cube):
+                    Cube of the orography height in m.
+                land_sea_mask (iris.cube.Cube):
+                    Cube containing the binary land-sea mask. Land points are
+                    set to 1, sea points are set to 0.
         phase_change (str):
             The desired phase change for which the altitude should be
             returned. Options are:
@@ -74,6 +72,5 @@ def process(wet_bulb_temperature: cli.inputcube,
         import PhaseChangeLevel
 
     result = PhaseChangeLevel(
-        phase_change=phase_change).process(
-            wet_bulb_temperature, wet_bulb_integral, orography, land_sea_mask)
+        phase_change=phase_change).process(cubes)
     return result

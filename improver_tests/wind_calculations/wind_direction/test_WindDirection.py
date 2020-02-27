@@ -112,7 +112,7 @@ def make_wdir_cube_534():
                        [310.0, 309.0, 10.0, 10.0]]],
                      [[[190.0, 40.0, 270.0, 270.0],
                        [170.0, 170.0, 47.0, 47.0],
-                       [310.0, 309.0, 10.0, 10.0]]]])
+                       [310.0, 309.0, 10.0, 10.0]]]], dtype=np.float32)
 
     cube = set_up_cube(num_grid_points=4,
                        num_realization_points=5,
@@ -240,7 +240,7 @@ class Test_complex_to_deg_roundtrip(IrisTest):
         """Tests that array of values are converted to complex and back."""
         tmp_complex = self.plugin.deg_to_complex(self.cube.data)
         result = self.plugin.complex_to_deg(tmp_complex)
-        self.assertArrayAlmostEqual(result, self.cube.data)
+        self.assertArrayAlmostEqual(result, self.cube.data, decimal=4)
 
     def test_from_complex(self):
         """Tests that array of values are converted to degrees and back."""
@@ -283,7 +283,8 @@ class Test_calc_wind_dir_mean(IrisTest):
         result = self.plugin.wdir_slice_mean
         self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.data, np.ndarray)
-        self.assertArrayAlmostEqual(result.data, self.expected_wind_mean)
+        self.assertArrayAlmostEqual(result.data, self.expected_wind_mean,
+                                    decimal=4)
 
 
 class Test_find_r_values(IrisTest):
@@ -430,16 +431,19 @@ class Test_process(IrisTest):
         self.expected_wind_mean = (
             np.array([[[176.63627625, 46.00244522, 90.0, 90.0],
                        [170.0, 170.0, 47.0, 36.54423141],
-                       [333.41320801, 320.03521729, 10.0, 10.0]]]))
+                       [333.41320801, 320.03521729, 10.0, 10.0]]],
+                     dtype=np.float32))
 
         self.expected_r_vals = np.array([[0.5919044, 0.99634719, 0.2, 0.6],
                                          [1.0, 1.0, 1.0, 0.92427504],
-                                         [0.87177974, 0.91385943, 1.0, 1.0]])
+                                         [0.87177974, 0.91385943, 1.0, 1.0]],
+                                        dtype=np.float32)
 
         self.expected_confidence_measure = (
             np.array([[0.73166388, 0.95813018, 0.6, 0.8],
                       [1.0, 1.0, 1.0, 0.84808648],
-                      [0.75270665, 0.83861077, 1.0, 1.0]]))
+                      [0.75270665, 0.83861077, 1.0, 1.0]],
+                     dtype=np.float32))
 
     def test_basic(self):
         """Test that the plugin returns expected data types. """
@@ -489,7 +493,7 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertIsInstance(r_vals, np.ndarray)
         self.assertIsInstance(confidence_measure, np.ndarray)
-        self.assertArrayAlmostEqual(result, self.expected_wind_mean)
+        self.assertArrayAlmostEqual(result, self.expected_wind_mean, decimal=4)
         self.assertArrayAlmostEqual(r_vals, self.expected_r_vals)
         self.assertArrayAlmostEqual(
             confidence_measure, self.expected_confidence_measure)
@@ -500,7 +504,7 @@ class Test_process(IrisTest):
 
         self.cube.data[:, 0, 1, 1] = [0., 72., 144., 216., 288.]
         self.expected_wind_mean[0, 1, 1] = 30.77989074
-        self.expected_r_vals[1, 1] = 2.384186e-08
+        self.expected_r_vals[1, 1] = 2.665601e-08
         self.expected_confidence_measure[1, 1] = 0.0
 
         result_cube, r_vals_cube, confidence_measure_cube = (
@@ -513,10 +517,10 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertIsInstance(r_vals, np.ndarray)
         self.assertIsInstance(confidence_measure, np.ndarray)
-        self.assertArrayAlmostEqual(result, self.expected_wind_mean)
-        self.assertArrayAlmostEqual(r_vals, self.expected_r_vals)
+        self.assertArrayAlmostEqual(result, self.expected_wind_mean, decimal=4)
         self.assertArrayAlmostEqual(
             confidence_measure, self.expected_confidence_measure)
+        self.assertArrayAlmostEqual(r_vals, self.expected_r_vals)
 
 
 if __name__ == '__main__':

@@ -34,7 +34,7 @@ Tests for the orographic-enhancement CLI
 
 import pytest
 
-from improver.utilities.compare import LOOSE_TOLERANCE
+from improver.constants import LOOSE_TOLERANCE
 
 from . import acceptance as acc
 

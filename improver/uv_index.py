@@ -31,10 +31,12 @@
 """Module for calculating the uv index using radiation flux in UV downward
 at surface and radiation flux in UV upward at the surface."""
 
-from cf_units import Unit
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube, generate_mandatory_attributes)
 
 
-def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
+def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6,
+                       model_id_attr=None):
     """
     A plugin to calculate the uv index using radiation flux in UV downward
     at surface, radiation flux UV upward at surface and a scaling factor.
@@ -56,6 +58,9 @@ def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
             changed except if there are scientific reasons to
             do so. For more information see section 2.1.1 of the paper
             referenced below (no units)
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
 
     Returns:
         iris.cube.Cube:
@@ -89,8 +94,10 @@ def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6):
         msg = "The input uv files do not have the same units."
         raise ValueError(msg)
 
-    uv_index = uv_upward.copy()
-    uv_index.data = (uv_upward.data + uv_downward.data) * scale_factor
-    uv_index.rename("ultraviolet_index")
-    uv_index.units = Unit("1")
+    uv_data = (uv_upward.data + uv_downward.data) * scale_factor
+    attributes = generate_mandatory_attributes([
+        uv_upward, uv_downward], model_id_attr=model_id_attr)
+    uv_index = create_new_diagnostic_cube(
+        "ultraviolet_index", "1", uv_upward, attributes, data=uv_data)
+
     return uv_index

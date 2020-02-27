@@ -43,6 +43,9 @@ from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes, set_history_attribute
+from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube, generate_mandatory_attributes)
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
@@ -224,6 +227,93 @@ class AdvectField(BasePlugin):
 
         return adv_field
 
+    @staticmethod
+    def _update_time(input_time, advected_cube, timestep):
+        """Increment validity time on the advected cube
+
+        Args:
+            input_time (iris.coords.Coord):
+                Time coordinate from source cube
+            advected_cube (iris.cube.Cube):
+                Cube containing advected data (modified in place)
+            timestep (datetime.timedelta)
+                Time difference between the advected output and the source
+        """
+        original_datetime = next(input_time.cells())[0]
+        new_datetime = original_datetime + timestep
+        new_time = input_time.units.date2num(new_datetime)
+        time_coord_name = "time"
+        time_coord_spec = TIME_COORDS[time_coord_name]
+        time_coord = advected_cube.coord(time_coord_name)
+        time_coord.points = new_time
+        time_coord.convert_units(time_coord_spec.units)
+        time_coord.points = np.around(time_coord.points).astype(
+            time_coord_spec.dtype)
+
+    @staticmethod
+    def _add_forecast_reference_time(input_time, advected_cube):
+        """Add or replace a forecast reference time on the advected cube"""
+        try:
+            advected_cube.remove_coord("forecast_reference_time")
+        except CoordinateNotFoundError:
+            pass
+        frt_coord_name = "forecast_reference_time"
+        frt_coord_spec = TIME_COORDS[frt_coord_name]
+        frt_coord = input_time.copy()
+        frt_coord.rename(frt_coord_name)
+        frt_coord.convert_units(frt_coord_spec.units)
+        frt_coord.points = np.around(frt_coord.points).astype(
+            frt_coord_spec.dtype)
+        advected_cube.add_aux_coord(frt_coord)
+
+    @staticmethod
+    def _add_forecast_period(advected_cube, timestep):
+        """Add or replace a forecast period on the advected cube"""
+        try:
+            advected_cube.remove_coord("forecast_period")
+        except CoordinateNotFoundError:
+            pass
+
+        forecast_period_seconds = np.int32(timestep.total_seconds())
+        forecast_period_coord = AuxCoord(forecast_period_seconds,
+                                         standard_name="forecast_period",
+                                         units="seconds")
+        advected_cube.add_aux_coord(forecast_period_coord)
+
+    def _create_output_cube(self, cube, advected_data, timestep):
+        """
+        Create a cube and appropriate metadata to contain the advected forecast
+
+        Args:
+            cube (iris.cube.Cube):
+                Source cube (before advection)
+            advected_data (numpy.ndarray):
+                Advected data
+            timestep (datetime.timedelta):
+                Time difference between the advected output and the source
+
+        Returns:
+            iris.cube.Cube
+        """
+        attributes = generate_mandatory_attributes([cube])
+        if "institution" in cube.attributes.keys():
+            attributes["source"] = "{} Nowcast".format(
+                attributes["institution"])
+        else:
+            attributes["source"] = "Nowcast"
+        advected_cube = create_new_diagnostic_cube(
+            cube.name(), cube.units, cube, attributes, data=advected_data)
+        amend_attributes(advected_cube, self.attributes_dict)
+        set_history_attribute(advected_cube, "Nowcast")
+
+        self._update_time(
+            cube.coord("time").copy(), advected_cube, timestep)
+        self._add_forecast_reference_time(
+            cube.coord("time").copy(), advected_cube)
+        self._add_forecast_period(advected_cube, timestep)
+
+        return advected_cube
+
     def process(self, cube, timestep):
         """
         Extrapolates input cube data and updates validity time.  The input
@@ -273,56 +363,8 @@ class AdvectField(BasePlugin):
 
         # perform advection and create output cube
         advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
-                                           timestep.total_seconds())
-        advected_cube = cube.copy(data=advected_data)
-
-        # increment output cube time and add a "forecast_period" coordinate
-        original_datetime, = \
-            (cube.coord("time").units).num2date(cube.coord("time").points)
-        new_datetime = original_datetime + timestep
-
-        new_time = (cube.coord("time").units).date2num(new_datetime)
-
-        advected_cube.coord("time").points = new_time
-        advected_cube.coord("time").convert_units(
-            "seconds since 1970-01-01 00:00:00")
-        advected_cube.coord("time").points = (
-            np.around(advected_cube.coord("time").points).astype(np.int64))
-
-        try:
-            advected_cube.coord("forecast_reference_time").convert_units(
-                "seconds since 1970-01-01 00:00:00")
-        except CoordinateNotFoundError:
-            frt_coord = cube.coord("time").copy()
-            frt_coord.rename("forecast_reference_time")
-            advected_cube.add_aux_coord(frt_coord)
-            advected_cube.coord("forecast_reference_time").convert_units(
-                "seconds since 1970-01-01 00:00:00")
-
-        frt_points = np.around(
-            advected_cube.coord("forecast_reference_time").points
-            ).astype(np.int64)
-        advected_cube.coord("forecast_reference_time").points = frt_points
-
-        forecast_period_seconds = np.int32(timestep.total_seconds())
-        forecast_period_coord = AuxCoord(forecast_period_seconds,
-                                         standard_name="forecast_period",
-                                         units="s")
-        try:
-            advected_cube.remove_coord("forecast_period")
-        except CoordinateNotFoundError:
-            pass
-        advected_cube.add_aux_coord(forecast_period_coord)
-
-        # Modify the source attribute to describe the advected field as a
-        # Nowcast
-        if "institution" in advected_cube.attributes.keys():
-            advected_cube.attributes["source"] = (
-                "{} Nowcast".format(advected_cube.attributes["institution"]))
-        else:
-            advected_cube.attributes["source"] = "Nowcast"
-        amend_attributes(advected_cube, self.attributes_dict)
-        set_history_attribute(advected_cube, "Nowcast")
+                                           round(timestep.total_seconds()))
+        advected_cube = self._create_output_cube(cube, advected_data, timestep)
         return advected_cube
 
 

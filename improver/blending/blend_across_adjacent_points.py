@@ -114,7 +114,8 @@ class TriangularWeightedBlendAcrossAdjacentPoints(BasePlugin):
             Unit(self.parameter_units).convert(
                 self.central_point, cube.coord(self.coord).units))
         constr = iris.Constraint(
-            coord_values={self.coord: central_point})
+            coord_values={self.coord: lambda cell:
+                          cell.point == central_point})
         central_point_cube = cube.extract(constr)
         if central_point_cube is None:
             msg = ("The central point {} in units of {} not available "

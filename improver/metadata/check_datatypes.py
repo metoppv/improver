@@ -28,203 +28,176 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Utilities for datatype checking"""
+"""Utilities for mandatory datatype and units checking"""
 
+import iris
 import numpy as np
 from cf_units import Unit
-from iris.exceptions import CoordinateNotFoundError
 
-from improver.metadata.constants.time_types import (
-    TIME_COORD_NAMES, TIME_INTERVAL_DTYPE, TIME_INTERVAL_UNIT,
-    TIME_REFERENCE_DTYPE, TIME_REFERENCE_UNIT)
+from improver.metadata.constants import FLOAT_DTYPE
+from improver.metadata.constants.time_types import TIME_COORDS
 
 
-def check_cube_not_float64(cube, fix=False):
-    """Check a cube does not contain any float64 data, excepting time
-    coordinates. The cube can be modified in place, if the fix keyword is
-    specified to be True.
-
-    Args:
-        cube (iris.cube.Cube):
-            The input cube that will be checked for float64 inclusion.
-        fix (bool):
-            If fix is True, then the cube is amended to not include float64
-            data, otherwise, an error will be raised if float64 data is found.
-
-    Raises:
-        TypeError : Raised if 64 bit values are found in the cube.
+def _is_time_coord(obj):
     """
-    if cube.dtype == np.float64:
-        if fix:
-            cube.data = cube.data.astype(np.float32)
-        else:
-            raise TypeError("64 bit cube not allowed: {!r}".format(cube))
-
-    for coord in cube.coords():
-        if coord.units.is_time_reference():
-            continue
-
-        if coord.points.dtype == np.float64:
-            if fix:
-                coord.points = coord.points.astype(np.float32)
-            else:
-                raise TypeError(
-                    "64 bit coord points not allowed: {} in {!r}".format(
-                        coord, cube))
-        if coord.bounds is not None and coord.bounds.dtype == np.float64:
-            if fix:
-                coord.bounds = coord.bounds.astype(np.float32)
-            else:
-                raise TypeError(
-                    "64 bit coord bounds not allowed: {} in {!r}".format(
-                        coord, cube))
-
-
-def _construct_object_list(cube, coord_names):
-    """
-    Construct a list of objects
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube to append to object list
-        coord_names (list of str or None):
-            List of coordinate names to take from cube.  If None, adds all
-            coordinates present on the input cube.
-
-    Returns:
-        list of obj:
-            List containing the original cube and specified coordinates
-    """
-    object_list = []
-    object_list.append(cube)
-    if coord_names is not None:
-        for coord in coord_names:
-            try:
-                object_list.append(cube.coord(coord))
-            except CoordinateNotFoundError:
-                pass
-    else:
-        object_list.extend(cube.coords())
-    return object_list
-
-
-def _get_required_datatype(item):
-    """
-    Returns the required datatype of the object (cube or coordinate)
-    passed in, according to the IMPROVER standard.  Input object must
-    have attributes "units" and "dtype".
-    """
-    if item.units.is_time_reference():
-        return TIME_REFERENCE_DTYPE
-    if issubclass(item.dtype.type, np.integer):
-        return np.int32
-    return np.float32
-
-
-def check_datatypes(cube, coords=None):
-    """
-    Function to check the datatypes of cube diagnostics and coordinates
-    against the expected standard.  The default datatype is float32;
-    integer quantities are expected to be 32-bit with the exception of
-    absolute time.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube to be checked
-        coords (list or None):
-            List of coordinate names to check.  If None, checks all
-            coordinates present on the input cube.
-
-    Raises:
-        ValueError: if the input cube does not conform to the datatypes
-            standard
-    """
-    # construct a list of objects (cube and coordinates) to be checked
-    object_list = _construct_object_list(cube, coords)
-
-    msg = ('{} datatype {} does not conform to expected standard ({})\n')
-    error_string = ''
-    for item in object_list:
-        # allow string-type objects
-        if item.dtype.type == np.unicode_:
-            continue
-
-        # check numerical datatypes
-        required_dtype = _get_required_datatype(item)
-        if item.dtype.type != required_dtype:
-            error_string += msg.format(item.name(), item.dtype, required_dtype)
-
-        if (hasattr(item, "bounds") and item.bounds is not None
-                and item.bounds.dtype.type != required_dtype):
-            error_string += msg.format(
-                item.name()+' bounds', item.bounds.dtype, required_dtype)
-
-    # if any data was non-compliant, raise details here
-    if error_string:
-        raise ValueError(error_string)
-
-
-def _check_units_and_dtype(obj, units, dtype):
-    """
-    Check whether the units and datatype of the input object conform
-    to the standard given.
+    Checks whether the supplied object is an iris.coords.Coord and has a name
+    that matches a known time coord.
 
     Args:
         obj (iris.cube.Cube or iris.coords.Coord):
-            Cube or coordinate to be checked
-        units (str):
-            Required units
-        dtype (type):
-            Required datatype
+            Object to be tested
 
     Returns:
         bool:
-            True if object conforms; False if not
+            True if obj is a recognised time coord.
+
     """
-    if Unit(obj.units) != Unit(units):
-        return False
-
-    if obj.dtype.type != dtype:
-        return False
-
-    return True
+    return isinstance(obj, iris.coords.Coord) and obj.name() in TIME_COORDS
 
 
-def check_time_coordinate_metadata(cube):
+def get_required_dtype(obj):
     """
-    Function to check time coordinates against the expected standard. The
-    standard for time coordinates is due to technical requirements and if
-    violated the data integrity cannot be guaranteed; so if time coordinates
-    are non-conformant an error is raised.
+    Returns the appropriate dtype for the supplied object. This includes
+    special dtypes for time coordinates.
+
+    Args:
+        obj (iris.cube.Cube or iris.coords.Coord):
+            Object to be tested
+
+    Returns:
+        np.dtype:
+            The mandatory dtype corresponding to the object supplied.
+    """
+    if _is_time_coord(obj):
+        return np.dtype(TIME_COORDS[obj.name()].dtype)
+    if np.issubdtype(obj.dtype, np.floating):
+        return np.dtype(FLOAT_DTYPE)
+    if np.issubdtype(obj.dtype, np.integer):
+        # pass back same dtype - all ints are acceptable if not a time coord
+        return obj.dtype
+    # Assume everything else is correct (to allow string-type objects, bool)
+    return obj.dtype
+
+
+def check_dtype(obj):
+    """
+    Finds the mandatory dtype for obj and checks that it is correctly
+    applied. If obj is a coord, any bounds are checked too.
+
+    Args:
+        obj (iris.cube.Cube or iris.coords.Coord):
+            Object to be tested
+
+    Returns:
+        bool:
+            True if obj is of the mandated dtype.
+
+    """
+    # if coord, acts on coord.points
+    req_dtype = get_required_dtype(obj)
+    dtype_ok = obj.dtype == req_dtype
+
+    if isinstance(obj, iris.coords.Coord) and obj.has_bounds():
+        # check bounds - want the same dtype as the points
+        bounds_dtype_ok = obj.bounds.dtype == req_dtype
+        dtype_ok = dtype_ok and bounds_dtype_ok
+    return dtype_ok
+
+
+def get_required_units(obj):
+    """
+    Returns the mandatory units for the supplied obj. Only time coords have
+    these.
+
+    Args:
+        obj (iris.cube.Cube or iris.coords.Coord):
+            Object to be tested
+
+    Returns:
+        str or None:
+            The mandatory units corresponding to the object supplied or None
+            if there are no specific requirements for the object.
+    """
+    if _is_time_coord(obj):
+        return TIME_COORDS[obj.name()].units
+    return None
+
+
+def check_units(obj):
+    """
+    Checks if the supplied object complies with the relevant mandatory units.
+
+    Args:
+        obj (iris.cube.Cube or iris.coords.Coord):
+            Object to be tested
+
+    Returns:
+        bool:
+            True if obj meets the mandatory units requirements or has no
+            mandatory units requirement.
+
+    """
+    req_units = get_required_units(obj)
+    if req_units is None:
+        return True
+    # check object and string representation to get consistent output
+    # (e.g Unit('second') == Unit('seconds') == Unit('s'))
+    return Unit(obj.units) == Unit(req_units)
+
+
+def check_mandatory_standards(cube):
+    """
+    Checks for mandatory dtype and unit standards on a cube and raises a
+    useful exception if any non-compliance is found.
 
     Args:
         cube (iris.cube.Cube):
-            Cube to be checked
+            The cube to be checked for conformance with standards.
 
     Raises:
-        ValueError: if any the input cube's time coordinates do not conform
-            to the standard datatypes and units
+        ValueError:
+            If the cube fails to meet any mandatory dtype and units standards
     """
-    error_string = ''
-    for time_coord in TIME_COORD_NAMES:
-        try:
-            coord = cube.coord(time_coord)
-        except CoordinateNotFoundError:
-            continue
+    def check_dtype_and_units(obj):
+        """
+        Check object meets the mandatory dtype and units.
 
-        if coord.units.is_time_reference():
-            required_unit = TIME_REFERENCE_UNIT
-            required_dtype = TIME_REFERENCE_DTYPE
-        else:
-            required_unit = TIME_INTERVAL_UNIT
-            required_dtype = TIME_INTERVAL_DTYPE
+        Args:
+            obj (iris.cube.Cube or iris.coords.Coord):
+                The object to be checked.
 
-        if not _check_units_and_dtype(coord, required_unit, required_dtype):
-            msg = ('Coordinate {} does not match required '
-                   'standard (units {}, datatype {})\n')
-            error_string += msg.format(
-                coord.name(), required_unit, required_dtype)
+        Returns:
+            list:
+                Contains formatted strings describing each conformance breach.
 
-    # if non-compliance was encountered, raise all messages here
-    if error_string:
-        raise ValueError(error_string)
+        """
+        dtype_ok = check_dtype(obj)
+        units_ok = check_units(obj)
+
+        errors = []
+        if not dtype_ok:
+            req_dtype = get_required_dtype(obj)
+            msg = (f"{obj.name()} of type {type(obj)} does not have "
+                   f"required dtype.\n"
+                   f"Expected: {req_dtype}, ")
+            if isinstance(obj, iris.coords.Coord):
+                msg += f"Actual (points): {obj.points.dtype}"
+                if obj.has_bounds():
+                    msg += f", Actual (bounds): {obj.bounds.dtype}"
+            else:
+                msg += f"Actual: {obj.dtype}"
+            errors.append(msg)
+        if not units_ok:
+            req_units = get_required_units(obj)
+            msg = (f"{obj.name()} of type {type(obj)} does not have "
+                   f"required units.\n"
+                   f"Expected: {req_units}, Actual: {obj.units}")
+            errors.append(msg)
+        return errors
+
+    error_list = []
+    error_list.extend(check_dtype_and_units(cube))
+    for coord in cube.coords():
+        error_list.extend(check_dtype_and_units(coord))
+    if error_list:
+        raise ValueError('\n'.join(error_list))

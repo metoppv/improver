@@ -48,14 +48,18 @@ def process(cube: cli.inputcube,
             attributes_config: cli.inputjson = None,
             coords_to_remove: cli.comma_separated_list = None,
             new_name: str = None,
-            new_units: str = None,
-            fix_float64=False):
+            new_units: str = None):
     """Standardises a cube by one or more of regridding, updating meta-data etc
 
     Standardise a source cube. Available options are regridding (bi-linear or
     nearest-neighbour, optionally with land-mask awareness), renaming,
-    converting units, updating attributes and / or converting float64 data to
+    converting units, updating attributes and converting float64 data to
     float32.
+
+    Deprecated behaviour:
+    Translates metadata relating to the grid_id attribute from StaGE
+    version 1.1.0 to StaGE version 1.2.0. Cubes that have no "grid_id"
+    attribute are not recognised as v1.1.0 and are not changed.
 
     Args:
         cube (iris.cube.Cube):
@@ -102,10 +106,6 @@ def process(cube: cli.inputcube,
             Name of output cube.
         new_units (str):
             Units to convert to.
-        fix_float64 (bool):
-            If True, checks and fixes cube for float64 data. Without this
-            option an exception will be raised if float64 data is found but no
-            fix applied.
 
     Returns:
         iris.cube.Cube:
@@ -119,6 +119,7 @@ def process(cube: cli.inputcube,
             If regrid_mode is "nearest-with-mask" but no source land_sea_mask
             is provided (from plugin).
     """
+    from improver.metadata.amend import update_stage_v110_metadata
     from improver.standardise import StandardiseGridAndMetadata
 
     if (land_sea_mask and
@@ -127,6 +128,10 @@ def process(cube: cli.inputcube,
                "Use --regrid-mode nearest-with-mask.")
         raise ValueError(msg)
 
+    # update_stage_v110_metadata is deprecated. Please ensure metadata is
+    # StaGE version 1.2.0 compatible.
+    update_stage_v110_metadata(cube)
+
     plugin = StandardiseGridAndMetadata(
         regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
         landmask=land_sea_mask,
@@ -134,6 +139,6 @@ def process(cube: cli.inputcube,
     output_data = plugin.process(
         cube, target_grid, new_name=new_name, new_units=new_units,
         regridded_title=regridded_title, coords_to_remove=coords_to_remove,
-        attributes_dict=attributes_config, fix_float64=fix_float64)
+        attributes_dict=attributes_config)
 
     return output_data

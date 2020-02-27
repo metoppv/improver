@@ -38,6 +38,7 @@ from improver.blending.weights import (
     ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear,
     ChooseWeightsLinear)
 from improver.metadata.amend import amend_attributes
+from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
 
@@ -186,15 +187,18 @@ class WeightAndBlend(BasePlugin):
             model_id_attr=model_id_attr)
         cube = merger.process(cubelist, cycletime=cycletime)
 
-        # if blend_coord has only one value, or is not present (case where only
+        # if blend_coord has only one value (for example cycle blending with
+        # only one cycle available), or is not present (case where only
         # one model has been provided for a model blend), update attributes
-        # only
+        # and ensure that the forecast reference time on the returned cube
+        # is set to the current IMPROVER processing cycle.
         coord_names = [coord.name() for coord in cube.coords()]
         if (self.blend_coord not in coord_names or
                 len(cube.coord(self.blend_coord).points) == 1):
             result = cube.copy()
             if attributes_dict is not None:
                 amend_attributes(result, attributes_dict)
+            result, = rebadge_forecasts_as_latest_cycle([result], cycletime)
 
         # otherwise, calculate weights and blend across specified dimension
         else:

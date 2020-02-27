@@ -382,7 +382,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, self.enukx_cube.data)
         self.assertEqual(result.metadata, self.enukx_cube.metadata)
 
-    def test_one_cube_with_cycletime(self):
+    def test_one_cube_with_cycletime_model_blending(self):
         """Test the plugin returns a single input cube with an updated forecast
         reference time and period if given the "cycletime" option."""
         expected_frt = (
@@ -391,6 +391,19 @@ class Test_process(IrisTest):
         result = self.plugin_model.process(
             [self.enukx_cube], model_id_attr="mosg__model_configuration",
             cycletime='20180910T0400Z')
+        self.assertEqual(
+            result.coord("forecast_reference_time").points[0], expected_frt)
+        self.assertEqual(
+            result.coord("forecast_period").points[0], expected_fp)
+
+    def test_one_cube_with_cycletime_cycle_blending(self):
+        """Test the plugin returns a single input cube with an updated forecast
+        reference time and period if given the "cycletime" option."""
+        expected_frt = (
+            self.enukx_cube.coord("forecast_reference_time").points[0] + 3600)
+        expected_fp = self.enukx_cube.coord("forecast_period").points[0] - 3600
+        result = self.plugin_cycle.process(
+            [self.enukx_cube], cycletime='20180910T0400Z')
         self.assertEqual(
             result.coord("forecast_reference_time").points[0], expected_frt)
         self.assertEqual(

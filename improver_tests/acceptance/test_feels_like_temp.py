@@ -53,6 +53,7 @@ def test_basic(tmp_path):
                    for param in params]
     output_path = tmp_path / "output.nc"
     args = [*input_paths,
-            "--output", output_path]
+            "--output", output_path,
+            "--model-id-attr", "mosg__model_configuration"]
     run_cli(args)
     acc.compare(output_path, kgo_path)

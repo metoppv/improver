@@ -103,23 +103,55 @@ class CubeCombiner(BasePlugin):
                        "{} and {}".format(repr(cube_list[0]), repr(cube)))
                 raise ValueError(msg)
 
-    def process(self, cube_list, new_diagnostic_name, coords_to_expand=None):
+    @staticmethod
+    def _get_expanded_coord_names(cube_list):
         """
-        Create a combined cube.
+        Get names of coordinates whose bounds need expanding and points
+        recalculating after combining cubes. These are the scalar coordinates
+        that are present on all input cubes, but have different values.
+
+        Args:
+            cube_list (iris.cube.CubeList or list):
+                List of cubes to that will be combined
+
+        Returns:
+            list of str:
+                List of coordinate names to expand
+        """
+        shared_scalar_coords = {
+            coord.name() for coord in cube_list[0].coords(dim_coords=False)}
+        for cube in cube_list[1:]:
+            cube_scalar_coords = {
+                coord.name() for coord in cube.coords(dim_coords=False)}
+            shared_scalar_coords = shared_scalar_coords & cube_scalar_coords
+
+        expanded_coords = []
+        for cube in cube_list[1:]:
+            for coord in shared_scalar_coords:
+                if (cube.coord(coord) != cube_list[0].coord(coord) and
+                        coord not in expanded_coords):
+                    expanded_coords.append(coord)
+        return expanded_coords
+
+    def process(self, cube_list, new_diagnostic_name, use_midpoint=False):
+        """
+        Combine data and metadata from a list of input cubes into a single
+        cube, using the specified operation to combine the cube data.
 
         Args:
             cube_list (iris.cube.CubeList or list):
                 List of cubes to combine.
             new_diagnostic_name (str):
                 New name for the combined diagnostic.
-            coords_to_expand (dict or None):
-                Coordinates to be expanded as a key, with the value
-                indicating whether the upper or mid point of the coordinate
-                should be used as the point value, e.g.
-                {'time': 'upper'}.
+            use_midpoint (bool):
+                Determines the nature of the points and bounds for expanded
+                coordinates.  If False, the upper bound of the coordinate is
+                used as the point values.  If True, the midpoint is used.
+
         Returns:
             iris.cube.Cube:
                 Cube containing the combined data.
+
         Raises:
             ValueError: If the cubelist contains only one cube.
         """
@@ -138,9 +170,11 @@ class CubeCombiner(BasePlugin):
         if self.operation == 'mean':
             result.data = result.data / len(cube_list)
 
-        # update coordinate bounds and cube name
-        if coords_to_expand is not None:
-            result = expand_bounds(result, cube_list, coords_to_expand)
+        # update any coordinates that have been expanded, and rename output
+        expanded_coord_names = self._get_expanded_coord_names(cube_list)
+        if expanded_coord_names:
+            result = expand_bounds(result, cube_list, expanded_coord_names,
+                                   use_midpoint=use_midpoint)
         result.rename(new_diagnostic_name)
 
         return result

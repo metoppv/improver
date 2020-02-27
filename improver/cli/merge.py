@@ -29,34 +29,24 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Script to translate meta-data relating to the grid_id attribute from StaGE
-version 1.1.0 to StaGE version 1.2.0.
-"""
+"""Script to merge the input files into a single file."""
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube):
-    """Update grid_id meta-data for StaGE.
-
-    Translates meta-data relating to the grid_id attribute from StaGE
-    version 1.1.0 to StaGE version 1.2.0.
-    Files that have no "grid_id" attribute are not recognised as v1.1.0 and
-    are not changed and copied.
+def process(*cubes: cli.inputcube):
+    """Merge multiple files together
 
     Args:
-        cube (iris.cube.Cube):
-            Cube to be changed.
+        cubes (list of iris.cube.Cube):
+            Cubes to be merged.
 
     Returns:
         iris.cube.Cube:
-            Processed Cube.
-
+            A merged cube.
     """
-    from improver.metadata.amend import update_stage_v110_metadata
-
-    update_stage_v110_metadata(cube)
-    return cube
+    from iris.cube import CubeList
+    from improver.utilities.cube_manipulation import MergeCubes
+    return MergeCubes()(CubeList(cubes))

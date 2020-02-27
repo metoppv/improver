@@ -37,10 +37,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(temperature: cli.inputcube,
-            relative_humidity: cli.inputcube,
-            pressure: cli.inputcube,
-            *,
+def process(*cubes: cli.inputcube,
             convergence_condition=0.05):
     """Module to generate wet-bulb temperatures.
 
@@ -49,15 +46,17 @@ def process(temperature: cli.inputcube,
     to mitigate memory issues when trying to operate on multi-level data.
 
     Args:
-        temperature (iris.cube.Cube):
-            Cube of air temperatures, where these may be on multiple height
-            levels.
-        relative_humidity (iris.cube.Cube):
-            Cube of relative humidities, where these may be on multiple height
-            levels.
-        pressure (iris.cube.Cube):
-            Cube of air pressure, where these may be on multiple height
-            levels.
+        cubes (iris.cube.CubeList or list or iris.cube.Cube):
+            containing:
+                temperature (iris.cube.Cube):
+                    Cube of air temperatures, where these may be on multiple
+                    height levels.
+                relative_humidity (iris.cube.Cube):
+                    Cube of relative humidities, where these may be on multiple
+                    height levels.
+                pressure (iris.cube.Cube):
+                    Cube of air pressure, where these may be on multiple height
+                    levels.
         convergence_condition (float):
             The precision in Kelvin to which the Newton iterator must converge
             before returning wet-bulb temperatures.
@@ -70,6 +69,6 @@ def process(temperature: cli.inputcube,
     from improver.psychrometric_calculations.psychrometric_calculations \
         import WetBulbTemperature
 
-    result = (WetBulbTemperature(precision=convergence_condition).
-              process(temperature, relative_humidity, pressure))
+    result = WetBulbTemperature(precision=convergence_condition).process(
+        cubes)
     return result

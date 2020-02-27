@@ -37,7 +37,7 @@ from improver import BasePlugin
 from improver.metadata.utilities import (
     generate_mandatory_attributes, create_new_diagnostic_cube)
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, sort_coord_in_cube)
+    enforce_coordinate_ordering, sort_coord_in_cube, get_dim_coord_names)
 
 
 class Integration(BasePlugin):
@@ -50,7 +50,7 @@ class Integration(BasePlugin):
 
     def __init__(self, coord_name_to_integrate,
                  start_point=None, end_point=None,
-                 direction_of_integration="negative"):
+                 positive_integration=False):
         """
         Initialise class.
 
@@ -65,32 +65,26 @@ class Integration(BasePlugin):
                 Point at which to end the integration.
                 Default is None. If end_point is None, integration will
                 continue until the last available point.
-            direction_of_integration (str):
+            positive_integration (bool):
                 Description of the direction in which to integrate.
-                Options are 'positive' or 'negative'.
-                'positive' corresponds to the values within the array
+                True corresponds to the values within the array
                 increasing as the array index increases.
-                'negative' corresponds to the values within the array
+                False corresponds to the values within the array
                 decreasing as the array index increases.
         """
         self.coord_name_to_integrate = coord_name_to_integrate
         self.start_point = start_point
         self.end_point = end_point
-        self.direction_of_integration = direction_of_integration
-        if self.direction_of_integration not in ["positive", "negative"]:
-            msg = ("The specified direction of integration should be either "
-                   "'positive' or 'negative'. {} was specified.".format(
-                       self.direction_of_integration))
-            raise ValueError(msg)
+        self.positive_integration = positive_integration
         self.input_cube = None
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = ('<Integration: coord_name_to_integrate: {}, '
                   'start_point: {}, end_point: {}, '
-                  'direction_of_integration: {}>'.format(
+                  'positive_integration: {}>'.format(
                       self.coord_name_to_integrate, self.start_point,
-                      self.end_point, self.direction_of_integration))
+                      self.end_point, self.positive_integration))
         return result
 
     def ensure_monotonic_increase_in_chosen_direction(self, cube):
@@ -109,13 +103,12 @@ class Integration(BasePlugin):
 
         """
         coord_name = self.coord_name_to_integrate
-        direction = self.direction_of_integration
         increasing_order = np.all(np.diff(cube.coord(coord_name).points) > 0)
 
-        if increasing_order and direction == "negative":
+        if increasing_order and not self.positive_integration:
             cube = sort_coord_in_cube(cube, coord_name, descending=True)
 
-        if not increasing_order and direction == "positive":
+        if not increasing_order and self.positive_integration:
             cube = sort_coord_in_cube(cube, coord_name)
 
         return cube
@@ -134,12 +127,12 @@ class Integration(BasePlugin):
                     Cube containing the lower bounds to be used during the
                     integration.
         """
-        if self.direction_of_integration == "positive":
+        if self.positive_integration:
             upper_bounds = self.input_cube.coord(
                 self.coord_name_to_integrate).points[1:]
             lower_bounds = self.input_cube.coord(
                 self.coord_name_to_integrate).points[:-1]
-        elif self.direction_of_integration == "negative":
+        else:
             upper_bounds = self.input_cube.coord(
                 self.coord_name_to_integrate).points[:-1]
             lower_bounds = self.input_cube.coord(
@@ -216,8 +209,7 @@ class Integration(BasePlugin):
             np.array(bounds).astype(coord_dtype))
 
         # re-order cube to match dimensions of input cube
-        ordered_dimensions = [coord.name() for coord in
-                              self.input_cube.coords(dim_coords=True)]
+        ordered_dimensions = get_dim_coord_names(self.input_cube)
         enforce_coordinate_ordering(integrated_cube, ordered_dimensions)
         return integrated_cube
 
@@ -254,14 +246,14 @@ class Integration(BasePlugin):
             the integrated total.  All inputs (except the string "direction")
             are floats."""
             if start_point:
-                if direction == "positive" and lower_bound < start_point:
+                if direction and lower_bound < start_point:
                     return True
-                if direction == "negative" and upper_bound > start_point:
+                if not direction and upper_bound > start_point:
                     return True
             if end_point:
-                if direction == "positive" and upper_bound > end_point:
+                if direction and upper_bound > end_point:
                     return True
-                if direction == "negative" and lower_bound < end_point:
+                if not direction and lower_bound < end_point:
                     return True
             return False
 
@@ -280,7 +272,7 @@ class Integration(BasePlugin):
                 self.coord_name_to_integrate).points
 
             if skip_slice(upper_bound, lower_bound,
-                          self.direction_of_integration,
+                          self.positive_integration,
                           self.start_point, self.end_point):
                 continue
 
@@ -295,22 +287,20 @@ class Integration(BasePlugin):
 
             data.append(integral.copy())
             coord_points.append(
-                upper_bound if self.direction_of_integration == "positive" else
-                lower_bound)
+                upper_bound if self.positive_integration else lower_bound)
             coord_bounds.append([lower_bound, upper_bound])
 
         if len(data) == 0:
             msg = ("No integration could be performed for "
                    "coord_to_integrate: {}, start_point: {}, end_point: {}, "
-                   "direction_of_integration: {}. "
+                   "positive_integration: {}. "
                    "No usable data was found.".format(
                        self.coord_name_to_integrate, self.start_point,
-                       self.end_point, self.direction_of_integration))
+                       self.end_point, self.positive_integration))
             raise ValueError(msg)
 
         template = (upper_bounds_cube
-                    if self.direction_of_integration == "positive" else
-                    lower_bounds_cube)
+                    if self.positive_integration else lower_bounds_cube)
         integrated_cube = self._create_output_cube(
             template.copy(), data, coord_points, coord_bounds)
         return integrated_cube
