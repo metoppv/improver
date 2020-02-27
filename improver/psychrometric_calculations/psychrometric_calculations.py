@@ -89,6 +89,7 @@ def _svp_from_lookup(temperature, svpdata):
     output = output.reshape(temperature.shape)
     return output
 
+
 @numba.jit
 def calculate_svp_in_air(temperature, pressure):
     """
