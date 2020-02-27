@@ -44,17 +44,17 @@ RAINRATE_NC = "201811031600_radar_rainrate_composite_UK_regridded.nc"
 OE = "orographic_enhancement_standard_resolution"
 
 
-def test_basic(tmp_path):
+def test_optical_flow_inputs(tmp_path):
     """Test extrapolation nowcast using optical flow inputs"""
     kgo_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
-    kgo_path = kgo_dir / "single_orographic_enhancement_kgo.nc"
+    kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / ".." / RAINRATE_NC
-    oe_path_t3 = kgo_dir / "../orographic_enhancement_T3.nc"
+    oe_path = kgo_dir / "../orographic_enhancement.nc"
     uv_path = kgo_dir / "../optical_flow_uv.nc"
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_path_t3,
+    args = [input_path, uv_path, oe_path,
             "--max-lead-time", "30",
             "--output", output_path]
     run_cli(args)
@@ -67,12 +67,12 @@ def test_wind_inputs(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / ".." / RAINRATE_NC
     oe_path = kgo_dir / "../orographic_enhancement.nc"
-    uv_path = kgo_dir / "../uv.nc"
+    uv_path = kgo_dir / "../wind_uv.nc"
 
     output_path = tmp_path / "output.nc"
 
     args = [input_path, uv_path, oe_path,
-            "--max-lead-time", "90",
+            "--max-lead-time", "30",
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
