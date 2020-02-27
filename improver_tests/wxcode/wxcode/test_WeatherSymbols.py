@@ -81,6 +81,7 @@ class Test_WXCode(IrisTest):
             threshold_units='m s-1',
             time=time, frt=frt)
 
+        # pylint: disable=no-member
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
 
         precip_rate = set_up_probability_cube(
@@ -682,6 +683,7 @@ class Test_process(Test_WXCode):
                               1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                               1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
                               0.0, 0.0, 0.0]).reshape((3, 3, 3))
+        # pylint: disable=no-member
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
         data_precipv = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
                                  1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
