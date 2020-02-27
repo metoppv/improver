@@ -696,30 +696,28 @@ class PhaseChangeLevel(BasePlugin):
                 could be found, filled with zeros elsewhere.
 
         """
-        def fitting_function(wet_bulb_temps):
-            """
-            A small helper function used to find a linear fit of the
-            wet bulb temperature.
-            """
-            return linregress(
-                heights[start_point:end_point],
-                wet_bulb_temps[start_point:end_point])
         # Set up empty arrays for gradient and intercept
-        gradient = np.zeros(wet_bulb_temperature[0].shape)
-        intercept = np.zeros(wet_bulb_temperature[0].shape)
+        result_shape = wet_bulb_temperature.shape[1:]
+        gradient = np.zeros(result_shape)
+        intercept = np.zeros(result_shape)
         if np.any(sea_points):
+            # Use only subset of heights.
+            wbt = wet_bulb_temperature[start_point:end_point]
+            hgt = heights[start_point:end_point]
+            N = len(hgt)
             # Make the 1D sea point array 3D to account for the height axis
             # on the wet bulb temperature array.
-            index3d = np.broadcast_to(sea_points, wet_bulb_temperature.shape)
-            # Flatten the array to make it more efficient to find a linear fit
-            # for every point of interest. We can apply the fitting function
-            # along the right axis to apply it to all points in one go.
-            wet_bulb_temperature_values = (
-                wet_bulb_temperature[index3d].reshape(len(heights), -1))
-            gradient_values, intercept_values, _, _, _, = (
-                np.apply_along_axis(
-                    fitting_function, 0, wet_bulb_temperature_values))
-            # Fill in the right gradients and intercepts in the 2D array.
+            index3d = np.broadcast_to(sea_points, wbt.shape)
+            # Flatten the array to make it more convenient to find a linear fit
+            # for every point of interest.
+            y_vals = wbt[index3d].reshape(N, -1)
+            x_vals = hgt.reshape(N, 1)
+            y_sum = np.sum(y_vals, axis=0)
+            x_sum = np.sum(x_vals, axis=0)
+            xy_cov = np.sum(y_vals*x_vals, axis=0) - (1/N)*(y_sum*x_sum)
+            x_var = np.sum(x_vals*x_vals, axis=0) - (1/N)*(x_sum*x_sum)
+            gradient_values = xy_cov / x_var
+            intercept_values = (1/N)*(y_sum - gradient_values*x_sum)
             gradient[sea_points] = gradient_values
             intercept[sea_points] = intercept_values
         return gradient, intercept
