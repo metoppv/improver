@@ -32,10 +32,8 @@
 
 import unittest
 
-import types
 import numpy as np
 from numpy.testing import assert_array_equal
-import iris
 
 from improver.calibration.reliability_calibration import (
     AggregateReliabilityCalibrationTables as Plugin)
