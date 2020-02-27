@@ -223,7 +223,7 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     """Tests the creature constraint_inputcubelist_converter"""
 
     def setUp(self):
-        data = np.zeros((2,2), dtype=np.float32)
+        data = np.zeros((2, 2), dtype=np.float32)
         self.wind_speed_cube = set_up_variable_cube(data, name="wind_speed")
         self.wind_dir_cube = set_up_variable_cube(
             data, name="wind_from_direction")
