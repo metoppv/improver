@@ -426,17 +426,6 @@ class AggregateReliabilityCalibrationTables:
     """This plugin enables the aggregation of multiple reliability calibration
     tables, and/or the aggregation over coordinates in the tables."""
 
-    def __init__(self):
-        """
-        Initialise plugin for manipulating reliability calibration tables.
-        This plugin can aggregate multiple tables or aggregate over coordinates
-        using summation.
-        """
-        self.cube_index_coord = 'cube_coord'
-        self.merge_coord = lambda value: iris.coords.DimCoord(
-            np.array([value]).astype(np.int32),
-            long_name=self.cube_index_coord, units=1)
-
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return '<AggregateReliabilityCalibrationTables>'
@@ -445,7 +434,7 @@ class AggregateReliabilityCalibrationTables:
     def _check_frt_coord(cubes):
         """
         Check that the reliability calibration tables do not have overlapping
-        forecast reference time bounds. If these coordinates overlaptime it
+        forecast reference time bounds. If these coordinates overlap in time it
         indicates that some of the same forecast data has contributed to more
         than one table, thus aggregating them would double count these
         contributions.

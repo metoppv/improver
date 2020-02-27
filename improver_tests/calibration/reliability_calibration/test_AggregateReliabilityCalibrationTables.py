@@ -74,18 +74,6 @@ class Test_Aggregation(Test_Setup):
                                           [1., 2., 3., 2., 1.]])
 
 
-class Test__init__(unittest.TestCase):
-
-    """Test the __init__ method."""
-
-    def test_basic(self):
-        """Test that the init sets up the required variables."""
-        plugin = Plugin()
-        self.assertEqual(plugin.cube_index_coord, 'cube_coord')
-        self.assertIsInstance(plugin.merge_coord, types.LambdaType)
-        self.assertIsInstance(plugin.merge_coord(0), iris.coords.DimCoord)
-
-
 class Test__repr__(unittest.TestCase):
 
     """Test the __repr__ method."""
@@ -133,7 +121,6 @@ class Test_process(Test_Aggregation):
 
         plugin = Plugin()
         result = plugin.process([self.reliability_cube, self.different_frt])
-        print(result)
         assert_array_equal(result.data, self.expected_table * 2)
         assert_array_equal(result.shape, (3, 5, 3, 3))
         self.assertEqual(result.coord(frt).points, expected_points)
