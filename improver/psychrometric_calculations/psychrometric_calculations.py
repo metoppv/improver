@@ -54,8 +54,8 @@ from improver.utilities.spatial import (
     OccurrenceWithinVicinity, convert_number_of_grid_cells_into_distance)
 
 
-@numba.jit
-def _svp_from_lookup(temperature):
+@numba.jit(nopython=True)
+def _svp_from_lookup(temperature, svpdata):
     """
     Gets value for saturation vapour pressure in a pure water vapour system
     from a pre-calculated lookup table. Interpolates linearly between points in
@@ -68,18 +68,26 @@ def _svp_from_lookup(temperature):
         numpy.ndarray:
             Array of saturated vapour pressures (Pa).
     """
-    # where temperatures are outside the SVP table range, clip data to
-    # within the available range
-    T_clipped = np.clip(temperature, svp_table.T_MIN,
-                        svp_table.T_MAX - svp_table.T_INCREMENT)
+    tdata = temperature.flatten()
+    tinc = svp_table.T_INCREMENT
+    tmin = svp_table.T_MIN
+    tmax = svp_table.T_MAX - tinc
 
-    # interpolate between bracketing values
-    table_position = (T_clipped - svp_table.T_MIN) / svp_table.T_INCREMENT
-    table_index = table_position.astype(int)
-    interpolation_factor = table_position - table_index
-    return ((1.0 - interpolation_factor) * svp_table.DATA[table_index] +
-            interpolation_factor * svp_table.DATA[table_index + 1])
+    output = np.zeros_like(tdata)
 
+    for i in range(tdata.shape[0]):
+        temp = tdata[i]
+        t_clipped = np.maximum(tmin, np.minimum(temp, tmax))
+        t_position = (t_clipped - tmin) / tinc
+        t_index = np.int32(t_position)
+        t0 = svpdata[t_index]
+        t1 = svpdata[t_index + 1]
+        interpolation_factor = t_position - t_index
+        output[i] = ((1. - interpolation_factor) * t0 +
+                     interpolation_factor * t1)
+
+    output = output.reshape(temperature.shape)
+    return output
 
 @numba.jit
 def calculate_svp_in_air(temperature, pressure):
@@ -102,7 +110,7 @@ def calculate_svp_in_air(temperature, pressure):
         Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
         Series, Vol. 30; Equation A4.7.
     """
-    svp = _svp_from_lookup(temperature)
+    svp = _svp_from_lookup(temperature, svp_table.DATA)
     temp_Celsius = temperature.copy() + consts.ABSOLUTE_ZERO
     correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_Celsius *
                                             temp_Celsius))
@@ -168,7 +176,7 @@ class WetBulbTemperature(BasePlugin):
         return slices
 
     @staticmethod
-    @numba.jit
+    @numba.jit(nopython=True)
     def _calculate_latent_heat(temperature):
         """
         Calculate a temperature adjusted latent heat of condensation for water
