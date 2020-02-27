@@ -196,24 +196,34 @@ class Test_with_intermediate_output(unittest.TestCase):
         m.assert_called_with(True, 'foo')
         self.assertEqual(result, 4)
 
-
+# pylint: disable=W0613
 def replace_load_with_extract(function, cube, constraints=None):
-    """Function to replicate the call to merge_coerce_with within
+    """Function to replicate the call to maybe_coerce_with within
     create_constrained_inputcubelist_converter.
 
     Args:
         function:
             Unused argument for the purpose of replicating the
-            merge_coerce_with interface.
+            maybe_coerce_with interface.
         cube (iris.cube.Cube or iris.cube.CubeList):
             Cube or CubeList to be extracted from.
         constraints (str or None):
             Expected name of cube for extraction.
+
+    Returns:
+        iris.cube.Cube:
+            The extracted cube.
+
+    Raises:
+        ValueError:
+            Error to replicate the behaviour of the call of maybe_coerce_with,
+            where loading a cube with an invalid constraint results in a
+            ValueError.
     """
     if constraints:
         cube = cube.extract(constraints)
     if isinstance(cube, CubeList):
-        cube, = cube
+        cube, = cube.copy()
     if cube is None:
         raise ValueError
     return cube
