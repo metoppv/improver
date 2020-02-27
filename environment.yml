@@ -17,5 +17,6 @@ dependencies:
   - pycodestyle
   - filelock
   - mock
+  - numba
   - pip:
     - clize
