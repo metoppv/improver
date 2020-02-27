@@ -40,9 +40,6 @@ from improver.utilities.cube_checker import (
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area, distance_to_number_of_grid_cells)
 
-# Maximum radius of the neighbourhood width in grid cells.
-MAX_RADIUS_IN_GRID_CELLS = 500
-
 
 def check_radius_against_distance(cube, radius):
     """Check required distance isn't greater than the size of the domain.
@@ -51,7 +48,8 @@ def check_radius_against_distance(cube, radius):
         cube (iris.cube.Cube):
             The cube to check.
         radius (float):
-            The radius, which cannot be bigger than the size of the domain.
+            The radius, which cannot be more than a third of the
+            size of the domain.
 
     """
     axes = []
@@ -60,7 +58,7 @@ def check_radius_against_distance(cube, radius):
         coord.convert_units('metres')
         axes.append((max(coord.points) - min(coord.points)))
 
-    max_allowed = np.sqrt(axes[0] ** 2 + axes[1] ** 2)
+    max_allowed = np.sqrt(axes[0] ** 2 + axes[1] ** 2) * 0.5
     if radius > max_allowed:
         raise ValueError(f"Distance of {radius}m exceeds max domain "
                          f"distance of {max_allowed}m")
@@ -229,8 +227,7 @@ class CircularNeighbourhood:
 
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
-        grid_cells = distance_to_number_of_grid_cells(cube, radius,
-                                                      MAX_RADIUS_IN_GRID_CELLS)
+        grid_cells = distance_to_number_of_grid_cells(cube, radius)
         cube = self.apply_circular_kernel(cube, grid_cells)
         return cube
 
@@ -439,8 +436,7 @@ class GeneratePercentilesFromACircularNeighbourhood:
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
         # Take data array and identify X and Y axes indices
-        grid_cell = distance_to_number_of_grid_cells(cube, radius,
-                                                     MAX_RADIUS_IN_GRID_CELLS)
+        grid_cell = distance_to_number_of_grid_cells(cube, radius)
         check_radius_against_distance(cube, radius)
         ranges_xy = np.array((grid_cell, grid_cell))
         kernel = circular_kernel(ranges_xy, grid_cell, weighted_mode=False)

@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.wind_calculations.wind_direction import WindDirection
 
-from ..nbhood.test_NeighbourhoodProcessing import set_up_cube
+from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 
 
 class Test__init__(IrisTest):
@@ -207,7 +207,7 @@ class Test_mean_over_neighbourhood(IrisTest):
            neighbourhood is calculated where the sum_or_fraction option is
            set to "fraction"."""
         result = SquareNeighbourhood().mean_over_neighbourhood(
-            self.cube, self.mask, self.width, self.width)
+            self.cube, self.mask, self.width)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, self.expected)
 
@@ -225,7 +225,7 @@ class Test_mean_over_neighbourhood(IrisTest):
              [-3., -6., -5., -8., -5., -3., 8.]])
         result = SquareNeighbourhood(
             sum_or_fraction="sum").mean_over_neighbourhood(
-                self.cube, self.mask, self.width, self.width)
+                self.cube, self.mask, self.width)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 

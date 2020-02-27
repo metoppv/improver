@@ -50,7 +50,7 @@ from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.mathematical_operations import Integration
 from improver.utilities.spatial import (
-    OccurrenceWithinVicinity, convert_number_of_grid_cells_into_distance)
+    OccurrenceWithinVicinity, number_of_grid_cells_to_distance)
 
 
 def _svp_from_lookup(temperature):
@@ -885,7 +885,7 @@ class PhaseChangeLevel(BasePlugin):
                 The cube containing the maximum in a neighbourhood of the
                 orography data.
         """
-        radius_in_metres = convert_number_of_grid_cells_into_distance(
+        radius_in_metres = number_of_grid_cells_to_distance(
             orography_cube, self.grid_point_radius)
         max_in_nbhood_orog = OccurrenceWithinVicinity(
             radius_in_metres).process(orography_cube)

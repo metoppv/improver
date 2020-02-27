@@ -43,9 +43,6 @@ from improver.utilities.pad_spatial import (
 from improver.utilities.spatial import (
     distance_to_number_of_grid_cells)
 
-# Maximum radius of the neighbourhood width in grid cells.
-MAX_RADIUS_IN_GRID_CELLS = 500
-
 
 class SquareNeighbourhood:
 
@@ -205,14 +202,14 @@ class SquareNeighbourhood:
         return neighbourhood_total
 
     def mean_over_neighbourhood(self, summed_cube, summed_mask,
-                                cells_x, cells_y, iscomplex=False):
+                                cells, iscomplex=False):
         """
         Method to calculate the average value in a square neighbourhood using
         the 4-point algorithm to find the total sum over the neighbourhood.
 
         The output from the cumulate_array method can be used to
         calculate the sum over a neighbourhood of size
-        (2*cells_x+1)*(2*cells_y+1). This sum is then divided by the area of
+        (2*cells+1)*(2*cells_y+1). This sum is then divided by the area of
         the neighbourhood to calculate the mean value in the neighbourhood.
 
         For all points, a fast vectorised approach is taken:
@@ -243,7 +240,7 @@ class SquareNeighbourhood:
                 Must be passed through cumulate_array method first.
                 The cube should contain only x and y dimensions,
                 so will generally be a slice of a cube.
-            cells_x (int):
+            cells (int):
                 The radius of the neighbourhood in grid points, in the x
                 direction (excluding the central grid point).
             cells_y (int):
@@ -266,14 +263,14 @@ class SquareNeighbourhood:
 
         # Displacements from the point at the centre of the neighbourhood.
         # Equivalent to point B in the docstring example.
-        ymax_xmax_disp = (cells_y*n_columns) + cells_x
+        ymax_xmax_disp = (cells * n_columns) + cells
         # Equivalent to point A in the docstring example.
-        ymax_xmin_disp = (cells_y*n_columns) - cells_x - 1
+        ymax_xmin_disp = (cells * n_columns) - cells - 1
 
         # Equivalent to point D in the docstring example.
-        ymin_xmax_disp = (-1*(cells_y+1)*n_columns) + cells_x
+        ymin_xmax_disp = (-1 * (cells + 1) * n_columns) + cells
         # Equivalent to point C in the docstring example.
-        ymin_xmin_disp = (-1*(cells_y+1)*n_columns) - cells_x - 1
+        ymin_xmin_disp = (-1 * (cells + 1) * n_columns) - cells - 1
 
         # Flatten the cube data and create 4 copies of the flattened
         # array which are rolled to align the 4-points which are needed
@@ -396,7 +393,7 @@ class SquareNeighbourhood:
         summed_up_mask = self.cumulate_array(padded_mask)
         neighbourhood_averaged_cube = (
             self.mean_over_neighbourhood(summed_up_cube, summed_up_mask,
-                                         grid_cells, grid_cells,
+                                         grid_cells,
                                          is_complex))
         if neighbourhood_averaged_cube.dtype in [np.float64, np.longdouble]:
             neighbourhood_averaged_cube.data = (
@@ -420,8 +417,8 @@ class SquareNeighbourhood:
             mask (iris.cube.Cube):
                 The mask cube created by set_up_cubes_to_be_neighbourhooded.
             grid_cells (float):
-                The number of grid cells along the x axis used to create a
-                square neighbourhood.
+                The number of grid cells used to create a square
+                neighbourhood (assuming an equal area grid).
 
         Returns:
             iris.cube.Cube:
@@ -479,8 +476,7 @@ class SquareNeighbourhood:
         original_attributes = cube.attributes
         original_methods = cube.cell_methods
         grid_cells = (
-            distance_to_number_of_grid_cells(cube, radius,
-                                             MAX_RADIUS_IN_GRID_CELLS))
+            distance_to_number_of_grid_cells(cube, radius))
 
         result_slices = iris.cube.CubeList()
         for cube_slice in cube.slices([cube.coord(axis='y'),

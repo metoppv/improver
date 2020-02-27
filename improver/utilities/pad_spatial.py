@@ -267,9 +267,7 @@ def remove_cube_halo(cube, halo_radius):
     result_slices = iris.cube.CubeList()
     for cube_slice in cube.slices([cube.coord(axis='y'),
                                    cube.coord(axis='x')]):
-        cube_halo = remove_halo_from_cube(cube_slice,
-                                          halo_size_x,
-                                          halo_size_y)
+        cube_halo = remove_halo_from_cube(cube_slice, halo_size_x, halo_size_y)
         result_slices.append(cube_halo)
     result = result_slices.merge_cube()
 
@@ -297,7 +295,7 @@ def remove_halo_from_cube(cube, width_x, width_y):
             The original cube to be trimmed of edge data. The cube should
             contain only x and y dimensions, so will generally be a slice
             of a cube.
-        width_x (int):
+        width_x (int or float):
             The width in x directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.

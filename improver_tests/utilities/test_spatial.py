@@ -46,7 +46,7 @@ from iris.time import PartialDateTime
 from improver.utilities.spatial import (
     calculate_grid_spacing, check_if_grid_is_equal_area,
     distance_to_number_of_grid_cells,
-    convert_number_of_grid_cells_into_distance, lat_lon_determine,
+    number_of_grid_cells_to_distance, lat_lon_determine,
     transform_grid_to_lat_lon)
 
 from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
@@ -228,7 +228,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         Test the distance in metres to grid cell conversion within a maximum
         distance in grid cells.
         """
-        result = distance_to_number_of_grid_cells(self.cube, self.DISTANCE, 50)
+        result = distance_to_number_of_grid_cells(self.cube, self.DISTANCE)
         self.assertEqual(result, 3)
 
     def test_basic_distance_to_grid_cells_km_grid(self):
@@ -252,15 +252,6 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             distance_to_number_of_grid_cells(self.cube, distance)
 
-    def test_error_outside_maximum_distance(self):
-        """Test behaviour with a non-zero point with unhandleable range."""
-        distance = 40000.0
-        max_distance_in_grid_cells = 10
-        msg = "Distance of 40000.0m exceeds maximum permitted"
-        with self.assertRaisesRegex(ValueError, msg):
-            distance_to_number_of_grid_cells(self.cube, distance,
-                                             max_distance_in_grid_cells)
-
     def test_single_point_range_0(self):
         """Test behaviour with zero range."""
         cube = self.cube
@@ -270,9 +261,9 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
             distance_to_number_of_grid_cells(cube, radius)
 
 
-class Test_convert_number_of_grid_cells_into_distance(IrisTest):
+class Test_number_of_grid_cells_to_distance(IrisTest):
 
-    """Test the convert_number_of_grid_cells_into_distance method"""
+    """Test the number_of_grid_cells_to_distance method"""
 
     def setUp(self):
         """Set up a cube with x and y coordinates"""
@@ -287,8 +278,7 @@ class Test_convert_number_of_grid_cells_into_distance(IrisTest):
 
     def test_basic(self):
         """Test the function does what it's meant to in a simple case."""
-        result_radius = convert_number_of_grid_cells_into_distance(
-            self.cube, 2)
+        result_radius = number_of_grid_cells_to_distance(self.cube, 2)
         expected_result = 4000.0
         self.assertAlmostEqual(result_radius, expected_result)
         self.assertIs(type(expected_result), float)
@@ -298,8 +288,7 @@ class Test_convert_number_of_grid_cells_into_distance(IrisTest):
         Test that the output is still in metres when the input coordinates
         are in a different unit.
         """
-        result_radius = convert_number_of_grid_cells_into_distance(
-            self.cube, 2)
+        result_radius = number_of_grid_cells_to_distance(self.cube, 2)
         for coord in self.cube.coords():
             coord.convert_units("km")
         expected_result = 4000.0
@@ -308,8 +297,7 @@ class Test_convert_number_of_grid_cells_into_distance(IrisTest):
 
     def test_check_different_input_radius(self):
         """Check it works for different input values."""
-        result_radius = convert_number_of_grid_cells_into_distance(
-            self.cube, 5)
+        result_radius = number_of_grid_cells_to_distance(self.cube, 5)
         expected_result = 10000.0
         self.assertAlmostEqual(result_radius, expected_result)
         self.assertIs(type(expected_result), float)
