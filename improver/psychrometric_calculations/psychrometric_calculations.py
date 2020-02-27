@@ -34,6 +34,7 @@ import warnings
 
 import iris
 import numpy as np
+import numba
 from cf_units import Unit
 from iris.cube import CubeList
 from scipy.interpolate import griddata
@@ -657,6 +658,7 @@ class PhaseChangeLevel(BasePlugin):
         phase_change_level_data[index] = phase_cl
 
     @staticmethod
+    @numba.jit(nopython=True)
     def linear_wet_bulb_fit(wet_bulb_temperature, heights, sea_points,
                             start_point=0, end_point=5):
         """
@@ -696,32 +698,17 @@ class PhaseChangeLevel(BasePlugin):
                 could be found, filled with zeros elsewhere.
 
         """
-        def fitting_function(wet_bulb_temps):
-            """
-            A small helper function used to find a linear fit of the
-            wet bulb temperature.
-            """
-            return linregress(
-                heights[start_point:end_point],
-                wet_bulb_temps[start_point:end_point])
         # Set up empty arrays for gradient and intercept
         gradient = np.zeros(wet_bulb_temperature[0].shape)
         intercept = np.zeros(wet_bulb_temperature[0].shape)
-        if np.any(sea_points):
-            # Make the 1D sea point array 3D to account for the height axis
-            # on the wet bulb temperature array.
-            index3d = np.broadcast_to(sea_points, wet_bulb_temperature.shape)
-            # Flatten the array to make it more efficient to find a linear fit
-            # for every point of interest. We can apply the fitting function
-            # along the right axis to apply it to all points in one go.
-            wet_bulb_temperature_values = (
-                wet_bulb_temperature[index3d].reshape(len(heights), -1))
-            gradient_values, intercept_values, _, _, _, = (
-                np.apply_along_axis(
-                    fitting_function, 0, wet_bulb_temperature_values))
-            # Fill in the right gradients and intercepts in the 2D array.
-            gradient[sea_points] = gradient_values
-            intercept[sea_points] = intercept_values
+
+        for i, j in zip(sea_points[0], sea_points[1]):
+            x = heights[start_point:end_point]
+            y = wet_bulb_temperature[start_point:end_point, i, j]
+            A = np.stack((x, np.ones(len(x), dtype=np.float32)), -1)
+            output = np.linalg.lstsq(A, y, rcond=-1)[0]
+            gradient[i, j] = output[0]
+            intercept[i, j] = output[1]
         return gradient, intercept
 
     def fill_in_sea_points(
@@ -758,14 +745,18 @@ class PhaseChangeLevel(BasePlugin):
                 leading dimension of the wet_bulb_temperature.
 
         """
-        sea_points = (
+        sea_points = np.where(
             np.isnan(phase_change_level_data) & (land_sea_data < 1.0) &
             (max_wb_integral < self.falling_level_threshold))
-        if np.all(sea_points is False):
+        if sea_points[0].size == 0:
             return
 
         gradient, intercept = self.linear_wet_bulb_fit(wet_bulb_temperature,
                                                        heights, sea_points)
+
+        sea_points = (
+            np.isnan(phase_change_level_data) & (land_sea_data < 1.0) &
+            (max_wb_integral < self.falling_level_threshold))
 
         self.find_extrapolated_falling_level(
             max_wb_integral, gradient, intercept, phase_change_level_data,
