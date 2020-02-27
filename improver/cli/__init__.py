@@ -223,8 +223,8 @@ def create_constrained_inputcubelist_converter(*constraints):
         """Passes the cube and constraints onto maybe_coerce_with.
 
         Args:
-            to_convert (string or iris.cube.CubeList):
-                The cube to be passed forward for returning or loading.
+            to_convert (string):
+                The filename to be loaded.
 
         Returns:
             iris.cube.CubeList:
