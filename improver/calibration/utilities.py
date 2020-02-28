@@ -206,3 +206,33 @@ def filter_non_matching_cubes(historic_forecast, truth):
         raise ValueError(msg)
     return (matching_historic_forecasts.merge_cube(),
             matching_truths.merge_cube())
+
+
+def create_unified_frt_coord(forecast_reference_time):
+    """
+    Constructs a single forecast reference time coordinate from a multi-valued
+    coordinate. The new coordinate records the maximum range of bounds of
+    the input forecast reference times, with the point value set to the latest
+    of those in the inputs.
+
+    Args:
+        forecast_reference_time (iris.coord.DimCoord):
+            The forecast_reference_time coordinate to be used in the
+            coordinate creation.
+    Returns:
+        iris.coord.DimCoord:
+            A dimension coordinate containing the forecast reference time
+            coordinate with suitable bounds. The coordinate point is that
+            of the latest contributing forecast.
+    """
+    frt_point = forecast_reference_time.points.max()
+    frt_bounds_min = forecast_reference_time.points.min()
+    frt_bounds_max = frt_point
+    if forecast_reference_time.has_bounds():
+        frt_bounds_min = min(frt_bounds_min,
+                             forecast_reference_time.bounds.min())
+        frt_bounds_max = max(frt_bounds_max,
+                             forecast_reference_time.bounds.max())
+    frt_bounds = (frt_bounds_min, frt_bounds_max)
+    return forecast_reference_time[0].copy(points=frt_point,
+                                           bounds=frt_bounds)

@@ -35,10 +35,11 @@ from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver import BasePlugin
-from improver.utilities.cube_manipulation import MergeCubes
+from improver.utilities.cube_manipulation import MergeCubes, collapsed
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.calibration.utilities import filter_non_matching_cubes
+from improver.calibration.utilities import (filter_non_matching_cubes,
+                                            create_unified_frt_coord)
 
 
 class ConstructReliabilityCalibrationTables(BasePlugin):
@@ -217,28 +218,6 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             raise ValueError(msg.format(n_cycle_hours, n_forecast_periods))
 
     @staticmethod
-    def _create_unified_frt_coord(forecast_reference_time):
-        """
-        Constructs a forecast reference time coordinate for the reliability
-        calibration cube that records the range of forecast reference times
-        of the forecasts used in populating the table.
-
-        Args:
-            forecast_reference_time (iris.coord.DimCoord):
-                The forecast_reference_time coordinate to be used in the
-                coordinate creation.
-        Returns:
-            iris.coord.DimCoord:
-                A dimension coordinate containing the forecast reference time
-                coordinate with suitable bounds. The coordinate point is that
-                of the latest contributing forecast.
-        """
-        frt_point = forecast_reference_time.points.max()
-        frt_bounds = (forecast_reference_time.points.min(), frt_point)
-        return forecast_reference_time[0].copy(points=frt_point,
-                                               bounds=frt_bounds)
-
-    @staticmethod
     def _define_metadata(forecast_slice):
         """
         Define metadata that is specifically required for reliability table
@@ -298,7 +277,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         probability_bins_coord = self._create_probability_bins_coord()
         reliability_index_coord, reliability_name_coord = (
             self._create_reliability_table_coords())
-        frt_coord = self._create_unified_frt_coord(
+        frt_coord = create_unified_frt_coord(
             forecast.coord('forecast_reference_time'))
 
         # List of required non-spatial coordinates from the forecast
@@ -440,3 +419,72 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             reliability_tables.append(reliability_entry)
 
         return MergeCubes()(reliability_tables)
+
+
+class AggregateReliabilityCalibrationTables:
+
+    """This plugin enables the aggregation of multiple reliability calibration
+    tables, and/or the aggregation over coordinates in the tables."""
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        return '<AggregateReliabilityCalibrationTables>'
+
+    @staticmethod
+    def _check_frt_coord(cubes):
+        """
+        Check that the reliability calibration tables do not have overlapping
+        forecast reference time bounds. If these coordinates overlap in time it
+        indicates that some of the same forecast data has contributed to more
+        than one table, thus aggregating them would double count these
+        contributions.
+
+        Args:
+            cubes (iris.cube.CubeList):
+                The list of reliability calibration tables for which the
+                forecast reference time coordinates should be checked.
+        Raises:
+            ValueError: If the bounds overlap.
+        """
+        bounds = []
+        for cube in cubes:
+            bounds.extend(cube.coord('forecast_reference_time').bounds)
+        bounds = np.concatenate(bounds)
+        if not all(x < y for x, y in zip(bounds, bounds[1:])):
+            raise ValueError('Reliability calibration tables have overlapping '
+                             'forecast reference time bounds, indicating that '
+                             'the same forecast data has contributed to the '
+                             'construction of both tables. Cannot aggregate.')
+
+    def process(self, cubes, coordinates=None):
+        """
+        Aggregate the input reliability calibration table cubes and return the
+        result.
+
+        Args:
+            cubes (list or iris.cube.CubeList):
+                The cube or cubes containing the reliability calibration tables
+                to aggregate.
+            coordinates (list or None):
+                A list of coordinates over which to aggregate the reliability
+                calibration table using summation. If the argument is None and
+                a single cube is provided, this cube will be returned
+                unchanged.
+        """
+        coordinates = [] if coordinates is None else coordinates
+
+        try:
+            cube, = cubes
+        except ValueError:
+            cubes = iris.cube.CubeList(cubes)
+            self._check_frt_coord(cubes)
+            cube = cubes.merge_cube()
+            coordinates.append('forecast_reference_time')
+        else:
+            if not coordinates:
+                return cube
+
+        result = collapsed(cube, coordinates, iris.analysis.SUM)
+        frt = create_unified_frt_coord(cube.coord('forecast_reference_time'))
+        result.replace_coord(frt)
+        return result
