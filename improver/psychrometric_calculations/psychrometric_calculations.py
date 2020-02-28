@@ -650,19 +650,23 @@ class PhaseChangeLevel(BasePlugin):
 
         # For points where -intercept/gradient is greater than zero:
         index2 = (-intercept/gradient >= 0.0)
+        intercept2 = intercept[index2]
+        gradient2 = gradient[index2]
         inside_sqrt = (
-            intercept[index2]**2 - 2*gradient[index2]*(
+            intercept2*intercept2 - 2*gradient2*(
                 self.falling_level_threshold - max_wb_int[index2]))
         phase_cl[index2] = (
-            (intercept[index2] - np.sqrt(inside_sqrt))/-gradient[index2])
+            (intercept2 - np.sqrt(inside_sqrt))/-gradient2)
 
         # For points where -intercept/gradient is less than zero:
         index2 = (-intercept/gradient < 0.0)
+        intercept2 = intercept[index2]
+        gradient2 = gradient[index2]
         inside_sqrt = (
-            2*gradient[index2]*(
+            2*gradient2*(
                 max_wb_int[index2] - self.falling_level_threshold))
         phase_cl[index2] = (
-            (intercept[index2] - np.sqrt(inside_sqrt))/-gradient[index2])
+            (intercept2 - np.sqrt(inside_sqrt))/-gradient2)
         # Update the phase change level. Clip to ignore extremely negative
         # phase change levels.
         phase_cl = np.clip(phase_cl, -2000, np.inf)
