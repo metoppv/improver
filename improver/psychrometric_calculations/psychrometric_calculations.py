@@ -317,14 +317,11 @@ class WetBulbTemperature(BasePlugin):
             mixing_ratio, specific_heat, latent_heat, wbt_data)
         del mixing_ratio
 
-        # Initialise wet bulb temperature increment
-        #delta_wbt = 10. * np.broadcast_to(self.precision, temperature.shape)
-
-        to_update = np.arange(temperature.size)
-
         # Iterate to find the wet bulb temperature, using temperature as first
         # guess
         iteration = 0
+        to_update = np.arange(temperature.size)
+        update_to_update = slice(None)
         while to_update.size and iteration < self.maximum_iterations:
 
             if iteration > 0:
