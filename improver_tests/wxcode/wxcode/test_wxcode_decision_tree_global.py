@@ -118,17 +118,50 @@ class Test_wxcode_decision_tree_global(IrisTest):
                 self.assertEqual(fail in tree, True)
 
     def test_diagnostic_len_match(self):
-        """Test diagnostic fields, thresholds and conditions are same len."""
+        """Test diagnostic fields, thresholds and conditions are same
+        structure."""
+
+        def check_value_consistency(values):
+            """Return True if all input lists have same nested list
+            structure. e.g. ['item'] != [['item']]."""
+            type_set = set(map(type, values))
+            if list in type_set:
+                return (
+                        len(type_set) == 1 and
+                        len(set(map(len, values))) == 1 and
+                        all(map(check_value_consistency, zip(*values)))
+                )
+            return True
+
         tree = wxcode_decision_tree_global()
+        diagnostic_keys = [
+            'diagnostic_fields',
+            'diagnostic_conditions',
+            'diagnostic_thresholds']
         for node in tree:
             query = tree[node]
-            diag_len = len(expand_nested_lists(query, 'diagnostic_fields'))
-            thres_len = len(expand_nested_lists(query,
-                                                'diagnostic_thresholds'))
-            cond_len = len(expand_nested_lists(query,
-                                               'diagnostic_conditions'))
-            self.assertEqual(diag_len, thres_len)
-            self.assertEqual(diag_len, cond_len)
+            self.assertTrue(check_value_consistency(
+                [query[key] for key in diagnostic_keys]))
+
+    def test_probability_len_match(self):
+        """Test probability_thresholds list is right shape."""
+        tree = wxcode_decision_tree_global()
+        for _, query in tree.items():
+            check_list = query['probability_thresholds']
+            self.assertTrue(all([isinstance(x, (int, float))
+                                 for x in check_list]))
+            self.assertTrue(len(check_list) == len(query['diagnostic_fields']))
+
+    def test_gamma_len_match(self):
+        """Test diagnostic_gamma list is right shape if present."""
+        tree = wxcode_decision_tree_global()
+        for _, query in tree.items():
+            check_list = query.get('diagnostic_gamma', None)
+            if not check_list:
+                continue
+            self.assertTrue(all([isinstance(x, (int, float))
+                                 for x in check_list]))
+            self.assertTrue(len(check_list) == len(query['diagnostic_fields']))
 
 
 if __name__ == '__main__':
