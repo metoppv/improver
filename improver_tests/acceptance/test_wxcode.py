@@ -38,13 +38,7 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
-
-@pytest.mark.slow
-def test_basic(tmp_path):
-    """Test basic wxcode processing"""
-    kgo_dir = acc.kgo_root() / "wxcode/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    params = ["cloud_area_fraction_above",
+ALL_PARAMS = ["cloud_area_fraction_above",
               "lightning_flashes_per_unit_area_in_vicinity_above",
               "low_type_cloud_area_fraction_above",
               "lwe_precipitation_rate_above",
@@ -53,8 +47,15 @@ def test_basic(tmp_path):
               "lwe_snowfall_rate_above",
               "rainfall_rate_above",
               "visibility_in_air_below"]
+
+
+@pytest.mark.slow
+def test_basic(tmp_path):
+    """Test basic wxcode processing"""
+    kgo_dir = acc.kgo_root() / "wxcode/basic"
+    kgo_path = kgo_dir / "kgo.nc"
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
-                   for p in params]
+                   for p in ALL_PARAMS]
     output_path = tmp_path / "output.nc"
     args = [*param_paths,
             "--output", output_path]
@@ -71,17 +72,9 @@ def test_native_units(tmp_path):
     kgo_dir = acc.kgo_root() / "wxcode/basic"
     input_dir = acc.kgo_root() / "wxcode/native_units"
     kgo_path = kgo_dir / "kgo.nc"
-    params = ["cloud_area_fraction_above",
-              "lightning_flashes_per_unit_area_in_vicinity_above",
-              "low_type_cloud_area_fraction_above",
-              "lwe_precipitation_rate_above",
-              "lwe_precipitation_rate_in_vicinity_above",
-              "lwe_sleetfall_rate_above",
-              "lwe_snowfall_rate_above",
-              "rainfall_rate_above",
-              "visibility_in_air_below"]
+
     param_paths = [input_dir / f"probability_of_{p}_threshold.nc"
-                   for p in params]
+                   for p in ALL_PARAMS]
     output_path = tmp_path / "output.nc"
     args = [*param_paths,
             "--output", output_path]
@@ -130,16 +123,8 @@ def test_no_lightning(tmp_path):
     """Test wxcode processing with no lightning"""
     kgo_dir = acc.kgo_root() / "wxcode/basic"
     kgo_path = kgo_dir / "kgo_no_lightning.nc"
-    params = ["cloud_area_fraction_above",
-              "low_type_cloud_area_fraction_above",
-              "lwe_precipitation_rate_above",
-              "lwe_precipitation_rate_in_vicinity_above",
-              "lwe_sleetfall_rate_above",
-              "lwe_snowfall_rate_above",
-              "rainfall_rate_above",
-              "visibility_in_air_below"]
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
-                   for p in params]
+                   for p in ALL_PARAMS if 'lightning' not in p]
     output_path = tmp_path / "output.nc"
     args = [*param_paths,
             "--output", output_path]
