@@ -100,8 +100,8 @@ def calculate_svp_in_air(temperature, pressure):
         Series, Vol. 30; Equation A4.7.
     """
     svp = _svp_from_lookup(temperature)
-    temp_Celsius = temperature.copy() + consts.ABSOLUTE_ZERO
-    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_Celsius ** 2))
+    temp_C = temperature + consts.ABSOLUTE_ZERO
+    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_C * temp_C))
     return svp * correction.astype(np.float32)
 
 
@@ -277,8 +277,8 @@ class WetBulbTemperature(BasePlugin):
             numpy.ndarray:
                 Array of the enthalpy gradient with respect to temperature.
         """
-        numerator = (mixing_ratio * latent_heat ** 2)
-        denominator = consts.R_WATER_VAPOUR * temperature ** 2
+        numerator = (mixing_ratio * latent_heat * latent_heat)
+        denominator = consts.R_WATER_VAPOUR * temperature * temperature
         return numerator/denominator + specific_heat
 
     def _calculate_wet_bulb_temperature(
@@ -305,41 +305,53 @@ class WetBulbTemperature(BasePlugin):
 
         """
         # Initialise psychrometric variables
-        latent_heat = self._calculate_latent_heat(temperature)
+        wbt_data_upd = wbt_data = temperature.flatten()
+        pressure = pressure.flatten()
+
+        latent_heat = self._calculate_latent_heat(wbt_data)
         saturation_mixing_ratio = self._calculate_mixing_ratio(
-            temperature, pressure)
-        mixing_ratio = relative_humidity * saturation_mixing_ratio
+            wbt_data, pressure)
+        mixing_ratio = relative_humidity.flatten() * saturation_mixing_ratio
         specific_heat = self._calculate_specific_heat(mixing_ratio)
         enthalpy = self._calculate_enthalpy(
-            mixing_ratio, specific_heat, latent_heat, temperature)
+            mixing_ratio, specific_heat, latent_heat, wbt_data)
+        del mixing_ratio
 
         # Initialise wet bulb temperature increment
-        delta_wbt = 10. * np.broadcast_to(self.precision, temperature.shape)
+        #delta_wbt = 10. * np.broadcast_to(self.precision, temperature.shape)
+
+        to_update = np.arange(temperature.size)
 
         # Iterate to find the wet bulb temperature, using temperature as first
         # guess
-        wbt_data = temperature.copy()
         iteration = 0
-        while (np.abs(delta_wbt) > self.precision).any() \
-                and iteration < self.maximum_iterations:
+        while to_update.size and iteration < self.maximum_iterations:
 
             if iteration > 0:
+                wbt_data_upd = wbt_data[to_update]
+                pressure = pressure[update_to_update]
+                specific_heat = specific_heat[update_to_update]
+                latent_heat = latent_heat[update_to_update]
+                enthalpy = enthalpy[update_to_update]
                 saturation_mixing_ratio = self._calculate_mixing_ratio(
-                    wbt_data, pressure)
+                    wbt_data_upd, pressure)
 
             enthalpy_new = self._calculate_enthalpy(
-                saturation_mixing_ratio, specific_heat, latent_heat, wbt_data)
+                saturation_mixing_ratio, specific_heat, latent_heat,
+                wbt_data_upd)
             enthalpy_gradient = self._calculate_enthalpy_gradient(
-                saturation_mixing_ratio, specific_heat, latent_heat, wbt_data)
+                saturation_mixing_ratio, specific_heat, latent_heat,
+                wbt_data_upd)
             delta_wbt = (enthalpy - enthalpy_new) / enthalpy_gradient
 
             # Increment wet bulb temperature at points which have not converged
-            to_update = np.where(np.abs(delta_wbt) > self.precision)
-            wbt_data[to_update] = (wbt_data[to_update] + delta_wbt[to_update])
+            update_to_update = np.abs(delta_wbt) > self.precision
+            to_update = to_update[update_to_update]
+            wbt_data[to_update] += delta_wbt[update_to_update]
 
             iteration += 1
 
-        return wbt_data
+        return wbt_data.reshape(temperature.shape)
 
     def create_wet_bulb_temperature_cube(
             self, temperature, relative_humidity, pressure):
