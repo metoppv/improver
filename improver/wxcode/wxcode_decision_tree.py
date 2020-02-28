@@ -312,7 +312,7 @@ def wxcode_decision_tree():
             'diagnostic_gamma': [1.],
             'diagnostic_thresholds': [[(0.1, 'mm hr-1'),
                                        (0.1, 'mm hr-1')]],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': [['above', 'above']]},
 
         # B.1
         'snow_in_vicinity_cloud': {
