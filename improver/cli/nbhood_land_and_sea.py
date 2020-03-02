@@ -62,8 +62,8 @@ def process(cube: cli.inputcube,
             A cube to be processed.
         mask (iris.cube.Cube):
             A cube containing either a mask of topographic zones over land or
-            a land-sea mask. If this a land-sea mask land points should be set
-            to one and sea points set to zero.
+            a land-sea mask. If this is a land-sea mask, land points should be
+            set to one and sea points set to zero.
         weights (iris.cube.Cube):
             A cube containing the weights which are used for collapsing the
             dimension gained through masking. These weights must have been
