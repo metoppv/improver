@@ -331,23 +331,6 @@ class Test__check_forecast_consistency(Test_Setup):
             Plugin()._check_forecast_consistency(self.forecasts)
 
 
-class Test__create_cycle_hour_coord(Test_Setup):
-
-    """Test the _create_cycle_hour_coord method."""
-
-    def test_coordinate(self):
-        """Test the cycle hour coordinate has the expected value and type."""
-
-        expected_cycle_hour = 0
-        frt = self.forecast_1.coord('forecast_reference_time')
-        result = Plugin()._create_cycle_hour_coord(frt)
-
-        self.assertIsInstance(result, iris.coords.DimCoord)
-        assert_array_equal(result.points, expected_cycle_hour)
-        self.assertEqual(result.name(), 'cycle_hour')
-        self.assertEqual(result.units, 'hour')
-
-
 class Test__define_metadata(Test_Setup):
 
     """Test the _define_metadata method."""

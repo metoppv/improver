@@ -37,14 +37,17 @@ import unittest
 
 import iris
 import numpy as np
+from numpy.testing import assert_array_equal
 from iris.tests import IrisTest
 from iris.util import squeeze
 
 from improver.calibration.utilities import (
     check_predictor, convert_cube_data_to_2d,
     flatten_ignoring_masked_data, filter_non_matching_cubes,
-    merge_land_and_sea)
+    create_unified_frt_coord, merge_land_and_sea)
 
+from ..reliability_calibration.test_AggregateReliabilityCalibrationTables \
+    import Test_Aggregation
 from ..ensemble_calibration.helper_functions import (set_up_temperature_cube,
                                                      SetupCubes)
 
@@ -392,6 +395,70 @@ class Test__filter_non_matching_cubes(SetupCubes):
         with self.assertRaisesRegex(ValueError, msg):
             filter_non_matching_cubes(
                 self.partial_historic_forecasts, partial_truth)
+
+
+class Test_create_unified_frt_coord(Test_Aggregation):
+
+    """Test the create_unified_frt_coord method."""
+
+    def test_coordinate(self):
+        """Test the forecast reference time coordinate has the expected point,
+        bounds, and type for an input with multiple forecast reference time
+        points."""
+
+        frt = 'forecast_reference_time'
+        frt_coord = self.forecasts.coord(frt)
+
+        expected_points = self.forecast_2.coord(frt).points[0]
+        expected_bounds = [[self.forecast_1.coord(frt).points[0],
+                            expected_points]]
+        result = create_unified_frt_coord(frt_coord)
+
+        self.assertIsInstance(result, iris.coords.DimCoord)
+        assert_array_equal(result.points, expected_points)
+        assert_array_equal(result.bounds, expected_bounds)
+        self.assertEqual(result.name(), frt_coord.name())
+        self.assertEqual(result.units, frt_coord.units)
+
+    def test_coordinate_single_frt_input(self):
+        """Test the forecast reference time coordinate has the expected point,
+        bounds, and type for an input with a single forecast reference time
+        point."""
+
+        frt = 'forecast_reference_time'
+        frt_coord = self.forecast_1.coord(frt)
+
+        expected_points = self.forecast_1.coord(frt).points[0]
+        expected_bounds = [[self.forecast_1.coord(frt).points[0],
+                            expected_points]]
+        result = create_unified_frt_coord(frt_coord)
+
+        self.assertIsInstance(result, iris.coords.DimCoord)
+        assert_array_equal(result.points, expected_points)
+        assert_array_equal(result.bounds, expected_bounds)
+        self.assertEqual(result.name(), frt_coord.name())
+        self.assertEqual(result.units, frt_coord.units)
+
+    def test_coordinate_input_with_bounds(self):
+        """Test the forecast reference time coordinate has the expected point,
+        bounds, and type for an input multiple forecast reference times, each
+        with bounds."""
+
+        frt = 'forecast_reference_time'
+        cube = iris.cube.CubeList([self.reliability_cube,
+                                   self.different_frt]).merge_cube()
+        frt_coord = cube.coord(frt)
+
+        expected_points = self.different_frt.coord(frt).points[0]
+        expected_bounds = [[self.reliability_cube.coord(frt).bounds[0][0],
+                            self.different_frt.coord(frt).bounds[0][-1]]]
+        result = create_unified_frt_coord(frt_coord)
+
+        self.assertIsInstance(result, iris.coords.DimCoord)
+        assert_array_equal(result.points, expected_points)
+        assert_array_equal(result.bounds, expected_bounds)
+        self.assertEqual(result.name(), frt_coord.name())
+        self.assertEqual(result.units, frt_coord.units)
 
 
 class Test_merge_land_and_sea(IrisTest):
