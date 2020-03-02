@@ -313,34 +313,3 @@ def restore_non_probabilistic_dimensions(
     shape_to_reshape_to = (
         [output_probabilistic_dimension_length] + shape_to_reshape_to)
     return array_to_reshape.reshape(shape_to_reshape_to)
-
-
-def merge_land_and_sea(calibrated_land_only, uncalibrated):
-    """
-    Merge data that has been calibrated over the land with uncalibrated data.
-    Calibrated data will have masked data over the sea which will need to be
-    filled with the uncalibrated data.
-
-    Args:
-        calibrated_land_only (iris.cube.Cube):
-            A cube that has been calibrated over the land, with sea points
-            masked out. Either realizations, probabilities or percentiles.
-            Data is modified in place.
-        uncalibrated (iris.cube.Cube):
-            A cube of uncalibrated data with valid data over the sea. Either
-            realizations, probabilities or percentiles. Dimension coordinates
-            must be the same as the calibrated_land_only cube.
-
-    Raises:
-        ValueError: If input cubes do not have the same input dimensions.
-    """
-    # Check dimensions the same on both cubes.
-    if calibrated_land_only.dim_coords != uncalibrated.dim_coords:
-        message = "Input cubes do not have the same dimension coordinates"
-        raise ValueError(message)
-    # Merge data if calibrated_land_only data is masked.
-    if np.ma.is_masked(calibrated_land_only.data):
-        new_data = calibrated_land_only.data.data
-        mask = calibrated_land_only.data.mask
-        new_data[mask] = uncalibrated.data[mask]
-        calibrated_land_only.data = new_data

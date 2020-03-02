@@ -38,13 +38,17 @@ import unittest
 import iris
 import numpy as np
 from iris.tests import IrisTest
+from iris.util import squeeze
 
 from improver.calibration.utilities import (
     check_predictor, convert_cube_data_to_2d,
-    flatten_ignoring_masked_data, filter_non_matching_cubes)
+    flatten_ignoring_masked_data, filter_non_matching_cubes,
+    merge_land_and_sea)
 
 from ..ensemble_calibration.helper_functions import (set_up_temperature_cube,
                                                      SetupCubes)
+
+from ...set_up_test_cubes import set_up_percentile_cube
 
 
 class Test_convert_cube_data_to_2d(IrisTest):
@@ -388,6 +392,86 @@ class Test__filter_non_matching_cubes(SetupCubes):
         with self.assertRaisesRegex(ValueError, msg):
             filter_non_matching_cubes(
                 self.partial_historic_forecasts, partial_truth)
+
+
+class Test_merge_land_and_sea(IrisTest):
+
+    """Test merge_land_and_sea"""
+
+    def setUp(self):
+        """Set up a percentile cube"""
+        # Create a percentile cube
+        land_data = np.ones((2, 3, 4), dtype=np.float32)
+        sea_data = np.ones((2, 3, 4), dtype=np.float32)*3.0
+        mask = np.array([[[True, False, False, False],
+                          [True, False, False, False],
+                          [False, False, False, True]],
+                         [[True, False, False, False],
+                          [True, False, False, False],
+                          [False, False, False, True]]])
+        land_data = np.ma.MaskedArray(land_data, mask)
+        self.percentiles_land = set_up_percentile_cube(land_data, [30, 60])
+        self.percentiles_sea = set_up_percentile_cube(sea_data, [30, 60])
+
+    def test_missing_dim(self):
+        """Check that an error is raised if missing dimensional coordinate"""
+        single_percentile = squeeze(self.percentiles_land[0])
+        message = "Input cubes do not have the same dimension coordinates"
+        with self.assertRaisesRegex(ValueError, message):
+            merge_land_and_sea(single_percentile, self.percentiles_sea)
+
+    def test_mismatch_dim_length(self):
+        """Check an error is raised if a dim coord has a different length"""
+        land_slice = self.percentiles_land[:, 1:, :]
+        message = "Input cubes do not have the same dimension coordinates"
+        with self.assertRaisesRegex(ValueError, message):
+            merge_land_and_sea(land_slice, self.percentiles_sea)
+
+    def test_merge(self):
+        """Test merged data."""
+        expected_merged_data = np.array(
+            [[[3.0, 1.0, 1.0, 1.0],
+              [3.0, 1.0, 1.0, 1.0],
+              [1.0, 1.0, 1.0, 3.0]],
+             [[3.0, 1.0, 1.0, 1.0],
+              [3.0, 1.0, 1.0, 1.0],
+              [1.0, 1.0, 1.0, 3.0]]], dtype=np.float32)
+        expected_cube = self.percentiles_land.copy()
+        expected_cube.data = expected_merged_data
+        merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
+        self.assertArrayEqual(
+            self.percentiles_land.data, expected_merged_data)
+        self.assertEqual(
+            expected_cube.xml(checksum=True),
+            self.percentiles_land.xml(checksum=True))
+        self.assertFalse(np.ma.is_masked(self.percentiles_land.data))
+        self.assertEqual(self.percentiles_land.data.dtype, np.float32)
+
+    def test_nothing_to_merge(self):
+        """Test case where there is no missing data to fill in."""
+        input_mask = np.ones((2, 3, 4)) * False
+        self.percentiles_land.data.mask = input_mask
+        expected_cube = self.percentiles_land.copy()
+        merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
+        self.assertArrayEqual(
+            self.percentiles_land.data, expected_cube.data)
+        self.assertEqual(
+            expected_cube.xml(checksum=True),
+            self.percentiles_land.xml(checksum=True))
+        self.assertFalse(np.ma.is_masked(self.percentiles_land.data))
+        self.assertEqual(self.percentiles_land.data.dtype, np.float32)
+
+    def test_input_not_masked(self):
+        """Test case where input cube is not masked."""
+        self.percentiles_land.data = np.ones((2, 3, 4), dtype=np.float32)
+        expected_cube = self.percentiles_land.copy()
+        merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
+        self.assertArrayEqual(
+            self.percentiles_land.data, expected_cube.data)
+        self.assertEqual(
+            expected_cube.xml(checksum=True),
+            self.percentiles_land.xml(checksum=True))
+        self.assertEqual(self.percentiles_land.data.dtype, np.float32)
 
 
 if __name__ == '__main__':

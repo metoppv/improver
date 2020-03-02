@@ -143,7 +143,7 @@ def process(cube: cli.inputcube,
         ConvertProbabilitiesToPercentiles,
         RebadgePercentilesAsRealizations,
         ResamplePercentiles)
-    from improver.ensemble_copula_coupling.utilities import merge_land_and_sea
+    from improver.calibration.utilities import merge_land_and_sea
     from improver.metadata.probabilistic import find_percentile_coordinate
 
     current_forecast = cube
