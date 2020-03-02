@@ -207,11 +207,12 @@ def create_constrained_inputcubelist_converter(*constraints):
     These cubes get loaded and returned as a CubeList.
 
     Args:
-        *constraints (str or list):
+        *constraints (tuple of str or list):
             Constraints to be used in the loading of cubes into a CubeList.
-            If multiple constraints are specified in a list, all provided
-            constraints will be tried as possible options. Only one must
-            identify valid input, otherwise an error will be raised.
+            If the tuple contains a string then the string is expected to
+            return exactly one match. If a tuple contains a list then the list
+            is treated as a group that is expected to return a single match.
+            The tuple can contain a mixture of strings and lists, as required.
 
     Returns:
         function:
@@ -232,8 +233,9 @@ def create_constrained_inputcubelist_converter(*constraints):
 
         Raises:
             ValueError:
-                If multiple possible constraints are provided using a list,
-                then only one constraint must be valid.
+                Each constraint (either a string or a list) is expected to
+                return a single match. An error is raised if no match or more
+                than one match is found.
         """
         from improver.utilities.load import load_cube
         from iris.cube import CubeList
