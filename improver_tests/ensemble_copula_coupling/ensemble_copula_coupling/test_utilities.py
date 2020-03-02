@@ -41,6 +41,7 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
+
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles, concatenate_2d_array_with_2d_array_endpoints,
     create_cube_with_percentiles, get_bounds_of_distribution,
