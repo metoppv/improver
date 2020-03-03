@@ -671,8 +671,7 @@ class Test_run(IrisTest):
         than the size of the domain."""
         cube = self.cube
         radius = 50000.0
-        msg = ("Distance of {}m exceeds max domain distance of "
-               "5656\.*").format(radius)
+        msg = "Distance of {}m exceeds max domain distance".format(radius)
         with self.assertRaisesRegex(ValueError, msg):
             GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)
 
