@@ -18,4 +18,6 @@ dependencies:
   - filelock
   - mock
   - pip:
+    - od
+    - sigtools>=2.0
     - clize
