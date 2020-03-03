@@ -209,10 +209,11 @@ def create_constrained_inputcubelist_converter(*constraints):
     Args:
         *constraints (tuple of str or list):
             Constraints to be used in the loading of cubes into a CubeList.
-            If the tuple contains a string then the string is expected to
-            return exactly one match. If a tuple contains a list then the list
-            is treated as a group that is expected to return a single match.
-            The tuple can contain a mixture of strings and lists, as required.
+            If the tuple contains a string or multiple strings, then each
+            string is expected to return exactly one match. If the tuple
+            contains a list or multiple lists, then each list is treated as a
+            group that is expected to return a single match. The tuple
+            can contain a mixture of strings and lists as required.
 
     Returns:
         function:
