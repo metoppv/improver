@@ -33,10 +33,10 @@
 import unittest
 
 from iris.tests import IrisTest
+import numpy as np
 
 from improver.nbhood.circular_kernel import check_radius_against_distance
-from improver_tests.nbhood.nbhood.test_BaseNeighbourhoodProcessing import \
-    set_up_cube
+from improver_tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_check_radius_against_distance(IrisTest):
@@ -45,13 +45,14 @@ class Test_check_radius_against_distance(IrisTest):
 
     def setUp(self):
         """Set up the cube."""
-        self.cube = set_up_cube()
+        data = np.ones((4, 4), dtype=np.float32)
+        self.cube = set_up_variable_cube(data, spatial_grid='equalarea')
 
     def test_error(self):
         """Test correct exception raised when the distance is larger than the
         corner-to-corner distance of the domain."""
-        distance = 42500.0
-        msg = "Distance of 42500.0m exceeds max domain distance of "
+        distance = 550000.0
+        msg = "Distance of 550000.0m exceeds max domain distance of "
         with self.assertRaisesRegex(ValueError, msg):
             check_radius_against_distance(self.cube, distance)
 

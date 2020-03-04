@@ -48,7 +48,7 @@ def check_radius_against_distance(cube, radius):
         cube (iris.cube.Cube):
             The cube to check.
         radius (float):
-            The radius, which cannot be more than a third of the
+            The radius, which cannot be more than half of the
             size of the domain.
 
     """

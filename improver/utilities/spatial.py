@@ -42,9 +42,6 @@ from iris.cube import Cube, CubeList
 from improver import BasePlugin
 from improver.utilities.cube_checker import check_cube_coordinates
 
-# Maximum radius of the neighbourhood width in grid cells.
-MAX_DISTANCE_IN_GRID_CELLS = 500
-
 
 def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
     """
