@@ -329,7 +329,7 @@ class OccurrenceWithinVicinity:
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<OccurrenceWithinVicinity: distance: {}>')
+        result = '<OccurrenceWithinVicinity: distance: {}>'
         return result.format(self.distance)
 
     def maximum_within_vicinity(self, cube):
@@ -366,7 +366,7 @@ class OccurrenceWithinVicinity:
             unmasked_cube_data[cube.data.mask] = np.nan
         # The following command finds the maximum value for each grid point
         # from within a square of length "size"
-        max_data = (maximum_filter(unmasked_cube_data, size=grid_cells))
+        max_data = maximum_filter(unmasked_cube_data, size=grid_cells)
         if np.ma.is_masked(cube.data):
             # Update only the unmasked values
             max_cube.data.data[~cube.data.mask] = max_data[~cube.data.mask]
