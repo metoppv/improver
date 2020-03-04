@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Reliability calibration plugins."""
 
+import warnings
+
 import iris
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
@@ -488,3 +490,156 @@ class AggregateReliabilityCalibrationTables:
         frt = create_unified_frt_coord(cube.coord('forecast_reference_time'))
         result.replace_coord(frt)
         return result
+
+
+class ApplyReliabilityCalibration:
+
+    def __init__(self):
+        """Initialise class for applying reliability calibration."""
+
+        self.threshold_coord = None
+
+    @staticmethod
+    def _threshold_coords_equivalent(forecast, reliability_table):
+        """Ensure that the threshold coordinates are identical in the
+        reliability table and in the forecast cube. If not raise an
+        exception.
+
+        Args:
+            forecast (iris.cube.Cube):
+                The forecast to be calibrated.
+            reliability_table (iris.cube.Cube):
+                The reliability table to use for applying calibration.
+        Raises:
+            ValueError: If the threshold coordinates are different in the two
+                        cubes.
+        """
+        if not (forecast.coord(var_name='threshold') ==
+                reliability_table.coord(var_name='threshold')):
+            raise ValueError('Threshold coordinates do not match between '
+                             'reliability table and forecast cube.')
+
+    def _ensure_monotonicity(self, cube):
+        """
+        Ensures that probabilities change monotonically relative to thresholds
+        in the expected order, e.g. exceedance proabilities always remain the
+        same or decrease as the threshold values increase, below threshold
+        probabilities always remain the same or increase as the threshold
+        values increase.
+
+        Args:
+            cube (iris.cube.Cube):
+                The probability cube for which monotonicity is to be checked
+                and enforced. This cube is modified in place.
+        Raises:
+            ValueError: Threshold coordinate lacks the
+                        spp__relative_to_threshold attribute.
+        Warns:
+            UserWarning: If the probabilities must be sorted to reinstate
+                         expected monotonicity following calibration.
+        """
+        threshold_dim, = cube.coord_dims(self.threshold_coord)
+        thresholding = self.threshold_coord.attributes.get(
+            "spp__relative_to_threshold", None)
+
+        if thresholding is None:
+            msg = ('Cube threshold coordinate does not define whether '
+                   'thresholding is above or below the defined thresholds.')
+            raise ValueError(msg)
+
+        if (thresholding == 'above' and not
+                (np.diff(cube.data, axis=threshold_dim) <= 0).all()):
+            msg = ('Exceedance probabilities are not decreasing monotonically '
+                   'as the threshold values increase. Forced back into order.')
+            warnings.warn(msg)
+            cube.data = np.sort(cube.data, axis=threshold_dim)[::-1]
+
+        if (thresholding == 'below' and not
+                (np.diff(cube.data, axis=threshold_dim) >= 0).all()):
+            msg = ('Below threshold probabilities are not increasing '
+                   'monotonically as the threshold values increase. Forced '
+                   'back into order.')
+            warnings.warn(msg)
+            cube.data = np.sort(cube.data, axis=threshold_dim)
+
+    @staticmethod
+    def _calculate_reliability_probabilities(reliability_table):
+        """
+        Calculates forecast probabilities and observation frequencies from the
+        reliability table. Where the forecast count is zero, the returned
+        arrays both contain values of zero.
+
+        Args:
+            reliability_table (iris.cube.Cube):
+                A reliability table for a single threshold from which to
+                calculate the forecast probabilities and observation
+                frequencies.
+        Returns:
+            (tuple): tuple containing:
+                **forecast_probability** (numpy.array):
+                    Forecast probabilities calculated by dividing the sum of
+                    forecast probabilities by the forecast count.
+                **observation_frequency** (numpy.array):
+                    Observation frequency calculated by dividing the
+                    observation count by the forecast count.
+        """
+        observation_count = reliability_table.extract(
+            iris.Constraint(table_row_name='observation_count')).data
+        forecast_count = reliability_table.extract(
+            iris.Constraint(table_row_name='forecast_count')).data
+        forecast_probability_sum = reliability_table.extract(
+            iris.Constraint(
+                table_row_name='sum_of_forecast_probabilities')).data
+
+        forecast_probability = np.divide(
+            forecast_probability_sum, forecast_count,
+            out=np.zeros(forecast_probability_sum.shape),
+            where=forecast_count != 0)
+        observation_frequency = np.divide(
+            observation_count, forecast_count,
+            out=np.zeros(observation_count.shape),
+            where=forecast_count != 0)
+
+        return forecast_probability, observation_frequency
+
+    def process(self, forecast, reliability_table):
+        """
+        Apply reliability calibration to a forecast. The reliability table
+        and the forecast cube must share an identical threshold coordinate.
+
+        Args:
+            forecast (iris.cube.Cube):
+                The forecast to be calibrated.
+            reliability_table (iris.cube.Cube):
+                The reliability table to use for applying calibration.
+        Returns:
+            calibrated_forecast (iris.cube.Cube):
+                The forecast cube following calibration.
+        """
+        self._threshold_coords_equivalent(forecast, reliability_table)
+        self.threshold_coord = forecast.coord(var_name='threshold')
+
+        forecast_thresholds = forecast.slices_over(
+            self.threshold_coord)
+        reliability_thresholds = reliability_table.slices_over(
+            self.threshold_coord)
+        slices = zip(forecast_thresholds, reliability_thresholds)
+
+        calibrated_cubes = iris.cube.CubeList()
+        for forecast_threshold, reliability_threshold in slices:
+            shape = forecast_threshold.shape
+            forecast_data = forecast_threshold.data.flatten()
+
+            reliability_probabilities, observation_frequencies = (
+                self._calculate_reliability_probabilities(
+                    reliability_threshold))
+            interpolated = np.interp(forecast_data,
+                                     reliability_probabilities,
+                                     observation_frequencies)
+            interpolated = interpolated.reshape(shape).astype(np.float32)
+
+            calibrated_cubes.append(forecast_threshold.copy(data=interpolated))
+
+        calibrated_forecast = calibrated_cubes.merge_cube()
+        self._ensure_monotonicity(calibrated_forecast)
+        return calibrated_forecast
