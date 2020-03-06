@@ -35,15 +35,12 @@ import copy
 import cartopy.crs as ccrs
 import iris
 import numpy as np
-import scipy.ndimage
+from scipy.ndimage.filters import maximum_filter
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.utilities.cube_checker import check_cube_coordinates
-
-# Maximum radius of the neighbourhood width in grid cells.
-MAX_DISTANCE_IN_GRID_CELLS = 500
 
 
 def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
@@ -56,7 +53,7 @@ def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
     Args:
         cube (iris.cube.Cube):
             Cube with coordinates that will be checked.
-        require_equal_spacing (bool):
+        require_equal_xy_spacing (bool):
             Flag to require the grid is equally spaced in the two spatial
             dimensions (not strictly required for equal-area criterion).
 
@@ -65,9 +62,9 @@ def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
             axis (from calculate_grid_spacing)
         ValueError: If point spacing is not equal for the two spatial axes
     """
-    xdiff = calculate_grid_spacing(cube, 'metres', axis='x')
-    ydiff = calculate_grid_spacing(cube, 'metres', axis='y')
-    if require_equal_xy_spacing and not np.isclose(xdiff, ydiff):
+    x_diff = calculate_grid_spacing(cube, 'metres', axis='x')
+    y_diff = calculate_grid_spacing(cube, 'metres', axis='y')
+    if require_equal_xy_spacing and not np.isclose(x_diff, y_diff):
         raise ValueError(
             "Grid does not have equal spacing in x and y dimensions")
 
@@ -100,9 +97,8 @@ def calculate_grid_spacing(cube, units, axis='x'):
     return diffs[0]
 
 
-def convert_distance_into_number_of_grid_cells(
-        cube, distance, axis='x', max_distance_in_grid_cells=None,
-        int_grid_cells=True):
+def distance_to_number_of_grid_cells(cube, distance, axis='x',
+                                     return_int=True):
     """
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.  Requires an equal-area grid on which the spacing
@@ -114,15 +110,12 @@ def convert_distance_into_number_of_grid_cells(
             calculating the number of grid cells in the x and y direction,
             which equates to the requested distance in the x and y direction.
         distance (float):
-            Distance in metres.  Must be positive.
-        axis (str):
-            Axis ('x' or 'y') to use in determining grid spacing
-        max_distance_in_grid_cells (int or None):
-            Maximum distance in grid cells.  Defaults to None, which bypasses
-            the check.
-        int_grid_cells (bool):
+            Distance in metres. Must be positive.
+        return_int (bool):
             If true only integer number of grid_cells are returned, rounded
             down. If false the number of grid_cells returned will be a float.
+        axis (str):
+            Axis ('x' or 'y') to use in determining grid spacing
 
     Returns:
         int or float:
@@ -130,61 +123,27 @@ def convert_distance_into_number_of_grid_cells(
             requested distance in metres.
 
     Raises:
-        ValueError: If a negative distance is provided
-        ValueError: If the projection is not equal-area
-        ValueError:
-            If the distance in grid cells is larger than the maximum dimension
-            of the rectangular domain (measured across the diagonal).  Needed
-            for neighbourhood processing.
-        ValueError: If the distance in grid cells is zero.
-        Value Error:
-            If max_distance_in_grid_cells is set and the distance in grid cells
-            exceeds this value.  Needed for neighbourhood processing.
+        ValueError: If a non-positive distance is provided.
     """
-    d_error = "Distance of {}m".format(distance)
-    zero_distance_error = ("{} gives zero cell extent".format(d_error))
-    if distance == 0:
-        raise ValueError(zero_distance_error)
-    if distance < 0:
-        raise ValueError("Please specify a positive distance in metres")
+    d_error = f"Distance of {distance}m"
+    if distance <= 0:
+        raise ValueError(
+            f"Please specify a positive distance in metres. {d_error}")
 
     # calculate grid spacing along chosen axis
     grid_spacing_metres = calculate_grid_spacing(cube, 'metres', axis=axis)
-
-    # check required distance isn't greater than the size of the domain
-    # (note: this implicitly assumes equal x- and y-spacing)
-    def calculate_domain_extent(coord):
-        """Calculates the coordinate extent in metres"""
-        new_coord = coord.copy()
-        new_coord.convert_units('metres')
-        return max(new_coord.points) - min(new_coord.points)
-
-    x_extent_metres = calculate_domain_extent(cube.coord(axis='x'))
-    y_extent_metres = calculate_domain_extent(cube.coord(axis='y'))
-    max_distance_of_domain = np.sqrt(x_extent_metres**2 + y_extent_metres**2)
-    if distance > max_distance_of_domain:
-        raise ValueError(
-            "{} exceeds max domain distance of {}m".format(
-                d_error, max_distance_of_domain))
-
-    # calculate distance in grid squares
     grid_cells = distance / abs(grid_spacing_metres)
 
-    if int_grid_cells:
+    if return_int:
         grid_cells = int(grid_cells)
         if grid_cells == 0:
+            zero_distance_error = f"{d_error} gives zero cell extent"
             raise ValueError(zero_distance_error)
-
-    if max_distance_in_grid_cells is not None:
-        if grid_cells > max_distance_in_grid_cells:
-            raise ValueError(
-                "{} exceeds maximum permitted grid cell extent".format(
-                    d_error))
 
     return grid_cells
 
 
-def convert_number_of_grid_cells_into_distance(cube, grid_points):
+def number_of_grid_cells_to_distance(cube, grid_points):
     """
     Calculate distance in metres equal to the given number of gridpoints
     based on the coordinates on an input cube.
@@ -198,7 +157,7 @@ def convert_number_of_grid_cells_into_distance(cube, grid_points):
         float:
             The radius in metres.
     """
-    check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True)
+    check_if_grid_is_equal_area(cube)
     spacing = calculate_grid_spacing(cube, 'metres')
     radius_in_metres = spacing * grid_points
     return radius_in_metres
@@ -315,7 +274,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                 A cube of the gradients in the coordinate direction specified.
         """
         grid_spacing = np.diff(diff_cube.coord(axis=coord_axis).points)[0]
-        gradient = diff_cube.copy(data=(diff_cube.data) / grid_spacing)
+        gradient = diff_cube.copy(data=diff_cube.data / grid_spacing)
         gradient = gradient.regrid(ref_cube, iris.analysis.Linear())
         gradient.rename(diff_cube.name().replace('difference_', 'gradient_'))
         return gradient
@@ -340,15 +299,13 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                     x axis.
 
         """
-        diff_along_y_cube = self.calculate_difference(cube, "y")
-        diff_along_x_cube = self.calculate_difference(cube, "x")
-
+        xy = ['x', 'y']
+        diffs = [self.calculate_difference(cube, axis) for axis in xy]
         if self.is_gradient:
-            diff_along_y_cube = self.gradient_from_diff(diff_along_y_cube,
-                                                        cube, "y")
-            diff_along_x_cube = self.gradient_from_diff(diff_along_x_cube,
-                                                        cube, "x")
-        return diff_along_x_cube, diff_along_y_cube
+            diffs = [self.gradient_from_diff(diff, cube, axis)
+                     for diff, axis in zip(diffs, xy)]
+
+        return diffs[0], diffs[1]
 
 
 class OccurrenceWithinVicinity:
@@ -369,7 +326,7 @@ class OccurrenceWithinVicinity:
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<OccurrenceWithinVicinity: distance: {}>')
+        result = '<OccurrenceWithinVicinity: distance: {}>'
         return result.format(self.distance)
 
     def maximum_within_vicinity(self, cube):
@@ -391,10 +348,7 @@ class OccurrenceWithinVicinity:
                 vicinity defined using the specified distance.
 
         """
-        grid_spacing = (
-            convert_distance_into_number_of_grid_cells(
-                cube, self.distance,
-                max_distance_in_grid_cells=MAX_DISTANCE_IN_GRID_CELLS))
+        grid_spacing = distance_to_number_of_grid_cells(cube, self.distance)
 
         # Convert the number of grid points (i.e. grid_spacing) represented
         # by self.distance, e.g. where grid_spacing=1 is an increment to
@@ -409,9 +363,7 @@ class OccurrenceWithinVicinity:
             unmasked_cube_data[cube.data.mask] = np.nan
         # The following command finds the maximum value for each grid point
         # from within a square of length "size"
-        max_data = (
-            scipy.ndimage.filters.maximum_filter(unmasked_cube_data,
-                                                 size=grid_cells))
+        max_data = maximum_filter(unmasked_cube_data, size=grid_cells)
         if np.ma.is_masked(cube.data):
             # Update only the unmasked values
             max_cube.data.data[~cube.data.mask] = max_data[~cube.data.mask]

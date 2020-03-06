@@ -32,28 +32,48 @@
 
 import iris
 import numpy as np
-import scipy.ndimage.filters
+from scipy.ndimage.filters import correlate
 
 from improver.constants import DEFAULT_PERCENTILES
 from improver.utilities.cube_checker import (
     check_cube_coordinates, find_dimension_coordinate_mismatch)
 from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
-
-# Maximum radius of the neighbourhood width in grid cells.
-MAX_RADIUS_IN_GRID_CELLS = 500
+    check_if_grid_is_equal_area, distance_to_number_of_grid_cells)
 
 
-def circular_kernel(fullranges, ranges, weighted_mode):
+def check_radius_against_distance(cube, radius):
+    """Check required distance isn't greater than the size of the domain.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube to check.
+        radius (float):
+            The radius, which cannot be more than half of the
+            size of the domain.
+
+    """
+    axes = []
+    for axis in ['x', 'y']:
+        coord = cube.coord(axis=axis).copy()
+        coord.convert_units('metres')
+        axes.append((max(coord.points) - min(coord.points)))
+
+    max_allowed = np.sqrt(axes[0] ** 2 + axes[1] ** 2) * 0.5
+    if radius > max_allowed:
+        raise ValueError(f"Distance of {radius}m exceeds max domain "
+                         f"distance of {max_allowed}m")
+
+
+def circular_kernel(full_ranges, ranges, weighted_mode):
     """
 
     Method to create a circular kernel.
 
     Args:
-        fullranges (numpy.ndarray):
+        full_ranges (numpy.ndarray):
             Number of grid cells in all dimensions used to create the kernel.
             This should have the value 0 for any dimension other than x and y.
-        ranges (tuple):
+        ranges (int):
             Number of grid cells in the x and y direction used to create
             the kernel.
         weighted_mode (bool):
@@ -67,22 +87,23 @@ def circular_kernel(fullranges, ranges, weighted_mode):
             This will have the same number of dimensions as fullranges.
 
     """
+    # The range is square
+
+    area = ranges * ranges
     # Define the size of the kernel based on the number of grid cells
     # contained within the desired radius.
-    kernel = np.ones([int(1 + x * 2) for x in fullranges])
+    kernel = np.ones([int(1 + x * 2) for x in full_ranges])
     # Create an open multi-dimensional meshgrid.
-    open_grid = np.array(np.ogrid[[slice(-x, x+1) for x in ranges]])
+    open_grid = np.array(np.ogrid[[slice(-x, x+1) for x in (ranges, ranges)]])
     if weighted_mode:
         # Create a kernel, such that the central grid point has the
         # highest weighting, with the weighting decreasing with distance
         # away from the central grid point.
         open_grid_summed_squared = np.sum(open_grid**2.).astype(float)
-        kernel[:] = (
-            (np.prod(ranges) - open_grid_summed_squared) / np.prod(ranges))
+        kernel[:] = (area - open_grid_summed_squared) / area
         mask = kernel < 0.
     else:
-        mask = np.reshape(
-            np.sum(open_grid**2) > np.prod(ranges), np.shape(kernel))
+        mask = np.reshape(np.sum(open_grid**2) > area, np.shape(kernel))
     kernel[mask] = 0.
     return kernel
 
@@ -130,6 +151,7 @@ class CircularNeighbourhood:
             raise ValueError(msg)
         self.sum_or_fraction = sum_or_fraction
         self.re_mask = re_mask
+        self.kernel = None
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -146,7 +168,7 @@ class CircularNeighbourhood:
             cube (iris.cube.Cube):
                 Cube containing to array to apply CircularNeighbourhood
                 processing to.
-            ranges (tuple):
+            ranges (int):
                 Number of grid cells in the x and y direction used to create
                 the kernel.
 
@@ -157,16 +179,15 @@ class CircularNeighbourhood:
 
         """
         data = cube.data
-        fullranges = np.zeros([np.ndim(data)])
+        full_ranges = np.zeros([np.ndim(data)])
         axes = []
         for axis in ["x", "y"]:
             coord_name = cube.coord(axis=axis).name()
             axes.append(cube.coord_dims(coord_name)[0])
 
-        for axis_index, axis in enumerate(axes):
-            fullranges[axis] = ranges[axis_index]
-        self.kernel = circular_kernel(fullranges, ranges,
-                                      self.weighted_mode)
+        for axis in axes:
+            full_ranges[axis] = ranges
+        self.kernel = circular_kernel(full_ranges, ranges, self.weighted_mode)
         # Smooth the data by applying the kernel.
         if self.sum_or_fraction == "sum":
             total_area = 1.0
@@ -174,8 +195,7 @@ class CircularNeighbourhood:
             # sum_or_fraction is in fraction mode
             total_area = np.sum(self.kernel)
 
-        cube.data = scipy.ndimage.filters.correlate(
-            data, self.kernel, mode='nearest') / total_area
+        cube.data = correlate(data, self.kernel, mode='nearest') / total_area
         return cube
 
     def run(self, cube, radius, mask_cube=None):
@@ -207,10 +227,8 @@ class CircularNeighbourhood:
 
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
-        grid_cells_x = convert_distance_into_number_of_grid_cells(
-            cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
-        ranges = (grid_cells_x, grid_cells_x)
-        cube = self.apply_circular_kernel(cube, ranges)
+        grid_cells = distance_to_number_of_grid_cells(cube, radius)
+        cube = self.apply_circular_kernel(cube, grid_cells)
         return cube
 
 
@@ -418,18 +436,17 @@ class GeneratePercentilesFromACircularNeighbourhood:
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
         # Take data array and identify X and Y axes indices
-        grid_cells_x = convert_distance_into_number_of_grid_cells(
-            cube, radius, max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS)
-        ranges_tuple = (grid_cells_x, grid_cells_x)
-        ranges_xy = np.array(ranges_tuple)
-        kernel = circular_kernel(ranges_xy, ranges_tuple, weighted_mode=False)
+        grid_cell = distance_to_number_of_grid_cells(cube, radius)
+        check_radius_against_distance(cube, radius)
+        ranges_xy = np.array((grid_cell, grid_cell))
+        kernel = circular_kernel(ranges_xy, grid_cell, weighted_mode=False)
         # Loop over each 2D slice to reduce memory demand and derive
         # percentiles on the kernel. Will return an extra dimension.
         pctcubelist = iris.cube.CubeList()
         for slice_2d in cube.slices(['projection_y_coordinate',
                                      'projection_x_coordinate']):
-            pctcubelist.append(
-                self.pad_and_unpad_cube(slice_2d, kernel))
+            pctcubelist.append(self.pad_and_unpad_cube(slice_2d, kernel))
+
         result = pctcubelist.merge_cube()
         exception_coordinates = (
             find_dimension_coordinate_mismatch(

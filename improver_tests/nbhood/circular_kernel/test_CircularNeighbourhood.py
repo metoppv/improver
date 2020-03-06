@@ -78,7 +78,7 @@ class Test_apply_circular_kernel(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
             num_grid_points=5)
-        ranges = (2, 2)
+        ranges = 2
         result = (
             CircularNeighbourhood(
                 weighted_mode=False).apply_circular_kernel(cube, ranges))
@@ -90,7 +90,7 @@ class Test_apply_circular_kernel(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][5 + index][5:10] = slice_
-        ranges = (3, 3)
+        ranges = 3
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -105,7 +105,7 @@ class Test_apply_circular_kernel(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_2_CENTROID_FLAT):
             expected[0][0][5 + index][5:10] = slice_
-        ranges = (2, 2)
+        ranges = 2
         result = (
             CircularNeighbourhood(
                 weighted_mode=False).apply_circular_kernel(cube, ranges))
@@ -122,7 +122,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[0][0][8 + index][8:13] = slice_
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][1][5 + index][5:10] = slice_
-        ranges = (3, 3)
+        ranges = 3
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -140,7 +140,7 @@ class Test_apply_circular_kernel(IrisTest):
         for time_index in range(len(expected)):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
                 expected[0][time_index][5 + index][5:10] = slice_
-        ranges = (3, 3)
+        ranges = 3
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -157,7 +157,7 @@ class Test_apply_circular_kernel(IrisTest):
         for time_index in range(len(expected)):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
                 expected[0][time_index][5 + index][5:10] = slice_
-        ranges = (3, 3)
+        ranges = 3
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -168,7 +168,7 @@ class Test_apply_circular_kernel(IrisTest):
         cube = set_up_cube()
         expected = np.ones_like(cube.data)
         expected[0][0][7][7] = 0.0
-        ranges = (1, 1)
+        ranges = 1
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -181,7 +181,7 @@ class Test_apply_circular_kernel(IrisTest):
         for time_index in range(len(expected)):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_5_CENTROID):
                 expected[0][time_index][3 + index][3:12] = slice_
-        ranges = (5, 5)
+        ranges = 5
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -198,7 +198,7 @@ class Test_apply_circular_kernel(IrisTest):
               [0.97636177, 0.97533402, 0.97636177, 0.97944502],
               [0.97944502, 0.97841727, 0.97944502, 0.98252826]]]
         ])
-        ranges = (5, 5)
+        ranges = 5
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -218,7 +218,7 @@ class Test_apply_circular_kernel(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(expected_snippet):
             expected[0][0][5 + index][4:11] = slice_
-        ranges = (3, 3)
+        ranges = 3
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -232,7 +232,7 @@ class Test_apply_circular_kernel(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][5 + index][0:5] = slice_
-        ranges = (3, 3)
+        ranges = 3
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -245,7 +245,7 @@ class Test_apply_circular_kernel(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][5 + index][0:4] = slice_[1:]
-        ranges = (3, 3)
+        ranges = 3
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -265,7 +265,7 @@ class Test_apply_circular_kernel(IrisTest):
         ])
         for index, slice_ in enumerate(expected_centroid):
             expected[0][0][5 + index][0:3] = slice_
-        ranges = (3, 3)
+        ranges = 3
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -278,7 +278,7 @@ class Test_apply_circular_kernel(IrisTest):
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][index][0:5] = slice_
-        ranges = (3, 3)
+        ranges = 3
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -293,7 +293,7 @@ class Test_apply_circular_kernel(IrisTest):
             if index == 0:
                 continue
             expected[0][0][index - 1][0:4] = slice_[1:]
-        ranges = (3, 3)
+        ranges = 3
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))
@@ -311,7 +311,7 @@ class Test_apply_circular_kernel(IrisTest):
         ])
         for index, slice_ in enumerate(expected_centroid):
             expected[0][0][index][0:3] = slice_
-        ranges = (3, 3)
+        ranges = 3
         result = (
             CircularNeighbourhood(
                 weighted_mode=True).apply_circular_kernel(cube, ranges))

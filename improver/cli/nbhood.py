@@ -92,7 +92,7 @@ def process(cube: cli.inputcube,
             Include this option to set the weighting to decrease with radius.
             Otherwise a constant weighting is assumed.
             weighted_mode is only applicable for calculating "probability"
-            neighbourhood output using the circular kernal.
+            neighbourhood output using the circular kernel.
         area_sum (bool):
             Return sum rather than fraction over the neighbourhood area.
         remask (bool):

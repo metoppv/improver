@@ -43,6 +43,8 @@ from improver.wind_calculations.wind_direction import WindDirection
 from ...calibration.ensemble_calibration.helper_functions import (
     set_up_temperature_cube)
 from ...nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
+from ...set_up_test_cubes import set_up_variable_cube
+
 
 # Data to test complex/degree handling functions.
 # Complex angles equivalent to np.arange(0., 360, 10) degrees.
@@ -119,8 +121,8 @@ def make_wdir_cube_534():
                        zero_point_indices=[[0, 0, 0, 0]])
     cube = cube[:, :, 0:-1, :]  # (reduce y from 4 to 3)
     cube.data = data
+    cube.rename("wind_from_direction")
     cube.units = Unit('degrees')
-
     return cube
 
 
@@ -501,23 +503,36 @@ class Test_process(IrisTest):
     def test_with_backup(self):
         """Test that wind_dir_decider is invoked to select a better value for
         a low-confidence point."""
-
+        # create a low-confidence point
         self.cube.data[:, 0, 1, 1] = [0., 72., 144., 216., 288.]
-        self.expected_wind_mean[0, 1, 1] = 30.77989074
+
+        # set up a larger cube using a "neutral" pad value so that
+        # neighbourhood processing does not fail
+        data = np.full((5, 9, 10), 30., dtype=np.float32)
+        data[:, 3:6, 3:7] = self.cube.data[:, 0, :, :].copy()
+
+        cube = set_up_variable_cube(
+            data, name='wind_from_direction', units='degrees',
+            spatial_grid='equalarea')
+        cube.coord(axis='x').points = np.arange(-50000., -31000., 2000.)
+        cube.coord(axis='y').points = np.arange(0., 17000., 2000.)
+
+        self.expected_wind_mean[0, 1, 1] = 30.0870
         self.expected_r_vals[1, 1] = 2.665601e-08
         self.expected_confidence_measure[1, 1] = 0.0
 
         result_cube, r_vals_cube, confidence_measure_cube = (
-            WindDirection().process(self.cube))
+            WindDirection().process(cube))
 
-        result = result_cube.data
-        r_vals = r_vals_cube.data
-        confidence_measure = confidence_measure_cube.data
+        result = result_cube.data[3:6, 3:7]
+        r_vals = r_vals_cube.data[3:6, 3:7]
+        confidence_measure = confidence_measure_cube.data[3:6, 3:7]
 
         self.assertIsInstance(result, np.ndarray)
         self.assertIsInstance(r_vals, np.ndarray)
         self.assertIsInstance(confidence_measure, np.ndarray)
-        self.assertArrayAlmostEqual(result, self.expected_wind_mean, decimal=4)
+        self.assertArrayAlmostEqual(
+            result, self.expected_wind_mean[0], decimal=4)
         self.assertArrayAlmostEqual(
             confidence_measure, self.expected_confidence_measure)
         self.assertArrayAlmostEqual(r_vals, self.expected_r_vals)

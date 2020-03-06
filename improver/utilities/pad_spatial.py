@@ -39,8 +39,7 @@ from cf_units import Unit
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, get_dim_coord_names)
-from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
+from improver.utilities.spatial import distance_to_number_of_grid_cells
 
 
 def pad_coord(coord, width, method):
@@ -114,10 +113,8 @@ def create_cube_with_halo(cube, halo_radius):
         iris.cube.Cube:
             New cube defining the halo-padded grid (data set to zero)
     """
-    halo_size_x = convert_distance_into_number_of_grid_cells(
-        cube, halo_radius, axis='x')
-    halo_size_y = convert_distance_into_number_of_grid_cells(
-        cube, halo_radius, axis='y')
+    halo_size_x = distance_to_number_of_grid_cells(cube, halo_radius, axis='x')
+    halo_size_y = distance_to_number_of_grid_cells(cube, halo_radius, axis='y')
 
     # create padded x- and y- coordinates
     x_coord = pad_coord(cube.coord(axis='x'), halo_size_x, 'add')
@@ -263,17 +260,13 @@ def remove_cube_halo(cube, halo_radius):
         iris.cube.Cube:
             New cube with the halo removed.
     """
-    halo_size_x = convert_distance_into_number_of_grid_cells(
-        cube, halo_radius, axis='x')
-    halo_size_y = convert_distance_into_number_of_grid_cells(
-        cube, halo_radius, axis='y')
+    halo_size_x = distance_to_number_of_grid_cells(cube, halo_radius, axis='x')
+    halo_size_y = distance_to_number_of_grid_cells(cube, halo_radius, axis='y')
 
     result_slices = iris.cube.CubeList()
     for cube_slice in cube.slices([cube.coord(axis='y'),
                                    cube.coord(axis='x')]):
-        cube_halo = remove_halo_from_cube(cube_slice,
-                                          halo_size_x,
-                                          halo_size_y)
+        cube_halo = remove_halo_from_cube(cube_slice, halo_size_x, halo_size_y)
         result_slices.append(cube_halo)
     result = result_slices.merge_cube()
 
@@ -301,11 +294,11 @@ def remove_halo_from_cube(cube, width_x, width_y):
             The original cube to be trimmed of edge data. The cube should
             contain only x and y dimensions, so will generally be a slice
             of a cube.
-        width_x (int):
+        width_x (int or float):
             The width in x directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.
-        width_y (int):
+        width_y (int or float):
             The width in y directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.

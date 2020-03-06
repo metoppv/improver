@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.wind_calculations.wind_direction import WindDirection
 
-from ..nbhood.test_NeighbourhoodProcessing import set_up_cube
+from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 
 
 class Test__init__(IrisTest):
@@ -86,8 +86,7 @@ class Test_cumulate_array(IrisTest):
                          [4., 8., 11., 15., 19.],
                          [5., 10., 14., 19., 24.]])
         cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
-            num_grid_points=5)
+            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
         cube = iris.util.squeeze(cube)
         result_cube = SquareNeighbourhood().cumulate_array(cube)
         self.assertIsInstance(result_cube, Cube)
@@ -208,7 +207,7 @@ class Test_mean_over_neighbourhood(IrisTest):
            neighbourhood is calculated where the sum_or_fraction option is
            set to "fraction"."""
         result = SquareNeighbourhood().mean_over_neighbourhood(
-            self.cube, self.mask, self.width, self.width)
+            self.cube, self.mask, self.width)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, self.expected)
 
@@ -226,7 +225,7 @@ class Test_mean_over_neighbourhood(IrisTest):
              [-3., -6., -5., -8., -5., -3., 8.]])
         result = SquareNeighbourhood(
             sum_or_fraction="sum").mean_over_neighbourhood(
-                self.cube, self.mask, self.width, self.width)
+                self.cube, self.mask, self.width)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -238,8 +237,7 @@ class Test_set_up_cubes_to_be_neighbourhooded(IrisTest):
     def setUp(self):
         """Set up a cube."""
         self.cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
-            num_grid_points=5)
+            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
         self.cube = iris.util.squeeze(self.cube)
 
     def test_without_masked_data(self):
@@ -336,8 +334,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
     def setUp(self):
         """Set up a cube."""
         self.cube = set_up_cube(
-            zero_point_indices=((0, 0, 1, 1),), num_time_points=1,
-            num_grid_points=3)
+            zero_point_indices=((0, 0, 1, 1),), num_grid_points=3)
         sliced_cube = next(self.cube.slices(["projection_y_coordinate",
                                              "projection_x_coordinate"]))
         sliced_cube.remove_coord("realization")
@@ -359,7 +356,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
              [0.75, 0.66666667, 1., 1., 1., np.nan, 1.],
              [1., 1., 0.83333333, 0.85714286, 0.75, 1., 0.85714286]])
 
-        grid_cells_x = grid_cells_y = 1
+        grid_cells = 1
         cube = self.cube
         mask_cube = cube.copy()
         mask_cube.data[::] = 1.0
@@ -372,7 +369,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
 
         nbcube = (
             SquareNeighbourhood()._pad_and_calculate_neighbourhood(
-                cube, mask_cube, grid_cells_x, grid_cells_y))
+                cube, mask_cube, grid_cells))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected_data)
 
@@ -414,7 +411,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
         self.cube.data = WindDirection.deg_to_complex(30.*self.cube.data + 30.)
         nbcube = (
             SquareNeighbourhood()._pad_and_calculate_neighbourhood(
-                self.cube, self.mask, 1, 1))
+                self.cube, self.mask, 1))
         self.assertTrue(np.any(np.iscomplex(nbcube.data)))
         self.assertArrayAlmostEqual(nbcube.data, expected_data_complex)
         self.assertArrayAlmostEqual(WindDirection.complex_to_deg(nbcube.data),
@@ -437,7 +434,7 @@ class Test__pad_and_calculate_neighbourhood(IrisTest):
 
         nbcube = (
             SquareNeighbourhood()._pad_and_calculate_neighbourhood(
-                self.cube, mask_cube, 1, 1))
+                self.cube, mask_cube, 1))
         self.assertIsInstance(nbcube, Cube)
 
 
@@ -448,12 +445,10 @@ class Test__remove_padding_and_mask(IrisTest):
     def setUp(self):
         """Set up a cube."""
         self.padded_cube = set_up_cube(
-            zero_point_indices=((0, 0, 3, 3),), num_time_points=1,
-            num_grid_points=7)
+            zero_point_indices=((0, 0, 3, 3),), num_grid_points=7)
         self.padded_cube = iris.util.squeeze(self.padded_cube)
         self.cube = set_up_cube(
-            zero_point_indices=((0, 0, 1, 1),), num_time_points=1,
-            num_grid_points=3)
+            zero_point_indices=((0, 0, 1, 1),), num_grid_points=3)
         self.cube = iris.util.squeeze(self.cube)
         self.mask_cube = self.cube.copy()
         masked_array = np.ones(self.mask_cube.data.shape)
@@ -471,11 +466,11 @@ class Test__remove_padding_and_mask(IrisTest):
             [[1., 1., 1.],
              [1., 0., 1.],
              [1., 1., 1.]])
-        grid_cells_x = grid_cells_y = 1
+        grid_cells = 1
         nbcube = (
             SquareNeighbourhood()._remove_padding_and_mask(
                 self.padded_cube, self.cube, self.no_mask,
-                grid_cells_x, grid_cells_y))
+                grid_cells))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected)
 
@@ -490,11 +485,11 @@ class Test__remove_padding_and_mask(IrisTest):
             [[False, True, False],
              [False, False, True],
              [False, False, False]])
-        grid_cells_x = grid_cells_y = 1
+        grid_cells = 1
         nbcube = (
             SquareNeighbourhood()._remove_padding_and_mask(
                 self.padded_cube, self.cube, self.mask_cube,
-                grid_cells_x, grid_cells_y))
+                grid_cells))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data.data, expected)
         self.assertArrayAlmostEqual(nbcube.data.mask, expected_mask)
@@ -505,11 +500,11 @@ class Test__remove_padding_and_mask(IrisTest):
             [[1., 1., 1.],
              [1., 0., 1.],
              [1., 1., 1.]])
-        grid_cells_x = grid_cells_y = 1
+        grid_cells = 1
         nbcube = (
             SquareNeighbourhood(re_mask=False)._remove_padding_and_mask(
                 self.padded_cube, self.cube, self.mask_cube,
-                grid_cells_x, grid_cells_y))
+                grid_cells))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected)
 
@@ -519,13 +514,13 @@ class Test__remove_padding_and_mask(IrisTest):
             [[1., 1., 1.],
              [1., 0., 1.],
              [1., 1., 1.]])
-        grid_cells_x = grid_cells_y = 1
+        grid_cells = 1
         self.padded_cube.data[2, 2] = 1.1
         self.padded_cube.data[3, 3] = -0.1
         nbcube = (
             SquareNeighbourhood(re_mask=False)._remove_padding_and_mask(
                 self.padded_cube, self.cube, self.mask_cube,
-                grid_cells_x, grid_cells_y))
+                grid_cells))
         self.assertIsInstance(nbcube, Cube)
         self.assertArrayAlmostEqual(nbcube.data, expected)
 
