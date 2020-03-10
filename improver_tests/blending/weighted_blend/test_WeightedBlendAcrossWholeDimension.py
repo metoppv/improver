@@ -123,6 +123,8 @@ class Test_weighted_blend(IrisTest):
         self.cube.data[2][:][:] = 3.0
         self.expected_attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
         self.expected_attributes.update(self.cube.attributes)
+        self.expected_attributes["title"] = (
+            "Post-Processed Operational ENGL Model Forecast")
 
         cube_threshold = set_up_probability_cube(
             np.zeros((2, 2, 2), dtype=np.float32),
@@ -648,7 +650,7 @@ class Test_process(Test_weighted_blend):
                 attributes_dict[key] = "remove"
         expected_attributes = {
             "source": "IMPROVER", "history": "cycle blended",
-            "title": self.cube.attributes["title"],
+            "title": "Post-Processed " + self.cube.attributes["title"],
             "institution": MANDATORY_ATTRIBUTE_DEFAULTS["institution"]}
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord)

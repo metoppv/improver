@@ -39,7 +39,7 @@ from iris.analysis import Aggregator
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
 
-from improver import BasePlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import amend_attributes
 from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS, MANDATORY_ATTRIBUTES)
@@ -360,7 +360,7 @@ class PercentileBlendingAggregator:
         return new_combined_perc
 
 
-class WeightedBlendAcrossWholeDimension(BasePlugin):
+class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
     """Apply a Weighted blend to a cube, collapsing across the whole
        dimension. Uses one of two methods, either weighted average, or
        the maximum of the weighted probabilities."""
@@ -877,4 +877,5 @@ class WeightedBlendAcrossWholeDimension(BasePlugin):
         if isinstance(cube.data, np.ma.core.MaskedArray):
             result.data = np.ma.array(result.data)
 
+        super().process(result)
         return result

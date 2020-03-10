@@ -34,13 +34,13 @@ opposed to collapsing the whole dimension."""
 import iris
 from cf_units import Unit
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.blending.weights import ChooseDefaultWeightsTriangular
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
-class TriangularWeightedBlendAcrossAdjacentPoints(BasePlugin):
+class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
     """
     Apply a Weighted blend to a coordinate, using triangular weights at each
     point in the coordinate. Returns a cube with the same coordinates as the
@@ -153,6 +153,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(BasePlugin):
         # axis is demoted to a scalar co-ordinate by BlendingPlugin. This line
         # promotes threshold to match the dimensions of central_point_cube.
         blended_cube = check_cube_coordinates(central_point_cube, blended_cube)
-
         blended_cube = central_point_cube.copy(blended_cube.data)
+
+        super().process(blended_cube)
         return blended_cube
