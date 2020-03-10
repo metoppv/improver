@@ -38,7 +38,7 @@ class BasePlugin(ABC):
     method by redirecting to __call__.
     """
     def __call__(self, *args, **kwargs):
-        """ Makes subclasses callable to use process
+        """Makes subclasses callable to use process
         Args:
             *args:
                 Positional arguments.
@@ -53,3 +53,21 @@ class BasePlugin(ABC):
     def process(self, *args, **kwargs):
         """Abstract class for rest to implement."""
         pass
+
+
+class PostProcessingPlugin(BasePlugin, ABC):
+    """An abstract class for IMPROVER post-processing plugins.
+    Makes generalised changes to metadata relating to post-processing.
+    """
+    @staticmethod
+    def post_processed_title(cube):
+        """Updates title attribute on output cube"""
+        if ("title" in cube.attributes.keys() and
+                "Post-Processed" not in cube.attributes["title"]):
+            title = cube.attributes["title"]
+            cube.attributes["title"] = "Post-Processed {}".format(title)
+
+    @abstractmethod
+    def process(self, cube):
+        """Applies generalised metadata updates"""
+        self.post_processed_title(cube)

@@ -169,24 +169,39 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Create a cube with a single non-zero point."""
-        self.fuzzy_factor = 0.5
+        attributes = {"title": "UKV Model Forecast"}
         data = np.zeros((1, 5, 5), dtype=np.float32)
         data[0][2][2] = 0.5  # ~2 mm/hr
         self.cube = set_up_variable_cube(
-            data, name="precipitation_amount", units="kg m^-2 s^-1")
+            data, name="precipitation_amount", units="kg m^-2 s^-1",
+            attributes=attributes, standard_grid_metadata="uk_det")
 
         rate_data = np.zeros((5, 5), dtype=np.float32)
         rate_data[2][2] = 1.39e-6  # 5.004 mm/hr
         self.rate_cube = set_up_variable_cube(
-            rate_data, name="rainfall_rate", units="m s-1")
+            rate_data, name="rainfall_rate", units="m s-1",
+            attributes=attributes, standard_grid_metadata="uk_det")
+
+        self.fuzzy_factor = 0.5
+        self.plugin = Threshold(0.1, fuzzy_factor=0.95)
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
-        fuzzy_factor = 0.95
-        threshold = 0.1
-        plugin = Threshold(threshold, fuzzy_factor=fuzzy_factor)
-        result = plugin.process(self.cube)
+        result = self.plugin.process(self.cube)
         self.assertIsInstance(result, Cube)
+
+    def test_title_updated(self):
+        """Test title is updated if need be"""
+        expected_title = "Post-Processed UKV Model Forecast"
+        result = self.plugin.process(self.cube)
+        self.assertEqual(result.attributes["title"], expected_title)
+
+    def test_title_preserved(self):
+        """Test title is preserved already correct"""
+        expected_title = "Post-Processed UKV Model Forecast"
+        self.cube.attributes["title"] = expected_title
+        result = self.plugin.process(self.cube)
+        self.assertEqual(result.attributes["title"], expected_title)
 
     def test_data_precision_preservation(self):
         """Test that the plugin returns an iris.cube.Cube of the same float
@@ -243,9 +258,7 @@ class Test_process(IrisTest):
         """Test the basic threshold functionality."""
         # Copy the cube as the cube.data is used as the basis for comparison.
         cube = self.cube.copy()
-        fuzzy_factor = 0.95
-        plugin = Threshold(0.1, fuzzy_factor=fuzzy_factor)
-        result = plugin.process(cube)
+        result = self.plugin.process(cube)
         # The single 0.5-valued point => 1.0, so cheat by * 2.0 vs orig data.
         expected_result_array = (self.cube.data * 2.0).reshape((1, 1, 5, 5))
         self.assertArrayAlmostEqual(result.data, expected_result_array)
