@@ -494,10 +494,25 @@ class AggregateReliabilityCalibrationTables:
 
 class ApplyReliabilityCalibration:
 
-    def __init__(self):
-        """Initialise class for applying reliability calibration."""
+    def __init__(self, minimum_forecast_count=200):
+        """
+        Initialise class for applying reliability calibration.
 
+        Args:
+            minimum_forecast_count (int):
+                The minimum number of forecast counts in a forecast probability
+                bin for it to be used in calibration. Those bins with
+                insufficient counts are excluded and interpolation occurs
+                across the hole.
+        """
+
+        self.minimum_forecast_count = minimum_forecast_count
         self.threshold_coord = None
+
+    def __repr__(self):
+        """Represent the configured plugin instance as a string."""
+        result = '<ApplyReliabilityCalibration: minimum_forecast_count: {}>'
+        return result.format(self.minimum_forecast_count)
 
     @staticmethod
     def _threshold_coords_equivalent(forecast, reliability_table):
@@ -562,8 +577,7 @@ class ApplyReliabilityCalibration:
             warnings.warn(msg)
             cube.data = np.sort(cube.data, axis=threshold_dim)
 
-    @staticmethod
-    def _calculate_reliability_probabilities(reliability_table):
+    def _calculate_reliability_probabilities(self, reliability_table):
         """
         Calculates forecast probabilities and observation frequencies from the
         reliability table. Where the forecast count is zero, the returned
@@ -591,14 +605,14 @@ class ApplyReliabilityCalibration:
             iris.Constraint(
                 table_row_name='sum_of_forecast_probabilities')).data
 
+        print('count', forecast_count)
+
+        valid_bins = np.where(forecast_count > self.minimum_forecast_count)
+
         forecast_probability = np.divide(
-            forecast_probability_sum, forecast_count,
-            out=np.zeros(forecast_probability_sum.shape),
-            where=forecast_count != 0)
+            forecast_probability_sum[valid_bins], forecast_count[valid_bins])
         observation_frequency = np.divide(
-            observation_count, forecast_count,
-            out=np.zeros(observation_count.shape),
-            where=forecast_count != 0)
+            observation_count[valid_bins], forecast_count[valid_bins])
 
         return forecast_probability, observation_frequency
 
@@ -630,12 +644,23 @@ class ApplyReliabilityCalibration:
             shape = forecast_threshold.shape
             forecast_data = forecast_threshold.data.flatten()
 
+            forecast_data[500000] = 0.9
+
             reliability_probabilities, observation_frequencies = (
                 self._calculate_reliability_probabilities(
                     reliability_threshold))
+
+            observation_frequencies[1] = 0.05
+
+            print(reliability_probabilities)
+            print(observation_frequencies)
+
             interpolated = np.interp(forecast_data,
                                      reliability_probabilities,
-                                     observation_frequencies)
+                                     observation_frequencies,
+                                     left=0, right=1)
+            print('example', forecast_data[500000], interpolated[500000])
+
             interpolated = interpolated.reshape(shape).astype(np.float32)
 
             calibrated_cubes.append(forecast_threshold.copy(data=interpolated))
