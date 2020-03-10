@@ -38,7 +38,7 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
-from improver import BasePlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import RMDI
 
 # Scale parameter to determine reference height
@@ -641,7 +641,7 @@ class RoughnessCorrectionUtilities:
         return result.astype(np.float32)
 
 
-class RoughnessCorrection(BasePlugin):
+class RoughnessCorrection(PostProcessingPlugin):
     """Plugin to orographically-correct 3d wind speeds."""
 
     zcoordnames = ["height", "model_level_number"]
@@ -979,4 +979,6 @@ class RoughnessCorrection(BasePlugin):
         else:
             input_cube.transpose(np.argsort([ywp, xwp, zwp, twp]))
             output_cube.transpose(np.argsort([twp, ywp, xwp, zwp]))
+
+        super().process(output_cube)
         return output_cube
