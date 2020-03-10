@@ -353,5 +353,4 @@ class BasicThreshold(PostProcessingPlugin):
             cube, ["realization", "percentile"])
 
         super().process(cube)
-
         return cube
