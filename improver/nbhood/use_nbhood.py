@@ -34,7 +34,7 @@ import iris
 import numpy as np
 import numpy.ma as ma
 
-from improver import BasePlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.blending.weights import WeightsUtilities
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import (
@@ -42,7 +42,7 @@ from improver.utilities.cube_checker import (
 from improver.utilities.cube_manipulation import collapsed
 
 
-class ApplyNeighbourhoodProcessingWithAMask(BasePlugin):
+class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
 
     r"""Class for applying neighbourhood processing when passing in a mask
     cube that is iterated over.
@@ -214,6 +214,7 @@ class ApplyNeighbourhoodProcessingWithAMask(BasePlugin):
             cube, result,
             exception_coordinates=exception_coordinates)
 
+        super().process(result)
         return result
 
 
