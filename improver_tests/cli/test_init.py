@@ -197,39 +197,6 @@ class Test_with_intermediate_output(unittest.TestCase):
         self.assertEqual(result, 4)
 
 
-def replace_load_with_extract(func, cube, constraints=None):
-    """Function to replicate the call to maybe_coerce_with within
-    create_constrained_inputcubelist_converter.
-
-    Args:
-        func:
-            Unused argument for the purpose of replicating the
-            maybe_coerce_with interface.
-        cube (iris.cube.Cube or iris.cube.CubeList):
-            Cube or CubeList to be extracted from.
-        constraints (str or None):
-            Expected name of cube for extraction.
-
-    Returns:
-        iris.cube.Cube:
-            The extracted cube.
-
-    Raises:
-        ValueError:
-            Error to replicate the behaviour of the call of maybe_coerce_with,
-            where loading a cube with an invalid constraint results in a
-            ValueError.
-    """
-    del func
-    if constraints:
-        cube = cube.extract(constraints)
-    if isinstance(cube, CubeList):
-        cube, = cube.copy()
-    if cube is None:
-        raise ValueError
-    return cube
-
-
 def list_of_length(length):
     """Returns a list of the length plus 1"""
     return [x for x in range(length+1)]
@@ -249,8 +216,8 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     @patch('improver.cli.maybe_coerce_with', side_effect=[list_of_length(2),
                                                           'cube1', 'cube2'])
     def test_basic(self, m):
-        """Tests that maybe_coerce_with is called twice. both times with
-        load_cube as the first argument, a list of 2 items as second argument
+        """Tests that maybe_coerce_with is called twice. Both times with
+        load_cube as the first argument, the 'filepath' as second argument
         and the constraint list of the two strings given to
         create_constrained_inputcubelist_converter.
 
@@ -272,7 +239,7 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
                                                           'cube1'])
     def test_lists(self, m):
         """Tests that maybe_coerce_with is called once with
-        load_cube as the first argument, a list of 1 item as second argument
+        load_cube as the first argument, the 'filepath' as second argument
         and the first constraint list given to
         create_constrained_inputcubelist_converter.
 
@@ -298,7 +265,7 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     def test_when_first_list_does_not_match(self, m):
         """Tests that maybe_coerce_with is called.
         With load_cube as the first argument,
-        a list of 2 items as second argument
+        a 'filepath' as second argument
         and the constraint of the second list given to
         create_constrained_inputcubelist_converter.
 
@@ -326,9 +293,9 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         The bigger of the two constraints is first.
         The selected list is first.
         Tests that maybe_coerce_with is called with
-        load_cube as the first argument, the list given to
-        create_constrained_inputcubelist_converter as second argument
-        and the selected constraints.
+        load_cube as the first argument,
+        'filepath' as second argument
+        and the selected constraints as third.
 
         the returned result is the first two arguments used by the Mocked
         side_effect.
@@ -355,9 +322,9 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         The bigger of the two constraints is first.
         The selected list is second.
         Tests that maybe_coerce_with is called with
-        load_cube as the first argument, the list given to
-        create_constrained_inputcubelist_converter as second argument
-        and the selected constraints.
+        load_cube as the first argument,
+        'filepath' as second argument
+        and the selected constraints as third.
 
         the returned result is the first two arguments used by the Mocked
         side_effect.
@@ -382,9 +349,9 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         The bigger of the two constraints is last.
         The selected list is first.
         Tests that maybe_coerce_with is called with
-        load_cube as the first argument, the list given to
-        create_constrained_inputcubelist_converter as second argument
-        and the selected constraints.
+        load_cube as the first argument,
+        'filepath' as second argument
+        and the selected constraints as third.
 
         the returned result is the first two arguments used by the Mocked
         side_effect.
@@ -408,9 +375,9 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         The bigger of the two constraints is last.
         The selected list is second.
         Tests that maybe_coerce_with is called with
-        load_cube as the first argument, the list given to
-        create_constrained_inputcubelist_converter as second argument
-        and the selected constraints.
+        load_cube as the first argument,
+        'filepath' as second argument
+        and the selected constraints as third.
 
         the returned result is the first two arguments used by the Mocked
         side_effect.

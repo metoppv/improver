@@ -101,14 +101,6 @@ def process(cube: cli.inputcube,
 
     u_cube, v_cube = advection_velocity
 
-    for i in constraints:
-        if u_cube.name in i:
-            if v_cube.name in i:
-                break
-            else:
-                raise TypeError('U cube and V cube must have linked names'
-                                f'U: {u_cube.name}, V: {v_cube.name}')
-
     # extrapolate input data to the maximum required lead time
     forecast_cubes = CreateExtrapolationForecast(
         cube, u_cube, v_cube, orographic_enhancement,
