@@ -195,7 +195,7 @@ def inputpath(to_convert):
     return maybe_coerce_with(pathlib.Path, to_convert)
 
 
-def create_constrained_inputcubelist_converter(*constraints):
+def create_constrained_inputcubelist_converter(*constraint_lists):
     """Makes function that the input constraints are used in a loop.
 
     The function is value_converter, this means it is used by clize to convert
@@ -226,7 +226,8 @@ def create_constrained_inputcubelist_converter(*constraints):
 
         Args:
             to_convert (string):
-                The filename to be loaded.
+                The filename to be loaded. This is a string that will passed
+                to maybe_coerce_with
 
         Returns:
             iris.cube.CubeList:
@@ -241,12 +242,12 @@ def create_constrained_inputcubelist_converter(*constraints):
         from improver.utilities.load import load_cube
         from iris.cube import CubeList
         partial_match = False
-        for constraint in constraints:
+        for constraints in constraint_lists:
             try:
-                cubes = CubeList(
+                cubes = [
                     maybe_coerce_with(load_cube, to_convert, constraints=j)
-                    for j in constraint)
-                if len(to_convert) == len(constraint):
+                    for j in constraints]
+                if len(to_convert) == len(constraints):
                     return cubes
                 partial_match = True
             except ValueError:
@@ -254,9 +255,9 @@ def create_constrained_inputcubelist_converter(*constraints):
                 pass
         if partial_match:
             raise ValueError("Partial match found, cubes must be a whole list."
-                             f"Cubes must be called: {constraints}")
+                             f"Cubes must be called: {constraint_lists}")
         raise ValueError("No cubes matching the required names."
-                         f"Cubes must be called: {constraints}")
+                         f"Cubes must be called: {constraint_lists}")
 
     return constrained_inputcubelist_converter
 

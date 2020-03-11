@@ -42,7 +42,7 @@ X_Y = ['precipitation_advection_x_velocity',
 EAST_NORTH = ['grid_eastward_wind', 'grid_northward_wind']
 constraints = (X_Y, EAST_NORTH)
 # Creates the value_converter that clize needs.
-inputadvection = cli.create_constrained_inputcubelist_converter(*constraints)
+inputadvection = cli.create_constrained_inputcubelist_converter([X_Y, EAST_NORTH])
 
 
 @cli.clizefy
