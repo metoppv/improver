@@ -199,100 +199,6 @@ def wxcode_decision_tree():
                                        (1.0, 'mm hr-1')]],
             'diagnostic_conditions': [['above', 'above']]},
 
-        # B.b
-        'light_precipitation': {
-            'succeed': 'light_precipitation_cloud',
-            'fail': 'drizzle_mist',
-            'probability_thresholds': [0.5],
-            'threshold_condition': '>=',
-            'condition_combination': '',
-            'diagnostic_fields':
-                ['probability_of_lwe_precipitation_rate_above_threshold'],
-            'diagnostic_thresholds': [(0.1, 'mm hr-1')],
-            'diagnostic_conditions': ['above']},
-
-        # A.2
-        'light_precipitation_cloud': {
-            'succeed': 'light_sleet_continuous',
-            'fail': 'light_sleet_shower',
-            'probability_thresholds': [0.5],
-            'threshold_condition': '>=',
-            'condition_combination': '',
-            'diagnostic_fields':
-                ['probability_of_cloud_area_fraction_above_threshold'],
-            'diagnostic_thresholds': [(0.8125, 1)],
-            'diagnostic_conditions': ['above']},
-
-        # A.2.1
-        'light_sleet_continuous': {
-            'succeed': 18,
-            'fail': 'light_rain_or_snow_continuous',
-            'probability_thresholds': [0., 0.],
-            'threshold_condition': '>',
-            'condition_combination': 'AND',
-            'diagnostic_fields':
-                [['probability_of_rainfall_rate_above_threshold',
-                  'probability_of_lwe_sleetfall_rate_above_threshold'],
-                 ['probability_of_lwe_snowfall_rate_above_threshold',
-                  'probability_of_lwe_sleetfall_rate_above_threshold']],
-            'diagnostic_gamma': [1.0, 1.0],
-            'diagnostic_thresholds': [[(0.1, 'mm hr-1'),
-                                       (0.1, 'mm hr-1')],
-                                      [(0.1, 'mm hr-1'),
-                                       (0.1, 'mm hr-1')]],
-            'diagnostic_conditions': [['above', 'above'],
-                                      ['above', 'above']]},
-
-        # A.2.1.a
-        'light_rain_or_snow_continuous': {
-            'succeed': 24,
-            'fail': 12,
-            'probability_thresholds': [0.],
-            'threshold_condition': '>=',
-            'condition_combination': '',
-            'diagnostic_fields':
-                [['probability_of_lwe_snowfall_rate_above_threshold',
-                  'probability_of_rainfall_rate_above_threshold']],
-            'diagnostic_gamma': [1.],
-            'diagnostic_thresholds': [[(0.1, 'mm hr-1'),
-                                       (0.1, 'mm hr-1')]],
-            'diagnostic_conditions': ['above', 'above']},
-
-        # A.2.2
-        'light_sleet_shower': {
-            'succeed': 17,
-            'fail': 'light_rain_or_snow_shower',
-            'probability_thresholds': [0., 0.],
-            'threshold_condition': '>',
-            'condition_combination': 'AND',
-            'diagnostic_fields':
-                [['probability_of_rainfall_rate_above_threshold',
-                  'probability_of_lwe_sleetfall_rate_above_threshold'],
-                 ['probability_of_lwe_snowfall_rate_above_threshold',
-                  'probability_of_lwe_sleetfall_rate_above_threshold']],
-            'diagnostic_gamma': [1.0, 1.0],
-            'diagnostic_thresholds': [[(0.1, 'mm hr-1'),
-                                       (0.1, 'mm hr-1')],
-                                      [(0.1, 'mm hr-1'),
-                                       (0.1, 'mm hr-1')]],
-            'diagnostic_conditions': [['above', 'above'],
-                                      ['above', 'above']]},
-
-        # A.2.2.a
-        'light_rain_or_snow_shower': {
-            'succeed': 23,
-            'fail': 10,
-            'probability_thresholds': [0.],
-            'threshold_condition': '>=',
-            'condition_combination': '',
-            'diagnostic_fields':
-                [['probability_of_lwe_snowfall_rate_above_threshold',
-                  'probability_of_rainfall_rate_above_threshold']],
-            'diagnostic_gamma': [1.],
-            'diagnostic_thresholds': [[(0.1, 'mm hr-1'),
-                                       (0.1, 'mm hr-1')]],
-            'diagnostic_conditions': ['above', 'above']},
-
         # A.3.a
         'drizzle_mist': {
             'succeed': 11,
@@ -362,7 +268,7 @@ def wxcode_decision_tree():
         # B
         'precipitation_in_vicinity': {
             'succeed': 'sleet_in_vicinity',
-            'fail': 'light_precipitation',
+            'fail': 'drizzle_mist',
             'probability_thresholds': [0.5],
             'threshold_condition': '>=',
             'condition_combination': '',
@@ -375,7 +281,7 @@ def wxcode_decision_tree():
 
         # B.a
         'sleet_in_vicinity': {
-            'succeed': 17,
+            'succeed': 'sleet_in_vicinity_cloud',
             'fail': 'rain_or_snow_in_vicinity',
             'probability_thresholds': [0., 0.],
             'threshold_condition': '>',
@@ -482,6 +388,19 @@ def wxcode_decision_tree():
                 'probability_of_lwe_precipitation_rate_in_vicinity_'
                 'above_threshold'],
             'diagnostic_thresholds': [(1.0, 'mm hr-1')],
+            'diagnostic_conditions': ['above']},
+
+
+        # B.3
+        'sleet_in_vicinity_cloud': {
+            'succeed': 18,
+            'fail': 17,
+            'probability_thresholds': [0.5],
+            'threshold_condition': '>=',
+            'condition_combination': '',
+            'diagnostic_fields':
+                ['probability_of_cloud_area_fraction_above_threshold'],
+            'diagnostic_thresholds': [(0.8125, 1)],
             'diagnostic_conditions': ['above']},
 
         # C
