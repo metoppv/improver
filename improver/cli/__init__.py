@@ -207,7 +207,7 @@ def create_constrained_inputcubelist_converter(*constraints):
     These cubes get loaded and returned as a CubeList.
 
     Args:
-        *constraints (tuple of str or list):
+        *constraints (list of list of str):
             Constraints to be used in the loading of cubes into a CubeList.
             If the tuple contains a string or multiple strings, then each
             string is expected to return exactly one match. If the tuple
@@ -240,26 +240,23 @@ def create_constrained_inputcubelist_converter(*constraints):
         """
         from improver.utilities.load import load_cube
         from iris.cube import CubeList
-
-        cubelist = CubeList()
-        for constr in constraints:
-            constr_list = [constr] if isinstance(constr, str) else constr
-            found_cubes = []
-            for constr_item in constr_list:
-                try:
-                    found_cubes.append(maybe_coerce_with(
-                        load_cube, to_convert, constraints=constr_item))
-                except ValueError:
-                    pass
-            if len(found_cubes) != 1:
-                msg = (f"Incorrect number of valid inputs available for the "
-                       "{constr} constraint. "
-                       f"Number of valid inputs: {len(found_cubes)} "
-                       f"The valid inputs found are: {found_cubes}")
-                raise ValueError(msg)
-            cubelist.extend(found_cubes)
-
-        return cubelist
+        partial_match = False
+        for constraint in constraints:
+            try:
+                cubes = CubeList(
+                    maybe_coerce_with(load_cube, to_convert, constraints=j)
+                    for j in constraint)
+                if len(to_convert) == len(constraint):
+                    return cubes
+                else:
+                    partial_match = True
+            except ValueError:
+                pass
+        if partial_match:
+            raise ValueError("Partial match found, cubes must be a whole list."
+                             f"Cubes must be called: {constraints}")
+        raise ValueError("No cubes matching the required names."
+                         f"Cubes must be called: {constraints}")
 
     return constrained_inputcubelist_converter
 

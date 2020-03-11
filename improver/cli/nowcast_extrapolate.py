@@ -33,11 +33,12 @@
 
 
 from improver import cli
+from improver.cli.nowcast_accumulate import X_Y, EAST_NORTH
 
 # Creates the value_converter that clize needs.
 inputadvection = cli.create_constrained_inputcubelist_converter(
-    ['precipitation_advection_x_velocity', 'grid_eastward_wind'],
-    ['precipitation_advection_y_velocity', 'grid_northward_wind'])
+    X_Y,
+    EAST_NORTH)
 
 
 @cli.clizefy

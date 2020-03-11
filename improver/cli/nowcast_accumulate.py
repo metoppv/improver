@@ -36,10 +36,13 @@ from improver import cli
 # The accumulation frequency in minutes.
 ACCUMULATION_FIDELITY = 1
 
+X_Y = ['precipitation_advection_x_velocity',
+       'precipitation_advection_y_velocity']
+
+EAST_NORTH = ['grid_eastward_wind', 'grid_northward_wind']
+constraints = (X_Y, EAST_NORTH)
 # Creates the value_converter that clize needs.
-inputadvection = cli.create_constrained_inputcubelist_converter(
-    ['precipitation_advection_x_velocity', 'grid_eastward_wind'],
-    ['precipitation_advection_y_velocity', 'grid_northward_wind'])
+inputadvection = cli.create_constrained_inputcubelist_converter(*constraints)
 
 
 @cli.clizefy
@@ -97,8 +100,14 @@ def process(cube: cli.inputcube,
 
     u_cube, v_cube = advection_velocity
 
-    if not (u_cube and v_cube):
-        raise ValueError("Neither u_cube or v_cube can be None")
+    for i in constraints:
+        if u_cube.name in i:
+            if v_cube.name in i:
+                break
+            else:
+                raise TypeError('U cube and V cube must have linked names'
+                                f'U: {u_cube.name}, V: {v_cube.name}')
+
 
     # extrapolate input data to the maximum required lead time
     forecast_cubes = CreateExtrapolationForecast(
