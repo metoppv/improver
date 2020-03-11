@@ -248,9 +248,9 @@ def create_constrained_inputcubelist_converter(*constraints):
                     for j in constraint)
                 if len(to_convert) == len(constraint):
                     return cubes
-                else:
-                    partial_match = True
+                partial_match = True
             except ValueError:
+                # Unable to load a cube with that constraint. Try next list.
                 pass
         if partial_match:
             raise ValueError("Partial match found, cubes must be a whole list."

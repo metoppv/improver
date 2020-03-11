@@ -234,129 +234,226 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     """Tests the creature constraint_inputcubelist_converter"""
 
     def setUp(self):
-        data = np.zeros((2, 2), dtype=np.float32)
+        """Sets up some example names to use"""
         self.speed_name = 'wind_speed'
         self.direction_name = 'wind_from_direction'
-        self.wind_speed_cube = set_up_variable_cube(data, name=self.speed_name)
-        self.wind_dir_cube = set_up_variable_cube(
-            data, name=self.direction_name)
-        self.wind_cubes = CubeList([self.wind_speed_cube, self.wind_dir_cube])
 
-    @patch('improver.cli.maybe_coerce_with', side_effect='return')
+    @patch('improver.cli.maybe_coerce_with', side_effect=['cube1', 'cube2'])
     def test_basic(self, m):
-        """Tests that it returns a function which itself returns 2 cubes"""
-        result = create_constrained_inputcubelist_converter(
+        """Tests that maybe_coerce_with is called twice. both times with
+        load_cube as the first argument, a list of 2 items as second argument
+        and the constraint list of the two strings given to
+        create_constrained_inputcubelist_converter.
+
+        the returned result is the first two arguments used by the Mocked
+        side_effect.
+        """
+        constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name, self.direction_name])
-        foobe_list = ["foo", "bar"]
-        result(foobe_list)
-        m.assert_any_call(load_cube, foobe_list,
-                          constraints=self.speed_name)
+        foobe_list = ['foo', 'bar']
+        result = constrained_list(foobe_list)
+        m.assert_any_call(load_cube, foobe_list, constraints=self.speed_name)
         m.assert_any_call(load_cube, foobe_list,
                           constraints=self.direction_name)
         self.assertEqual(m.call_count, 2)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], 'cube1')
+        self.assertEqual(result[1], 'cube2')
 
-    @patch('improver.cli.maybe_coerce_with', side_effect='return')
+    @patch('improver.cli.maybe_coerce_with', side_effect=['cube1'])
     def test_lists(self, m):
-        """Tests that a single call to load cube with the first restraint"""
-        result = create_constrained_inputcubelist_converter(
+        """Tests that maybe_coerce_with is called once with
+        load_cube as the first argument, a list of 1 item as second argument
+        and the first constraint list given to
+        create_constrained_inputcubelist_converter.
+
+        the returned result is the first argument used by the Mocked
+        side_effect.
+
+        Because the first constraint list of speed_name returns a full match,
+        the second one gets skipped.
+        """
+        constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name], [self.direction_name])
-        result(["foo"])
-        m.assert_any_call(load_cube, ["foo"], constraints=self.speed_name)
+        result = constrained_list(['foo'])
+        m.assert_any_call(load_cube, ['foo'], constraints=self.speed_name)
         self.assertEqual(m.call_count, 1)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], 'cube1')
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=ValueError)
-    def test_err_when_no_match(self, m):
-        """Tests that raises an error when no cubes match any constraints"""
-        result = create_constrained_inputcubelist_converter(
-            [self.speed_name], [self.direction_name])
-        msg = 'No cubes matching'
-        with self.assertRaisesRegex(ValueError, msg):
-            result(["foo"])
-        for constraint in [self.speed_name, self.direction_name]:
-            m.assert_any_call(load_cube, ["foo"], constraints=constraint)
-        self.assertEqual(m.call_count, 2)
-
-    @patch('improver.cli.maybe_coerce_with', side_effect=[ValueError,
-                                                          True, True])
+    @patch('improver.cli.maybe_coerce_with', side_effect=[ValueError, 'cube1'])
     def test_when_first_list_does_not_match(self, m):
-        """Tests that a first call to maybe_coerce_with returns with an error
-         Returns the whole of the next list.
-         returns a function which itself returns 2 cubes"""
-        result = create_constrained_inputcubelist_converter(
-            [self.speed_name, self.direction_name], ['cats', 'dogs'])
-        foobe_list = ["foo", "bar"]
-        result(foobe_list)
-        for constraint in [self.speed_name, 'cats', 'dogs']:
-            m.assert_any_call(load_cube, foobe_list, constraints=constraint)
-        self.assertEqual(m.call_count, 3)
+        """Tests that maybe_coerce_with is called.
+        With load_cube as the first argument,
+        a list of 2 items as second argument
+        and the constraint of the second list given to
+        create_constrained_inputcubelist_converter.
 
-    @patch('improver.cli.maybe_coerce_with', return_value='return')
-    def test_different_length_constraints_big_first_select_first(self, m):
-        """Tests that when the first constraint is bigger, it still works"""
-        result = create_constrained_inputcubelist_converter(
-            [self.speed_name, self.direction_name],
-            ['cats']
-        )
-        foobe_list = ['foo', 'bar']
-        result(foobe_list)
-        for constraint in [self.speed_name, self.direction_name]:
-            m.assert_any_call(load_cube, foobe_list, constraints=constraint)
-        self.assertEqual(m.call_count, 2)
+        the returned result is the first two arguments used by the Mocked
+        side_effect.
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=[ValueError,
-                                                          'return'])
-    def test_different_length_constraints_big_first_select_second(self, m):
-        """Tests that when the first constraint is bigger, it still works"""
-        result = create_constrained_inputcubelist_converter(
-            [self.speed_name, self.direction_name],
-            ['cats']
-        )
+        Because the first call to maybe_coerce_with returns a ValueError,
+        the second list of constraints will be used.
+        """
+        constrained_list = create_constrained_inputcubelist_converter(
+            [self.speed_name], ['cats'])
         foobe_list = ['foo']
-        result(foobe_list)
+        result = constrained_list(foobe_list)
         for constraint in [self.speed_name, 'cats']:
             m.assert_any_call(load_cube, foobe_list, constraints=constraint)
         self.assertEqual(m.call_count, 2)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], 'cube1')
 
-    @patch('improver.cli.maybe_coerce_with', side_effect='return')
+    @patch('improver.cli.maybe_coerce_with', side_effect=['cube1', 'cube2'])
+    def test_different_length_constraints_big_first_select_first(self, m):
+        """Tests when the two constraint lists are different sizes.
+        The bigger of the two constraints is first.
+        The selected list is first.
+        Tests that maybe_coerce_with is called with
+        load_cube as the first argument, the list given to
+        create_constrained_inputcubelist_converter as second argument
+        and the selected constraints.
+
+        the returned result is the first two arguments used by the Mocked
+        side_effect.
+        """
+        constrained_list = create_constrained_inputcubelist_converter(
+            [self.speed_name, self.direction_name],
+            ['cats']
+        )
+        foobe_list = ['foo', 'bar']
+        result = constrained_list(foobe_list)
+        for constraint in [self.speed_name, self.direction_name]:
+            m.assert_any_call(load_cube, foobe_list, constraints=constraint)
+        self.assertEqual(m.call_count, 2)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], 'cube1')
+        self.assertEqual(result[1], 'cube2')
+
+    @patch('improver.cli.maybe_coerce_with', side_effect=[ValueError,
+                                                          'cube1', 'cube2'])
+    def test_different_length_constraints_big_first_select_second(self, m):
+        """Tests when the two constraint lists are different sizes.
+        The bigger of the two constraints is first.
+        The selected list is second.
+        Tests that maybe_coerce_with is called with
+        load_cube as the first argument, the list given to
+        create_constrained_inputcubelist_converter as second argument
+        and the selected constraints.
+
+        the returned result is the first two arguments used by the Mocked
+        side_effect.
+        """
+        constrained_list = create_constrained_inputcubelist_converter(
+            [self.speed_name, self.direction_name],
+            ['cats']
+        )
+        foobe_list = ['foo']
+        result = constrained_list(foobe_list)
+        for constraint in [self.speed_name, 'cats']:
+            m.assert_any_call(load_cube, foobe_list, constraints=constraint)
+        self.assertEqual(m.call_count, 2)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], 'cube1')
+
+    @patch('improver.cli.maybe_coerce_with', side_effect=['cube1'])
     def test_different_length_constraints_big_last_select_first(self, m):
-        """Tests that when the last constraint is bigger, it still works"""
-        result = create_constrained_inputcubelist_converter(
+        """Tests when the two constraint lists are different sizes.
+        The bigger of the two constraints is last.
+        The selected list is first.
+        Tests that maybe_coerce_with is called with
+        load_cube as the first argument, the list given to
+        create_constrained_inputcubelist_converter as second argument
+        and the selected constraints.
+
+        the returned result is the first two arguments used by the Mocked
+        side_effect.
+        """
+        constrained_list = create_constrained_inputcubelist_converter(
             ['cats'],
             [self.speed_name, self.direction_name]
         )
         foobe_list = ['foo']
-        result(foobe_list)
-        for constraint in ['cats']:
-            m.assert_any_call(load_cube, foobe_list, constraints=constraint)
+        result = constrained_list(foobe_list)
+        m.assert_any_call(load_cube, foobe_list, constraints='cats')
         self.assertEqual(m.call_count, 1)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], 'cube1')
 
     @patch('improver.cli.maybe_coerce_with', side_effect=[ValueError,
-                                                          'return'])
+                                                          'cube1', 'cube2'])
     def test_different_length_constraints_big_last_select_second(self, m):
-        """Tests that when the last constraint is bigger, it still works"""
-        result = create_constrained_inputcubelist_converter(
+        """Tests when the two constraint lists are different sizes.
+        The bigger of the two constraints is last.
+        The selected list is second.
+        Tests that maybe_coerce_with is called with
+        load_cube as the first argument, the list given to
+        create_constrained_inputcubelist_converter as second argument
+        and the selected constraints.
+
+        the returned result is the first two arguments used by the Mocked
+        side_effect.
+        """
+        constrained_list = create_constrained_inputcubelist_converter(
             ['cats'],
             [self.speed_name, self.direction_name]
         )
         foobe_list = ['foo', 'bar']
-        result(foobe_list)
+        result = constrained_list(foobe_list)
         for constraint in ['cats', self.speed_name, self.direction_name]:
             m.assert_any_call(load_cube, foobe_list, constraints=constraint)
         self.assertEqual(m.call_count, 3)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], 'cube1')
+        self.assertEqual(result[1], 'cube2')
 
-    @patch('improver.cli.maybe_coerce_with', return_value='return')
+    @patch('improver.cli.maybe_coerce_with', side_effect=['cube1',
+                                                          'cube1', 'cube2'])
     def test_when_first_match_but_wrong_size(self, m):
-        """Tests when there is a match but the length is wrong, contines to
-        find a full match."""
-        result = create_constrained_inputcubelist_converter(
+        """Tests when there is a match but the length is wrong, continues to
+        find a full match.
+        Calls maybe_coerce_with three times due to the first match not being
+        the same length as the input_list.
+        """
+        constrained_list = create_constrained_inputcubelist_converter(
             ['cats'],
             ['cats', self.direction_name]
         )
         foobe_list = ['foo', 'bar']
-        result(foobe_list)
+        result = constrained_list(foobe_list)
         for constraint in ['cats', 'cats', self.direction_name]:
             m.assert_any_call(load_cube, foobe_list, constraints=constraint)
         self.assertEqual(m.call_count, 3)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], 'cube1')
+        self.assertEqual(result[1], 'cube2')
+
+    @patch('improver.cli.maybe_coerce_with', side_effect=ValueError)
+    def test_err_when_no_match(self, m):
+        """Tests that raises an error when no cubes match any constraints.
+        Tests that assertEqual is called for the number of constraint lists.
+        """
+        constrained_list = create_constrained_inputcubelist_converter(
+            [self.speed_name], [self.direction_name])
+        msg = 'No cubes matching'
+        with self.assertRaisesRegex(ValueError, msg):
+            constrained_list(['foo'])
+        for constraint in [self.speed_name, self.direction_name]:
+            m.assert_any_call(load_cube, ['foo'], constraints=constraint)
+        self.assertEqual(m.call_count, 2)
+
+    @patch('improver.cli.maybe_coerce_with', side_effect=['Cube1'])
+    def test_err_when_match_wrong_size(self, m):
+        """Tests that raises an error when no cubes match any constraints"""
+        constrained_list = create_constrained_inputcubelist_converter(
+            [self.speed_name])
+        msg = 'Partial match found'
+        with self.assertRaisesRegex(ValueError, msg):
+            constrained_list(['foo', 'bar'])
+        m.assert_any_call(load_cube, ['foo', 'bar'],
+                          constraints=self.speed_name)
+        self.assertEqual(m.call_count, 1)
 
 
 class Test_clizefy(unittest.TestCase):
