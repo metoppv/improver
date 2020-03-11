@@ -42,7 +42,8 @@ X_Y = ['precipitation_advection_x_velocity',
 EAST_NORTH = ['grid_eastward_wind', 'grid_northward_wind']
 constraints = (X_Y, EAST_NORTH)
 # Creates the value_converter that clize needs.
-inputadvection = cli.create_constrained_inputcubelist_converter([X_Y, EAST_NORTH])
+inputadvection = cli.create_constrained_inputcubelist_converter(X_Y,
+                                                                EAST_NORTH)
 
 
 @cli.clizefy
@@ -107,7 +108,6 @@ def process(cube: cli.inputcube,
             else:
                 raise TypeError('U cube and V cube must have linked names'
                                 f'U: {u_cube.name}, V: {v_cube.name}')
-
 
     # extrapolate input data to the maximum required lead time
     forecast_cubes = CreateExtrapolationForecast(
