@@ -980,5 +980,4 @@ class RoughnessCorrection(PostProcessingPlugin):
             input_cube.transpose(np.argsort([ywp, xwp, zwp, twp]))
             output_cube.transpose(np.argsort([twp, ywp, xwp, zwp]))
 
-        super().process(output_cube)
         return output_cube

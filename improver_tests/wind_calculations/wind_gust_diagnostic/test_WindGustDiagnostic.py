@@ -236,7 +236,7 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test that the plugin returns a Cube. """
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
-        result = plugin.process(self.cube_wg, self.cube_ws)
+        result = plugin(self.cube_wg, self.cube_ws)
         self.assertIsInstance(result, Cube)
 
     def test_raises_error_for_mismatching_perc_coords(self):
@@ -254,7 +254,7 @@ class Test_process(IrisTest):
         msg = ('Percentile coord of wind-gust data'
                'does not match coord of wind-speed data')
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(cube_wg, self.cube_ws)
+            plugin(cube_wg, self.cube_ws)
 
     def test_raises_error_for_no_time_coord(self):
         """Test raises Value Error if cubes have no time coordinate """
@@ -265,7 +265,7 @@ class Test_process(IrisTest):
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = ('Could not match time coordinate')
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(cube_wg, cube_ws)
+            plugin(cube_wg, cube_ws)
 
     def test_raises_error_points_mismatch_and_no_bounds(self):
         """Test raises Value Error if points mismatch and no bounds """
@@ -274,7 +274,7 @@ class Test_process(IrisTest):
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = ('Could not match time coordinate')
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(cube_wg, self.cube_ws)
+            plugin(cube_wg, self.cube_ws)
 
     def test_raises_error_points_mismatch_and_bounds(self):
         """Test raises Value Error if both points and bounds mismatch """
@@ -285,7 +285,7 @@ class Test_process(IrisTest):
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = ('Could not match time coordinate')
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(cube_wg, self.cube_ws)
+            plugin(cube_wg, self.cube_ws)
 
     def test_no_raises_error_if_ws_point_in_bounds(self):
         """Test raises no Value Error if wind-speed point in bounds """
@@ -295,13 +295,13 @@ class Test_process(IrisTest):
                                         [402192.5, 402193.5]]
 
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
-        result = plugin.process(cube_wg, self.cube_ws)
+        result = plugin(cube_wg, self.cube_ws)
         self.assertIsInstance(result, Cube)
 
     def test_returns_wind_gust_diagnostic(self):
         """Test that the plugin returns a Cube. """
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
-        result = plugin.process(self.cube_wg, self.cube_ws)
+        result = plugin(self.cube_wg, self.cube_ws)
         expected_data = np.zeros((2, 2, 2))
         expected_data[0, :, :] = 3.0
         expected_data[1, :, :] = 2.0

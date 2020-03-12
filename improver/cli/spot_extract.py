@@ -221,7 +221,7 @@ def process(neighbour_cube: cli.inputcube,
         if cube.coord("height") == lapse_rate_height_coord:
             plugin = SpotLapseRateAdjust(
                 neighbour_selection_method=neighbour_selection_method)
-            result = plugin.process(result, neighbour_cube, lapse_rate)
+            result = plugin(result, neighbour_cube, lapse_rate)
         elif not suppress_warnings:
             warnings.warn(
                 "A lapse rate cube was provided, but the height of the "

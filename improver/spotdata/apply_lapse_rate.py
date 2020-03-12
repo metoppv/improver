@@ -128,6 +128,4 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
                 spot_lapse_rate.data * vertical_displacement.data)
             ).astype(np.float32)
         new_spot_cube = spot_data_cube.copy(data=new_temperatures)
-
-        super().process(new_spot_cube)
         return new_spot_cube

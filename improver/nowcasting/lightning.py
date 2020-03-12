@@ -499,6 +499,4 @@ class NowcastLightning(PostProcessingPlugin):
         # Adjust data so that lightning probability does not decrease too
         # rapidly with distance.
         self.neighbourhood.process(new_cube)
-
-        super().process(new_cube)
         return new_cube

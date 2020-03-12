@@ -207,6 +207,4 @@ class WindGustDiagnostic(PostProcessingPlugin):
 
         # Update metadata
         result.remove_coord(perc_coord_gust.name())
-
-        super().process(result)
         return result

@@ -814,7 +814,7 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test that the method returns the expected cube type with coords"""
-        result = self.plugin.process(CubeList([
+        result = self.plugin(CubeList([
             self.fg_cube,
             self.ltng_cube,
             self.precip_cube]))
@@ -830,7 +830,7 @@ class Test_process(IrisTest):
     def test_basic_with_vii(self):
         """Test that the method returns the expected cube type when vii is
         present"""
-        result = self.plugin.process(CubeList([
+        result = self.plugin(CubeList([
             self.fg_cube,
             self.ltng_cube,
             self.precip_cube,
@@ -850,7 +850,7 @@ class Test_process(IrisTest):
         msg = (r"Got 0 cubes for constraint Constraint\(name=\'probability_of_"
                r"rate_of_lightning_above_threshold\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            self.plugin.process(CubeList([
+            self.plugin(CubeList([
                 self.ltng_cube,
                 self.precip_cube]))
 
@@ -860,7 +860,7 @@ class Test_process(IrisTest):
         msg = (r"Got 0 cubes for constraint Constraint\(name=\'rate_of_"
                r"lightning\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            self.plugin.process(CubeList([
+            self.plugin(CubeList([
                 self.fg_cube,
                 self.precip_cube]))
 
@@ -870,7 +870,7 @@ class Test_process(IrisTest):
         msg = (r"Got 0 cubes for constraint Constraint\(name=\'probability_of_"
                r"lwe_precipitation_rate_above_threshold\'\), expecting 1.")
         with self.assertRaisesRegex(ConstraintMismatchError, msg):
-            self.plugin.process(CubeList([
+            self.plugin(CubeList([
                 self.fg_cube,
                 self.ltng_cube]))
 
@@ -881,7 +881,7 @@ class Test_process(IrisTest):
         self.precip_cube.remove_coord(threshold_coord)
         msg = "No threshold coord found"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            self.plugin.process(CubeList([
+            self.plugin(CubeList([
                 self.fg_cube,
                 self.ltng_cube,
                 self.precip_cube]))
@@ -896,7 +896,7 @@ class Test_process(IrisTest):
         # No halo - we're only testing this method.
         # 2000m is the grid-length, so halo includes only one pixel.
         plugin = Plugin(2000.)
-        result = plugin.process(CubeList([
+        result = plugin(CubeList([
             self.fg_cube,
             self.ltng_cube,
             self.precip_cube,
@@ -921,7 +921,7 @@ class Test_process(IrisTest):
         # No halo - we're only testing this method.
         # 2000m is the grid-length, so halo includes only one pixel.
         plugin = Plugin(2000.)
-        result = plugin.process(CubeList([
+        result = plugin(CubeList([
             self.fg_cube,
             self.ltng_cube,
             self.precip_cube,
