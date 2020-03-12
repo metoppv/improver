@@ -141,7 +141,7 @@ def wxcode_decision_tree():
                   'probability_of_rainfall_rate_above_threshold'],
                  ['probability_of_lwe_sleetfall_rate_above_threshold',
                   'probability_of_lwe_snowfall_rate_above_threshold']],
-                  'diagnostic_gamma': [1.0, 1.0],
+            'diagnostic_gamma': [1.0, 1.0],
             'diagnostic_thresholds': [[(1.0, 'mm hr-1'),
                                        (1.0, 'mm hr-1')],
                                       [(1.0, 'mm hr-1'),
