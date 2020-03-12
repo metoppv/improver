@@ -33,7 +33,6 @@
 import unittest
 from unittest.mock import patch
 
-import numpy as np
 import improver
 from improver.cli import (
     clizefy,
@@ -47,9 +46,6 @@ from improver.cli import (
     with_output,
 )
 from improver.utilities.load import load_cube
-from iris.cube import CubeList
-
-from ..set_up_test_cubes import set_up_variable_cube
 
 
 def dummy_function(first, second=0, third=2):
@@ -199,7 +195,7 @@ class Test_with_intermediate_output(unittest.TestCase):
 
 def list_of_length(length):
     """Returns a list of the length plus 1"""
-    return [x for x in range(length+1)]
+    return list(range(length+1))
 
 
 class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
