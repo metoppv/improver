@@ -671,18 +671,33 @@ class Test_process(Test_WXCode):
         """Test process returns the right weather values with a different
         set of data to walk the tree differently."""
         plugin = WeatherSymbols()
-        data_snow = np.array([0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.1,
-                              0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0,
-                              0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
-                              1.0, 1.0, 0.0]).reshape((3, 3, 3))
-        data_sleet = np.array([0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                               0.0, 0.0, 0.0]).reshape((3, 3, 3))
-        data_rain = np.array([1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                              1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                              1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0]).reshape((3, 3, 3))
+        data_snow = np.array([[[0.0, 0.0, 1.0],
+                               [1.0, 1.0, 1.0],
+                               [1.0, 1.0, 0.1]],
+                              [[0.0, 0.0, 0.0],
+                               [0.0, 1.0, 1.0],
+                               [1.0, 1.0, 0.0]],
+                              [[0.0, 0.0, 0.0],
+                               [0.0, 0.0, 0.0],
+                               [1.0, 1.0, 0.0]]])
+        data_sleet = np.array([[[0.0, 0.0, 1.0],
+                                [1.0, 0.0, 0.0],
+                                [0.0, 0.0, 0.0]],
+                               [[0.0, 0.0, 1.0],
+                                [1.0, 0.0, 0.0],
+                                [0.0, 0.0, 0.0]],
+                               [[0.0, 0.0, 1.0],
+                                [1.0, 0.0, 0.0],
+                                [0.0, 0.0, 0.0]]])
+        data_rain = np.array([[[1.0, 1.0, 1.0],
+                               [1.0, 0.0, 0.0],
+                               [0.0, 0.0, 0.0]],
+                              [[1.0, 1.0, 0.0],
+                               [0.0, 0.0, 0.0],
+                               [0.0, 0.0, 0.0]],
+                              [[1.0, 1.0, 0.0],
+                               [0.0, 0.0, 0.0],
+                               [0.0, 0.0, 0.0]]])
         # pylint: disable=no-member
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
         data_precipv = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
@@ -711,6 +726,34 @@ class Test_process(Test_WXCode):
         cubes[8].data = data_precip
         result = plugin.process(cubes)
         self.assertArrayEqual(result.data, self.expected_wxcode_alternate)
+
+    def test_sleet(self):
+        """Test process returns the sleet weather code."""
+        plugin = WeatherSymbols()
+        data_snow = np.zeros_like(self.cubes[0].data)
+        data_sleet = np.ones_like(self.cubes[0].data)
+        data_rain = np.zeros_like(self.cubes[0].data)
+        # pylint: disable=no-member
+        data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
+        data_precipv = np.ones_like(self.cubes[0].data)
+        data_cloud = np.ones_like(self.cubes[4].data)
+        data_cld_low = np.ones_like(self.cubes[5].data)
+        data_vis = np.zeros_like(self.cubes[6].data)
+        data_lightning = np.zeros_like(self.cubes[7].data)
+        expected = np.ones_like(self.expected_wxcode_alternate) * 18
+
+        cubes = self.cubes
+        cubes[0].data = data_snow
+        cubes[1].data = data_sleet
+        cubes[2].data = data_rain
+        cubes[3].data = data_precipv
+        cubes[4].data = data_cloud
+        cubes[5].data = data_cld_low
+        cubes[6].data = data_vis
+        cubes[7].data = data_lightning
+        cubes[8].data = data_precip
+        result = plugin.process(cubes)
+        self.assertArrayEqual(result.data, expected)
 
     def test_basic_global(self):
         """Test process returns a wxcode cube with right values for global. """
