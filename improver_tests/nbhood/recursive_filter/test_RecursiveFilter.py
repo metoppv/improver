@@ -399,7 +399,7 @@ class Test_process(Test_RecursiveFilter):
             iterations=self.iterations)
         self.cube.data[0][3][2] = np.nan
         result = plugin(self.cube, smoothing_coefficients_x=None,
-                                smoothing_coefficients_y=None)
+                        smoothing_coefficients_y=None)
         expected = 0.11979733
         self.assertAlmostEqual(result.data[0][2][2], expected)
 
@@ -416,7 +416,7 @@ class Test_process(Test_RecursiveFilter):
         mask[0][1][2] = 1
         self.cube.data = np.ma.MaskedArray(self.cube.data, mask=mask)
         result = plugin(self.cube, smoothing_coefficients_x=None,
-                                smoothing_coefficients_y=None)
+                        smoothing_coefficients_y=None)
         expected = 0.105854129
         self.assertAlmostEqual(result.data[0][2][2], expected)
 
