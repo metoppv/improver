@@ -56,10 +56,24 @@ class BasePlugin(ABC):
         pass
 
 
-class PostProcessingPlugin(BasePlugin, ABC):
+class PostProcessingPlugin(BasePlugin):
     """An abstract class for IMPROVER post-processing plugins.
     Makes generalised changes to metadata relating to post-processing.
     """
+    def __call__(self, *args, **kwargs):
+        """Makes subclasses callable to use process
+        Args:
+            *args:
+                Positional arguments.
+            **kwargs:
+                Keyword arguments.
+        Returns:
+            Output of self.process()
+        """
+        cube = super().__call__(*args, **kwargs)
+        self.post_processed_title(cube)
+        return cube
+
     @staticmethod
     def post_processed_title(cube):
         """Updates title attribute on output cube"""
@@ -69,8 +83,3 @@ class PostProcessingPlugin(BasePlugin, ABC):
                 "Post-Processed" not in cube.attributes["title"]):
             title = cube.attributes["title"]
             cube.attributes["title"] = "Post-Processed {}".format(title)
-
-    @abstractmethod
-    def process(self, cube):
-        """Applies generalised metadata updates"""
-        self.post_processed_title(cube)

@@ -352,5 +352,4 @@ class BasicThreshold(PostProcessingPlugin):
         enforce_coordinate_ordering(
             cube, ["realization", "percentile"])
 
-        super().process(cube)
         return cube
