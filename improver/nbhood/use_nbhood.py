@@ -214,7 +214,6 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             cube, result,
             exception_coordinates=exception_coordinates)
 
-        super().process(result)
         return result
 
 

@@ -178,13 +178,13 @@ def process(cube: cli.inputcube,
         if masking_coordinate is None:
             result_land = NeighbourhoodProcessing(
                 'square', radius_or_radii, lead_times=lead_times,
-                sum_or_fraction=sum_or_fraction, re_mask=True).process(
-                cube, land_only)
+                sum_or_fraction=sum_or_fraction,
+                re_mask=True)(cube, land_only)
         else:
             result_land = ApplyNeighbourhoodProcessingWithAMask(
                 masking_coordinate, radius_or_radii, lead_times=lead_times,
-                sum_or_fraction=sum_or_fraction, re_mask=False).process(
-                cube, mask)
+                sum_or_fraction=sum_or_fraction,
+                re_mask=False)(cube, mask)
 
             if return_intermediate:
                 intermediate_cube = result_land.copy()
@@ -198,7 +198,7 @@ def process(cube: cli.inputcube,
         result_sea = NeighbourhoodProcessing(
             'square', radius_or_radii, lead_times=lead_times,
             sum_or_fraction=sum_or_fraction,
-            re_mask=True).process(cube, sea_only)
+            re_mask=True)(cube, sea_only)
         result = result_sea
 
     # Section for combining land and sea points following land and sea points

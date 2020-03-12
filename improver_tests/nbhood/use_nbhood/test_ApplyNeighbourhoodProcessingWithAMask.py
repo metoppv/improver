@@ -193,7 +193,7 @@ class Test_process(IrisTest):
         expected_shape = tuple(
             [num_zones] + list(self.cube.data.shape))
         result = ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, radii).process(self.cube, self.mask_cube)
+            coord_for_masking, radii)(self.cube, self.mask_cube)
         self.assertEqual(result.data.shape, expected_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -207,7 +207,7 @@ class Test_process(IrisTest):
         coord_for_masking = "topographic_zone"
         radii = 2000
         result = ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, radii).process(cube, self.mask_cube)
+            coord_for_masking, radii)(cube, self.mask_cube)
         expected_dims = list(cube.dim_coords)
         expected_dims.insert(2, self.mask_cube.coord("topographic_zone"))
         self.assertEqual(result.dim_coords, tuple(expected_dims))
@@ -228,7 +228,7 @@ class Test_process(IrisTest):
         coord_for_masking = "topographic_zone"
         radii = 2000
         result = ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, radii).process(cube, self.mask_cube)
+            coord_for_masking, radii)(cube, self.mask_cube)
         expected_dims = list(cube.dim_coords)
         expected_dims.insert(2, self.mask_cube.coord("topographic_zone"))
 
@@ -274,7 +274,7 @@ class Test_process(IrisTest):
             [cube.data.shape[0], num_zones] + list(cube.data.shape[1:])
         )
         result = ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, radii).process(cube, self.mask_cube)
+            coord_for_masking, radii)(cube, self.mask_cube)
         self.assertEqual(result.data.shape, expected_shape)
         for realization_slice in result.slices_over("realization"):
             self.assertArrayAlmostEqual(realization_slice.data, expected)

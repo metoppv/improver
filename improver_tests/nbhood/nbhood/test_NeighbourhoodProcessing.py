@@ -100,7 +100,7 @@ class Test_process(IrisTest):
                [1., 1., 1., 1., 1.]]]])
         neighbourhood_method = 'circular'
         radii = 4000
-        result = NBHood(neighbourhood_method, radii).process(self.cube)
+        result = NBHood(neighbourhood_method, radii)(self.cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -116,7 +116,7 @@ class Test_process(IrisTest):
         neighbourhood_method = 'circular'
         radii = 4000
         result = NBHood(neighbourhood_method, radii,
-                        weighted_mode=False).process(self.cube)
+                        weighted_mode=False)(self.cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -130,7 +130,7 @@ class Test_process(IrisTest):
                [1., 1., 1., 1., 1.]]]])
         neighbourhood_method = 'square'
         radii = 2000
-        result = NBHood(neighbourhood_method, radii).process(self.cube)
+        result = NBHood(neighbourhood_method, radii)(self.cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 

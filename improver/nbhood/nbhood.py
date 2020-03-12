@@ -202,7 +202,6 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         combined_cube = check_cube_coordinates(
             cube, combined_cube, exception_coordinates=exception_coordinates)
 
-        super().process(combined_cube)
         return combined_cube
 
 
