@@ -215,6 +215,4 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         # generate "between thresholds" probabilities
         output_cube = self._calculate_probabilities()
         self._update_metadata(output_cube, original_units)
-
-        super().process(output_cube)
         return output_cube

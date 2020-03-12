@@ -395,8 +395,6 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
 
         # Put dimensions back if they were there before.
         result_cube = check_cube_coordinates(cube, result_cube)
-
-        super().process(result_cube)
         return result_cube
 
 

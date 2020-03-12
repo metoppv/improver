@@ -68,7 +68,7 @@ class PostProcessingPlugin(BasePlugin):
             **kwargs:
                 Keyword arguments.
         Returns:
-            Output of self.process()
+            Output of self.process() with updated title attribute
         """
         cube = super().__call__(*args, **kwargs)
         self.post_processed_title(cube)

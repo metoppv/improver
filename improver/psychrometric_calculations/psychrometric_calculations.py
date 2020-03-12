@@ -888,7 +888,7 @@ class PhaseChangeLevel(BasePlugin):
         radius_in_metres = number_of_grid_cells_to_distance(
             orography_cube, self.grid_point_radius)
         max_in_nbhood_orog = OccurrenceWithinVicinity(
-            radius_in_metres).process(orography_cube)
+            radius_in_metres)(orography_cube)
         return max_in_nbhood_orog
 
     def _calculate_phase_change_level(
