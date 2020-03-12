@@ -358,7 +358,7 @@ class Test_process(Test_RecursiveFilter):
             smoothing_coefficient_x=self.smoothing_coefficient_x,
             smoothing_coefficient_y=self.smoothing_coefficient_y,
             iterations=self.iterations)
-        result = plugin.process(
+        result = plugin(
             self.cube, smoothing_coefficients_x=None,
             smoothing_coefficients_y=None)
         self.assertIsInstance(result, Cube)
@@ -370,7 +370,7 @@ class Test_process(Test_RecursiveFilter):
             smoothing_coefficient_x=self.smoothing_coefficient_x,
             smoothing_coefficient_y=self.smoothing_coefficient_y,
             iterations=self.iterations)
-        result = plugin.process(
+        result = plugin(
             self.cube, smoothing_coefficients_x=None,
             smoothing_coefficients_y=None)
         expected = 0.13382206
@@ -382,7 +382,7 @@ class Test_process(Test_RecursiveFilter):
         plugin = RecursiveFilter(
             smoothing_coefficient_x=None, smoothing_coefficient_y=None,
             iterations=self.iterations)
-        result = plugin.process(
+        result = plugin(
             self.cube,
             smoothing_coefficients_x=self.smoothing_coefficients_cube,
             smoothing_coefficients_y=self.smoothing_coefficients_cube)
@@ -398,7 +398,7 @@ class Test_process(Test_RecursiveFilter):
             smoothing_coefficient_y=self.smoothing_coefficient_y,
             iterations=self.iterations)
         self.cube.data[0][3][2] = np.nan
-        result = plugin.process(self.cube, smoothing_coefficients_x=None,
+        result = plugin(self.cube, smoothing_coefficients_x=None,
                                 smoothing_coefficients_y=None)
         expected = 0.11979733
         self.assertAlmostEqual(result.data[0][2][2], expected)
@@ -415,7 +415,7 @@ class Test_process(Test_RecursiveFilter):
         mask = np.zeros((self.cube.data.shape))
         mask[0][1][2] = 1
         self.cube.data = np.ma.MaskedArray(self.cube.data, mask=mask)
-        result = plugin.process(self.cube, smoothing_coefficients_x=None,
+        result = plugin(self.cube, smoothing_coefficients_x=None,
                                 smoothing_coefficients_y=None)
         expected = 0.105854129
         self.assertAlmostEqual(result.data[0][2][2], expected)
@@ -429,7 +429,7 @@ class Test_process(Test_RecursiveFilter):
         mask = np.zeros((self.cube.data.shape))
         mask[0][3][2] = 1
         self.cube.data = np.ma.MaskedArray(self.cube.data, mask=mask)
-        result = plugin.process(
+        result = plugin(
             self.cube,
             smoothing_coefficients_x=self.smoothing_coefficients_cube,
             smoothing_coefficients_y=self.smoothing_coefficients_cube)
@@ -443,7 +443,7 @@ class Test_process(Test_RecursiveFilter):
             smoothing_coefficient_x=self.smoothing_coefficient_x,
             smoothing_coefficient_y=self.smoothing_coefficient_y,
             iterations=self.iterations)
-        result = plugin.process(
+        result = plugin(
             self.cube, smoothing_coefficients_x=None,
             smoothing_coefficients_y=None)
         # Output data array should have same dimensions as input data array
@@ -462,7 +462,7 @@ class Test_process(Test_RecursiveFilter):
             smoothing_coefficient_x=self.smoothing_coefficient_x,
             smoothing_coefficient_y=smoothing_coefficient_y,
             iterations=self.iterations)
-        result = plugin.process(self.cube)
+        result = plugin(self.cube)
 
         expected_result = np.array(
             [[0.01620921, 0.03978802, 0.10592333, 0.03978982, 0.01621686],

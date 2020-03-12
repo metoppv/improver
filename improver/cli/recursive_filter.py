@@ -78,7 +78,8 @@ def process(cube: cli.inputcube,
 
     smoothing_coefficients_x_cube, smoothing_coefficients_y_cube = (
         smoothing_coefficients)
-    return RecursiveFilter(iterations=iterations, re_mask=remask).process(
+    plugin = RecursiveFilter(iterations=iterations, re_mask=remask)
+    return plugin(
         cube,
         smoothing_coefficients_x=smoothing_coefficients_x_cube,
         smoothing_coefficients_y=smoothing_coefficients_y_cube,
