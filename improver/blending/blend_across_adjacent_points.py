@@ -147,13 +147,11 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
         # Calculate weights and produce blended output.
         weights = self.WeightsPlugin.process(
             cube, self.coord, self.central_point)
-        blended_cube = self.BlendingPlugin.process(cube, weights)
+        blended_cube = self.BlendingPlugin(cube, weights)
 
         # With one threshold dimension (such as for low cloud), the threshold
         # axis is demoted to a scalar co-ordinate by BlendingPlugin. This line
         # promotes threshold to match the dimensions of central_point_cube.
         blended_cube = check_cube_coordinates(central_point_cube, blended_cube)
         blended_cube = central_point_cube.copy(blended_cube.data)
-
-        super().process(blended_cube)
         return blended_cube

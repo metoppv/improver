@@ -118,5 +118,5 @@ def process(*cubes: cli.inputcube,
 
     blending_plugin = TriangularWeightedBlendAcrossAdjacentPoints(
         coordinate, central_point, units, width)
-    result = blending_plugin.process(cube)
+    result = blending_plugin(cube)
     return result

@@ -877,5 +877,4 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         if isinstance(cube.data, np.ma.core.MaskedArray):
             result.data = np.ma.array(result.data)
 
-        super().process(result)
         return result

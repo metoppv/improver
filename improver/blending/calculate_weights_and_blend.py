@@ -215,7 +215,7 @@ class WeightAndBlend(BasePlugin):
             # blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(
                 self.blend_coord)
-            result = BlendingPlugin.process(
+            result = BlendingPlugin(
                 cube, weights=weights, cycletime=cycletime,
                 attributes_dict=attributes_dict)
 

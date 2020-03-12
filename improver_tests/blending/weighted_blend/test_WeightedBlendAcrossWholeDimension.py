@@ -575,7 +575,7 @@ class Test_process(Test_weighted_blend):
         matches the input cube where appropriate."""
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord)
-        result = plugin.process(self.cube)
+        result = plugin(self.cube)
 
         expected_frt = int(
             self.cube.coord('forecast_reference_time').points[-1])
@@ -616,7 +616,7 @@ class Test_process(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(coord_name)
         expected_frt = 1447837200
         expected_forecast_period = 61200
-        result = plugin.process(cube, cycletime='20151118T0900Z')
+        result = plugin(cube, cycletime='20151118T0900Z')
 
         self.assertEqual(result.coord('forecast_reference_time').points,
                          expected_frt)
@@ -635,7 +635,7 @@ class Test_process(Test_weighted_blend):
         expected_frt = cube.coord("forecast_reference_time").points[0]
         expected_fp = cube.coord("forecast_period").points[0]
         plugin = WeightedBlendAcrossWholeDimension("realization")
-        result = plugin.process(cube, cycletime='20191011T0000Z')
+        result = plugin(cube, cycletime='20191011T0000Z')
         self.assertEqual(
             result.coord("forecast_reference_time").points[0], expected_frt)
         self.assertEqual(
@@ -654,7 +654,7 @@ class Test_process(Test_weighted_blend):
             "institution": MANDATORY_ATTRIBUTE_DEFAULTS["institution"]}
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord)
-        result = plugin.process(self.cube, attributes_dict=attributes_dict)
+        result = plugin(self.cube, attributes_dict=attributes_dict)
         self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_fails_coord_not_in_cube(self):
@@ -664,7 +664,7 @@ class Test_process(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(coord)
         msg = ('Coordinate to be collapsed not found in cube.')
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            plugin.process(self.cube)
+            plugin(self.cube)
 
     def test_fails_coord_not_in_weights_cube(self):
         """Test it raises CoordinateNotFoundError if the blending coord is not
@@ -674,7 +674,7 @@ class Test_process(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(coord)
         msg = ('Coordinate to be collapsed not found in weights cube.')
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            plugin.process(self.cube, self.weights1d)
+            plugin(self.cube, self.weights1d)
 
     def test_fails_input_not_a_cube(self):
         """Test it raises a Type Error if not supplied with a cube."""
@@ -683,7 +683,7 @@ class Test_process(Test_weighted_blend):
         notacube = 0.0
         msg = ('The first argument must be an instance of iris.cube.Cube')
         with self.assertRaisesRegex(TypeError, msg):
-            plugin.process(notacube)
+            plugin(notacube)
 
     def test_scalar_coord(self):
         """Test plugin throws an error if trying to blending across a scalar
@@ -695,7 +695,7 @@ class Test_process(Test_weighted_blend):
         weights = ([1.0])
         msg = 'has no associated dimension'
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(self.cube, weights)
+            plugin(self.cube, weights)
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_threshold_cube_with_weights_weighted_mean(self):
@@ -704,7 +704,7 @@ class Test_process(Test_weighted_blend):
         this test is in process to include the slicing."""
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord)
-        result = plugin.process(self.cube_threshold, self.weights1d)
+        result = plugin(self.cube_threshold, self.weights1d)
         expected_result_array = np.ones((2, 2, 2))*0.3
         expected_result_array[1, :, :] = 0.5
 
@@ -733,7 +733,7 @@ class Test_process(Test_weighted_blend):
             np.array([0.5, 0.5]), long_name='weights',
             dim_coords_and_dims=[(cube_model.coord("model_id"), 0)])
         plugin = WeightedBlendAcrossWholeDimension("model_id")
-        result = plugin.process(cube_model, weights_model)
+        result = plugin(cube_model, weights_model)
         for coord_name in ["model_id", "model_configuration"]:
             self.assertNotIn(
                 coord_name, [coord.name() for coord in result.coords()])
