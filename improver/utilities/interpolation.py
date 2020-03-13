@@ -42,9 +42,10 @@ def interpolate_missing_data(
         data (numpy.ndarray):
             The field of data to be interpolated across gaps.
         method (str):
-            The method to use to fill in the data. This should be "linear" for
+            The method to use to fill in the data. This is usually "linear" for
             linear interpolation, and "nearest" for a nearest neighbour
-            approach.
+            approach. It can take any method available to the method
+            scipy.interpolate.griddata.
         limit(numpy.data):
             The array containing upper limits for each grid point that are
             imposed on any value in the region that has been interpolated.
