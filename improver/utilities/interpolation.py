@@ -51,7 +51,9 @@ def interpolate_missing_data(
             imposed on any value in the region that has been interpolated.
         valid_points (numpy.ndarray):
             A boolean array that marks valid data that can be used as input
-            to the interpolation process.
+            to the interpolation process. This allows the exclusion of some
+            points even though they contain data that could otherwise be used
+            in the interpolation.
     Returns:
         numpy.ndarray:
             The original data plus interpolated data in holes where it was

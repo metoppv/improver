@@ -58,7 +58,6 @@ class Test__init__(IrisTest):
 
         self.assertEqual(plugin.falling_level_threshold, 90.)
         self.assertEqual(plugin.phase_change_name, 'snow_falling')
-        self.assertEqual(plugin.missing_data, -300.)
         self.assertEqual(plugin.grid_point_radius, 3)
 
     def test_sleet_rain(self):
@@ -70,7 +69,6 @@ class Test__init__(IrisTest):
 
         self.assertEqual(plugin.falling_level_threshold, 202.5)
         self.assertEqual(plugin.phase_change_name, 'rain_falling')
-        self.assertEqual(plugin.missing_data, -300.)
         self.assertEqual(plugin.grid_point_radius, 3)
 
     def test_unknown_phase_change(self):

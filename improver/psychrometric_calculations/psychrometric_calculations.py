@@ -466,7 +466,8 @@ class PhaseChangeLevel(BasePlugin):
     """Calculate a continuous field of heights relative to sea level at which
     a phase change of precipitation is expected."""
 
-    def __init__(self, phase_change, grid_point_radius=2):
+    def __init__(self, phase_change, grid_point_radius=2,
+                 horizontal_interpolation=True):
         """
         Initialise class.
 
@@ -482,6 +483,10 @@ class PhaseChangeLevel(BasePlugin):
                 The radius in grid points used to calculate the maximum
                 height of the orography in a neighbourhood as part of this
                 calculation.
+            horizontal_interpolation (bool):
+                If True apply horizontal interpolation to fill in holes in
+                the returned phase-change-level that occur because the level
+                falls below the orography. If False these areas will be masked.
         """
         phase_changes = {'snow-sleet': {'threshold': 90.,
                                         'name': 'snow_falling'},
@@ -497,8 +502,8 @@ class PhaseChangeLevel(BasePlugin):
 
         self.falling_level_threshold = phase_change_def['threshold']
         self.phase_change_name = phase_change_def['name']
-        self.missing_data = -300.0
         self.grid_point_radius = grid_point_radius
+        self.horizontal_interpolation = horizontal_interpolation
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -782,7 +787,7 @@ class PhaseChangeLevel(BasePlugin):
         self.find_extrapolated_falling_level(
             max_wb_integral, gradient, intercept, phase_change_level_data,
             sea_points)
-    
+
     def find_max_in_nbhood_orography(self, orography_cube):
         """
         Find the maximum value of the orography in the region around each grid
@@ -849,20 +854,25 @@ class PhaseChangeLevel(BasePlugin):
             phase_change_data, land_sea_data,
             wb_integral.max(axis=0), wet_bulb_temp, heights)
 
-        with np.errstate(invalid='ignore'):
-            max_nbhood_mask = phase_change_data <= max_nbhood_orog
-        updated_phase_cl = interpolate_missing_data(
-            phase_change_data, limit=orography, valid_points=max_nbhood_mask)
+        # Any unset points at this stage are set to np.nan; these will be
+        # lands points where the phase-change-level is below the orography.
+        # These can be filled by optional horizontal interpolation.
+        if self.horizontal_interpolation:
+            with np.errstate(invalid='ignore'):
+                max_nbhood_mask = phase_change_data <= max_nbhood_orog
+            updated_phase_cl = interpolate_missing_data(
+                phase_change_data, limit=orography,
+                valid_points=max_nbhood_mask)
 
-        with np.errstate(invalid='ignore'):
-            max_nbhood_mask = updated_phase_cl <= max_nbhood_orog
-        phase_change_data = interpolate_missing_data(
-            updated_phase_cl, method='nearest', limit=orography,
-            valid_points=max_nbhood_mask)
+            with np.errstate(invalid='ignore'):
+                max_nbhood_mask = updated_phase_cl <= max_nbhood_orog
+            phase_change_data = interpolate_missing_data(
+                updated_phase_cl, method='nearest', limit=orography,
+                valid_points=max_nbhood_mask)
 
-        # Fill in any remaining points with "missing data" value
-        remaining_points = np.where(np.isnan(phase_change_data))
-        phase_change_data[remaining_points] = self.missing_data
+        # Mask any points that are still set to np.nan; this should be no
+        # points if horizontal interpolation has been used.
+        phase_change_data = np.ma.masked_invalid(phase_change_data)
 
         return phase_change_data
 
@@ -966,6 +976,7 @@ class PhaseChangeLevel(BasePlugin):
                 phase_change.append(phase_change_data)
 
         phase_change_level = self.create_phase_change_level_cube(
-            wet_bulb_temperature, np.array(phase_change, dtype=np.float32))
+            wet_bulb_temperature,
+            np.ma.masked_array(phase_change, dtype=np.float32))
 
         return phase_change_level
