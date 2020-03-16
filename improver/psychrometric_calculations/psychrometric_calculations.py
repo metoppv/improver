@@ -30,15 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain Psychrometric Calculations."""
 
-import warnings
-
 import iris
 import numpy as np
 from cf_units import Unit
 from iris.cube import CubeList
-from scipy.interpolate import griddata
-from scipy.spatial.qhull import QhullError
-from scipy.stats import linregress
 from stratify import interpolate
 
 import improver.constants as consts
