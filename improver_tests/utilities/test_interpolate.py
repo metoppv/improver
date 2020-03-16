@@ -28,8 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the plugins and functions within mathematical_operations.py
-"""
+"""Unit tests for the functions within interpolation.py"""
 
 import unittest
 
@@ -39,8 +38,8 @@ from iris.tests import IrisTest
 from improver.utilities.interpolation import interpolate_missing_data
 
 
-class Test_fill_in_by_horizontal_interpolation(IrisTest):
-    """Test the fill_in_by_horizontal_interpolation method"""
+class Test_interpolate_missing_data(IrisTest):
+    """Test the interpolate_missing_data method"""
     def setUp(self):
         """ Set up arrays for testing."""
         self.data = np.array([[1.0, 1.0, 2.0],
