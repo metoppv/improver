@@ -275,7 +275,7 @@ def create_constrained_inputcubelist_converter(*constraint_lists):
             except ValueError:
                 # Unable to load a cube with all constraints. Try next list.
                 pass
-        msg = ("A full list of names was unable to be extracted" 
+        msg = ("A full list of names was unable to be extracted"
                f"Cubes must be called: {constraint_lists}")
         if partial_match:
             msg = "Some cubes could be extracted, but " + msg

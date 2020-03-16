@@ -120,7 +120,7 @@ function improver_test_licence {
 
 function improver_test_pycodestyle {
     # Pycodestyle testing.
-    ${PYCODESTYLE:-pycodestyle} $FILES_TO_TEST
+    ${PYCODESTYLE:-pycodestyle} $FILES_TO_TEST --ignore=E121,E123,E126,E133,E226,E241,E242,E704,W503,W504,E731
     echo_ok "pycodestyle"
 }
 
