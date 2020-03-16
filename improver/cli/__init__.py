@@ -229,8 +229,8 @@ def create_constrained_inputcubelist_converter(*constraint_lists):
 
         Args:
             to_convert (string or iris.cube.Cube):
-                The filename to be loaded. This is a string that will passed
-                to maybe_coerce_with
+                Cube to be extracted from or the filename to be loaded.
+                The string is a filepath to be passed onto load_cube.
 
         Returns:
             iris.cube.CubeList:
@@ -260,7 +260,7 @@ def create_constrained_inputcubelist_converter(*constraint_lists):
 
         # Finds any cubes named prefix.
         prefix_cubes = [c.name() for c in cubelist if c.name() == 'prefixes']
-        # If the list isn't empty
+        # If the list isn't empty discount the metadata cube.
         meta_length = 1 if prefix_cubes else 0
         cube_length = len(cubelist) - meta_length
 

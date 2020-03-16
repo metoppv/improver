@@ -48,7 +48,6 @@ from improver.cli import (
     with_intermediate_output,
     with_output,
 )
-from improver.utilities.load import load_cube
 from improver_tests.set_up_test_cubes import set_up_variable_cube
 
 
@@ -213,21 +212,19 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         self.speed_name = 'wind_speed'
         self.direction_name = 'wind_from_direction'
         self.wind_speed_cube = set_up_variable_cube(data, name=self.speed_name)
-        self.wind_dir_cube = set_up_variable_cube(
-            data, name=self.direction_name)
-
+        self.wind_dir_cube = set_up_variable_cube(data,
+                                                  name=self.direction_name)
         self.fake_path = '/super/secret/data.nc'
 
     @patch('iris.load_raw', side_effect=[cubelist_of_length(2)])
     @patch('improver.utilities.load.load_cube', side_effect=['cube1', 'cube2'])
     def test_basic(self, load, raw):
-        """Tests that maybe_coerce_with is called twice. Both times with
-        load_cube as the first argument, the 'filepath' as second argument
-        and the constraint list of the two strings given to
-        create_constrained_inputcubelist_converter.
+        """Tests that load_cube is called twice.
+        The 'filepath' and the constraint list of the two strings given to
+        create_constrained_inputcubelist_converter as arguments.
 
-        the returned result is the first two arguments used by the Mocked
-        side_effect.
+        The returned result is the first two arguments used by the load_cube
+        Mocked side_effect.
         """
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name, self.direction_name])
@@ -244,12 +241,11 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     @patch('iris.load_raw', side_effect=[cubelist_of_length(1)])
     @patch('improver.utilities.load.load_cube', side_effect=['cube1'])
     def test_lists(self, load, raw):
-        """Tests that maybe_coerce_with is called once with
-        load_cube as the first argument, the 'filepath' as second argument
-        and the first constraint list given to
-        create_constrained_inputcubelist_converter.
+        """Tests that load_cube is called once.
+        The 'filepath' and the first constraint list given to
+        create_constrained_inputcubelist_converter as arguments.
 
-        the returned result is the first argument used by the Mocked
+        The returned result is the first argument used by the load_cube Mocked
         side_effect.
 
         Because the first constraint list of speed_name returns a full match,
@@ -269,16 +265,14 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     @patch('improver.utilities.load.load_cube', side_effect=[ValueError,
                                                              'cube1'])
     def test_when_first_list_does_not_match(self, load, raw):
-        """Tests that maybe_coerce_with is called.
-        With load_cube as the first argument,
-        a 'filepath' as second argument
-        and the constraint of the second list given to
-        create_constrained_inputcubelist_converter.
+        """Tests that load_cube is called twice.
+        The 'filepath' and the constraint of the second list given to
+        create_constrained_inputcubelist_converter as arguments.
 
-        the returned result is the first two arguments used by the Mocked
-        side_effect.
+        The returned result is the first two arguments used by the load_cube
+        Mocked side_effect.
 
-        Because the first call to maybe_coerce_with returns a ValueError,
+        Because the first call to load_cube returns a ValueError,
         the second list of constraints will be used.
         """
         constrained_list = create_constrained_inputcubelist_converter(
@@ -299,13 +293,11 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         """Tests when the two constraint lists are different sizes.
         The bigger of the two constraints is first.
         The selected list is first.
-        Tests that maybe_coerce_with is called with
-        load_cube as the first argument,
-        'filepath' as second argument
-        and the selected constraints as third.
+        Tests that load_cube is called twice.
+        The 'filepath' and the selected constraints as arguments.
 
-        the returned result is the first two arguments used by the Mocked
-        side_effect.
+        The returned result is the first two arguments used by the load_cube
+        Mocked side_effect.
         """
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name, self.direction_name],
@@ -328,12 +320,10 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         """Tests when the two constraint lists are different sizes.
         The bigger of the two constraints is first.
         The selected list is second.
-        Tests that maybe_coerce_with is called with
-        load_cube as the first argument,
-        'filepath' as second argument
-        and the selected constraints as third.
+        Tests that load_cube is called twice.
+        The 'filepath' and the selected constraints as arguments.
 
-        the returned result is the first two arguments used by the Mocked
+        The returned result is the first two arguments used by the Mocked
         side_effect.
         """
         constrained_list = create_constrained_inputcubelist_converter(
@@ -344,7 +334,7 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         raw.assert_called_once_with(self.fake_path)
         for constr in [self.speed_name, 'cats']:
             load.assert_any_call(self.fake_path, constraints=constr)
-        # called twice more, as the first returns ValueError, next one loads.
+        # called twice, as the first returns ValueError, next one loads.
         self.assertEqual(load.call_count, 2)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], 'cube1')
@@ -356,13 +346,11 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         """Tests when the two constraint lists are different sizes.
         The bigger of the two constraints is last.
         The selected list is first.
-        Tests that maybe_coerce_with is called with
-        load_cube as the first argument,
-        'filepath' as second argument
-        and the selected constraints as third.
+        Tests that load_cube is called once.
+        The 'filepath' and the selected constraints as arguments.
 
-        the returned result is the first two arguments used by the Mocked
-        side_effect.
+        the returned result is the first two arguments used by the load_cube
+        Mocked side_effect.
         """
         constrained_list = create_constrained_inputcubelist_converter(
             ['cats'],
@@ -384,12 +372,10 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         """Tests when the two constraint lists are different sizes.
         The bigger of the two constraints is last.
         The selected list is second.
-        Tests that maybe_coerce_with is called with
-        load_cube as the first argument,
-        'filepath' as second argument
-        and the selected constraints as third.
+        Tests that load_cube is called three times.
+        The 'filepath' and the selected constraints as arguments.
 
-        the returned result is the first two arguments used by the Mocked
+        The returned result is the first two arguments used by the Mocked
         side_effect.
         """
         constrained_list = create_constrained_inputcubelist_converter(
@@ -411,8 +397,11 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     def test_when_first_match_but_wrong_size(self, load, raw):
         """Tests when there is a match but the length is wrong, continues to
         find a full match.
-        Calls maybe_coerce_with three times due to the first match not being
+        Calls load_cube three times due to the first match not being
         the same length as the input_list.
+
+        The returned result is the last two arguments used by the load_cube
+        Mocked side_effect.
         """
         constrained_list = create_constrained_inputcubelist_converter(
             ['cats'],
@@ -432,7 +421,9 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
                                                              ValueError])
     def test_err_when_no_match(self, load, raw):
         """Tests that raises an error when no cubes match any constraints.
-        Tests that assertEqual is called for the number of constraint lists.
+        Tests that load_cube is called twice.
+        The 'filepath' and constraints as arguments.
+        A match isn't found so a ValueError is returned.
         """
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name], [self.direction_name])
@@ -448,7 +439,11 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     @patch('iris.load_raw', side_effect=[cubelist_of_length(2)])
     @patch('improver.utilities.load.load_cube', side_effect=['Cube1'])
     def test_err_when_match_wrong_size(self, load, raw):
-        """Tests that raises an error when no cubes match any constraints"""
+        """Tests that raises an error when there isn't a full match of
+        constraint to cube.
+        The cubelist has two cubes but the constraint list only has 1 name.
+        Therefore not all cubes were able to be extracted.
+        """
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name])
         msg = 'Some cubes'
