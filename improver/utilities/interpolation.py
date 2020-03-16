@@ -36,7 +36,8 @@ from scipy.spatial.qhull import QhullError
 
 
 def interpolate_missing_data(
-        data, method='linear', limit=None, valid_points=None):
+        data, method='linear', limit=None, limit_as_maximum=True,
+        valid_points=None):
     """
     Args:
         data (numpy.ndarray):
@@ -47,8 +48,13 @@ def interpolate_missing_data(
             approach. It can take any method available to the method
             scipy.interpolate.griddata.
         limit (numpy.ndarray):
-            The array containing upper limits for each grid point that are
+            The array containing limits for each grid point that are
             imposed on any value in the region that has been interpolated.
+        limit_as_maximum (bool):
+            If True the test against the limit array is that if the
+            interpolated values exceed the limit they should be set to the
+            limit value. If False, the test is whether the interpolated values
+            fall below the limit value.
         valid_points (numpy.ndarray):
             A boolean array that allows a subset of the unmasked data to be
             chosen as source data for the interpolation process. True values
@@ -84,8 +90,11 @@ def interpolate_missing_data(
 
     if limit is not None:
         index = ~np.isfinite(data) & np.isfinite(data_filled)
-        data_filled_above_limit = (data_filled[index] > limit[index])
-        index[index] = data_filled_above_limit
+        if limit_as_maximum:
+            data_violating_limit = (data_filled[index] > limit[index])
+        else:
+            data_violating_limit = (data_filled[index] < limit[index])
+        index[index] = data_violating_limit
         data_filled[index] = limit[index]
 
     index = ~np.isfinite(data)
@@ -109,8 +118,10 @@ class InterpolateUsingDifference:
     # def __repr__(self):
     #     """String representation of plugin."""
 
-    def process(self, field, reference_field, limit=None):
-        """Apply plugin to input data.
+    def process(self, field, reference_field,
+                limit=None, limit_as_maximum=True):
+        """
+        Apply plugin to input data.
 
         Args:
             field (iris.cube.Cube):
@@ -119,16 +130,38 @@ class InterpolateUsingDifference:
                 A field that covers the entire domain that it shares with
                 field.
             limit (iris.cube.Cube or None):
-                A field that sets a maximum value that can be returned in the
-                final interpolated field at any given point. Any points
-                exceeding this limit will be set to the value given by limit.
+                A field used to calculate limiting values that the difference
+                field should not violate following interpolation. This can be
+                used to ensure that the interpolated field does not get too
+                close to or too far away from the reference field. Any points
+                in the interpolated difference field violating the limit are
+                set back to the calculated limiting value, ``reference_field -
+                limit``.
+            limit_as_maximum (bool):
+                If True the test against the values allowed by the limit array
+                is that if the interpolated values exceed the limit they should
+                be set to the limit value. If False, the test is whether the
+                interpolated values fall below the limit value.
+        Raises:
+            ValueError: If the reference field is not complete across the
+                        entire domain.
         """
-        if np.isnan(reference_field).any():
-            raise ValueError('Reference field incomplete')
+        if np.isnan(reference_field.data).any():
+            raise ValueError(
+                'The reference field contains np.nan data indicating that it '
+                'is not complete across the domain.')
 
-        difference_field = reference_field.data - field
+        valid_points = ~field.data.mask
+        difference_field = np.subtract(reference_field.data, field.data,
+                                       out=np.full(field.shape, np.nan),
+                                       where=valid_points)
+        if limit is not None:
+            limit = reference_field.data - limit.data
 
         interpolated_difference = interpolate_missing_data(
-                difference_field, limit=limit)
+                difference_field, limit=limit,
+                limit_as_maximum=limit_as_maximum,
+                valid_points=valid_points)
+
         return field.copy(
              data=reference_field.data - interpolated_difference)

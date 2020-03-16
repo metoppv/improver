@@ -28,18 +28,20 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the functions within interpolation.py"""
+"""Unit tests for the InterpolateUsingDifference plugin."""
 
 import unittest
 
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.utilities.interpolation import interpolate_missing_data
+from improver.utilities.interpolation import InterpolateUsingDifference
 
 
-class Test_interpolate_missing_data(IrisTest):
-    """Test the interpolate_missing_data method"""
+class Test_InterpolateUsingDifference(IrisTest):
+
+    """Test the InterpolateUsingDifference plugin"""
+
     def setUp(self):
         """ Set up arrays for testing."""
         self.data = np.array([[1.0, 1.0, 2.0],
@@ -118,7 +120,7 @@ class Test_interpolate_missing_data(IrisTest):
                          [np.nan, np.nan, np.nan],
                          [np.nan, 1, np.nan]])
 
-        data_updated = interpolate_missing_data(data.copy())
+        data_updated = interpolate_missing_data(data)
 
         self.assertArrayEqual(data_updated, data)
 
@@ -144,7 +146,7 @@ class Test_interpolate_missing_data(IrisTest):
                          [np.nan, 1, np.nan],
                          [np.nan, 1, np.nan]])
 
-        data_updated = interpolate_missing_data(data.copy())
+        data_updated = interpolate_missing_data(data)
 
         self.assertArrayEqual(data_updated, data)
 
