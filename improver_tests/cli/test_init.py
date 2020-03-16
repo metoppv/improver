@@ -33,6 +33,9 @@
 import unittest
 from unittest.mock import patch
 
+from iris.cube import CubeList
+import numpy as np
+
 import improver
 from improver.cli import (
     clizefy,
@@ -46,6 +49,7 @@ from improver.cli import (
     with_output,
 )
 from improver.utilities.load import load_cube
+from improver_tests.set_up_test_cubes import set_up_variable_cube
 
 
 def dummy_function(first, second=0, third=2):
@@ -193,9 +197,12 @@ class Test_with_intermediate_output(unittest.TestCase):
         self.assertEqual(result, 4)
 
 
-def list_of_length(length):
-    """Returns a list of the length plus 1"""
-    return list(range(length+1))
+def cubelist_of_length(length):
+    data = np.zeros((2, 2), dtype=np.float32)
+    wind_speed_cube = set_up_variable_cube(data, name="wind_speed")
+
+    """Returns a list of cubes the length"""
+    return CubeList(wind_speed_cube for x in range(length))
 
 
 class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
@@ -203,15 +210,21 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
 
     def setUp(self):
         """Sets up some example names to use"""
+        data = np.zeros((2, 2), dtype=np.float32)
+        self.wind_speed_cube = set_up_variable_cube(data, name="wind_speed")
+        self.wind_dir_cube = set_up_variable_cube(
+            data, name="wind_from_direction")
+        self.wind_cubes = CubeList([self.wind_speed_cube, self.wind_dir_cube])
+        # TODO reorganise
         self.speed_name = 'wind_speed'
         self.direction_name = 'wind_from_direction'
         # There is an early call to get the cubelist length
-        self.basic_coerse_calls = 1
+        self.basic_coerce_calls = 1
         self.fake_path = '/super/secret/data.nc'
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=[list_of_length(2),
-                                                          'cube1', 'cube2'])
-    def test_basic(self, m):
+    @patch('iris.load_raw', side_effect=[cubelist_of_length(2)])
+    @patch('improver.utilities.load.load_cube', side_effect=['cube1', 'cube2'])
+    def test_basic(self, load, raw):
         """Tests that maybe_coerce_with is called twice. Both times with
         load_cube as the first argument, the 'filepath' as second argument
         and the constraint list of the two strings given to
@@ -223,17 +236,18 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name, self.direction_name])
         result = constrained_list(self.fake_path)
+        raw.assert_called_once_with(self.fake_path)
         for constr in [self.speed_name, self.direction_name]:
-            m.assert_any_call(load_cube, self.fake_path, constraints=constr)
-        # Called twice more, as each constraint is called and loaded.
-        self.assertEqual(m.call_count, self.basic_coerse_calls + 2)
+            load.assert_any_call(self.fake_path, constraints=constr)
+        # Called twice for each item in the list
+        self.assertEqual(load.call_count, 2)
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0], 'cube1')
         self.assertEqual(result[1], 'cube2')
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=[list_of_length(1),
-                                                          'cube1'])
-    def test_lists(self, m):
+    @patch('iris.load_raw', side_effect=[cubelist_of_length(1)])
+    @patch('improver.utilities.load.load_cube', side_effect=['cube1'])
+    def test_lists(self, load, raw):
         """Tests that maybe_coerce_with is called once with
         load_cube as the first argument, the 'filepath' as second argument
         and the first constraint list given to
@@ -248,17 +262,17 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name], [self.direction_name])
         result = constrained_list(self.fake_path)
-        m.assert_any_call(load_cube, self.fake_path,
-                          constraints=self.speed_name)
-        # Called once more for the first constraint is loaded.
-        self.assertEqual(m.call_count, self.basic_coerse_calls + 1)
+        raw.assert_called_once_with(self.fake_path)
+        load.assert_any_call(self.fake_path, constraints=self.speed_name)
+        # Called once for the only item in the list.
+        load.assert_called_once()
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], 'cube1')
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=[list_of_length(1),
-                                                          ValueError,
-                                                          'cube1'])
-    def test_when_first_list_does_not_match(self, m):
+    @patch('iris.load_raw', side_effect=[cubelist_of_length(1)])
+    @patch('improver.utilities.load.load_cube', side_effect=[ValueError,
+                                                             'cube1'])
+    def test_when_first_list_does_not_match(self, load, raw):
         """Tests that maybe_coerce_with is called.
         With load_cube as the first argument,
         a 'filepath' as second argument
@@ -274,17 +288,18 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name], ['cats'])
         result = constrained_list(self.fake_path)
+        raw.assert_called_once_with(self.fake_path)
         for constr in [self.speed_name, 'cats']:
-            m.assert_any_call(load_cube, self.fake_path,
-                              constraints=constr)
-        # Called twice more, as the first call returns ValueError.
-        self.assertEqual(m.call_count, self.basic_coerse_calls + 2)
+            load.assert_any_call(self.fake_path, constraints=constr)
+        # Called twice, as the first call returns ValueError.
+        self.assertEqual(load.call_count, 2)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], 'cube1')
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=[list_of_length(2),
-                                                          'cube1', 'cube2'])
-    def test_different_length_constraints_big_first_select_first(self, m):
+    @patch('iris.load_raw', side_effect=[cubelist_of_length(2)])
+    @patch('improver.utilities.load.load_cube', side_effect=['cube1', 'cube2'])
+    def test_different_length_constraints_big_first_select_first(
+            self, load, raw):
         """Tests when the two constraint lists are different sizes.
         The bigger of the two constraints is first.
         The selected list is first.
@@ -298,22 +313,22 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         """
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name, self.direction_name],
-            ['cats']
-        )
+            ['cats'])
         result = constrained_list(self.fake_path)
+        raw.assert_called_once_with(self.fake_path)
         for constr in [self.speed_name, self.direction_name]:
-            m.assert_any_call(load_cube, self.fake_path,
-                              constraints=constr)
-        # Called twice more, as loads the first lists fully.
-        self.assertEqual(m.call_count, self.basic_coerse_calls + 2)
+            load.assert_any_call(self.fake_path, constraints=constr)
+        # Called twice, as loads the first list fully.
+        self.assertEqual(load.call_count, 2)
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0], 'cube1')
         self.assertEqual(result[1], 'cube2')
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=[list_of_length(1),
-                                                          ValueError,
-                                                          'cube1', 'cube2'])
-    def test_different_length_constraints_big_first_select_second(self, m):
+    @patch('iris.load_raw', side_effect=[cubelist_of_length(1)])
+    @patch('improver.utilities.load.load_cube', side_effect=[ValueError,
+                                                             'cube1', 'cube2'])
+    def test_different_length_constraints_big_first_select_second(self,
+                                                                  load, raw):
         """Tests when the two constraint lists are different sizes.
         The bigger of the two constraints is first.
         The selected list is second.
@@ -330,17 +345,18 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
             ['cats']
         )
         result = constrained_list(self.fake_path)
+        raw.assert_called_once_with(self.fake_path)
         for constr in [self.speed_name, 'cats']:
-            m.assert_any_call(load_cube, self.fake_path,
-                              constraints=constr)
+            load.assert_any_call(self.fake_path, constraints=constr)
         # called twice more, as the first returns ValueError, next one loads.
-        self.assertEqual(m.call_count, self.basic_coerse_calls + 2)
+        self.assertEqual(load.call_count, 2)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], 'cube1')
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=[list_of_length(1),
-                                                          'cube1'])
-    def test_different_length_constraints_big_last_select_first(self, m):
+    @patch('iris.load_raw', side_effect=[cubelist_of_length(1)])
+    @patch('improver.utilities.load.load_cube', side_effect=['cube1'])
+    def test_different_length_constraints_big_last_select_first(self,
+                                                                load, raw):
         """Tests when the two constraint lists are different sizes.
         The bigger of the two constraints is last.
         The selected list is first.
@@ -357,16 +373,18 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
             [self.speed_name, self.direction_name]
         )
         result = constrained_list(self.fake_path)
-        m.assert_any_call(load_cube, self.fake_path, constraints='cats')
+        raw.assert_called_once_with(self.fake_path)
+        load.assert_any_call(self.fake_path, constraints='cats')
         # Calls once more as loads the constraint list fully
-        self.assertEqual(m.call_count, self.basic_coerse_calls + 1)
+        load.assert_called_once()
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], 'cube1')
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=[list_of_length(2),
-                                                          ValueError,
-                                                          'cube1', 'cube2'])
-    def test_different_length_constraints_big_last_select_second(self, m):
+    @patch('iris.load_raw', side_effect=[cubelist_of_length(2)])
+    @patch('improver.utilities.load.load_cube', side_effect=[ValueError,
+                                                             'cube1', 'cube2'])
+    def test_different_length_constraints_big_last_select_second(self,
+                                                                 load, raw):
         """Tests when the two constraint lists are different sizes.
         The bigger of the two constraints is last.
         The selected list is second.
@@ -380,22 +398,21 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         """
         constrained_list = create_constrained_inputcubelist_converter(
             ['cats'],
-            [self.speed_name, self.direction_name]
-        )
+            [self.speed_name, self.direction_name])
         result = constrained_list(self.fake_path)
+        raw.assert_called_once_with(self.fake_path)
         for constr in ['cats', self.speed_name, self.direction_name]:
-            m.assert_any_call(load_cube, self.fake_path,
-                              constraints=constr)
-        # Calls three times as the first one fails, then second takes 2 loads.
-        self.assertEqual(m.call_count, self.basic_coerse_calls + 3)
+            load.assert_any_call(self.fake_path, constraints=constr)
+        # Calls three times as the first one fails, second list calls twice
+        self.assertEqual(load.call_count, 3)
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0], 'cube1')
         self.assertEqual(result[1], 'cube2')
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=[list_of_length(2),
-                                                          'cube1',
-                                                          'cube1', 'cube2'])
-    def test_when_first_match_but_wrong_size(self, m):
+    @patch('iris.load_raw', side_effect=[cubelist_of_length(2)])
+    @patch('improver.utilities.load.load_cube', side_effect=['cube1',
+                                                             'cube2', 'cube3'])
+    def test_when_first_match_but_wrong_size(self, load, raw):
         """Tests when there is a match but the length is wrong, continues to
         find a full match.
         Calls maybe_coerce_with three times due to the first match not being
@@ -403,49 +420,65 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         """
         constrained_list = create_constrained_inputcubelist_converter(
             ['cats'],
-            ['cats', self.direction_name]
-        )
+            ['cats', self.direction_name])
         result = constrained_list(self.fake_path)
+        raw.assert_called_once_with(self.fake_path)
         for constr in ['cats', 'cats', self.direction_name]:
-            m.assert_any_call(load_cube, self.fake_path,
-                              constraints=constr)
-        # Calls 3 times more, as the first loads but is wrong size
-        self.assertEqual(m.call_count, self.basic_coerse_calls + 3)
+            load.assert_any_call(self.fake_path, constraints=constr)
+        # Calls 3 times, as the first loads but is wrong size, second matches
+        self.assertEqual(load.call_count, 3)
         self.assertEqual(len(result), 2)
-        self.assertEqual(result[0], 'cube1')
-        self.assertEqual(result[1], 'cube2')
+        self.assertEqual(result[0], 'cube2')
+        self.assertEqual(result[1], 'cube3')
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=[list_of_length(2),
-                                                          ValueError,
-                                                          ValueError])
-    def test_err_when_no_match(self, m):
+    @patch('iris.load_raw', side_effect=[cubelist_of_length(2)])
+    @patch('improver.utilities.load.load_cube', side_effect=[ValueError,
+                                                             ValueError])
+    def test_err_when_no_match(self, load, raw):
         """Tests that raises an error when no cubes match any constraints.
         Tests that assertEqual is called for the number of constraint lists.
         """
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name], [self.direction_name])
-        msg = 'Not all cubes matching'
+        msg = 'A full list'
         with self.assertRaisesRegex(ValueError, msg):
             constrained_list(self.fake_path)
+        raw.assert_called_once_with(self.fake_path)
         for constr in [self.speed_name, self.direction_name]:
-            m.assert_any_call(load_cube, self.fake_path,
-                              constraints=constr)
+            load.assert_any_call(self.fake_path, constraints=constr)
         # Calls twice more as each times it makes a call that returns ValueErr
-        self.assertEqual(m.call_count, self.basic_coerse_calls + 2)
+        self.assertEqual(load.call_count, 2)
 
-    @patch('improver.cli.maybe_coerce_with', side_effect=[list_of_length(2),
-                                                          'Cube1'])
-    def test_err_when_match_wrong_size(self, m):
+    @patch('iris.load_raw', side_effect=[cubelist_of_length(2)])
+    @patch('improver.utilities.load.load_cube', side_effect=['Cube1'])
+    def test_err_when_match_wrong_size(self, load, raw):
         """Tests that raises an error when no cubes match any constraints"""
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name])
-        msg = 'Partial match found'
+        msg = 'Some cubes'
         with self.assertRaisesRegex(ValueError, msg):
             constrained_list(self.fake_path)
-        m.assert_any_call(load_cube, self.fake_path,
-                          constraints=self.speed_name)
-        # Calls once more where it matches, but the 'cubelist' was of length 2.
-        self.assertEqual(m.call_count, self.basic_coerse_calls + 1)
+        raw.assert_called_once_with(self.fake_path)
+        # Calls once where it matches, but the 'cubelist' was of length 2.
+        load.assert_called_once_with(self.fake_path,
+                                     constraints=self.speed_name)
+
+    def test_if_passed_single_cube(self):
+        constrained_list = create_constrained_inputcubelist_converter(
+            [self.speed_name])
+
+        result = constrained_list(CubeList([self.wind_speed_cube]))
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], self.wind_speed_cube)
+
+    def test_if_passed__two_cubes(self):
+        constrained_list = create_constrained_inputcubelist_converter(
+            [self.speed_name, self.direction_name])
+
+        result = constrained_list(CubeList([self.wind_speed_cube, self.wind_dir_cube]))
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], self.wind_speed_cube)
+        self.assertEqual(result[1], self.wind_dir_cube)
 
 
 class Test_clizefy(unittest.TestCase):

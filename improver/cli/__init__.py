@@ -40,6 +40,7 @@ from clize import parameters
 from clize.help import ClizeHelp, HelpForAutodetectedDocstring
 from clize.parser import value_converter
 from clize.runner import Clize
+from improver.utilities.cube_extraction import extract_subcube
 from sigtools.wrappers import decorator
 
 # Imports are done in their functions to make calls to -h quicker.
@@ -227,7 +228,7 @@ def create_constrained_inputcubelist_converter(*constraint_lists):
         """Passes the cube and constraints onto maybe_coerce_with.
 
         Args:
-            to_convert (string):
+            to_convert (string or iris.cube.Cube):
                 The filename to be loaded. This is a string that will passed
                 to maybe_coerce_with
 
@@ -243,28 +244,42 @@ def create_constrained_inputcubelist_converter(*constraint_lists):
         """
         from improver.utilities.load import load_cube
         from iris import load_raw
-        from iris.cube import CubeList
-        # Iris will add on an extra cube which isn't to be counted.
-        meta_len = 1
-        cube_length = len(maybe_coerce_with(load_raw, to_convert)) - meta_len
+
+        if isinstance(to_convert, str):
+            cubelist = load_raw(to_convert)
+            loop = lambda x: [load_cube(
+                to_convert, constraints=j)
+                for j in x]
+        else:
+            cubelist = to_convert
+            # Constraint needs 'name=' prefix.
+            # Returns a list so selected 0 index required.
+            loop = lambda x: [extract_subcube(
+                to_convert, ["name=" + j])[0]
+                for j in x]
+
+        # Finds any cubes named prefix.
+        prefix_cubes = [c.name() for c in cubelist if c.name() == 'prefixes']
+        # If the list isn't empty
+        meta_length = 1 if prefix_cubes else 0
+        cube_length = len(cubelist) - meta_length
+
         partial_match = False
         for constraints in constraint_lists:
             try:
-                cubes = CubeList(
-                    maybe_coerce_with(load_cube, to_convert, constraints=j)
-                    for j in constraints)
-                # If there is a match but there are more cubes in the cubelist.
+                cubes = loop(constraints)
+                # Only returns if number of loaded cubes cubes in cubelist
                 if len(cubes) == cube_length:
                     return cubes
                 partial_match = True
             except ValueError:
                 # Unable to load a cube with all constraints. Try next list.
                 pass
+        msg = ("A full list of names was unable to be extracted" 
+               f"Cubes must be called: {constraint_lists}")
         if partial_match:
-            raise ValueError("Partial match found, cubes must be a whole list."
-                             f"Cubes must be called: {constraint_lists}")
-        raise ValueError("Not all cubes matching the required names."
-                         f"Cubes must be called: {constraint_lists}")
+            msg = "Some cubes could be extracted, but " + msg
+        raise ValueError(msg)
 
     return constrained_inputcubelist_converter
 
