@@ -92,3 +92,43 @@ def interpolate_missing_data(
     data[index] = data_filled[index]
 
     return data
+
+
+class InterpolateUsingDifference:
+    """
+    Calculates the difference between the field that is to be interpolated and
+    a complete (filling the whole domain) reference field. The difference
+    between the fields in regions where they overlap is calculated and this
+    difference is then interpolated across the domain. Any holes in the data
+    being interpolated are then filled with data calculated as the reference
+    field minus the interpolated difference field.
+    """
+    # def __init__(self):
+    #     """Initialise plugin."""
+    #
+    # def __repr__(self):
+    #     """String representation of plugin."""
+
+    def process(self, field, reference_field, limit=None):
+        """Apply plugin to input data.
+
+        Args:
+            field (iris.cube.Cube):
+                Field for which interpolation is required to fill holes.
+            reference_field (iris.cube.Cube):
+                A field that covers the entire domain that it shares with
+                field.
+            limit (iris.cube.Cube or None):
+                A field that sets a maximum value that can be returned in the
+                final interpolated field at any given point. Any points
+                exceeding this limit will be set to the value given by limit.
+        """
+        if np.isnan(reference_field).any():
+            raise ValueError('Reference field incomplete')
+
+        difference_field = reference_field.data - field
+
+        interpolated_difference = interpolate_missing_data(
+                difference_field, limit=limit)
+        return field.copy(
+             data=reference_field.data - interpolated_difference)
