@@ -198,28 +198,24 @@ class Test_with_intermediate_output(unittest.TestCase):
 
 
 def cubelist_of_length(length):
+    """Returns a cubelist of windspeed cubes the given length"""
     data = np.zeros((2, 2), dtype=np.float32)
     wind_speed_cube = set_up_variable_cube(data, name="wind_speed")
-
-    """Returns a list of cubes the length"""
     return CubeList(wind_speed_cube for x in range(length))
 
 
 class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
-    """Tests the creature constraint_inputcubelist_converter"""
+    """Tests the create_constraint_inputcubelist_converter"""
 
     def setUp(self):
         """Sets up some example names to use"""
         data = np.zeros((2, 2), dtype=np.float32)
-        self.wind_speed_cube = set_up_variable_cube(data, name="wind_speed")
-        self.wind_dir_cube = set_up_variable_cube(
-            data, name="wind_from_direction")
-        self.wind_cubes = CubeList([self.wind_speed_cube, self.wind_dir_cube])
-        # TODO reorganise
         self.speed_name = 'wind_speed'
         self.direction_name = 'wind_from_direction'
-        # There is an early call to get the cubelist length
-        self.basic_coerce_calls = 1
+        self.wind_speed_cube = set_up_variable_cube(data, name=self.speed_name)
+        self.wind_dir_cube = set_up_variable_cube(
+            data, name=self.direction_name)
+
         self.fake_path = '/super/secret/data.nc'
 
     @patch('iris.load_raw', side_effect=[cubelist_of_length(2)])
@@ -464,6 +460,8 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
                                      constraints=self.speed_name)
 
     def test_if_passed_single_cube(self):
+        """Tests that when given a cubelist with one cube, it extracts
+        that one cube"""
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name])
 
@@ -471,11 +469,16 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], self.wind_speed_cube)
 
-    def test_if_passed__two_cubes(self):
+    def test_if_prefix_cube(self):
+        """Tests that when given a cubelist with two cubes, it extracts
+        those cubes"""
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name, self.direction_name])
-
-        result = constrained_list(CubeList([self.wind_speed_cube, self.wind_dir_cube]))
+        prefix = self.wind_speed_cube.copy()
+        prefix.rename("prefixes")
+        result = constrained_list(CubeList([self.wind_speed_cube,
+                                            self.wind_dir_cube,
+                                            prefix]))
         self.assertEqual(len(result), 2)
         self.assertEqual(result[0], self.wind_speed_cube)
         self.assertEqual(result[1], self.wind_dir_cube)

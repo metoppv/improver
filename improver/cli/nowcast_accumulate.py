@@ -34,16 +34,13 @@
 from improver import cli
 
 # The accumulation frequency in minutes.
+from improver.metadata.constants.advection_cube_names import X_Y, EAST_NORTH
+
 ACCUMULATION_FIDELITY = 1
 
-X_Y = ['precipitation_advection_x_velocity',
-       'precipitation_advection_y_velocity']
-
-EAST_NORTH = ['grid_eastward_wind', 'grid_northward_wind']
-constraints = (X_Y, EAST_NORTH)
 # Creates the value_converter that clize needs.
-inputadvection = cli.create_constrained_inputcubelist_converter(X_Y,
-                                                                EAST_NORTH)
+inputadvection = cli.create_constrained_inputcubelist_converter(
+    X_Y, EAST_NORTH)
 
 
 @cli.clizefy
