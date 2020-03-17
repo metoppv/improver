@@ -33,210 +33,144 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
+from numpy.testing import assert_array_equal
 
 from improver.utilities.interpolation import InterpolateUsingDifference
+from ..set_up_test_cubes import set_up_variable_cube
 
 
-class Test_InterpolateUsingDifference(IrisTest):
+class Test_repr(unittest.TestCase):
 
-    """Test the InterpolateUsingDifference plugin"""
+    """Test the InterpolateUsingDifference __repr__ method."""
+
+    def test_basic(self):
+        """Test expected string representation is returned."""
+        self.assertEqual(str(InterpolateUsingDifference()),
+                         "<InterpolateUsingDifference>")
+
+
+class Test_process(unittest.TestCase):
+
+    """Test the InterpolateUsingDifference process method."""
 
     def setUp(self):
         """ Set up arrays for testing."""
-        self.data = np.array([[1.0, 1.0, 2.0],
-                              [1.0, np.nan, 2.0],
-                              [1.0, 2.0, 2.0]])
-        self.limit_data = np.full((3, 3), 3.)
-        self.valid_data = np.full((3, 3), True)
+        snow_sleet = np.array([[5.0, 5.0, 5.0],
+                               [10., 10., 10.],
+                               [5.0, 5.0, 5.0]], dtype=np.float32)
+        sleet_rain = np.array([[4.0, 4.0, 4.0],
+                               [np.nan, np.nan, np.nan],
+                               [3.0, 3.0, 3.0]], dtype=np.float32)
+        sleet_rain = np.ma.masked_invalid(sleet_rain)
+        limit_data = np.array([[4.0, 4.0, 4.0],
+                               [10., 8., 6.],
+                               [4.0, 4.0, 4.0]], dtype=np.float32)
 
-        self.data_for_limit_test = (
-            np.array([[10.0, np.nan, np.nan, np.nan, 20.0],
-                      [10.0, np.nan, np.nan, np.nan, 20.0],
-                      [10.0, np.nan, np.nan, np.nan, 20.0],
-                      [10.0, np.nan, np.nan, np.nan, 20.0],
-                      [10.0, np.nan, np.nan, np.nan, 20.0]]))
-        self.limit_for_limit_test = (
-            np.array([[0.0, 30.0, 12.0, 30.0, 0.0],
-                      [0.0, 30.0, 12.0, 30.0, 0.0],
-                      [0.0, 30.0, 12.0, 30.0, 0.0],
-                      [0.0, 30.0, 12.0, 30.0, 0.0],
-                      [0.0, 30.0, 12.0, 30.0, 0.0]]))
+        self.snow_sleet = set_up_variable_cube(
+            snow_sleet, name="altitude_of_snow_falling_level", units='m',
+            spatial_grid='equalarea')
+        self.sleet_rain = set_up_variable_cube(
+            sleet_rain, name="altitude_of_rain_falling_level", units='m',
+            spatial_grid='equalarea')
+        self.limit = set_up_variable_cube(
+            limit_data, name="surface_altitude", units='m',
+            spatial_grid='equalarea')
 
-        self.valid_data_for_limit_test = np.full((5, 5), True)
-        self.valid_data_for_limit_test[:, 1:4] = False
+    def test_unlimited(self):
+        """Test interpolation to complete an incomplete field using a reference
+        field. No limit is imposed upon the returned interpolated values."""
 
-    def test_basic_linear(self):
-        """Test when all the points around the missing data are the same."""
-        data = np.ones((3, 3))
-        data[1, 1] = np.nan
-        expected = np.array([[1.0, 1.0, 1.0],
-                             [1.0, 1.0, 1.0],
-                             [1.0, 1.0, 1.0]])
+        expected = np.array([[4.0, 4.0, 4.0],
+                             [8.5, 8.5, 8.5],
+                             [3.0, 3.0, 3.0]], dtype=np.float32)
 
-        data_updated = interpolate_missing_data(data)
+        result = InterpolateUsingDifference().process(self.sleet_rain,
+                                                      self.snow_sleet)
 
-        self.assertArrayEqual(data_updated, expected)
+        assert_array_equal(result.data, expected)
+        self.assertEqual(result.coords(), self.sleet_rain.coords())
+        self.assertEqual(result.metadata, self.sleet_rain.metadata)
 
-    def test_basic_nearest(self):
-        """Test when all the points around the missing data are the same."""
-        data = np.ones((3, 3))
-        data[1, 1] = np.nan
-        expected = np.array([[1.0, 1.0, 1.0],
-                             [1.0, 1.0, 1.0],
-                             [1.0, 1.0, 1.0]])
+    def test_maximum_limited(self):
+        """Test interpolation to complete an incomplete field using a reference
+        field. A limit is imposed upon the returned interpolated values,
+        forcing these values to the maximum limit if they exceed it."""
 
-        data_updated = interpolate_missing_data(data, method='nearest')
+        expected = np.array([[4.0, 4.0, 4.0],
+                             [8.5, 8.0, 6.0],
+                             [3.0, 3.0, 3.0]], dtype=np.float32)
 
-        self.assertArrayEqual(data_updated, expected)
+        result = InterpolateUsingDifference().process(
+            self.sleet_rain, self.snow_sleet, limit=self.limit,
+            limit_as_maximum=True)
 
-    def test_different_data_for_linear_interpolation(self):
-        """Test result when linearly interpolating using points around the
-        missing data with different values."""
-        expected = np.array([[1.0, 1.0, 2.0],
-                             [1.0, 1.5, 2.0],
-                             [1.0, 2.0, 2.0]])
+        assert_array_equal(result.data, expected)
+        self.assertEqual(result.coords(), self.sleet_rain.coords())
+        self.assertEqual(result.metadata, self.sleet_rain.metadata)
 
-        data_updated = interpolate_missing_data(self.data)
+    def test_minimum_limited(self):
+        """Test interpolation to complete an incomplete field using a reference
+        field. A limit is imposed upon the returned interpolated values,
+        forcing these values to the minimum limit if they are below it."""
 
-        self.assertArrayEqual(data_updated, expected)
+        expected = np.array([[4.0, 4.0, 4.0],
+                             [10., 8.5, 8.5],
+                             [3.0, 3.0, 3.0]], dtype=np.float32)
 
-    def test_different_data_for_nearest_neighbour(self):
-        """Test result when using nearest neighbour using points around the
-        missing data with different values."""
-        expected = np.array([[1.0, 1.0, 2.0],
-                             [1.0, 1.0, 2.0],
-                             [1.0, 2.0, 2.0]])
+        result = InterpolateUsingDifference().process(
+            self.sleet_rain, self.snow_sleet, limit=self.limit,
+            limit_as_maximum=False)
 
-        data_updated = interpolate_missing_data(self.data, method='nearest')
+        assert_array_equal(result.data, expected)
+        self.assertEqual(result.coords(), self.sleet_rain.coords())
+        self.assertEqual(result.metadata, self.sleet_rain.metadata)
 
-        self.assertArrayEqual(data_updated, expected)
+    def test_incomplete_reference(self):
+        """Test an exception is raised if the reference field is incomplete."""
 
-    def test_too_few_points_to_linearly_interpolate(self):
-        """Test that when there are not enough points to fill the gaps using
-        linear interpolation we recover the input data. This occurs if there
-        are less than 3 points available to use for the interpolation."""
-        data = np.array([[np.nan, 1, np.nan],
-                         [np.nan, np.nan, np.nan],
-                         [np.nan, 1, np.nan]])
-
-        data_updated = interpolate_missing_data(data)
-
-        self.assertArrayEqual(data_updated, data)
-
-    def test_nearest_neighbour_with_few_points(self):
-        """Test that when there are not enough points to fill the gaps using
-        linear interpolation (above test), we can still use nearest neighbour
-        filling."""
-        data = np.array([[np.nan, 1, np.nan],
-                         [np.nan, np.nan, np.nan],
-                         [np.nan, 1, np.nan]])
-        expected = np.ones((3, 3))
-
-        data_updated = interpolate_missing_data(data, method='nearest')
-
-        self.assertArrayEqual(data_updated, expected)
-
-    def test_badly_arranged_valid_data_for_linear_interpolation(self):
-        """Test when there are enough points but they aren't arranged in a
-        suitable way to allow linear interpolation. This QhullError raised
-        in this case is different to the one raised by
-        test_too_few_points_to_linearly_interpolate."""
-        data = np.array([[np.nan, 1, np.nan],
-                         [np.nan, 1, np.nan],
-                         [np.nan, 1, np.nan]])
-
-        data_updated = interpolate_missing_data(data)
-
-        self.assertArrayEqual(data_updated, data)
-
-    def test_nearest_neighbour_with_badly_arranged_valid_data(self):
-        """Test that when there are enough points but unsuitably arrange to
-        fill the gaps using linear interpolation (above test), we can still
-        use nearest neighbour filling."""
-        data = np.array([[np.nan, 1, np.nan],
-                         [np.nan, 1, np.nan],
-                         [np.nan, 1, np.nan]])
-        expected = np.ones((3, 3))
-
-        data_updated = interpolate_missing_data(data, method='nearest')
-
-        self.assertArrayEqual(data_updated, expected)
-
-    def test_missing_corner_point_linear_interpolation(self):
-        """Test when there's an extra missing value at the corner of the grid.
-        This point can't be filled in by linear interpolation, and will remain
-        unfilled."""
-        self.data[2, 2] = np.nan
-        expected = np.array([[1.0, 1.0, 2.0],
-                             [1.0, 1.5, 2.0],
-                             [1.0, 2.0, np.nan]])
-
-        data_updated = interpolate_missing_data(self.data)
-
-        self.assertArrayEqual(data_updated, expected)
-
-    def test_data_maked_as_invalid(self):
-        """Test that marking some of the edge data as invalid with a mask
-        results in an appropriately changed result."""
-
-        expected = np.array([[1.0, 1.0, 2.0],
-                             [1.0, 4./3., 2.0],
-                             [1.0, 2.0, 2.0]])
-
-        self.valid_data[2, 1] = False
-        self.valid_data[1, 2] = False
-        data_updated = interpolate_missing_data(
-            self.data, valid_points=self.valid_data)
-
-        self.assertArrayAlmostEqual(data_updated, expected)
-
-    def test_all_data_marked_as_invalid(self):
-        """Test that nothing is filled in if none of the data points are marked
-        as valid points."""
-        expected = np.array([[1.0, 1.0, 2.0],
-                             [1.0, np.nan, 2.0],
-                             [1.0, 2.0, 2.0]])
-
-        data_updated = interpolate_missing_data(
-            self.data, valid_points=~self.valid_data)
-
-        self.assertArrayEqual(data_updated, expected)
-
-    def test_set_to_limit_as_maximum(self):
-        """Test that when the linear interpolation gives values that are higher
-        than the limit values the returned data is set back to the limit values
-        in those positions. This uses the default behaviour where the limit is
-        the maximum allowed value."""
-
-        expected = np.array([[10.0, 12.5, 12.0, 17.5, 20.0],
-                             [10.0, 12.5, 12.0, 17.5, 20.0],
-                             [10.0, 12.5, 12.0, 17.5, 20.0],
-                             [10.0, 12.5, 12.0, 17.5, 20.0],
-                             [10.0, 12.5, 12.0, 17.5, 20.0]])
-        data_updated = interpolate_missing_data(
-                self.data_for_limit_test,
-                valid_points=self.valid_data_for_limit_test,
-                limit=self.limit_for_limit_test)
-        self.assertArrayEqual(data_updated, expected)
-
-    def test_set_to_limit_as_minimum(self):
-        """Test that when the linear interpolation gives values that are lower
-        than the limit values the returned data is set back to the limit values
-        in those positions. This tests the option of using the limit values as
-        minimums."""
-
-        expected = np.array([[10.0, 30., 15.0, 30., 20.0],
-                             [10.0, 30., 15.0, 30., 20.0],
-                             [10.0, 30., 15.0, 30., 20.0],
-                             [10.0, 30., 15.0, 30., 20.0],
-                             [10.0, 30., 15.0, 30., 20.0]])
-        data_updated = interpolate_missing_data(
-                self.data_for_limit_test,
-                valid_points=self.valid_data_for_limit_test,
-                limit=self.limit_for_limit_test,
+        self.snow_sleet.data[1, 1] = np.nan
+        msg = "The reference field contains np.nan data"
+        with self.assertRaisesRegex(ValueError, msg):
+            InterpolateUsingDifference().process(
+                self.sleet_rain, self.snow_sleet, limit=self.limit,
                 limit_as_maximum=False)
-        self.assertArrayEqual(data_updated, expected)
+
+    def test_crossing_values(self):
+        """Test interpolation when the reference field and field to be
+        completed by interpolation cross one another. In the absence of any
+        limit it should be possible to return an interpolated field of values
+        that pass through the reference field in an expected way. In another
+        case we apply the reference field as a lower bound to the interpolated
+        values."""
+
+        snow_sleet = np.array([[15., 15., 15.],
+                               [10., 10., 10.],
+                               [8.0, 8.0, 8.0]], dtype=np.float32)
+
+        sleet_rain = np.array([[5.0, 5.0, 5.0],
+                               [np.nan, np.nan, np.nan],
+                               [15., 15., 15.]], dtype=np.float32)
+        sleet_rain = np.ma.masked_invalid(sleet_rain)
+
+        self.snow_sleet.data = snow_sleet
+        self.sleet_rain.data = sleet_rain
+
+        expected_unlimited = np.array([[5.0, 5.0, 5.0],
+                                       [8.5, 8.5, 8.5],
+                                       [15., 15., 15.]], dtype=np.float32)
+        expected_limited = np.array([[5.0, 5.0, 5.0],
+                                     [10., 10., 10.],
+                                     [15., 15., 15.]], dtype=np.float32)
+
+        result_unlimited = InterpolateUsingDifference().process(
+            self.sleet_rain, self.snow_sleet)
+
+        result_limited = InterpolateUsingDifference().process(
+            self.sleet_rain, self.snow_sleet, limit=self.snow_sleet,
+            limit_as_maximum=False)
+
+        assert_array_equal(result_unlimited.data, expected_unlimited)
+        assert_array_equal(result_limited.data, expected_limited)
 
 
 if __name__ == '__main__':

@@ -90,17 +90,25 @@ def interpolate_missing_data(
 
     if limit is not None:
         index = ~np.isfinite(data) & np.isfinite(data_filled)
-        if limit_as_maximum:
-            data_violating_limit = (data_filled[index] > limit[index])
-        else:
-            data_violating_limit = (data_filled[index] < limit[index])
-        index[index] = data_violating_limit
-        data_filled[index] = limit[index]
+        limit_data_values(data_filled, index, limit, limit_as_maximum)
 
     index = ~np.isfinite(data)
     data[index] = data_filled[index]
 
     return data
+
+
+def limit_data_values(data, index, limit, limit_as_maximum):
+    """
+    Impose a limit on data.
+    """
+    index = index.copy()
+    if limit_as_maximum:
+        data_violating_limit = (data[index] > limit[index])
+    else:
+        data_violating_limit = (data[index] < limit[index])
+    index[index] = data_violating_limit
+    data[index] = limit[index]
 
 
 class InterpolateUsingDifference:
@@ -112,11 +120,10 @@ class InterpolateUsingDifference:
     being interpolated are then filled with data calculated as the reference
     field minus the interpolated difference field.
     """
-    # def __init__(self):
-    #     """Initialise plugin."""
-    #
-    # def __repr__(self):
-    #     """String representation of plugin."""
+
+    def __repr__(self):
+        """String representation of plugin."""
+        return "<InterpolateUsingDifference>"
 
     def process(self, field, reference_field,
                 limit=None, limit_as_maximum=True):
@@ -142,6 +149,12 @@ class InterpolateUsingDifference:
                 is that if the interpolated values exceed the limit they should
                 be set to the limit value. If False, the test is whether the
                 interpolated values fall below the limit value.
+        Return:
+            iris.cube.Cube:
+                A copy of the input field in which the missing data has been
+                populated with values obtained through interpolating the
+                difference field and subtracting the result from the reference
+                field.
         Raises:
             ValueError: If the reference field is not complete across the
                         entire domain.
@@ -151,17 +164,22 @@ class InterpolateUsingDifference:
                 'The reference field contains np.nan data indicating that it '
                 'is not complete across the domain.')
 
-        valid_points = ~field.data.mask
+        invalid_points = field.data.mask.copy()
+        valid_points = ~invalid_points
+
         difference_field = np.subtract(reference_field.data, field.data,
                                        out=np.full(field.shape, np.nan),
                                        where=valid_points)
-        if limit is not None:
-            limit = reference_field.data - limit.data
-
         interpolated_difference = interpolate_missing_data(
-                difference_field, limit=limit,
-                limit_as_maximum=limit_as_maximum,
-                valid_points=valid_points)
+                difference_field, valid_points=valid_points)
 
-        return field.copy(
-             data=reference_field.data - interpolated_difference)
+        result = field.copy()
+        result.data[invalid_points] = (
+            reference_field.data[invalid_points] -
+            interpolated_difference[invalid_points])
+
+        if limit is not None:
+            limit_data_values(result.data, invalid_points, limit.data,
+                              limit_as_maximum)
+
+        return result
