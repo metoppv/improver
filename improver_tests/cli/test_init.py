@@ -447,7 +447,8 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         """
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name])
-        msg = "The cubes with \[\'wind_speed\'\]"
+        # . needed to replace square brackets[]
+        msg = "The cubes with \\[\'wind_speed\'\\]"
         with self.assertRaisesRegex(ValueError, msg):
             constrained_list(self.fake_path)
         raw.assert_called_once_with(self.fake_path)
