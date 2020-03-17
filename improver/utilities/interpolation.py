@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain interpolation functions."""
 
+import warnings
 import numpy as np
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
@@ -113,36 +114,56 @@ def limit_data_values(data, index, limit, limit_as_maximum):
 
 class InterpolateUsingDifference:
     """
-    Calculates the difference between the field that is to be interpolated and
-    a complete (filling the whole domain) reference field. The difference
-    between the fields in regions where they overlap is calculated and this
-    difference is then interpolated across the domain. Any holes in the data
-    being interpolated are then filled with data calculated as the reference
-    field minus the interpolated difference field.
+    Uses interpolation to fill holes in the data contained within the input
+    cube. This is achieved by calculating the difference between the input cube
+    and a complete (filling the whole domain) reference cube. The difference
+    between the data in regions where they overlap is calculated and this
+    difference field is then interpolated across the domain. Any holes in the
+    input cube data are then filled with data calculated as the reference
+    cube data minus the interpolated difference field.
     """
 
     def __repr__(self):
         """String representation of plugin."""
         return "<InterpolateUsingDifference>"
 
-    def process(self, field, reference_field,
+    @staticmethod
+    def _check_inputs(cube, reference_cube, limit):
+        """
+        Check that the input cubes are compatible and the data is complete or
+        masked as expected.
+        """
+        if np.isnan(reference_cube.data).any():
+            raise ValueError(
+                'The reference cube contains np.nan data indicating that it '
+                'is not complete across the domain.')
+        try:
+            reference_cube.convert_units(cube.units)
+            if limit is not None:
+                limit.convert_units(cube.units)
+        except ValueError:
+            raise ValueError(
+                'Reference cube and/or limit do not have units compatible with'
+                ' cube.')
+
+    def process(self, cube, reference_cube,
                 limit=None, limit_as_maximum=True):
         """
         Apply plugin to input data.
 
         Args:
-            field (iris.cube.Cube):
-                Field for which interpolation is required to fill holes.
-            reference_field (iris.cube.Cube):
-                A field that covers the entire domain that it shares with
-                field.
+            cube (iris.cube.Cube):
+                cube for which interpolation is required to fill holes.
+            reference_cube (iris.cube.Cube):
+                A cube that covers the entire domain that it shares with
+                cube.
             limit (iris.cube.Cube or None):
-                A field used to calculate limiting values that the difference
-                field should not violate following interpolation. This can be
+                A cube used to calculate limiting values that the difference
+                cube should not violate following interpolation. This can be
                 used to ensure that the interpolated field does not get too
-                close to or too far away from the reference field. Any points
+                close to or too far away from the reference cube. Any points
                 in the interpolated difference field violating the limit are
-                set back to the calculated limiting value, ``reference_field -
+                set back to the calculated limiting value, ``reference_cube -
                 limit``.
             limit_as_maximum (bool):
                 If True the test against the values allowed by the limit array
@@ -151,31 +172,33 @@ class InterpolateUsingDifference:
                 interpolated values fall below the limit value.
         Return:
             iris.cube.Cube:
-                A copy of the input field in which the missing data has been
+                A copy of the input cube in which the missing data has been
                 populated with values obtained through interpolating the
                 difference field and subtracting the result from the reference
-                field.
+                cube.
         Raises:
-            ValueError: If the reference field is not complete across the
+            ValueError: If the reference cube is not complete across the
                         entire domain.
         """
-        if np.isnan(reference_field.data).any():
-            raise ValueError(
-                'The reference field contains np.nan data indicating that it '
-                'is not complete across the domain.')
+        if not np.ma.is_masked(cube.data):
+            warnings.warn('Input cube unmasked, no data to fill in, returning '
+                          'unchanged.')
+            return cube
 
-        invalid_points = field.data.mask.copy()
+        self._check_inputs(cube, reference_cube, limit)
+
+        invalid_points = cube.data.mask.copy()
         valid_points = ~invalid_points
 
-        difference_field = np.subtract(reference_field.data, field.data,
-                                       out=np.full(field.shape, np.nan),
+        difference_field = np.subtract(reference_cube.data, cube.data,
+                                       out=np.full(cube.shape, np.nan),
                                        where=valid_points)
         interpolated_difference = interpolate_missing_data(
                 difference_field, valid_points=valid_points)
 
-        result = field.copy()
+        result = cube.copy()
         result.data[invalid_points] = (
-            reference_field.data[invalid_points] -
+            reference_cube.data[invalid_points] -
             interpolated_difference[invalid_points])
 
         if limit is not None:

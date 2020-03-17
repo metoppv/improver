@@ -35,6 +35,7 @@ import unittest
 import numpy as np
 from numpy.testing import assert_array_equal
 
+from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.interpolation import InterpolateUsingDifference
 from ..set_up_test_cubes import set_up_variable_cube
 
@@ -125,16 +126,6 @@ class Test_process(unittest.TestCase):
         self.assertEqual(result.coords(), self.sleet_rain.coords())
         self.assertEqual(result.metadata, self.sleet_rain.metadata)
 
-    def test_incomplete_reference(self):
-        """Test an exception is raised if the reference field is incomplete."""
-
-        self.snow_sleet.data[1, 1] = np.nan
-        msg = "The reference field contains np.nan data"
-        with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference().process(
-                self.sleet_rain, self.snow_sleet, limit=self.limit,
-                limit_as_maximum=False)
-
     def test_crossing_values(self):
         """Test interpolation when the reference field and field to be
         completed by interpolation cross one another. In the absence of any
@@ -171,6 +162,73 @@ class Test_process(unittest.TestCase):
 
         assert_array_equal(result_unlimited.data, expected_unlimited)
         assert_array_equal(result_limited.data, expected_limited)
+
+    @ManageWarnings(record=True)
+    def test_unmasked_input_cube(self, warning_list=None):
+        """Test a warning is raised if the input cube is not masked and that
+        the input cube is returned unchanged."""
+
+        self.sleet_rain.data = np.ones((3, 3), dtype=np.float32)
+        expected = self.sleet_rain.copy()
+        warning_msg = "Input cube unmasked, no data to fill in, returning"
+
+        result = InterpolateUsingDifference().process(
+                self.sleet_rain, self.snow_sleet)
+
+        self.assertEqual(result, expected)
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+
+    # Tests for the private _check_inputs method.
+
+    def test_incomplete_reference_data(self):
+        """Test an exception is raised if the reference field is incomplete."""
+
+        self.snow_sleet.data[1, 1] = np.nan
+        msg = "The reference cube contains np.nan data"
+        with self.assertRaisesRegex(ValueError, msg):
+            InterpolateUsingDifference().process(
+                self.sleet_rain, self.snow_sleet)
+
+    def test_incompatible_refence_cube_units(self):
+        """Test an exception is raised if the reference cube has units that
+        are incompatible with the input cube."""
+
+        self.snow_sleet.units = 's'
+        msg = "Reference cube and/or limit do not have units compatible"
+        with self.assertRaisesRegex(ValueError, msg):
+            InterpolateUsingDifference().process(
+                self.sleet_rain, self.snow_sleet)
+
+    def test_incompatible_limit_units(self):
+        """Test an exception is raised if the limit cube has units that
+        are incompatible with the input cube."""
+
+        self.limit.units = 's'
+        msg = "Reference cube and/or limit do not have units compatible"
+        with self.assertRaisesRegex(ValueError, msg):
+            InterpolateUsingDifference().process(
+                self.sleet_rain, self.snow_sleet, limit=self.limit)
+
+    def test_convert_units(self):
+        """Test that a reference cube and limit cube with different but
+        compatible units are converted for use."""
+
+        expected = np.array([[4.0, 4.0, 4.0],
+                             [8.5, 8.0, 6.0],
+                             [3.0, 3.0, 3.0]], dtype=np.float32)
+
+        self.snow_sleet.convert_units('cm')
+        self.limit.convert_units('cm')
+
+        result = InterpolateUsingDifference().process(
+            self.sleet_rain, self.snow_sleet, limit=self.limit)
+
+        assert_array_equal(result.data, expected)
+        self.assertEqual(result.coords(), self.sleet_rain.coords())
+        self.assertEqual(result.metadata, self.sleet_rain.metadata)
 
 
 if __name__ == '__main__':
