@@ -245,18 +245,13 @@ def create_constrained_inputcubelist_converter(*constraint_lists):
         from improver.utilities.load import load_cube
         from iris import load_raw
 
+        # Load cube if given a string.
         if isinstance(to_convert, str):
             cubelist = load_raw(to_convert)
-            loop = lambda x: [load_cube(
-                to_convert, constraints=j)
-                for j in x]
+            is_str = True
         else:
             cubelist = to_convert
-            # Constraint needs 'name=' prefix.
-            # Returns a list so selected 0 index required.
-            loop = lambda x: [extract_subcube(
-                to_convert, ["name=" + j])[0]
-                for j in x]
+            is_str = False
 
         # Finds any cubes named prefix.
         prefix_cubes = [c.name() for c in cubelist if c.name() == 'prefixes']
@@ -264,10 +259,18 @@ def create_constrained_inputcubelist_converter(*constraint_lists):
         meta_length = 1 if prefix_cubes else 0
         cube_length = len(cubelist) - meta_length
 
+        # Try to load/extract cubes.
         partial_match = False
         for constraints in constraint_lists:
             try:
-                cubes = loop(constraints)
+                if is_str:
+                    cubes = list(load_cube(to_convert, constraints=j)
+                                 for j in constraints)
+                else:
+                    # Constraint needs 'name=' prefix.
+                    # Returns a list so selected 0 index required.
+                    cubes = list(extract_subcube(to_convert, ["name=" + j])[0]
+                                 for j in constraints)
                 # Only returns if number of loaded cubes cubes in cubelist
                 if len(cubes) == cube_length:
                     return cubes
@@ -278,7 +281,8 @@ def create_constrained_inputcubelist_converter(*constraint_lists):
         msg = ("A full list of names was unable to be extracted"
                f"Cubes must be called: {constraint_lists}")
         if partial_match:
-            msg = "Some cubes could be extracted, but " + msg
+            names = [c.name() for c in cubes]
+            msg = f"The cubes with {names} could be extracted, but {msg}"
         raise ValueError(msg)
 
     return constrained_inputcubelist_converter

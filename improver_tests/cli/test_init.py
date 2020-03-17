@@ -230,8 +230,8 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
             [self.speed_name, self.direction_name])
         result = constrained_list(self.fake_path)
         raw.assert_called_once_with(self.fake_path)
-        for constr in [self.speed_name, self.direction_name]:
-            load.assert_any_call(self.fake_path, constraints=constr)
+        for constraint in [self.speed_name, self.direction_name]:
+            load.assert_any_call(self.fake_path, constraints=constraint)
         # Called twice for each item in the list
         self.assertEqual(load.call_count, 2)
         self.assertEqual(len(result), 2)
@@ -437,7 +437,8 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         self.assertEqual(load.call_count, 2)
 
     @patch('iris.load_raw', side_effect=[cubelist_of_length(2)])
-    @patch('improver.utilities.load.load_cube', side_effect=['Cube1'])
+    @patch('improver.utilities.load.load_cube',
+           side_effect=cubelist_of_length(1))
     def test_err_when_match_wrong_size(self, load, raw):
         """Tests that raises an error when there isn't a full match of
         constraint to cube.
@@ -446,7 +447,7 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         """
         constrained_list = create_constrained_inputcubelist_converter(
             [self.speed_name])
-        msg = 'Some cubes'
+        msg = "The cubes with \[\'wind_speed\'\]"
         with self.assertRaisesRegex(ValueError, msg):
             constrained_list(self.fake_path)
         raw.assert_called_once_with(self.fake_path)
