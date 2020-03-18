@@ -196,6 +196,14 @@ class InterpolateUsingDifference:
         interpolated_difference = interpolate_missing_data(
                 difference_field, valid_points=valid_points)
 
+        # If any invalid points remain in the difference field, use nearest
+        # neighbour interpolation to fill these with the nearest difference.
+        remain_invalid = np.isnan(interpolated_difference)
+        if remain_invalid.any():
+            interpolated_difference = interpolate_missing_data(
+                    difference_field, valid_points=~remain_invalid,
+                    method='nearest')
+
         result = cube.copy()
         result.data[invalid_points] = (
             reference_cube.data[invalid_points] -

@@ -163,6 +163,29 @@ class Test_process(unittest.TestCase):
         assert_array_equal(result_unlimited.data, expected_unlimited)
         assert_array_equal(result_limited.data, expected_limited)
 
+    def test_linear_failure(self):
+        """Test that if the use of linear interpolation does not result in a
+        complete difference field, and thus a complete field of interest, the
+        secondary use of nearest neighbour interpolation completes the
+        field."""
+
+        sleet_rain = np.array([[np.nan, np.nan, 4.0],
+                               [np.nan, np.nan, np.nan],
+                               [3.0, 3.0, 3.0]], dtype=np.float32)
+        sleet_rain = np.ma.masked_invalid(sleet_rain)
+        self.sleet_rain.data = sleet_rain
+
+        expected = np.array([[3.5, 4.0, 4.0],
+                             [8.5, 8.5, 8.5],
+                             [3.0, 3.0, 3.0]], dtype=np.float32)
+
+        result = InterpolateUsingDifference().process(self.sleet_rain,
+                                                      self.snow_sleet)
+
+        assert_array_equal(result.data, expected)
+        self.assertEqual(result.coords(), self.sleet_rain.coords())
+        self.assertEqual(result.metadata, self.sleet_rain.metadata)
+
     @ManageWarnings(record=True)
     def test_unmasked_input_cube(self, warning_list=None):
         """Test a warning is raised if the input cube is not masked and that
