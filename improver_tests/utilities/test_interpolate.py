@@ -102,7 +102,7 @@ class Test_interpolate_missing_data(IrisTest):
                          [np.nan, np.nan, np.nan],
                          [np.nan, 1, np.nan]])
 
-        data_updated = interpolate_missing_data(data)
+        data_updated = interpolate_missing_data(data.copy())
 
         self.assertArrayEqual(data_updated, data)
 
@@ -128,7 +128,7 @@ class Test_interpolate_missing_data(IrisTest):
                          [np.nan, 1, np.nan],
                          [np.nan, 1, np.nan]])
 
-        data_updated = interpolate_missing_data(data)
+        data_updated = interpolate_missing_data(data.copy())
 
         self.assertArrayEqual(data_updated, data)
 

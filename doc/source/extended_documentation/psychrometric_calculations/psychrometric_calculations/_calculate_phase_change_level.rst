@@ -18,7 +18,9 @@ used in the wet bulb temperature integration. In these areas the
 atmosphere is so warm that the phase change has occured above the
 highest level that is being considered. In these areas the phase
 change level is set to the highest height level + the height of the
-orography.
+orography. The exact height of the phase change level is unimportant
+in these areas as we can be certain the precipitation at the surface
+will be rain.
 
 Next we fill in any sea points where we have not found a phase change
 level by the time we get to sea level, i.e. where the wet bulb
@@ -27,7 +29,14 @@ these points we call ``fill_in_sea_points`` which finds a linear fit to
 the wet bulb temperature close to sea level and uses this to find where
 an extrapolated wet bulb temperature integral would cross the threshold.
 This results in phase change levels below sea level for points where we
-have applied the extrapolation.
+have applied the extrapolation. It is important to get sensible values
+for these heights, particularly in marginal snow fall cases. As we
+calculate probabilities using multiple realizations, if some
+realizations give a snow falling level just above sea level and some
+just below, getting these heights close to correct ensures we calculate
+realistic probabilities of snow falling at the surface. Consider instead
+if we simply set the falling levels at these points to be equal to sea
+level; in so doing we would be introducing a warm bias to the output.
 
 Finally, if there are any areas for which the phase change level remains
 unset, we know that these must be at or below the height of the

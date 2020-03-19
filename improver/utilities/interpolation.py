@@ -46,14 +46,16 @@ def interpolate_missing_data(
             linear interpolation, and "nearest" for a nearest neighbour
             approach. It can take any method available to the method
             scipy.interpolate.griddata.
-        limit(numpy.data):
+        limit (numpy.ndarray):
             The array containing upper limits for each grid point that are
             imposed on any value in the region that has been interpolated.
         valid_points (numpy.ndarray):
-            A boolean array that marks valid data that can be used as input
-            to the interpolation process. This allows the exclusion of some
-            points even though they contain data that could otherwise be used
-            in the interpolation.
+            A boolean array that allows a subset of the unmasked data to be
+            chosen as source data for the interpolation process. True values
+            in this array mark points that can be used for interpolation if
+            they are not otherwise invalid. False values mark points that
+            should not be used, even if they are otherwise valid data points.
+
     Returns:
         numpy.ndarray:
             The original data plus interpolated data in holes where it was

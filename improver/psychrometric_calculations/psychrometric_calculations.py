@@ -901,7 +901,7 @@ class PhaseChangeLevel(BasePlugin):
         data appropriately.
 
         Args:
-            cubes (iris.cube.CubeList or list or iris.cube.Cube) containing:
+            cubes (iris.cube.CubeList or list of iris.cube.Cube) containing:
                 wet_bulb_temperature (iris.cube.Cube):
                     Cube of wet bulb temperatures on height levels.
                 wet_bulb_integral (iris.cube.Cube):

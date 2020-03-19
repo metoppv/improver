@@ -77,7 +77,8 @@ def process(*cubes: cli.inputcube,
     from improver.psychrometric_calculations.psychrometric_calculations \
         import PhaseChangeLevel
 
-    result = PhaseChangeLevel(
+    plugin = PhaseChangeLevel(
         phase_change=phase_change,
-        horizontal_interpolation=horizontal_interpolation).process(cubes)
+        horizontal_interpolation=horizontal_interpolation)
+    result = plugin(cubes)
     return result
