@@ -32,12 +32,15 @@
 
 import warnings
 
+import scipy
+
 import iris
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import MergeCubes, collapsed
+from improver.utilities.interpolation import interpolate_1d
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.calibration.utilities import (filter_non_matching_cubes,
@@ -503,8 +506,12 @@ class ApplyReliabilityCalibration:
                 The minimum number of forecast counts in a forecast probability
                 bin for it to be used in calibration. Those bins with
                 insufficient counts are excluded and interpolation occurs
-                across the hole.
+                across the hole. The value must be greater than zero.
         """
+        if minimum_forecast_count < 1:
+            raise ValueError(
+                "The minimum_forecast_count must be at least 1 as empty "
+                "bins in the reliability table are not handled.")
 
         self.minimum_forecast_count = minimum_forecast_count
         self.threshold_coord = None
@@ -605,14 +612,16 @@ class ApplyReliabilityCalibration:
             iris.Constraint(
                 table_row_name='sum_of_forecast_probabilities')).data
 
-        print('count', forecast_count)
+        # In some bins have insufficient counts, return None to avoid applying
+        # calibration.
+        valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
+        if valid_bins[0].size != forecast_count.size:
+            return None, None
 
-        valid_bins = np.where(forecast_count > self.minimum_forecast_count)
-
-        forecast_probability = np.divide(
-            forecast_probability_sum[valid_bins], forecast_count[valid_bins])
-        observation_frequency = np.divide(
-            observation_count[valid_bins], forecast_count[valid_bins])
+        forecast_probability = np.array(
+            forecast_probability_sum / forecast_count)
+        observation_frequency = np.array(
+            observation_count / forecast_count)
 
         return forecast_probability, observation_frequency
 
@@ -639,27 +648,26 @@ class ApplyReliabilityCalibration:
             self.threshold_coord)
         slices = zip(forecast_thresholds, reliability_thresholds)
 
+        uncalibrated_thresholds = []
         calibrated_cubes = iris.cube.CubeList()
         for forecast_threshold, reliability_threshold in slices:
             shape = forecast_threshold.shape
             forecast_data = forecast_threshold.data.flatten()
 
-            forecast_data[500000] = 0.9
-
             reliability_probabilities, observation_frequencies = (
                 self._calculate_reliability_probabilities(
                     reliability_threshold))
 
-            observation_frequencies[1] = 0.05
+            if reliability_probabilities is None:
+                calibrated_cubes.append(forecast_threshold)
+                uncalibrated_thresholds.append(
+                    forecast_threshold.coord(self.threshold_coord).points[0])
+                continue
 
-            print(reliability_probabilities)
-            print(observation_frequencies)
-
-            interpolated = np.interp(forecast_data,
-                                     reliability_probabilities,
-                                     observation_frequencies,
-                                     left=0, right=1)
-            print('example', forecast_data[500000], interpolated[500000])
+            interpolation_function = scipy.interpolate.interp1d(
+                reliability_probabilities, observation_frequencies,
+                fill_value='extrapolate')
+            interpolated = interpolation_function(forecast_data.data)
 
             interpolated = interpolated.reshape(shape).astype(np.float32)
 
@@ -667,4 +675,11 @@ class ApplyReliabilityCalibration:
 
         calibrated_forecast = calibrated_cubes.merge_cube()
         self._ensure_monotonicity(calibrated_forecast)
+
+        if uncalibrated_thresholds:
+            msg = ('The following thresholds were not calibrated due to '
+                   'insufficient forecast counts in reliability table bins: '
+                   '{}'.format(uncalibrated_thresholds))
+            warnings.warn(msg)
+
         return calibrated_forecast

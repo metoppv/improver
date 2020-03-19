@@ -33,43 +33,63 @@
 import unittest
 
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_allclose
+
+import iris
 
 from improver.calibration.reliability_calibration import (
     ApplyReliabilityCalibration as Plugin)
 
 from improver.calibration.reliability_calibration import (
     ConstructReliabilityCalibrationTables as CalPlugin)
-from improver_tests.calibration.reliability_calibration.\
-    test_ConstructReliabilityCalibrationTables import Test_Setup
+from improver.utilities.warnings_handler import ManageWarnings
+
+from improver_tests.set_up_test_cubes import set_up_probability_cube
 
 
-class Test_Aggregation(Test_Setup):
+class Test_ReliabilityCalibrate(unittest.TestCase):
 
     """Test class for the Test_ApplyReliabilityCalibration tests,
     setting up cubes to use as inputs."""
 
     def setUp(self):
-        """Create reliability calibration tables for testing."""
+        """Create reliability calibration table and forecast cubes for
+        testing."""
 
-        super().setUp()
+        forecast_data_0 = np.linspace(0.5, 1, 9, dtype=np.float32)
+        forecast_data_1 = np.linspace(0, 0.4, 9, dtype=np.float32)
+        thresholds = [275., 280.]
+        forecast_data = np.stack([forecast_data_0, forecast_data_1]).reshape((
+            2, 3, 3))
+        self.forecast = set_up_probability_cube(forecast_data, thresholds)
+
         reliability_cube_format = CalPlugin()._create_reliability_table_cube(
-            self.forecasts, self.expected_threshold_coord)
-        self.reliability_cube = reliability_cube_format.copy(
-            data=self.expected_table)
-        self.different_frt = self.reliability_cube.copy()
-        new_frt = self.different_frt.coord('forecast_reference_time')
-        new_frt.points = new_frt.points + 48*3600
-        new_frt.bounds = new_frt.bounds + 48*3600
+            self.forecast[0], self.forecast.coord(var_name='threshold'))
+        reliability_cube_format = reliability_cube_format.collapsed(
+            [reliability_cube_format.coord(axis='x'),
+             reliability_cube_format.coord(axis='y')],
+            iris.analysis.SUM)
+        # Over forecasting exceeding 275K.
+        relability_data_0 = np.array(
+            [[0, 0, 250, 500, 750],  # Observation count
+             [0, 250, 500, 750, 1000],  # Sum of forecast probability
+             [1000, 1000, 1000, 1000, 1000]])  # Forecast count
+        # Under forecasting exceeding 280K.
+        relability_data_1 = np.array(
+            [[250, 500, 750, 1000, 1000],  # Observation count
+             [0, 250, 500, 750, 1000],  # Sum of forecast probability
+             [1000, 1000, 1000, 1000, 1000]])  # Forecast count
 
-        self.overlapping_frt = self.reliability_cube.copy()
-        new_frt = self.overlapping_frt.coord('forecast_reference_time')
-        new_frt.points = new_frt.points + 6*3600
-        new_frt.bounds = new_frt.bounds + 6*3600
+        r0 = reliability_cube_format.copy(data=relability_data_0)
+        r1 = reliability_cube_format.copy(data=relability_data_1)
+        r1.replace_coord(self.forecast[1].coord(var_name='threshold'))
 
-        self.lat_lon_collapse = np.array([[0., 0., 1., 2., 1.],
-                                          [0., 0.375, 1.5, 1.625, 1.],
-                                          [1., 2., 3., 2., 1.]])
+        reliability_cube = iris.cube.CubeList([r0, r1])
+        self.reliability_cube = reliability_cube.merge_cube()
+
+        self.threshold = self.forecast.coord(var_name='threshold')
+        self.plugin = Plugin()
+        self.plugin.threshold_coord = self.threshold
 
 
 class Test__init__(unittest.TestCase):
@@ -78,13 +98,27 @@ class Test__init__(unittest.TestCase):
 
     def test_using_defaults(self):
         """Test without providing any arguments."""
+
         plugin = Plugin()
+
         self.assertEqual(plugin.minimum_forecast_count, 200)
+        self.assertIsNone(plugin.threshold_coord, None)
 
     def test_with_arguments(self):
         """Test with specified arguments."""
-        plugin = Plugin(minimum_forecast_count=500)
-        self.assertEqual(plugin.minimum_forecast_count, 500)
+
+        plugin = Plugin(minimum_forecast_count=100)
+
+        self.assertEqual(plugin.minimum_forecast_count, 100)
+        self.assertIsNone(plugin.threshold_coord, None)
+
+    def test_with_invalid_arguments(self):
+        """Test an exception is raised if the minimum_forecast_count value is
+        less than 1."""
+
+        msg = "The minimum_forecast_count must be at least 1"
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin(minimum_forecast_count=0)
 
 
 class Test__repr__(unittest.TestCase):
@@ -92,107 +126,217 @@ class Test__repr__(unittest.TestCase):
     """Test the __repr__ method."""
 
     def test_basic(self):
-        """Test repr is as expected."""
-        expected = '<ApplyReliabilityCalibration: minimum_forecast_count: 200>'
-        self.assertEqual(str(Plugin()), expected)
+        """A simple tests for the __repr__ method."""
+        result = str(Plugin())
+        msg = ("<ApplyReliabilityCalibration: minimum_forecast_count: 200>")
+        self.assertEqual(result, msg)
 
 
-class Test__check_frt_coord(Test_Aggregation):
+class Test__threshold_coords_equivalent(Test_ReliabilityCalibrate):
 
-    """Test the _check_frt_coord method."""
+    """Test the _threshold_coords_equivalent method."""
 
-    def test_valid_bounds(self):
-        """Test that no exception is raised if the input cubes have forecast
-        reference time bounds that do not overlap."""
+    def test_matching_coords(self):
+        """Test that no exception is raised in the case that the forecast
+        and reliability table cubes have equivalent threshold coordinates."""
 
-        plugin = Plugin()
-        plugin._check_frt_coord([self.reliability_cube, self.different_frt])
+        self.plugin._threshold_coords_equivalent(self.forecast,
+                                                 self.reliability_cube)
 
-    def test_invalid_bounds(self):
-        """Test that an exception is raised if the input cubes have forecast
-        reference time bounds that overlap."""
+    def test_unmatching_coords(self):
+        """Test that an exception is raised in the case that the forecast
+        and reliability table cubes have different threshold coordinates."""
 
-        plugin = Plugin()
-        msg = "Reliability calibration tables have overlapping"
+        msg = 'Threshold coordinates do not match'
         with self.assertRaisesRegex(ValueError, msg):
-            plugin._check_frt_coord([self.reliability_cube,
-                                     self.overlapping_frt])
+            self.plugin._threshold_coords_equivalent(self.forecast[0],
+                                                     self.reliability_cube)
 
 
-class Test_process(Test_Aggregation):
+class Test__ensure_monotonicity(Test_ReliabilityCalibrate):
+
+    """Test the _ensure_monotonicity method."""
+
+    def test_monotonic_case(self):
+        """Test that for a probability cube in which the data is already
+        ordered monotonically it us unchanged by this method. Additionally, no
+        warnings or exceptions should be raised."""
+
+        expected = self.forecast.copy()
+
+        self.plugin._ensure_monotonicity(self.forecast)
+
+        assert_array_equal(self.forecast.data, expected.data)
+
+    @ManageWarnings(record=True)
+    def test_single_disordered_element(self, warning_list=None):
+        """Test that if the values are disordered at a single position in the
+        array, this position is sorted across the thresholds, whilst the rest
+        of the array remains unchanged."""
+
+        expected = self.forecast.copy()
+        switch_val = self.forecast.data[0, 1, 1]
+        self.forecast.data[0, 1, 1] = self.forecast.data[1, 1, 1]
+        self.forecast.data[1, 1, 1] = switch_val
+
+        self.plugin._ensure_monotonicity(self.forecast)
+
+        assert_array_equal(self.forecast.data, expected.data)
+        warning_msg = "Exceedance probabilities are not decreasing"
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+
+    @ManageWarnings(record=True)
+    def test_monotonic_in_wrong_direction(self, warning_list=None):
+        """Test that the data is reordered and a warning raised if the
+        probabilities in the cube are non-monotonic in the sense defined by
+        the relative_to_threshold attribute."""
+
+        expected = self.forecast.copy(data=self.forecast.data[::-1])
+
+        self.forecast.coord(self.threshold).attributes[
+            'spp__relative_to_threshold'] = 'below'
+
+        self.plugin._ensure_monotonicity(self.forecast)
+
+        assert_array_equal(self.forecast.data, expected.data)
+        warning_msg = "Below threshold probabilities are not increasing"
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
+
+    def test_exception_without_relative_to_threshold(self):
+        """Test that an exception is raised if the probability cube's
+        threshold coordinate does not include an attribute declaring whether
+        probabilities are above or below the threshold. This attribute is
+        expected to be called spp__relative_to_threshold."""
+
+        self.forecast.coord(self.threshold).attributes.pop(
+            'spp__relative_to_threshold')
+
+        msg = "Cube threshold coordinate does not define whether"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin._ensure_monotonicity(self.forecast)
+
+
+class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
+
+    """Test the _calculate_reliability_probabilities method."""
+
+    def test_values(self):
+        """Test expected values are returned."""
+
+        expected_0 = (np.array([0., 0.25, 0.5, 0.75, 1.]),
+                      np.array([0., 0., 0.25, 0.5, 0.75]))
+        expected_1 = (np.array([0., 0.25, 0.5, 0.75, 1.]),
+                      np.array([0.25, 0.5, 0.75, 1., 1.]))
+
+        threshold_0 = self.plugin._calculate_reliability_probabilities(
+            self.reliability_cube[0])
+        threshold_1 = self.plugin._calculate_reliability_probabilities(
+            self.reliability_cube[1])
+
+        assert_array_equal(threshold_0, expected_0)
+        assert_array_equal(threshold_1, expected_1)
+
+    def test_insufficient_forecast_count(self):
+        """Test that if the forecast count is insufficient the function returns
+        None types."""
+
+        self.reliability_cube.data[0, 2, 0] = 100
+
+        result = self.plugin._calculate_reliability_probabilities(
+            self.reliability_cube[0])
+
+        self.assertIsNone(result[0])
+        self.assertIsNone(result[1])
+
+
+class Test_process(Test_ReliabilityCalibrate):
 
     """Test the process method."""
 
-    def test_aggregating_multiple_cubes(self):
-        """Test of aggregating two cubes without any additional coordinate
-        collapsing."""
+    @ManageWarnings(record=True)
+    def test_calibrating_forecast(self, warning_list=None):
+        """Test application of the reliability table to the forecast. The
+        input probabilities and table values have been chosen such that no
+        warnings should be raised by this operation."""
 
-        frt = 'forecast_reference_time'
-        expected_points = self.different_frt.coord(frt).points
-        expected_bounds = [[self.reliability_cube.coord(frt).bounds[0][0],
-                            self.different_frt.coord(frt).bounds[-1][1]]]
+        expected_0 = np.array(
+            [[0.25, 0.3125, 0.375],
+             [0.4375, 0.5, 0.5625],
+             [0.625, 0.6875, 0.75]])
+        expected_1 = np.array(
+            [[0.25, 0.3, 0.35],
+             [0.4, 0.45, 0.5],
+             [0.55, 0.6, 0.65]])
 
-        plugin = Plugin()
-        result = plugin.process([self.reliability_cube, self.different_frt])
-        assert_array_equal(result.data, self.expected_table * 2)
-        assert_array_equal(result.shape, (3, 5, 3, 3))
-        self.assertEqual(result.coord(frt).points, expected_points)
-        assert_array_equal(result.coord(frt).bounds, expected_bounds)
+        result = self.plugin.process(self.forecast, self.reliability_cube)
 
-    def test_aggregating_cubes_with_overlapping_frt(self):
-        """Test that attempting to aggregate reliability calibration tables
-        with overlapping forecast reference time bounds raises an exception.
-        The presence of overlapping forecast reference time bounds indicates
-        that the same forecast data has contributed to both tables, thus
-        aggregating them would double count these contributions."""
+        assert_allclose(result[0].data, expected_0)
+        assert_allclose(result[1].data, expected_1)
+        self.assertFalse(warning_list)
 
-        plugin = Plugin()
-        msg = "Reliability calibration tables have overlapping"
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.process([self.reliability_cube, self.overlapping_frt])
+    @ManageWarnings(record=True)
+    def test_one_threshold_uncalibrated(self, warning_list=None):
+        """Test application of the reliability table to the forecast. In this
+        case the reliability table has been altered for the first threshold
+        (275K) such that it cannot be used. We expect the first threshold to
+        be returned unchanged and a warning to be raised."""
 
-    def test_aggregating_over_single_cube_coordinates(self):
-        """Test of aggregating over coordinates of a single cube. In this
-        instance the latitude and longitude coordinates are collapsed."""
+        expected_0 = self.forecast[0].copy().data
+        expected_1 = np.array(
+            [[0.25, 0.3, 0.35],
+             [0.4, 0.45, 0.5],
+             [0.55, 0.6, 0.65]])
 
-        frt = 'forecast_reference_time'
-        expected_points = self.reliability_cube.coord(frt).points
-        expected_bounds = self.reliability_cube.coord(frt).bounds
+        self.reliability_cube.data[0, 2, 0] = 100
 
-        plugin = Plugin()
-        result = plugin.process([self.reliability_cube],
-                                coordinates=['latitude', 'longitude'])
-        assert_array_equal(result.data, self.lat_lon_collapse)
-        self.assertEqual(result.coord(frt).points, expected_points)
-        assert_array_equal(result.coord(frt).bounds, expected_bounds)
+        result = self.plugin.process(self.forecast, self.reliability_cube)
 
-    def test_aggregating_over_cubes_and_coordinates(self):
-        """Test of aggregating over coordinates and cubes in a single call. In
-        this instance the latitude and longitude coordinates are collapsed and
-        the values from two input cube combined."""
+        assert_allclose(result[0].data, expected_0)
+        assert_allclose(result[1].data, expected_1)
 
-        frt = 'forecast_reference_time'
-        expected_points = self.different_frt.coord(frt).points
-        expected_bounds = [[self.reliability_cube.coord(frt).bounds[0][0],
-                            self.different_frt.coord(frt).bounds[-1][1]]]
+        warning_msg = ("The following thresholds were not calibrated due to "
+                       "insufficient forecast counts in reliability table "
+                       "bins: [275.0]")
+        self.assertTrue(any(item.category == UserWarning
+                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item)
+                            for item in warning_list))
 
-        plugin = Plugin()
-        result = plugin.process([self.reliability_cube, self.different_frt],
-                                coordinates=['latitude', 'longitude'])
-        assert_array_equal(result.data, self.lat_lon_collapse * 2)
-        self.assertEqual(result.coord(frt).points, expected_points)
-        assert_array_equal(result.coord(frt).bounds, expected_bounds)
+    @ManageWarnings(record=True)
+    def test_calibrating_without_single_value_bins(self, warning_list=None):
+        """Test application of the reliability table to the forecast. In this
+        case the single_value_bins have been removed, requiring that that the
+        results for some of the points are calculated using extrapolation. The
+        input probabilities and table values have been chosen such that no
+        warnings should be raised by this operation."""
 
-    def test_single_cube(self):
-        """Test the plugin returns an unaltered cube if only one is passed in
-        and no coordinates are given."""
+        reliability_cube = self.reliability_cube[..., 1:4]
+        crd = reliability_cube.coord("probability_bin")
+        bounds = crd.bounds.copy()
+        bounds[0, 0] = 0.
+        bounds[-1, -1] = 1.
 
-        plugin = Plugin()
+        new_crd = crd.copy(points=crd.points, bounds=bounds)
+        reliability_cube.replace_coord(new_crd)
 
-        expected = self.reliability_cube.copy()
-        result = plugin.process([self.reliability_cube])
+        expected_0 = np.array([[0.25, 0.3125, 0.375],
+                               [0.4375, 0.5, 0.5625],
+                               [0.625, 0.6875, 0.75]])
+        expected_1 = np.array([[0.25, 0.3, 0.35],
+                               [0.4, 0.45, 0.5],
+                               [0.55, 0.6, 0.65]])
 
-        self.assertEqual(result, expected)
+        result = self.plugin.process(self.forecast, reliability_cube)
+
+        assert_allclose(result[0].data, expected_0)
+        assert_allclose(result[1].data, expected_1)
+        self.assertFalse(warning_list)
 
 
 if __name__ == '__main__':
