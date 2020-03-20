@@ -3,7 +3,7 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
-  Codacy Analysis:
+  Codacy-analysis:
     runs-on: ubuntu-latest
     name: codacy-analysis-cli
     steps:
@@ -12,7 +12,7 @@ jobs:
         uses: mrfyda/codacy-analysis-cli-action@master
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-  Unit tests/Documentation build:
+  Sphinx-build-and-Pytest:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -35,7 +35,7 @@ jobs:
       run: make -C doc html
     - name: Pytest (Unit tests)
       run: pytest -m "not acc"
-  Code style checking:
+  Pycodestyle-and-Pylint:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
