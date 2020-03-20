@@ -83,4 +83,4 @@ class PostProcessingPlugin(BasePlugin):
                 cube.attributes["title"] != default_title and
                 "Post-Processed" not in cube.attributes["title"]):
             title = cube.attributes["title"]
-            cube.attributes["title"] = "Post-Processed {}".format(title)
+            cube.attributes["title"] = f"Post-Processed {title}"
