@@ -69,6 +69,7 @@ def test_basic(tree_name):
     tree = TREES[tree_name]
     assert isinstance(tree, dict)
 
+
 @pytest.mark.parametrize('tree_name', TREE_NAMES)
 def test_keywords(tree_name):
     """Test that the only permissible keywords are used."""
@@ -78,12 +79,14 @@ def test_keywords(tree_name):
         for entry in tree[node]:
             assert entry in all_key_words
 
+
 @pytest.mark.parametrize('tree_name', TREE_NAMES)
 def test_start_node_in_tree(tree_name):
     """Test that the start node is in the tree"""
     tree = TREES[tree_name]
     start_node = START_NODES[tree_name]
     assert start_node in tree
+
 
 @pytest.mark.parametrize('tree_name', TREE_NAMES)
 def test_keywords_diagnostic_missing(tree_name):
@@ -94,6 +97,7 @@ def test_keywords_diagnostic_missing(tree_name):
         if 'diagnostic_missing_action' in items:
             entry = items['diagnostic_missing_action']
             assert entry in all_key_words
+
 
 @pytest.mark.parametrize('tree_name', TREE_NAMES)
 def test_condition_combination(tree_name):
@@ -107,6 +111,7 @@ def test_condition_combination(tree_name):
         else:
             assert not combination
 
+
 @pytest.mark.parametrize('tree_name', TREE_NAMES)
 def test_threshold_condition(tree_name):
     """Test only permissible values are used in threshold_condition."""
@@ -114,6 +119,7 @@ def test_threshold_condition(tree_name):
     for node in tree:
         threshold = tree[node]['threshold_condition']
         assert threshold in THRESHOLD_CONDITIONS
+
 
 @pytest.mark.parametrize('tree_name', TREE_NAMES)
 def test_diagnostic_condition(tree_name):
@@ -128,6 +134,7 @@ def test_diagnostic_condition(tree_name):
         for value in tests_diagnostic:
             assert value in DIAGNOSTIC_CONDITIONS
 
+
 @pytest.mark.parametrize('tree_name', TREE_NAMES)
 def test_node_points_to_valid_value(tree_name):
     """Test that succeed and fail point to valid values or nodes."""
@@ -140,6 +147,7 @@ def test_node_points_to_valid_value(tree_name):
         if isinstance(fail, str):
             assert fail in tree
 
+
 @pytest.mark.parametrize('tree_name', TREE_NAMES)
 def test_diagnostic_len_match(tree_name):
     """Test diagnostic fields, thresholds and conditions are same
@@ -149,6 +157,7 @@ def test_diagnostic_len_match(tree_name):
         query = tree[node]
         check_diagnostic_lists_consistency(query)
 
+
 @pytest.mark.parametrize('tree_name', TREE_NAMES)
 def test_probability_len_match(tree_name):
     """Test probability_thresholds list is right shape."""
@@ -157,6 +166,7 @@ def test_probability_len_match(tree_name):
         check_list = query['probability_thresholds']
         assert all([isinstance(x, (int, float)) for x in check_list])
         assert len(check_list) == len(query['diagnostic_fields'])
+
 
 @pytest.mark.parametrize('tree_name', TREE_NAMES)
 def test_gamma_len_match(tree_name):
