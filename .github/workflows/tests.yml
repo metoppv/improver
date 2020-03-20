@@ -3,7 +3,16 @@ name: Tests
 on: [push, pull_request]
 
 jobs:
-  Tests:
+  Codacy Analysis:
+    runs-on: ubuntu-latest
+    name: codacy-analysis-cli
+    steps:
+      - uses: actions/checkout@master
+      - name: Run codacy-analysis-cli
+        uses: mrfyda/codacy-analysis-cli-action@master
+        with:
+          project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
+  Unit tests/Documentation build:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -22,11 +31,15 @@ jobs:
         conda list --export
     - name: Activate conda
       run:  echo "::add-path::/usr/share/miniconda/envs/improver/bin"
-    - name: Pycodestyle (PEP8 conventions)
-      run:  pycodestyle -v  improver improver_tests
     - name: Sphinx-build (Doc test)
       run: make -C doc html
     - name: Pytest (Unit tests)
       run: pytest -m "not acc"
+  Code style checking:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Pycodestyle (PEP8 conventions)
+      run:  pycodestyle improver improver_tests
     - name: Pylint (More linting goodness)
       run: pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests
