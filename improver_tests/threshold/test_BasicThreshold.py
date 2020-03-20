@@ -191,15 +191,8 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, Cube)
 
     def test_title_updated(self):
-        """Test title is updated if need be"""
+        """Test title is updated"""
         expected_title = "Post-Processed UKV Model Forecast"
-        result = self.plugin(self.cube)
-        self.assertEqual(result.attributes["title"], expected_title)
-
-    def test_title_preserved(self):
-        """Test title is preserved already correct"""
-        expected_title = "Post-Processed UKV Model Forecast"
-        self.cube.attributes["title"] = expected_title
         result = self.plugin(self.cube)
         self.assertEqual(result.attributes["title"], expected_title)
 
