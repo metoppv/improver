@@ -77,7 +77,7 @@ class PostProcessingPlugin(BasePlugin):
 
     @staticmethod
     def post_processed_title(cube):
-        """Updates title attribute on output cube"""
+        """Updates title attribute on output cube to include "Post-Processed"."""
         default_title = MANDATORY_ATTRIBUTE_DEFAULTS["title"]
         if ("title" in cube.attributes.keys() and
                 cube.attributes["title"] != default_title and
