@@ -5,7 +5,7 @@ on: [push, pull_request]
 jobs:
   Codacy-analysis:
     runs-on: ubuntu-latest
-    name: codacy-analysis-cli
+    name: Codacy-analysis-cli
     steps:
       - uses: actions/checkout@master
       - name: Run codacy-analysis-cli
@@ -39,6 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/cache@v1
     - name: Pycodestyle (PEP8 conventions)
       run:  pycodestyle improver improver_tests
     - name: Pylint (More linting goodness)
