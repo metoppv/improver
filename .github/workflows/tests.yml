@@ -40,6 +40,18 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
+      id: cache
+      with:
+        path: /usr/share/miniconda/envs/improver
+        key: ${{ runner.os }}-conda-improver-${{ hashFiles('**/environment.yml') }}
+        restore-keys: |
+          ${{ runner.OS }}-conda-improver-
+    - name: Build conda
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda env update -q --file environment.yml --name improver
+        conda list --export
     - name: Pycodestyle (PEP8 conventions)
       run:  pycodestyle improver improver_tests
     - name: Pylint (More linting goodness)
