@@ -41,10 +41,10 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_snow_sleet(tmp_path):
-    """Test snow/sleet level calculation"""
+def calculate_phase_change(tmp_path, phase_type):
+    """Test phase change level calculation"""
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_path = kgo_dir / "snow_sleet_kgo.nc"
+    kgo_path = kgo_dir / "{}_kgo.nc".format(phase_type.replace("-", "_"))
     output_path = tmp_path / "output.nc"
     input_paths = [kgo_dir / x for x in
                    ("wet_bulb_temperature.nc",
@@ -52,27 +52,20 @@ def test_snow_sleet(tmp_path):
                     "orog.nc",
                     "land_mask.nc")]
     args = [*input_paths,
-            "--phase-change", "snow-sleet",
+            "--phase-change", phase_type,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_snow_sleet(tmp_path):
+    """Test snow/sleet level calculation"""
+    calculate_phase_change(tmp_path, "snow-sleet")
 
 
 def test_sleet_rain(tmp_path):
     """Test sleet/rain level calculation"""
-    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_path = kgo_dir / "sleet_rain_kgo.nc"
-    output_path = tmp_path / "output.nc"
-    input_paths = [kgo_dir / x for x in
-                   ("wet_bulb_temperature.nc",
-                    "wbti.nc",
-                    "orog.nc",
-                    "land_mask.nc")]
-    args = [*input_paths,
-            "--phase-change", "sleet-rain",
-            "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    calculate_phase_change(tmp_path, "sleet-rain")
 
 
 def test_sleet_rain_unfilled(tmp_path):
