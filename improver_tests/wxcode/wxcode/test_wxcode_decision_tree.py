@@ -28,16 +28,18 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for Weather Symbols class."""
+"""Unit tests for Weather Symbols Trees."""
 
-import unittest
+import pytest
 
-from iris.tests import IrisTest
-
-from improver.wxcode.utilities import expand_nested_lists
 from improver.wxcode.wxcode_decision_tree import (
     START_NODE, wxcode_decision_tree)
+from improver.wxcode.wxcode_decision_tree_global import (
+    START_NODE_GLOBAL, wxcode_decision_tree_global)
 from . import check_diagnostic_lists_consistency
+
+TREES = [wxcode_decision_tree(), wxcode_decision_tree_global()]
+START_NODES = [START_NODE, START_NODE_GLOBAL]
 
 REQUIRED_KEY_WORDS = ['succeed',
                       'fail',
@@ -59,106 +61,96 @@ KEYWORDS_DIAGNOSTIC_MISSING_ACTION = ['succeed',
                                       'fail']
 
 
-class Test_wxcode_decision_tree(IrisTest):
+@pytest.mark.parametrize('tree', TREES)
+def test_basic(tree):
+    """Test that the wxcode_decision_tree returns a dictionary."""
+    assert isinstance(tree, dict)
 
-    """Test the wxcode decision tree."""
+@pytest.mark.parametrize('tree', TREES)
+def test_keywords(tree):
+    """Test that the only permissible keywords are used."""
+    all_key_words = REQUIRED_KEY_WORDS + OPTIONAL_KEY_WORDS
+    for node in tree:
+        for entry in tree[node]:
+            assert entry in all_key_words
 
-    def test_basic(self):
-        """Test that the wxcode_decision_tree returns a dictionary."""
-        result = wxcode_decision_tree()
-        self.assertIsInstance(result, dict)
+@pytest.mark.parametrize('tree,start_node', zip(TREES, START_NODES))
+def test_start_node_in_tree(tree, start_node):
+    """Test that the start node is in the tree"""
+    assert start_node in tree
 
-    def test_keywords(self):
-        """Test that the only permissible keywords are used."""
-        tree = wxcode_decision_tree()
-        all_key_words = REQUIRED_KEY_WORDS + OPTIONAL_KEY_WORDS
-        for node in tree:
-            for entry in tree[node]:
-                self.assertEqual(entry in all_key_words, True)
+@pytest.mark.parametrize('tree', TREES)
+def test_keywords_diagnostic_missing(tree):
+    """Test only set keywords are used in diagnostic_missing_action."""
+    all_key_words = KEYWORDS_DIAGNOSTIC_MISSING_ACTION
+    for items in tree.values():
+        if 'diagnostic_missing_action' in items:
+            entry = items['diagnostic_missing_action']
+            assert entry in all_key_words
 
-    def test_start_node_in_tree(self):
-        """Test that the start node is in the tree"""
-        tree = wxcode_decision_tree()
-        self.assertTrue(START_NODE in tree)
+@pytest.mark.parametrize('tree', TREES)
+def test_condition_combination(tree):
+    """Test only permissible values are used in condition_combination."""
+    for node in tree:
+        combination = tree[node]['condition_combination']
+        num_diagnostics = len(tree[node]['diagnostic_fields'])
+        if num_diagnostics == 2:
+            assert combination in CONDITION_COMBINATIONS
+        else:
+            assert not combination
 
-    def test_keywords_diagnostic_missing(self):
-        """Test only set keywords are used in diagnostic_missing_action."""
-        tree = wxcode_decision_tree()
-        all_key_words = KEYWORDS_DIAGNOSTIC_MISSING_ACTION
-        for items in tree.values():
-            if 'diagnostic_missing_action' in items:
-                entry = items['diagnostic_missing_action']
-                self.assertEqual(entry in all_key_words, True)
+@pytest.mark.parametrize('tree', TREES)
+def test_threshold_condition(tree):
+    """Test only permissible values are used in threshold_condition."""
+    for node in tree:
+        threshold = tree[node]['threshold_condition']
+        assert threshold in THRESHOLD_CONDITIONS
 
-    def test_condition_combination(self):
-        """Test only permissible values are used in condition_combination."""
-        tree = wxcode_decision_tree()
-        for node in tree:
-            combination = tree[node]['condition_combination']
-            num_diagnostics = len(tree[node]['diagnostic_fields'])
-            if num_diagnostics == 2:
-                self.assertEqual(combination in CONDITION_COMBINATIONS, True)
-            else:
-                self.assertEqual(combination, '')
+@pytest.mark.parametrize('tree', TREES)
+def test_diagnostic_condition(tree):
+    """Test only permissible values are used in diagnostic_conditions."""
+    for node in tree:
+        diagnostic = tree[node]['diagnostic_conditions']
+        tests_diagnostic = diagnostic
+        if isinstance(diagnostic[0], list):
+            tests_diagnostic = [item for sublist in diagnostic
+                                for item in sublist]
+        for value in tests_diagnostic:
+            assert value in DIAGNOSTIC_CONDITIONS
 
-    def test_threshold_condition(self):
-        """Test only permissible values are used in threshold_condition."""
-        tree = wxcode_decision_tree()
-        for node in tree:
-            threshold = tree[node]['threshold_condition']
-            self.assertEqual(threshold in THRESHOLD_CONDITIONS, True)
+@pytest.mark.parametrize('tree', TREES)
+def test_node_points_to_valid_value(tree):
+    """Test that succeed and fail point to valid values or nodes."""
+    for node in tree:
+        succeed = tree[node]['succeed']
+        if isinstance(succeed, str):
+            assert succeed in tree.keys()
+        fail = tree[node]['fail']
+        if isinstance(fail, str):
+            assert fail in tree
 
-    def test_diagnostic_condition(self):
-        """Test only permissible values are used in diagnostic_conditions."""
-        tree = wxcode_decision_tree()
-        for node in tree:
-            diagnostic = tree[node]['diagnostic_conditions']
-            tests_diagnostic = diagnostic
-            if isinstance(diagnostic[0], list):
-                tests_diagnostic = [item for sublist in diagnostic
-                                    for item in sublist]
-            for value in tests_diagnostic:
-                self.assertEqual(value in DIAGNOSTIC_CONDITIONS, True)
+@pytest.mark.parametrize('tree', TREES)
+def test_diagnostic_len_match(tree):
+    """Test diagnostic fields, thresholds and conditions are same
+    nested-list structure."""
+    for node in tree:
+        query = tree[node]
+        check_diagnostic_lists_consistency(query)
 
-    def test_node_points_to_valid_value(self):
-        """Test that succeed and fail point to valid values or nodes."""
-        tree = wxcode_decision_tree()
-        for node in tree:
-            succeed = tree[node]['succeed']
-            if isinstance(succeed, str):
-                self.assertEqual(succeed in tree.keys(), True)
-            fail = tree[node]['fail']
-            if isinstance(fail, str):
-                self.assertEqual(fail in tree, True)
+@pytest.mark.parametrize('tree', TREES)
+def test_probability_len_match(tree):
+    """Test probability_thresholds list is right shape."""
+    for _, query in tree.items():
+        check_list = query['probability_thresholds']
+        assert all([isinstance(x, (int, float)) for x in check_list])
+        assert len(check_list) == len(query['diagnostic_fields'])
 
-    def test_diagnostic_len_match(self):
-        """Test diagnostic fields, thresholds and conditions are same
-        nested-list structure."""
-        tree = wxcode_decision_tree()
-        for node in tree:
-            query = tree[node]
-            check_diagnostic_lists_consistency(query)
-
-    def test_probability_len_match(self):
-        """Test probability_thresholds list is right shape."""
-        tree = wxcode_decision_tree()
-        for _, query in tree.items():
-            check_list = query['probability_thresholds']
-            self.assertTrue(all([isinstance(x, (int, float))
-                                 for x in check_list]))
-            self.assertTrue(len(check_list) == len(query['diagnostic_fields']))
-
-    def test_gamma_len_match(self):
-        """Test diagnostic_gamma list is right shape if present."""
-        tree = wxcode_decision_tree()
-        for _, query in tree.items():
-            check_list = query.get('diagnostic_gamma', None)
-            if not check_list:
-                continue
-            self.assertTrue(all([isinstance(x, (int, float))
-                                 for x in check_list]))
-            self.assertTrue(len(check_list) == len(query['diagnostic_fields']))
-
-
-if __name__ == '__main__':
-    unittest.main()
+@pytest.mark.parametrize('tree', TREES)
+def test_gamma_len_match(tree):
+    """Test diagnostic_gamma list is right shape if present."""
+    for _, query in tree.items():
+        check_list = query.get('diagnostic_gamma', None)
+        if not check_list:
+            continue
+        assert all([isinstance(x, (int, float)) for x in check_list])
+        assert len(check_list) == len(query['diagnostic_fields'])
