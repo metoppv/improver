@@ -73,3 +73,22 @@ def test_sleet_rain(tmp_path):
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_sleet_rain_unfilled(tmp_path):
+    """Test sleet/rain level calculation leaving below orography points
+    unfilled."""
+    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
+    kgo_path = kgo_dir / "sleet_rain_unfilled_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    input_paths = [kgo_dir / x for x in
+                   ("wet_bulb_temperature.nc",
+                    "wbti.nc",
+                    "orog.nc",
+                    "land_mask.nc")]
+    args = [*input_paths,
+            "--phase-change", "sleet-rain",
+            "--horizontal-interpolation", "False",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
