@@ -34,14 +34,14 @@ import warnings
 import iris
 import numpy as np
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.pad_spatial import (
     pad_cube_with_halo, remove_halo_from_cube)
 
 
-class RecursiveFilter(BasePlugin):
+class RecursiveFilter(PostProcessingPlugin):
 
     """
     Apply a recursive filter to the input cube.

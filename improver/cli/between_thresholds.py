@@ -65,4 +65,4 @@ def process(cube: cli.inputcube,
         threshold_units = str(find_threshold_coordinate(cube).units)
 
     plugin = OccurrenceBetweenThresholds(threshold_ranges, threshold_units)
-    return plugin.process(cube)
+    return plugin(cube)

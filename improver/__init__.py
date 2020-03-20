@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin base class."""
 from abc import ABC, abstractmethod
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 
 
 class BasePlugin(ABC):
@@ -38,7 +39,7 @@ class BasePlugin(ABC):
     method by redirecting to __call__.
     """
     def __call__(self, *args, **kwargs):
-        """ Makes subclasses callable to use process
+        """Makes subclasses callable to use process
         Args:
             *args:
                 Positional arguments.
@@ -53,3 +54,35 @@ class BasePlugin(ABC):
     def process(self, *args, **kwargs):
         """Abstract class for rest to implement."""
         pass
+
+
+class PostProcessingPlugin(BasePlugin):
+    """An abstract class for IMPROVER post-processing plugins.
+    Makes generalised changes to metadata relating to post-processing.
+    """
+    def __call__(self, *args, **kwargs):
+        """Makes subclasses callable to use process
+        Args:
+            *args:
+                Positional arguments.
+            **kwargs:
+                Keyword arguments.
+        Returns:
+            iris.cube.Cube:
+                Output of self.process() with updated title attribute
+        """
+        cube = super().__call__(*args, **kwargs)
+        self.post_processed_title(cube)
+        return cube
+
+    @staticmethod
+    def post_processed_title(cube):
+        """Updates title attribute on output cube to include
+        "Post-Processed"
+        """
+        default_title = MANDATORY_ATTRIBUTE_DEFAULTS["title"]
+        if ("title" in cube.attributes.keys() and
+                cube.attributes["title"] != default_title and
+                "Post-Processed" not in cube.attributes["title"]):
+            title = cube.attributes["title"]
+            cube.attributes["title"] = f"Post-Processed {title}"

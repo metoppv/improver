@@ -39,7 +39,7 @@ from scipy.ndimage.filters import maximum_filter
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 
-from improver import BasePlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
@@ -308,7 +308,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         return diffs[0], diffs[1]
 
 
-class OccurrenceWithinVicinity:
+class OccurrenceWithinVicinity(PostProcessingPlugin):
 
     """Calculate whether a phenomenon occurs within the specified distance."""
 
@@ -395,7 +395,6 @@ class OccurrenceWithinVicinity:
 
         # Put dimensions back if they were there before.
         result_cube = check_cube_coordinates(cube, result_cube)
-
         return result_cube
 
 

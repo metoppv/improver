@@ -417,8 +417,7 @@ class AdjustLandSeaPoints:
             thresholder = BasicThreshold(0.5)
         else:
             thresholder = BasicThreshold(0.5, comparison_operator='<=')
-        in_vicinity = self.vicinity.process(
-            thresholder.process(self.input_land))
+        in_vicinity = self.vicinity(thresholder(self.input_land))
 
         # Identify those points sourced from the opposite mask that are
         # close to a source point of the correct mask

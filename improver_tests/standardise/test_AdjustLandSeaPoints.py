@@ -63,11 +63,12 @@ class Test__init__(IrisTest):
                             'output_cube': None}
         result = AdjustLandSeaPoints()
         members = {attr: getattr(result, attr) for attr in dir(result)
-                   if not callable(getattr(result, attr)) and
-                   not attr.startswith("__")}
-        regridder = members.pop('regridder')
+                   if not attr.startswith("__")}
+        non_methods = {key: val for key, val in members.items()
+                       if not callable(val)}
+        regridder = non_methods.pop('regridder')
         vicinity = members.pop('vicinity')
-        self.assertDictEqual(members, expected_members)
+        self.assertDictEqual(non_methods, expected_members)
         self.assertTrue(isinstance(regridder, iris.analysis.Nearest))
         self.assertTrue(isinstance(vicinity, OccurrenceWithinVicinity))
 

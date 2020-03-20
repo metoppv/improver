@@ -119,7 +119,7 @@ def process(wind_speed: cli.inputcube,
                 silhouette_roughness, sigma, target_orography,
                 standard_orography, model_resolution,
                 z0_cube=vegetative_roughness,
-                height_levels_cube=None).process(wind_speed_slice))
+                height_levels_cube=None)(wind_speed_slice))
         wind_speed_list.append(result)
     # TODO: Remove temporary fix for chunking problems when merging cubes
     max_npoints = max([np.prod(cube.data.shape) for cube in wind_speed_list])

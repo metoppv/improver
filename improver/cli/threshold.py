@@ -141,7 +141,7 @@ def process(cube: cli.inputcube,
     result_no_collapse_coord = BasicThreshold(
         thresholds, fuzzy_factor=fuzzy_factor,
         fuzzy_bounds=fuzzy_bounds, threshold_units=threshold_units,
-        comparison_operator=comparison_operator).process(cube)
+        comparison_operator=comparison_operator)(cube)
 
     if vicinity is not None:
         # smooth thresholded occurrences over local vicinity

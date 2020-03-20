@@ -116,7 +116,7 @@ def process(cube: cli.inputcube,
     result = ApplyNeighbourhoodProcessingWithAMask(
         coord_for_masking, radius_or_radii, lead_times=lead_times,
         sum_or_fraction=sum_or_fraction,
-        re_mask=remask).process(cube, mask)
+        re_mask=remask)(cube, mask)
 
     # Collapse with the masking dimension.
     if collapse_dimension:

@@ -148,7 +148,7 @@ class Test_process(IrisTest):
         width = 1.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', self.forecast_period, 'hours', width)
-        result = plugin.process(self.cube)
+        result = plugin(self.cube)
         self.assertEqual(self.central_cube.coord('forecast_period'),
                          result.coord('forecast_period'))
         self.assertEqual(self.central_cube.coord('time'), result.coord('time'))
@@ -162,7 +162,7 @@ class Test_process(IrisTest):
         width = 2.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', self.forecast_period, 'hours', width)
-        result = plugin.process(self.cube)
+        result = plugin(self.cube)
         expected_data = np.array([[1.333333, 1.333333],
                                   [1.333333, 1.333333]])
         self.assertEqual(self.central_cube.coord('forecast_period'),
@@ -181,7 +181,7 @@ class Test_process(IrisTest):
             'forecast_period', forecast_period, 'hours', width)
         msg = "The central point 2 in units of hours"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(self.cube)
+            plugin(self.cube)
 
     @ManageWarnings(
         ignored_messages=["Collapsing a non-contiguous coordinate."])
@@ -192,7 +192,7 @@ class Test_process(IrisTest):
         width = 7200.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', forecast_period, 'seconds', width)
-        result = plugin.process(self.cube)
+        result = plugin(self.cube)
         expected_data = np.array([[1.333333, 1.333333],
                                   [1.333333, 1.333333]])
         self.assertEqual(self.central_cube.coord('forecast_period'),
@@ -214,7 +214,7 @@ class Test_process(IrisTest):
         width = 2.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', self.forecast_period, 'hours', width)
-        _ = plugin.process(cube_with_thresh)
+        _ = plugin(cube_with_thresh)
 
         # Test that the input cube is unchanged by the function.
         self.assertEqual(cube_with_thresh, original_cube)
@@ -244,7 +244,7 @@ class Test_process(IrisTest):
         width = 2.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', self.forecast_period, 'hours', width)
-        result = plugin.process(cube_with_thresh)
+        result = plugin(cube_with_thresh)
 
         # Test that the result cube retains threshold co-ordinates
         # from original cube.
@@ -283,7 +283,7 @@ class Test_process(IrisTest):
 
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             'forecast_period', self.forecast_period, 'hours', width)
-        result = plugin.process(thresh_cubes)
+        result = plugin(thresh_cubes)
 
         # Test that the result cube retains threshold co-ordinates
         # from original cube.

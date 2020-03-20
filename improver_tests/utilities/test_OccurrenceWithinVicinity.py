@@ -221,7 +221,7 @@ class Test_process(IrisTest):
                            timesteps=np.array([402192.5, 402195.5]),
                            realizations=np.array([0, 1]))
         orig_shape = cube.data.copy().shape
-        result = OccurrenceWithinVicinity(self.distance).process(cube)
+        result = OccurrenceWithinVicinity(self.distance)(cube)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -243,7 +243,7 @@ class Test_process(IrisTest):
         data[1, 0, 1, 3] = 1.0
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                            realizations=np.array([0, 1]))
-        result = OccurrenceWithinVicinity(self.distance).process(cube)
+        result = OccurrenceWithinVicinity(self.distance)(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -265,7 +265,7 @@ class Test_process(IrisTest):
         cube = set_up_cube(data, "lwe_precipitation_rate", "m s-1",
                            timesteps=np.array([402192.5, 402195.5]))
         orig_shape = cube.data.shape
-        result = OccurrenceWithinVicinity(self.distance).process(cube)
+        result = OccurrenceWithinVicinity(self.distance)(cube)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -284,7 +284,7 @@ class Test_process(IrisTest):
                            realizations=np.array([0]))
         cube = iris.util.squeeze(cube)
         orig_shape = cube.data.shape
-        result = OccurrenceWithinVicinity(self.distance).process(cube)
+        result = OccurrenceWithinVicinity(self.distance)(cube)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.data.shape, orig_shape)
         self.assertArrayAlmostEqual(result.data, expected)

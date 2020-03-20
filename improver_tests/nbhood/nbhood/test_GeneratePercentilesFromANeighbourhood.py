@@ -98,7 +98,7 @@ class Test_process(IrisTest):
         the default percentiles are used."""
         neighbourhood_method = 'circular'
         radii = 4000
-        result = NBHood(neighbourhood_method, radii).process(self.cube)
+        result = NBHood(neighbourhood_method, radii)(self.cube)
         self.assertIsInstance(result, Cube)
 
     def test_define_percentiles(self):
@@ -108,7 +108,7 @@ class Test_process(IrisTest):
         radii = 4000
         percentiles = (0, 25, 50, 75, 100)
         result = NBHood(neighbourhood_method, radii,
-                        percentiles=percentiles).process(self.cube)
+                        percentiles=percentiles)(self.cube)
         self.assertIsInstance(result, Cube)
 
 

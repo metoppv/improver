@@ -265,7 +265,7 @@ class TestMultiPoint:
             self.aos_cube, self.s_cube, self.poro_cube,
             self.moro_cube, 1500., self.z0_cube
         )
-        return plugin.process(self.w_cube)
+        return plugin(self.w_cube)
 
 
 class TestSinglePoint:
@@ -348,7 +348,7 @@ class TestSinglePoint:
             self.aos_cube, self.s_cube, self.poro_cube, self.moro_cube,
             1500., self.z0_cube, self.hl_cube
         )
-        return plugin.process(self.w_cube)
+        return plugin(self.w_cube)
 
 
 class Test1D(IrisTest):
