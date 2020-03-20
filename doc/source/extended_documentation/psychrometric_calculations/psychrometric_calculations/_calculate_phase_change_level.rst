@@ -5,7 +5,7 @@ at which the wet-bulb integral reaches the required threshold, this
 threshold defining the phase change level. The threshold value depends
 upon the phase change that has been requested. If we are unable to find
 the height of the phase level for a grid point from the wet-bulb
-integral the the value at that point is set to np.nan and will be filled
+integral the value at that point is set to np.nan and will be filled
 in later.
 
 The next call is to ``fill_in_high_phase_change_falling_levels``.
