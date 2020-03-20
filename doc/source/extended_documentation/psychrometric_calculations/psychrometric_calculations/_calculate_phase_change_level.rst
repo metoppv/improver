@@ -3,13 +3,10 @@
 The first call is to ``find_falling_level`` which finds the height
 at which the wet-bulb integral reaches the required threshold, this
 threshold defining the phase change level. The threshold value depends
-upon the phase change that has been requested.
-
-The wet-bulb integral data used for this process is only available
-above ground level and there may be an insufficient number of levels
-in the input data, in which case the required threshold may lie outside
-the Wet-bulb integral data and the value at that point will be set to
-np.nan.
+upon the phase change that has been requested. If we are unable to find
+the height of the phase level for a grid point from the wet-bulb
+integral the the value at that point is set to np.nan and will be filled
+in later.
 
 The next call is to ``fill_in_high_phase_change_falling_levels``.
 This function is used to fill in any data in the phase change level
