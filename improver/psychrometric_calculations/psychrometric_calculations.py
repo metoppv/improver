@@ -30,15 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain Psychrometric Calculations."""
 
-import warnings
-
 import iris
 import numpy as np
 from cf_units import Unit
 from iris.cube import CubeList
-from scipy.interpolate import griddata
-from scipy.spatial.qhull import QhullError
-from scipy.stats import linregress
 from stratify import interpolate
 
 import improver.constants as consts
@@ -51,6 +46,7 @@ from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.mathematical_operations import Integration
 from improver.utilities.spatial import (
     OccurrenceWithinVicinity, number_of_grid_cells_to_distance)
+from improver.utilities.interpolation import interpolate_missing_data
 
 
 def _svp_from_lookup(temperature):
@@ -465,7 +461,8 @@ class PhaseChangeLevel(BasePlugin):
     """Calculate a continuous field of heights relative to sea level at which
     a phase change of precipitation is expected."""
 
-    def __init__(self, phase_change, grid_point_radius=2):
+    def __init__(self, phase_change, grid_point_radius=2,
+                 horizontal_interpolation=True):
         """
         Initialise class.
 
@@ -481,6 +478,10 @@ class PhaseChangeLevel(BasePlugin):
                 The radius in grid points used to calculate the maximum
                 height of the orography in a neighbourhood as part of this
                 calculation.
+            horizontal_interpolation (bool):
+                If True apply horizontal interpolation to fill in holes in
+                the returned phase-change-level that occur because the level
+                falls below the orography. If False these areas will be masked.
         """
         phase_changes = {'snow-sleet': {'threshold': 90.,
                                         'name': 'snow_falling'},
@@ -496,8 +497,8 @@ class PhaseChangeLevel(BasePlugin):
 
         self.falling_level_threshold = phase_change_def['threshold']
         self.phase_change_name = phase_change_def['name']
-        self.missing_data = -300.0
         self.grid_point_radius = grid_point_radius
+        self.horizontal_interpolation = horizontal_interpolation
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -782,94 +783,6 @@ class PhaseChangeLevel(BasePlugin):
             max_wb_integral, gradient, intercept, phase_change_level_data,
             sea_points)
 
-    @staticmethod
-    def fill_in_by_horizontal_interpolation(
-            phase_change_level_data, max_in_nbhood_orog, orog_data):
-        """
-        Fill in any remaining unset areas in the phase change level by using
-        linear horizontal interpolation across the grid. As phase change levels
-        at the highest height levels will be filled in by this point any
-        points that still don't have a valid phase change level have the phase
-        change level at or below the surface orography.
-        This function uses the following steps to help ensure that the filled
-        in values are above or below the orography:
-
-        1. Fill in the phase change level for points with no value yet
-           set using horizontal interpolation from surrounding set points.
-           Only interpolate from surrounding set points at which the phase
-           change level is below the maximum orography height in the region
-           around the unset point. This helps us avoid spreading very high
-           phase change levels across areas where we had missing data.
-        2. Fill any gaps that still remain where the linear interpolation has
-           not been able to find a value because there is not enough
-           data (e.g at the corners of the domain). Use nearest neighbour
-           interpolation.
-        3. Check whether despite our efforts we have still filled in some
-           of the missing points with phase change levels above the orography.
-           In these cases set the missing points to the height of orography.
-
-        We then return the filled in array, which hopefully has no more
-        missing data.
-
-        Args:
-            phase_change_level_data (numpy.ndarray):
-                The phase change level array, filled with values for points
-                whose wet bulb temperature integral crossed the theshold.
-            max_in_nbhood_orog (numpy.ndarray):
-                The array containing maximum of the orography field in
-                a given radius.
-            orog_data(numpy.data):
-                The array containing the orography data.
-        Returns:
-            numpy.ndarray:
-                The phase change level array with missing data filled by
-                horizontal interpolation.
-        """
-        # Interpolate linearly across the remaining points
-        index = ~np.isnan(phase_change_level_data)
-        index_valid_data = (
-            phase_change_level_data[index] <= max_in_nbhood_orog[index])
-        index[index] = index_valid_data
-        phase_cl_filled = phase_change_level_data
-        if np.any(index):
-            ynum, xnum = phase_change_level_data.shape
-            (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
-            values = phase_change_level_data[index]
-            # Try to do the horizontal interpolation to fill in any gaps,
-            # but if there are not enough points or the points are not arranged
-            # in a way that allows the horizontal interpolation, skip
-            # and use nearest neighbour intead.
-            try:
-                phase_change_level_data_updated = griddata(
-                    np.where(index), values, (y_points, x_points),
-                    method='linear')
-            except QhullError:
-                phase_change_level_data_updated = phase_change_level_data
-            else:
-                phase_cl_filled = phase_change_level_data_updated
-            # Fill in any remaining missing points using nearest neighbour.
-            # This normally only impact points at the corners of the domain,
-            # where the linear fit doesn't reach.
-            index = ~np.isnan(phase_cl_filled)
-            index_valid_data = (
-                phase_cl_filled[index] <= max_in_nbhood_orog[index])
-            index[index] = index_valid_data
-            if np.any(index):
-                values = phase_change_level_data_updated[index]
-                phase_change_level_data_updated_2 = griddata(
-                    np.where(index), values, (y_points, x_points),
-                    method='nearest')
-                phase_cl_filled = phase_change_level_data_updated_2
-
-        # Set the phase change level at any points that have been filled with
-        # phase change levels that are above the orography back to the
-        # height of the orography.
-        index = (~np.isfinite(phase_change_level_data))
-        phase_cl_above_orog = (phase_cl_filled[index] > orog_data[index])
-        index[index] = phase_cl_above_orog
-        phase_cl_filled[index] = orog_data[index]
-        return phase_cl_filled
-
     def find_max_in_nbhood_orography(self, orography_cube):
         """
         Find the maximum value of the orography in the region around each grid
@@ -896,6 +809,10 @@ class PhaseChangeLevel(BasePlugin):
             land_sea_data, heights, height_points, highest_height):
         """
         Calculate phase change level and fill in missing points
+
+        .. See the documentation for a more detailed discussion of the steps.
+        .. include:: extended_documentation/psychrometric_calculations/
+           psychrometric_calculations/_calculate_phase_change_level.rst
 
         Args:
             wet_bulb_temp (numpy.ndarray):
@@ -931,14 +848,26 @@ class PhaseChangeLevel(BasePlugin):
         self.fill_in_sea_points(
             phase_change_data, land_sea_data,
             wb_integral.max(axis=0), wet_bulb_temp, heights)
-        updated_phase_cl = self.fill_in_by_horizontal_interpolation(
-            phase_change_data, max_nbhood_orog, orography)
-        points = np.where(~np.isfinite(phase_change_data))
-        phase_change_data[points] = updated_phase_cl[points]
 
-        # Fill in any remaining points with "missing data" value
-        remaining_points = np.where(np.isnan(phase_change_data))
-        phase_change_data[remaining_points] = self.missing_data
+        # Any unset points at this stage are set to np.nan; these will be
+        # lands points where the phase-change-level is below the orography.
+        # These can be filled by optional horizontal interpolation.
+        if self.horizontal_interpolation:
+            with np.errstate(invalid='ignore'):
+                max_nbhood_mask = phase_change_data <= max_nbhood_orog
+            updated_phase_cl = interpolate_missing_data(
+                phase_change_data, limit=orography,
+                valid_points=max_nbhood_mask)
+
+            with np.errstate(invalid='ignore'):
+                max_nbhood_mask = updated_phase_cl <= max_nbhood_orog
+            phase_change_data = interpolate_missing_data(
+                updated_phase_cl, method='nearest', limit=orography,
+                valid_points=max_nbhood_mask)
+
+        # Mask any points that are still set to np.nan; this should be no
+        # points if horizontal interpolation has been used.
+        phase_change_data = np.ma.masked_invalid(phase_change_data)
 
         return phase_change_data
 
@@ -972,8 +901,7 @@ class PhaseChangeLevel(BasePlugin):
         data appropriately.
 
         Args:
-        cubes (iris.cube.CubeList or list or iris.cube.Cube):
-            containing:
+            cubes (iris.cube.CubeList or list of iris.cube.Cube) containing:
                 wet_bulb_temperature (iris.cube.Cube):
                     Cube of wet bulb temperatures on height levels.
                 wet_bulb_integral (iris.cube.Cube):
@@ -1043,6 +971,7 @@ class PhaseChangeLevel(BasePlugin):
                 phase_change.append(phase_change_data)
 
         phase_change_level = self.create_phase_change_level_cube(
-            wet_bulb_temperature, np.array(phase_change, dtype=np.float32))
+            wet_bulb_temperature,
+            np.ma.masked_array(phase_change, dtype=np.float32))
 
         return phase_change_level
