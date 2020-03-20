@@ -180,6 +180,14 @@ class Test_process(IrisTest):
         self.rate_cube = set_up_variable_cube(
             rate_data, name="rainfall_rate", units="m s-1")
 
+        self.masked_cube = self.cube.copy()
+        data = np.zeros((1, 5, 5))
+        mask = np.zeros((1, 5, 5))
+        data[0][2][2] = 0.5
+        data[0][0][0] = -32768.0
+        mask[0][0][0] = 1
+        self.masked_cube.data = np.ma.MaskedArray(data, mask=mask)
+
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
         fuzzy_factor = 0.95
@@ -270,21 +278,15 @@ class Test_process(IrisTest):
 
     def test_masked_array(self):
         """Test masked array are handled correctly.
-        Masked values are preserverd following thresholding."""
-        cube = self.cube.copy()
-        data = np.zeros((1, 5, 5))
-        mask = np.zeros((1, 5, 5))
-        data[0][2][2] = 0.5
-        data[0][0][0] = -32768.0
-        mask[0][0][0] = 1
-        masked_data = np.ma.MaskedArray(data, mask=mask)
-        cube.data = masked_data
+        Masked values are preserved following thresholding."""
         plugin = Threshold(0.1)
-        result = plugin.process(cube)
-        expected_result_array = data.reshape((1, 1, 5, 5))
+        result = plugin.process(self.masked_cube)
+        expected_result_array = (
+            self.masked_cube.data.reshape((1, 1, 5, 5)))
         expected_result_array[0][0][2][2] = 1.0
         self.assertArrayAlmostEqual(result.data.data, expected_result_array)
-        self.assertArrayEqual(result.data.mask, mask.reshape((1, 1, 5, 5)))
+        self.assertArrayEqual(
+            result.data.mask, self.masked_cube.data.mask.reshape((1, 1, 5, 5)))
 
     def test_threshold_fuzzy(self):
         """Test when a point is in the fuzzy threshold area."""
@@ -304,6 +306,18 @@ class Test_process(IrisTest):
             1, 1, 5, 5))
         expected_result_array[0][0][2][2] = 1.0/3.0
         self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_masked_array_fuzzybounds(self):
+        """Test masked array are handled correctly when using fuzzy bounds.
+        Masked values are preserved following thresholding."""
+        bounds = (0.6 * self.fuzzy_factor, 0.6 * (2. - self.fuzzy_factor))
+        plugin = Threshold(0.6, fuzzy_bounds=bounds)
+        result = plugin.process(self.masked_cube)
+        expected_result_array = self.masked_cube.data.reshape((1, 1, 5, 5))
+        expected_result_array[0][0][2][2] = 1.0/3.0
+        self.assertArrayAlmostEqual(result.data.data, expected_result_array)
+        self.assertArrayEqual(
+            result.data.mask, self.masked_cube.data.mask.reshape((1, 1, 5, 5)))
 
     def test_threshold_boundingzero(self):
         """Test fuzzy threshold of zero."""
