@@ -36,16 +36,31 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube,
+            raw_cube: cli.inputcube = None,
             *,
             realizations_count: int = None,
+            random_seed: int = None,
             ignore_ecc_bounds=False):
     """Converts an incoming cube into one containing realizations.
 
     Args:
         cube (iris.cube.Cube):
             A cube to be processed.
+        raw_cube (iris.cube.Cube):
+            Cube of raw (not post processed) weather data.
+            If this argument is given ensemble realizations will be created
+            from percentiles by reshuffling them in correspondence to the rank
+            order of the raw ensemble. Otherwise, the percentiles are rebadged
+            as realizations.
         realizations_count (int):
             The number of ensemble realizations in the output.
+        random_seed (int):
+            Option to specify a value for the random seed for testing
+            purposes, otherwise the default random seed behaviours is
+            utilised. The random seed is used in the generation of the
+            random numbers used for splitting tied values within the raw
+            ensemble, so that the values from the input percentiles can
+            be ordered to match the raw ensemble.
         ignore_ecc_bounds (bool):
             If True, where percentiles exceed the ECC bounds range, raises a
             warning rather than an exception.
@@ -59,12 +74,12 @@ def process(cube: cli.inputcube,
 
     if cube.coords('percentile'):
         output_cube = percentiles_to_realizations.process(
-            cube, realizations_count=realizations_count,
-            ignore_ecc_bounds=ignore_ecc_bounds)
+            cube, raw_cube=raw_cube, realizations_count=realizations_count,
+            random_seed=random_seed, ignore_ecc_bounds=ignore_ecc_bounds)
     elif cube.coords(var_name='threshold'):
         output_cube = probabilities_to_realizations.process(
-            cube, realizations_count=realizations_count,
-            ignore_ecc_bounds=ignore_ecc_bounds)
+            cube, raw_cube=raw_cube, realizations_count=realizations_count,
+            random_seed=random_seed, ignore_ecc_bounds=ignore_ecc_bounds)
     elif cube.coords(var_name='realization'):
         output_cube = cube
     else:
