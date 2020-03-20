@@ -37,6 +37,7 @@ from iris.tests import IrisTest
 from improver.wxcode.utilities import expand_nested_lists
 from improver.wxcode.wxcode_decision_tree import (
     START_NODE, wxcode_decision_tree)
+from . import check_diagnostic_lists_consistency
 
 REQUIRED_KEY_WORDS = ['succeed',
                       'fail',
@@ -132,29 +133,11 @@ class Test_wxcode_decision_tree(IrisTest):
 
     def test_diagnostic_len_match(self):
         """Test diagnostic fields, thresholds and conditions are same
-        structure."""
-
-        def check_value_consistency(values):
-            """Return True if all input lists have same nested list
-            structure. e.g. ['item'] != [['item']]."""
-            type_set = set(map(type, values))
-            if list in type_set:
-                return (
-                        len(type_set) == 1 and
-                        len(set(map(len, values))) == 1 and
-                        all(map(check_value_consistency, zip(*values)))
-                )
-            return True
-
+        nested-list structure."""
         tree = wxcode_decision_tree()
-        diagnostic_keys = [
-            'diagnostic_fields',
-            'diagnostic_conditions',
-            'diagnostic_thresholds']
         for node in tree:
             query = tree[node]
-            self.assertTrue(check_value_consistency(
-                [query[key] for key in diagnostic_keys]))
+            check_diagnostic_lists_consistency(query)
 
     def test_probability_len_match(self):
         """Test probability_thresholds list is right shape."""
