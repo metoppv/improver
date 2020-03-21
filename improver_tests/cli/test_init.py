@@ -348,5 +348,13 @@ class Test_unbracket(unittest.TestCase):
             unbracket(['foo', ']', 'bar'])
 
 
+def test_import_cli():
+    """Test if `import improver.cli` pulls in heavy stuff like numpy."""
+    import subprocess
+    import sys
+    script = 'import improver.cli, sys; assert "numpy" not in sys.modules'
+    subprocess.run([sys.executable, '-c', script], check=True)
+
+
 if __name__ == '__main__':
     unittest.main()
