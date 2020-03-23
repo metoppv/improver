@@ -80,10 +80,9 @@ def test_percentiles_reordering(tmp_path):
 def test_probabilities(tmp_path):
     """Test basic probabilities to realization conversion"""
     kgo_dir = (acc.kgo_root() /
-               "convert-to-realizations/12_realizations")
+               "convert-to-realizations/probabilities_12_realizations")
     kgo_path = kgo_dir / "kgo.nc"
-    input_dir = kgo_dir / "../basic"
-    input_path = input_dir / "input.nc"
+    input_path = kgo_dir / "input.nc"
 
     output_path = tmp_path / "output.nc"
 
@@ -97,7 +96,8 @@ def test_probabilities(tmp_path):
 @pytest.mark.slow
 def test_probabilities_reordering(tmp_path):
     """Test probabilities to realization conversion with reordering"""
-    kgo_dir = acc.kgo_root() / "convert-to-realizations/basic_reordering"
+    kgo_dir = (acc.kgo_root() /
+               "convert-to-realizations/probabilities_reordering")
     kgo_path = kgo_dir / "kgo.nc"
     raw_path = kgo_dir / "raw_ens.nc"
     input_path = kgo_dir / "input.nc"
@@ -113,7 +113,7 @@ def test_probabilities_reordering(tmp_path):
 def test_realizations(tmp_path):
     """Test basic null realization to realization conversion"""
     kgo_dir = (acc.kgo_root() /
-               "convert-to-realizations/12_realizations")
+               "convert-to-realizations/probabilities_12_realizations")
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_path
     output_path = tmp_path / "output.nc"
