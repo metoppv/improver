@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin base class."""
 from abc import ABC, abstractmethod
-from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 
 
 class BasePlugin(ABC):
@@ -80,6 +79,8 @@ class PostProcessingPlugin(BasePlugin):
         """Updates title attribute on output cube to include
         "Post-Processed"
         """
+        from improver.metadata.constants.attributes import \
+            MANDATORY_ATTRIBUTE_DEFAULTS
         default_title = MANDATORY_ATTRIBUTE_DEFAULTS["title"]
         if ("title" in cube.attributes.keys() and
                 cube.attributes["title"] != default_title and
