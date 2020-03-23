@@ -349,11 +349,19 @@ class Test_unbracket(unittest.TestCase):
 
 
 def test_import_cli():
-    """Test if `import improver.cli` pulls in heavy stuff like numpy."""
-    import subprocess
+    """Test if `import improver.cli` pulls in heavy stuff like numpy.
+
+    Large imports cause commands like help or exit due to incorrect arguments
+    to be unnecessarily slow, so it's best to test we don't have them.
+    """
+    import subprocess  # nosec
     import sys
-    script = 'import improver.cli, sys; assert "numpy" not in sys.modules'
-    subprocess.run([sys.executable, '-c', script], check=True)
+    # Must run in a subprocess to ensure "fresh" Python interpreter without
+    # modules pulled by other tests
+    script = ('import improver.cli, sys; '
+              'assert "numpy" not in sys.modules, '
+              '"rogue numpy import via improver.cli"')
+    subprocess.run([sys.executable, '-c', script], check=True)  # nosec
 
 
 if __name__ == '__main__':
