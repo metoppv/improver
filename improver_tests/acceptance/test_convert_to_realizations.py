@@ -45,7 +45,7 @@ run_cli = acc.run_cli(CLI)
 def test_percentiles(tmp_path):
     """Test basic percentile to realization conversion"""
     kgo_dir = (acc.kgo_root() /
-               "percentiles-to-realizations/percentiles_rebadging")
+               "convert-to-realizations/percentiles_rebadging")
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
 
@@ -62,7 +62,7 @@ def test_percentiles(tmp_path):
 def test_percentiles_reordering(tmp_path):
     """Test percentile to realization conversion with reordering"""
     kgo_dir = acc.kgo_root() / \
-        "percentiles-to-realizations/percentiles_reordering"
+        "convert-to-realizations/percentiles_reordering"
     kgo_path = kgo_dir / "kgo.nc"
     forecast_path = kgo_dir / "raw_forecast.nc"
     percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
@@ -80,7 +80,7 @@ def test_percentiles_reordering(tmp_path):
 def test_probabilities(tmp_path):
     """Test basic probabilities to realization conversion"""
     kgo_dir = (acc.kgo_root() /
-               "probabilities-to-realizations/12_realizations")
+               "convert-to-realizations/12_realizations")
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = kgo_dir / "../basic"
     input_path = input_dir / "input.nc"
@@ -97,7 +97,7 @@ def test_probabilities(tmp_path):
 @pytest.mark.slow
 def test_probabilities_reordering(tmp_path):
     """Test probabilities to realization conversion with reordering"""
-    kgo_dir = acc.kgo_root() / "probabilities-to-realizations/basic_reordering"
+    kgo_dir = acc.kgo_root() / "convert-to-realizations/basic_reordering"
     kgo_path = kgo_dir / "kgo.nc"
     raw_path = kgo_dir / "raw_ens.nc"
     input_path = kgo_dir / "input.nc"
@@ -113,7 +113,7 @@ def test_probabilities_reordering(tmp_path):
 def test_realizations(tmp_path):
     """Test basic null realization to realization conversion"""
     kgo_dir = (acc.kgo_root() /
-               "probabilities-to-realizations/12_realizations")
+               "convert-to-realizations/12_realizations")
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_path
     output_path = tmp_path / "output.nc"
@@ -127,7 +127,7 @@ def test_realizations(tmp_path):
 def test_invalid_dataset(tmp_path):
     """Test unhandlable conversion failure."""
     input_dir = (acc.kgo_root() /
-                 "probabilities-to-realizations/invalid/")
+                 "convert-to-realizations/invalid/")
     input_path = input_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, "--output", output_path]
