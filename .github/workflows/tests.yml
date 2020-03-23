@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@master
       - name: Run codacy-analysis-cli
-        uses: mrfyda/codacy-analysis-cli-action@master
+        uses: mrfyda/codacy-analysis-cli-action@0b87c8c
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
   Sphinx-build-and-Pytest:
