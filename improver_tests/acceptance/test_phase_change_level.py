@@ -41,7 +41,7 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.parametrize("phase_type", ("snow-sleet", "sleet-rain", 
+@pytest.mark.parametrize("phase_type", ("snow-sleet", "sleet-rain",
                          "sleet-rain-unfilled"))
 def test_phase_change(tmp_path, phase_type):
     """Test phase change level calculation"""
