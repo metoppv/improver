@@ -41,10 +41,12 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def calculate_phase_change(tmp_path, phase_type):
+@pytest.mark.parametrize("phase_type", ("snow-sleet", "sleet-rain", "sleet-rain-unfilled"))
+def test_phase_change(tmp_path, phase_type):
     """Test phase change level calculation"""
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_path = kgo_dir / "{}_kgo.nc".format(phase_type.replace("-", "_"))
+    kgo_name = "{}_kgo.nc".format(phase_type.replace("-", "_"))
+    kgo_path = kgo_dir / kgo_name
     output_path = tmp_path / "output.nc"
     input_paths = [kgo_dir / x for x in
                    ("wet_bulb_temperature.nc",
@@ -52,36 +54,13 @@ def calculate_phase_change(tmp_path, phase_type):
                     "orog.nc",
                     "land_mask.nc")]
     args = [*input_paths,
-            "--phase-change", phase_type,
-            "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_snow_sleet(tmp_path):
-    """Test snow/sleet level calculation"""
-    calculate_phase_change(tmp_path, "snow-sleet")
-
-
-def test_sleet_rain(tmp_path):
-    """Test sleet/rain level calculation"""
-    calculate_phase_change(tmp_path, "sleet-rain")
-
-
-def test_sleet_rain_unfilled(tmp_path):
-    """Test sleet/rain level calculation leaving below orography points
-    unfilled."""
-    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_path = kgo_dir / "sleet_rain_unfilled_kgo.nc"
-    output_path = tmp_path / "output.nc"
-    input_paths = [kgo_dir / x for x in
-                   ("wet_bulb_temperature.nc",
-                    "wbti.nc",
-                    "orog.nc",
-                    "land_mask.nc")]
-    args = [*input_paths,
-            "--phase-change", "sleet-rain",
-            "--horizontal-interpolation", "False",
-            "--output", output_path]
+            "--phase-change"]
+    horiz_interp = "True"
+    if len(phase_type.split("-")) > 2:
+        phase_type = "-".join(phase_type.split("-")[:2])
+        horiz_interp = "False"
+    args.extend([phase_type,
+                 "--horizontal-interpolation", horiz_interp,
+                 "--output", output_path])
     run_cli(args)
     acc.compare(output_path, kgo_path)
