@@ -428,6 +428,7 @@ def main(prog_name: parameters.pass_name,
          command: LAST_OPTION,
          *args,
          profile: value_converter(lambda _: _, name='FILENAME') = None,
+         memprofile: value_converter(lambda _: _, name='FILENAME') = None, 
          verbose=False,
          dry_run=False):
     """IMPROVER NWP post-processing toolbox
@@ -449,6 +450,11 @@ def main(prog_name: parameters.pass_name,
         profile (str):
             If given, will write profiling to the file given.
             To write to stdout, use a hyphen (-)
+        memprofile (str):
+            Creates 2 files, a tracemalloc snapsot at the point of
+            highest memory consumption of your program (*_SNAPSHOT)
+            and a track of the maximum memory used by your program
+            over time (*_MAX_TRACKER).
         verbose (bool):
             Print executed commands
         dry_run (bool):
@@ -461,9 +467,18 @@ def main(prog_name: parameters.pass_name,
     if profile is not None:
         from improver.profile import profile_hook_enable
         profile_hook_enable(dump_filename=None if profile == '-' else profile)
-    result = execute_command(SUBCOMMANDS_DISPATCHER,
-                             prog_name, command, *args,
-                             verbose=verbose, dry_run=dry_run)
+
+    if memprofile is not None:
+        from improver.memprofile import memory_profile_decorator
+        func = memory_profile_decorator(execute_command, memprofile)
+        result = func(SUBCOMMANDS_DISPATCHER,
+                      prog_name, command, *args,
+                      verbose=verbose, dry_run=dry_run)
+    else:
+        result = execute_command(SUBCOMMANDS_DISPATCHER,
+                                 prog_name, command, *args,
+                                 verbose=verbose, dry_run=dry_run) 
+    
     return result
 
 
