@@ -274,15 +274,13 @@ class Test_construct_condition(IrisTest):
             coord_values={'threshold': 0.03})
         condition = '<'
         prob_threshold = 0.5
-        gamma = None
         expected = ("cubes.extract(Constraint(name="
                     "'probability_of_rainfall_rate_above_threshold',"
                     " coord_values={'threshold': 0.03})"
                     ")[0].data < 0.5")
         result = plugin.construct_condition(constraint_value,
                                             condition,
-                                            prob_threshold,
-                                            gamma)
+                                            prob_threshold)
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -291,16 +289,15 @@ class Test_construct_condition(IrisTest):
         of Constraints. """
         plugin = WeatherSymbols()
         constraint_list = [
-            iris.Constraint(
+            str(iris.Constraint(
                 name='probability_of_lwe_snowfall_rate_above_threshold',
-                coord_values={'threshold': 0.03}),
-            iris.Constraint(
+                coord_values={'threshold': 0.03})), '-',
+            str(iris.Constraint(
                 name='probability_of_rainfall_rate_above_threshold',
-                coord_values={'threshold': 0.03})]
+                coord_values={'threshold': 0.03})), '*', '0.7']
         condition = '<'
         prob_threshold = 0.5
-        gamma = 0.7
-        expected = ("(cubes.extract(Constraint(name="
+        expected = ("( cubes.extract(Constraint(name="
                     "'probability_of_lwe_snowfall_rate_above_threshold', "
                     "coord_values={'threshold': 0.03}))[0].data - "
                     "cubes.extract(Constraint(name="
@@ -308,8 +305,7 @@ class Test_construct_condition(IrisTest):
                     "coord_values={'threshold': 0.03}))[0].data * 0.7) < 0.5")
         result = plugin.construct_condition(constraint_list,
                                             condition,
-                                            prob_threshold,
-                                            gamma)
+                                            prob_threshold)
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 

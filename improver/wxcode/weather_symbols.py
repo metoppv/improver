@@ -105,6 +105,29 @@ class WeatherSymbols(BasePlugin):
         return '<WeatherSymbols tree={} start_node={}>'.format(self.wxtree,
                                                                self.start_node)
 
+    @staticmethod
+    def _is_variable(thing):
+        """
+        Identify whether given string is likely to be a variable name by
+        identifying the exceptions.
+
+        Args:
+            thing: str
+                The string to operate on
+
+        Returns:
+            bool:
+                False if thing is one of ['+', '-', '*', '/'] or if float(
+                thing) does not raise a ValueError, else True.
+
+        """
+        valid_operators = ['+', '-', '*', '/']
+        try:
+            float(thing)
+            return False
+        except ValueError:
+            return thing not in valid_operators
+
     def check_input_cubes(self, cubes):
         """
         Check that the input cubes contain all the diagnostics and thresholds
@@ -131,7 +154,9 @@ class WeatherSymbols(BasePlugin):
         optional_node_data_missing = {}
         missing_data = []
         for key, query in self.queries.items():
-            diagnostics = expand_nested_lists(query, 'diagnostic_fields')
+            diagnostics = [
+                x for x in expand_nested_lists(query, 'diagnostic_fields')
+                if self._is_variable(x)]
             thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
             conditions = expand_nested_lists(query, 'diagnostic_conditions')
             for diagnostic, threshold, condition in zip(
@@ -241,9 +266,8 @@ class WeatherSymbols(BasePlugin):
 
         return inverted_threshold, inverted_combination
 
-    @staticmethod
-    def construct_condition(extract_constraint, condition,
-                            probability_threshold, gamma):
+    def construct_condition(self, extract_constraint, condition,
+                            probability_threshold):
         """
         Create a string representing a comparison condition.
 
@@ -253,14 +277,13 @@ class WeatherSymbols(BasePlugin):
                 that will be used to extract the correct diagnostic cube
                 (by name) from the input cube list and the correct threshold
                 from that cube.
+                A list should contain only cube names, operators and numbers,
+                e.g. ['probability_of_lwe_snowfall_rate_above_threshold', '-',
+                  'probability_of_rainfall_rate_above_threshold', '*', '0.7']
             condition (str):
                 The condition statement (e.g. greater than, >).
             probability_threshold (float):
                 The probability value to use in the comparison.
-            gamma (float or None):
-                The gamma factor to multiply one field by when performing
-                a subtraction. This value will be None in the case that
-                extract_constraint is not a list; it will not be used.
         Returns:
             string:
                 The formatted condition statement,
@@ -272,10 +295,15 @@ class WeatherSymbols(BasePlugin):
                                 )[0].data < 0.5)
         """
         if isinstance(extract_constraint, list):
-            return ('(cubes.extract({})[0].data - cubes.extract({})[0].data * '
-                    '{}) {} {}'.format(
-                        extract_constraint[0], extract_constraint[1], gamma,
-                        condition, probability_threshold))
+            formatted_str = ''
+
+            for item in extract_constraint:
+                if self._is_variable(item):
+                    formatted_str += f' cubes.extract({item})[0].data'
+                else:
+                    formatted_str += ' ' + item
+            print(f'({formatted_str}) {condition} {probability_threshold}')
+            return f'({formatted_str}) {condition} {probability_threshold}'
         return 'cubes.extract({})[0].data {} {}'.format(
             extract_constraint, condition, probability_threshold)
 
@@ -334,17 +362,16 @@ class WeatherSymbols(BasePlugin):
                 test_conditions['probability_thresholds'],
                 test_conditions['diagnostic_thresholds']):
 
-            gamma = test_conditions.get('diagnostic_gamma')
-            if gamma is not None:
-                gamma = gamma[loop]
             loop += 1
 
-            extract_constraint = self.construct_extract_constraint(
-                diagnostic, d_threshold, self.coord_named_threshold)
+            extract_constraint = [self.construct_extract_constraint(
+                d, d_threshold, self.coord_named_threshold) if
+                                  self._is_variable(d) else d for d in
+                                  diagnostic]
             conditions.append(
                 self.construct_condition(
                     extract_constraint, test_conditions['threshold_condition'],
-                    p_threshold, gamma))
+                    p_threshold))
         condition_chain = WeatherSymbols.format_condition_chain(
             conditions,
             condition_combination=test_conditions['condition_combination'])
@@ -408,7 +435,7 @@ class WeatherSymbols(BasePlugin):
             diagnostics = [diagnostics]
             thresholds = [thresholds]
         constraints = []
-        for diagnostic, threshold in zip(diagnostics, thresholds):
+        for diagnostic, threshold in diagnostics, thresholds:
             if coord_named_threshold:
                 threshold_coord_name = "threshold"
             elif diagnostic in self.threshold_coord_names:
