@@ -46,7 +46,11 @@ run_cli = acc.run_cli(CLI)
                           ("sleet-rain", "True"),
                           ("sleet-rain-unfilled", "False")])
 def test_phase_change(tmp_path, phase_type, horiz_interp):
-    """Test phase change level calculation"""
+    """Testing:
+        sleet/rain level
+        snow/sleet level
+        sleet/rain level leaving below orography points	unfilled.
+    """
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
     kgo_name = "{}_kgo.nc".format(phase_type.replace("-", "_"))
     kgo_path = kgo_dir / kgo_name
@@ -56,12 +60,11 @@ def test_phase_change(tmp_path, phase_type, horiz_interp):
                     "wbti.nc",
                     "orog.nc",
                     "land_mask.nc")]
-    args = [*input_paths,
-            "--phase-change"]
     if len(phase_type.split("-")) > 2:
         phase_type = "-".join(phase_type.split("-")[:2])
-    args.extend([phase_type,
-                 "--horizontal-interpolation", horiz_interp,
-                 "--output", output_path])
+    args = [*input_paths,
+            "--phase-change", phase_type,
+            "--horizontal-interpolation", horiz_interp,
+            "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
