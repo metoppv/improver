@@ -2,7 +2,7 @@ name: Tests
 
 on: [push, pull_request]
 jobs:
-  Sphinx-build-and-Pytest:
+  Sphinx-Pytest-Coverage:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -26,7 +26,13 @@ jobs:
     - name: Pytest (Unit tests & coverage)
       run: |
         pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
+    - name: codacy-coverage
+      run: |
+        export CODACY_PROJECT_TOKEN=${{ secrets.CODACY_PROJECT_TOKEN }}
         python-codacy-coverage -v -r coverage.xml
+    - uses: codecov/codecov-action@v1
+      with:
+        file: ./coverage.xml
   Pycodestyle-and-Pylint:
     runs-on: ubuntu-latest
     steps:
