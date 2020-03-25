@@ -427,8 +427,8 @@ def execute_command(dispatcher, prog_name, *args,
 def main(prog_name: parameters.pass_name,
          command: LAST_OPTION,
          *args,
-         profile: value_converter(lambda _: _, name='FILENAME') = None,
-         memprofile: value_converter(lambda _: _, name='FILENAME') = None, 
+         profile: value_converter(lambda _: _, name='FILENAME')=None,
+         memprofile: value_converter(lambda _: _, name='FILENAME')=None,
          verbose=False,
          dry_run=False):
     """IMPROVER NWP post-processing toolbox
@@ -477,8 +477,8 @@ def main(prog_name: parameters.pass_name,
     else:
         result = execute_command(SUBCOMMANDS_DISPATCHER,
                                  prog_name, command, *args,
-                                 verbose=verbose, dry_run=dry_run) 
-    
+                                 verbose=verbose, dry_run=dry_run)
+
     return result
 
 
