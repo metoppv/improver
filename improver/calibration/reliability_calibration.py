@@ -40,7 +40,6 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import MergeCubes, collapsed
-from improver.utilities.interpolation import interpolate_1d
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.calibration.utilities import (filter_non_matching_cubes,
@@ -625,6 +624,48 @@ class ApplyReliabilityCalibration:
 
         return forecast_probability, observation_frequency
 
+    @staticmethod
+    def _interpolate(forecast_threshold, reliability_probabilities,
+                     observation_frequencies):
+        """
+        Perform interpolation of the forecast probabilities using the
+        calibration data to produce the calibrated forecast. Where necessary
+        linear extrapolation will be applied. Any mask in place on the
+        forecast_threshold data is removed and reapplied after calibration.
+
+        Args:
+            forecast_threshold (numpy.ndarray):
+                The forecast probabilities to be calibrated.
+            reliability_probabilities (numpy.ndarray):
+                Probabilities taken from the reliability tables.
+            observation_frequencies (numpy.ndarray):
+                Observation frequencies that relate to the reliability
+                probabilities, taken from the reliability tables.
+
+        Returns:
+            numpy.ndarray:
+                The calibrated forecast probabilites. The final results are
+                clipped to ensure any extrapolation has not yielded
+                probabilties outside the range 0 to 1.
+        """
+        shape = forecast_threshold.shape
+        mask = (forecast_threshold.mask if np.ma.is_masked(forecast_threshold)
+                else None)
+
+        forecast_data = np.ma.getdata(forecast_threshold).flatten()
+
+        interpolation_function = scipy.interpolate.interp1d(
+            reliability_probabilities, observation_frequencies,
+            fill_value='extrapolate')
+        interpolated = interpolation_function(forecast_data.data)
+
+        interpolated = interpolated.reshape(shape).astype(np.float32)
+
+        if mask is not None:
+            interpolated = np.ma.masked_array(interpolated, mask=mask)
+
+        return np.clip(interpolated, 0, 1)
+
     def process(self, forecast, reliability_table):
         """
         Apply reliability calibration to a forecast. The reliability table
@@ -651,8 +692,6 @@ class ApplyReliabilityCalibration:
         uncalibrated_thresholds = []
         calibrated_cubes = iris.cube.CubeList()
         for forecast_threshold, reliability_threshold in slices:
-            shape = forecast_threshold.shape
-            forecast_data = forecast_threshold.data.flatten()
 
             reliability_probabilities, observation_frequencies = (
                 self._calculate_reliability_probabilities(
@@ -664,12 +703,9 @@ class ApplyReliabilityCalibration:
                     forecast_threshold.coord(self.threshold_coord).points[0])
                 continue
 
-            interpolation_function = scipy.interpolate.interp1d(
-                reliability_probabilities, observation_frequencies,
-                fill_value='extrapolate')
-            interpolated = interpolation_function(forecast_data.data)
-
-            interpolated = interpolated.reshape(shape).astype(np.float32)
+            interpolated = self._interpolate(
+                forecast_threshold.data, reliability_probabilities,
+                observation_frequencies)
 
             calibrated_cubes.append(forecast_threshold.copy(data=interpolated))
 

@@ -255,6 +255,78 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
         self.assertIsNone(result[1])
 
 
+class Test__interpolate(unittest.TestCase):
+
+    """Test the _interpolate method."""
+
+    def setUp(self):
+
+        """Set up data for testing the interpolate method."""
+
+        self.reliability_probabilities = np.array([0.0, 0.4, 0.8])
+        self.observation_frequencies = np.array([0.2, 0.6, 1.0])
+        self.plugin = Plugin()
+
+    def test_unmasked_data(self):
+        """Test unmasked data is interpolated and returned as expected."""
+
+        expected = np.array([0.4, 0.6, 0.8])
+        forecast_threshold = np.array([0.2, 0.4, 0.6])
+
+        result = self.plugin._interpolate(forecast_threshold,
+                                          self.reliability_probabilities,
+                                          self.observation_frequencies)
+
+        assert_allclose(result, expected)
+
+    def test_masked_data(self):
+        """Test masked data is interpolated and returned with the original
+        mask in place."""
+
+        expected = np.ma.masked_array([0.4, 0.6, 0.8], mask=[1, 0, 0])
+        forecast_threshold = np.ma.masked_array([0.2, 0.4, 0.6],
+                                                mask=[1, 0, 0])
+
+        result = self.plugin._interpolate(forecast_threshold,
+                                          self.reliability_probabilities,
+                                          self.observation_frequencies)
+
+        assert_allclose(result, expected)
+        assert_allclose(result.data, expected.data)
+
+    def test_clipping(self):
+        """Test the result, when using data constructed to cause extrapolation
+        to a probability outside the range 0 to 1, is clipped. In this case
+        an input probability of 0.9 would  return a calibrated probability
+        of 1.1 in the absence of clipping."""
+
+        expected = np.array([0.4, 0.6, 1.0])
+        forecast_threshold = np.array([0.2, 0.4, 0.9])
+
+        result = self.plugin._interpolate(forecast_threshold,
+                                          self.reliability_probabilities,
+                                          self.observation_frequencies)
+
+        assert_allclose(result, expected)
+
+    def test_reshaping(self):
+        """Test that the result has the same shape as the forecast_threshold
+        input data."""
+
+        expected = np.array([[0.2, 0.325, 0.45],
+                             [0.575, 0.7, 0.825],
+                             [0.95, 1., 1.]])
+
+        forecast_threshold = np.linspace(0, 1, 9).reshape((3, 3))
+
+        result = self.plugin._interpolate(forecast_threshold,
+                                          self.reliability_probabilities,
+                                          self.observation_frequencies)
+
+        self.assertEqual(result.shape, expected.shape)
+        assert_allclose(result, expected)
+
+
 class Test_process(Test_ReliabilityCalibrate):
 
     """Test the process method."""
