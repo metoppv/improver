@@ -41,9 +41,11 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.parametrize("phase_type", ("snow-sleet", "sleet-rain",
-                         "sleet-rain-unfilled"))
-def test_phase_change(tmp_path, phase_type):
+@pytest.mark.parametrize("phase_type,horiz_interp",
+                         [("snow-sleet", "True"),
+                          ("sleet-rain", "True"),
+                          ("sleet-rain-unfilled", "False")])
+def test_phase_change(tmp_path, phase_type, horiz_interp):
     """Test phase change level calculation"""
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
     kgo_name = "{}_kgo.nc".format(phase_type.replace("-", "_"))
@@ -56,10 +58,8 @@ def test_phase_change(tmp_path, phase_type):
                     "land_mask.nc")]
     args = [*input_paths,
             "--phase-change"]
-    horiz_interp = "True"
     if len(phase_type.split("-")) > 2:
         phase_type = "-".join(phase_type.split("-")[:2])
-        horiz_interp = "False"
     args.extend([phase_type,
                  "--horizontal-interpolation", horiz_interp,
                  "--output", output_path])
