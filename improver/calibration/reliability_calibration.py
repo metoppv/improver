@@ -496,6 +496,15 @@ class AggregateReliabilityCalibrationTables:
 
 class ApplyReliabilityCalibration:
 
+    """
+    A plugin for the application of reliability calibration to probability
+    forecasts.
+
+    References:
+        Flowerdew J. 2014. Calibrating ensemble reliability whilst preserving
+        spatial structure. Tellus, Ser. A Dyn. Meteorol. Oceanogr. 66.
+    """
+
     def __init__(self, minimum_forecast_count=200):
         """
         Initialise class for applying reliability calibration.
@@ -503,9 +512,10 @@ class ApplyReliabilityCalibration:
         Args:
             minimum_forecast_count (int):
                 The minimum number of forecast counts in a forecast probability
-                bin for it to be used in calibration. Those bins with
-                insufficient counts are excluded and interpolation occurs
-                across the hole. The value must be greater than zero.
+                bin for it to be used in calibration. If the reliability
+                table for a forecast threshold includes any bins with
+                insufficient counts that threshold will be returned unchanged.
+                The default value of 200 is that used in Flowerdew 2014.
         """
         if minimum_forecast_count < 1:
             raise ValueError(
@@ -543,7 +553,7 @@ class ApplyReliabilityCalibration:
     def _ensure_monotonicity(self, cube):
         """
         Ensures that probabilities change monotonically relative to thresholds
-        in the expected order, e.g. exceedance proabilities always remain the
+        in the expected order, e.g. exceedance probabilities always remain the
         same or decrease as the threshold values increase, below threshold
         probabilities always remain the same or increase as the threshold
         values increase.
@@ -586,8 +596,8 @@ class ApplyReliabilityCalibration:
     def _calculate_reliability_probabilities(self, reliability_table):
         """
         Calculates forecast probabilities and observation frequencies from the
-        reliability table. Where the forecast count is zero, the returned
-        arrays both contain values of zero.
+        reliability table. Where the forecast count is zero, Nones are
+        returned.
 
         Args:
             reliability_table (iris.cube.Cube):
@@ -595,11 +605,11 @@ class ApplyReliabilityCalibration:
                 calculate the forecast probabilities and observation
                 frequencies.
         Returns:
-            (tuple): tuple containing:
-                **forecast_probability** (numpy.array):
+            (tuple): tuple containing Nones or:
+                **forecast_probability** (numpy.ndarray):
                     Forecast probabilities calculated by dividing the sum of
                     forecast probabilities by the forecast count.
-                **observation_frequency** (numpy.array):
+                **observation_frequency** (numpy.ndarray):
                     Observation frequency calculated by dividing the
                     observation count by the forecast count.
         """
@@ -652,12 +662,12 @@ class ApplyReliabilityCalibration:
         mask = (forecast_threshold.mask if np.ma.is_masked(forecast_threshold)
                 else None)
 
-        forecast_data = np.ma.getdata(forecast_threshold).flatten()
+        forecast_probabilities = np.ma.getdata(forecast_threshold).flatten()
 
         interpolation_function = scipy.interpolate.interp1d(
             reliability_probabilities, observation_frequencies,
             fill_value='extrapolate')
-        interpolated = interpolation_function(forecast_data.data)
+        interpolated = interpolation_function(forecast_probabilities.data)
 
         interpolated = interpolated.reshape(shape).astype(np.float32)
 

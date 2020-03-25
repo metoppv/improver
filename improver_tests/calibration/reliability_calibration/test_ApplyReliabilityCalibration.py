@@ -56,12 +56,14 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
         """Create reliability calibration table and forecast cubes for
         testing."""
 
-        forecast_data_0 = np.linspace(0.5, 1, 9, dtype=np.float32)
-        forecast_data_1 = np.linspace(0, 0.4, 9, dtype=np.float32)
+        forecast_probabilities_0 = np.linspace(0.5, 1, 9, dtype=np.float32)
+        forecast_probabilities_1 = np.linspace(0, 0.4, 9, dtype=np.float32)
         thresholds = [275., 280.]
-        forecast_data = np.stack([forecast_data_0, forecast_data_1]).reshape((
-            2, 3, 3))
-        self.forecast = set_up_probability_cube(forecast_data, thresholds)
+        forecast_probabilities = np.stack(
+            [forecast_probabilities_0, forecast_probabilities_1]).reshape(
+                (2, 3, 3))
+        self.forecast = set_up_probability_cube(forecast_probabilities,
+                                                thresholds)
 
         reliability_cube_format = CalPlugin()._create_reliability_table_cube(
             self.forecast[0], self.forecast.coord(var_name='threshold'))
@@ -157,9 +159,10 @@ class Test__ensure_monotonicity(Test_ReliabilityCalibrate):
 
     """Test the _ensure_monotonicity method."""
 
-    def test_monotonic_case(self):
-        """Test that for a probability cube in which the data is already
-        ordered monotonically it us unchanged by this method. Additionally, no
+    @ManageWarnings(record=True)
+    def test_monotonic_case(self, warning_list=None):
+        """Test that a probability cube in which the data is already
+        ordered monotonically is unchanged by this method. Additionally, no
         warnings or exceptions should be raised."""
 
         expected = self.forecast.copy()
@@ -167,6 +170,7 @@ class Test__ensure_monotonicity(Test_ReliabilityCalibrate):
         self.plugin._ensure_monotonicity(self.forecast)
 
         assert_array_equal(self.forecast.data, expected.data)
+        self.assertFalse(warning_list)
 
     @ManageWarnings(record=True)
     def test_single_disordered_element(self, warning_list=None):
@@ -283,8 +287,8 @@ class Test__interpolate(unittest.TestCase):
         """Test masked data is interpolated and returned with the original
         mask in place."""
 
-        expected = np.ma.masked_array([0.4, 0.6, 0.8], mask=[1, 0, 0])
-        forecast_threshold = np.ma.masked_array([0.2, 0.4, 0.6],
+        expected = np.ma.masked_array([np.nan, 0.6, 0.8], mask=[1, 0, 0])
+        forecast_threshold = np.ma.masked_array([np.nan, 0.4, 0.6],
                                                 mask=[1, 0, 0])
 
         result = self.plugin._interpolate(forecast_threshold,
@@ -292,7 +296,6 @@ class Test__interpolate(unittest.TestCase):
                                           self.observation_frequencies)
 
         assert_allclose(result, expected)
-        assert_allclose(result.data, expected.data)
 
     def test_clipping(self):
         """Test the result, when using data constructed to cause extrapolation
