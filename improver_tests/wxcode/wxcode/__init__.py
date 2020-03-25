@@ -37,7 +37,8 @@ def check_diagnostic_lists_consistency(query):
     structure. e.g. ['item'] != [['item']]
 
     Args:
-        query: dict of weather-symbols decision-making information
+        query (dict):
+            of weather-symbols decision-making information
 
     Raises:
         ValueError: if diagnostic query lists have different nested list
@@ -62,7 +63,8 @@ def check_nested_list_consistency(query):
     structure. e.g. ['item'] != [['item']]
 
     Args:
-        query: list of lists
+        query (list of lists):
+            Nested lists to check for consistency.
 
     Returns:
         bool: True if diagnostic query lists have same nested list

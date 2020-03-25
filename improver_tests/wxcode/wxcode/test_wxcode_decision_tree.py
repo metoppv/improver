@@ -34,7 +34,6 @@ import unittest
 
 from iris.tests import IrisTest
 
-from improver.wxcode.utilities import expand_nested_lists
 from improver.wxcode.wxcode_decision_tree import (
     START_NODE, wxcode_decision_tree)
 from . import check_diagnostic_lists_consistency
