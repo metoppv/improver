@@ -38,7 +38,7 @@ import iris
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
-from improver import BasePlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.utilities.cube_manipulation import MergeCubes, collapsed
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.metadata.probabilistic import find_threshold_coordinate
@@ -494,7 +494,7 @@ class AggregateReliabilityCalibrationTables:
         return result
 
 
-class ApplyReliabilityCalibration:
+class ApplyReliabilityCalibration(PostProcessingPlugin):
 
     """
     A plugin for the application of reliability calibration to probability
