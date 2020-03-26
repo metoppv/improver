@@ -11,28 +11,24 @@ jobs:
       with:
         path: /usr/share/miniconda/envs/improver
         key: ${{ runner.os }}-conda-improver-${{ hashFiles('**/environment.yml') }}
-        restore-keys: |
-          ${{ runner.OS }}-conda-improver-
-    - name: Build conda
+        restore-keys: ${{ runner.OS }}-conda-improver-
+    - name: conda build
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda env update -q --file environment.yml --name improver
         conda list --export
-    - name: Activate conda
+    - name: conda activate
       run:  echo "::add-path::/usr/share/miniconda/envs/improver/bin"
-    - name: Sphinx-build (Doc test)
+    - name: sphinx-build
       run: make -C doc html
-    - name: Pytest (Unit tests & coverage)
-      run: |
-        pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
+    - name: pytest unit-tests & cov-report
+      run: pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
     - name: codacy-coverage
-      run: |
-        export CODACY_PROJECT_TOKEN=${{ secrets.CODACY_PROJECT_TOKEN }}
-        python-codacy-coverage -v -r coverage.xml
+      run: python-codacy-coverage -v -r coverage.xml
+      env:
+        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
     - uses: codecov/codecov-action@v1
-      with:
-        file: ./coverage.xml
   Pycodestyle-and-Pylint:
     runs-on: ubuntu-latest
     steps:
@@ -42,17 +38,16 @@ jobs:
       with:
         path: /usr/share/miniconda/envs/improver
         key: ${{ runner.os }}-conda-improver-${{ hashFiles('**/environment.yml') }}
-        restore-keys: |
-          ${{ runner.OS }}-conda-improver-
-    - name: Build conda
+        restore-keys: ${{ runner.OS }}-conda-improver-
+    - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda env update -q --file environment.yml --name improver
         conda list --export
-    - name: Activate conda
+    - name: conda activate
       run:  echo "::add-path::/usr/share/miniconda/envs/improver/bin"
-    - name: Pycodestyle (PEP8 conventions)
+    - name: pycodestyle 
       run:  pycodestyle improver improver_tests
-    - name: Pylint (More linting goodness)
+    - name: pylint
       run: pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests
