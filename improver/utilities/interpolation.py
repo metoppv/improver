@@ -91,25 +91,17 @@ def interpolate_missing_data(
 
     if limit is not None:
         index = ~np.isfinite(data) & np.isfinite(data_filled)
-        limit_data_values(data_filled, index, limit, limit_as_maximum)
+        if limit_as_maximum:
+            data_filled[index] = np.clip(data_filled[index], None,
+                                         limit[index])
+        else:
+            data_filled[index] = np.clip(data_filled[index], limit[index],
+                                         None)
 
     index = ~np.isfinite(data)
     data[index] = data_filled[index]
 
     return data
-
-
-def limit_data_values(data, index, limit, limit_as_maximum):
-    """
-    Impose a limit on data.
-    """
-    index = index.copy()
-    if limit_as_maximum:
-        data_violating_limit = (data[index] > limit[index])
-    else:
-        data_violating_limit = (data[index] < limit[index])
-    index[index] = data_violating_limit
-    data[index] = limit[index]
 
 
 class InterpolateUsingDifference:
@@ -210,7 +202,13 @@ class InterpolateUsingDifference:
             interpolated_difference[invalid_points])
 
         if limit is not None:
-            limit_data_values(result.data, invalid_points, limit.data,
-                              limit_as_maximum)
+            if limit_as_maximum:
+                result.data[invalid_points] = np.clip(
+                    result.data[invalid_points], None,
+                    limit.data[invalid_points])
+            else:
+                result.data[invalid_points] = np.clip(
+                    result.data[invalid_points], limit.data[invalid_points],
+                    None)
 
         return result
