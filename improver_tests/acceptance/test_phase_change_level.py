@@ -41,18 +41,19 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.parametrize("phase_type,horiz_interp",
-                         [("snow-sleet", "True"),
-                          ("sleet-rain", "True"),
-                          ("sleet-rain-unfilled", "False")])
-def test_phase_change(tmp_path, phase_type, horiz_interp):
+@pytest.mark.parametrize("phase_type,kgo_name,horiz_interp",
+                         [("snow-sleet", "snow_sleet", "True"),
+                          ("sleet-rain", "sleet_rain", "True"),
+                          ("sleet-rain", "sleet_rain_unfilled",
+                           "False")])
+def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp):
     """Testing:
         sleet/rain level
         snow/sleet level
         sleet/rain level leaving below orography points	unfilled.
     """
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_name = "{}_kgo.nc".format(phase_type.replace("-", "_"))
+    kgo_name = "{}_kgo.nc".format(kgo_name)
     kgo_path = kgo_dir / kgo_name
     output_path = tmp_path / "output.nc"
     input_paths = [kgo_dir / x for x in
@@ -60,8 +61,6 @@ def test_phase_change(tmp_path, phase_type, horiz_interp):
                     "wbti.nc",
                     "orog.nc",
                     "land_mask.nc")]
-    if len(phase_type.split("-")) > 2:
-        phase_type = "-".join(phase_type.split("-")[:2])
     args = [*input_paths,
             "--phase-change", phase_type,
             "--horizontal-interpolation", horiz_interp,
