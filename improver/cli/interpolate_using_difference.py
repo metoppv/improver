@@ -45,10 +45,10 @@ def process(cube: cli.inputcube,
     """
     Uses interpolation to fill holes in the data contained within the input
     cube. This is achieved by calculating the difference between the input cube
-    and a complete (filling the whole domain) reference cube. The difference
-    between the data in regions where they overlap is calculated and this
-    difference field is then interpolated across the domain. Any holes in the
-    input cube data are then filled with data calculated as the reference
+    and a complete (i.e. complete across the whole domain) reference cube. The
+    difference between the data in regions where they overlap is calculated and
+    this difference field is then interpolated across the domain. Any holes in
+    the input cube data are then filled with data calculated as the reference
     cube data minus the interpolated difference field.
 
     Args:
@@ -60,10 +60,11 @@ def process(cube: cli.inputcube,
             interpolated. The data in this cube must be complete across the
             entire domain.
         limit (iris.cube.Cube):
-            A cube containing limiting values for the interpolated data that
-            is used to fill holes in the cube of data. These limits may be
-            minima or maxima, depending upon how the flag limit_as_maximum is
-            set.
+            A cube of limiting values to apply to the cube that is being filled
+            in. This can be used to ensure that the resulting values do not
+            fall below / exceed the limiting values; whether the limit values
+            should be used as minima or maxima is determined by the
+            limit_as_maximum option.
         limit_as_maximum (bool):
             If True the limit values are treated as maxima for the data in the
             interpolated regions. If False the limit values are treated as

@@ -108,10 +108,10 @@ class InterpolateUsingDifference:
     """
     Uses interpolation to fill holes in the data contained within the input
     cube. This is achieved by calculating the difference between the input cube
-    and a complete (filling the whole domain) reference cube. The difference
-    between the data in regions where they overlap is calculated and this
-    difference field is then interpolated across the domain. Any holes in the
-    input cube data are then filled with data calculated as the reference
+    and a complete (i.e. complete across the whole domain) reference cube. The
+    difference between the data in regions where they overlap is calculated and
+    this difference field is then interpolated across the domain. Any holes in
+    the input cube data are then filled with data calculated as the reference
     cube data minus the interpolated difference field.
     """
 
@@ -150,13 +150,11 @@ class InterpolateUsingDifference:
                 A cube that covers the entire domain that it shares with
                 cube.
             limit (iris.cube.Cube or None):
-                A cube used to calculate limiting values that the difference
-                cube should not violate following interpolation. This can be
-                used to ensure that the interpolated field does not get too
-                close to or too far away from the reference cube. Any points
-                in the interpolated difference field violating the limit are
-                set back to the calculated limiting value, ``reference_cube -
-                limit``.
+                A cube of limiting values to apply to the cube that is being
+                filled in. This can be used to ensure that the resulting values
+                do not fall below / exceed the limiting values; whether the
+                limit values should be used as a minima or maxima is
+                determined by the limit_as_maximum option.
             limit_as_maximum (bool):
                 If True the test against the values allowed by the limit array
                 is that if the interpolated values exceed the limit they should

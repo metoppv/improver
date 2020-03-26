@@ -40,19 +40,9 @@ from improver.utilities.interpolation import InterpolateUsingDifference
 from ..set_up_test_cubes import set_up_variable_cube
 
 
-class Test_repr(unittest.TestCase):
+class Test_Setup(unittest.TestCase):
 
-    """Test the InterpolateUsingDifference __repr__ method."""
-
-    def test_basic(self):
-        """Test expected string representation is returned."""
-        self.assertEqual(str(InterpolateUsingDifference()),
-                         "<InterpolateUsingDifference>")
-
-
-class Test_process(unittest.TestCase):
-
-    """Test the InterpolateUsingDifference process method."""
+    """Set up for InterpolateUsingDifference tests."""
 
     def setUp(self):
         """ Set up arrays for testing."""
@@ -76,6 +66,65 @@ class Test_process(unittest.TestCase):
         self.limit = set_up_variable_cube(
             limit_data, name="surface_altitude", units='m',
             spatial_grid='equalarea')
+
+
+class Test_repr(unittest.TestCase):
+
+    """Test the InterpolateUsingDifference __repr__ method."""
+
+    def test_basic(self):
+        """Test expected string representation is returned."""
+        self.assertEqual(str(InterpolateUsingDifference()),
+                         "<InterpolateUsingDifference>")
+
+
+class Test__check_inputs(Test_Setup):
+
+    """Tests for the private _check_inputs method."""
+
+    def test_incomplete_reference_data(self):
+        """Test an exception is raised if the reference field is incomplete."""
+
+        self.snow_sleet.data[1, 1] = np.nan
+        msg = "The reference cube contains np.nan data"
+        with self.assertRaisesRegex(ValueError, msg):
+            InterpolateUsingDifference()._check_inputs(
+                self.sleet_rain, self.snow_sleet, None)
+
+    def test_incompatible_refence_cube_units(self):
+        """Test an exception is raised if the reference cube has units that
+        are incompatible with the input cube."""
+
+        self.snow_sleet.units = 's'
+        msg = "Reference cube and/or limit do not have units compatible"
+        with self.assertRaisesRegex(ValueError, msg):
+            InterpolateUsingDifference()._check_inputs(
+                self.sleet_rain, self.snow_sleet, None)
+
+    def test_incompatible_limit_units(self):
+        """Test an exception is raised if the limit cube has units that
+        are incompatible with the input cube."""
+
+        self.limit.units = 's'
+        msg = "Reference cube and/or limit do not have units compatible"
+        with self.assertRaisesRegex(ValueError, msg):
+            InterpolateUsingDifference()._check_inputs(
+                self.sleet_rain, self.snow_sleet, limit=self.limit)
+
+    def test_convert_units(self):
+        """Test that a reference cube and limit cube with different but
+        compatible units are converted without an exception being raised."""
+
+        self.snow_sleet.convert_units('cm')
+        self.limit.convert_units('cm')
+
+        InterpolateUsingDifference().process(
+            self.sleet_rain, self.snow_sleet, limit=self.limit)
+
+
+class Test_process(Test_Setup):
+
+    """Test the InterpolateUsingDifference process method."""
 
     def test_unlimited(self):
         """Test interpolation to complete an incomplete field using a reference
@@ -204,40 +253,10 @@ class Test_process(unittest.TestCase):
         self.assertTrue(any(warning_msg in str(item)
                             for item in warning_list))
 
-    # Tests for the private _check_inputs method.
-
-    def test_incomplete_reference_data(self):
-        """Test an exception is raised if the reference field is incomplete."""
-
-        self.snow_sleet.data[1, 1] = np.nan
-        msg = "The reference cube contains np.nan data"
-        with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference().process(
-                self.sleet_rain, self.snow_sleet)
-
-    def test_incompatible_refence_cube_units(self):
-        """Test an exception is raised if the reference cube has units that
-        are incompatible with the input cube."""
-
-        self.snow_sleet.units = 's'
-        msg = "Reference cube and/or limit do not have units compatible"
-        with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference().process(
-                self.sleet_rain, self.snow_sleet)
-
-    def test_incompatible_limit_units(self):
-        """Test an exception is raised if the limit cube has units that
-        are incompatible with the input cube."""
-
-        self.limit.units = 's'
-        msg = "Reference cube and/or limit do not have units compatible"
-        with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference().process(
-                self.sleet_rain, self.snow_sleet, limit=self.limit)
-
     def test_convert_units(self):
         """Test that a reference cube and limit cube with different but
-        compatible units are converted for use."""
+        compatible units are converted for use and return the expected
+        result."""
 
         expected = np.array([[4.0, 4.0, 4.0],
                              [8.5, 8.0, 6.0],
