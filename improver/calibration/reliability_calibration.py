@@ -425,7 +425,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         return MergeCubes()(reliability_tables)
 
 
-class AggregateReliabilityCalibrationTables:
+class AggregateReliabilityCalibrationTables(BasePlugin):
 
     """This plugin enables the aggregation of multiple reliability calibration
     tables, and/or the aggregation over coordinates in the tables."""
