@@ -639,9 +639,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                      observation_frequencies):
         """
         Perform interpolation of the forecast probabilities using the
-        calibration data to produce the calibrated forecast. Where necessary
-        linear extrapolation will be applied. Any mask in place on the
-        forecast_threshold data is removed and reapplied after calibration.
+        reliability table data to produce the calibrated forecast. Where
+        necessary linear extrapolation will be applied. Any mask in place on
+        the forecast_threshold data is removed and reapplied after calibration.
 
         Args:
             forecast_threshold (numpy.ndarray):
@@ -654,9 +654,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         Returns:
             numpy.ndarray:
-                The calibrated forecast probabilites. The final results are
+                The calibrated forecast probabilities. The final results are
                 clipped to ensure any extrapolation has not yielded
-                probabilties outside the range 0 to 1.
+                probabilities outside the range 0 to 1.
         """
         shape = forecast_threshold.shape
         mask = (forecast_threshold.mask if np.ma.is_masked(forecast_threshold)
