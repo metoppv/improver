@@ -467,18 +467,12 @@ def main(prog_name: parameters.pass_name,
     if profile is not None:
         from improver.profile import profile_hook_enable
         profile_hook_enable(dump_filename=None if profile == '-' else profile)
-
     if memprofile is not None:
         from improver.memprofile import memory_profile_decorator
-        func = memory_profile_decorator(execute_command, memprofile)
-        result = func(SUBCOMMANDS_DISPATCHER,
-                      prog_name, command, *args,
-                      verbose=verbose, dry_run=dry_run)
-    else:
-        result = execute_command(SUBCOMMANDS_DISPATCHER,
-                                 prog_name, command, *args,
-                                 verbose=verbose, dry_run=dry_run)
-
+        execute_command = memory_profile_decorator(execute_command, memprofile)
+    result = execute_command(SUBCOMMANDS_DISPATCHER,
+                             prog_name, command, *args,
+                             verbose=verbose, dry_run=dry_run)
     return result
 
 
