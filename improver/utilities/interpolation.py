@@ -32,6 +32,7 @@
 
 import warnings
 import numpy as np
+import iris
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 
@@ -138,8 +139,7 @@ class InterpolateUsingDifference:
                 'Reference cube and/or limit do not have units compatible with'
                 ' cube.')
 
-    def process(self, cube, reference_cube,
-                limit=None, limit_as_maximum=True):
+    def process(self, cube, reference_cube, limit=None, limit_as_maximum=True):
         """
         Apply plugin to input data.
 
@@ -154,7 +154,8 @@ class InterpolateUsingDifference:
                 filled in. This can be used to ensure that the resulting values
                 do not fall below / exceed the limiting values; whether the
                 limit values should be used as a minima or maxima is
-                determined by the limit_as_maximum option.
+                determined by the limit_as_maximum option. These values should
+                be on an x-y grid of the same size as an x-y slice of cube.
             limit_as_maximum (bool):
                 If True the test against the values allowed by the limit array
                 is that if the interpolated values exceed the limit they should
@@ -177,36 +178,42 @@ class InterpolateUsingDifference:
 
         self._check_inputs(cube, reference_cube, limit)
 
-        invalid_points = cube.data.mask.copy()
-        valid_points = ~invalid_points
+        filled_cube = iris.cube.CubeList()
+        xaxis, yaxis = cube.coord(axis='x'), cube.coord(axis='y')
+        for cslice, rslice in zip(cube.slices([yaxis, xaxis]),
+                                  reference_cube.slices([yaxis, xaxis])):
 
-        difference_field = np.subtract(reference_cube.data, cube.data,
-                                       out=np.full(cube.shape, np.nan),
-                                       where=valid_points)
-        interpolated_difference = interpolate_missing_data(
-                difference_field, valid_points=valid_points)
+            invalid_points = cslice.data.mask.copy()
+            valid_points = ~invalid_points
 
-        # If any invalid points remain in the difference field, use nearest
-        # neighbour interpolation to fill these with the nearest difference.
-        remain_invalid = np.isnan(interpolated_difference)
-        if remain_invalid.any():
+            difference_field = np.subtract(rslice.data, cslice.data,
+                                           out=np.full(cslice.shape, np.nan),
+                                           where=valid_points)
             interpolated_difference = interpolate_missing_data(
-                    difference_field, valid_points=~remain_invalid,
-                    method='nearest')
+                    difference_field, valid_points=valid_points)
 
-        result = cube.copy()
-        result.data[invalid_points] = (
-            reference_cube.data[invalid_points] -
-            interpolated_difference[invalid_points])
+            # If any invalid points remain in the difference field, use nearest
+            # neighbour interpolation to fill these with the nearest difference
+            remain_invalid = np.isnan(interpolated_difference)
+            if remain_invalid.any():
+                interpolated_difference = interpolate_missing_data(
+                        difference_field, valid_points=~remain_invalid,
+                        method='nearest')
 
-        if limit is not None:
-            if limit_as_maximum:
-                result.data[invalid_points] = np.clip(
-                    result.data[invalid_points], None,
-                    limit.data[invalid_points])
-            else:
-                result.data[invalid_points] = np.clip(
-                    result.data[invalid_points], limit.data[invalid_points],
-                    None)
+            result = cslice.copy()
+            result.data[invalid_points] = (
+                rslice.data[invalid_points] -
+                interpolated_difference[invalid_points])
 
-        return result
+            if limit is not None:
+                if limit_as_maximum:
+                    result.data[invalid_points] = np.clip(
+                        result.data[invalid_points], None,
+                        limit.data[invalid_points])
+                else:
+                    result.data[invalid_points] = np.clip(
+                        result.data[invalid_points],
+                        limit.data[invalid_points], None)
+            filled_cube.append(result)
+
+        return filled_cube.merge_cube()
