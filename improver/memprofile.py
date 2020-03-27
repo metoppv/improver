@@ -31,7 +31,7 @@
 """Module containing maximum memory profiling utilities."""
 
 import tracemalloc
-from queue import Queue, Empty
+from queue import Queue
 from threading import Thread
 from resource import getrusage, RUSAGE_SELF
 from datetime import datetime
