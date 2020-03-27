@@ -42,7 +42,7 @@ def check_diagnostic_lists_consistency(query):
 
     Raises:
         ValueError: if diagnostic query lists have different nested list
-    structure.
+            structure.
 
     """
     diagnostic_keys = [
@@ -68,7 +68,7 @@ def check_nested_list_consistency(query):
 
     Returns:
         bool: True if diagnostic query lists have same nested list
-    structure.
+            structure.
 
     """
 
