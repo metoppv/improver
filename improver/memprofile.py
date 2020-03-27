@@ -37,6 +37,7 @@ from resource import getrusage, RUSAGE_SELF
 from datetime import datetime
 import sys
 
+
 def memory_profile_start(outfile_prefix):
     """Starts the memory tracking profiler.
 
@@ -91,9 +92,9 @@ def memory_monitor(queue, outfile_prefix):
     fout = open("{}_MAX_TRACKER".format(outfile_prefix), 'w')
     b2mb = 1 / 1048576
     if sys.platform == 'linux':
-        #linux outputs max_rss in KB not B
+        # linux outputs max_rss in KB not B
         b2mb = 1 / 1024
-    
+
     while True:
         if queue.empty():
             max_rss = getrusage(RUSAGE_SELF).ru_maxrss
