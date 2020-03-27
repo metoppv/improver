@@ -464,15 +464,17 @@ def main(prog_name: parameters.pass_name,
     on available command(s).
     """
     args = unbracket(args)
+    local_exec_com = execute_command
     if profile is not None:
         from improver.profile import profile_hook_enable
         profile_hook_enable(dump_filename=None if profile == '-' else profile)
     if memprofile is not None:
         from improver.memprofile import memory_profile_decorator
-        execute_command = memory_profile_decorator(execute_command, memprofile)
-    result = execute_command(SUBCOMMANDS_DISPATCHER,
-                             prog_name, command, *args,
-                             verbose=verbose, dry_run=dry_run)
+        local_exec_com = memory_profile_decorator(local_exec_com,
+                                                  memprofile)
+    result = local_exec_com(SUBCOMMANDS_DISPATCHER,
+                            prog_name, command, *args,
+                            verbose=verbose, dry_run=dry_run)
     return result
 
 

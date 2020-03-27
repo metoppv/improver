@@ -30,29 +30,27 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing maximum memory profiling utilities."""
 
-import tracemalloc as tm
+import tracemalloc
 from queue import Queue, Empty
 from threading import Thread
 from resource import getrusage, RUSAGE_SELF
 from datetime import datetime
+import sys
 
-
-def memory_profile_start(outfile_prefix, timeout_time=0.1):
+def memory_profile_start(outfile_prefix):
     """Starts the memory tracking profiler.
 
     Args:
         outfile_prefix (str):
             Prefix for the generated output. 2 files will
             be generated: *_SNAPSHOT and *_MAX_TRACKER.
-        timeout_time (float):
-            Time the queue will look for an input.
 
     Returns:
         Active Thread tracking the memory.
         Active Queue for communication to the thread.
     """
     queue = Queue()
-    thread = Thread(target=memory_monitor, args=(queue, timeout_time,
+    thread = Thread(target=memory_monitor, args=(queue,
                                                  outfile_prefix))
     thread.start()
     return thread, queue
@@ -71,40 +69,45 @@ def memory_profile_end(queue, thread):
     thread.join()
 
 
-def memory_monitor(queue, timeout_time, outfile_prefix):
+def memory_monitor(queue, outfile_prefix):
     """Function to track memory usage, should be run in a separate
     thread to the main program.
+
+    Samples max_rss, if the max_rss is higher than the previous
+    max_rss, then creates a tracemalloc snapshot. There is a
+    performance overhead when using this.
 
     Args:
         queue (queue.Queue):
             Active queue instance to communicate with the thread.
-        timeout_time (float):
-            Time the queue will look for in input.
         outfile_prefix (str):
             Prefix for the generated output. 2 files will
             be generated: *_SNAPSHOT and *_MAX_TRACKER.
     """
-    tm.start()
+    tracemalloc.start()
     old_max = 0
     snapshot = None
 
     fout = open("{}_MAX_TRACKER".format(outfile_prefix), 'w')
     b2mb = 1 / 1048576
-
+    if sys.platform == 'linux':
+        #linux outputs max_rss in KB not B
+        b2mb = 1 / 1024
+    
     while True:
-        try:
-            queue.get(timeout=timeout_time)
-            snapshot.dump("{}_SNAPSHOT".format(outfile_prefix))
-            fout.close()
-            tm.stop()
-            return
-        except Empty:
+        if queue.empty():
             max_rss = getrusage(RUSAGE_SELF).ru_maxrss
             if max_rss > old_max:
-                snapshot = tm.take_snapshot()
+                snapshot = tracemalloc.take_snapshot()
                 line = "{} max RSS {:.2f} MiB".format(datetime.now(),
                                                       max_rss * b2mb)
                 print(line, file=fout)
+                old_max = max_rss
+        else:
+            snapshot.dump("{}_SNAPSHOT".format(outfile_prefix))
+            fout.close()
+            tracemalloc.stop()
+            return
 
 
 def memory_profile_decorator(func, outfile_prefix):
