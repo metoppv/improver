@@ -25,6 +25,7 @@ jobs:
     - name: pytest unit-tests & cov-report
       run: pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
     - name: codacy-coverage
+      if: github.actor == 'repo-owner'
       run: python-codacy-coverage -v -r coverage.xml
       env:
         CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
