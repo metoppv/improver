@@ -37,7 +37,7 @@ from numpy.testing import assert_array_equal
 
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.interpolation import InterpolateUsingDifference
-from ..set_up_test_cubes import set_up_variable_cube
+from ..set_up_test_cubes import set_up_variable_cube, add_coordinate
 
 
 class Test_Setup(unittest.TestCase):
@@ -174,6 +174,29 @@ class Test_process(Test_Setup):
         assert_array_equal(result.data, expected)
         self.assertEqual(result.coords(), self.sleet_rain.coords())
         self.assertEqual(result.metadata, self.sleet_rain.metadata)
+
+    def test_multi_realization_limited(self):
+        """Test interpolation to complete an incomplete field using a reference
+        field. A limit is imposed upon the returned interpolated values,
+        forcing these values to the minimum limit if they are below it. The
+        inputs are multi-realization."""
+
+        snow_sleet = add_coordinate(self.snow_sleet, [0, 1], 'realization')
+        sleet_rain = add_coordinate(self.sleet_rain, [0, 1], 'realization')
+
+        expected = np.array([[4.0, 4.0, 4.0],
+                             [10., 8.5, 8.5],
+                             [3.0, 3.0, 3.0]], dtype=np.float32)
+
+        result = InterpolateUsingDifference().process(
+            sleet_rain, snow_sleet, limit=self.limit,
+            limit_as_maximum=False)
+
+        assert_array_equal(result[0].data, expected)
+        assert_array_equal(result[1].data, expected)
+        self.assertEqual(result.shape, sleet_rain.shape)
+        self.assertEqual(result.coords(), sleet_rain.coords())
+        self.assertEqual(result.metadata, sleet_rain.metadata)
 
     def test_crossing_values(self):
         """Test interpolation when the reference field and field to be
