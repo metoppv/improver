@@ -36,6 +36,7 @@ from threading import Thread
 from resource import getrusage, RUSAGE_SELF
 from datetime import datetime
 import sys
+import time
 
 
 def memory_profile_start(outfile_prefix):
@@ -74,8 +75,8 @@ def memory_monitor(queue, outfile_prefix):
     """Function to track memory usage, should be run in a separate
     thread to the main program.
 
-    Samples max_rss, if the max_rss is higher than the previous
-    max_rss, then creates a tracemalloc snapshot. There is a
+    Samples max_rss every 0.1s, if the max_rss is higher than the
+    previous max_rss, then creates a tracemalloc snapshot. There is a
     performance overhead when using this.
 
     Args:
@@ -88,6 +89,7 @@ def memory_monitor(queue, outfile_prefix):
     tracemalloc.start()
     old_max = 0
     snapshot = None
+    wait_time = 0.1
 
     fout = open("{}_MAX_TRACKER".format(outfile_prefix), 'w')
     b2mb = 1 / 1048576
@@ -97,6 +99,7 @@ def memory_monitor(queue, outfile_prefix):
 
     while True:
         if queue.empty():
+            time.sleep(wait_time)
             max_rss = getrusage(RUSAGE_SELF).ru_maxrss
             if max_rss > old_max:
                 snapshot = tracemalloc.take_snapshot()
