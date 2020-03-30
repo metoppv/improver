@@ -301,6 +301,9 @@ class Accumulation(BasePlugin):
             ["time", "forecast_period"])
         accumulation_cube.rename(cube_name)
         accumulation_cube.units = 'm'
+        accumulation_cell_method = iris.coords.CellMethod(
+            'sum', coords=accumulation_cube.coord('time'))
+        accumulation_cube.add_cell_method(accumulation_cell_method)
         return accumulation_cube
 
     def process(self, cubes):
