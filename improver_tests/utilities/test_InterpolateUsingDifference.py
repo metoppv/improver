@@ -91,7 +91,7 @@ class Test__check_inputs(Test_Setup):
             InterpolateUsingDifference()._check_inputs(
                 self.sleet_rain, self.snow_sleet, None)
 
-    def test_incompatible_refence_cube_units(self):
+    def test_incompatible_reference_cube_units(self):
         """Test an exception is raised if the reference cube has units that
         are incompatible with the input cube."""
 

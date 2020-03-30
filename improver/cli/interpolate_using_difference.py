@@ -29,8 +29,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to fill holes in a field using interpolation of the difference
-between it and a reference field."""
+"""Script to fill masked regions in a field using interpolation of the
+difference between it and a reference field."""
 
 from improver import cli
 
@@ -43,18 +43,19 @@ def process(cube: cli.inputcube,
             *,
             limit_as_maximum=True):
     """
-    Uses interpolation to fill holes in the data contained within the input
-    cube. This is achieved by calculating the difference between the input cube
-    and a complete (i.e. complete across the whole domain) reference cube. The
-    difference between the data in regions where they overlap is calculated and
-    this difference field is then interpolated across the domain. Any holes in
-    the input cube data are then filled with data calculated as the reference
-    cube data minus the interpolated difference field.
+    Uses interpolation to fill masked regions in the data contained within the
+    input cube. This is achieved by calculating the difference between the
+    input cube and a complete (i.e. complete across the whole domain) reference
+    cube. The difference between the data in regions where they overlap is
+    calculated and this difference field is then interpolated across the
+    domain. Any masked regions in the input cube data are then filled with data
+    calculated as the reference cube data minus the interpolated difference
+    field.
 
     Args:
         cube (iris.cube.Cube):
-            A cube containing data in which there are holes to be filled. These
-            holes are denoted by a mask.
+            A cube containing data in which there are masked regions to be
+            filled.
         reference_cube (iris.cube.Cube):
             A cube containing data in the same units as the cube of data to be
             interpolated. The data in this cube must be complete across the
@@ -71,7 +72,8 @@ def process(cube: cli.inputcube,
             minima.
     Returns:
         iris.cube.Cube:
-            Processed cube with the holes filled in through interpolation.
+            Processed cube with the masked regions filled in through
+            interpolation.
     """
     from improver.utilities.interpolation import InterpolateUsingDifference
 

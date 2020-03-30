@@ -66,8 +66,8 @@ def interpolate_missing_data(
 
     Returns:
         numpy.ndarray:
-            The original data plus interpolated data in holes where it was
-            possible to fill these in.
+            The original data plus interpolated data in masked regions where it
+            was possible to fill these in.
     """
     if valid_points is None:
         valid_points = np.full_like(data, True, dtype=np.bool)
@@ -107,13 +107,14 @@ def interpolate_missing_data(
 
 class InterpolateUsingDifference:
     """
-    Uses interpolation to fill holes in the data contained within the input
-    cube. This is achieved by calculating the difference between the input cube
-    and a complete (i.e. complete across the whole domain) reference cube. The
-    difference between the data in regions where they overlap is calculated and
-    this difference field is then interpolated across the domain. Any holes in
-    the input cube data are then filled with data calculated as the reference
-    cube data minus the interpolated difference field.
+    Uses interpolation to fill masked regions in the data contained within the
+    input cube. This is achieved by calculating the difference between the
+    input cube and a complete (i.e. complete across the whole domain) reference
+    cube. The difference between the data in regions where they overlap is
+    calculated and this difference field is then interpolated across the
+    domain. Any masked regions in the input cube data are then filled with data
+    calculated as the reference cube data minus the interpolated difference
+    field.
     """
 
     def __repr__(self):
@@ -134,10 +135,10 @@ class InterpolateUsingDifference:
             reference_cube.convert_units(cube.units)
             if limit is not None:
                 limit.convert_units(cube.units)
-        except ValueError:
-            raise ValueError(
+        except ValueError as err:
+            raise type(err)(
                 'Reference cube and/or limit do not have units compatible with'
-                ' cube.')
+                ' cube. ' + str(err))
 
     def process(self, cube, reference_cube, limit=None, limit_as_maximum=True):
         """
@@ -145,7 +146,8 @@ class InterpolateUsingDifference:
 
         Args:
             cube (iris.cube.Cube):
-                cube for which interpolation is required to fill holes.
+                Cube for which interpolation is required to fill masked
+                regions.
             reference_cube (iris.cube.Cube):
                 A cube that covers the entire domain that it shares with
                 cube.
