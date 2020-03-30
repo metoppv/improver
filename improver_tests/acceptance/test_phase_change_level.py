@@ -41,10 +41,20 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_snow_sleet(tmp_path):
-    """Test snow/sleet level calculation"""
+@pytest.mark.parametrize("phase_type,kgo_name,horiz_interp",
+                         [("snow-sleet", "snow_sleet", "True"),
+                          ("sleet-rain", "sleet_rain", "True"),
+                          ("sleet-rain", "sleet_rain_unfilled",
+                           "False")])
+def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp):
+    """Testing:
+        sleet/rain level
+        snow/sleet level
+        sleet/rain level leaving below orography points unfilled.
+    """
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_path = kgo_dir / "snow_sleet_kgo.nc"
+    kgo_name = "{}_kgo.nc".format(kgo_name)
+    kgo_path = kgo_dir / kgo_name
     output_path = tmp_path / "output.nc"
     input_paths = [kgo_dir / x for x in
                    ("wet_bulb_temperature.nc",
@@ -52,43 +62,8 @@ def test_snow_sleet(tmp_path):
                     "orog.nc",
                     "land_mask.nc")]
     args = [*input_paths,
-            "--phase-change", "snow-sleet",
-            "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_sleet_rain(tmp_path):
-    """Test sleet/rain level calculation"""
-    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_path = kgo_dir / "sleet_rain_kgo.nc"
-    output_path = tmp_path / "output.nc"
-    input_paths = [kgo_dir / x for x in
-                   ("wet_bulb_temperature.nc",
-                    "wbti.nc",
-                    "orog.nc",
-                    "land_mask.nc")]
-    args = [*input_paths,
-            "--phase-change", "sleet-rain",
-            "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_sleet_rain_unfilled(tmp_path):
-    """Test sleet/rain level calculation leaving below orography points
-    unfilled."""
-    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_path = kgo_dir / "sleet_rain_unfilled_kgo.nc"
-    output_path = tmp_path / "output.nc"
-    input_paths = [kgo_dir / x for x in
-                   ("wet_bulb_temperature.nc",
-                    "wbti.nc",
-                    "orog.nc",
-                    "land_mask.nc")]
-    args = [*input_paths,
-            "--phase-change", "sleet-rain",
-            "--horizontal-interpolation", "False",
+            "--phase-change", phase_type,
+            "--horizontal-interpolation", horiz_interp,
             "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

@@ -54,6 +54,7 @@ below:
 * Meabh NicGuidhir (Met Office, UK)
 * Tim Pillinger (Met Office, UK)
 * Fiona Rust (Met Office, UK)
+* Chris Sampson (Met Office, UK)
 * Caroline Sandford (Met Office, UK)
 * Eleanor Smith (Met Office, UK)
 * Tomasz Trzeciak (Met Office, UK)
