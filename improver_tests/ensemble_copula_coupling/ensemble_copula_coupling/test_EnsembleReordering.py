@@ -406,8 +406,7 @@ class Test_rank_ecc(IrisTest):
              [[3, 2]],
              [[2, 3]]])
 
-        cube = self.cube.copy()
-        cube = cube[:, :, :2, 0]
+        cube = self.cube[:, :, :2, 0].copy()
 
         raw_cube = cube.copy()
         raw_cube.data = raw_data
@@ -419,6 +418,81 @@ class Test_rank_ecc(IrisTest):
         result = plugin.rank_ecc(calibrated_cube, raw_cube)
 
         self.assertArrayAlmostEqual(result.data, result_data)
+
+    def test_3d_cube_masked(self):
+        """Test that the plugin returns the correct cube data for a
+        3d input cube with a mask applied to each realization."""
+        mask = np.array([[[True, False]],
+                         [[True, False]],
+                         [[True, False]]])
+        raw_data = np.array(
+            [[[1, 9]],
+             [[3, 5]],
+             [[2, 7]]])
+
+        calibrated_data = np.ma.MaskedArray(
+            [[[1, 6]],
+             [[2, 8]],
+             [[3, 10]]], mask=mask, dtype=np.float32)
+
+        # Reordering of the calibrated_data array to match
+        # the raw_data ordering
+        result_data = np.array(
+            [[[np.nan, 10]],
+             [[np.nan, 6]],
+             [[np.nan, 8]]], dtype=np.float32)
+
+        cube = self.cube[:, :, :2, 0].copy()
+
+        raw_cube = cube.copy()
+        raw_cube.data = raw_data
+
+        calibrated_cube = cube.copy()
+        calibrated_cube.data = calibrated_data
+
+        plugin = Plugin()
+        result = plugin.rank_ecc(calibrated_cube, raw_cube)
+        self.assertArrayAlmostEqual(result.data.data, result_data)
+        self.assertArrayEqual(result.data.mask, mask)
+        self.assertEqual(result.data.dtype, np.float32)
+
+    def test_3d_cube_masked_nans(self):
+        """Test that the plugin returns the correct cube data for a
+        3d input cube with a mask applied to each realization, and there are
+        nans under the mask."""
+        mask = np.array([[[True, False]],
+                         [[True, False]],
+                         [[True, False]]])
+        raw_data = np.array(
+            [[[1, 9]],
+             [[3, 5]],
+             [[2, 7]]])
+
+        calibrated_data = np.ma.MaskedArray(
+            [[[np.nan, 6]],
+             [[np.nan, 8]],
+             [[np.nan, 10]]], mask=mask, dtype=np.float32)
+
+        # Reordering of the calibrated_data array to match
+        # the raw_data ordering
+        result_data = np.array(
+            [[[np.nan, 10]],
+             [[np.nan, 6]],
+             [[np.nan, 8]]], dtype=np.float32)
+
+        cube = self.cube[:, :, :2, 0].copy()
+
+        raw_cube = cube.copy()
+        raw_cube.data = raw_data
+
+        calibrated_cube = cube.copy()
+        calibrated_cube.data = calibrated_data
+
+        plugin = Plugin()
+        result = plugin.rank_ecc(calibrated_cube, raw_cube)
+        self.assertArrayAlmostEqual(result.data.data, result_data)
+        self.assertArrayEqual(result.data.mask, mask)
+        self.assertEqual(result.data.dtype, np.float32)
 
     def test_3d_cube_tied_values(self):
         """
@@ -450,8 +524,7 @@ class Test_rank_ecc(IrisTest):
              [[3, 3]],
              [[2, 2]]])
 
-        cube = self.cube.copy()
-        cube = cube[:, :, :2, 0]
+        cube = self.cube[:, :, :2, 0].copy()
 
         raw_cube = cube.copy()
         raw_cube.data = raw_data
@@ -489,8 +562,7 @@ class Test_rank_ecc(IrisTest):
              [[3, 2]],
              [[2, 3]]])
 
-        cube = self.cube.copy()
-        cube = cube[:, :, :2, 0]
+        cube = self.cube[:, :, :2, 0].copy()
 
         raw_cube = cube.copy()
         raw_cube.data = raw_data
@@ -518,8 +590,7 @@ class Test_rank_ecc(IrisTest):
                                 [2],
                                 [1]])
 
-        cube = self.cube.copy()
-        cube = cube[:, :, 0, 0]
+        cube = self.cube[:, :, 0, 0].copy()
         raw_cube = cube.copy()
         raw_cube.data = raw_data
         calibrated_cube = cube.copy()
@@ -545,8 +616,7 @@ class Test_rank_ecc(IrisTest):
                                     [2],
                                     [3]])
 
-        cube = self.cube.copy()
-        cube = cube[:, :, 0, 0]
+        cube = self.cube[:, :, 0, 0].copy()
         raw_cube = cube.copy()
         raw_cube.data = raw_data
         calibrated_cube = cube.copy()

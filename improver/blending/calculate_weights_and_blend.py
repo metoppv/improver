@@ -40,7 +40,7 @@ from improver.blending.weights import (
 from improver.metadata.amend import amend_attributes
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, convert_distance_into_number_of_grid_cells)
+    check_if_grid_is_equal_area, distance_to_number_of_grid_cells)
 
 
 class WeightAndBlend(BasePlugin):
@@ -145,10 +145,10 @@ class WeightAndBlend(BasePlugin):
                 Updated 3D cube of spatially-varying weights
         """
         check_if_grid_is_equal_area(cube)
-        grid_cells = convert_distance_into_number_of_grid_cells(
-            cube, fuzzy_length, int_grid_cells=False)
-        SpatialWeightsPlugin = SpatiallyVaryingWeightsFromMask(grid_cells)
-        weights = SpatialWeightsPlugin.process(cube, weights, self.blend_coord)
+        grid_cells = distance_to_number_of_grid_cells(cube, fuzzy_length,
+                                                      return_int=False)
+        plugin = SpatiallyVaryingWeightsFromMask(grid_cells)
+        weights = plugin.process(cube, weights, self.blend_coord)
         return weights
 
     def process(self, cubelist, cycletime=None, model_id_attr=None,
@@ -215,7 +215,7 @@ class WeightAndBlend(BasePlugin):
             # blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(
                 self.blend_coord)
-            result = BlendingPlugin.process(
+            result = BlendingPlugin(
                 cube, weights=weights, cycletime=cycletime,
                 attributes_dict=attributes_dict)
 

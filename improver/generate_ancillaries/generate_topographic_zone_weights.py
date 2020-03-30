@@ -171,7 +171,8 @@ class GenerateTopographicZoneWeights(BasePlugin):
                 The expected format of the dictionary is e.g.
                 `{'bounds': [[0, 50], [50, 200]], 'units': 'm'}`
             landmask (iris.cube.Cube):
-                Land mask on standard grid. If provided sea points are masked
+                Land mask on standard grid, with land points set to one and
+                sea points set to zero. If provided sea points are masked
                 out in the output array.
         Returns:
             iris.cube.Cube:

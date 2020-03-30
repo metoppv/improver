@@ -28,55 +28,41 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests the nowcast-accumulate CLI"""
+"""Tests for the aggregate-reliability-tables CLI."""
 
 import pytest
 
 from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.slow
-def test_optical_flow_inputs(tmp_path):
-    """Test creating a nowcast accumulation using optical flow inputs"""
-    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-accumulate"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_dir = acc.kgo_root() / "nowcast-accumulate/basic"
-    input_path = (input_dir /
-                  "201811031600_radar_rainrate_composite_UK_regridded.nc")
-    uv_path = input_dir / "optical_flow_uv.nc"
-    oe_path = input_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
-
+def test_coordinate_collapse(tmp_path):
+    """
+    Test aggregation of values by collapsing spatial coordinates.
+    """
+    kgo_dir = acc.kgo_root() / "aggregate-reliability-tables/basic"
+    kgo_path = kgo_dir / "collapse_lat_lon_kgo.nc"
+    input_path = kgo_dir / "reliability_table.nc"
     output_path = tmp_path / "output.nc"
-
-    args = [input_path, uv_path, oe_path,
-            "--max-lead-time", "30",
+    args = [input_path,
+            "--coordinates", "latitude,longitude",
             "--output", output_path]
-
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
-def test_wind_inputs(tmp_path):
-    """Test creating a nowcast accumulation using wind component inputs"""
-    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-accumulate"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_dir = acc.kgo_root() / "nowcast-accumulate/basic"
-    input_path = (input_dir /
-                  "201811031600_radar_rainrate_composite_UK_regridded.nc")
-    uv_path = input_dir / "wind_uv.nc"
-    oe_path = input_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
-
+def test_multiple_tables(tmp_path):
+    """
+    Test aggregation of multiple reliability calibration tables.
+    """
+    kgo_dir = acc.kgo_root() / "aggregate-reliability-tables/basic"
+    kgo_path = kgo_dir / "multiple_tables_kgo.nc"
+    input_paths = sorted(kgo_dir.glob("reliability_table*.nc"))
     output_path = tmp_path / "output.nc"
-
-    args = [input_path, uv_path, oe_path,
-            "--max-lead-time", "30",
+    args = [*input_paths,
             "--output", output_path]
-
     run_cli(args)
     acc.compare(output_path, kgo_path)

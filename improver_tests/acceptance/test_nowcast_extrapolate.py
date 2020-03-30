@@ -44,14 +44,32 @@ RAINRATE_NC = "201811031600_radar_rainrate_composite_UK_regridded.nc"
 OE = "orographic_enhancement_standard_resolution"
 
 
-def test_basic(tmp_path):
-    """Test basic extrapolation nowcast"""
+def test_optical_flow_inputs(tmp_path):
+    """Test extrapolation nowcast using optical flow inputs"""
     kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-extrapolate"
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-extrapolate"
     input_path = input_dir / RAINRATE_NC
     oe_path = input_dir / "orographic_enhancement.nc"
-    uv_path = input_dir / "uv.nc"
+    uv_path = input_dir / "optical_flow_uv.nc"
+
+    output_path = tmp_path / "output.nc"
+
+    args = [input_path, uv_path, oe_path,
+            "--max-lead-time", "90",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_wind_inputs(tmp_path):
+    """Test extrapolation nowcast using wind component inputs"""
+    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-extrapolate"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_dir = acc.kgo_root() / "nowcast-extrapolate"
+    input_path = input_dir / RAINRATE_NC
+    oe_path = input_dir / "orographic_enhancement.nc"
+    uv_path = input_dir / "wind_uv.nc"
 
     output_path = tmp_path / "output.nc"
 
@@ -70,7 +88,7 @@ def test_metadata(tmp_path):
     input_path = input_dir / RAINRATE_NC
     oe_path = input_dir / "orographic_enhancement.nc"
     meta_path = input_dir / "metadata/precip.json"
-    uv_path = input_dir / "uv.nc"
+    uv_path = input_dir / "optical_flow_uv.nc"
 
     output_path = tmp_path / "output.nc"
 

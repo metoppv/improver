@@ -206,3 +206,64 @@ def filter_non_matching_cubes(historic_forecast, truth):
         raise ValueError(msg)
     return (matching_historic_forecasts.merge_cube(),
             matching_truths.merge_cube())
+
+
+def create_unified_frt_coord(forecast_reference_time):
+    """
+    Constructs a single forecast reference time coordinate from a multi-valued
+    coordinate. The new coordinate records the maximum range of bounds of
+    the input forecast reference times, with the point value set to the latest
+    of those in the inputs.
+
+    Args:
+        forecast_reference_time (iris.coord.DimCoord):
+            The forecast_reference_time coordinate to be used in the
+            coordinate creation.
+    Returns:
+        iris.coord.DimCoord:
+            A dimension coordinate containing the forecast reference time
+            coordinate with suitable bounds. The coordinate point is that
+            of the latest contributing forecast.
+    """
+    frt_point = forecast_reference_time.points.max()
+    frt_bounds_min = forecast_reference_time.points.min()
+    frt_bounds_max = frt_point
+    if forecast_reference_time.has_bounds():
+        frt_bounds_min = min(frt_bounds_min,
+                             forecast_reference_time.bounds.min())
+        frt_bounds_max = max(frt_bounds_max,
+                             forecast_reference_time.bounds.max())
+    frt_bounds = (frt_bounds_min, frt_bounds_max)
+    return forecast_reference_time[0].copy(points=frt_point,
+                                           bounds=frt_bounds)
+
+
+def merge_land_and_sea(calibrated_land_only, uncalibrated):
+    """
+    Merge data that has been calibrated over the land with uncalibrated data.
+    Calibrated data will have masked data over the sea which will need to be
+    filled with the uncalibrated data.
+
+    Args:
+        calibrated_land_only (iris.cube.Cube):
+            A cube that has been calibrated over the land, with sea points
+            masked out. Either realizations, probabilities or percentiles.
+            Data is modified in place.
+        uncalibrated (iris.cube.Cube):
+            A cube of uncalibrated data with valid data over the sea. Either
+            realizations, probabilities or percentiles. Dimension coordinates
+            must be the same as the calibrated_land_only cube.
+
+    Raises:
+        ValueError: If input cubes do not have the same input dimensions.
+    """
+    # Check dimensions the same on both cubes.
+    if calibrated_land_only.dim_coords != uncalibrated.dim_coords:
+        message = "Input cubes do not have the same dimension coordinates"
+        raise ValueError(message)
+    # Merge data if calibrated_land_only data is masked.
+    if np.ma.is_masked(calibrated_land_only.data):
+        new_data = calibrated_land_only.data.data
+        mask = calibrated_land_only.data.mask
+        new_data[mask] = uncalibrated.data[mask]
+        calibrated_land_only.data = new_data

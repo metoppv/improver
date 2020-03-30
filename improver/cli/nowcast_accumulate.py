@@ -38,7 +38,8 @@ ACCUMULATION_FIDELITY = 1
 
 # Creates the value_converter that clize needs.
 inputadvection = cli.create_constrained_inputcubelist_converter(
-    'precipitation_advection_x_velocity', 'precipitation_advection_y_velocity')
+    ['precipitation_advection_x_velocity', 'grid_eastward_wind'],
+    ['precipitation_advection_y_velocity', 'grid_northward_wind'])
 
 
 @cli.clizefy
@@ -59,6 +60,9 @@ def process(cube: cli.inputcube,
             The input Cube to be processed.
         advection_velocity (iris.cube.CubeList):
             Advection cubes of U and V.
+            These must have the names of either:
+            precipitation_advection_x_velocity or grid_eastward_wind
+            precipitation_advection_y_velocity or grid_northward_wind
         orographic_enhancement (iris.cube.Cube):
             Cube containing the orographic enhancement fields. May have data
             for multiple times in the cube.

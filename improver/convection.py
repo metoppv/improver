@@ -232,11 +232,9 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         """
         cubes = iris.cube.CubeList([])
         for cube in cubelist:
-            threshold_cube = (
-                BasicThreshold(
-                    threshold, fuzzy_factor=self.fuzzy_factor,
-                    comparison_operator=self.comparison_operator
-                    ).process(cube.copy()))
+            threshold_cube = BasicThreshold(
+                threshold, fuzzy_factor=self.fuzzy_factor,
+                comparison_operator=self.comparison_operator)(cube.copy())
             # Will only ever contain one slice on threshold
             for cube_slice in threshold_cube.slices_over(
                     find_threshold_coordinate(threshold_cube)):

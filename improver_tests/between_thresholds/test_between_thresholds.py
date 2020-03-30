@@ -77,7 +77,7 @@ class Test_process(IrisTest):
             [[0.1, 0.2, 0.3], [0.0, 0.1, 0.2], [0.0, 0.0, 0.1]]],
             dtype=np.float32)
         plugin = OccurrenceBetweenThresholds(threshold_ranges.copy(), 'K')
-        result = plugin.process(self.temp_cube)
+        result = plugin(self.temp_cube)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(
             result.name(), 'probability_of_air_temperature_between_thresholds')
@@ -95,7 +95,7 @@ class Test_process(IrisTest):
             [[0.8, 0.7, 0.6], [0.7, 0.6, 0.5], [0.6, 0.5, 0.4]],
             dtype=np.float32)
         plugin = OccurrenceBetweenThresholds(threshold_ranges.copy(), 'm')
-        result = plugin.process(self.vis_cube)
+        result = plugin(self.vis_cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertArrayAlmostEqual(
             result.coord('visibility').points, [5000.])
@@ -110,7 +110,7 @@ class Test_process(IrisTest):
             [[0.9, 0.8, 0.7], [0.9, 0.8, 0.7], [0.9, 0.8, 0.7]]],
             dtype=np.float32)
         plugin = OccurrenceBetweenThresholds(threshold_ranges, 'm')
-        result = plugin.process(self.vis_cube)
+        result = plugin(self.vis_cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_threshold_units(self):
@@ -122,7 +122,7 @@ class Test_process(IrisTest):
             [[0.9, 0.8, 0.7], [0.9, 0.8, 0.7], [0.9, 0.8, 0.7]]],
             dtype=np.float32)
         plugin = OccurrenceBetweenThresholds(threshold_ranges, 'km')
-        result = plugin.process(self.vis_cube)
+        result = plugin(self.vis_cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
         # check original cube units are not modified
         self.assertEqual(self.vis_cube.coord('visibility').units, 'm')
@@ -139,18 +139,18 @@ class Test_process(IrisTest):
         plugin = OccurrenceBetweenThresholds([[25, 50]], 'K')
         msg = 'Input is not a probability cube'
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(perc_cube)
+            plugin(perc_cube)
 
     def test_error_between_thresholds_cube(self):
         """Test failure if cube isn't above or below threshold"""
         # use plugin to generate a "between_thresholds" cube...
         between_thresholds_cube = (
-            OccurrenceBetweenThresholds([[280, 281], [281, 282]], 'K').process(
+            OccurrenceBetweenThresholds([[280, 281], [281, 282]], 'K')(
                 self.temp_cube))
         plugin = OccurrenceBetweenThresholds([[281, 282]], 'K')
         msg = 'Input cube must contain'
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(between_thresholds_cube)
+            plugin(between_thresholds_cube)
 
     def test_error_thresholds_unavailable(self):
         """Test error if cube doesn't contain the required thresholds"""
@@ -159,7 +159,7 @@ class Test_process(IrisTest):
         msg = ('visibility threshold 10 m is not available\n'
                'visibility threshold 30000 m is not available')
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(self.vis_cube)
+            plugin(self.vis_cube)
 
     def test_threshold_matching_tolerance(self):
         """Test threshold matching succeeds for absolute values close to
@@ -173,7 +173,7 @@ class Test_process(IrisTest):
             [[0.9, 0.9, 0.9], [0.7, 0.7, 0.7], [0.6, 0.5, 0.5]]],
             dtype=np.float32)
         plugin = OccurrenceBetweenThresholds(threshold_ranges, 'degC')
-        result = plugin.process(self.temp_cube)
+        result = plugin(self.temp_cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_thresholds_indistinguishable(self):
@@ -195,7 +195,7 @@ class Test_process(IrisTest):
             dtype=np.float32)
         threshold_ranges = [[0.25, 0.5]]
         plugin = OccurrenceBetweenThresholds(threshold_ranges, 'mm h-1')
-        result = plugin.process(self.precip_cube)
+        result = plugin(self.precip_cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
 

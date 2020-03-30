@@ -37,12 +37,12 @@ import iris
 import numpy as np
 from cf_units import Unit
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
 
-class BasicThreshold(BasePlugin):
+class BasicThreshold(PostProcessingPlugin):
 
     """Apply a threshold truth criterion to a cube.
 
@@ -330,6 +330,8 @@ class BasicThreshold(BasePlugin):
                 # than above), invert the exceedance probability
                 if 'below' in self.comparison_operator['spp_string']:
                     truth_value = 1. - truth_value
+            truth_value = np.ma.masked_where(
+                np.ma.getmask(cube.data), truth_value)
             truth_value = truth_value.astype(input_cube_dtype)
 
             cube.data = truth_value

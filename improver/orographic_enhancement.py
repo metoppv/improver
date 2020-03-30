@@ -50,7 +50,7 @@ from improver.utilities.cube_manipulation import (
     compare_coords, enforce_coordinate_ordering, sort_coord_in_cube)
 from improver.utilities.spatial import (
     DifferenceBetweenAdjacentGridSquares,
-    convert_number_of_grid_cells_into_distance)
+    number_of_grid_cells_to_distance)
 
 
 class OrographicEnhancement(BasePlugin):
@@ -268,7 +268,7 @@ class OrographicEnhancement(BasePlugin):
                 default zero value
         """
         # calculate mean 3x3 (square nbhood) orography heights
-        radius = convert_number_of_grid_cells_into_distance(self.topography, 1)
+        radius = number_of_grid_cells_to_distance(self.topography, 1)
         topo_nbhood = NeighbourhoodProcessing(
             'square', radius).process(self.topography)
         topo_nbhood.convert_units('m')

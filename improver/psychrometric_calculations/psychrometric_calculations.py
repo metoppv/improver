@@ -30,15 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain Psychrometric Calculations."""
 
-import warnings
-
 import iris
 import numpy as np
 from cf_units import Unit
 from iris.cube import CubeList
-from scipy.interpolate import griddata
-from scipy.spatial.qhull import QhullError
-from scipy.stats import linregress
 from stratify import interpolate
 
 import improver.constants as consts
@@ -50,7 +45,8 @@ from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.mathematical_operations import Integration
 from improver.utilities.spatial import (
-    OccurrenceWithinVicinity, convert_number_of_grid_cells_into_distance)
+    OccurrenceWithinVicinity, number_of_grid_cells_to_distance)
+from improver.utilities.interpolation import interpolate_missing_data
 
 
 def _svp_from_lookup(temperature):
@@ -100,8 +96,8 @@ def calculate_svp_in_air(temperature, pressure):
         Series, Vol. 30; Equation A4.7.
     """
     svp = _svp_from_lookup(temperature)
-    temp_Celsius = temperature.copy() + consts.ABSOLUTE_ZERO
-    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_Celsius ** 2))
+    temp_C = temperature + consts.ABSOLUTE_ZERO
+    correction = (1. + 1.0E-8 * pressure * (4.5 + 6.0E-4 * temp_C * temp_C))
     return svp * correction.astype(np.float32)
 
 
@@ -277,8 +273,8 @@ class WetBulbTemperature(BasePlugin):
             numpy.ndarray:
                 Array of the enthalpy gradient with respect to temperature.
         """
-        numerator = (mixing_ratio * latent_heat ** 2)
-        denominator = consts.R_WATER_VAPOUR * temperature ** 2
+        numerator = (mixing_ratio * latent_heat * latent_heat)
+        denominator = consts.R_WATER_VAPOUR * temperature * temperature
         return numerator/denominator + specific_heat
 
     def _calculate_wet_bulb_temperature(
@@ -305,41 +301,50 @@ class WetBulbTemperature(BasePlugin):
 
         """
         # Initialise psychrometric variables
-        latent_heat = self._calculate_latent_heat(temperature)
+        wbt_data_upd = wbt_data = temperature.flatten()
+        pressure = pressure.flatten()
+
+        latent_heat = self._calculate_latent_heat(wbt_data)
         saturation_mixing_ratio = self._calculate_mixing_ratio(
-            temperature, pressure)
-        mixing_ratio = relative_humidity * saturation_mixing_ratio
+            wbt_data, pressure)
+        mixing_ratio = relative_humidity.flatten() * saturation_mixing_ratio
         specific_heat = self._calculate_specific_heat(mixing_ratio)
         enthalpy = self._calculate_enthalpy(
-            mixing_ratio, specific_heat, latent_heat, temperature)
-
-        # Initialise wet bulb temperature increment
-        delta_wbt = 10. * np.broadcast_to(self.precision, temperature.shape)
+            mixing_ratio, specific_heat, latent_heat, wbt_data)
+        del mixing_ratio
 
         # Iterate to find the wet bulb temperature, using temperature as first
         # guess
-        wbt_data = temperature.copy()
         iteration = 0
-        while (np.abs(delta_wbt) > self.precision).any() \
-                and iteration < self.maximum_iterations:
+        to_update = np.arange(temperature.size)
+        update_to_update = slice(None)
+        while to_update.size and iteration < self.maximum_iterations:
 
             if iteration > 0:
+                wbt_data_upd = wbt_data[to_update]
+                pressure = pressure[update_to_update]
+                specific_heat = specific_heat[update_to_update]
+                latent_heat = latent_heat[update_to_update]
+                enthalpy = enthalpy[update_to_update]
                 saturation_mixing_ratio = self._calculate_mixing_ratio(
-                    wbt_data, pressure)
+                    wbt_data_upd, pressure)
 
             enthalpy_new = self._calculate_enthalpy(
-                saturation_mixing_ratio, specific_heat, latent_heat, wbt_data)
+                saturation_mixing_ratio, specific_heat, latent_heat,
+                wbt_data_upd)
             enthalpy_gradient = self._calculate_enthalpy_gradient(
-                saturation_mixing_ratio, specific_heat, latent_heat, wbt_data)
+                saturation_mixing_ratio, specific_heat, latent_heat,
+                wbt_data_upd)
             delta_wbt = (enthalpy - enthalpy_new) / enthalpy_gradient
 
             # Increment wet bulb temperature at points which have not converged
-            to_update = np.where(np.abs(delta_wbt) > self.precision)
-            wbt_data[to_update] = (wbt_data[to_update] + delta_wbt[to_update])
+            update_to_update = np.abs(delta_wbt) > self.precision
+            to_update = to_update[update_to_update]
+            wbt_data[to_update] += delta_wbt[update_to_update]
 
             iteration += 1
 
-        return wbt_data
+        return wbt_data.reshape(temperature.shape)
 
     def create_wet_bulb_temperature_cube(
             self, temperature, relative_humidity, pressure):
@@ -456,7 +461,8 @@ class PhaseChangeLevel(BasePlugin):
     """Calculate a continuous field of heights relative to sea level at which
     a phase change of precipitation is expected."""
 
-    def __init__(self, phase_change, grid_point_radius=2):
+    def __init__(self, phase_change, grid_point_radius=2,
+                 horizontal_interpolation=True):
         """
         Initialise class.
 
@@ -472,6 +478,10 @@ class PhaseChangeLevel(BasePlugin):
                 The radius in grid points used to calculate the maximum
                 height of the orography in a neighbourhood as part of this
                 calculation.
+            horizontal_interpolation (bool):
+                If True apply horizontal interpolation to fill in holes in
+                the returned phase-change-level that occur because the level
+                falls below the orography. If False these areas will be masked.
         """
         phase_changes = {'snow-sleet': {'threshold': 90.,
                                         'name': 'snow_falling'},
@@ -487,8 +497,8 @@ class PhaseChangeLevel(BasePlugin):
 
         self.falling_level_threshold = phase_change_def['threshold']
         self.phase_change_name = phase_change_def['name']
-        self.missing_data = -300.0
         self.grid_point_radius = grid_point_radius
+        self.horizontal_interpolation = horizontal_interpolation
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -638,19 +648,23 @@ class PhaseChangeLevel(BasePlugin):
 
         # For points where -intercept/gradient is greater than zero:
         index2 = (-intercept/gradient >= 0.0)
+        intercept2 = intercept[index2]
+        gradient2 = gradient[index2]
         inside_sqrt = (
-            intercept[index2]**2 - 2*gradient[index2]*(
+            intercept2*intercept2 - 2*gradient2*(
                 self.falling_level_threshold - max_wb_int[index2]))
         phase_cl[index2] = (
-            (intercept[index2] - np.sqrt(inside_sqrt))/-gradient[index2])
+            (intercept2 - np.sqrt(inside_sqrt))/-gradient2)
 
         # For points where -intercept/gradient is less than zero:
         index2 = (-intercept/gradient < 0.0)
+        intercept2 = intercept[index2]
+        gradient2 = gradient[index2]
         inside_sqrt = (
-            2*gradient[index2]*(
+            2*gradient2*(
                 max_wb_int[index2] - self.falling_level_threshold))
         phase_cl[index2] = (
-            (intercept[index2] - np.sqrt(inside_sqrt))/-gradient[index2])
+            (intercept2 - np.sqrt(inside_sqrt))/-gradient2)
         # Update the phase change level. Clip to ignore extremely negative
         # phase change levels.
         phase_cl = np.clip(phase_cl, -2000, np.inf)
@@ -696,30 +710,28 @@ class PhaseChangeLevel(BasePlugin):
                 could be found, filled with zeros elsewhere.
 
         """
-        def fitting_function(wet_bulb_temps):
-            """
-            A small helper function used to find a linear fit of the
-            wet bulb temperature.
-            """
-            return linregress(
-                heights[start_point:end_point],
-                wet_bulb_temps[start_point:end_point])
         # Set up empty arrays for gradient and intercept
-        gradient = np.zeros(wet_bulb_temperature[0].shape)
-        intercept = np.zeros(wet_bulb_temperature[0].shape)
+        result_shape = wet_bulb_temperature.shape[1:]
+        gradient = np.zeros(result_shape)
+        intercept = np.zeros(result_shape)
         if np.any(sea_points):
+            # Use only subset of heights.
+            wbt = wet_bulb_temperature[start_point:end_point]
+            hgt = heights[start_point:end_point]
+            N = len(hgt)
             # Make the 1D sea point array 3D to account for the height axis
             # on the wet bulb temperature array.
-            index3d = np.broadcast_to(sea_points, wet_bulb_temperature.shape)
-            # Flatten the array to make it more efficient to find a linear fit
-            # for every point of interest. We can apply the fitting function
-            # along the right axis to apply it to all points in one go.
-            wet_bulb_temperature_values = (
-                wet_bulb_temperature[index3d].reshape(len(heights), -1))
-            gradient_values, intercept_values, _, _, _, = (
-                np.apply_along_axis(
-                    fitting_function, 0, wet_bulb_temperature_values))
-            # Fill in the right gradients and intercepts in the 2D array.
+            index3d = np.broadcast_to(sea_points, wbt.shape)
+            # Flatten the array to make it more convenient to find a linear fit
+            # for every point of interest.
+            y_vals = wbt[index3d].reshape(N, -1)
+            x_vals = hgt.reshape(N, 1)
+            y_sum = np.sum(y_vals, axis=0)
+            x_sum = np.sum(x_vals, axis=0)
+            xy_cov = np.sum(y_vals*x_vals, axis=0) - (1/N)*(y_sum*x_sum)
+            x_var = np.sum(x_vals*x_vals, axis=0) - (1/N)*(x_sum*x_sum)
+            gradient_values = xy_cov / x_var
+            intercept_values = (1/N)*(y_sum - gradient_values*x_sum)
             gradient[sea_points] = gradient_values
             intercept[sea_points] = intercept_values
         return gradient, intercept
@@ -771,94 +783,6 @@ class PhaseChangeLevel(BasePlugin):
             max_wb_integral, gradient, intercept, phase_change_level_data,
             sea_points)
 
-    @staticmethod
-    def fill_in_by_horizontal_interpolation(
-            phase_change_level_data, max_in_nbhood_orog, orog_data):
-        """
-        Fill in any remaining unset areas in the phase change level by using
-        linear horizontal interpolation across the grid. As phase change levels
-        at the highest height levels will be filled in by this point any
-        points that still don't have a valid phase change level have the phase
-        change level at or below the surface orography.
-        This function uses the following steps to help ensure that the filled
-        in values are above or below the orography:
-
-        1. Fill in the phase change level for points with no value yet
-           set using horizontal interpolation from surrounding set points.
-           Only interpolate from surrounding set points at which the phase
-           change level is below the maximum orography height in the region
-           around the unset point. This helps us avoid spreading very high
-           phase change levels across areas where we had missing data.
-        2. Fill any gaps that still remain where the linear interpolation has
-           not been able to find a value because there is not enough
-           data (e.g at the corners of the domain). Use nearest neighbour
-           interpolation.
-        3. Check whether despite our efforts we have still filled in some
-           of the missing points with phase change levels above the orography.
-           In these cases set the missing points to the height of orography.
-
-        We then return the filled in array, which hopefully has no more
-        missing data.
-
-        Args:
-            phase_change_level_data (numpy.ndarray):
-                The phase change level array, filled with values for points
-                whose wet bulb temperature integral crossed the theshold.
-            max_in_nbhood_orog (numpy.ndarray):
-                The array containing maximum of the orography field in
-                a given radius.
-            orog_data(numpy.data):
-                The array containing the orography data.
-        Returns:
-            numpy.ndarray:
-                The phase change level array with missing data filled by
-                horizontal interpolation.
-        """
-        # Interpolate linearly across the remaining points
-        index = ~np.isnan(phase_change_level_data)
-        index_valid_data = (
-            phase_change_level_data[index] <= max_in_nbhood_orog[index])
-        index[index] = index_valid_data
-        phase_cl_filled = phase_change_level_data
-        if np.any(index):
-            ynum, xnum = phase_change_level_data.shape
-            (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
-            values = phase_change_level_data[index]
-            # Try to do the horizontal interpolation to fill in any gaps,
-            # but if there are not enough points or the points are not arranged
-            # in a way that allows the horizontal interpolation, skip
-            # and use nearest neighbour intead.
-            try:
-                phase_change_level_data_updated = griddata(
-                    np.where(index), values, (y_points, x_points),
-                    method='linear')
-            except QhullError:
-                phase_change_level_data_updated = phase_change_level_data
-            else:
-                phase_cl_filled = phase_change_level_data_updated
-            # Fill in any remaining missing points using nearest neighbour.
-            # This normally only impact points at the corners of the domain,
-            # where the linear fit doesn't reach.
-            index = ~np.isnan(phase_cl_filled)
-            index_valid_data = (
-                phase_cl_filled[index] <= max_in_nbhood_orog[index])
-            index[index] = index_valid_data
-            if np.any(index):
-                values = phase_change_level_data_updated[index]
-                phase_change_level_data_updated_2 = griddata(
-                    np.where(index), values, (y_points, x_points),
-                    method='nearest')
-                phase_cl_filled = phase_change_level_data_updated_2
-
-        # Set the phase change level at any points that have been filled with
-        # phase change levels that are above the orography back to the
-        # height of the orography.
-        index = (~np.isfinite(phase_change_level_data))
-        phase_cl_above_orog = (phase_cl_filled[index] > orog_data[index])
-        index[index] = phase_cl_above_orog
-        phase_cl_filled[index] = orog_data[index]
-        return phase_cl_filled
-
     def find_max_in_nbhood_orography(self, orography_cube):
         """
         Find the maximum value of the orography in the region around each grid
@@ -874,10 +798,10 @@ class PhaseChangeLevel(BasePlugin):
                 The cube containing the maximum in a neighbourhood of the
                 orography data.
         """
-        radius_in_metres = convert_number_of_grid_cells_into_distance(
+        radius_in_metres = number_of_grid_cells_to_distance(
             orography_cube, self.grid_point_radius)
         max_in_nbhood_orog = OccurrenceWithinVicinity(
-            radius_in_metres).process(orography_cube)
+            radius_in_metres)(orography_cube)
         return max_in_nbhood_orog
 
     def _calculate_phase_change_level(
@@ -885,6 +809,10 @@ class PhaseChangeLevel(BasePlugin):
             land_sea_data, heights, height_points, highest_height):
         """
         Calculate phase change level and fill in missing points
+
+        .. See the documentation for a more detailed discussion of the steps.
+        .. include:: extended_documentation/psychrometric_calculations/
+           psychrometric_calculations/_calculate_phase_change_level.rst
 
         Args:
             wet_bulb_temp (numpy.ndarray):
@@ -920,14 +848,26 @@ class PhaseChangeLevel(BasePlugin):
         self.fill_in_sea_points(
             phase_change_data, land_sea_data,
             wb_integral.max(axis=0), wet_bulb_temp, heights)
-        updated_phase_cl = self.fill_in_by_horizontal_interpolation(
-            phase_change_data, max_nbhood_orog, orography)
-        points = np.where(~np.isfinite(phase_change_data))
-        phase_change_data[points] = updated_phase_cl[points]
 
-        # Fill in any remaining points with "missing data" value
-        remaining_points = np.where(np.isnan(phase_change_data))
-        phase_change_data[remaining_points] = self.missing_data
+        # Any unset points at this stage are set to np.nan; these will be
+        # lands points where the phase-change-level is below the orography.
+        # These can be filled by optional horizontal interpolation.
+        if self.horizontal_interpolation:
+            with np.errstate(invalid='ignore'):
+                max_nbhood_mask = phase_change_data <= max_nbhood_orog
+            updated_phase_cl = interpolate_missing_data(
+                phase_change_data, limit=orography,
+                valid_points=max_nbhood_mask)
+
+            with np.errstate(invalid='ignore'):
+                max_nbhood_mask = updated_phase_cl <= max_nbhood_orog
+            phase_change_data = interpolate_missing_data(
+                updated_phase_cl, method='nearest', limit=orography,
+                valid_points=max_nbhood_mask)
+
+        # Mask any points that are still set to np.nan; this should be no
+        # points if horizontal interpolation has been used.
+        phase_change_data = np.ma.masked_invalid(phase_change_data)
 
         return phase_change_data
 
@@ -961,8 +901,7 @@ class PhaseChangeLevel(BasePlugin):
         data appropriately.
 
         Args:
-        cubes (iris.cube.CubeList or list or iris.cube.Cube):
-            containing:
+            cubes (iris.cube.CubeList or list of iris.cube.Cube) containing:
                 wet_bulb_temperature (iris.cube.Cube):
                     Cube of wet bulb temperatures on height levels.
                 wet_bulb_integral (iris.cube.Cube):
@@ -970,7 +909,8 @@ class PhaseChangeLevel(BasePlugin):
                 orog (iris.cube.Cube):
                     Cube of orography (m).
                 land_sea_mask (iris.cube.Cube):
-                    Cube containing a binary land-sea mask.
+                    Cube containing a binary land-sea mask, with land points
+                    set to one and sea points set to zero.
 
         Returns:
             iris.cube.Cube:
@@ -1031,6 +971,7 @@ class PhaseChangeLevel(BasePlugin):
                 phase_change.append(phase_change_data)
 
         phase_change_level = self.create_phase_change_level_cube(
-            wet_bulb_temperature, np.array(phase_change, dtype=np.float32))
+            wet_bulb_temperature,
+            np.ma.masked_array(phase_change, dtype=np.float32))
 
         return phase_change_level

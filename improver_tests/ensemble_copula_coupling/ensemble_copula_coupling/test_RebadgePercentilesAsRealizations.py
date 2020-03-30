@@ -72,6 +72,8 @@ class Test_process(IrisTest):
         result = plugin.process(cube)
         self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.coord("realization"), DimCoord)
+        self.assertEqual(result.coord("realization").units, "1")
+        self.assertEqual(result.coord("realization").var_name, "realization")
 
     def test_specify_realization_numbers(self):
         """Use the ensemble_realization_numbers optional argument to specify

@@ -37,14 +37,21 @@ import unittest
 
 import iris
 import numpy as np
+from numpy.testing import assert_array_equal
 from iris.tests import IrisTest
+from iris.util import squeeze
 
 from improver.calibration.utilities import (
     check_predictor, convert_cube_data_to_2d,
-    flatten_ignoring_masked_data, filter_non_matching_cubes)
+    flatten_ignoring_masked_data, filter_non_matching_cubes,
+    create_unified_frt_coord, merge_land_and_sea)
 
+from ..reliability_calibration.test_AggregateReliabilityCalibrationTables \
+    import Test_Aggregation
 from ..ensemble_calibration.helper_functions import (set_up_temperature_cube,
                                                      SetupCubes)
+
+from ...set_up_test_cubes import set_up_percentile_cube
 
 
 class Test_convert_cube_data_to_2d(IrisTest):
@@ -388,6 +395,150 @@ class Test__filter_non_matching_cubes(SetupCubes):
         with self.assertRaisesRegex(ValueError, msg):
             filter_non_matching_cubes(
                 self.partial_historic_forecasts, partial_truth)
+
+
+class Test_create_unified_frt_coord(Test_Aggregation):
+
+    """Test the create_unified_frt_coord method."""
+
+    def test_coordinate(self):
+        """Test the forecast reference time coordinate has the expected point,
+        bounds, and type for an input with multiple forecast reference time
+        points."""
+
+        frt = 'forecast_reference_time'
+        frt_coord = self.forecasts.coord(frt)
+
+        expected_points = self.forecast_2.coord(frt).points[0]
+        expected_bounds = [[self.forecast_1.coord(frt).points[0],
+                            expected_points]]
+        result = create_unified_frt_coord(frt_coord)
+
+        self.assertIsInstance(result, iris.coords.DimCoord)
+        assert_array_equal(result.points, expected_points)
+        assert_array_equal(result.bounds, expected_bounds)
+        self.assertEqual(result.name(), frt_coord.name())
+        self.assertEqual(result.units, frt_coord.units)
+
+    def test_coordinate_single_frt_input(self):
+        """Test the forecast reference time coordinate has the expected point,
+        bounds, and type for an input with a single forecast reference time
+        point."""
+
+        frt = 'forecast_reference_time'
+        frt_coord = self.forecast_1.coord(frt)
+
+        expected_points = self.forecast_1.coord(frt).points[0]
+        expected_bounds = [[self.forecast_1.coord(frt).points[0],
+                            expected_points]]
+        result = create_unified_frt_coord(frt_coord)
+
+        self.assertIsInstance(result, iris.coords.DimCoord)
+        assert_array_equal(result.points, expected_points)
+        assert_array_equal(result.bounds, expected_bounds)
+        self.assertEqual(result.name(), frt_coord.name())
+        self.assertEqual(result.units, frt_coord.units)
+
+    def test_coordinate_input_with_bounds(self):
+        """Test the forecast reference time coordinate has the expected point,
+        bounds, and type for an input multiple forecast reference times, each
+        with bounds."""
+
+        frt = 'forecast_reference_time'
+        cube = iris.cube.CubeList([self.reliability_cube,
+                                   self.different_frt]).merge_cube()
+        frt_coord = cube.coord(frt)
+
+        expected_points = self.different_frt.coord(frt).points[0]
+        expected_bounds = [[self.reliability_cube.coord(frt).bounds[0][0],
+                            self.different_frt.coord(frt).bounds[0][-1]]]
+        result = create_unified_frt_coord(frt_coord)
+
+        self.assertIsInstance(result, iris.coords.DimCoord)
+        assert_array_equal(result.points, expected_points)
+        assert_array_equal(result.bounds, expected_bounds)
+        self.assertEqual(result.name(), frt_coord.name())
+        self.assertEqual(result.units, frt_coord.units)
+
+
+class Test_merge_land_and_sea(IrisTest):
+
+    """Test merge_land_and_sea"""
+
+    def setUp(self):
+        """Set up a percentile cube"""
+        # Create a percentile cube
+        land_data = np.ones((2, 3, 4), dtype=np.float32)
+        sea_data = np.ones((2, 3, 4), dtype=np.float32)*3.0
+        mask = np.array([[[True, False, False, False],
+                          [True, False, False, False],
+                          [False, False, False, True]],
+                         [[True, False, False, False],
+                          [True, False, False, False],
+                          [False, False, False, True]]])
+        land_data = np.ma.MaskedArray(land_data, mask)
+        self.percentiles_land = set_up_percentile_cube(land_data, [30, 60])
+        self.percentiles_sea = set_up_percentile_cube(sea_data, [30, 60])
+
+    def test_missing_dim(self):
+        """Check that an error is raised if missing dimensional coordinate"""
+        single_percentile = squeeze(self.percentiles_land[0])
+        message = "Input cubes do not have the same dimension coordinates"
+        with self.assertRaisesRegex(ValueError, message):
+            merge_land_and_sea(single_percentile, self.percentiles_sea)
+
+    def test_mismatch_dim_length(self):
+        """Check an error is raised if a dim coord has a different length"""
+        land_slice = self.percentiles_land[:, 1:, :]
+        message = "Input cubes do not have the same dimension coordinates"
+        with self.assertRaisesRegex(ValueError, message):
+            merge_land_and_sea(land_slice, self.percentiles_sea)
+
+    def test_merge(self):
+        """Test merged data."""
+        expected_merged_data = np.array(
+            [[[3.0, 1.0, 1.0, 1.0],
+              [3.0, 1.0, 1.0, 1.0],
+              [1.0, 1.0, 1.0, 3.0]],
+             [[3.0, 1.0, 1.0, 1.0],
+              [3.0, 1.0, 1.0, 1.0],
+              [1.0, 1.0, 1.0, 3.0]]], dtype=np.float32)
+        expected_cube = self.percentiles_land.copy()
+        expected_cube.data = expected_merged_data
+        merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
+        self.assertArrayEqual(
+            self.percentiles_land.data, expected_merged_data)
+        self.assertEqual(
+            expected_cube.xml(checksum=True),
+            self.percentiles_land.xml(checksum=True))
+        self.assertFalse(np.ma.is_masked(self.percentiles_land.data))
+        self.assertEqual(self.percentiles_land.data.dtype, np.float32)
+
+    def test_nothing_to_merge(self):
+        """Test case where there is no missing data to fill in."""
+        input_mask = np.ones((2, 3, 4)) * False
+        self.percentiles_land.data.mask = input_mask
+        expected_cube = self.percentiles_land.copy()
+        merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
+        self.assertArrayEqual(
+            self.percentiles_land.data, expected_cube.data)
+        self.assertEqual(
+            expected_cube.xml(checksum=True),
+            self.percentiles_land.xml(checksum=True))
+        self.assertFalse(np.ma.is_masked(self.percentiles_land.data))
+        self.assertEqual(self.percentiles_land.data.dtype, np.float32)
+
+    def test_input_not_masked(self):
+        """Test case where input cube is not masked."""
+        self.percentiles_land.data = np.ones((2, 3, 4), dtype=np.float32)
+        expected_cube = self.percentiles_land.copy()
+        merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
+        self.assertArrayEqual(
+            self.percentiles_land.data, expected_cube.data)
+        self.assertEqual(
+            expected_cube.xml(checksum=True),
+            self.percentiles_land.xml(checksum=True))
+        self.assertEqual(self.percentiles_land.data.dtype, np.float32)
 
 
 if __name__ == '__main__':

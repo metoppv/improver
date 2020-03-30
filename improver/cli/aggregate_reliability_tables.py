@@ -29,42 +29,36 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to create wind-gust data."""
+"""CLI to aggregate reliability tables."""
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(wind_gust: cli.inputcube,
-            wind_speed: cli.inputcube,
-            *,
-            wind_gust_percentile: float = 50.0,
-            wind_speed_percentile: float = 95.0):
-    """Create a cube containing the wind_gust diagnostic.
+def process(*cubes: cli.inputcube,
+            coordinates: cli.comma_separated_list = None):
+    """Aggregate reliability tables.
 
-    Calculate revised wind-gust data using a specified percentile of
-    wind-gust data and a specified percentile of wind-speed data through the
-    WindGustDiagnostic plugin. The wind-gust diagnostic will be the max of the
-    specified percentile data.
+    Aggregate multiple reliability calibration tables and/or aggregate over
+    coordinates within the table(s) to produce a new reliability calibration
+    table.
 
     Args:
-        wind_gust (iris.cube.Cube):
-            Cube containing one or more percentiles of wind_gust data.
-        wind_speed (iris.cube.Cube):
-            Cube containing one or more percentiles of wind_speed data.
-        wind_gust_percentile (float):
-            Percentile value required from wind-gust cube.
-        wind_speed_percentile (float):
-            Percentile value required from wind-speed cube.
-
+        cubes (list of iris.cube.Cube):
+            The cube or cubes containing the reliability calibration tables
+            to aggregate.
+        coordinates (list):
+            A list of coordinates over which to aggregate the reliability
+            calibration table using summation. If the list is empty
+            and a single cube is provided, this cube will be returned
+            unchanged.
     Returns:
         iris.cube.Cube:
-            Cube containing the wind-gust diagnostic data.
+            Aggregated reliability table.
     """
-    from improver.wind_calculations.wind_gust_diagnostic import (
-        WindGustDiagnostic)
+    from improver.calibration.reliability_calibration import (
+        AggregateReliabilityCalibrationTables)
 
-    result = WindGustDiagnostic(
-        wind_gust_percentile, wind_speed_percentile)(wind_gust, wind_speed)
-    return result
+    return AggregateReliabilityCalibrationTables().process(
+        cubes, coordinates=coordinates)

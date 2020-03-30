@@ -72,6 +72,22 @@ def test_truncated_gaussian(tmp_path):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
+def test_realizations_input_land_sea(tmp_path):
+    """Test realizations as input with a land sea mask"""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/land_sea"
+    kgo_path = kgo_dir / "realizations_kgo.nc"
+    input_path = kgo_dir / "../gaussian/input.nc"
+    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
+    land_sea_path = kgo_dir / "landmask.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, emos_est_path, land_sea_path,
+            "--distribution", "norm",
+            "--random-seed", "0",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
 def test_realizations_as_predictor(tmp_path):
     """Implementation of test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/realizations"
@@ -104,6 +120,22 @@ def test_probabilities(tmp_path):
                 atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
+def test_probabilities_input_land_sea(tmp_path):
+    """Test probabilities as input with a land sea mask"""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/land_sea"
+    kgo_path = kgo_dir / "probabilities_kgo.nc"
+    input_path = kgo_dir / "../probabilities/input.nc"
+    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
+    land_sea_path = kgo_dir / "landmask.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, emos_est_path, land_sea_path,
+            "--distribution", "norm",
+            "--realizations-count", "18",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
 def test_probabilities_error(tmp_path):
     """Test using probabilities as input without num_realizations"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/probabilities"
@@ -131,6 +163,22 @@ def test_percentiles(tmp_path):
     run_cli(args)
     acc.compare(output_path, kgo_path,
                 atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+
+
+def test_percentiles_input_land_sea(tmp_path):
+    """Test percentiles as input with a land sea mask"""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/land_sea"
+    kgo_path = kgo_dir / "percentiles_kgo.nc"
+    input_path = kgo_dir / "../percentiles/input.nc"
+    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
+    land_sea_path = kgo_dir / "landmask.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, emos_est_path, land_sea_path,
+            "--distribution", "norm",
+            "--realizations-count", "18",
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
 def test_percentiles_error(tmp_path):

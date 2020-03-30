@@ -50,7 +50,8 @@ def process(orography: cli.inputcube,
         orography (iris.cube.Cube):
             The orography on a standard grid.
         land_sea_mask (iris.cube.Cube):
-            The land mask on standard grid. If provided sea points will be set
+            The land mask on standard grid, with land points set to one and
+            sea points set to zero. If provided sea points will be set
             to zero in every band. If no land mask is provided, sea points will
             be included in the appropriate topographic band.
         bands_config (dict):

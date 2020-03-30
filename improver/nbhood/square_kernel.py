@@ -33,16 +33,14 @@
 import iris
 import numpy as np
 
+from improver.nbhood.circular_kernel import (
+    check_radius_against_distance)
 from improver.utilities.cube_checker import (
     check_cube_coordinates, check_for_x_and_y_axes)
 from improver.utilities.cube_manipulation import clip_cube_data
 from improver.utilities.pad_spatial import (
     pad_cube_with_halo, remove_halo_from_cube)
-from improver.utilities.spatial import (
-    convert_distance_into_number_of_grid_cells)
-
-# Maximum radius of the neighbourhood width in grid cells.
-MAX_RADIUS_IN_GRID_CELLS = 500
+from improver.utilities.spatial import distance_to_number_of_grid_cells
 
 
 class SquareNeighbourhood:
@@ -203,14 +201,14 @@ class SquareNeighbourhood:
         return neighbourhood_total
 
     def mean_over_neighbourhood(self, summed_cube, summed_mask,
-                                cells_x, cells_y, iscomplex=False):
+                                cells, iscomplex=False):
         """
         Method to calculate the average value in a square neighbourhood using
         the 4-point algorithm to find the total sum over the neighbourhood.
 
         The output from the cumulate_array method can be used to
         calculate the sum over a neighbourhood of size
-        (2*cells_x+1)*(2*cells_y+1). This sum is then divided by the area of
+        (2*cells+1)**2. This sum is then divided by the area of
         the neighbourhood to calculate the mean value in the neighbourhood.
 
         For all points, a fast vectorised approach is taken:
@@ -241,11 +239,8 @@ class SquareNeighbourhood:
                 Must be passed through cumulate_array method first.
                 The cube should contain only x and y dimensions,
                 so will generally be a slice of a cube.
-            cells_x (int):
+            cells (int):
                 The radius of the neighbourhood in grid points, in the x
-                direction (excluding the central grid point).
-            cells_y (int):
-                The radius of the neighbourhood in grid points, in the y
                 direction (excluding the central grid point).
             iscomplex (bool):
                 Flag indicating whether cube.data contains complex values.
@@ -264,14 +259,14 @@ class SquareNeighbourhood:
 
         # Displacements from the point at the centre of the neighbourhood.
         # Equivalent to point B in the docstring example.
-        ymax_xmax_disp = (cells_y*n_columns) + cells_x
+        ymax_xmax_disp = (cells * n_columns) + cells
         # Equivalent to point A in the docstring example.
-        ymax_xmin_disp = (cells_y*n_columns) - cells_x - 1
+        ymax_xmin_disp = (cells * n_columns) - cells - 1
 
         # Equivalent to point D in the docstring example.
-        ymin_xmax_disp = (-1*(cells_y+1)*n_columns) + cells_x
+        ymin_xmax_disp = (-1 * (cells + 1) * n_columns) + cells
         # Equivalent to point C in the docstring example.
-        ymin_xmin_disp = (-1*(cells_y+1)*n_columns) - cells_x - 1
+        ymin_xmin_disp = (-1 * (cells + 1) * n_columns) - cells - 1
 
         # Flatten the cube data and create 4 copies of the flattened
         # array which are rolled to align the 4-points which are needed
@@ -350,12 +345,11 @@ class SquareNeighbourhood:
         mask.data[nan_array] = 0.0
         cube.data[nan_array] = 0.0
         #  Set cube.data to 0.0 where mask_cube is 0.0
-        cube.data = (cube.data * mask.data).astype(
-            cube.data.dtype)
+        cube.data = (cube.data * mask.data).astype(cube.data.dtype)
         return cube, mask, nan_array
 
     def _pad_and_calculate_neighbourhood(
-            self, cube, mask, grid_cells_x, grid_cells_y):
+            self, cube, mask, grid_cells):
         """
         Apply neighbourhood processing consisting of the following steps:
 
@@ -369,11 +363,8 @@ class SquareNeighbourhood:
                 Cube with masked or NaN values set to 0.0
             mask (iris.cube.Cube):
                 Cube with masked or NaN values set to 0.0
-            grid_cells_x (float):
+            grid_cells (float or int):
                 The number of grid cells along the x axis used to create a
-                square neighbourhood.
-            grid_cells_y (float):
-                The number of grid cells along the y axis used to create a
                 square neighbourhood.
 
         Returns:
@@ -385,9 +376,9 @@ class SquareNeighbourhood:
         # Since the neighbourhood size is 2*radius + 1, this means that all
         # grid points within the original domain will have data available for
         # the full neighbourhood size.  The halo is removed later.
-        padded_cube = pad_cube_with_halo(cube, grid_cells_x+1, grid_cells_y+1,
+        padded_cube = pad_cube_with_halo(cube, grid_cells+1, grid_cells+1,
                                          halo_mean_data=False)
-        padded_mask = pad_cube_with_halo(mask, grid_cells_x+1, grid_cells_y+1,
+        padded_mask = pad_cube_with_halo(mask, grid_cells+1, grid_cells+1,
                                          halo_mean_data=False)
 
         # Check whether cube contains complex values
@@ -397,7 +388,7 @@ class SquareNeighbourhood:
         summed_up_mask = self.cumulate_array(padded_mask)
         neighbourhood_averaged_cube = (
             self.mean_over_neighbourhood(summed_up_cube, summed_up_mask,
-                                         grid_cells_x, grid_cells_y,
+                                         grid_cells,
                                          is_complex))
         if neighbourhood_averaged_cube.dtype in [np.float64, np.longdouble]:
             neighbourhood_averaged_cube.data = (
@@ -406,8 +397,7 @@ class SquareNeighbourhood:
 
     def _remove_padding_and_mask(
             self, neighbourhood_averaged_cube,
-            original_cube, mask,
-            grid_cells_x, grid_cells_y):
+            original_cube, mask, grid_cells):
         """
         Remove the halo from the padded array and apply the mask, if required.
         If fraction option set, clip the data so values lie within
@@ -421,12 +411,9 @@ class SquareNeighbourhood:
                 The original cube slice.
             mask (iris.cube.Cube):
                 The mask cube created by set_up_cubes_to_be_neighbourhooded.
-            grid_cells_x (float):
-                The number of grid cells along the x axis used to create a
-                square neighbourhood.
-            grid_cells_y (float):
-                The number of grid cells along the y axis used to create a
-                square neighbourhood.
+            grid_cells (float or int):
+                The number of grid cells used to create a square
+                neighbourhood (assuming an equal area grid).
 
         Returns:
             iris.cube.Cube:
@@ -437,18 +424,17 @@ class SquareNeighbourhood:
         # calculated using larger neighbourhood areas than are present in
         # reality.
         neighbourhood_averaged_cube = remove_halo_from_cube(
-            neighbourhood_averaged_cube, grid_cells_x+1, grid_cells_y+1)
+            neighbourhood_averaged_cube, grid_cells+1, grid_cells+1)
         if self.re_mask and mask.data.min() < 1.0:
             neighbourhood_averaged_cube.data = np.ma.masked_array(
                 neighbourhood_averaged_cube.data,
                 mask=np.logical_not(mask.data.squeeze()))
         # Add clipping
         if self.sum_or_fraction == "fraction":
-            minimum_value = np.nanmin(original_cube.data)
-            maximum_value = np.nanmax(original_cube.data)
+            min_val = np.nanmin(original_cube.data)
+            max_val = np.nanmax(original_cube.data)
             neighbourhood_averaged_cube = (
-                clip_cube_data(neighbourhood_averaged_cube,
-                               minimum_value, maximum_value))
+                clip_cube_data(neighbourhood_averaged_cube, min_val, max_val))
         return neighbourhood_averaged_cube
 
     def run(self, cube, radius, mask_cube=None):
@@ -481,28 +467,23 @@ class SquareNeighbourhood:
         """
         # If the data is masked, the mask will be processed as well as the
         # original_data * mask array.
+        check_radius_against_distance(cube, radius)
         original_attributes = cube.attributes
         original_methods = cube.cell_methods
-        grid_cells_x = (
-            convert_distance_into_number_of_grid_cells(
-                cube, radius,
-                max_distance_in_grid_cells=MAX_RADIUS_IN_GRID_CELLS))
-        grid_cells_y = grid_cells_x
+        grid_cells = distance_to_number_of_grid_cells(cube, radius)
+
         result_slices = iris.cube.CubeList()
         for cube_slice in cube.slices([cube.coord(axis='y'),
                                        cube.coord(axis='x')]):
             (cube_slice, mask, nan_array) = (
-                self.set_up_cubes_to_be_neighbourhooded(cube_slice,
-                                                        mask_cube))
+                self.set_up_cubes_to_be_neighbourhooded(cube_slice, mask_cube))
             neighbourhood_averaged_cube = (
                 self._pad_and_calculate_neighbourhood(
-                    cube_slice, mask,
-                    grid_cells_x, grid_cells_y))
+                    cube_slice, mask, grid_cells))
             neighbourhood_averaged_cube = (
                 self._remove_padding_and_mask(
                     neighbourhood_averaged_cube,
-                    cube_slice, mask,
-                    grid_cells_x, grid_cells_y))
+                    cube_slice, mask, grid_cells))
             neighbourhood_averaged_cube.data[nan_array.astype(bool)] = np.nan
             result_slices.append(neighbourhood_averaged_cube)
 

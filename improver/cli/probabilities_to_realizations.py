@@ -42,7 +42,7 @@ def process(cube: cli.inputcube,
             realizations_count: int = None,
             random_seed: int = None,
             ignore_ecc_bounds=False):
-    """Convert probabilities to ensemble realizations using Ensemble Coupla
+    """Convert probabilities to ensemble realizations using Ensemble Copula
     Coupling.
 
     Probabilities are first converted to percentiles, which are then either
@@ -54,7 +54,7 @@ def process(cube: cli.inputcube,
         raw_cube (iris.cube.Cube):
             Cube of raw (not post processed) weather data.
             If this argument is given ensemble realizations will be created
-            from percentiles by reshuffling them in correspondance to the rank
+            from percentiles by reshuffling them in correspondence to the rank
             order of the raw ensemble. Otherwise, the percentiles are rebadged
             as realizations.
         realizations_count (int):

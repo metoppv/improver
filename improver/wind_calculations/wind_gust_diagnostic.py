@@ -35,11 +35,11 @@ import warnings
 import iris
 import numpy as np
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import find_percentile_coordinate
 
 
-class WindGustDiagnostic(BasePlugin):
+class WindGustDiagnostic(PostProcessingPlugin):
 
     """Plugin for calculating wind-gust diagnostic.
 
@@ -207,5 +207,4 @@ class WindGustDiagnostic(BasePlugin):
 
         # Update metadata
         result.remove_coord(perc_coord_gust.name())
-
         return result

@@ -110,6 +110,7 @@ class RebadgePercentilesAsRealizations(BasePlugin):
         cube.coord("realization").units = "1"
         cube.coord("realization").points = (
             cube.coord("realization").points.astype(np.int32))
+        cube.coord("realization").var_name = "realization"
 
         return cube
 
@@ -1188,7 +1189,11 @@ class EnsembleReordering(BasePlugin):
             # of having < 32 arrays or a leading dimension < 32 in the
             # input data array. This function allows indexing of a 3d array
             # using a 3d array.
+            mask = np.ma.getmask(calfc.data)
             calfc.data = choose(ranking, calfc.data)
+            if mask is not np.ma.nomask:
+                calfc.data = np.ma.MaskedArray(
+                    calfc.data, mask, dtype=np.float32)
             results.append(calfc)
         # Ensure we haven't lost any dimensional coordinates with only one
         # value in.

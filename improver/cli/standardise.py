@@ -70,7 +70,8 @@ def process(cube: cli.inputcube,
             this must be land_binary_mask data.
         land_sea_mask (iris.cube.Cube):
             A cube describing the land_binary_mask on the source-grid if
-            coastline-aware regridding is required.
+            coastline-aware regridding is required, with land points set to
+            one and sea points set to zero.
         regrid_mode (str):
             Selects which regridding techniques to use. Default uses
             iris.analysis.Linear(); "nearest" uses Nearest() (for less

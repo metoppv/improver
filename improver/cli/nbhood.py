@@ -92,7 +92,7 @@ def process(cube: cli.inputcube,
             Include this option to set the weighting to decrease with radius.
             Otherwise a constant weighting is assumed.
             weighted_mode is only applicable for calculating "probability"
-            neighbourhood output using the circular kernal.
+            neighbourhood output using the circular kernel.
         area_sum (bool):
             Return sum rather than fraction over the neighbourhood area.
         remask (bool):
@@ -152,20 +152,17 @@ def process(cube: cli.inputcube,
     radius_or_radii, lead_times = radius_by_lead_time(radii, lead_times)
 
     if neighbourhood_output == "probabilities":
-        result = (
-            NeighbourhoodProcessing(
-                neighbourhood_shape, radius_or_radii,
-                lead_times=lead_times,
-                weighted_mode=weighted_mode,
-                sum_or_fraction=sum_or_fraction, re_mask=remask
-            ).process(cube, mask_cube=mask))
+        result = NeighbourhoodProcessing(
+            neighbourhood_shape, radius_or_radii,
+            lead_times=lead_times,
+            weighted_mode=weighted_mode,
+            sum_or_fraction=sum_or_fraction,
+            re_mask=remask)(cube, mask_cube=mask)
     elif neighbourhood_output == "percentiles":
-        result = (
-            GeneratePercentilesFromANeighbourhood(
-                neighbourhood_shape, radius_or_radii,
-                lead_times=lead_times,
-                percentiles=percentiles
-            ).process(cube))
+        result = GeneratePercentilesFromANeighbourhood(
+            neighbourhood_shape, radius_or_radii,
+            lead_times=lead_times,
+            percentiles=percentiles)(cube)
 
     if degrees_as_complex:
         # convert neighbourhooded cube back to degrees

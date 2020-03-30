@@ -207,29 +207,59 @@ def create_constrained_inputcubelist_converter(*constraints):
     These cubes get loaded and returned as a CubeList.
 
     Args:
-        *constraints (str):
-            constraints to be used in the loading of cubes against a cubeList.
+        *constraints (tuple of str or list):
+            Constraints to be used in the loading of cubes into a CubeList.
+            If the tuple contains a string or multiple strings, then each
+            string is expected to return exactly one match. If the tuple
+            contains a list or multiple lists, then each list is treated as a
+            group that is expected to return a single match. The tuple
+            can contain a mixture of strings and lists as required.
 
     Returns:
         function:
             A function with the constraints used for a list comprehension.
+
     """
     @value_converter
     def constrained_inputcubelist_converter(to_convert):
         """Passes the cube and constraints onto maybe_coerce_with.
 
         Args:
-            to_convert (string or iris.cube.CubeList):
-                The cube to be passed forward for returning or loading.
+            to_convert (string):
+                The filename to be loaded.
 
         Returns:
             iris.cube.CubeList:
                 The loaded cubelist of constrained cubes.
+
+        Raises:
+            ValueError:
+                Each constraint (either a string or a list) is expected to
+                return a single match. An error is raised if no match or more
+                than one match is found.
         """
         from improver.utilities.load import load_cube
         from iris.cube import CubeList
-        return CubeList(maybe_coerce_with(load_cube, to_convert, constraints=j)
-                        for j in constraints)
+
+        cubelist = CubeList()
+        for constr in constraints:
+            constr_list = [constr] if isinstance(constr, str) else constr
+            found_cubes = []
+            for constr_item in constr_list:
+                try:
+                    found_cubes.append(maybe_coerce_with(
+                        load_cube, to_convert, constraints=constr_item))
+                except ValueError:
+                    pass
+            if len(found_cubes) != 1:
+                msg = (f"Incorrect number of valid inputs available for the "
+                       "{constr} constraint. "
+                       f"Number of valid inputs: {len(found_cubes)} "
+                       f"The valid inputs found are: {found_cubes}")
+                raise ValueError(msg)
+            cubelist.extend(found_cubes)
+
+        return cubelist
 
     return constrained_inputcubelist_converter
 

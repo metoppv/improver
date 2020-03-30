@@ -155,9 +155,9 @@ class Test_process(Test_SpotLapseRateAdjust):
         data values."""
 
         plugin = SpotLapseRateAdjust()
-        result = plugin.process(self.spot_temperature_nearest,
-                                self.neighbour_cube,
-                                self.lapse_rate_cube)
+        result = plugin(self.spot_temperature_nearest,
+                        self.neighbour_cube,
+                        self.lapse_rate_cube)
 
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), self.spot_temperature_nearest.name())
@@ -173,9 +173,9 @@ class Test_process(Test_SpotLapseRateAdjust):
         expected = np.array(
             [280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
 
-        result = plugin.process(self.spot_temperature_nearest,
-                                self.neighbour_cube,
-                                self.lapse_rate_cube)
+        result = plugin(self.spot_temperature_nearest,
+                        self.neighbour_cube,
+                        self.lapse_rate_cube)
         self.assertArrayEqual(result.data, expected)
 
     def test_different_neighbour_method(self):
@@ -193,9 +193,9 @@ class Test_process(Test_SpotLapseRateAdjust):
         expected = np.array(
             [270 - (2 * DALR), 270, 280 - DALR]).astype(np.float32)
 
-        result = plugin.process(self.spot_temperature_mindz,
-                                self.neighbour_cube,
-                                self.lapse_rate_cube)
+        result = plugin(self.spot_temperature_mindz,
+                        self.neighbour_cube,
+                        self.lapse_rate_cube)
         self.assertArrayEqual(result.data, expected)
 
     def test_xy_ordered_lapse_rate_cube(self):
@@ -223,9 +223,9 @@ class Test_process(Test_SpotLapseRateAdjust):
             self.lapse_rate_cube, ['projection_x_coordinate',
                                    'projection_y_coordinate'])
 
-        result = plugin.process(self.spot_temperature_nearest,
-                                self.neighbour_cube,
-                                self.lapse_rate_cube)
+        result = plugin(self.spot_temperature_nearest,
+                        self.neighbour_cube,
+                        self.lapse_rate_cube)
         self.assertArrayEqual(result.data, expected)
 
 

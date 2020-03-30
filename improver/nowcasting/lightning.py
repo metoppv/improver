@@ -35,7 +35,7 @@ import iris
 import numpy as np
 from iris.exceptions import ConstraintMismatchError
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
@@ -44,7 +44,7 @@ from improver.utilities.temporal import (
     extract_nearest_time_point, iris_time_to_datetime)
 
 
-class NowcastLightning(BasePlugin):
+class NowcastLightning(PostProcessingPlugin):
     """Produce Nowcast of lightning probability.
 
     This Plugin selects a first-guess lightning probability field from

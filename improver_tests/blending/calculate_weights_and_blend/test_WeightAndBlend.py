@@ -341,12 +341,13 @@ class Test_process(IrisTest):
                           "Deleting unmatched attribute"])
     def test_attributes_dict(self):
         """Test output attributes can be updated through argument"""
-        attribute_changes = {"mosg__model_configuration": "remove",
-                             "source": "IMPROVER",
-                             "title": "IMPROVER Multi-Model Blend"}
+        attribute_changes = {
+            "mosg__model_configuration": "remove",
+            "source": "IMPROVER",
+            "title": "IMPROVER Post-Processed Multi-Model Blend"}
         expected_attributes = {
             "source": "IMPROVER",
-            "title": "IMPROVER Multi-Model Blend",
+            "title": "IMPROVER Post-Processed Multi-Model Blend",
             "institution": MANDATORY_ATTRIBUTE_DEFAULTS["institution"]}
         result = self.plugin_model.process(
             [self.ukv_cube, self.nowcast_cube],

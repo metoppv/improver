@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
@@ -29,42 +28,47 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to create wind-gust data."""
+"""Unit tests for the improver.PostProcessingPlugin abstract base class"""
 
-from improver import cli
+import unittest
+import numpy as np
+
+from improver import PostProcessingPlugin
+from .set_up_test_cubes import set_up_variable_cube
 
 
-@cli.clizefy
-@cli.with_output
-def process(wind_gust: cli.inputcube,
-            wind_speed: cli.inputcube,
-            *,
-            wind_gust_percentile: float = 50.0,
-            wind_speed_percentile: float = 95.0):
-    """Create a cube containing the wind_gust diagnostic.
+class DummyPlugin(PostProcessingPlugin):
+    """Dummy class inheriting from the abstract base class"""
 
-    Calculate revised wind-gust data using a specified percentile of
-    wind-gust data and a specified percentile of wind-speed data through the
-    WindGustDiagnostic plugin. The wind-gust diagnostic will be the max of the
-    specified percentile data.
+    def process(self, cube):
+        """Local process method has no effect"""
+        return cube
 
-    Args:
-        wind_gust (iris.cube.Cube):
-            Cube containing one or more percentiles of wind_gust data.
-        wind_speed (iris.cube.Cube):
-            Cube containing one or more percentiles of wind_speed data.
-        wind_gust_percentile (float):
-            Percentile value required from wind-gust cube.
-        wind_speed_percentile (float):
-            Percentile value required from wind-speed cube.
 
-    Returns:
-        iris.cube.Cube:
-            Cube containing the wind-gust diagnostic data.
-    """
-    from improver.wind_calculations.wind_gust_diagnostic import (
-        WindGustDiagnostic)
+class Test_process(unittest.TestCase):
+    """Tests for functionality implemented when "process" is called"""
 
-    result = WindGustDiagnostic(
-        wind_gust_percentile, wind_speed_percentile)(wind_gust, wind_speed)
-    return result
+    def setUp(self):
+        """Set up a plugin and cube"""
+        self.plugin = DummyPlugin()
+        self.cube = set_up_variable_cube(
+            np.ones((3, 3, 3), dtype=np.float32),
+            standard_grid_metadata='uk_det',
+            attributes={'title': 'UKV Model Forecast'})
+
+    def test_title_updated(self):
+        """Test title is updated as expected"""
+        expected_title = "Post-Processed UKV Model Forecast"
+        result = self.plugin(self.cube)
+        self.assertEqual(result.attributes["title"], expected_title)
+
+    def test_title_preserved(self):
+        """Test title is preserved if it contains 'Post-Processed'"""
+        expected_title = "IMPROVER Post-Processed Multi-Model Blend"
+        self.cube.attributes["title"] = expected_title
+        result = self.plugin(self.cube)
+        self.assertEqual(result.attributes["title"], expected_title)
+
+
+if __name__ == '__main__':
+    unittest.main()

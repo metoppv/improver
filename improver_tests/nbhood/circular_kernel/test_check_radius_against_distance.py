@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
@@ -29,42 +28,40 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to create wind-gust data."""
+"""Unit tests for nbhood.circular_kernel.check_radius_against_distance."""
 
-from improver import cli
+import unittest
+
+from iris.tests import IrisTest
+import numpy as np
+
+from improver.nbhood.circular_kernel import check_radius_against_distance
+from improver_tests.set_up_test_cubes import set_up_variable_cube
 
 
-@cli.clizefy
-@cli.with_output
-def process(wind_gust: cli.inputcube,
-            wind_speed: cli.inputcube,
-            *,
-            wind_gust_percentile: float = 50.0,
-            wind_speed_percentile: float = 95.0):
-    """Create a cube containing the wind_gust diagnostic.
+class Test_check_radius_against_distance(IrisTest):
 
-    Calculate revised wind-gust data using a specified percentile of
-    wind-gust data and a specified percentile of wind-speed data through the
-    WindGustDiagnostic plugin. The wind-gust diagnostic will be the max of the
-    specified percentile data.
+    """Test check_radius_against_distance function."""
 
-    Args:
-        wind_gust (iris.cube.Cube):
-            Cube containing one or more percentiles of wind_gust data.
-        wind_speed (iris.cube.Cube):
-            Cube containing one or more percentiles of wind_speed data.
-        wind_gust_percentile (float):
-            Percentile value required from wind-gust cube.
-        wind_speed_percentile (float):
-            Percentile value required from wind-speed cube.
+    def setUp(self):
+        """Set up the cube."""
+        data = np.ones((4, 4), dtype=np.float32)
+        self.cube = set_up_variable_cube(data, spatial_grid='equalarea')
 
-    Returns:
-        iris.cube.Cube:
-            Cube containing the wind-gust diagnostic data.
-    """
-    from improver.wind_calculations.wind_gust_diagnostic import (
-        WindGustDiagnostic)
+    def test_error(self):
+        """Test correct exception raised when the distance is larger than the
+        corner-to-corner distance of the domain."""
+        distance = 550000.0
+        msg = "Distance of 550000.0m exceeds max domain distance of "
+        with self.assertRaisesRegex(ValueError, msg):
+            check_radius_against_distance(self.cube, distance)
 
-    result = WindGustDiagnostic(
-        wind_gust_percentile, wind_speed_percentile)(wind_gust, wind_speed)
-    return result
+    def test_passes(self):
+        """Test no exception raised when the distance is smaller than the
+        corner-to-corner distance of the domain."""
+        distance = 6100
+        check_radius_against_distance(self.cube, distance)
+
+
+if __name__ == '__main__':
+    unittest.main()
