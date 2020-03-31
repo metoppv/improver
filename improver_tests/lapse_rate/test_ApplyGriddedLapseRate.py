@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the ApplyGriddedLapseRate() method."""
+"""Unit tests for the ApplyGriddedLapseRate() plugin."""
 
 import unittest
 
@@ -42,7 +42,7 @@ from improver.lapse_rate import ApplyGriddedLapseRate
 from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
-class Test_ApplyGriddedLapseRate(IrisTest):
+class Test_process(IrisTest):
     """Test the ApplyGriddedLapseRate() plugin"""
 
     def setUp(self):
@@ -123,7 +123,7 @@ class Test_ApplyGriddedLapseRate(IrisTest):
         self.temperature.convert_units('degC')
         self.source_orog.convert_units('km')
         result = ApplyGriddedLapseRate()(self.temperature, self.lapse_rate,
-                                          self.source_orog, self.dest_orog)
+                                         self.source_orog, self.dest_orog)
         self.assertEqual(result.units, 'K')
         self.assertArrayAlmostEqual(result.data, self.expected_data)
 
@@ -164,7 +164,7 @@ class Test_ApplyGriddedLapseRate(IrisTest):
         msg = 'Source orography spatial coordinates do not match'
         with self.assertRaisesRegex(ValueError, msg):
             _ = ApplyGriddedLapseRate()(self.temperature, self.lapse_rate,
-                                         self.source_orog, self.dest_orog)
+                                        self.source_orog, self.dest_orog)
 
     def test_spatial_mismatch_2(self):
         """Test error if destination orography grid is not matched to
@@ -174,7 +174,7 @@ class Test_ApplyGriddedLapseRate(IrisTest):
         msg = 'Destination orography spatial coordinates do not match'
         with self.assertRaisesRegex(ValueError, msg):
             _ = ApplyGriddedLapseRate()(self.temperature, self.lapse_rate,
-                                         self.source_orog, self.dest_orog)
+                                        self.source_orog, self.dest_orog)
 
 
 if __name__ == '__main__':
