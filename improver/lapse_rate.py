@@ -37,13 +37,96 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy.linalg import lstsq
 from scipy.ndimage import generic_filter
 
-from improver import BasePlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube, generate_mandatory_attributes)
-from improver.utilities.cube_checker import spatial_coords_match
+from improver.utilities.cube_checker import (
+    find_dimension_coordinate_mismatch, spatial_coords_match)
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, get_dim_coord_names)
+
+
+class ApplyGriddedLapseRate(PostProcessingPlugin):
+    """Class to apply a lapse rate adjustment to a temperature data forecast"""
+
+    @staticmethod
+    def _calc_orog_diff(self, source_orog, dest_orog):
+        """Get difference in orography heights, in metres
+
+        Args:
+            source_orog (iris.cube.Cube):
+                2D cube of source orography heights (units modified in place)
+            dest_orog (iris.cube.Cube):
+                2D cube of destination orography heights (units modified in
+                place)
+
+        Returns:
+            iris.cube.Cube
+        """
+        # calculate height difference (in m) on which to adjust
+        source_orog.convert_units('m')
+        dest_orog.convert_units('m')
+        orog_diff = (
+            next(dest_orog.slices([dest_orog.coord(axis='y'),
+                                   dest_orog.coord(axis='x')])) -
+            next(source_orog.slices([source_orog.coord(axis='y'),
+                                     source_orog.coord(axis='x')])))
+        return orog_diff
+
+    def process(self, temperature, lapse_rate, source_orog, dest_orog):
+        """Applies lapse rate correction to temperature forecast
+
+        Args:
+            temperature (iris.cube.Cube):
+                Input temperature field to be adjusted
+            lapse_rate (iris.cube.Cube):
+                Cube of pre-calculated lapse rates (units modified in place)
+                which must match the temperature cube in all dimensions
+            source_orog (iris.cube.Cube):
+                2D cube of source orography heights (units modified in place)
+            dest_orog (iris.cube.Cube):
+                2D cube of destination orography heights (units modified in
+                place)
+
+        Returns:
+            iris.cube.Cube:
+                Lapse-rate adjusted temperature field
+        """
+        if find_dimension_coordinate_mismatch(temperature, lapse_rate):
+            raise ValueError(
+                'Lapse rate cube dimensions do not match temperature cube')
+
+        if not spatial_coords_match(temperature, source_orog):
+            raise ValueError(
+                'Source orography spatial coordinates do not match '
+                'temperature grid')
+
+        if not spatial_coords_match(temperature, dest_orog):
+            raise ValueError(
+                'Destination orography spatial coordinates do not match '
+                'temperature grid')
+
+        orog_diff = self._calc_orog_diff(source_orog, dest_orog)
+        lapse_rate.convert_units('K m-1')
+
+        adjusted_temperature = []
+        for lrsubcube, tempsubcube in zip(
+                lapse_rate.slices([lapse_rate.coord(axis='y'),
+                                   lapse_rate.coord(axis='x')]),
+                temperature.slices([temperature.coord(axis='y'),
+                                    temperature.coord(axis='x')])):
+
+            # calculate temperature adjustment in K
+            adjustment = multiply(orog_diff, lrsubcube)
+
+            # apply adjustment to each spatial slice of the temperature cube
+            newcube = tempsubcube.copy()
+            newcube.convert_units('K')
+            newcube.data += adjustment.data
+            adjusted_temperature.append(newcube)
+
+    return iris.cube.CubeList(adjusted_temperature).merge_cube()
 
 
 def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
