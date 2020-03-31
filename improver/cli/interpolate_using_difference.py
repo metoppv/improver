@@ -77,6 +77,6 @@ def process(cube: cli.inputcube,
     """
     from improver.utilities.interpolation import InterpolateUsingDifference
 
-    result = InterpolateUsingDifference().process(
+    result = InterpolateUsingDifference()(
         cube, reference_cube, limit=limit, limit_as_maximum=limit_as_maximum)
     return result

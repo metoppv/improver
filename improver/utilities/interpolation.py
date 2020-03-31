@@ -33,6 +33,7 @@
 import warnings
 import numpy as np
 import iris
+from improver import BasePlugin
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 
@@ -105,7 +106,7 @@ def interpolate_missing_data(
     return data
 
 
-class InterpolateUsingDifference:
+class InterpolateUsingDifference(BasePlugin):
     """
     Uses interpolation to fill masked regions in the data contained within the
     input cube. This is achieved by calculating the difference between the
