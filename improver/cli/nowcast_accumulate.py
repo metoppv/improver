@@ -93,7 +93,7 @@ def process(cube: cli.inputcube,
 
     from improver.nowcasting.accumulation import Accumulation
     from improver.nowcasting.forecasting import CreateExtrapolationForecast
-    from improver.utilities.cube_manipulation import merge_cubes
+    from improver.utilities.cube_manipulation import MergeCubes
 
     u_cube, v_cube = advection_velocity
 
@@ -103,8 +103,8 @@ def process(cube: cli.inputcube,
     # extrapolate input data to the maximum required lead time
     forecast_cubes = CreateExtrapolationForecast(
         cube, u_cube, v_cube, orographic_enhancement,
-        attributes_dict=attributes_config).process(ACCUMULATION_FIDELITY,
-                                                   max_lead_time)
+        attributes_dict=attributes_config)(ACCUMULATION_FIDELITY,
+                                           max_lead_time)
 
     lead_times = (np.arange(lead_time_interval, max_lead_time + 1,
                             lead_time_interval))
@@ -113,6 +113,6 @@ def process(cube: cli.inputcube,
     result = Accumulation(
         accumulation_units=accumulation_units,
         accumulation_period=accumulation_period * 60,
-        forecast_periods=lead_times * 60).process(forecast_cubes)
+        forecast_periods=lead_times * 60)(forecast_cubes)
 
-    return merge_cubes(result)
+    return MergeCubes()(result)

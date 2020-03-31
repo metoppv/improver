@@ -30,9 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain Psychrometric Calculations."""
 
-import iris
 import numpy as np
 from cf_units import Unit
+
+import iris
 from iris.cube import CubeList
 from stratify import interpolate
 
@@ -450,7 +451,7 @@ class WetBulbTemperatureIntegral(BasePlugin):
         # otherwise vertical interpolation is slow
         # pylint: disable=pointless-statement
         wbt.data
-        wet_bulb_temperature_integral = self.integration_plugin.process(wbt)
+        wet_bulb_temperature_integral = self.integration_plugin(wbt)
         # although the integral is computed over degC the standard unit is
         # 'K m', and these are equivalent
         wet_bulb_temperature_integral.units = Unit('K m')

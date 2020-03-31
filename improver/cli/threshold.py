@@ -146,7 +146,7 @@ def process(cube: cli.inputcube,
     if vicinity is not None:
         # smooth thresholded occurrences over local vicinity
         result_no_collapse_coord = OccurrenceWithinVicinity(
-            vicinity).process(result_no_collapse_coord)
+            vicinity)(result_no_collapse_coord)
         new_cube_name = in_vicinity_name_format(
             result_no_collapse_coord.name())
         result_no_collapse_coord.rename(new_cube_name)
@@ -159,5 +159,5 @@ def process(cube: cli.inputcube,
         warnings.warn("Collapse-coord option not fully tested with "
                       "masked data.")
     # Take a weighted mean across realizations with equal weights
-    plugin = WeightAndBlend(collapse_coord, "linear", y0val=1.0, ynval=1.0)
-    return plugin.process(result_no_collapse_coord)
+    return WeightAndBlend(collapse_coord, "linear", y0val=1.0, ynval=1.0)(
+        result_no_collapse_coord)

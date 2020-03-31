@@ -91,6 +91,6 @@ def process(orography: cli.inputcube,
     orography = next(orography.slices(
         [orography.coord(axis='y'), orography.coord(axis='x')]))
 
-    result = GenerateTopographicZoneWeights().process(
+    result = GenerateTopographicZoneWeights()(
         orography, bands_config, landmask=land_sea_mask)
     return result

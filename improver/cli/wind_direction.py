@@ -65,5 +65,5 @@ def process(wind_direction: cli.inputcube,
     from improver.wind_calculations.wind_direction import WindDirection
 
     result, _, _ = (
-        WindDirection(backup_method=backup_method).process(wind_direction))
+        WindDirection(backup_method=backup_method)(wind_direction))
     return result

@@ -145,8 +145,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
         central_point_cube = self._find_central_point(cube)
 
         # Calculate weights and produce blended output.
-        weights = self.WeightsPlugin.process(
-            cube, self.coord, self.central_point)
+        weights = self.WeightsPlugin(cube, self.coord, self.central_point)
         blended_cube = self.BlendingPlugin(cube, weights)
 
         # With one threshold dimension (such as for low cloud), the threshold

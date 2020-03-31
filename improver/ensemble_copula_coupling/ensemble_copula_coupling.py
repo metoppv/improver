@@ -34,8 +34,8 @@ This module defines the plugins required for Ensemble Copula Coupling.
 """
 import warnings
 
-import iris
 import numpy as np
+import iris
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from scipy import stats
 
@@ -1248,7 +1248,7 @@ class EnsembleReordering(BasePlugin):
             random_ordering=random_ordering,
             random_seed=random_seed)
         post_processed_forecast_realizations = (
-            RebadgePercentilesAsRealizations.process(
+            RebadgePercentilesAsRealizations()(
                 post_processed_forecast_realizations))
 
         enforce_coordinate_ordering(

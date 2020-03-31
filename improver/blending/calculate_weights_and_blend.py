@@ -114,15 +114,14 @@ class WeightAndBlend(BasePlugin):
 
             weights = ChooseWeightsLinear(
                 self.weighting_coord, self.wts_dict,
-                config_coord_name=config_coord).process(cube)
+                config_coord_name=config_coord)(cube)
 
         elif self.wts_calc_method == "linear":
             weights = ChooseDefaultWeightsLinear(
-                y0val=self.y0val, ynval=self.ynval).process(
-                    cube, self.blend_coord)
+                y0val=self.y0val, ynval=self.ynval)(cube, self.blend_coord)
 
         elif self.wts_calc_method == "nonlinear":
-            weights = ChooseDefaultWeightsNonLinear(self.cval).process(
+            weights = ChooseDefaultWeightsNonLinear(self.cval)(
                 cube, self.blend_coord, inverse_ordering=self.inverse_ordering)
 
         return weights
@@ -148,7 +147,7 @@ class WeightAndBlend(BasePlugin):
         grid_cells = distance_to_number_of_grid_cells(cube, fuzzy_length,
                                                       return_int=False)
         plugin = SpatiallyVaryingWeightsFromMask(grid_cells)
-        weights = plugin.process(cube, weights, self.blend_coord)
+        weights = plugin(cube, weights, self.blend_coord)
         return weights
 
     def process(self, cubelist, cycletime=None, model_id_attr=None,
@@ -185,7 +184,7 @@ class WeightAndBlend(BasePlugin):
         merger = MergeCubesForWeightedBlending(
             self.blend_coord, weighting_coord=self.weighting_coord,
             model_id_attr=model_id_attr)
-        cube = merger.process(cubelist, cycletime=cycletime)
+        cube = merger(cubelist, cycletime=cycletime)
 
         # if blend_coord has only one value (for example cycle blending with
         # only one cycle available), or is not present (case where only

@@ -102,16 +102,16 @@ def process(cube: cli.inputcube,
         realizations = [int(x) for x in realizations]
 
     result = ResamplePercentiles(
-        ecc_bounds_warning=ignore_ecc_bounds).process(
-        cube, no_of_percentiles=realizations_count,
-        sampling=sampling_method)
+        ecc_bounds_warning=ignore_ecc_bounds)(
+            cube, no_of_percentiles=realizations_count,
+            sampling=sampling_method)
 
     if raw_cube:
-        result = EnsembleReordering().process(
+        result = EnsembleReordering()(
             result, raw_cube, random_ordering=randomise,
             random_seed=random_seed)
     else:
-        result = RebadgePercentilesAsRealizations().process(
+        result = RebadgePercentilesAsRealizations()(
             result, ensemble_realization_numbers=realizations)
 
     return result

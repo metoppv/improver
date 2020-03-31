@@ -121,8 +121,7 @@ def process(temperature: cli.inputcube,
     wind_direction = extract_and_check(wind_direction, *constraint_info)
 
     # resolve u and v wind components
-    u_wind, v_wind = ResolveWindComponents().process(wind_speed,
-                                                     wind_direction)
+    u_wind, v_wind = ResolveWindComponents()(wind_speed, wind_direction)
     # calculate orographic enhancement
-    return OrographicEnhancement().process(temperature, humidity, pressure,
-                                           u_wind, v_wind, orography)
+    return OrographicEnhancement()(temperature, humidity, pressure,
+                                   u_wind, v_wind, orography)

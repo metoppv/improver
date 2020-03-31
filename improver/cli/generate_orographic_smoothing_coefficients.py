@@ -86,4 +86,4 @@ def process(orography: cli.inputcube,
         OrographicSmoothingCoefficients)
     return OrographicSmoothingCoefficients(
         min_smoothing_coefficient, max_smoothing_coefficient, coefficient,
-        power).process(orography)
+        power)(orography)

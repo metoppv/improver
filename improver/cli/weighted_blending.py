@@ -141,12 +141,11 @@ def process(*cubes: cli.inputcube,
         raise RuntimeError('model_id_attr must be specified for '
                            'model blending')
 
-    plugin = WeightAndBlend(
+    result = WeightAndBlend(
         coordinate, weighting_method,
         weighting_coord=weighting_coord, wts_dict=weighting_config,
-        y0val=y0val, ynval=ynval, cval=cval)
-    result = plugin.process(
-        cubes, cycletime=cycletime, model_id_attr=model_id_attr,
-        spatial_weights=spatial_weights_from_mask, fuzzy_length=fuzzy_length,
-        attributes_dict=attributes_config)
+        y0val=y0val, ynval=ynval, cval=cval)(
+            cubes, cycletime=cycletime, model_id_attr=model_id_attr,
+            spatial_weights=spatial_weights_from_mask,
+            fuzzy_length=fuzzy_length, attributes_dict=attributes_config)
     return result

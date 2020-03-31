@@ -33,8 +33,8 @@ This module contains a plugin to calculate the enhancement of precipitation
 over orography.
 """
 
-import iris
 import numpy as np
+import iris
 from iris.analysis.cartography import rotate_winds
 from scipy.ndimage import uniform_filter1d
 
@@ -144,14 +144,14 @@ class OrographicEnhancement(BasePlugin):
         # before calculating each gradient (as done in STEPS)
         topo_smx = uniform_filter1d(self.topography.data, 3, axis=ydim)
         topo_smx_cube = self.topography.copy(data=topo_smx)
-        gradx, _ = DifferenceBetweenAdjacentGridSquares(
-            gradient=True).process(topo_smx_cube)
+        gradx, _ = DifferenceBetweenAdjacentGridSquares(gradient=True)(
+            topo_smx_cube)
         gradx.units = '1'
 
         topo_smy = uniform_filter1d(self.topography.data, 3, axis=xdim)
         topo_smy_cube = self.topography.copy(data=topo_smy)
-        _, grady = DifferenceBetweenAdjacentGridSquares(
-            gradient=True).process(topo_smy_cube)
+        _, grady = DifferenceBetweenAdjacentGridSquares(gradient=True)(
+            topo_smy_cube)
         grady.units = '1'
 
         return gradx, grady
@@ -270,7 +270,7 @@ class OrographicEnhancement(BasePlugin):
         # calculate mean 3x3 (square nbhood) orography heights
         radius = number_of_grid_cells_to_distance(self.topography, 1)
         topo_nbhood = NeighbourhoodProcessing(
-            'square', radius).process(self.topography)
+            'square', radius)(self.topography)
         topo_nbhood.convert_units('m')
 
         # create mask

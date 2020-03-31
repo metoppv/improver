@@ -112,5 +112,5 @@ def process(*cubes: cli.inputcube,
     return EstimateCoefficientsForEnsembleCalibration(
         distribution, cycletime, desired_units=units,
         predictor=predictor, tolerance=tolerance,
-        max_iterations=max_iterations).process(
+        max_iterations=max_iterations)(
             forecast, truth, landsea_mask=land_sea_mask)

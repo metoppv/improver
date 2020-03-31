@@ -56,4 +56,4 @@ def process(*cubes: cli.inputcube,
     from improver.psychrometric_calculations.precip_phase_probability import (
         PrecipPhaseProbability)
     from iris.cube import CubeList
-    return PrecipPhaseProbability(radius=radius).process(CubeList(cubes))
+    return PrecipPhaseProbability(radius=radius)(CubeList(cubes))

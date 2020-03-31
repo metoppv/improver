@@ -109,10 +109,9 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
                           gridded_lapse_rate_cube])
 
         # Extract the lapse rates that correspond to the spot sites.
-        extraction_plugin = SpotExtraction(
-            neighbour_selection_method=self.neighbour_selection_method)
-        spot_lapse_rate = extraction_plugin.process(neighbour_cube,
-                                                    gridded_lapse_rate_cube)
+        spot_lapse_rate = SpotExtraction(
+            neighbour_selection_method=self.neighbour_selection_method)(
+                neighbour_cube, gridded_lapse_rate_cube)
 
         # Extract vertical displacements between the model orography and sites.
         method_constraint = iris.Constraint(

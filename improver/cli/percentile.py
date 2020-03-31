@@ -108,8 +108,8 @@ def process(cube: cli.inputcube,
     # TODO: Correct when formal cf-standards exists
     if 'probability_of_' in cube.name():
         result = ConvertProbabilitiesToPercentiles(
-            ecc_bounds_warning=ignore_ecc_bounds).process(
-            cube, percentiles=percentiles)
+            ecc_bounds_warning=ignore_ecc_bounds)(
+                cube, percentiles=percentiles)
         if coordinates:
             warnings.warn("Converting probabilities to percentiles. The "
                           "provided COORDINATES_TO_COLLAPSE variable will "
@@ -134,5 +134,5 @@ def process(cube: cli.inputcube,
 
         result = PercentileConverter(
             coordinates, percentiles=percentiles,
-            fast_percentile_method=fast_percentile_method).process(cube)
+            fast_percentile_method=fast_percentile_method)(cube)
     return result

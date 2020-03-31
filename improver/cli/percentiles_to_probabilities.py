@@ -88,7 +88,6 @@ def process(percentiles_cube: cli.inputcube,
     """
     from improver.utilities.statistical_operations import \
         ProbabilitiesFromPercentiles2D
-    result = ProbabilitiesFromPercentiles2D(percentiles_cube,
-                                            output_diagnostic_name)
-    probability_cube = result.process(threshold_cube)
+    probability_cube = ProbabilitiesFromPercentiles2D(
+        percentiles_cube, output_diagnostic_name)(threshold_cube)
     return probability_cube

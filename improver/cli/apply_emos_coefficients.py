@@ -196,14 +196,14 @@ def process(cube: cli.inputcube,
                 "current forecast is provided as {0} then "
                 "realizations_count must be defined.".format(
                     input_forecast_type))
-        current_forecast = conversion_plugin.process(
+        current_forecast = conversion_plugin(
             current_forecast, no_of_percentiles=realizations_count)
         current_forecast = (
-            RebadgePercentilesAsRealizations().process(current_forecast))
+            RebadgePercentilesAsRealizations()(current_forecast))
 
     # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
     ac = ApplyCoefficientsFromEnsembleCalibration(predictor=predictor)
-    location_parameter, scale_parameter = ac.process(
+    location_parameter, scale_parameter = ac(
         current_forecast, coefficients, landsea_mask=land_sea_mask)
 
     if shape_parameters:
@@ -214,25 +214,25 @@ def process(cube: cli.inputcube,
     if input_forecast_type == "probabilities":
         result = ConvertLocationAndScaleParametersToProbabilities(
             distribution=distribution,
-            shape_parameters=shape_parameters).process(
-            location_parameter, scale_parameter, original_current_forecast)
+            shape_parameters=shape_parameters)(
+                location_parameter, scale_parameter, original_current_forecast)
     elif input_forecast_type == "percentiles":
         perc_coord = find_percentile_coordinate(original_current_forecast)
         result = ConvertLocationAndScaleParametersToPercentiles(
             distribution=distribution,
-            shape_parameters=shape_parameters).process(
-            location_parameter, scale_parameter, original_current_forecast,
-            percentiles=perc_coord.points)
+            shape_parameters=shape_parameters)(
+                location_parameter, scale_parameter, original_current_forecast,
+                percentiles=perc_coord.points)
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
         # from the location and scale parameter.
         no_of_percentiles = len(current_forecast.coord('realization').points)
         percentiles = ConvertLocationAndScaleParametersToPercentiles(
             distribution=distribution,
-            shape_parameters=shape_parameters).process(
-            location_parameter, scale_parameter, original_current_forecast,
-            no_of_percentiles=no_of_percentiles)
-        result = EnsembleReordering().process(
+            shape_parameters=shape_parameters)(
+                location_parameter, scale_parameter, original_current_forecast,
+                no_of_percentiles=no_of_percentiles)
+        result = EnsembleReordering()(
             percentiles, current_forecast,
             random_ordering=randomise, random_seed=random_seed)
     if land_sea_mask:
