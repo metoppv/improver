@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the apply_gridded_lapse_rate method."""
+"""Unit tests for the ApplyGriddedLapseRate() method."""
 
 import unittest
 
@@ -37,13 +37,13 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.constants import DALR
-from improver.lapse_rate import apply_gridded_lapse_rate
+from improver.lapse_rate import ApplyGriddedLapseRate
 
 from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
-class Test_apply_gridded_lapse_rate(IrisTest):
-    """Test the apply_gridded_lapse_rate method"""
+class Test_ApplyGriddedLapseRate(IrisTest):
+    """Test the ApplyGriddedLapseRate() plugin"""
 
     def setUp(self):
         """Set up some input cubes"""
@@ -81,8 +81,8 @@ class Test_apply_gridded_lapse_rate(IrisTest):
 
     def test_basic(self):
         """Test output is cube with correct name, type and units"""
-        result = apply_gridded_lapse_rate(self.temperature, self.lapse_rate,
-                                          self.source_orog, self.dest_orog)
+        result = ApplyGriddedLapseRate()(self.temperature, self.lapse_rate,
+                                         self.source_orog, self.dest_orog)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), 'screen_temperature')
         self.assertEqual(result.units, 'K')
@@ -90,8 +90,8 @@ class Test_apply_gridded_lapse_rate(IrisTest):
 
     def test_values(self):
         """Check adjusted temperature values are as expected"""
-        result = apply_gridded_lapse_rate(self.temperature, self.lapse_rate,
-                                          self.source_orog, self.dest_orog)
+        result = ApplyGriddedLapseRate()(self.temperature, self.lapse_rate,
+                                         self.source_orog, self.dest_orog)
 
         # test that temperatures are reduced where destination orography
         # is higher than source
@@ -122,7 +122,7 @@ class Test_apply_gridded_lapse_rate(IrisTest):
         units"""
         self.temperature.convert_units('degC')
         self.source_orog.convert_units('km')
-        result = apply_gridded_lapse_rate(self.temperature, self.lapse_rate,
+        result = ApplyGriddedLapseRate()(self.temperature, self.lapse_rate,
                                           self.source_orog, self.dest_orog)
         self.assertEqual(result.units, 'K')
         self.assertArrayAlmostEqual(result.data, self.expected_data)
@@ -131,7 +131,7 @@ class Test_apply_gridded_lapse_rate(IrisTest):
         """Test processing of a cube with multiple realizations"""
         temp_3d = add_coordinate(self.temperature, [0, 1, 2], 'realization')
         lrt_3d = add_coordinate(self.lapse_rate, [0, 1, 2], 'realization')
-        result = apply_gridded_lapse_rate(
+        result = ApplyGriddedLapseRate()(
             temp_3d, lrt_3d, self.source_orog, self.dest_orog)
         self.assertArrayEqual(
             result.coord('realization').points, np.array([0, 1, 2]))
@@ -145,7 +145,7 @@ class Test_apply_gridded_lapse_rate(IrisTest):
         lrt_3d = add_coordinate(self.lapse_rate, [2, 3, 4], 'realization')
         msg = 'Lapse rate cube coordinate "realization" does not match '
         with self.assertRaisesRegex(ValueError, msg):
-            _ = apply_gridded_lapse_rate(
+            _ = ApplyGriddedLapseRate()(
                 temp_3d, lrt_3d, self.source_orog, self.dest_orog)
 
     def test_missing_coord(self):
@@ -154,7 +154,7 @@ class Test_apply_gridded_lapse_rate(IrisTest):
         temp_3d = add_coordinate(self.temperature, [0, 1, 2], 'realization')
         msg = 'Lapse rate cube has no coordinate "realization"'
         with self.assertRaisesRegex(ValueError, msg):
-            _ = apply_gridded_lapse_rate(
+            _ = ApplyGriddedLapseRate()(
                 temp_3d, self.lapse_rate, self.source_orog, self.dest_orog)
 
     def test_spatial_mismatch(self):
@@ -163,7 +163,7 @@ class Test_apply_gridded_lapse_rate(IrisTest):
         self.source_orog.coord(axis='y').points = new_y_points
         msg = 'Source orography spatial coordinates do not match'
         with self.assertRaisesRegex(ValueError, msg):
-            _ = apply_gridded_lapse_rate(self.temperature, self.lapse_rate,
+            _ = ApplyGriddedLapseRate()(self.temperature, self.lapse_rate,
                                          self.source_orog, self.dest_orog)
 
     def test_spatial_mismatch_2(self):
@@ -173,7 +173,7 @@ class Test_apply_gridded_lapse_rate(IrisTest):
         self.dest_orog.coord(axis='y').points = new_y_points
         msg = 'Destination orography spatial coordinates do not match'
         with self.assertRaisesRegex(ValueError, msg):
-            _ = apply_gridded_lapse_rate(self.temperature, self.lapse_rate,
+            _ = ApplyGriddedLapseRate()(self.temperature, self.lapse_rate,
                                          self.source_orog, self.dest_orog)
 
 

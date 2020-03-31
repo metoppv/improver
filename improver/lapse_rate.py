@@ -41,8 +41,7 @@ from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube, generate_mandatory_attributes)
-from improver.utilities.cube_checker import (
-    find_dimension_coordinate_mismatch, spatial_coords_match)
+from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, get_dim_coord_names)
 
@@ -51,7 +50,7 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
     """Class to apply a lapse rate adjustment to a temperature data forecast"""
 
     @staticmethod
-    def _calc_orog_diff(self, source_orog, dest_orog):
+    def _calc_orog_diff(source_orog, dest_orog):
         """Get difference in orography heights, in metres
 
         Args:
@@ -93,9 +92,15 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
             iris.cube.Cube:
                 Lapse-rate adjusted temperature field
         """
-        if find_dimension_coordinate_mismatch(temperature, lapse_rate):
-            raise ValueError(
-                'Lapse rate cube dimensions do not match temperature cube')
+        for crd in temperature.coords(dim_coords=True):
+            try:
+                if crd != lapse_rate.coord(crd.name()):
+                    raise ValueError(
+                        'Lapse rate cube coordinate "{}" does not match '
+                        'temperature cube coordinate'.format(crd.name()))
+            except CoordinateNotFoundError:
+                raise ValueError('Lapse rate cube has no coordinate '
+                                 '"{}"'.format(crd.name()))
 
         if not spatial_coords_match(temperature, source_orog):
             raise ValueError(
@@ -126,7 +131,7 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
             newcube.data += adjustment.data
             adjusted_temperature.append(newcube)
 
-    return iris.cube.CubeList(adjusted_temperature).merge_cube()
+        return iris.cube.CubeList(adjusted_temperature).merge_cube()
 
 
 def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
