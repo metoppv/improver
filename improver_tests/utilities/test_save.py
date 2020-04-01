@@ -41,8 +41,7 @@ from iris.tests import IrisTest
 from netCDF4 import Dataset
 
 from improver.utilities.load import load_cube
-from improver.utilities.save import (
-    _append_metadata_cube, _order_cell_methods, save_netcdf)
+from improver.utilities.save import _order_cell_methods, save_netcdf
 
 from ..set_up_test_cubes import set_up_variable_cube
 
@@ -73,8 +72,7 @@ class Test_save_netcdf(IrisTest):
         self.global_keys_ref = ['title', 'um_version', 'grid_id', 'source',
                                 'mosg__grid_type', 'mosg__model_configuration',
                                 'mosg__grid_domain', 'mosg__grid_version',
-                                'Conventions', 'institution', 'history',
-                                'bald__isPrefixedBy']
+                                'Conventions', 'institution', 'history']
         self.directory = mkdtemp()
         self.filepath = os.path.join(self.directory, "temp.nc")
         self.cube = set_up_test_cube()
@@ -114,7 +112,7 @@ class Test_save_netcdf(IrisTest):
         # Length of read_cubes now increased to 3 as Iris 2 saves metadata
         # as separate cube rather than as attributes on other other cubes in
         # the file (Iris 1.13)
-        self.assertEqual(len(read_cubes), 3)
+        self.assertEqual(len(read_cubes), 2)
 
     def test_cube_data(self):
         """ Test valid cube can be read from saved file """
@@ -175,7 +173,7 @@ class Test_save_netcdf(IrisTest):
         cube_list = ([self.cube, self.cube])
         save_netcdf(cube_list, self.filepath)
         global_keys_in_file = Dataset(self.filepath, mode='r').ncattrs()
-        self.assertEqual(len(global_keys_in_file), 10)
+        self.assertEqual(len(global_keys_in_file), 9)
         self.assertTrue(all(key in self.global_keys_ref
                             for key in global_keys_in_file))
 
@@ -213,81 +211,6 @@ class Test__order_cell_methods(IrisTest):
         _order_cell_methods(self.cube)
         # Test that they do match once sorting has occured.
         self.assertEqual(self.cube.cell_methods, self.cell_methods)
-
-
-class Test__append_metadata_cube(IrisTest):
-    """Test that appropriate metadata cube and attributes have been appended
-            to the cubes in the cube list"""
-
-    def setUp(self):
-        """ Set up cube to write, read and check """
-        self.global_keys_ref = ['title', 'um_version', 'grid_id', 'source',
-                                'Conventions', 'institution', 'history',
-                                'bald__isPrefixedBy']
-        self.directory = mkdtemp()
-        self.filepath = os.path.join(self.directory, "temp.nc")
-        self.cube = set_up_test_cube()
-
-    def tearDown(self):
-        """ Remove temporary directories created for testing. """
-        try:
-            os.remove(self.filepath)
-        except FileNotFoundError:
-            pass
-        os.rmdir(self.directory)
-
-    def test_bald_attribute_added(self):
-        """Test that the bald__isPrefixedBy attribute is added to each cube
-        and points to prefix_list"""
-        cube_list = ([self.cube, self.cube])
-        metadata_cubelist = _append_metadata_cube(
-            cube_list, self.global_keys_ref)
-        for cube in metadata_cubelist:
-            self.assertTrue(
-                cube.attributes['bald__isPrefixedBy'] == 'prefix_list')
-
-    def test_prefix_cube_attributes(self):
-        """Test that metadata prefix cube contains the correct attributes"""
-        prefix_dict = {
-            'spp__': 'http://reference.metoffice.gov.uk/statistical-process'
-                     '/properties/',
-            'bald__isPrefixedBy': 'prefix_list',
-            'bald__': 'http://binary-array-ld.net/latest/',
-            'spv__': 'http://reference.metoffice.gov.uk/statistical-process'
-                     '/values/',
-            'rdf__': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-            'spd__': 'http://reference.metoffice.gov.uk/statistical-process'
-                     '/def/'}
-        metadata_cubelist = _append_metadata_cube([], self.global_keys_ref)
-        self.assertDictEqual(metadata_cubelist[0].attributes, prefix_dict)
-
-    def test_global_attributes_present(self):
-        """Test that desired global attributes are added to the prefix cube
-        so that Iris2 keeps these attributes global in any resultant
-        netCDF file saved using these cubes"""
-
-        cube_list = ([self.cube])
-        metadata_cubelist = _append_metadata_cube(
-            cube_list, self.global_keys_ref)
-
-        keys_in_prefix_cube = metadata_cubelist[1].attributes
-
-        # Get the global keys from both prefix and data cubes
-        prefix_global_keys = [
-            k for k in keys_in_prefix_cube.keys()
-            if k in self.global_keys_ref]
-        data_cube_global_keys = [
-            k for k in self.cube.attributes.keys()
-            if k in self.global_keys_ref]
-
-        # Check the keys are the same for prefix and data cube
-        self.assertListEqual(
-            sorted(prefix_global_keys), sorted(data_cube_global_keys))
-
-        # Check the key values are the same for prefix and data cube.
-        for key in prefix_global_keys:
-            self.assertEqual(metadata_cubelist[-1].attributes[key],
-                             self.cube.attributes[key])
 
 
 if __name__ == '__main__':
