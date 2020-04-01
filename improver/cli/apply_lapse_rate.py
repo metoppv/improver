@@ -59,6 +59,6 @@ def process(temperature: cli.inputcube,
     from improver.lapse_rate import ApplyGriddedLapseRate
 
     # apply lapse rate to temperature data
-    result = ApplyGriddedLapseRate()(
-        temperature, lapse_rate, source_orography, target_orography)
+    result = ApplyGriddedLapseRate(lapse_rate)(
+        temperature, source_orography, target_orography)
     return result

@@ -49,8 +49,37 @@ from improver.utilities.cube_manipulation import (
 class ApplyGriddedLapseRate(PostProcessingPlugin):
     """Class to apply a lapse rate adjustment to a temperature data forecast"""
 
-    @staticmethod
-    def _calc_orog_diff(source_orog, dest_orog):
+    def __init__(self, lapse_rate):
+        """Initialise the class with a lapse rate field
+
+        Args:
+            lapse_rate (iris.cube.Cube):
+                Cube of pre-calculated lapse rates
+        """
+        self.lapse_rate = lapse_rate
+        self.lapse_rate.convert_units('K m-1')
+        self.xy_coords = [lapse_rate.coord(axis='y'),
+                          lapse_rate.coord(axis='x')]
+
+    def _check_dim_coords(self, temperature):
+        """Throw an error if the dimension coordinates are not the same for
+        temperature and lapse rate cubes
+
+        Args:
+            temperature (iris.cube.Cube)
+            lapse_rate (iris.cube.Cube)
+        """
+        for crd in temperature.coords(dim_coords=True):
+            try:
+                if crd != self.lapse_rate.coord(crd.name()):
+                    raise ValueError(
+                        'Lapse rate cube coordinate "{}" does not match '
+                        'temperature cube coordinate'.format(crd.name()))
+            except CoordinateNotFoundError:
+                raise ValueError('Lapse rate cube has no coordinate '
+                                 '"{}"'.format(crd.name()))
+
+    def _calc_orog_diff(self, source_orog, dest_orog):
         """Get difference in orography heights, in metres
 
         Args:
@@ -63,44 +92,29 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         Returns:
             iris.cube.Cube
         """
-        # calculate height difference (in m) on which to adjust
         source_orog.convert_units('m')
         dest_orog.convert_units('m')
-        orog_diff = (
-            next(dest_orog.slices([dest_orog.coord(axis='y'),
-                                   dest_orog.coord(axis='x')])) -
-            next(source_orog.slices([source_orog.coord(axis='y'),
-                                     source_orog.coord(axis='x')])))
+        orog_diff = (next(dest_orog.slices(self.xy_coords)) -
+                     next(source_orog.slices(self.xy_coords)))
         return orog_diff
 
-    def process(self, temperature, lapse_rate, source_orog, dest_orog):
-        """Applies lapse rate correction to temperature forecast
+    def process(self, temperature, source_orog, dest_orog):
+        """Applies lapse rate correction to temperature forecast.  All cubes'
+        units are modified in place.
 
         Args:
             temperature (iris.cube.Cube):
                 Input temperature field to be adjusted
-            lapse_rate (iris.cube.Cube):
-                Cube of pre-calculated lapse rates (units modified in place)
-                which must match the temperature cube in all dimensions
             source_orog (iris.cube.Cube):
-                2D cube of source orography heights (units modified in place)
+                2D cube of source orography heights
             dest_orog (iris.cube.Cube):
-                2D cube of destination orography heights (units modified in
-                place)
+                2D cube of destination orography heights
 
         Returns:
             iris.cube.Cube:
                 Lapse-rate adjusted temperature field
         """
-        for crd in temperature.coords(dim_coords=True):
-            try:
-                if crd != lapse_rate.coord(crd.name()):
-                    raise ValueError(
-                        'Lapse rate cube coordinate "{}" does not match '
-                        'temperature cube coordinate'.format(crd.name()))
-            except CoordinateNotFoundError:
-                raise ValueError('Lapse rate cube has no coordinate '
-                                 '"{}"'.format(crd.name()))
+        self._check_dim_coords(temperature)
 
         if not spatial_coords_match(temperature, source_orog):
             raise ValueError(
@@ -113,20 +127,15 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
                 'temperature grid')
 
         orog_diff = self._calc_orog_diff(source_orog, dest_orog)
-        lapse_rate.convert_units('K m-1')
 
         adjusted_temperature = []
-        for lrsubcube, tempsubcube in zip(
-                lapse_rate.slices([lapse_rate.coord(axis='y'),
-                                   lapse_rate.coord(axis='x')]),
-                temperature.slices([temperature.coord(axis='y'),
-                                    temperature.coord(axis='x')])):
+        for lr_slice, t_slice in zip(
+                self.lapse_rate.slices(self.xy_coords),
+                temperature.slices(self.xy_coords)):
 
-            # calculate temperature adjustment in K
-            adjustment = multiply(orog_diff, lrsubcube)
+            adjustment = multiply(orog_diff, lr_slice)
 
-            # apply adjustment to each spatial slice of the temperature cube
-            newcube = tempsubcube.copy()
+            newcube = t_slice.copy()
             newcube.convert_units('K')
             newcube.data += adjustment.data
             adjusted_temperature.append(newcube)
