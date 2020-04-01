@@ -170,6 +170,8 @@ class CubeCombiner(BasePlugin):
         if self.operation == 'mean':
             result.data = result.data / len(cube_list)
 
+        # where the operation is "multiply", retain all coordinate metadata
+        # from the first cube in the list; otherwise expand coordinate bounds
         if self.operation != 'multiply':
             expanded_coord_names = self._get_expanded_coord_names(cube_list)
             if expanded_coord_names:
