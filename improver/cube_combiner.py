@@ -170,11 +170,12 @@ class CubeCombiner(BasePlugin):
         if self.operation == 'mean':
             result.data = result.data / len(cube_list)
 
-        # update any coordinates that have been expanded, and rename output
-        expanded_coord_names = self._get_expanded_coord_names(cube_list)
-        if expanded_coord_names:
-            result = expand_bounds(result, cube_list, expanded_coord_names,
-                                   use_midpoint=use_midpoint)
+        if self.operation != 'multiply':
+            expanded_coord_names = self._get_expanded_coord_names(cube_list)
+            if expanded_coord_names:
+                result = expand_bounds(result, cube_list, expanded_coord_names,
+                                       use_midpoint=use_midpoint)
+
         result.rename(new_diagnostic_name)
 
         return result
