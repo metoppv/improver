@@ -34,9 +34,9 @@ import unittest
 
 from iris.tests import IrisTest
 
-from improver.wxcode.utilities import expand_nested_lists
 from improver.wxcode.wxcode_decision_tree_global import (
     START_NODE_GLOBAL, wxcode_decision_tree_global)
+from . import check_diagnostic_lists_consistency
 
 REQUIRED_KEY_WORDS = ['succeed',
                       'fail',
@@ -118,17 +118,32 @@ class Test_wxcode_decision_tree_global(IrisTest):
                 self.assertEqual(fail in tree, True)
 
     def test_diagnostic_len_match(self):
-        """Test diagnostic fields, thresholds and conditions are same len."""
+        """Test diagnostic fields, thresholds and conditions are same
+        nested-list structure."""
         tree = wxcode_decision_tree_global()
         for node in tree:
             query = tree[node]
-            diag_len = len(expand_nested_lists(query, 'diagnostic_fields'))
-            thres_len = len(expand_nested_lists(query,
-                                                'diagnostic_thresholds'))
-            cond_len = len(expand_nested_lists(query,
-                                               'diagnostic_conditions'))
-            self.assertEqual(diag_len, thres_len)
-            self.assertEqual(diag_len, cond_len)
+            check_diagnostic_lists_consistency(query)
+
+    def test_probability_len_match(self):
+        """Test probability_thresholds list is right shape."""
+        tree = wxcode_decision_tree_global()
+        for _, query in tree.items():
+            check_list = query['probability_thresholds']
+            self.assertTrue(all([isinstance(x, (int, float))
+                                 for x in check_list]))
+            self.assertTrue(len(check_list) == len(query['diagnostic_fields']))
+
+    def test_gamma_len_match(self):
+        """Test diagnostic_gamma list is right shape if present."""
+        tree = wxcode_decision_tree_global()
+        for _, query in tree.items():
+            check_list = query.get('diagnostic_gamma', None)
+            if not check_list:
+                continue
+            self.assertTrue(all([isinstance(x, (int, float))
+                                 for x in check_list]))
+            self.assertTrue(len(check_list) == len(query['diagnostic_fields']))
 
 
 if __name__ == '__main__':

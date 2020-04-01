@@ -339,6 +339,8 @@ class Test__set_metadata(rate_cube_set_up):
                                  datetime.datetime(2017, 11, 10, 4, 10))]
         expected_fp_point = 600
         expected_fp_bounds = [[0, 600]]
+        expected_cell_method = iris.coords.CellMethod('sum', coords='time')
+
         result = Accumulation()._set_metadata(self.cubes)
         self.assertEqual(result.name(), expected_name)
         self.assertEqual(result.units, expected_units)
@@ -350,6 +352,7 @@ class Test__set_metadata(rate_cube_set_up):
         self.assertEqual(bounds, expected_time_bounds)
         self.assertArrayAlmostEqual(
             result.coord("forecast_period").bounds, expected_fp_bounds)
+        self.assertEqual(result.cell_methods[0], expected_cell_method)
 
 
 class Test_process(rate_cube_set_up):

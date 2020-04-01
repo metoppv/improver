@@ -48,6 +48,22 @@ class Test_interpolate_missing_data(IrisTest):
         self.limit_data = np.full((3, 3), 3.)
         self.valid_data = np.full((3, 3), True)
 
+        self.data_for_limit_test = (
+            np.array([[10.0, np.nan, np.nan, np.nan, 20.0],
+                      [10.0, np.nan, np.nan, np.nan, 20.0],
+                      [10.0, np.nan, np.nan, np.nan, 20.0],
+                      [10.0, np.nan, np.nan, np.nan, 20.0],
+                      [10.0, np.nan, np.nan, np.nan, 20.0]]))
+        self.limit_for_limit_test = (
+            np.array([[0.0, 30.0, 12.0, 30.0, 0.0],
+                      [0.0, 30.0, 12.0, 30.0, 0.0],
+                      [0.0, 30.0, 12.0, 30.0, 0.0],
+                      [0.0, 30.0, 12.0, 30.0, 0.0],
+                      [0.0, 30.0, 12.0, 30.0, 0.0]]))
+
+        self.valid_data_for_limit_test = np.full((5, 5), True)
+        self.valid_data_for_limit_test[:, 1:4] = False
+
     def test_basic_linear(self):
         """Test when all the points around the missing data are the same."""
         data = np.ones((3, 3))
@@ -185,31 +201,39 @@ class Test_interpolate_missing_data(IrisTest):
 
         self.assertArrayEqual(data_updated, expected)
 
-    def test_set_to_limit(self):
+    def test_set_to_limit_as_maximum(self):
         """Test that when the linear interpolation gives values that are higher
         than the limit values the returned data is set back to the limit values
-        in those positions."""
-        data = np.array([[10.0, np.nan, np.nan, np.nan, 20.0],
-                         [10.0, np.nan, np.nan, np.nan, 20.0],
-                         [10.0, np.nan, np.nan, np.nan, 20.0],
-                         [10.0, np.nan, np.nan, np.nan, 20.0],
-                         [10.0, np.nan, np.nan, np.nan, 20.0]])
+        in those positions. This uses the default behaviour where the limit is
+        the maximum allowed value."""
 
-        limit = np.array([[0.0, 30.0, 12.0, 30.0, 0.0],
-                          [0.0, 30.0, 12.0, 30.0, 0.0],
-                          [0.0, 30.0, 12.0, 30.0, 0.0],
-                          [0.0, 30.0, 12.0, 30.0, 0.0],
-                          [0.0, 30.0, 12.0, 30.0, 0.0]])
-
-        valid_data = np.full((5, 5), True)
-        valid_data[:, 1:4] = False
         expected = np.array([[10.0, 12.5, 12.0, 17.5, 20.0],
                              [10.0, 12.5, 12.0, 17.5, 20.0],
                              [10.0, 12.5, 12.0, 17.5, 20.0],
                              [10.0, 12.5, 12.0, 17.5, 20.0],
                              [10.0, 12.5, 12.0, 17.5, 20.0]])
         data_updated = interpolate_missing_data(
-                data, valid_points=valid_data, limit=limit)
+                self.data_for_limit_test,
+                valid_points=self.valid_data_for_limit_test,
+                limit=self.limit_for_limit_test)
+        self.assertArrayEqual(data_updated, expected)
+
+    def test_set_to_limit_as_minimum(self):
+        """Test that when the linear interpolation gives values that are lower
+        than the limit values the returned data is set back to the limit values
+        in those positions. This tests the option of using the limit values as
+        minimums."""
+
+        expected = np.array([[10.0, 30., 15.0, 30., 20.0],
+                             [10.0, 30., 15.0, 30., 20.0],
+                             [10.0, 30., 15.0, 30., 20.0],
+                             [10.0, 30., 15.0, 30., 20.0],
+                             [10.0, 30., 15.0, 30., 20.0]])
+        data_updated = interpolate_missing_data(
+                self.data_for_limit_test,
+                valid_points=self.valid_data_for_limit_test,
+                limit=self.limit_for_limit_test,
+                limit_as_maximum=False)
         self.assertArrayEqual(data_updated, expected)
 
 

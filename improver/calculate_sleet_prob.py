@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """A plugin to calculate probability of sleet"""
 
-import warnings
 import numpy as np
 
 from improver.metadata.utilities import (
@@ -38,8 +37,7 @@ from improver.metadata.utilities import (
 
 
 def calculate_sleet_probability(prob_of_snow,
-                                prob_of_rain,
-                                ignore_mismatch=False):
+                                prob_of_rain):
     """
     This calculates the probability of sleet using the calculation:
     prob(sleet) = 1 - (prob(snow) + prob(rain))
@@ -47,33 +45,24 @@ def calculate_sleet_probability(prob_of_snow,
     Args:
       prob_of_snow (iris.cube.Cube):
         Cube of the probability of snow.
-
       prob_of_rain (iris.cube.Cube):
         Cube of the probability of rain.
-
-      ignore_mismatch (bool):
-        If set, errors relating to mismatches in the rain and snow data
-        are demoted to warnings.
 
     Returns:
       iris.cube.Cube:
         Cube of the probability of sleet.
 
-        Raises:
-            ValueError: If the cube contains negative values for the the
-            probability of sleet.
+    Raises:
+        ValueError: If the cube contains negative values for the the
+                    probability of sleet.
     """
     ones = np.ones((prob_of_snow.shape), dtype="float32")
     sleet_prob = (ones - (prob_of_snow.data + prob_of_rain.data))
     if np.any(sleet_prob < 0.0):
         msg = "Negative values of sleet probability have been calculated."
-        if ignore_mismatch:
-            sleet_prob = sleet_prob.clip(0., 1.)
-            warnings.warn(msg)
-        else:
-            raise ValueError(msg)
+        raise ValueError(msg)
 
-# In this case we want to copy all the attributes from the prob_of_snow cube
+    # Copy all of the attributes from the prob_of_snow cube
     mandatory_attributes = generate_mandatory_attributes([
         prob_of_rain, prob_of_snow])
     probability_of_sleet = create_new_diagnostic_cube(
