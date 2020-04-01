@@ -147,7 +147,7 @@ class Test_process(IrisTest):
         lrt_3d = add_coordinate(self.lapse_rate, [2, 3, 4], 'realization')
         msg = 'Lapse rate cube coordinate "realization" does not match '
         with self.assertRaisesRegex(ValueError, msg):
-            _ = ApplyGriddedLapseRate(lrt_3d)(
+            ApplyGriddedLapseRate(lrt_3d)(
                 temp_3d, self.source_orog, self.dest_orog)
 
     def test_missing_coord(self):
