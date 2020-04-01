@@ -32,7 +32,6 @@
 
 import iris
 import numpy as np
-from iris.analysis.maths import multiply
 from iris.exceptions import CoordinateNotFoundError
 from numpy.linalg import lstsq
 from scipy.ndimage import generic_filter
@@ -67,7 +66,6 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
 
         Args:
             temperature (iris.cube.Cube)
-            lapse_rate (iris.cube.Cube)
         """
         for crd in temperature.coords(dim_coords=True):
             try:
@@ -132,12 +130,9 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         for lr_slice, t_slice in zip(
                 self.lapse_rate.slices(self.xy_coords),
                 temperature.slices(self.xy_coords)):
-
-            adjustment = multiply(orog_diff, lr_slice)
-
             newcube = t_slice.copy()
             newcube.convert_units('K')
-            newcube.data += adjustment.data
+            newcube.data += np.multiply(orog_diff.data, lr_slice.data)
             adjusted_temperature.append(newcube)
 
         return iris.cube.CubeList(adjusted_temperature).merge_cube()
