@@ -90,7 +90,7 @@ def test_start_node_in_tree(tree_name):
 
 def test_keywords_diagnostic_missing():
     """Test only set keywords are used in diagnostic_missing_action.
-    This only exists in the high_resolution tree."""
+    This only exists in the 'high_resolution' tree."""
     tree = TREES['high_resolution']
     all_key_words = KEYWORDS_DIAGNOSTIC_MISSING_ACTION
     for items in tree.values():
