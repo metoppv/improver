@@ -34,7 +34,7 @@ import unittest
 
 import iris
 import numpy as np
-from iris import IrisTest
+from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import ApplyEMOS
 
