@@ -168,41 +168,43 @@ def process(cube: cli.inputcube,
         raise ValueError(msg)
 
     original_current_forecast = current_forecast.copy()
-    try:
-        find_percentile_coordinate(current_forecast)
-        input_forecast_type = "percentiles"
-    except CoordinateNotFoundError:
-        input_forecast_type = "realizations"
 
-    if current_forecast.name().startswith("probability_of"):
-        input_forecast_type = "probabilities"
-        conversion_plugin = ConvertProbabilitiesToPercentiles(
-            ecc_bounds_warning=ignore_ecc_bounds)
-    elif input_forecast_type == "percentiles":
-        # Initialise plugin to resample percentiles so that the percentiles are
-        # evenly spaced.
-        conversion_plugin = ResamplePercentiles(
-            ecc_bounds_warning=ignore_ecc_bounds)
+    def get_forecast_type(current_forecast):
+        """Identifies whether the forecast is in probability, realization
+        or percentile space"""
+        try:
+            find_percentile_coordinate(current_forecast)
+        except CoordinateNotFoundError:
+            if current_forecast.name().startswith("probability_of"):
+                return "probabilities"
+            return "realizations"
+        return "percentiles"
 
-    if input_forecast_type in ["percentiles", "probabilities"]:
+    input_forecast_type = get_forecast_type(current_forecast)
+
+    if input_forecast_type != "realizations":
+        # convert probability or percentile inputs to realizations
         if not realizations_count:
             raise ValueError(
-                "The current forecast has been provided as {0}. "
-                "These {0} need to be converted to realizations "
-                "for ensemble calibration. The realizations_count "
-                "argument is used to define the number of realizations "
-                "to construct from the input {0}, so if the "
-                "current forecast is provided as {0} then "
-                "realizations_count must be defined.".format(
-                    input_forecast_type))
-        current_forecast = conversion_plugin.process(
-            current_forecast, no_of_percentiles=realizations_count)
-        current_forecast = (
-            RebadgePercentilesAsRealizations().process(current_forecast))
+                "The 'realizations_count' argument must be defined "
+                "for forecasts provided as {}".format(input_forecast_type))
 
-    # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
-    ac = ApplyCoefficientsFromEnsembleCalibration(predictor=predictor)
-    location_parameter, scale_parameter = ac.process(
+        if input_forecast_type == "probabilities":
+            conversion_plugin = ConvertProbabilitiesToPercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds)
+        if input_forecast_type == "percentiles":
+            conversion_plugin = ResamplePercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds)
+
+        current_forecast = conversion_plugin(
+            current_forecast, no_of_percentiles=realizations_count)
+        current_forecast = RebadgePercentilesAsRealizations()(
+            current_forecast)
+
+    # get location and scale parameter of calibrated forecast distribution
+    calibration_plugin = ApplyCoefficientsFromEnsembleCalibration(
+        predictor=predictor)
+    location_parameter, scale_parameter = calibration_plugin(
         current_forecast, coefficients, landsea_mask=land_sea_mask)
 
     if shape_parameters:
