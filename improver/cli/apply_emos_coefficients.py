@@ -167,7 +167,7 @@ def process(cube: cli.inputcube,
                "name 'land_binary_mask'")
         raise ValueError(msg)
 
-    original_current_forecast = current_forecast.copy()
+    forecast_as_realizations = current_forecast.copy()
 
     def get_forecast_type(current_forecast):
         """Identifies whether the forecast is in probability, realization
@@ -196,16 +196,16 @@ def process(cube: cli.inputcube,
             conversion_plugin = ResamplePercentiles(
                 ecc_bounds_warning=ignore_ecc_bounds)
 
-        current_forecast = conversion_plugin(
+        forecast_as_percentiles = conversion_plugin(
             current_forecast, no_of_percentiles=realizations_count)
-        current_forecast = RebadgePercentilesAsRealizations()(
-            current_forecast)
+        forecast_as_realizations = RebadgePercentilesAsRealizations()(
+            forecast_as_percentiles)
 
     # get location and scale parameter of calibrated forecast distribution
     calibration_plugin = ApplyCoefficientsFromEnsembleCalibration(
         predictor=predictor)
     location_parameter, scale_parameter = calibration_plugin(
-        current_forecast, coefficients, landsea_mask=land_sea_mask)
+        forecast_as_realizations, coefficients, landsea_mask=land_sea_mask)
 
     if shape_parameters:
         shape_parameters = [np.float32(x) for x in shape_parameters]
@@ -216,13 +216,13 @@ def process(cube: cli.inputcube,
         result = ConvertLocationAndScaleParametersToProbabilities(
             distribution=distribution,
             shape_parameters=shape_parameters).process(
-            location_parameter, scale_parameter, original_current_forecast)
+            location_parameter, scale_parameter, current_forecast)
     elif input_forecast_type == "percentiles":
-        perc_coord = find_percentile_coordinate(original_current_forecast)
+        perc_coord = find_percentile_coordinate(current_forecast)
         result = ConvertLocationAndScaleParametersToPercentiles(
             distribution=distribution,
             shape_parameters=shape_parameters).process(
-            location_parameter, scale_parameter, original_current_forecast,
+            location_parameter, scale_parameter, current_forecast,
             percentiles=perc_coord.points)
     elif input_forecast_type == "realizations":
         # Ensemble Copula Coupling to generate realizations
@@ -231,12 +231,12 @@ def process(cube: cli.inputcube,
         percentiles = ConvertLocationAndScaleParametersToPercentiles(
             distribution=distribution,
             shape_parameters=shape_parameters).process(
-            location_parameter, scale_parameter, original_current_forecast,
+            location_parameter, scale_parameter, current_forecast,
             no_of_percentiles=no_of_percentiles)
         result = EnsembleReordering().process(
             percentiles, current_forecast,
             random_ordering=randomise, random_seed=random_seed)
     if land_sea_mask:
         # Fill in masked sea points with uncalibrated data.
-        merge_land_and_sea(result, original_current_forecast)
+        merge_land_and_sea(result, current_forecast)
     return result
