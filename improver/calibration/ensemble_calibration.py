@@ -1201,8 +1201,7 @@ class ApplyEMOS(BasePlugin):  # TODO change to PostProcessingPlugin later
                 realizations_count, ignore_ecc_bounds, predictor,
                 distribution, shape_parameters,
                 randomise, random_seed):
-        """
-        Calibrate a forecast
+        """Calibrate input forecast using pre-calculated coefficients
 
         Args:
             forecast (iris.cube.Cube):
@@ -1245,7 +1244,7 @@ class ApplyEMOS(BasePlugin):  # TODO change to PostProcessingPlugin later
         forecast_as_realizations = forecast.copy()
         if self.forecast_type != "realizations":
             forecast_as_realizations = self._convert_to_realizations(
-                forecast, realizations_count, ignore_ecc_bounds)
+                forecast.copy(), realizations_count, ignore_ecc_bounds)
 
         calibration_plugin = CalibratedForecastDistributionParameters(
             predictor=predictor)
