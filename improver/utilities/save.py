@@ -114,7 +114,7 @@ def save_netcdf(cubelist, filename):
         warnings.warn(msg)
 
     global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
-                   'institution', 'history', 'bald__isPrefixedBy']
+                   'institution', 'history']
     global_keys.extend([key for key in cube.attributes.keys()
                         if 'mosg__' in key])
 
