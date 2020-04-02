@@ -84,6 +84,9 @@ def process(orography: cli.inputcube,
     """
     from improver.utilities.ancillary_creation import (
         OrographicSmoothingCoefficients)
-    return OrographicSmoothingCoefficients(
+
+    plugin = OrographicSmoothingCoefficients(
         min_smoothing_coefficient, max_smoothing_coefficient, coefficient,
-        power)(orography)
+        power)
+
+    return plugin(orography)

@@ -101,18 +101,19 @@ def process(cube: cli.inputcube,
         raise ValueError("Neither u_cube or v_cube can be None")
 
     # extrapolate input data to the maximum required lead time
-    forecast_cubes = CreateExtrapolationForecast(
+    plugin = CreateExtrapolationForecast(
         cube, u_cube, v_cube, orographic_enhancement,
-        attributes_dict=attributes_config)(ACCUMULATION_FIDELITY,
-                                           max_lead_time)
+        attributes_dict=attributes_config)
+    forecast_cubes = plugin(ACCUMULATION_FIDELITY, max_lead_time)
 
     lead_times = (np.arange(lead_time_interval, max_lead_time + 1,
                             lead_time_interval))
 
     # Accumulate high frequency rate into desired accumulation intervals.
-    result = Accumulation(
+    plugin = Accumulation(
         accumulation_units=accumulation_units,
         accumulation_period=accumulation_period * 60,
-        forecast_periods=lead_times * 60)(forecast_cubes)
+        forecast_periods=lead_times * 60)
+    result = plugin(forecast_cubes)
 
     return MergeCubes()(result)

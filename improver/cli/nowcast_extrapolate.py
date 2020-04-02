@@ -78,8 +78,9 @@ def process(cube: cli.inputcube,
     u_cube, v_cube = advection_velocity
 
     # extrapolate input data to required lead times
-    forecast_cubes = CreateExtrapolationForecast(
+    plugin = CreateExtrapolationForecast(
         cube, u_cube, v_cube, orographic_enhancement,
-        attributes_dict=attributes_config)(lead_time_interval, max_lead_time)
+        attributes_dict=attributes_config)
+    forecast_cubes = plugin(lead_time_interval, max_lead_time)
 
     return MergeCubes()(forecast_cubes)

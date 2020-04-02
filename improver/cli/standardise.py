@@ -133,12 +133,12 @@ def process(cube: cli.inputcube,
     # StaGE version 1.2.0 compatible.
     update_stage_v110_metadata(cube)
 
-    output_data = StandardiseGridAndMetadata(
+    plugin = StandardiseGridAndMetadata(
         regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
         landmask=land_sea_mask,
-        landmask_vicinity=land_sea_mask_vicinity)(
-            cube, target_grid, new_name=new_name, new_units=new_units,
-            regridded_title=regridded_title, coords_to_remove=coords_to_remove,
-            attributes_dict=attributes_config)
+        landmask_vicinity=land_sea_mask_vicinity)
 
-    return output_data
+    return plugin(
+        cube, target_grid, new_name=new_name, new_units=new_units,
+        regridded_title=regridded_title, coords_to_remove=coords_to_remove,
+        attributes_dict=attributes_config)

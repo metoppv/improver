@@ -185,14 +185,17 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             prev_x_y_slice = x_y_slice
 
             cube_slices = iris.cube.CubeList([])
+
+            plugin = NeighbourhoodProcessing(
+                self.neighbourhood_method, self.radii,
+                lead_times=self.lead_times,
+                weighted_mode=self.weighted_mode,
+                sum_or_fraction=self.sum_or_fraction, re_mask=self.re_mask
+                )
+
             # Apply each mask in in mask_cube to the 2D input slice.
             for cube_slice in mask_cube.slices_over(self.coord_for_masking):
-                output_cube = NeighbourhoodProcessing(
-                    self.neighbourhood_method, self.radii,
-                    lead_times=self.lead_times,
-                    weighted_mode=self.weighted_mode,
-                    sum_or_fraction=self.sum_or_fraction, re_mask=self.re_mask
-                    )(x_y_slice, mask_cube=cube_slice)
+                output_cube = plugin(x_y_slice, mask_cube=cube_slice)
                 coord_object = cube_slice.coord(self.coord_for_masking).copy()
                 output_cube.add_aux_coord(coord_object)
                 output_cube = iris.util.new_axis(
