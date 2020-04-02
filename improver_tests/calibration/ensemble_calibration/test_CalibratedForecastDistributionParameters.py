@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """
 Unit tests for the
-`ensemble_calibration.ApplyCoefficientsForEnsembleCalibration`
+`ensemble_calibration.CalibratedForecastDistributionParameters`
 class.
 
 """
@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 from numpy.testing import assert_array_almost_equal
 
 from improver.calibration.ensemble_calibration import \
-    ApplyCoefficientsFromEnsembleCalibration as Plugin
+    CalibratedForecastDistributionParameters as Plugin
 from improver.calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration)
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -160,14 +160,14 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test without the predictor."""
         result = str(Plugin())
-        msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
+        msg = ("<CalibratedForecastDistributionParameters: "
                "predictor: mean>")
         self.assertEqual(result, msg)
 
     def test_with_predictor(self):
         """Test specifying the predictor."""
         result = str(Plugin(predictor="realizations"))
-        msg = ("<ApplyCoefficientsFromEnsembleCalibration: "
+        msg = ("<CalibratedForecastDistributionParameters: "
                "predictor: realizations>")
         self.assertEqual(result, msg)
 

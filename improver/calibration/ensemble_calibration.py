@@ -838,17 +838,17 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         return coefficients_cube
 
 
-class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
+class CalibratedForecastDistributionParameters(BasePlugin):
     """
-    Class to apply the optimised EMOS coefficients to the current forecast.
-
+    Class to calculate calibrated forecast distribution parameters given an
+    uncalibrated input forecast and EMOS coefficients.
     """
     def __init__(self, predictor="mean"):
         """
         Create a plugin that uses the coefficients created using EMOS from
         historical forecasts and corresponding truths and applies these
-        coefficients to the current forecast to generate a location and scale
-        parameter that represents the calibrated distribution.
+        coefficients to the current forecast to generate location and scale
+        parameters that represent the calibrated distribution at each point.
 
         Args:
             predictor (str):
@@ -863,7 +863,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ApplyCoefficientsFromEnsembleCalibration: predictor: {}>')
+        result = ('<CalibratedForecastDistributionParameters: predictor: {}>')
         return result.format(self.predictor)
 
     def _spatial_domain_match(self):

@@ -135,7 +135,7 @@ def process(cube: cli.inputcube,
     from iris.exceptions import CoordinateNotFoundError
 
     from improver.calibration.ensemble_calibration import (
-        ApplyCoefficientsFromEnsembleCalibration)
+        CalibratedForecastDistributionParameters)
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         EnsembleReordering,
         ConvertLocationAndScaleParametersToPercentiles,
@@ -202,7 +202,7 @@ def process(cube: cli.inputcube,
             forecast_as_percentiles)
 
     # get location and scale parameter of calibrated forecast distribution
-    calibration_plugin = ApplyCoefficientsFromEnsembleCalibration(
+    calibration_plugin = CalibratedForecastDistributionParameters(
         predictor=predictor)
     location_parameter, scale_parameter = calibration_plugin(
         forecast_as_realizations, coefficients, landsea_mask=land_sea_mask)
