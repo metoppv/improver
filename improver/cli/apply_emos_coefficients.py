@@ -213,29 +213,32 @@ def process(cube: cli.inputcube,
     # Convert the output forecast type (i.e. realizations, percentiles,
     # probabilities) to match the input forecast type.
     if input_forecast_type == "probabilities":
-        result = ConvertLocationAndScaleParametersToProbabilities(
+        conversion_plugin = ConvertLocationAndScaleParametersToProbabilities(
             distribution=distribution,
-            shape_parameters=shape_parameters).process(
+            shape_parameters=shape_parameters)
+        result = conversion_plugin(
             location_parameter, scale_parameter, current_forecast)
-    elif input_forecast_type == "percentiles":
-        perc_coord = find_percentile_coordinate(current_forecast)
-        result = ConvertLocationAndScaleParametersToPercentiles(
+
+    else:
+        conversion_plugin = ConvertLocationAndScaleParametersToPercentiles(
             distribution=distribution,
-            shape_parameters=shape_parameters).process(
-            location_parameter, scale_parameter, current_forecast,
-            percentiles=perc_coord.points)
-    elif input_forecast_type == "realizations":
-        # Ensemble Copula Coupling to generate realizations
-        # from the location and scale parameter.
-        no_of_percentiles = len(current_forecast.coord('realization').points)
-        percentiles = ConvertLocationAndScaleParametersToPercentiles(
-            distribution=distribution,
-            shape_parameters=shape_parameters).process(
-            location_parameter, scale_parameter, current_forecast,
-            no_of_percentiles=no_of_percentiles)
-        result = EnsembleReordering().process(
-            percentiles, current_forecast,
-            random_ordering=randomise, random_seed=random_seed)
+            shape_parameters=shape_parameters)
+
+        if input_forecast_type == "percentiles":
+            perc_coord = find_percentile_coordinate(current_forecast)
+            result = conversion_plugin(
+                location_parameter, scale_parameter, current_forecast,
+                percentiles=perc_coord.points)
+        else:
+            no_of_percentiles = len(
+                current_forecast.coord('realization').points)
+            percentiles = conversion_plugin(
+                location_parameter, scale_parameter, current_forecast,
+                no_of_percentiles=no_of_percentiles)
+            result = EnsembleReordering().process(
+                percentiles, current_forecast,
+                random_ordering=randomise, random_seed=random_seed)
+
     if land_sea_mask:
         # Fill in masked sea points with uncalibrated data.
         merge_land_and_sea(result, current_forecast)
