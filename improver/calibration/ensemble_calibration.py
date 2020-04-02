@@ -1150,9 +1150,42 @@ class ApplyEMOS(BasePlugin):  # TODO change to PostProcessingPlugin later
         return forecast_as_realizations
 
     @staticmethod
-    def generate_calibrated_forecast():
-        # TODO put stuff in here
-        pass
+    def calibrate_forecast(
+            current_forecast, input_forecast_type, distribution,
+            location_parameter, scale_parameter, shape_parameters,
+            randomise, random_seed):
+        """Generate calibrated probability, percentile or realization output
+
+        """
+        if input_forecast_type == "probabilities":
+            conversion_plugin = \
+                ConvertLocationAndScaleParametersToProbabilities(
+                    distribution=distribution,
+                    shape_parameters=shape_parameters)
+            result = conversion_plugin(
+                location_parameter, scale_parameter, current_forecast)
+
+        else:
+            conversion_plugin = ConvertLocationAndScaleParametersToPercentiles(
+                distribution=distribution,
+                shape_parameters=shape_parameters)
+
+            if input_forecast_type == "percentiles":
+                perc_coord = find_percentile_coordinate(current_forecast)
+                result = conversion_plugin(
+                    location_parameter, scale_parameter, current_forecast,
+                    percentiles=perc_coord.points)
+            else:
+                no_of_percentiles = len(
+                    current_forecast.coord('realization').points)
+                percentiles = conversion_plugin(
+                    location_parameter, scale_parameter, current_forecast,
+                    no_of_percentiles=no_of_percentiles)
+                result = EnsembleReordering().process(
+                    percentiles, current_forecast,
+                    random_ordering=randomise, random_seed=random_seed)
+
+        return result
 
     def process(self, current_forecast, coefficients, land_sea_mask,
                 realizations_count, ignore_ecc_bounds, predictor,
@@ -1193,7 +1226,6 @@ class ApplyEMOS(BasePlugin):  # TODO change to PostProcessingPlugin later
                 Calibrated forecast in the form of the input (ie probabilities
                 percentiles or realizations)
         """
-
         input_forecast_type = self.get_forecast_type(current_forecast)
 
         forecast_as_realizations = current_forecast.copy()
@@ -1202,43 +1234,18 @@ class ApplyEMOS(BasePlugin):  # TODO change to PostProcessingPlugin later
                 current_forecast, input_forecast_type,
                 realizations_count, ignore_ecc_bounds)
 
-        # get location and scale parameter of calibrated forecast distribution
         calibration_plugin = CalibratedForecastDistributionParameters(
             predictor=predictor)
         location_parameter, scale_parameter = calibration_plugin(
             forecast_as_realizations, coefficients, landsea_mask=land_sea_mask)
 
-        # generate calibrated probability, percentile or realization output
-        if input_forecast_type == "probabilities":
-            conversion_plugin = \
-                ConvertLocationAndScaleParametersToProbabilities(
-                    distribution=distribution,
-                    shape_parameters=shape_parameters)
-            result = conversion_plugin(
-                location_parameter, scale_parameter, current_forecast)
-
-        else:
-            conversion_plugin = ConvertLocationAndScaleParametersToPercentiles(
-                distribution=distribution,
-                shape_parameters=shape_parameters)
-
-            if input_forecast_type == "percentiles":
-                perc_coord = find_percentile_coordinate(current_forecast)
-                result = conversion_plugin(
-                    location_parameter, scale_parameter, current_forecast,
-                    percentiles=perc_coord.points)
-            else:
-                no_of_percentiles = len(
-                    current_forecast.coord('realization').points)
-                percentiles = conversion_plugin(
-                    location_parameter, scale_parameter, current_forecast,
-                    no_of_percentiles=no_of_percentiles)
-                result = EnsembleReordering().process(
-                    percentiles, current_forecast,
-                    random_ordering=randomise, random_seed=random_seed)
+        result = self.calibrate_forecast(
+            current_forecast, input_forecast_type, distribution,
+            location_parameter, scale_parameter, shape_parameters,
+            randomise, random_seed)
 
         if land_sea_mask:
-            # Fill in masked sea points with uncalibrated data.
+            # fill in masked sea points with uncalibrated data
             merge_land_and_sea(result, current_forecast)
 
         return result
