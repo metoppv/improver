@@ -389,7 +389,7 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         """
         # Mask out any NaNs in the neighbourhood data so that Iris ignores
         # them when calculating the weighted mean.
-        cube.data = ma.masked_invalid(cube.data)
+        cube.data = ma.masked_invalid(cube.data, copy=False)
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
 
