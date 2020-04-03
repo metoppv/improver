@@ -44,6 +44,7 @@ def process(*cubes: cli.inputcube,
     r"""Combine input cubes.
 
     Combine the input cubes into a single cube using the requested operation.
+    The first cube in the input list provides the template for output metadata.
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):

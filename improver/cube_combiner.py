@@ -136,7 +136,9 @@ class CubeCombiner(BasePlugin):
     def process(self, cube_list, new_diagnostic_name, use_midpoint=False):
         """
         Combine data and metadata from a list of input cubes into a single
-        cube, using the specified operation to combine the cube data.
+        cube, using the specified operation to combine the cube data.  The
+        first cube in the input list provides the template for the combined
+        cube metadata.
 
         Args:
             cube_list (iris.cube.CubeList or list):
