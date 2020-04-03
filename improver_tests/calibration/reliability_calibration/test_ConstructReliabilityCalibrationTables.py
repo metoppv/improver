@@ -37,7 +37,7 @@ import iris
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
-from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.cube_manipulation import MergeCubes
 from improver.calibration.reliability_calibration import (
     ConstructReliabilityCalibrationTables as Plugin)
 from improver_tests.set_up_test_cubes import set_up_probability_cube
@@ -77,13 +77,13 @@ class Test_Setup(unittest.TestCase):
         self.forecast_2 = set_up_probability_cube(
             forecast_data, thresholds, time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0))
-        self.forecasts = merge_cubes([self.forecast_1, self.forecast_2])
+        self.forecasts = MergeCubes()([self.forecast_1, self.forecast_2])
         self.truth_1 = set_up_probability_cube(
             truth_data, thresholds, frt=datetime(2017, 11, 10, 4, 0))
         self.truth_2 = set_up_probability_cube(
             truth_data, thresholds, time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 4, 0))
-        self.truths = merge_cubes([self.truth_1, self.truth_2])
+        self.truths = MergeCubes()([self.truth_1, self.truth_2])
         self.expected_threshold_coord = self.forecasts.coord(
             var_name='threshold')
         self.expected_table_shape = (3, 5, 3, 3)
@@ -304,7 +304,7 @@ class Test__check_forecast_consistency(Test_Setup):
         forecast.coord('forecast_period').points = [3600]
         forecasts.append(forecast)
         forecasts.append(self.forecasts[1])
-        forecasts = merge_cubes(forecasts)
+        forecasts = MergeCubes()(forecasts)
 
         msg = ('Forecasts have been provided from differing cycle hours '
                'or forecast periods, or without these coordinates. These '

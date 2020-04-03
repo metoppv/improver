@@ -70,7 +70,7 @@ def process(*cubes: cli.inputcube,
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubes[0].name()
-    result = CubeCombiner(operation, warnings_on=check_metadata).process(
+    result = CubeCombiner(operation, warnings_on=check_metadata)(
         CubeList(cubes), new_name, use_midpoint=use_midpoint)
 
     return result

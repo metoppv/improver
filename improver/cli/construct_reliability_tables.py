@@ -80,4 +80,4 @@ def process(*cubes: cli.inputcube,
 
     return ConstructReliabilityCalibrationTables(
         n_probability_bins=n_probability_bins,
-        single_value_limits=single_value_limits).process(forecast, truth)
+        single_value_limits=single_value_limits)(forecast, truth)

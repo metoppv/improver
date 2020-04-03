@@ -140,7 +140,7 @@ def update_daynight(cubewx):
     else:
         cubewx_daynight = cubewx.copy()
     daynightplugin = solar.DayNightMask()
-    daynight_mask = daynightplugin.process(cubewx_daynight)
+    daynight_mask = daynightplugin(cubewx_daynight)
 
     # Loop over the codes which decrease by 1 if a night time value
     # e.g. 1 - sunny day becomes 0 - clear night.

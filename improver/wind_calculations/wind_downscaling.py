@@ -33,8 +33,8 @@
 import copy
 import itertools
 
-import iris
 import numpy as np
+import iris
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
@@ -382,8 +382,7 @@ class RoughnessCorrectionUtilities:
         uhref = self._calc_u_at_h(uold, hgrid, self.h_ref, mask)
         if hgrid.ndim == 1:
             hgrid = hgrid[np.newaxis, np.newaxis, :]
-        ustar = FrictionVelocity(uhref, self.h_ref, self.z_0,
-                                 mask).process()
+        ustar = FrictionVelocity(uhref, self.h_ref, self.z_0, mask)()
         unew = np.copy(uold)
         mhref = self.h_ref
         mhref[~mask] = RMDI

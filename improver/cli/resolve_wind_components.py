@@ -58,6 +58,5 @@ def process(wind_speed: cli.inputcube,
         raise TypeError(
             "Neither wind_speed or wind_direction can be none")
 
-    u_cube, v_cube = ResolveWindComponents().process(
-        wind_speed, wind_direction)
+    u_cube, v_cube = ResolveWindComponents()(wind_speed, wind_direction)
     return CubeList([u_cube, v_cube])

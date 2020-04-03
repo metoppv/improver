@@ -34,8 +34,8 @@ This module defines plugins used to create nowcast extrapolation forecasts.
 import datetime
 import warnings
 
-import iris
 import numpy as np
+import iris
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
@@ -405,7 +405,7 @@ class CreateExtrapolationForecast(BasePlugin):
 
         self.orographic_enhancement_cube = orographic_enhancement_cube
         if self.orographic_enhancement_cube:
-            input_cube, = ApplyOrographicEnhancement("subtract").process(
+            input_cube, = ApplyOrographicEnhancement("subtract")(
                 input_cube, self.orographic_enhancement_cube)
         elif ("precipitation_rate" in input_cube.name()
               or "rainfall_rate" in input_cube.name()):
@@ -449,11 +449,11 @@ class CreateExtrapolationForecast(BasePlugin):
         """
         # cast to float as datetime.timedelta cannot accept np.int
         timestep = datetime.timedelta(minutes=float(leadtime_minutes))
-        forecast_cube = self.advection_plugin.process(
+        forecast_cube = self.advection_plugin(
             self.input_cube, timestep)
         if self.orographic_enhancement_cube:
             # Add orographic enhancement.
-            forecast_cube, = ApplyOrographicEnhancement("add").process(
+            forecast_cube, = ApplyOrographicEnhancement("add")(
                 forecast_cube, self.orographic_enhancement_cube)
 
         return forecast_cube

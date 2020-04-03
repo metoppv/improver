@@ -121,5 +121,5 @@ def process(cube: cli.inputcube,
     # Collapse with the masking dimension.
     if collapse_dimension:
         result = CollapseMaskedNeighbourhoodCoordinate(
-            coord_for_masking, weights).process(result)
+            coord_for_masking, weights)(result)
     return result

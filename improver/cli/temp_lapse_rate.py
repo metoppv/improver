@@ -122,6 +122,6 @@ def process(temperature: cli.inputcube,
         max_height_diff=max_height_diff,
         nbhood_radius=nbhood_radius,
         max_lapse_rate=max_lapse_rate,
-        min_lapse_rate=min_lapse_rate).process(
+        min_lapse_rate=min_lapse_rate)(
             temperature, orography, land_sea_mask, model_id_attr=model_id_attr)
     return result

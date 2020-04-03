@@ -32,12 +32,12 @@
 
 from datetime import datetime, timedelta
 
-import iris
 import numpy as np
+import iris
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
-from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
 from improver.utilities.spatial import (
     lat_lon_determine, transform_grid_to_lat_lon)
@@ -356,7 +356,7 @@ class TemporalInterpolation(BasePlugin):
 
         interpolated_cubes = iris.cube.CubeList()
         daynightplugin = DayNightMask()
-        daynight_mask = daynightplugin.process(interpolated_cube)
+        daynight_mask = daynightplugin(interpolated_cube)
 
         for i, single_time in enumerate(interpolated_cube.slices_over('time')):
             index = np.where(daynight_mask.data[i] == daynightplugin.night)
@@ -421,7 +421,7 @@ class TemporalInterpolation(BasePlugin):
 
         time_list = self.construct_time_list(initial_time, final_time)
         cubes = iris.cube.CubeList([cube_t0, cube_t1])
-        cube = merge_cubes(cubes)
+        cube = MergeCubes()(cubes)
 
         interpolated_cube = cube.interpolate(time_list,
                                              iris.analysis.Linear())

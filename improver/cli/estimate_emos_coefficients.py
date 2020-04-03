@@ -109,8 +109,9 @@ def process(*cubes: cli.inputcube,
     forecast, truth, land_sea_mask = split_forecasts_and_truth(
         cubes, truth_attribute)
 
-    return EstimateCoefficientsForEnsembleCalibration(
+    plugin = EstimateCoefficientsForEnsembleCalibration(
         distribution, cycletime, desired_units=units,
         predictor=predictor, tolerance=tolerance,
-        max_iterations=max_iterations).process(
-            forecast, truth, landsea_mask=land_sea_mask)
+        max_iterations=max_iterations)
+
+    return plugin(forecast, truth, landsea_mask=land_sea_mask)

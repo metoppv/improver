@@ -53,4 +53,4 @@ def process(land_sea_mask: cli.inputcube):
     """
     from improver.generate_ancillaries.generate_ancillary import (
         CorrectLandSeaMask)
-    return CorrectLandSeaMask().process(land_sea_mask)
+    return CorrectLandSeaMask()(land_sea_mask)

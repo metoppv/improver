@@ -34,8 +34,8 @@ classes for advection nowcasting.
 """
 import warnings
 
-import iris
 import numpy as np
+import iris
 from iris.exceptions import (
     CoordinateCollapseError, CoordinateNotFoundError, InvalidCubeError)
 from scipy import ndimage, signal
@@ -75,8 +75,7 @@ def generate_optical_flow_components(
     u_cubes = iris.cube.CubeList([])
     v_cubes = iris.cube.CubeList([])
     for older_cube, newer_cube in zip(cube_list[:-1], cube_list[1:]):
-        ucube, vcube = ofc_plugin.process(older_cube, newer_cube,
-                                          boxsize=ofc_box_size)
+        ucube, vcube = ofc_plugin(older_cube, newer_cube, boxsize=ofc_box_size)
         u_cubes.append(ucube)
         v_cubes.append(vcube)
 

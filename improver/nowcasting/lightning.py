@@ -31,8 +31,8 @@
 """Module for NowcastLightning class and associated functions."""
 from math import isclose
 
-import iris
 import numpy as np
+import iris
 from iris.exceptions import ConstraintMismatchError
 
 from improver import PostProcessingPlugin
@@ -498,5 +498,5 @@ class NowcastLightning(PostProcessingPlugin):
             prob_precip_cube, prob_vii_cube)
         # Adjust data so that lightning probability does not decrease too
         # rapidly with distance.
-        self.neighbourhood.process(new_cube)
+        self.neighbourhood(new_cube)
         return new_cube

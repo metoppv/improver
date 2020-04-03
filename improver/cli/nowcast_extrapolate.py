@@ -73,14 +73,14 @@ def process(cube: cli.inputcube,
             New cubes with updated time and extrapolated data.
     """
     from improver.nowcasting.forecasting import CreateExtrapolationForecast
-    from improver.utilities.cube_manipulation import merge_cubes
+    from improver.utilities.cube_manipulation import MergeCubes
 
     u_cube, v_cube = advection_velocity
 
     # extrapolate input data to required lead times
-    forecast_plugin = CreateExtrapolationForecast(
+    plugin = CreateExtrapolationForecast(
         cube, u_cube, v_cube, orographic_enhancement,
         attributes_dict=attributes_config)
-    forecast_cubes = forecast_plugin.process(lead_time_interval, max_lead_time)
+    forecast_cubes = plugin(lead_time_interval, max_lead_time)
 
-    return merge_cubes(forecast_cubes)
+    return MergeCubes()(forecast_cubes)
