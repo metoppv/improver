@@ -48,18 +48,6 @@ from improver.utilities.cube_manipulation import (
 class ApplyGriddedLapseRate(PostProcessingPlugin):
     """Class to apply a lapse rate adjustment to a temperature data forecast"""
 
-    def __init__(self, lapse_rate):
-        """Initialise the class with a lapse rate field
-
-        Args:
-            lapse_rate (iris.cube.Cube):
-                Cube of pre-calculated lapse rates
-        """
-        self.lapse_rate = lapse_rate
-        self.lapse_rate.convert_units('K m-1')
-        self.xy_coords = [lapse_rate.coord(axis='y'),
-                          lapse_rate.coord(axis='x')]
-
     def _check_dim_coords(self, temperature):
         """Throw an error if the dimension coordinates are not the same for
         temperature and lapse rate cubes
@@ -96,13 +84,15 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
                      next(source_orog.slices(self.xy_coords)))
         return orog_diff
 
-    def process(self, temperature, source_orog, dest_orog):
+    def process(self, temperature, lapse_rate, source_orog, dest_orog):
         """Applies lapse rate correction to temperature forecast.  All cubes'
         units are modified in place.
 
         Args:
             temperature (iris.cube.Cube):
                 Input temperature field to be adjusted
+            lapse_rate (iris.cube.Cube):
+                Cube of pre-calculated lapse rates
             source_orog (iris.cube.Cube):
                 2D cube of source orography heights
             dest_orog (iris.cube.Cube):
@@ -112,6 +102,11 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
             iris.cube.Cube:
                 Lapse-rate adjusted temperature field
         """
+        self.lapse_rate = lapse_rate
+        self.lapse_rate.convert_units('K m-1')
+        self.xy_coords = [lapse_rate.coord(axis='y'),
+                          lapse_rate.coord(axis='x')]
+
         self._check_dim_coords(temperature)
 
         if not spatial_coords_match(temperature, source_orog):

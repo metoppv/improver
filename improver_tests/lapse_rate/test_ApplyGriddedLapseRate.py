@@ -79,12 +79,12 @@ class Test_process(IrisTest):
             [278., 278.2402, 278.5, 278.7598],
             [278.9902, 279.2304, 279.4902, 279.75]], dtype=np.float32)
 
-        self.plugin = ApplyGriddedLapseRate(self.lapse_rate)
+        self.plugin = ApplyGriddedLapseRate()
 
     def test_basic(self):
         """Test output is cube with correct name, type and units"""
-        result = self.plugin(
-            self.temperature, self.source_orog, self.dest_orog)
+        result = self.plugin(self.temperature, self.lapse_rate,
+                             self.source_orog, self.dest_orog)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), 'screen_temperature')
         self.assertEqual(result.units, 'K')
@@ -92,8 +92,8 @@ class Test_process(IrisTest):
 
     def test_values(self):
         """Check adjusted temperature values are as expected"""
-        result = self.plugin(
-            self.temperature, self.source_orog, self.dest_orog)
+        result = self.plugin(self.temperature, self.lapse_rate,
+                             self.source_orog, self.dest_orog)
 
         # test that temperatures are reduced where destination orography
         # is higher than source
@@ -124,8 +124,8 @@ class Test_process(IrisTest):
         units"""
         self.temperature.convert_units('degC')
         self.source_orog.convert_units('km')
-        result = self.plugin(
-            self.temperature, self.source_orog, self.dest_orog)
+        result = self.plugin(self.temperature, self.lapse_rate,
+                             self.source_orog, self.dest_orog)
         self.assertEqual(result.units, 'K')
         self.assertArrayAlmostEqual(result.data, self.expected_data)
 
@@ -133,8 +133,8 @@ class Test_process(IrisTest):
         """Test processing of a cube with multiple realizations"""
         temp_3d = add_coordinate(self.temperature, [0, 1, 2], 'realization')
         lrt_3d = add_coordinate(self.lapse_rate, [0, 1, 2], 'realization')
-        result = ApplyGriddedLapseRate(lrt_3d)(
-            temp_3d, self.source_orog, self.dest_orog)
+        result = ApplyGriddedLapseRate()(
+            temp_3d, lrt_3d, self.source_orog, self.dest_orog)
         self.assertArrayEqual(
             result.coord('realization').points, np.array([0, 1, 2]))
         for subcube in result.slices_over('realization'):
@@ -147,8 +147,8 @@ class Test_process(IrisTest):
         lrt_3d = add_coordinate(self.lapse_rate, [2, 3, 4], 'realization')
         msg = 'Lapse rate cube coordinate "realization" does not match '
         with self.assertRaisesRegex(ValueError, msg):
-            ApplyGriddedLapseRate(lrt_3d)(
-                temp_3d, self.source_orog, self.dest_orog)
+            ApplyGriddedLapseRate()(
+                temp_3d, lrt_3d, self.source_orog, self.dest_orog)
 
     def test_missing_coord(self):
         """Test error if temperature cube has realizations but lapse rate
@@ -156,7 +156,8 @@ class Test_process(IrisTest):
         temp_3d = add_coordinate(self.temperature, [0, 1, 2], 'realization')
         msg = 'Lapse rate cube has no coordinate "realization"'
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin(temp_3d, self.source_orog, self.dest_orog)
+            self.plugin(temp_3d, self.lapse_rate,
+                        self.source_orog, self.dest_orog)
 
     def test_spatial_mismatch(self):
         """Test error if source orography grid is not matched to temperature"""
@@ -164,7 +165,8 @@ class Test_process(IrisTest):
         self.source_orog.coord(axis='y').points = new_y_points
         msg = 'Source orography spatial coordinates do not match'
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin(self.temperature, self.source_orog, self.dest_orog)
+            self.plugin(self.temperature, self.lapse_rate,
+                        self.source_orog, self.dest_orog)
 
     def test_spatial_mismatch_2(self):
         """Test error if destination orography grid is not matched to
@@ -173,7 +175,8 @@ class Test_process(IrisTest):
         self.dest_orog.coord(axis='y').points = new_y_points
         msg = 'Destination orography spatial coordinates do not match'
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin(self.temperature, self.source_orog, self.dest_orog)
+            self.plugin(self.temperature, self.lapse_rate,
+                        self.source_orog, self.dest_orog)
 
 
 if __name__ == '__main__':
