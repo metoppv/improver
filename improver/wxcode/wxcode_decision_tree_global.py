@@ -219,7 +219,7 @@ def wxcode_decision_tree_global():
             'diagnostic_gamma': [1.],
             'diagnostic_thresholds': [[(0.1, 'mm hr-1'),
                                        (0.1, 'mm hr-1')]],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': [['above', 'above']]},
 
         'light_sleet_shower': {
             'succeed': 17,
@@ -252,7 +252,7 @@ def wxcode_decision_tree_global():
             'diagnostic_gamma': [1.],
             'diagnostic_thresholds': [[(0.1, 'mm hr-1'),
                                        (0.1, 'mm hr-1')]],
-            'diagnostic_conditions': ['above', 'above']},
+            'diagnostic_conditions': [['above', 'above']]},
 
         'drizzle_mist': {
             'succeed': 11,

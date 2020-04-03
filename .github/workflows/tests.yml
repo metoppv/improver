@@ -1,6 +1,6 @@
 name: Tests
 
-on: pull_request
+on: [pull_request, push]
 jobs:
   Sphinx-Pytest-Coverage:
     runs-on: ubuntu-latest
@@ -12,7 +12,7 @@ jobs:
         path: /usr/share/miniconda/envs/improver
         key: ${{ runner.os }}-conda-improver-${{ hashFiles('**/environment.yml') }}
         restore-keys: ${{ runner.OS }}-conda-improver-
-    - name: conda build
+    - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
