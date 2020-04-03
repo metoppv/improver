@@ -101,8 +101,8 @@ class Test_process(IrisTest):
 
     def test_null_percentiles(self):
         """Test effect of "neutral" emos coefficients in percentile space
-        (should be near-zero if realizations count is equal to number of
-        percentiles)"""
+        (this is small but non-zero due to limited sampling of the
+        distribution)"""
         expected_mean = np.mean(self.percentiles.data)
         expected_data = np.array([np.full((3, 3), 10.265101),
                                   np.full((3, 3), 10.4),
@@ -119,8 +119,7 @@ class Test_process(IrisTest):
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
 
     def test_null_realizations(self):
-        """Test effect of "neutral" emos coefficients in realization space
-        (this is small but not zero due to small number of realizations)"""
+        """Test effect of "neutral" emos coefficients in realization space"""
         expected_mean = np.mean(self.realizations.data)
         expected_data = np.array([np.full((3, 3), 10.433333),
                                   np.full((3, 3), 10.670206),
