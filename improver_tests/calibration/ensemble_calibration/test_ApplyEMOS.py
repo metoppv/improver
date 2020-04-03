@@ -37,11 +37,105 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import ApplyEMOS
+from improver.utilities.cube_manipulation import get_dim_coord_names
+
+from ...set_up_test_cubes import (
+    set_up_percentile_cube, set_up_probability_cube, set_up_variable_cube)
+
+
+def build_coefficients_cube(data, template):
+    """Make a cube of coefficients with expected metadata"""
+    index = iris.coords.Coord(np.arange(4), long_name="coefficient_index")
+    name = iris.coords.Coord(["gamma", "delta", "alpha", "beta"],
+                             long_name="coefficient_name")
+    coefficients = iris.cube.Cube(data, long_name="emos_coefficients",
+                                  dim_coords_and_dims=[(index, 0)],
+                                  aux_coords_and_dims=[(name, 0)])
+
+    # add spatial and temporal coords from forecast to be calibrated
+    for coord in ["time", "forecast_period", "forecast_reference_time"]:
+        coefficients.add_aux_coord(template.coord(coord).copy())
+
+    for coord in [template.coord(axis='x'), template.coord(axis='y')]:
+        bounds = [min(coord.points), max(coord.points)]
+        point = np.median(bounds)
+        new_coord = coord.copy(points=[point], bounds=[bounds])
+        coefficients.add_aux_coord(new_coord)
+
+    coefficients.attributes['diagnostic_standard_name'] = 'air_temperature'
+
+    return coefficients
 
 
 class Test_process(IrisTest):
     """Tests for the ApplyEMOS callable plugin"""
-    pass
+
+    def setUp(self):
+        """Set up some "uncalibrated forecast" inputs"""
+        attributes = {"title": "MOGREPS-UK Forecast",
+                      "source": "Met Office Unified Model",
+                      "institution": "Met Office"}
+
+        forecast = np.array([np.full((3, 3), 10.4),
+                             np.full((3, 3), 10.8),
+                             np.full((3, 3), 10.1)], dtype=np.float32)
+        self.realizations = set_up_variable_cube(
+            forecast, units='degC', attributes=attributes)
+
+        percentiles = np.array([np.full((3, 3), 10.2),
+                                np.full((3, 3), 10.4),
+                                np.full((3, 3), 10.6)], dtype=np.float32)
+        self.percentiles = set_up_percentile_cube(
+            percentiles, np.array([25, 50, 75], dtype=np.float32),
+            units='degC', attributes=attributes)
+
+        probabilities = np.array([np.full((3, 3), 1),
+                                  np.full((3, 3), 0.9),
+                                  np.full((3, 3), 0)], dtype=np.float32)
+        self.probabilities = set_up_probability_cube(
+            probabilities, np.array([9, 10, 11], dtype=np.float32),
+            threshold_units='degC', attributes=attributes)
+
+        self.coefficients = build_coefficients_cube(
+            [0, 1, 0, 1], self.realizations)
+
+    def test_null_percentiles(self):
+        """Test effect of "neutral" emos coefficients in percentile space
+        (should be near-zero if realizations count is equal to number of
+        percentiles)"""
+        expected_mean = np.mean(self.percentiles.data)
+        expected_data = np.array([np.full((3, 3), 10.265101),
+                                  np.full((3, 3), 10.4),
+                                  np.full((3, 3), 10.534898)])
+
+        result = ApplyEMOS()(
+            self.percentiles, self.coefficients, land_sea_mask=None,
+            realizations_count=3, ignore_ecc_bounds=True, predictor='mean',
+            distribution='norm', shape_parameters=None, randomise=False,
+            random_seed=None)
+
+        self.assertIn("percentile", get_dim_coord_names(result))
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertAlmostEqual(np.mean(result.data), expected_mean)
+
+    def test_null_realizations(self):
+        """Test effect of "neutral" emos coefficients in realization space
+        (this is small but not zero due to small number of realizations)"""
+        expected_mean = np.mean(self.realizations.data)
+        expected_data = np.array([np.full((3, 3), 10.433333),
+                                  np.full((3, 3), 10.670206),
+                                  np.full((3, 3), 10.196461)])
+
+        result = ApplyEMOS()(
+            self.realizations, self.coefficients, land_sea_mask=None,
+            realizations_count=None, ignore_ecc_bounds=True, predictor='mean',
+            distribution='norm', shape_parameters=None, randomise=False,
+            random_seed=None)
+
+        self.assertIn("realization", get_dim_coord_names(result))
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertAlmostEqual(np.mean(result.data), expected_mean)
+
 
 
 if __name__ == '__main__':
