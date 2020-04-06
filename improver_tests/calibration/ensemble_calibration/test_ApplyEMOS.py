@@ -107,13 +107,11 @@ class Test_process(IrisTest):
         expected_data = np.array([np.full((3, 3), 10.265101),
                                   np.full((3, 3), 10.4),
                                   np.full((3, 3), 10.534898)])
-
         result = ApplyEMOS()(
             self.percentiles, self.coefficients, land_sea_mask=None,
             realizations_count=3, ignore_ecc_bounds=True, predictor='mean',
             distribution='norm', shape_parameters=None, randomise=False,
             random_seed=None)
-
         self.assertIn("percentile", get_dim_coord_names(result))
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
@@ -124,17 +122,58 @@ class Test_process(IrisTest):
         expected_data = np.array([np.full((3, 3), 10.433333),
                                   np.full((3, 3), 10.670206),
                                   np.full((3, 3), 10.196461)])
-
         result = ApplyEMOS()(
             self.realizations, self.coefficients, land_sea_mask=None,
             realizations_count=None, ignore_ecc_bounds=True, predictor='mean',
             distribution='norm', shape_parameters=None, randomise=False,
             random_seed=None)
-
         self.assertIn("realization", get_dim_coord_names(result))
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
 
+    def test_null_probabilities(self):
+        """Test effect of "neutral" emos coefficients in probabiity space.
+        Mean, 0 and 1 probabilities are not preserved."""
+        expected_data = np.array([np.full((3, 3), 0.9999999),
+                                  np.full((3, 3), 0.9452005),
+                                  np.full((3, 3), 0.02274995)])
+        result = ApplyEMOS()(
+            self.probabilities, self.coefficients, land_sea_mask=None,
+            realizations_count=3, ignore_ecc_bounds=True, predictor='mean',
+            distribution='norm', shape_parameters=None, randomise=False,
+            random_seed=None)
+        self.assertIn("probability_of", result.name())
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_bias(self):
+        """Test emos coefficients that correct a bias"""
+        self.coefficients.data = [0, 1, 1, 1]
+        expected_mean = np.mean(self.percentiles.data + 1.)
+        expected_data = np.array([np.full((3, 3), 11.265101),
+                                  np.full((3, 3), 11.4),
+                                  np.full((3, 3), 11.534898)])
+        result = ApplyEMOS()(
+            self.percentiles, self.coefficients, land_sea_mask=None,
+            realizations_count=3, ignore_ecc_bounds=True, predictor='mean',
+            distribution='norm', shape_parameters=None, randomise=False,
+            random_seed=None)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertAlmostEqual(np.mean(result.data), expected_mean)
+
+    def test_spread(self):
+        """Test emos coefficients that correct underspread"""
+        self.coefficients.data = [1, 1, 0, 1]
+        expected_mean = np.mean(self.percentiles.data)
+        expected_data = np.array([np.full((3, 3), 9.7121525),
+                                  np.full((3, 3), 10.4),
+                                  np.full((3, 3), 11.087847)])
+        result = ApplyEMOS()(
+            self.percentiles, self.coefficients, land_sea_mask=None,
+            realizations_count=3, ignore_ecc_bounds=True, predictor='mean',
+            distribution='norm', shape_parameters=None, randomise=False,
+            random_seed=None)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertAlmostEqual(np.mean(result.data), expected_mean)
 
 
 if __name__ == '__main__':
