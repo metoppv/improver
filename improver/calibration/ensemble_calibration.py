@@ -1197,10 +1197,10 @@ class ApplyEMOS(BasePlugin):  # TODO change to PostProcessingPlugin later
 
         return result
 
-    def process(self, forecast, coefficients, land_sea_mask,
-                realizations_count, ignore_ecc_bounds, predictor,
-                distribution, shape_parameters,
-                randomise, random_seed):
+    def process(self, forecast, coefficients, land_sea_mask=None,
+                realizations_count=None, ignore_ecc_bounds=True,
+                predictor='mean', distribution='norm', shape_parameters=None,
+                randomise=False, random_seed=None):
         """Calibrate input forecast using pre-calculated coefficients
 
         Args:

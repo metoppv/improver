@@ -108,10 +108,7 @@ class Test_process(IrisTest):
                                   np.full((3, 3), 10.4),
                                   np.full((3, 3), 10.534898)])
         result = ApplyEMOS()(
-            self.percentiles, self.coefficients, land_sea_mask=None,
-            realizations_count=3, ignore_ecc_bounds=True, predictor='mean',
-            distribution='norm', shape_parameters=None, randomise=False,
-            random_seed=None)
+            self.percentiles, self.coefficients, realizations_count=3)
         self.assertIn("percentile", get_dim_coord_names(result))
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
@@ -122,11 +119,7 @@ class Test_process(IrisTest):
         expected_data = np.array([np.full((3, 3), 10.433333),
                                   np.full((3, 3), 10.670206),
                                   np.full((3, 3), 10.196461)])
-        result = ApplyEMOS()(
-            self.realizations, self.coefficients, land_sea_mask=None,
-            realizations_count=None, ignore_ecc_bounds=True, predictor='mean',
-            distribution='norm', shape_parameters=None, randomise=False,
-            random_seed=None)
+        result = ApplyEMOS()(self.realizations, self.coefficients)
         self.assertIn("realization", get_dim_coord_names(result))
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
@@ -138,10 +131,7 @@ class Test_process(IrisTest):
                                   np.full((3, 3), 0.9452005),
                                   np.full((3, 3), 0.02274995)])
         result = ApplyEMOS()(
-            self.probabilities, self.coefficients, land_sea_mask=None,
-            realizations_count=3, ignore_ecc_bounds=True, predictor='mean',
-            distribution='norm', shape_parameters=None, randomise=False,
-            random_seed=None)
+            self.probabilities, self.coefficients, realizations_count=3)
         self.assertIn("probability_of", result.name())
         self.assertArrayAlmostEqual(result.data, expected_data)
 
@@ -153,10 +143,7 @@ class Test_process(IrisTest):
                                   np.full((3, 3), 11.4),
                                   np.full((3, 3), 11.534898)])
         result = ApplyEMOS()(
-            self.percentiles, self.coefficients, land_sea_mask=None,
-            realizations_count=3, ignore_ecc_bounds=True, predictor='mean',
-            distribution='norm', shape_parameters=None, randomise=False,
-            random_seed=None)
+            self.percentiles, self.coefficients, realizations_count=3)
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
 
@@ -168,12 +155,15 @@ class Test_process(IrisTest):
                                   np.full((3, 3), 10.4),
                                   np.full((3, 3), 11.087847)])
         result = ApplyEMOS()(
-            self.percentiles, self.coefficients, land_sea_mask=None,
-            realizations_count=3, ignore_ecc_bounds=True, predictor='mean',
-            distribution='norm', shape_parameters=None, randomise=False,
-            random_seed=None)
+            self.percentiles, self.coefficients, realizations_count=3)
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
+
+    def test_error_realizations_count(self):
+        """Test an error is raised if the realizations_count is not set"""
+        msg = "The 'realizations_count' argument must be defined"
+        with self.assertRaisesRegex(ValueError, msg):
+            ApplyEMOS()(self.percentiles, self.coefficients)
 
 
 if __name__ == '__main__':
