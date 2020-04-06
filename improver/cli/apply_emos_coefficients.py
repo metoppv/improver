@@ -159,9 +159,10 @@ def process(cube: cli.inputcube,
 
     calibration_plugin = ApplyEMOS()
     result = calibration_plugin(
-        cube, coefficients, land_sea_mask,
-        realizations_count, ignore_ecc_bounds,
-        predictor, distribution, shape_parameters,
-        randomise, random_seed)
+        cube, coefficients, land_sea_mask=land_sea_mask,
+        realizations_count=realizations_count,
+        ignore_ecc_bounds=ignore_ecc_bounds, predictor=predictor,
+        distribution=distribution, shape_parameters=shape_parameters,
+        randomise=randomise, random_seed=random_seed)
 
     return result
