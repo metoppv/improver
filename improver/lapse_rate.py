@@ -48,16 +48,17 @@ from improver.utilities.cube_manipulation import (
 class ApplyGriddedLapseRate(PostProcessingPlugin):
     """Class to apply a lapse rate adjustment to a temperature data forecast"""
 
-    def _check_dim_coords(self, temperature):
+    def _check_dim_coords(self, temperature, lapse_rate):
         """Throw an error if the dimension coordinates are not the same for
         temperature and lapse rate cubes
 
         Args:
             temperature (iris.cube.Cube)
+            lapse_rate (iris.cube.Cube)
         """
         for crd in temperature.coords(dim_coords=True):
             try:
-                if crd != self.lapse_rate.coord(crd.name()):
+                if crd != lapse_rate.coord(crd.name()):
                     raise ValueError(
                         'Lapse rate cube coordinate "{}" does not match '
                         'temperature cube coordinate'.format(crd.name()))
@@ -100,14 +101,13 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
 
         Returns:
             iris.cube.Cube:
-                Lapse-rate adjusted temperature field
+                Lapse-rate adjusted temperature field, in Kelvin
         """
-        self.lapse_rate = lapse_rate
-        self.lapse_rate.convert_units('K m-1')
+        lapse_rate.convert_units('K m-1')
         self.xy_coords = [lapse_rate.coord(axis='y'),
                           lapse_rate.coord(axis='x')]
 
-        self._check_dim_coords(temperature)
+        self._check_dim_coords(temperature, lapse_rate)
 
         if not spatial_coords_match(temperature, source_orog):
             raise ValueError(
@@ -123,7 +123,7 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
 
         adjusted_temperature = []
         for lr_slice, t_slice in zip(
-                self.lapse_rate.slices(self.xy_coords),
+                lapse_rate.slices(self.xy_coords),
                 temperature.slices(self.xy_coords)):
             newcube = t_slice.copy()
             newcube.convert_units('K')
