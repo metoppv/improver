@@ -298,7 +298,6 @@ class LapseRate(BasePlugin):
 
         return gradient
 
-
     def _create_heightdiff_mask(self, all_orog_subsections):
         """
         Function to create a mask for any neighbouring points where the height
@@ -327,13 +326,11 @@ class LapseRate(BasePlugin):
 
         height_diff = np.subtract(self.all_orog_subsections, central_points)
         height_diff = np.absolute(height_diff)
-        
-
-        height_diff_mask = np.where(height_diff >= self.max_height_diff, True,
+        height_diff_mask = np.where(height_diff >=
+                                    self.max_height_diff, True,
                                     False)
 
         return height_diff_mask
-
 
     def _generate_heightdiff_mask(self, all_orog_subsections):
         """
@@ -356,7 +353,7 @@ class LapseRate(BasePlugin):
 
         """
         self.all_orog_subsections = all_orog_subsections
-                                                                             
+
         central_points = self.all_orog_subsections[:, self.ind_central_point]
         central_points = np.swapaxes([central_points], 0, 1)
 
@@ -365,7 +362,6 @@ class LapseRate(BasePlugin):
                                       central_points[i])
             height_diff = np.absolute(height_diff)
             yield np.where(height_diff >= self.max_height_diff, True, False)
-        
 
     def _generate_lapse_rate_array(
             self, temperature_data, orography_data, land_sea_mask_data):

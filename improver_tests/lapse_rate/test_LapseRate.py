@@ -120,11 +120,11 @@ class Test__create_heightdiff_mask(IrisTest):
         gen = LapseRate(nbhood_radius=1)._generate_heightdiff_mask(
             self.orography)
 
-        count=0
+        count = 0
         for val in gen:
             result[count] = val
             count += 1
-        
+
         self.assertArrayAlmostEqual(result, expected_out)
 
     def test_change_height_thresh(self):
@@ -159,6 +159,7 @@ class Test__create_heightdiff_mask(IrisTest):
             count += 1
 
         self.assertArrayAlmostEqual(result, expected_out)
+
 
 class Test_process(IrisTest):
     """Test the LapseRate processing works"""
