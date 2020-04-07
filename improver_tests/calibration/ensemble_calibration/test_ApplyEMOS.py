@@ -125,7 +125,7 @@ class Test_process(IrisTest):
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
 
     def test_null_probabilities(self):
-        """Test effect of "neutral" emos coefficients in probabiity space.
+        """Test effect of "neutral" emos coefficients in probability space.
         Mean, 0 and 1 probabilities are not preserved."""
         expected_data = np.array([np.full((3, 3), 0.9999999),
                                   np.full((3, 3), 0.9452005),
@@ -164,6 +164,30 @@ class Test_process(IrisTest):
         msg = "The 'realizations_count' argument must be defined"
         with self.assertRaisesRegex(ValueError, msg):
             ApplyEMOS()(self.percentiles, self.coefficients)
+
+    def test_land_sea_mask(self):
+        """Test that coefficients can be effectively applied to "land" points
+        only"""
+        land_sea_data = np.array([[1, 1, 0],
+                                  [1, 1, 0],
+                                  [1, 0, 0]], dtype=np.int32)
+        land_sea_mask = set_up_variable_cube(
+            land_sea_data, name="land_binary_mask", units="1")
+        self.coefficients.data = [1, 1, 0, 1]
+        expected_data_slice = np.array([
+            [9.7121525, 9.7121525, 10.265101],
+            [9.7121525, 9.7121525, 10.265101],
+            [9.7121525, 10.265101, 10.265101]])
+
+        # This raises an error when merging land and sea points.  This is due
+        # to the newly generated percentile coordinate having a var_name of
+        # "percentile", meaning it doesn't match the original percentile
+        # coordinate.  TODO 1) test with all 3 types to see which are buggy,
+        # 2) establish best fix and implement.
+        result = ApplyEMOS()(
+            self.percentiles, self.coefficients, land_sea_mask=land_sea_mask,
+            realizations_count=3)
+        self.assertArrayAlmostEqual(result.data[0], expected_data_slice)
 
 
 if __name__ == '__main__':

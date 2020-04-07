@@ -1116,7 +1116,11 @@ class ApplyEMOS(BasePlugin):  # TODO change to PostProcessingPlugin later
     @staticmethod
     def _get_forecast_type(forecast):
         """Identifies whether the forecast is in probability, realization
-        or percentile space"""
+        or percentile space
+
+        Args:
+            forecast (iris.cube.Cube)
+        """
         try:
             find_percentile_coordinate(forecast)
         except CoordinateNotFoundError:
@@ -1128,7 +1132,15 @@ class ApplyEMOS(BasePlugin):  # TODO change to PostProcessingPlugin later
     def _convert_to_realizations(self, forecast, realizations_count,
                                  ignore_ecc_bounds):
         """Convert an input forecast of probabilities or percentiles into
-        pseudo-realizations"""
+        pseudo-realizations
+
+        Args:
+            forecast (iris.cube.Cube)
+            realizations_count (int):
+                Number of pseudo-realizations to generate from the input
+                forecast
+            ignore_ecc_bounds (bool)
+        """
         if not realizations_count:
             raise ValueError(
                 "The 'realizations_count' argument must be defined "
@@ -1161,7 +1173,8 @@ class ApplyEMOS(BasePlugin):  # TODO change to PostProcessingPlugin later
                 is ignored.
             random_seed (int):
                 For realizations input if randomise is True, random seed for
-                generating re-ordered percentiles.
+                generating re-ordered percentiles.  If randomise is False, the
+                random seed may still be used for splitting ties.
 
         Returns:
             iris.cube.Cube:
