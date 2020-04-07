@@ -498,11 +498,12 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
     """
     A plugin for the application of reliability calibration to probability
-    forecasts.
+    forecasts. This calibration is designed to improve the reliability of
+    probability forecasts without significantly degrading their resolution.
 
-    References:
-        Flowerdew J. 2014. Calibrating ensemble reliability whilst preserving
-        spatial structure. Tellus, Ser. A Dyn. Meteorol. Oceanogr. 66.
+    The method implemented here is described in Flowerdew J. 2014. Calibrating
+    ensemble reliability whilst preserving spatial structure. Tellus, Ser. A
+    Dyn. Meteorol. Oceanogr. 66.
     """
 
     def __init__(self, minimum_forecast_count=200):

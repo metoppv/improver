@@ -48,7 +48,7 @@ def process(forecast: cli.inputcube,
         forecast (iris.cube.Cube):
             The forecast to be calibrated.
         reliability_table (iris.cube.Cube):
-            The reliability calibration table to use in calibrationg the
+            The reliability calibration table to use in calibrating the
             forecast.
     Returns:
         iris.cube.Cube:
