@@ -108,6 +108,25 @@ class Test__create_heightdiff_mask(IrisTest):
             self.orography)
         self.assertArrayAlmostEqual(result, expected_out)
 
+    def test_returns_expected_values_generator(self):
+        """Test that the function returns True at points where the height
+           difference to the central pixel is greater than 35m."""
+
+        expected_out = np.array(
+            [[True, True, False, False, False, False, False, False, True],
+             [True, True, False, False, False, False, False, False, True]])
+
+        result = np.zeros(expected_out.shape, dtype=bool)
+        gen = LapseRate(nbhood_radius=1)._generate_heightdiff_mask(
+            self.orography)
+
+        count=0
+        for val in gen:
+            result[count] = val
+            count += 1
+        
+        self.assertArrayAlmostEqual(result, expected_out)
+
     def test_change_height_thresh(self):
         """Test that the function performs as expected when the height
            difference threshold has been changed."""
@@ -121,6 +140,25 @@ class Test__create_heightdiff_mask(IrisTest):
             self.orography)
         self.assertArrayAlmostEqual(result, expected_out)
 
+    def test_change_height_thresh_generator(self):
+        """Test that the function performs as expected when the height
+           difference threshold has been changed."""
+
+        expected_out = np.array(
+            [[False, True, False, False, False, False, False, False, True],
+             [False, True, False, False, False, False, False, False, True]])
+
+        result = np.zeros(expected_out.shape, dtype=bool)
+        gen = LapseRate(max_height_diff=40,
+                        nbhood_radius=1)._generate_heightdiff_mask(
+            self.orography)
+
+        count = 0
+        for val in gen:
+            result[count] = val
+            count += 1
+
+        self.assertArrayAlmostEqual(result, expected_out)
 
 class Test_process(IrisTest):
     """Test the LapseRate processing works"""
