@@ -362,7 +362,7 @@ class LapseRate(BasePlugin):
 
         for i in range(len(self.all_orog_subsections)):
             height_diff = np.subtract(self.all_orog_subsections[i],
-                                      central_points[i]))
+                                      central_points[i])
             height_diff = np.absolute(height_diff)
             yield np.where(height_diff >= self.max_height_diff, True, False)
         
