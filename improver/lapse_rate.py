@@ -48,7 +48,8 @@ from improver.utilities.cube_manipulation import (
 class ApplyGriddedLapseRate(PostProcessingPlugin):
     """Class to apply a lapse rate adjustment to a temperature data forecast"""
 
-    def _check_dim_coords(self, temperature, lapse_rate):
+    @staticmethod
+    def _check_dim_coords(temperature, lapse_rate):
         """Throw an error if the dimension coordinates are not the same for
         temperature and lapse rate cubes
 
