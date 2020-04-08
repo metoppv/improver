@@ -140,6 +140,18 @@ class CubeCombiner(BasePlugin):
         first cube in the input list provides the template for the combined
         cube metadata.
 
+        NOTE the behaviour for the "multiply" operation is different from
+        other types of cube combination.  The only valid use case for
+        "multiply" is to apply a factor that conditions an input probability
+        field - that is, to apply Bayes Theorem.  The input probability is
+        therefore used as the source of ALL input metadata, and should always
+        be the first cube in the input list.  The factor(s) by which this is
+        multiplied are not compared for any mis-match in scalar coordinates,
+        neither do they to contribute to expanded bounds.
+
+        TODO the "multiply" case should be factored out into a separate plugin
+        given its substantial differences from other combine use cases.
+
         Args:
             cube_list (iris.cube.CubeList or list):
                 List of cubes to combine.
