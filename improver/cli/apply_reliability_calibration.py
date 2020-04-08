@@ -40,9 +40,14 @@ def process(forecast: cli.inputcube,
             reliability_table: cli.inputcube,
             *,
             minimum_forecast_count=200):
-    """Apply reliability calibration.
+    """
+    Calibrate a probability forecast using the provided reliability calibration
+    table. This calibration is designed to improve the reliability of
+    probability forecasts without significantly degrading their resolution.
 
-    Calibrate a forecast using the provided reliability calibration table.
+    The method implemented here is described in Flowerdew J. 2014. Calibrating
+    ensemble reliability whilst preserving spatial structure. Tellus, Ser. A
+    Dyn. Meteorol. Oceanogr. 66.
 
     Args:
         forecast (iris.cube.Cube):
@@ -50,6 +55,12 @@ def process(forecast: cli.inputcube,
         reliability_table (iris.cube.Cube):
             The reliability calibration table to use in calibrating the
             forecast.
+        minimum_forecast_count (int):
+            The minimum number of forecast counts in a forecast probability
+            bin for it to be used in calibration. If the reliability
+            table for a forecast threshold includes any bins with
+            insufficient counts that threshold will be returned unchanged.
+            The default value of 200 is that used in Flowerdew 2014.
     Returns:
         iris.cube.Cube:
             Calibrated forecast.
