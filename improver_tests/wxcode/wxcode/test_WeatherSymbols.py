@@ -225,6 +225,29 @@ class Test_check_input_cubes(Test_WXCode):
             plugin.check_input_cubes(cubes)
 
 
+class Test_get_parameter_names(IrisTest):
+    """Test the get_parameter_names method."""
+    def test_basic(self):
+        """Test that the get_parameter_names method does what it says."""
+        plugin = WeatherSymbols()
+        condition = ['parameter_name_one', '*', '4.0',
+                      '+', 'parameter_name_two']
+        expected = ['parameter_name_one', 'parameter_name_two']
+        result = plugin.get_parameter_names(condition)
+        self.assertEqual(result, expected)
+
+    def test_nested(self):
+        """Test getting parameter names from nested lists."""
+        plugin = WeatherSymbols()
+        condition = [['parameter_name_one', '*', '4.0',
+                      '+', 'parameter_name_two'],
+                     ['parameter_name_three', 'parameter_name_four']]
+        expected = [['parameter_name_one', 'parameter_name_two'],
+                    ['parameter_name_three', 'parameter_name_four']]
+        result = plugin.get_parameter_names(condition)
+        self.assertEqual(result, expected)
+
+
 class Test_invert_condition(IrisTest):
 
     """Test the invert condition method."""

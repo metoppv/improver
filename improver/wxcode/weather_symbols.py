@@ -154,9 +154,8 @@ class WeatherSymbols(BasePlugin):
         optional_node_data_missing = {}
         missing_data = []
         for key, query in self.queries.items():
-            diagnostics = [
-                x for x in expand_nested_lists(query, 'diagnostic_fields')
-                if self._is_variable(x)]
+            diagnostics = self.get_parameter_names(
+                expand_nested_lists(query, 'diagnostic_fields'))
             thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
             conditions = expand_nested_lists(query, 'diagnostic_conditions')
             for diagnostic, threshold, condition in zip(
@@ -232,6 +231,26 @@ class WeatherSymbols(BasePlugin):
             optional_node_data_missing = None
         return optional_node_data_missing
 
+    def get_parameter_names(self, diagnostic_fields):
+        """
+        For diagnostic fields that can contain operators and values, strips out
+        just the parameter names.
+
+        Args:
+            diagnostic_fields (list of lists of str):
+
+        Returns:
+            list of lists of str
+
+        """
+        parameter_names = []
+        for condition in diagnostic_fields:
+            if isinstance(condition, list):
+                parameter_names.append(self.get_parameter_names(condition))
+            elif self._is_variable(condition):
+                parameter_names.append(condition)
+        return parameter_names
+
     @staticmethod
     def invert_condition(test_conditions):
         """
@@ -302,7 +321,6 @@ class WeatherSymbols(BasePlugin):
                     formatted_str += f' cubes.extract({item})[0].data'
                 else:
                     formatted_str += ' ' + item
-            print(f'({formatted_str}) {condition} {probability_threshold}')
             return f'({formatted_str}) {condition} {probability_threshold}'
         return 'cubes.extract({})[0].data {} {}'.format(
             extract_constraint, condition, probability_threshold)
@@ -364,10 +382,13 @@ class WeatherSymbols(BasePlugin):
 
             loop += 1
 
-            extract_constraint = [self.construct_extract_constraint(
-                d, d_threshold, self.coord_named_threshold) if
-                                  self._is_variable(d) else d for d in
-                                  diagnostic]
+            if isinstance(diagnostic, list):
+                for d, t in zip(self.get_parameter_names(diagnostic), d_threshold):
+                    extract_constraint = [self.construct_extract_constraint(
+                        d, t, self.coord_named_threshold)]
+            else:
+                extract_constraint = self.construct_extract_constraint(
+                    diagnostic, d_threshold, self.coord_named_threshold)
             conditions.append(
                 self.construct_condition(
                     extract_constraint, test_conditions['threshold_condition'],
@@ -435,7 +456,7 @@ class WeatherSymbols(BasePlugin):
             diagnostics = [diagnostics]
             thresholds = [thresholds]
         constraints = []
-        for diagnostic, threshold in diagnostics, thresholds:
+        for diagnostic, threshold in zip(diagnostics, thresholds):
             if coord_named_threshold:
                 threshold_coord_name = "threshold"
             elif diagnostic in self.threshold_coord_names:
