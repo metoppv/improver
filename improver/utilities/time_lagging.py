@@ -86,7 +86,5 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
         lagged_ensemble = concatenate_cubes(
             cubelist, master_coord="realization",
             coords_to_slice_over=["realization"])
-        # replace var name on "realization" coord
-        # lagged_ensemble.coord("realization").var_name = "realization"
 
         return lagged_ensemble
