@@ -174,16 +174,9 @@ class Test_process(IrisTest):
         land_sea_mask = set_up_variable_cube(
             land_sea_data, name="land_binary_mask", units="1")
         self.coefficients.data = [1, 1, 0, 1]
-        expected_data_slice = np.array([
-            [9.7121525, 9.7121525, 10.265101],
-            [9.7121525, 9.7121525, 10.265101],
-            [9.7121525, 10.265101, 10.265101]])
-
-        # This raises an error when merging land and sea points.  This is due
-        # to the newly generated percentile coordinate having a var_name of
-        # "percentile", meaning it doesn't match the original percentile
-        # coordinate.  TODO 1) test with all 3 types to see which are buggy,
-        # 2) establish best fix and implement.
+        expected_data_slice = np.array([[9.7121525, 9.7121525, 10.2],
+                                        [9.7121525, 9.7121525, 10.2],
+                                        [9.7121525, 10.2, 10.2]])
         result = ApplyEMOS()(
             self.percentiles, self.coefficients, land_sea_mask=land_sea_mask,
             realizations_count=3)

@@ -227,7 +227,8 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
                 realizations = realizations.astype(np.float32)
         else:
             realizations = np.arange(data.shape[0]).astype(np.int32)
-        realization_coord = DimCoord(realizations, "realization", units="1")
+        realization_coord = DimCoord(realizations, "realization", units="1",
+                                     var_name="realization")
         dim_coords = [(realization_coord, 0), (y_coord, 1), (x_coord, 2)]
     elif ndims == 2:
         dim_coords = [(y_coord, 0), (x_coord, 1)]
@@ -308,6 +309,7 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
         include_scalar_coords=include_scalar_coords,
         standard_grid_metadata=standard_grid_metadata)
     cube.coord("realization").rename("percentile")
+    cube.coord("percentile").var_name = "percentile"
     cube.coord("percentile").units = Unit("%")
     return cube
 

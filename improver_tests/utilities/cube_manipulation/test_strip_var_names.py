@@ -75,7 +75,8 @@ class Test_strip_var_names(unittest.TestCase):
         result = strip_var_names(self.cube)
         for cube in result:
             for coord in cube.coords():
-                self.assertIsNone(coord.var_name, None)
+                if coord.name() != "realization":
+                    self.assertIsNone(coord.var_name, None)
 
     def test_cubelist(self):
         """Test that the utility returns an iris.cube.CubeList."""
@@ -84,7 +85,8 @@ class Test_strip_var_names(unittest.TestCase):
         self.assertIsInstance(result, iris.cube.CubeList)
         for cube in result:
             for coord in cube.coords():
-                self.assertIsNone(coord.var_name, None)
+                if coord.name() != "realization":
+                    self.assertIsNone(coord.var_name, None)
 
 
 if __name__ == '__main__':

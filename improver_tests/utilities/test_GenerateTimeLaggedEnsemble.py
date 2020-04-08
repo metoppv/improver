@@ -188,6 +188,8 @@ class Test_process(IrisTest):
 
         input_cubelist = iris.cube.CubeList([cube1, cube2])
         result = GenerateTimeLaggedEnsemble().process(input_cubelist)
+        print(expected_cube.coord("realization"))
+        print(result.coord("realization"))
         self.assertEqual(result, expected_cube)
         self.assertEqual(
             result.coord("realization").dtype, np.int32)
