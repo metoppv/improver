@@ -108,6 +108,27 @@ class Test__create_heightdiff_mask(IrisTest):
             self.orography)
         self.assertArrayAlmostEqual(result, expected_out)
 
+    def generators_test(self, expected_out, max_height_diff=35):
+        """Tests that involve the generator function
+        _generate_heightdiff_mask can use this function by providing
+        the expected output.
+
+        Args:
+            expected_out:
+                numpy.ndarray with dtype(bool) representing the
+                example output.
+            max_height_diff (optional):
+                set the maximum height difference, defaults to 35."""
+        result = np.zeros_like(expected_out, dtype=bool)
+        gen = LapseRate(max_height_diff=max_height_diff,
+                        nbhood_radius=1)._generate_heightdiff_mask(
+            self.orography)
+
+        for count, val in enumerate(gen):
+            result[count] = val
+
+        self.assertArrayAlmostEqual(result, expected_out)
+
     def test_returns_expected_values_generator(self):
         """Test that the function returns True at points where the height
            difference to the central pixel is greater than 35m."""
@@ -116,16 +137,7 @@ class Test__create_heightdiff_mask(IrisTest):
             [[True, True, False, False, False, False, False, False, True],
              [True, True, False, False, False, False, False, False, True]])
 
-        result = np.zeros(expected_out.shape, dtype=bool)
-        gen = LapseRate(nbhood_radius=1)._generate_heightdiff_mask(
-            self.orography)
-
-        count = 0
-        for val in gen:
-            result[count] = val
-            count += 1
-
-        self.assertArrayAlmostEqual(result, expected_out)
+        self.generators_test(expected_out)
 
     def test_change_height_thresh(self):
         """Test that the function performs as expected when the height
@@ -148,17 +160,7 @@ class Test__create_heightdiff_mask(IrisTest):
             [[False, True, False, False, False, False, False, False, True],
              [False, True, False, False, False, False, False, False, True]])
 
-        result = np.zeros(expected_out.shape, dtype=bool)
-        gen = LapseRate(max_height_diff=40,
-                        nbhood_radius=1)._generate_heightdiff_mask(
-            self.orography)
-
-        count = 0
-        for val in gen:
-            result[count] = val
-            count += 1
-
-        self.assertArrayAlmostEqual(result, expected_out)
+        self.generators_test(expected_out, max_height_diff=40)
 
 
 class Test_process(IrisTest):

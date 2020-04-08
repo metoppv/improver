@@ -334,7 +334,7 @@ class LapseRate(BasePlugin):
 
     def _generate_heightdiff_mask(self, all_orog_subsections):
         """
-        Function to create a mask for any neighbouring points where the height
+        Create a mask for any neighbouring points where the height
         difference from the central point is greater than max_height_diff.
 
         Slice through the orography subsection array to remove central
@@ -344,11 +344,12 @@ class LapseRate(BasePlugin):
         the maximum.
 
         Args:
-            all_orog_subsections(2D numpy.ndarray):
-               Each row contains the height values of each neighbourhood.
+            all_orog_subsections(numpy.ndarray):
+               2D array, where each row contains the height values
+               of each neighbourhood.
 
         Returns:
-            generator:
+            Iterator[numpy.ndarray]:
                 a generator object that yields the height mask line by line
 
         """
@@ -408,17 +409,15 @@ class LapseRate(BasePlugin):
         # is > max_height_diff.
         generator_height_diff = self._generate_heightdiff_mask(orog_nbhoods)
         lapse_rate_array = []
-        counter = 0
         # Loop through both arrays and find gradient of surface temperature
         # with orography height - ie lapse rate.
         # TODO: This for loop is the bottleneck in the code and needs to
         # be parallelised.
-        for height_diff in generator_height_diff:
+        for counter, height_diff in enumerate(generator_height_diff):
             # Mask points with extreme height differences as NaN.
             temp = np.where(height_diff, np.nan, temp_nbhoods[counter])
             orog = np.where(height_diff, np.nan, orog_nbhoods[counter])
             lapse_rate_array.append(self._calc_lapse_rate(temp, orog))
-            counter += 1
 
         lapse_rate_array = np.array(
             lapse_rate_array, dtype=np.float32).reshape(
