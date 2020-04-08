@@ -8,5 +8,6 @@
 [![BCH compliance](https://bettercodehub.com/edge/badge/metoppv/improver?branch=master)](https://bettercodehub.com/results/metoppv/improver)
 [![Documentation Status](https://readthedocs.org/projects/improver/badge/?version=latest)](http://improver.readthedocs.io/en/latest/?badge=latest)
 [![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
+[![DOI](https://zenodo.org/badge/85334761.svg)](https://zenodo.org/badge/latestdoi/85334761)
 
 IMPROVER is a library of algorithms for meteorological post-processing and verification.
