@@ -217,15 +217,10 @@ class ConcatenateCubes(BasePlugin):
                 if cube.coords(coord):
                     temp_coord = cube.coord(coord)
                     cube.remove_coord(coord)
-                    temp_aux_coord = (
-                        build_coordinate(temp_coord.points,
-                                         bounds=temp_coord.bounds,
-                                         coord_type=AuxCoord,
-                                         template_coord=temp_coord))
                     coord_names = [
                         coord.standard_name for coord in cube.dim_coords]
                     cube.add_aux_coord(
-                        temp_aux_coord,
+                        temp_coord, #temp_aux_coord,
                         data_dims=coord_names.index(self.master_coord))
 
         return cube
@@ -590,84 +585,6 @@ def compare_coords(cubes):
                                                   'coord': coord}})
 
     return unmatching_coords
-
-
-def build_coordinate(data, long_name=None,
-                     standard_name=None,
-                     coord_type=DimCoord,
-                     data_type=None,
-                     units='1',
-                     bounds=None,
-                     coord_system=None,
-                     template_coord=None,
-                     custom_function=None):
-    """
-    Construct an iris.coords.Dim/Auxcoord using the provided options.
-
-    Args:
-        data (int or list of numpy.ndarray):
-            List or array of values to populate the coordinate points.
-        long_name (str):
-            Name of the coordinate to be built.
-        standard_name (str):
-            CF Name of the coordinate to be built.
-        coord_type (iris.coords.Coord):
-            Selection between Dim and Aux coord.
-        data_type (<type>):
-            The data type of the coordinate points, e.g. int
-        units (str):
-            String defining the coordinate units.
-        bounds (numpy.ndarray):
-            A (len(data), 2) array that defines coordinate bounds.
-        coord_system(iris.coord_systems.<coord_system>):
-            A coordinate system in which the dimension coordinates are defined.
-        template_coord (iris.coords.Coord):
-            A coordinate to copy.
-        custom_function (function):
-            A function to apply to the data values before constructing the
-            coordinate, e.g. np.nan_to_num.
-
-    Returns:
-        iris.coords.Coord:
-            The constructed coord.
-
-    """
-    long_name_out = long_name
-    std_name_out = standard_name
-    coord_type_out = coord_type
-    data_type_out = data_type
-    units_out = units
-    bounds_out = bounds
-    coord_system_out = coord_system
-
-    if template_coord is not None:
-        if long_name is None:
-            long_name_out = template_coord.long_name
-        if standard_name is None:
-            std_name_out = template_coord.standard_name
-        if isinstance(coord_type, DimCoord):
-            coord_type_out = type(template_coord)
-        if data_type is None:
-            data_type_out = type(template_coord.points[0])
-        if units == '1':
-            units_out = template_coord.units
-        if coord_system is None:
-            coord_system_out = template_coord.coord_system
-
-    if data_type_out is None:
-        data_type_out = float
-
-    data = np.array(data, data_type_out)
-    if custom_function is not None:
-        data = custom_function(data)
-
-    crd_out = coord_type_out(data, long_name=long_name_out,
-                             standard_name=std_name_out,
-                             units=units_out,
-                             coord_system=coord_system_out,
-                             bounds=bounds_out)
-
-    return crd_out
 
 
 def sort_coord_in_cube(cube, coord, descending=False):

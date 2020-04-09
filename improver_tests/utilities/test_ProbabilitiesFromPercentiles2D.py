@@ -41,7 +41,6 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_percentile_coordinate
-from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.statistical_operations import (
     ProbabilitiesFromPercentiles2D)
 from improver.utilities.warnings_handler import ManageWarnings
@@ -315,10 +314,8 @@ class Test_process(IrisTest):
         grid_x = percentiles_cube.coord('projection_x_coordinate')
         grid_y = percentiles_cube.coord('projection_y_coordinate')
 
-        new_model_coord = build_coordinate([0, 1],
-                                           long_name='leading_coord',
-                                           coord_type=DimCoord,
-                                           data_type=int)
+        new_model_coord = DimCoord(
+            [0, 1], units='1', long_name='leading_coord')
         input_cube = iris.cube.Cube(
             test_data, long_name="snow_level", units="m",
             dim_coords_and_dims=[(new_model_coord, 0),
@@ -337,10 +334,7 @@ class Test_process(IrisTest):
         restored as a dimension coordinate in the resulting probability
         cube."""
         percentiles_cube = set_up_percentiles_cube()
-        new_model_coord = build_coordinate([0],
-                                           long_name='leading_coord',
-                                           coord_type=DimCoord,
-                                           data_type=int)
+        new_model_coord = DimCoord([0], units='1', long_name='leading_coord')
         percentiles_cube.add_aux_coord(new_model_coord)
         percentiles_cube = iris.util.new_axis(percentiles_cube,
                                               scalar_coord='leading_coord')
