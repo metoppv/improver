@@ -36,8 +36,8 @@ from improver.wxcode.wxcode_decision_tree import (
     START_NODE, wxcode_decision_tree)
 from improver.wxcode.wxcode_decision_tree_global import (
     START_NODE_GLOBAL, wxcode_decision_tree_global)
-from . import check_diagnostic_lists_consistency
 from improver.wxcode.weather_symbols import WeatherSymbols
+from . import check_diagnostic_lists_consistency
 
 TREE_NAMES = ['high_resolution', 'global']
 TREES = {'high_resolution': wxcode_decision_tree(),
