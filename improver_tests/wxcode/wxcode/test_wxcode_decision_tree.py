@@ -37,6 +37,7 @@ from improver.wxcode.wxcode_decision_tree import (
 from improver.wxcode.wxcode_decision_tree_global import (
     START_NODE_GLOBAL, wxcode_decision_tree_global)
 from . import check_diagnostic_lists_consistency
+from improver.wxcode.weather_symbols import WeatherSymbols
 
 TREE_NAMES = ['high_resolution', 'global']
 TREES = {'high_resolution': wxcode_decision_tree(),
@@ -165,16 +166,5 @@ def test_probability_len_match(tree_name):
     for _, query in tree.items():
         check_list = query['probability_thresholds']
         assert all([isinstance(x, (int, float)) for x in check_list])
-        assert len(check_list) == len(query['diagnostic_fields'])
-
-
-@pytest.mark.parametrize('tree_name', TREE_NAMES)
-def test_gamma_len_match(tree_name):
-    """Test diagnostic_gamma list is right shape if present."""
-    tree = TREES[tree_name]
-    for _, query in tree.items():
-        check_list = query.get('diagnostic_gamma', None)
-        if not check_list:
-            continue
-        assert all([isinstance(x, (int, float)) for x in check_list])
-        assert len(check_list) == len(query['diagnostic_fields'])
+        assert len(check_list) == len(WeatherSymbols().get_parameter_names(
+            query['diagnostic_fields']))
