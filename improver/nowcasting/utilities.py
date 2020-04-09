@@ -36,15 +36,14 @@ import numpy as np
 from cf_units import Unit
 
 from improver import BasePlugin
+from improver.utilities.spatial import distance_to_number_of_grid_cells
 from improver.utilities.temporal import (
     extract_nearest_time_point, iris_time_to_datetime)
 
 
 class ExtendRadarMask(BasePlugin):
-    """
-    Extend the mask on radar rainrate data based on the radar coverage
-    composite
-    """
+    """Extend the mask on radar rainrate data based on the radar coverage
+    composite"""
 
     def __init__(self):
         """
@@ -95,6 +94,117 @@ class ExtendRadarMask(BasePlugin):
             cube_list.append(rad.copy(remasked_data))
 
         return cube_list.merge_cube()
+
+
+class FillRadarHoles(BasePlugin):
+    """Interpolate small "no data" regions in the vicinity of individual radars
+    """
+
+    def __init__(self):
+        """Initialise plugin"""
+        self.radar_lookup = None
+        self.radius_m = 10000
+
+    def _create_radar_grid_lookup(self, x_coord, y_coord):
+        """Generate a lookup table of radar locations as x,y coordinates
+        on the composite grid
+
+        Args:
+            x_coord (iris.coords.DimCoord):
+                X-axis coordinate of the input radar cube
+            y_coord (iris.coords.DimCoord):
+                Y-axis coordinate of the input radar cube
+        """
+        # 1) read in lookup table
+        #   (TODO write lookup table containing names & lat/lon)
+
+        # 2) generate list of x, y grid point locations for each radar
+        pass
+
+    @staticmethod
+    def _rr_to_log_rr(data):
+        """Convert rainrates in mm/h into log space
+
+        Args:
+            data (np.ndarray)
+        """
+        min_rr_mmh = 0.001
+        return np.where(data > min_rr_mmh, np.log10(data), np.nan)
+
+    @staticmethod
+    def _log_rr_to_rr(data):
+        """Convert log rainrate into mm/h
+
+        Args:
+            data (np.ndarray)
+        """
+        return np.where(np.isfinite(data), np.power(10, data), 0.)
+
+    @staticmethod
+    def _interpolate_points(data):
+        """Linearly interpolate data to masked points"""
+        pass  # TODO
+
+    def _fill_radar_holes(self, masked_radar, radius):
+        """Interpolate holes near individual radars.  Modifies array in place.
+
+        Args:
+            masked_radar (numpy.ndarray):
+                Data to interpolate
+            radius (int):
+                Radius in grid cells around each radar location to search
+                for missing points
+        """
+        for (x, y) in self.radar_lookup:
+            xmin = x - radius
+            xmax = x + radius + 1
+            ymin = y - radius
+            ymax = y + radius + 1
+
+            search_region = masked_radar[ymin:ymax, xmin:xmax]
+
+            # log transform data with bounds
+            log_rr = self._rr_to_log_rr(search_region)
+
+            # interpolate masked points linearly in log space
+            interpolated_log_rr = self._interpolate_points(log_rr)
+
+            # transform back into rate space (must be reversible)
+            interpolated_rr = self._log_rr_to_rr(interpolated_log_rr)
+
+            # reassign to this region in the masked array and unmask
+            masked_radar.mask[ymin:ymax, xmin:xmax] = np.full_like(
+                interpolated_rr, False)
+            masked_radar.data[ymin:ymax, xmin:xmax] = interpolated_rr
+
+    def process(self, masked_radar):
+        """
+        Interpolates "holes" due to missing data near radars, and unmasks these
+        small regions, so that they can be used in extrapolation nowcasting.
+
+        Args:
+            masked_radar (iris.cube.Cube):
+                A masked cube of radar precipitation rates
+
+        Returns:
+            iris.cube.Cube:
+                A masked cube with continuous coverage over the radar composite
+                domain, where missing data has been interpolated
+        """
+        self._create_radar_grid_lookup(masked_radar.coord(axis='x'),
+                                       masked_radar.coord(axis='y'))
+        radius = distance_to_number_of_grid_cells(masked_radar, self.radius_m)
+
+        # extract precipitation rate data in mm h-1
+        masked_radar_mmh = masked_radar.copy()
+        masked_radar_mmh.convert_units('mm h-1')
+
+        # for each radar location, interpolate "holes" within 10 km
+        self._fill_in_radar_holes(masked_radar_mmh.data)
+
+        # return new cube in original units
+        masked_radar_mmh.convert_units(masked_radar.units)
+        return masked_radar_mmh
 
 
 class ApplyOrographicEnhancement(BasePlugin):
