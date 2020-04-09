@@ -36,7 +36,7 @@ import glob
 import iris
 
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, MergeCubes)
+    enforce_coordinate_ordering, strip_var_names, MergeCubes)
 
 
 @contextlib.contextmanager
@@ -106,11 +106,15 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
             for item in filepath:
                 cubes.extend(iris.load(item, constraints=constraints))
 
-    # Merge loaded cubes
     if not cubes:
         message = "No cubes found using constraints {}".format(constraints)
         raise ValueError(message)
 
+    # Remove var_name from cubes and coordinates (except where needed to
+    # describe probabilistic data)
+    cubes = strip_var_names(cubes)
+
+    # Merge loaded cubes
     if len(cubes) == 1:
         cube = cubes[0]
     else:

@@ -115,18 +115,14 @@ def equalise_cube_attributes(cubes, silent=None):
 
 def strip_var_names(cubes):
     """
-    Strips var_name from the cube and from all coordinates
-    to help concatenation.
+    Strips var_name from the cube and from all coordinates except where
+    required to support probabilistic metadata.  Inputs are modified in place.
 
     Args:
-        cubes (iris.cube.CubeList or iris.cube.Cube):
-            Cubes to be concatenated.
+        cubes (iris.cube.CubeList or iris.cube.Cube)
 
     Returns:
-        iris.cube.CubeList:
-            CubeList containing original cubes without a var_name on the cube,
-            or on the coordinates.
-            Note: This internal function modifies the incoming cubes
+        iris.cube.CubeList
     """
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])
