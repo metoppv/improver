@@ -60,8 +60,10 @@ def run_cli(cli_name, verbose=True):
     Returns:
         Callable([Iterable[str], None]): function to run the specified CLI
     """
+
     def run_function(args):
         cli.main("improver", cli_name, *args, verbose=verbose)
+
     return run_function
 
 
@@ -136,16 +138,20 @@ def recreate_if_needed(output_path, kgo_path, recreate_dir_path=None):
     kgo_relative = kgo_path.relative_to(kgo_root_dir)
     recreate_file_path = recreate_dir_path / kgo_relative
     if recreate_file_path == kgo_path:
-        err = (f"Recreate KGO path {recreate_file_path} must be different from"
-               f" original KGO path {kgo_path} to avoid overwriting")
+        err = (
+            f"Recreate KGO path {recreate_file_path} must be different from"
+            f" original KGO path {kgo_path} to avoid overwriting"
+        )
         raise IOError(err)
     recreate_file_path.parent.mkdir(exist_ok=True, parents=True)
     if recreate_file_path.exists():
         recreate_file_path.unlink()
     shutil.copyfile(str(output_path), str(recreate_file_path))
     print(f"Updated KGO file is at {recreate_file_path}")
-    print(f"Put the updated KGO file in {ACC_TEST_DIR_ENVVAR} to make this"
-          f" test pass. For example:")
+    print(
+        f"Put the updated KGO file in {ACC_TEST_DIR_ENVVAR} to make this"
+        f" test pass. For example:"
+    )
     quoted_kgo = shlex.quote(str(kgo_path))
     quoted_recreate = shlex.quote(str(recreate_file_path))
     print(f"cp {quoted_recreate} {quoted_kgo}")
@@ -154,20 +160,26 @@ def recreate_if_needed(output_path, kgo_path, recreate_dir_path=None):
 
 def statsmodels_available():
     """True if statsmodels library is importable"""
-    if importlib.util.find_spec('statsmodels'):
+    if importlib.util.find_spec("statsmodels"):
         return True
     return False
 
 
 def iris_nimrod_patch_available():
     """True if iris_nimrod_patch library is importable"""
-    if importlib.util.find_spec('iris_nimrod_patch'):
+    if importlib.util.find_spec("iris_nimrod_patch"):
         return True
     return False
 
 
-def compare(output_path, kgo_path, recreate=True,
-            atol=DEFAULT_TOLERANCE, rtol=DEFAULT_TOLERANCE, exclude_vars=None):
+def compare(
+    output_path,
+    kgo_path,
+    recreate=True,
+    atol=DEFAULT_TOLERANCE,
+    rtol=DEFAULT_TOLERANCE,
+    exclude_vars=None,
+):
     """
     Compare output against expected using KGO file with absolute and
     relative tolerances. Also recreates KGO if that setting is enabled.
@@ -193,7 +205,7 @@ def compare(output_path, kgo_path, recreate=True,
         raise ValueError("rtol")
 
     difference_found = False
-    message = ''
+    message = ""
 
     def message_recorder(exception_message):
         nonlocal difference_found
@@ -201,8 +213,14 @@ def compare(output_path, kgo_path, recreate=True,
         difference_found = True
         message = exception_message
 
-    compare_netcdfs(output_path, kgo_path, atol=atol, rtol=rtol,
-                    exclude_vars=exclude_vars, reporter=message_recorder)
+    compare_netcdfs(
+        output_path,
+        kgo_path,
+        atol=atol,
+        rtol=rtol,
+        exclude_vars=exclude_vars,
+        reporter=message_recorder,
+    )
     if difference_found:
         if recreate:
             recreate_if_needed(output_path, kgo_path)
@@ -211,21 +229,23 @@ def compare(output_path, kgo_path, recreate=True,
 
 # Pytest decorator to skip tests if KGO is not available for use
 # pylint: disable=invalid-name
-skip_if_kgo_missing = pytest.mark.skipif(
-    not kgo_exists(), reason="KGO files required")
+skip_if_kgo_missing = pytest.mark.skipif(not kgo_exists(), reason="KGO files required")
 
 # Pytest decorator to skip tests if statsmodels is available
 # pylint: disable=invalid-name
 skip_if_statsmodels = pytest.mark.skipif(
-    statsmodels_available(), reason="statsmodels library is available")
+    statsmodels_available(), reason="statsmodels library is available"
+)
 
 # Pytest decorator to skip tests if statsmodels is not available
 # pylint: disable=invalid-name
 skip_if_no_statsmodels = pytest.mark.skipif(
-    not statsmodels_available(), reason="statsmodels library is not available")
+    not statsmodels_available(), reason="statsmodels library is not available"
+)
 
 # Pytest decorator to skip tests if iris_nimrod_patch is not available
 # pylint: disable=invalid-name
 skip_if_no_iris_nimrod_patch = pytest.mark.skipif(
     not iris_nimrod_patch_available(),
-    reason="iris_nimrod_patch library is not available")
+    reason="iris_nimrod_patch library is not available",
+)

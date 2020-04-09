@@ -49,13 +49,14 @@ class Test_compare_coords(unittest.TestCase):
 
     def setUp(self):
         """Use temperature cube to test with."""
-        data = 275*np.ones((3, 3, 3), dtype=np.float32)
+        data = 275 * np.ones((3, 3, 3), dtype=np.float32)
         self.cube = set_up_variable_cube(data)
         self.extra_dim_coord = DimCoord(
-            np.array([5.0], dtype=np.float32),
-            standard_name="height", units="m")
+            np.array([5.0], dtype=np.float32), standard_name="height", units="m"
+        )
         self.extra_aux_coord = AuxCoord(
-            ['uk_det', 'uk_ens', 'gl_ens'], long_name='model', units='no_unit')
+            ["uk_det", "uk_ens", "gl_ens"], long_name="model", units="no_unit"
+        )
 
     def test_basic(self):
         """Test that the utility returns a list."""
@@ -70,11 +71,9 @@ class Test_compare_coords(unittest.TestCase):
         """Test warning is raised if the input is cubelist of length 1."""
         cube = self.cube.copy()
         result = compare_coords(iris.cube.CubeList([cube]))
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
+        self.assertTrue(any(item.category == UserWarning for item in warning_list))
         warning_msg = "Only a single cube so no differences will be found "
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
         self.assertEqual(result, [])
 
     def test_first_cube_has_extra_dimension_coordinates(self):
@@ -140,5 +139,5 @@ class Test_compare_coords(unittest.TestCase):
         self.assertEqual(result[1]["model"]["aux_dims"], 0)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

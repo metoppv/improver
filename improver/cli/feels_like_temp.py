@@ -36,12 +36,14 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(temperature: cli.inputcube,
-            wind_speed: cli.inputcube,
-            relative_humidity: cli.inputcube,
-            pressure: cli.inputcube,
-            *,
-            model_id_attr: str = None):
+def process(
+    temperature: cli.inputcube,
+    wind_speed: cli.inputcube,
+    relative_humidity: cli.inputcube,
+    pressure: cli.inputcube,
+    *,
+    model_id_attr: str = None,
+):
     """Calculates the feels like temperature using the data in the input cube.
 
     Calculate the feels like temperature using a combination of the wind chill
@@ -76,8 +78,12 @@ def process(temperature: cli.inputcube,
             will be the same as the units of temperature cube when it is input
             into the function.
     """
-    from improver.feels_like_temperature import (
-        calculate_feels_like_temperature)
+    from improver.feels_like_temperature import calculate_feels_like_temperature
+
     return calculate_feels_like_temperature(
-        temperature, wind_speed, relative_humidity, pressure,
-        model_id_attr=model_id_attr)
+        temperature,
+        wind_speed,
+        relative_humidity,
+        pressure,
+        model_id_attr=model_id_attr,
+    )

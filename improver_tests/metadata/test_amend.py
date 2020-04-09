@@ -68,13 +68,18 @@ def create_cube_with_threshold(data=None, threshold_values=None):
         data[:, 1, :, :] = 0.6
 
     cube = set_up_probability_cube(
-        data[:, 0, :, :], threshold_values, variable_name="rainfall_rate",
-        threshold_units="m s-1", time=dt(2015, 11, 19, 1, 30),
-        frt=dt(2015, 11, 18, 22, 0))
+        data[:, 0, :, :],
+        threshold_values,
+        variable_name="rainfall_rate",
+        threshold_units="m s-1",
+        time=dt(2015, 11, 19, 1, 30),
+        frt=dt(2015, 11, 18, 22, 0),
+    )
 
     time_points = [dt(2015, 11, 19, 0, 30), dt(2015, 11, 19, 1, 30)]
     cube = add_coordinate(
-        cube, time_points, "time", order=[1, 0, 2, 3], is_datetime=True)
+        cube, time_points, "time", order=[1, 0, 2, 3], is_datetime=True
+    )
 
     cube.attributes["attribute_to_update"] = "first_value"
 
@@ -87,7 +92,7 @@ class Test_update_stage_v110_metadata(IrisTest):
 
     def setUp(self):
         """Set up variables for use in testing."""
-        data = 275.*np.ones((3, 3), dtype=np.float32)
+        data = 275.0 * np.ones((3, 3), dtype=np.float32)
         self.cube = set_up_variable_cube(data)
 
     def test_basic(self):
@@ -100,20 +105,17 @@ class Test_update_stage_v110_metadata(IrisTest):
 
     def test_update_ukv(self):
         """Test that cube attributes from ukv 1.1.0 are updated"""
-        self.cube.attributes['grid_id'] = 'ukvx_standard_v1'
+        self.cube.attributes["grid_id"] = "ukvx_standard_v1"
         update_stage_v110_metadata(self.cube)
-        self.assertTrue('mosg__grid_type' in self.cube.attributes.keys())
-        self.assertTrue('mosg__model_configuration' in
-                        self.cube.attributes.keys())
-        self.assertTrue('mosg__grid_domain' in self.cube.attributes.keys())
-        self.assertTrue('mosg__grid_version' in self.cube.attributes.keys())
-        self.assertFalse('grid_id' in self.cube.attributes.keys())
-        self.assertEqual('standard', self.cube.attributes['mosg__grid_type'])
-        self.assertEqual('uk_det',
-                         self.cube.attributes['mosg__model_configuration'])
-        self.assertEqual('uk_extended',
-                         self.cube.attributes['mosg__grid_domain'])
-        self.assertEqual('1.1.0', self.cube.attributes['mosg__grid_version'])
+        self.assertTrue("mosg__grid_type" in self.cube.attributes.keys())
+        self.assertTrue("mosg__model_configuration" in self.cube.attributes.keys())
+        self.assertTrue("mosg__grid_domain" in self.cube.attributes.keys())
+        self.assertTrue("mosg__grid_version" in self.cube.attributes.keys())
+        self.assertFalse("grid_id" in self.cube.attributes.keys())
+        self.assertEqual("standard", self.cube.attributes["mosg__grid_type"])
+        self.assertEqual("uk_det", self.cube.attributes["mosg__model_configuration"])
+        self.assertEqual("uk_extended", self.cube.attributes["mosg__grid_domain"])
+        self.assertEqual("1.1.0", self.cube.attributes["mosg__grid_version"])
 
 
 class Test_amend_attributes(IrisTest):
@@ -122,19 +124,24 @@ class Test_amend_attributes(IrisTest):
     def setUp(self):
         """Set up a cube and dict"""
         self.cube = set_up_variable_cube(
-            280*np.ones((3, 3), dtype=np.float32),
-            attributes={"mosg__grid_version": "1.3.0",
-                        "mosg__model_configuration": "uk_det"})
+            280 * np.ones((3, 3), dtype=np.float32),
+            attributes={
+                "mosg__grid_version": "1.3.0",
+                "mosg__model_configuration": "uk_det",
+            },
+        )
         self.metadata_dict = {
             "mosg__grid_version": "remove",
             "source": "IMPROVER unit tests",
-            "mosg__model_configuration": "other_model"}
+            "mosg__model_configuration": "other_model",
+        }
 
     def test_basic(self):
         """Test function adds, removes and modifies attributes as expected"""
         expected_attributes = {
             "source": "IMPROVER unit tests",
-            "mosg__model_configuration": "other_model"}
+            "mosg__model_configuration": "other_model",
+        }
         amend_attributes(self.cube, self.metadata_dict)
         self.assertDictEqual(self.cube.attributes, expected_attributes)
 
@@ -145,11 +152,11 @@ class Test_add_coord(IrisTest):
     def setUp(self):
         """Set up information for testing."""
         self.changes = {
-            'points': [2.0],
-            'bounds': [0.1, 2.0],
-            'units': 'mm',
-            'var_name': 'threshold'
-            }
+            "points": [2.0],
+            "bounds": [0.1, 2.0],
+            "units": "mm",
+            "var_name": "threshold",
+        }
         cube = create_cube_with_threshold()
         self.coord_name = find_threshold_coordinate(cube).name()
         cube.remove_coord(self.coord_name)
@@ -164,15 +171,14 @@ class Test_add_coord(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result_coord.points, np.array([2.0]))
         self.assertArrayEqual(result_coord.bounds, np.array([[0.1, 2.0]]))
-        self.assertEqual(str(result_coord.units), 'mm')
+        self.assertEqual(str(result_coord.units), "mm")
         self.assertEqual(result_coord.var_name, "threshold")
         self.assertEqual(self.cube, original_cube)
 
     def test_standard_name(self):
         """Test default is for coordinate to be added as standard name"""
         result = add_coord(self.cube, self.coord_name, self.changes)
-        self.assertEqual(
-            result.coord(self.coord_name).standard_name, self.coord_name)
+        self.assertEqual(result.coord(self.coord_name).standard_name, self.coord_name)
 
     def test_long_name(self):
         """Test a coordinate can be added with a name that is not standard"""
@@ -182,22 +188,22 @@ class Test_add_coord(IrisTest):
     def test_non_name_value_error(self):
         """Test value errors thrown by iris.Coord (eg invalid units) are
         still raised"""
-        self.changes['units'] = 'narwhal'
+        self.changes["units"] = "narwhal"
         msg = 'Failed to parse unit "narwhal"'
         with self.assertRaisesRegex(ValueError, msg):
             add_coord(self.cube, self.coord_name, self.changes)
 
     def test_fails_no_points(self):
         """Test that add_coord fails if points not included in metadata """
-        changes = {'bounds': [0.1, 2.0], 'units': 'mm'}
-        msg = 'Trying to add new coord but no points defined'
+        changes = {"bounds": [0.1, 2.0], "units": "mm"}
+        msg = "Trying to add new coord but no points defined"
         with self.assertRaisesRegex(ValueError, msg):
             add_coord(self.cube, self.coord_name, changes)
 
     def test_fails_points_greater_than_1(self):
         """Test that add_coord fails if points greater than 1 """
-        changes = {'points': [0.1, 2.0]}
-        msg = 'Can not add a coordinate of length > 1'
+        changes = {"points": [0.1, 2.0]}
+        msg = "Can not add a coordinate of length > 1"
         with self.assertRaisesRegex(ValueError, msg):
             add_coord(self.cube, self.coord_name, changes)
 
@@ -206,10 +212,8 @@ class Test_add_coord(IrisTest):
         """Test that warning messages is raised correctly. """
         warning_msg = "Adding new coordinate"
         add_coord(self.cube, self.coord_name, self.changes, warnings_on=True)
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
+        self.assertTrue(any(item.category == UserWarning for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
 
 class Test_set_history_attribute(IrisTest):
@@ -251,5 +255,5 @@ class Test_set_history_attribute(IrisTest):
         self.assertTrue("Nowcast" in cube.attributes["history"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

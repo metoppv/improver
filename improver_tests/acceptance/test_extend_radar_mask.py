@@ -49,7 +49,6 @@ def test_basic(tmp_path):
     rainrate_path = kgo_dir / f"{nimrod_prefix}_rainrate_composite_2km_UK.nc"
     arc_path = kgo_dir / f"{nimrod_prefix}_arc_composite_2km_UK.nc"
     output_path = tmp_path / "output.nc"
-    args = [rainrate_path, arc_path,
-            "--output", output_path]
+    args = [rainrate_path, arc_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

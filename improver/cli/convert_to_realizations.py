@@ -35,12 +35,14 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            raw_cube: cli.inputcube = None,
-            *,
-            realizations_count: int = None,
-            random_seed: int = None,
-            ignore_ecc_bounds=False):
+def process(
+    cube: cli.inputcube,
+    raw_cube: cli.inputcube = None,
+    *,
+    realizations_count: int = None,
+    random_seed: int = None,
+    ignore_ecc_bounds=False,
+):
     """Converts an incoming cube into one containing realizations.
 
     Args:
@@ -69,18 +71,25 @@ def process(cube: cli.inputcube,
         iris.cube.Cube:
             The processed cube.
     """
-    from improver.cli import (percentiles_to_realizations,
-                              probabilities_to_realizations)
+    from improver.cli import percentiles_to_realizations, probabilities_to_realizations
 
-    if cube.coords('percentile'):
+    if cube.coords("percentile"):
         output_cube = percentiles_to_realizations.process(
-            cube, raw_cube=raw_cube, realizations_count=realizations_count,
-            random_seed=random_seed, ignore_ecc_bounds=ignore_ecc_bounds)
-    elif cube.coords(var_name='threshold'):
+            cube,
+            raw_cube=raw_cube,
+            realizations_count=realizations_count,
+            random_seed=random_seed,
+            ignore_ecc_bounds=ignore_ecc_bounds,
+        )
+    elif cube.coords(var_name="threshold"):
         output_cube = probabilities_to_realizations.process(
-            cube, raw_cube=raw_cube, realizations_count=realizations_count,
-            random_seed=random_seed, ignore_ecc_bounds=ignore_ecc_bounds)
-    elif cube.coords(var_name='realization'):
+            cube,
+            raw_cube=raw_cube,
+            realizations_count=realizations_count,
+            random_seed=random_seed,
+            ignore_ecc_bounds=ignore_ecc_bounds,
+        )
+    elif cube.coords(var_name="realization"):
         output_cube = cube
     else:
         raise ValueError("Unable to convert to realizations:\n" + str(cube))

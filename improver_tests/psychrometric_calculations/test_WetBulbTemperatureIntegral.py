@@ -62,37 +62,39 @@ class Test_process(IrisTest):
         diagnostics are identical on each level."""
         super().setUp()
 
-        self.height_points = np.array([5., 10., 20.])
+        self.height_points = np.array([5.0, 10.0, 20.0])
         height_attribute = {"positive": "up"}
 
-        data = np.array(
-            [[-88.15, -13.266943, 60.81063]], dtype=np.float32)
+        data = np.array([[-88.15, -13.266943, 60.81063]], dtype=np.float32)
         self.wet_bulb_temperature = set_up_variable_cube(
-            data, name='wet_bulb_temperature', units='Celsius')
+            data, name="wet_bulb_temperature", units="Celsius"
+        )
         self.wet_bulb_temperature = add_coordinate(
-            self.wet_bulb_temperature, self.height_points, 'height',
-            coord_units='m', attributes=height_attribute)
+            self.wet_bulb_temperature,
+            self.height_points,
+            "height",
+            coord_units="m",
+            attributes=height_attribute,
+        )
 
     def test_basic(self):
         """Test that the wet bulb temperature integral returns a cube
         with the expected name."""
-        wb_temp_int = WetBulbTemperatureIntegral().process(
-            self.wet_bulb_temperature)
+        wb_temp_int = WetBulbTemperatureIntegral().process(self.wet_bulb_temperature)
         self.assertIsInstance(wb_temp_int, iris.cube.Cube)
         self.assertEqual(wb_temp_int.name(), "wet_bulb_temperature_integral")
-        self.assertEqual(str(wb_temp_int.units), 'K m')
+        self.assertEqual(str(wb_temp_int.units), "K m")
 
     def test_data(self):
         """Test that the wet bulb temperature integral returns a cube
         containing the expected data."""
         expected_wb_int = np.array(
-            [[[0.0, 0.0, 608.1063]],
-             [[0.0, 0.0, 912.1595]]], dtype=np.float32)
-        wb_temp_int = WetBulbTemperatureIntegral().process(
-            self.wet_bulb_temperature)
+            [[[0.0, 0.0, 608.1063]], [[0.0, 0.0, 912.1595]]], dtype=np.float32
+        )
+        wb_temp_int = WetBulbTemperatureIntegral().process(self.wet_bulb_temperature)
         self.assertIsInstance(wb_temp_int, iris.cube.Cube)
         self.assertArrayAlmostEqual(wb_temp_int.data, expected_wb_int)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

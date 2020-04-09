@@ -49,63 +49,191 @@ from ...calibration.ensemble_calibration.helper_functions import (
     add_forecast_reference_time_and_forecast_period,
 )
 
-SINGLE_POINT_RANGE_3_CENTROID = np.array([
-    [0.992, 0.968, 0.96, 0.968, 0.992],
-    [0.968, 0.944, 0.936, 0.944, 0.968],
-    [0.96, 0.936, 0.928, 0.936, 0.96],
-    [0.968, 0.944, 0.936, 0.944, 0.968],
-    [0.992, 0.968, 0.96, 0.968, 0.992]
-])
+SINGLE_POINT_RANGE_3_CENTROID = np.array(
+    [
+        [0.992, 0.968, 0.96, 0.968, 0.992],
+        [0.968, 0.944, 0.936, 0.944, 0.968],
+        [0.96, 0.936, 0.928, 0.936, 0.96],
+        [0.968, 0.944, 0.936, 0.944, 0.968],
+        [0.992, 0.968, 0.96, 0.968, 0.992],
+    ]
+)
 
-SINGLE_POINT_RANGE_X_6_Y_3_CENTROID = np.array([
-    [1.0, 1.0, 0.99799197, 0.99598394, 0.99799197, 1.0, 1.0],
-    [1.0, 0.98995984, 0.98393574, 0.98192771, 0.98393574, 0.98995984, 1.0],
-    [0.98995984, 0.97991968, 0.97389558, 0.97188755, 0.97389558, 0.97991968,
-     0.98995984],
-    [0.98393574, 0.97389558, 0.96787149, 0.96586345, 0.96787149, 0.97389558,
-     0.98393574],
-    [0.98192771, 0.97188755, 0.96586345, 0.96385542, 0.96586345, 0.97188755,
-     0.98192771],
-    [0.98393574, 0.97389558, 0.96787149, 0.96586345, 0.96787149, 0.97389558,
-     0.98393574],
-    [0.98995984, 0.97991968, 0.97389558, 0.97188755, 0.97389558, 0.97991968,
-     0.98995984],
-    [1.0, 0.98995984, 0.98393574, 0.98192771, 0.98393574, 0.98995984, 1.0],
-    [1.0, 1.0, 0.99799197, 0.99598394, 0.99799197, 1.0, 1.0]
-])
+SINGLE_POINT_RANGE_X_6_Y_3_CENTROID = np.array(
+    [
+        [1.0, 1.0, 0.99799197, 0.99598394, 0.99799197, 1.0, 1.0],
+        [1.0, 0.98995984, 0.98393574, 0.98192771, 0.98393574, 0.98995984, 1.0],
+        [
+            0.98995984,
+            0.97991968,
+            0.97389558,
+            0.97188755,
+            0.97389558,
+            0.97991968,
+            0.98995984,
+        ],
+        [
+            0.98393574,
+            0.97389558,
+            0.96787149,
+            0.96586345,
+            0.96787149,
+            0.97389558,
+            0.98393574,
+        ],
+        [
+            0.98192771,
+            0.97188755,
+            0.96586345,
+            0.96385542,
+            0.96586345,
+            0.97188755,
+            0.98192771,
+        ],
+        [
+            0.98393574,
+            0.97389558,
+            0.96787149,
+            0.96586345,
+            0.96787149,
+            0.97389558,
+            0.98393574,
+        ],
+        [
+            0.98995984,
+            0.97991968,
+            0.97389558,
+            0.97188755,
+            0.97389558,
+            0.97991968,
+            0.98995984,
+        ],
+        [1.0, 0.98995984, 0.98393574, 0.98192771, 0.98393574, 0.98995984, 1.0],
+        [1.0, 1.0, 0.99799197, 0.99598394, 0.99799197, 1.0, 1.0],
+    ]
+)
 
-SINGLE_POINT_RANGE_2_CENTROID_FLAT = np.array([
-    [1.0, 1.0, 0.92307692, 1.0, 1.0],
-    [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
-    [0.92307692, 0.92307692, 0.92307692, 0.92307692, 0.92307692],
-    [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
-    [1.0, 1.0, 0.92307692, 1.0, 1.0]
-])
+SINGLE_POINT_RANGE_2_CENTROID_FLAT = np.array(
+    [
+        [1.0, 1.0, 0.92307692, 1.0, 1.0],
+        [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
+        [0.92307692, 0.92307692, 0.92307692, 0.92307692, 0.92307692],
+        [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
+        [1.0, 1.0, 0.92307692, 1.0, 1.0],
+    ]
+)
 
-SINGLE_POINT_RANGE_5_CENTROID = np.array([
-    [1.0, 1.0, 0.99486125, 0.99177801, 0.99075026, 0.99177801,
-     0.99486125, 1.0, 1.0],
-    [1.0, 0.99280576, 0.98766701, 0.98458376, 0.98355601,
-     0.98458376, 0.98766701, 0.99280576, 1.0],
-    [0.99486125, 0.98766701, 0.98252826, 0.97944502, 0.97841727,
-     0.97944502, 0.98252826, 0.98766701, 0.99486125],
-    [0.99177801, 0.98458376, 0.97944502, 0.97636177, 0.97533402,
-     0.97636177, 0.97944502, 0.98458376, 0.99177801],
-    [0.99075026, 0.98355601, 0.97841727, 0.97533402, 0.97430627,
-     0.97533402, 0.97841727, 0.98355601, 0.99075026],
-    [0.99177801, 0.98458376, 0.97944502, 0.97636177, 0.97533402,
-     0.97636177, 0.97944502, 0.98458376, 0.99177801],
-    [0.99486125, 0.98766701, 0.98252826, 0.97944502, 0.97841727,
-     0.97944502, 0.98252826, 0.98766701, 0.99486125],
-    [1.0, 0.99280576, 0.98766701, 0.98458376, 0.98355601,
-     0.98458376, 0.98766701, 0.99280576, 1.0],
-    [1.0, 1.0, 0.99486125, 0.99177801, 0.99075026, 0.99177801,
-     0.99486125, 1.0, 1.0]
-])
+SINGLE_POINT_RANGE_5_CENTROID = np.array(
+    [
+        [
+            1.0,
+            1.0,
+            0.99486125,
+            0.99177801,
+            0.99075026,
+            0.99177801,
+            0.99486125,
+            1.0,
+            1.0,
+        ],
+        [
+            1.0,
+            0.99280576,
+            0.98766701,
+            0.98458376,
+            0.98355601,
+            0.98458376,
+            0.98766701,
+            0.99280576,
+            1.0,
+        ],
+        [
+            0.99486125,
+            0.98766701,
+            0.98252826,
+            0.97944502,
+            0.97841727,
+            0.97944502,
+            0.98252826,
+            0.98766701,
+            0.99486125,
+        ],
+        [
+            0.99177801,
+            0.98458376,
+            0.97944502,
+            0.97636177,
+            0.97533402,
+            0.97636177,
+            0.97944502,
+            0.98458376,
+            0.99177801,
+        ],
+        [
+            0.99075026,
+            0.98355601,
+            0.97841727,
+            0.97533402,
+            0.97430627,
+            0.97533402,
+            0.97841727,
+            0.98355601,
+            0.99075026,
+        ],
+        [
+            0.99177801,
+            0.98458376,
+            0.97944502,
+            0.97636177,
+            0.97533402,
+            0.97636177,
+            0.97944502,
+            0.98458376,
+            0.99177801,
+        ],
+        [
+            0.99486125,
+            0.98766701,
+            0.98252826,
+            0.97944502,
+            0.97841727,
+            0.97944502,
+            0.98252826,
+            0.98766701,
+            0.99486125,
+        ],
+        [
+            1.0,
+            0.99280576,
+            0.98766701,
+            0.98458376,
+            0.98355601,
+            0.98458376,
+            0.98766701,
+            0.99280576,
+            1.0,
+        ],
+        [
+            1.0,
+            1.0,
+            0.99486125,
+            0.99177801,
+            0.99075026,
+            0.99177801,
+            0.99486125,
+            1.0,
+            1.0,
+        ],
+    ]
+)
 
 
-def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
-                num_grid_points=16, num_realization_points=1):
+def set_up_cube(
+    zero_point_indices=((0, 0, 7, 7),),
+    num_time_points=1,
+    num_grid_points=16,
+    num_realization_points=1,
+):
     """Set up a cube with equal intervals along the x and y axis."""
 
     zero_point_indices = list(zero_point_indices)
@@ -115,55 +243,53 @@ def set_up_cube(zero_point_indices=((0, 0, 7, 7),), num_time_points=1,
         zero_point_indices[index] = indices
     zero_point_indices = tuple(zero_point_indices)
 
-    data = np.ones((
-        num_realization_points, num_time_points,
-        num_grid_points, num_grid_points), dtype=np.float32)
+    data = np.ones(
+        (num_realization_points, num_time_points, num_grid_points, num_grid_points),
+        dtype=np.float32,
+    )
     for indices in zero_point_indices:
         realization_index, time_index, lat_index, lon_index = indices
         data[realization_index][time_index][lat_index][lon_index] = 0
 
-    cube = Cube(data, standard_name="precipitation_amount",
-                units="kg m^-2")
+    cube = Cube(data, standard_name="precipitation_amount", units="kg m^-2")
 
     cube.add_dim_coord(
-        DimCoord(
-            range(num_realization_points),
-            standard_name='realization'), 0)
+        DimCoord(range(num_realization_points), standard_name="realization"), 0
+    )
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     time_points = [402192.5 + _ for _ in range(num_time_points)]
-    cube.add_dim_coord(DimCoord(time_points,
-                                standard_name="time", units=tunit), 1)
+    cube.add_dim_coord(DimCoord(time_points, standard_name="time", units=tunit), 1)
 
     step_size = 2000
-    y_points = np.arange(0., step_size*num_grid_points, step_size,
-                         dtype=np.float32)
+    y_points = np.arange(0.0, step_size * num_grid_points, step_size, dtype=np.float32)
     cube.add_dim_coord(
         DimCoord(
             y_points,
-            'projection_y_coordinate',
-            units='m',
-            coord_system=STANDARD_GRID_CCRS
+            "projection_y_coordinate",
+            units="m",
+            coord_system=STANDARD_GRID_CCRS,
         ),
-        2
+        2,
     )
 
-    x_points = np.arange(-50000., (step_size*num_grid_points)-50000, step_size,
-                         dtype=np.float32)
+    x_points = np.arange(
+        -50000.0, (step_size * num_grid_points) - 50000, step_size, dtype=np.float32
+    )
     cube.add_dim_coord(
         DimCoord(
             x_points,
-            'projection_x_coordinate',
-            units='m',
-            coord_system=STANDARD_GRID_CCRS
+            "projection_x_coordinate",
+            units="m",
+            coord_system=STANDARD_GRID_CCRS,
         ),
-        3
+        3,
     )
     return cube
 
 
-def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
-                                     num_time_points=1,
-                                     num_grid_points=16):
+def set_up_cube_with_no_realizations(
+    zero_point_indices=((0, 7, 7),), num_time_points=1, num_grid_points=16
+):
     """Set up a cube with equal intervals along the x and y axis."""
 
     zero_point_indices = list(zero_point_indices)
@@ -173,74 +299,71 @@ def set_up_cube_with_no_realizations(zero_point_indices=((0, 7, 7),),
         zero_point_indices[index] = indices
     zero_point_indices = tuple(zero_point_indices)
 
-    data = np.ones((num_time_points,
-                    num_grid_points,
-                    num_grid_points))
+    data = np.ones((num_time_points, num_grid_points, num_grid_points))
     for indices in zero_point_indices:
         time_index, lat_index, lon_index = indices
         data[time_index][lat_index][lon_index] = 0
 
-    cube = Cube(data, standard_name="precipitation_amount",
-                units="kg m^-2")
+    cube = Cube(data, standard_name="precipitation_amount", units="kg m^-2")
 
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     time_points = [402192.5 + _ for _ in range(num_time_points)]
-    cube.add_dim_coord(DimCoord(time_points,
-                                standard_name="time", units=tunit), 0)
+    cube.add_dim_coord(DimCoord(time_points, standard_name="time", units=tunit), 0)
 
     step_size = 2000
-    y_points = np.arange(0, step_size*num_grid_points, step_size)
+    y_points = np.arange(0, step_size * num_grid_points, step_size)
     cube.add_dim_coord(
         DimCoord(
             y_points,
-            'projection_y_coordinate',
-            units='m',
-            coord_system=STANDARD_GRID_CCRS
+            "projection_y_coordinate",
+            units="m",
+            coord_system=STANDARD_GRID_CCRS,
         ),
-        1
+        1,
     )
 
-    x_points = np.arange(-50000, (step_size*num_grid_points)-50000, step_size)
+    x_points = np.arange(-50000, (step_size * num_grid_points) - 50000, step_size)
     cube.add_dim_coord(
         DimCoord(
             x_points,
-            'projection_x_coordinate',
-            units='m',
-            coord_system=STANDARD_GRID_CCRS
+            "projection_x_coordinate",
+            units="m",
+            coord_system=STANDARD_GRID_CCRS,
         ),
-        2
+        2,
     )
 
     return cube
 
 
-def set_up_cube_lat_long(zero_point_indices=((0, 7, 7),), num_time_points=1,
-                         num_grid_points=16):
+def set_up_cube_lat_long(
+    zero_point_indices=((0, 7, 7),), num_time_points=1, num_grid_points=16
+):
     """Set up a lat-long coord cube."""
     data = np.ones((num_time_points, num_grid_points, num_grid_points))
     for time_index, lat_index, lon_index in zero_point_indices:
         data[time_index][lat_index][lon_index] = 0
-    cube = Cube(data, standard_name="precipitation_amount",
-                units="kg m^-2")
+    cube = Cube(data, standard_name="precipitation_amount", units="kg m^-2")
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     time_points = [402192.5 + _ for _ in range(num_time_points)]
-    cube.add_aux_coord(
-        AuxCoord(time_points, "time", units=tunit), 0)
+    cube.add_aux_coord(AuxCoord(time_points, "time", units=tunit), 0)
     cube.add_dim_coord(
-        DimCoord(np.linspace(0.0, float(num_grid_points - 1),
-                             num_grid_points),
-                 'latitude',
-                 units='degrees',
-                 coord_system=ELLIPSOID),
-        1
+        DimCoord(
+            np.linspace(0.0, float(num_grid_points - 1), num_grid_points),
+            "latitude",
+            units="degrees",
+            coord_system=ELLIPSOID,
+        ),
+        1,
     )
     cube.add_dim_coord(
-        DimCoord(np.linspace(0.0, float(num_grid_points - 1),
-                             num_grid_points),
-                 'longitude',
-                 units='degrees',
-                 coord_system=ELLIPSOID),
-        2
+        DimCoord(
+            np.linspace(0.0, float(num_grid_points - 1), num_grid_points),
+            "longitude",
+            units="degrees",
+            coord_system=ELLIPSOID,
+        ),
+        2,
     )
     return cube
 
@@ -254,8 +377,7 @@ class Test_set_up_cube(IrisTest):
         Test that set_up_cube returns a cube that can be regridded
         as this proves that it has a coordinate reference systems.
         """
-        result = set_up_cube().regrid(set_up_cube_lat_long(),
-                                      iris.analysis.Linear())
+        result = set_up_cube().regrid(set_up_cube_lat_long(), iris.analysis.Linear())
         self.assertIsInstance(result, Cube)
 
 
@@ -283,17 +405,21 @@ class Test__repr__(IrisTest):
     def test_callable(self):
         """Test that the __repr__ returns the expected string."""
         result = str(NBHood(CircularNeighbourhood(), 10000))
-        msg = ('<BaseNeighbourhoodProcessing: neighbourhood_method: '
-               '<CircularNeighbourhood: weighted_mode: True, '
-               'sum_or_fraction: fraction>; '
-               'radii: 10000.0; lead_times: None>')
+        msg = (
+            "<BaseNeighbourhoodProcessing: neighbourhood_method: "
+            "<CircularNeighbourhood: weighted_mode: True, "
+            "sum_or_fraction: fraction>; "
+            "radii: 10000.0; lead_times: None>"
+        )
         self.assertEqual(result, msg)
 
     def test_not_callable(self):
         """Test that the __repr__ returns the expected string."""
         result = str(NBHood("circular", 10000))
-        msg = ('<BaseNeighbourhoodProcessing: neighbourhood_method: '
-               'circular; radii: 10000.0; lead_times: None>')
+        msg = (
+            "<BaseNeighbourhoodProcessing: neighbourhood_method: "
+            "circular; radii: 10000.0; lead_times: None>"
+        )
         self.assertEqual(result, msg)
 
 
@@ -306,8 +432,7 @@ class Test__find_radii(IrisTest):
         the lead times are none, and this radius is a float."""
         neighbourhood_method = CircularNeighbourhood()
         radius = 6300
-        plugin = NBHood(neighbourhood_method,
-                        radius)
+        plugin = NBHood(neighbourhood_method, radius)
         result = plugin._find_radii(cube_lead_times=None)
         expected_result = 6300.0
         self.assertIsInstance(result, float)
@@ -319,11 +444,9 @@ class Test__find_radii(IrisTest):
         fp_points = np.array([2, 3, 4])
         radii = [10000, 20000, 30000]
         lead_times = [1, 3, 5]
-        plugin = NBHood(neighbourhood_method(),
-                        radii,
-                        lead_times=lead_times)
+        plugin = NBHood(neighbourhood_method(), radii, lead_times=lead_times)
         result = plugin._find_radii(cube_lead_times=fp_points)
-        expected_result = np.array([15000., 20000., 25000.])
+        expected_result = np.array([15000.0, 20000.0, 25000.0])
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_result)
 
@@ -333,10 +456,9 @@ class Test__find_radii(IrisTest):
         fp_points = np.array([2, 3, 4])
         radii = [10000, 30000]
         lead_times = [2, 4]
-        plugin = NBHood(neighbourhood_method(),
-                        radii=radii, lead_times=lead_times)
+        plugin = NBHood(neighbourhood_method(), radii=radii, lead_times=lead_times)
         result = plugin._find_radii(cube_lead_times=fp_points)
-        expected_result = np.array([10000., 20000., 30000.])
+        expected_result = np.array([10000.0, 20000.0, 30000.0])
         self.assertArrayAlmostEqual(result, expected_result)
 
 
@@ -361,7 +483,7 @@ class Test_process(IrisTest):
         Test that desired error message is raised, if the neighbourhood method
         does not exist.
         """
-        neighbourhood_method = 'nonsense'
+        neighbourhood_method = "nonsense"
         radii = 10000
         msg = "is not valid as a neighbourhood_method"
         with self.assertRaisesRegex(ValueError, msg):
@@ -386,7 +508,8 @@ class Test_process(IrisTest):
         expected[0, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
-            [0.91666667, 0.875, 0.91666667])
+            [0.91666667, 0.875, 0.91666667],
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_no_realizations(self):
@@ -400,7 +523,8 @@ class Test_process(IrisTest):
         expected[0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
-            [0.91666667, 0.875, 0.91666667])
+            [0.91666667, 0.875, 0.91666667],
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_radii_varying_with_lead_time(self):
@@ -412,7 +536,8 @@ class Test_process(IrisTest):
         time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points)
+            cube, time_point=time_points, fp_point=fp_points
+        )
         radii = [10000, 20000, 30000]
         lead_times = [2, 3, 4]
         neighbourhood_method = CircularNeighbourhood()
@@ -430,7 +555,8 @@ class Test_process(IrisTest):
         time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points)
+            cube, time_point=time_points, fp_point=fp_points
+        )
         cube.coord("forecast_period").convert_units("seconds")
         radii = [10000, 20000, 30000]
         lead_times = [2, 3, 4]
@@ -447,12 +573,14 @@ class Test_process(IrisTest):
         """
         cube = set_up_cube(
             zero_point_indices=((0, 0, 7, 7), (0, 1, 7, 7,), (0, 2, 7, 7)),
-            num_time_points=3)
+            num_time_points=3,
+        )
         expected = np.ones_like(cube.data)
         expected[0, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
-            [0.91666667, 0.875, 0.91666667])
+            [0.91666667, 0.875, 0.91666667],
+        )
 
         expected[0, 1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
 
@@ -463,13 +591,15 @@ class Test_process(IrisTest):
             [0.9825, 0.97, 0.9625, 0.96, 0.9625, 0.97, 0.9825],
             [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
             [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
-            [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1])
+            [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
+        )
 
         iris.util.promote_aux_coord_to_dim_coord(cube, "time")
         time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points)
+            cube, time_point=time_points, fp_point=fp_points
+        )
         radii = [5600, 7600, 9500]
         lead_times = [2, 3, 4]
         neighbourhood_method = CircularNeighbourhood()
@@ -488,7 +618,8 @@ class Test_process(IrisTest):
         time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points)
+            cube, time_point=time_points, fp_point=fp_points
+        )
         radii = [10000, 30000]
         lead_times = [2, 4]
         neighbourhood_method = CircularNeighbourhood()
@@ -505,12 +636,14 @@ class Test_process(IrisTest):
         argument."""
         cube = set_up_cube(
             zero_point_indices=((0, 0, 7, 7), (0, 1, 7, 7,), (0, 2, 7, 7)),
-            num_time_points=3)
+            num_time_points=3,
+        )
         expected = np.ones_like(cube.data)
         expected[0, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
-            [0.91666667, 0.875, 0.91666667])
+            [0.91666667, 0.875, 0.91666667],
+        )
 
         expected[0, 1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
 
@@ -521,13 +654,15 @@ class Test_process(IrisTest):
             [0.9825, 0.97, 0.9625, 0.96, 0.9625, 0.97, 0.9825],
             [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
             [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
-            [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1])
+            [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
+        )
 
         iris.util.promote_aux_coord_to_dim_coord(cube, "time")
         time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
         cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points)
+            cube, time_point=time_points, fp_point=fp_points
+        )
         radii = [5600, 9500]
         lead_times = [2, 4]
         neighbourhood_method = CircularNeighbourhood()
@@ -540,26 +675,31 @@ class Test_process(IrisTest):
         data array if a mask cube is used and the mask cube does not mask
         out the occurrences."""
         expected = np.array(
-            [[1., 1., 1., 1., 1.],
-             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-             [1., 0.88888889, 0.88888889, 0.88888889, 1.],
-             [1., 1., 1., 1., 1.]])
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+            ]
+        )
         cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),),
-            num_grid_points=5, num_time_points=1)
+            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5, num_time_points=1
+        )
         cube = iris.util.squeeze(cube)
         mask_cube = cube.copy()
         mask_cube.data = np.array(
-            [[1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1.]])
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+            ]
+        )
         radius = 2000
         neighbourhood_method = SquareNeighbourhood()
-        result = NBHood(neighbourhood_method, radius)(
-            cube, mask_cube)
+        result = NBHood(neighbourhood_method, radius)(cube, mask_cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_use_mask_cube_occurrences_masked(self):
@@ -567,26 +707,31 @@ class Test_process(IrisTest):
         data array if a mask cube is used and the mask cube does mask
         out the occurrences."""
         expected = np.array(
-            [[1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1.],
-             [1., 1., 0., 1., 1.],
-             [1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1.]])
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 0.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+            ]
+        )
         cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),),
-            num_grid_points=5, num_time_points=1)
+            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5, num_time_points=1
+        )
         cube = iris.util.squeeze(cube)
         mask_cube = cube.copy()
         mask_cube.data = np.array(
-            [[1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1.],
-             [1., 1., 0., 1., 1.],
-             [1., 1., 1., 1., 1.],
-             [1., 1., 1., 1., 1.]])
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 0.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+            ]
+        )
         radius = 2000
         neighbourhood_method = SquareNeighbourhood()
-        result = NBHood(neighbourhood_method, radius)(
-            cube, mask_cube)
+        result = NBHood(neighbourhood_method, radius)(cube, mask_cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_use_mask_cube_occurrences_masked_irregular(self):
@@ -594,28 +739,33 @@ class Test_process(IrisTest):
         data array if a mask cube is used and the mask cube does mask
         out the occurrences. In this case, an irregular mask is applied."""
         expected = np.array(
-            [[1.000000, 1.000000, 1.000000, 1.000000, 1.000000],
-             [1.000000, 0.000000, 0.833333, 0.000000, 1.000000],
-             [1.000000, 0.000000, 0.833333, 0.875000, 1.000000],
-             [1.000000, 0.857143, 0.833333, 0.857143, 1.000000],
-             [1.000000, 0.000000, 1.000000, 0.000000, 0.000000]])
+            [
+                [1.000000, 1.000000, 1.000000, 1.000000, 1.000000],
+                [1.000000, 0.000000, 0.833333, 0.000000, 1.000000],
+                [1.000000, 0.000000, 0.833333, 0.875000, 1.000000],
+                [1.000000, 0.857143, 0.833333, 0.857143, 1.000000],
+                [1.000000, 0.000000, 1.000000, 0.000000, 0.000000],
+            ]
+        )
         cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),),
-            num_grid_points=5, num_time_points=1)
+            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5, num_time_points=1
+        )
         cube = iris.util.squeeze(cube)
         mask_cube = cube.copy()
         mask_cube.data = np.array(
-            [[1., 1., 1., 1., 1.],
-             [1., 0., 1., 0., 1.],
-             [1., 0., 1., 1., 1.],
-             [1., 1., 1., 1., 1.],
-             [1., 0., 1., 0., 0.]])
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 0.0, 1.0, 0.0, 1.0],
+                [1.0, 0.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 0.0, 1.0, 0.0, 0.0],
+            ]
+        )
         radius = 2000
         neighbourhood_method = SquareNeighbourhood()
-        result = NBHood(neighbourhood_method, radius)(
-            cube, mask_cube)
+        result = NBHood(neighbourhood_method, radius)(cube, mask_cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

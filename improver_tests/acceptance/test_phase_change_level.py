@@ -41,11 +41,14 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.parametrize("phase_type,kgo_name,horiz_interp",
-                         [("snow-sleet", "snow_sleet", "True"),
-                          ("sleet-rain", "sleet_rain", "True"),
-                          ("sleet-rain", "sleet_rain_unfilled",
-                           "False")])
+@pytest.mark.parametrize(
+    "phase_type,kgo_name,horiz_interp",
+    [
+        ("snow-sleet", "snow_sleet", "True"),
+        ("sleet-rain", "sleet_rain", "True"),
+        ("sleet-rain", "sleet_rain_unfilled", "False"),
+    ],
+)
 def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp):
     """Testing:
         sleet/rain level
@@ -56,14 +59,18 @@ def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp):
     kgo_name = "{}_kgo.nc".format(kgo_name)
     kgo_path = kgo_dir / kgo_name
     output_path = tmp_path / "output.nc"
-    input_paths = [kgo_dir / x for x in
-                   ("wet_bulb_temperature.nc",
-                    "wbti.nc",
-                    "orog.nc",
-                    "land_mask.nc")]
-    args = [*input_paths,
-            "--phase-change", phase_type,
-            "--horizontal-interpolation", horiz_interp,
-            "--output", output_path]
+    input_paths = [
+        kgo_dir / x
+        for x in ("wet_bulb_temperature.nc", "wbti.nc", "orog.nc", "land_mask.nc")
+    ]
+    args = [
+        *input_paths,
+        "--phase-change",
+        phase_type,
+        "--horizontal-interpolation",
+        horiz_interp,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

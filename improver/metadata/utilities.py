@@ -44,8 +44,14 @@ from improver.metadata.constants.attributes import (
 
 
 def create_new_diagnostic_cube(
-        name, units, template_cube, mandatory_attributes,
-        optional_attributes=None, data=None, dtype=np.float32):
+    name,
+    units,
+    template_cube,
+    mandatory_attributes,
+    optional_attributes=None,
+    data=None,
+    dtype=np.float32,
+):
     """
     Creates a new diagnostic cube with suitable metadata.
 
@@ -90,14 +96,20 @@ def create_new_diagnostic_cube(
         data = da.zeros_like(template_cube.core_data(), dtype=dtype)
 
     aux_coords_and_dims, dim_coords_and_dims = [
-        [(coord.copy(), template_cube.coord_dims(coord))
-         for coord in getattr(template_cube, coord_type)]
-        for coord_type in ('aux_coords', 'dim_coords')]
+        [
+            (coord.copy(), template_cube.coord_dims(coord))
+            for coord in getattr(template_cube, coord_type)
+        ]
+        for coord_type in ("aux_coords", "dim_coords")
+    ]
 
     cube = iris.cube.Cube(
-        data, units=units, attributes=attributes,
+        data,
+        units=units,
+        attributes=attributes,
         dim_coords_and_dims=dim_coords_and_dims,
-        aux_coords_and_dims=aux_coords_and_dims)
+        aux_coords_and_dims=aux_coords_and_dims,
+    )
     cube.rename(name)
 
     return cube
@@ -127,10 +139,12 @@ def generate_mandatory_attributes(diagnostic_cubes, model_id_attr=None):
     for attr in MANDATORY_ATTRIBUTES + required_attributes:
         unique_values = set(d.get(attr, missing_value) for d in attr_dicts)
         if len(unique_values) == 1 and missing_value not in unique_values:
-            attributes[attr], = unique_values
+            (attributes[attr],) = unique_values
         elif attr in required_attributes:
-            msg = ('Required attribute "{}" is missing or '
-                   'not the same on all input cubes')
+            msg = (
+                'Required attribute "{}" is missing or '
+                "not the same on all input cubes"
+            )
             raise ValueError(msg.format(attr))
     return attributes
 
@@ -149,7 +163,7 @@ def generate_hash(data_in):
             A hexadecimal string which is a hash hexdigest of the data as a
             string.
     """
-    bytestring = pprint.pformat(data_in).encode('utf-8')
+    bytestring = pprint.pformat(data_in).encode("utf-8")
     return hashlib.sha256(bytestring).hexdigest()
 
 
@@ -168,14 +182,16 @@ def create_coordinate_hash(cube):
             A hash created using the x and y coordinates of the input cube.
     """
     hashable_data = []
-    for axis in ('x', 'y'):
+    for axis in ("x", "y"):
         coord = cube.coord(axis=axis)
-        hashable_data.extend([
-            list(coord.points),
-            list(coord.bounds) if isinstance(coord.bounds, list) else None,
-            coord.standard_name,
-            coord.long_name,
-            coord.coord_system,
-            coord.units
-        ])
+        hashable_data.extend(
+            [
+                list(coord.points),
+                list(coord.bounds) if isinstance(coord.bounds, list) else None,
+                coord.standard_name,
+                coord.long_name,
+                coord.coord_system,
+                coord.units,
+            ]
+        )
     return generate_hash(hashable_data)

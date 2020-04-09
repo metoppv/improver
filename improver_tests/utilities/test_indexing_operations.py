@@ -53,12 +53,8 @@ class Test_choose(IrisTest):
         returns the expected values. Here values are taken from a mix of
         sub-arrays. This example can be seen graphically in the documentation
         for the choose function."""
-        index_array = np.array([[[0, 1], [1, 0]],
-                                [[0, 2], [0, 1]],
-                                [[1, 1], [2, 0]]])
-        expected = np.array([[[1, 6], [7, 4]],
-                             [[1, 10], [3, 8]],
-                             [[5, 6], [11, 4]]])
+        index_array = np.array([[[0, 1], [1, 0]], [[0, 2], [0, 1]], [[1, 1], [2, 0]]])
+        expected = np.array([[[1, 6], [7, 4]], [[1, 10], [3, 8]], [[5, 6], [11, 4]]])
         result = choose(index_array, self.small_data)
         self.assertArrayEqual(result, expected)
         self.assertEqual(result.shape, expected.shape)
@@ -67,12 +63,10 @@ class Test_choose(IrisTest):
         """Test that a 3D array of indices with a shape matching the data array
         returns the expected values. Here the sub-arrays are rearranged as
         complete units."""
-        index_array = np.array([[[1, 1], [1, 1]],
-                                [[2, 2], [2, 2]],
-                                [[0, 0], [0, 0]]])
-        expected = np.array([self.small_data[1],
-                             self.small_data[2],
-                             self.small_data[0]])
+        index_array = np.array([[[1, 1], [1, 1]], [[2, 2], [2, 2]], [[0, 0], [0, 0]]])
+        expected = np.array(
+            [self.small_data[1], self.small_data[2], self.small_data[0]]
+        )
         result = choose(index_array, self.small_data)
         self.assertArrayEqual(result, expected)
         self.assertEqual(result.shape, expected.shape)
@@ -92,9 +86,7 @@ class Test_choose(IrisTest):
         """Test that a 3D array of indices with a shape matching the data array
         returns the same result as numpy choose. Here values are taken from a
         mix of sub-arrays."""
-        index_array = np.array([[[0, 1], [1, 0]],
-                                [[0, 2], [0, 1]],
-                                [[1, 1], [2, 0]]])
+        index_array = np.array([[[0, 1], [1, 0]], [[0, 2], [0, 1]], [[1, 1], [2, 0]]])
         choose_result = choose(index_array, self.small_data)
         npchoose_result = np.choose(index_array, self.small_data)
         self.assertArrayEqual(choose_result, npchoose_result)
@@ -104,9 +96,7 @@ class Test_choose(IrisTest):
         """Test that a 3D array of indices with a shape matching the data array
         returns the same result as numpy choose. Here the sub-arrays are
         rearranged as complete units."""
-        index_array = np.array([[[1, 1], [1, 1]],
-                                [[2, 2], [2, 2]],
-                                [[0, 0], [0, 0]]])
+        index_array = np.array([[[1, 1], [1, 1]], [[2, 2], [2, 2]], [[0, 0], [0, 0]]])
         choose_result = choose(index_array, self.small_data)
         npchoose_result = np.choose(index_array, self.small_data)
         self.assertArrayEqual(choose_result, npchoose_result)
@@ -119,10 +109,8 @@ class Test_choose(IrisTest):
         to a sensbile error. Note that the behaviour of this function is
         equivalent to numpy choose with mode=raise, there is no attempt to wrap
         or clip invalid index values."""
-        index_array = np.array([[[0, 1], [1, 0]],
-                                [[0, 2], [0, 1]],
-                                [[3, 3], [3, 3]]])
-        msg = 'index_array contains an index that is larger than the number'
+        index_array = np.array([[[0, 1], [1, 0]], [[0, 2], [0, 1]], [[3, 3], [3, 3]]])
+        msg = "index_array contains an index that is larger than the number"
         with self.assertRaisesRegex(IndexError, msg):
             choose(index_array, self.small_data)
 
@@ -131,13 +119,14 @@ class Test_choose(IrisTest):
         data_array have different shapes. This choose function provides only
         a subset of the full numpy choose features, and one of its limitations
         is to work only with arrays that match; there is no broadcasting."""
-        index_array = np.array([[[0, 1], [1, 0]],
-                                [[0, 2], [0, 1]]])
-        msg = ("The choose function only works with an index_array that "
-               "matches the shape of array_set.")
+        index_array = np.array([[[0, 1], [1, 0]], [[0, 2], [0, 1]]])
+        msg = (
+            "The choose function only works with an index_array that "
+            "matches the shape of array_set."
+        )
         with self.assertRaisesRegex(ValueError, msg):
             choose(index_array, self.small_data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

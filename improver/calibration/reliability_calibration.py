@@ -66,26 +66,24 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             with a small precision tolerance, defined as 1.0E-6.
             This gives bins of 0 to 1.0E-6 and (1 - 1.0E-6) to 1.
         """
-        self.single_value_tolerance = 1.0E-6
+        self.single_value_tolerance = 1.0e-6
         self.probability_bins = self._define_probability_bins(
-            n_probability_bins, single_value_limits)
+            n_probability_bins, single_value_limits
+        )
         self.table_columns = np.array(
-            ['observation_count', 'sum_of_forecast_probabilities',
-             'forecast_count'])
-        self.expected_table_shape = (len(self.table_columns),
-                                     n_probability_bins)
+            ["observation_count", "sum_of_forecast_probabilities", "forecast_count"]
+        )
+        self.expected_table_shape = (len(self.table_columns), n_probability_bins)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        bin_values = ', '.join(
-            ['[{:1.2f} --> {:1.2f}]'.format(*item)
-             for item in self.probability_bins])
-        result = ('<ConstructReliabilityCalibrationTables: '
-                  'probability_bins: {}>')
+        bin_values = ", ".join(
+            ["[{:1.2f} --> {:1.2f}]".format(*item) for item in self.probability_bins]
+        )
+        result = "<ConstructReliabilityCalibrationTables: " "probability_bins: {}>"
         return result.format(bin_values)
 
-    def _define_probability_bins(self, n_probability_bins,
-                                 single_value_limits):
+    def _define_probability_bins(self, n_probability_bins, single_value_limits):
         """
         Define equally sized probability bins for use in a reliability table.
         The range 0 to 1 is divided into ranges to give n_probability bins.
@@ -116,27 +114,28 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         """
         if single_value_limits:
             if n_probability_bins <= 2:
-                msg = ("Cannot use single_value_limits with 2 or fewer "
-                       "probability bins.")
+                msg = (
+                    "Cannot use single_value_limits with 2 or fewer "
+                    "probability bins."
+                )
                 raise ValueError(msg)
             n_probability_bins = n_probability_bins - 2
 
         bin_lower = np.linspace(0, 1, n_probability_bins + 1, dtype=np.float32)
         bin_upper = np.nextafter(bin_lower, 0, dtype=np.float32)
-        bin_upper[-1] = 1.
+        bin_upper[-1] = 1.0
         bins = np.stack([bin_lower[:-1], bin_upper[1:]], 1).astype(np.float32)
 
         if single_value_limits:
-            bins[0, 0] = np.nextafter(
-                self.single_value_tolerance, 1, dtype=np.float32)
+            bins[0, 0] = np.nextafter(self.single_value_tolerance, 1, dtype=np.float32)
             bins[-1, 1] = np.nextafter(
-                1. - self.single_value_tolerance, 0, dtype=np.float32)
-            lowest_bin = np.array([0, self.single_value_tolerance],
-                                  dtype=np.float32)
+                1.0 - self.single_value_tolerance, 0, dtype=np.float32
+            )
+            lowest_bin = np.array([0, self.single_value_tolerance], dtype=np.float32)
             highest_bin = np.array(
-                [1. - self.single_value_tolerance, 1], dtype=np.float32)
-            bins = np.vstack(
-                [lowest_bin, bins, highest_bin]).astype(np.float32)
+                [1.0 - self.single_value_tolerance, 1], dtype=np.float32
+            )
+            bins = np.vstack([lowest_bin, bins, highest_bin]).astype(np.float32)
         return bins
 
     def _create_probability_bins_coord(self):
@@ -150,8 +149,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         """
         values = np.mean(self.probability_bins, axis=1, dtype=np.float32)
         probability_bins_coord = iris.coords.DimCoord(
-            values, long_name='probability_bin', units=1,
-            bounds=self.probability_bins)
+            values, long_name="probability_bin", units=1, bounds=self.probability_bins
+        )
         return probability_bins_coord
 
     def _create_reliability_table_coords(self):
@@ -173,9 +172,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         """
         index_coord = iris.coords.DimCoord(
             np.arange(len(self.table_columns), dtype=np.int32),
-            long_name='table_row_index', units=1)
+            long_name="table_row_index",
+            units=1,
+        )
         name_coord = iris.coords.AuxCoord(
-            self.table_columns, long_name='table_row_name', units=1)
+            self.table_columns, long_name="table_row_name", units=1
+        )
         return index_coord, name_coord
 
     @staticmethod
@@ -208,18 +210,21 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             ValueError: Forecast cubes do not share consistent cycle hour and
                         forecast period.
         """
-        n_cycle_hours = len(self._get_cycle_hours(
-            forecasts.coord('forecast_reference_time')))
+        n_cycle_hours = len(
+            self._get_cycle_hours(forecasts.coord("forecast_reference_time"))
+        )
         try:
-            n_forecast_periods, = forecasts.coord('forecast_period').shape
+            (n_forecast_periods,) = forecasts.coord("forecast_period").shape
         except CoordinateNotFoundError:
             n_forecast_periods = 0
         if n_cycle_hours != 1 or n_forecast_periods != 1:
-            msg = ('Forecasts have been provided from differing cycle hours '
-                   'or forecast periods, or without these coordinates. These '
-                   'coordinates should be present and consistent between '
-                   'forecasts. Number of cycle hours found: {}, number of '
-                   'forecast periods found: {}.')
+            msg = (
+                "Forecasts have been provided from differing cycle hours "
+                "or forecast periods, or without these coordinates. These "
+                "coordinates should be present and consistent between "
+                "forecasts. Number of cycle hours found: {}, number of "
+                "forecast periods found: {}."
+            )
             raise ValueError(msg.format(n_cycle_hours, n_forecast_periods))
 
     @staticmethod
@@ -259,6 +264,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             iris.cube.Cube:
                 A reliability table cube.
         """
+
         def _get_coords_and_dims(coord_names):
             """Obtain the requested coordinates and their dimension index from
             the forecast slice cube."""
@@ -271,26 +277,26 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                 coords_and_dims.append((crd, crd_dim))
             return coords_and_dims
 
-        forecast_slice = next(forecast.slices_over(['time', threshold_coord]))
+        forecast_slice = next(forecast.slices_over(["time", threshold_coord]))
         expected_shape = self.expected_table_shape + forecast_slice.shape
         dummy_data = np.zeros((expected_shape))
 
-        diagnostic = forecast.coord(var_name='threshold').name()
+        diagnostic = forecast.coord(var_name="threshold").name()
         attributes = self._define_metadata(forecast)
 
         # Define reliability table specific coordinates
         probability_bins_coord = self._create_probability_bins_coord()
-        reliability_index_coord, reliability_name_coord = (
-            self._create_reliability_table_coords())
-        frt_coord = create_unified_frt_coord(
-            forecast.coord('forecast_reference_time'))
+        (
+            reliability_index_coord,
+            reliability_name_coord,
+        ) = self._create_reliability_table_coords()
+        frt_coord = create_unified_frt_coord(forecast.coord("forecast_reference_time"))
 
         # List of required non-spatial coordinates from the forecast
-        non_spatial_coords = ['forecast_period', diagnostic]
+        non_spatial_coords = ["forecast_period", diagnostic]
 
         # Construct a list of coordinates in the desired order
-        dim_coords = [forecast.coord(axis=dim).name()
-                      for dim in ['x', 'y']]
+        dim_coords = [forecast.coord(axis=dim).name() for dim in ["x", "y"]]
         dim_coords_and_dims = _get_coords_and_dims(dim_coords)
         aux_coords_and_dims = _get_coords_and_dims(non_spatial_coords)
         dim_coords_and_dims.append((reliability_index_coord, 0))
@@ -298,9 +304,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         dim_coords_and_dims.append((probability_bins_coord, 1))
 
         reliability_cube = iris.cube.Cube(
-            dummy_data, units=1, attributes=attributes,
+            dummy_data,
+            units=1,
+            attributes=attributes,
             dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims)
+            aux_coords_and_dims=aux_coords_and_dims,
+        )
         reliability_cube.add_aux_coord(frt_coord)
         reliability_cube.rename("reliability_calibration_table")
 
@@ -333,20 +342,23 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
         for bin_min, bin_max in self.probability_bins:
 
-            observation_mask = (((forecast >= bin_min) & (forecast <= bin_max))
-                                & (np.isclose(truth, 1))).astype(int)
-            forecast_mask = ((forecast >= bin_min) &
-                             (forecast <= bin_max)).astype(int)
+            observation_mask = (
+                ((forecast >= bin_min) & (forecast <= bin_max)) & (np.isclose(truth, 1))
+            ).astype(int)
+            forecast_mask = ((forecast >= bin_min) & (forecast <= bin_max)).astype(int)
             forecasts_probability_values = forecast * forecast_mask
 
             observation_counts.append(observation_mask)
             forecast_probabilities.append(forecasts_probability_values)
             forecast_counts.append(forecast_mask)
 
-        reliability_table = np.stack([
-                                np.stack(observation_counts),
-                                np.stack(forecast_probabilities),
-                                np.stack(forecast_counts)])
+        reliability_table = np.stack(
+            [
+                np.stack(observation_counts),
+                np.stack(forecast_probabilities),
+                np.stack(forecast_counts),
+            ]
+        )
         return reliability_table.astype(np.float32)
 
     def process(self, historic_forecasts, truths):
@@ -384,7 +396,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                         threshold coordinates.
         """
         historic_forecasts, truths = filter_non_matching_cubes(
-            historic_forecasts, truths)
+            historic_forecasts, truths
+        )
 
         threshold_coord = find_threshold_coordinate(historic_forecasts)
         truth_threshold_coord = find_threshold_coordinate(truths)
@@ -392,25 +405,30 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             msg = "Threshold coordinates differ between forecasts and truths."
             raise ValueError(msg)
 
-        time_coord = historic_forecasts.coord('time')
+        time_coord = historic_forecasts.coord("time")
 
         self._check_forecast_consistency(historic_forecasts)
         reliability_cube = self._create_reliability_table_cube(
-            historic_forecasts, threshold_coord)
+            historic_forecasts, threshold_coord
+        )
 
         reliability_tables = iris.cube.CubeList()
-        threshold_slices = zip(historic_forecasts.slices_over(threshold_coord),
-                               truths.slices_over(threshold_coord))
+        threshold_slices = zip(
+            historic_forecasts.slices_over(threshold_coord),
+            truths.slices_over(threshold_coord),
+        )
         for forecast_slice, truth_slice in threshold_slices:
 
             threshold_reliability = []
-            time_slices = zip(forecast_slice.slices_over(time_coord),
-                              truth_slice.slices_over(time_coord))
+            time_slices = zip(
+                forecast_slice.slices_over(time_coord),
+                truth_slice.slices_over(time_coord),
+            )
             for forecast, truth in time_slices:
 
-                reliability_table = (
-                    self._populate_reliability_bins(
-                        forecast.data, truth.data))
+                reliability_table = self._populate_reliability_bins(
+                    forecast.data, truth.data
+                )
 
                 threshold_reliability.append(reliability_table)
 
@@ -419,8 +437,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             table_values = np.sum(table_values, axis=0, dtype=np.float32)
 
             reliability_entry = reliability_cube.copy(data=table_values)
-            reliability_entry.replace_coord(
-                forecast_slice.coord(threshold_coord))
+            reliability_entry.replace_coord(forecast_slice.coord(threshold_coord))
             reliability_tables.append(reliability_entry)
 
         return MergeCubes()(reliability_tables)
@@ -433,7 +450,7 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return '<AggregateReliabilityCalibrationTables>'
+        return "<AggregateReliabilityCalibrationTables>"
 
     @staticmethod
     def _check_frt_coord(cubes):
@@ -453,13 +470,15 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
         """
         bounds = []
         for cube in cubes:
-            bounds.extend(cube.coord('forecast_reference_time').bounds)
+            bounds.extend(cube.coord("forecast_reference_time").bounds)
         bounds = np.concatenate(bounds)
         if not all(x < y for x, y in zip(bounds, bounds[1:])):
-            raise ValueError('Reliability calibration tables have overlapping '
-                             'forecast reference time bounds, indicating that '
-                             'the same forecast data has contributed to the '
-                             'construction of both tables. Cannot aggregate.')
+            raise ValueError(
+                "Reliability calibration tables have overlapping "
+                "forecast reference time bounds, indicating that "
+                "the same forecast data has contributed to the "
+                "construction of both tables. Cannot aggregate."
+            )
 
     def process(self, cubes, coordinates=None):
         """
@@ -479,18 +498,18 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
         coordinates = [] if coordinates is None else coordinates
 
         try:
-            cube, = cubes
+            (cube,) = cubes
         except ValueError:
             cubes = iris.cube.CubeList(cubes)
             self._check_frt_coord(cubes)
             cube = cubes.merge_cube()
-            coordinates.append('forecast_reference_time')
+            coordinates.append("forecast_reference_time")
         else:
             if not coordinates:
                 return cube
 
         result = collapsed(cube, coordinates, iris.analysis.SUM)
-        frt = create_unified_frt_coord(cube.coord('forecast_reference_time'))
+        frt = create_unified_frt_coord(cube.coord("forecast_reference_time"))
         result.replace_coord(frt)
         return result
 
@@ -524,14 +543,15 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         if minimum_forecast_count < 1:
             raise ValueError(
                 "The minimum_forecast_count must be at least 1 as empty "
-                "bins in the reliability table are not handled.")
+                "bins in the reliability table are not handled."
+            )
 
         self.minimum_forecast_count = minimum_forecast_count
         self.threshold_coord = None
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = '<ApplyReliabilityCalibration: minimum_forecast_count: {}>'
+        result = "<ApplyReliabilityCalibration: minimum_forecast_count: {}>"
         return result.format(self.minimum_forecast_count)
 
     @staticmethod
@@ -549,10 +569,14 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             ValueError: If the threshold coordinates are different in the two
                         cubes.
         """
-        if not (forecast.coord(var_name='threshold') ==
-                reliability_table.coord(var_name='threshold')):
-            raise ValueError('Threshold coordinates do not match between '
-                             'reliability table and forecast cube.')
+        if not (
+            forecast.coord(var_name="threshold")
+            == reliability_table.coord(var_name="threshold")
+        ):
+            raise ValueError(
+                "Threshold coordinates do not match between "
+                "reliability table and forecast cube."
+            )
 
     def _ensure_monotonicity(self, cube):
         """
@@ -573,27 +597,38 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             UserWarning: If the probabilities must be sorted to reinstate
                          expected monotonicity following calibration.
         """
-        threshold_dim, = cube.coord_dims(self.threshold_coord)
+        (threshold_dim,) = cube.coord_dims(self.threshold_coord)
         thresholding = self.threshold_coord.attributes.get(
-            "spp__relative_to_threshold", None)
+            "spp__relative_to_threshold", None
+        )
 
         if thresholding is None:
-            msg = ('Cube threshold coordinate does not define whether '
-                   'thresholding is above or below the defined thresholds.')
+            msg = (
+                "Cube threshold coordinate does not define whether "
+                "thresholding is above or below the defined thresholds."
+            )
             raise ValueError(msg)
 
-        if (thresholding == 'above' and not
-                (np.diff(cube.data, axis=threshold_dim) <= 0).all()):
-            msg = ('Exceedance probabilities are not decreasing monotonically '
-                   'as the threshold values increase. Forced back into order.')
+        if (
+            thresholding == "above"
+            and not (np.diff(cube.data, axis=threshold_dim) <= 0).all()
+        ):
+            msg = (
+                "Exceedance probabilities are not decreasing monotonically "
+                "as the threshold values increase. Forced back into order."
+            )
             warnings.warn(msg)
             cube.data = np.sort(cube.data, axis=threshold_dim)[::-1]
 
-        if (thresholding == 'below' and not
-                (np.diff(cube.data, axis=threshold_dim) >= 0).all()):
-            msg = ('Below threshold probabilities are not increasing '
-                   'monotonically as the threshold values increase. Forced '
-                   'back into order.')
+        if (
+            thresholding == "below"
+            and not (np.diff(cube.data, axis=threshold_dim) >= 0).all()
+        ):
+            msg = (
+                "Below threshold probabilities are not increasing "
+                "monotonically as the threshold values increase. Forced "
+                "back into order."
+            )
             warnings.warn(msg)
             cube.data = np.sort(cube.data, axis=threshold_dim)
 
@@ -618,12 +653,14 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                     observation count by the forecast count.
         """
         observation_count = reliability_table.extract(
-            iris.Constraint(table_row_name='observation_count')).data
+            iris.Constraint(table_row_name="observation_count")
+        ).data
         forecast_count = reliability_table.extract(
-            iris.Constraint(table_row_name='forecast_count')).data
+            iris.Constraint(table_row_name="forecast_count")
+        ).data
         forecast_probability_sum = reliability_table.extract(
-            iris.Constraint(
-                table_row_name='sum_of_forecast_probabilities')).data
+            iris.Constraint(table_row_name="sum_of_forecast_probabilities")
+        ).data
 
         # In some bins have insufficient counts, return None to avoid applying
         # calibration.
@@ -631,16 +668,15 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         if valid_bins[0].size != forecast_count.size:
             return None, None
 
-        forecast_probability = np.array(
-            forecast_probability_sum / forecast_count)
-        observation_frequency = np.array(
-            observation_count / forecast_count)
+        forecast_probability = np.array(forecast_probability_sum / forecast_count)
+        observation_frequency = np.array(observation_count / forecast_count)
 
         return forecast_probability, observation_frequency
 
     @staticmethod
-    def _interpolate(forecast_threshold, reliability_probabilities,
-                     observation_frequencies):
+    def _interpolate(
+        forecast_threshold, reliability_probabilities, observation_frequencies
+    ):
         """
         Perform interpolation of the forecast probabilities using the
         reliability table data to produce the calibrated forecast. Where
@@ -663,14 +699,13 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 probabilities outside the range 0 to 1.
         """
         shape = forecast_threshold.shape
-        mask = (forecast_threshold.mask if np.ma.is_masked(forecast_threshold)
-                else None)
+        mask = forecast_threshold.mask if np.ma.is_masked(forecast_threshold) else None
 
         forecast_probabilities = np.ma.getdata(forecast_threshold).flatten()
 
         interpolation_function = scipy.interpolate.interp1d(
-            reliability_probabilities, observation_frequencies,
-            fill_value='extrapolate')
+            reliability_probabilities, observation_frequencies, fill_value="extrapolate"
+        )
         interpolated = interpolation_function(forecast_probabilities.data)
 
         interpolated = interpolated.reshape(shape).astype(np.float32)
@@ -695,31 +730,33 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 The forecast cube following calibration.
         """
         self._threshold_coords_equivalent(forecast, reliability_table)
-        self.threshold_coord = forecast.coord(var_name='threshold')
+        self.threshold_coord = forecast.coord(var_name="threshold")
 
-        forecast_thresholds = forecast.slices_over(
-            self.threshold_coord)
-        reliability_thresholds = reliability_table.slices_over(
-            self.threshold_coord)
+        forecast_thresholds = forecast.slices_over(self.threshold_coord)
+        reliability_thresholds = reliability_table.slices_over(self.threshold_coord)
         slices = zip(forecast_thresholds, reliability_thresholds)
 
         uncalibrated_thresholds = []
         calibrated_cubes = iris.cube.CubeList()
         for forecast_threshold, reliability_threshold in slices:
 
-            reliability_probabilities, observation_frequencies = (
-                self._calculate_reliability_probabilities(
-                    reliability_threshold))
+            (
+                reliability_probabilities,
+                observation_frequencies,
+            ) = self._calculate_reliability_probabilities(reliability_threshold)
 
             if reliability_probabilities is None:
                 calibrated_cubes.append(forecast_threshold)
                 uncalibrated_thresholds.append(
-                    forecast_threshold.coord(self.threshold_coord).points[0])
+                    forecast_threshold.coord(self.threshold_coord).points[0]
+                )
                 continue
 
             interpolated = self._interpolate(
-                forecast_threshold.data, reliability_probabilities,
-                observation_frequencies)
+                forecast_threshold.data,
+                reliability_probabilities,
+                observation_frequencies,
+            )
 
             calibrated_cubes.append(forecast_threshold.copy(data=interpolated))
 
@@ -727,9 +764,11 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         self._ensure_monotonicity(calibrated_forecast)
 
         if uncalibrated_thresholds:
-            msg = ('The following thresholds were not calibrated due to '
-                   'insufficient forecast counts in reliability table bins: '
-                   '{}'.format(uncalibrated_thresholds))
+            msg = (
+                "The following thresholds were not calibrated due to "
+                "insufficient forecast counts in reliability table bins: "
+                "{}".format(uncalibrated_thresholds)
+            )
             warnings.warn(msg)
 
         return calibrated_forecast

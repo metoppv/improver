@@ -53,9 +53,18 @@ class WeightAndBlend(BasePlugin):
     """
     Wrapper class to calculate weights and blend data across cycles or models
     """
-    def __init__(self, blend_coord, wts_calc_method,
-                 weighting_coord=None, wts_dict=None,
-                 y0val=None, ynval=None, cval=None, inverse_ordering=False):
+
+    def __init__(
+        self,
+        blend_coord,
+        wts_calc_method,
+        weighting_coord=None,
+        wts_dict=None,
+        y0val=None,
+        ynval=None,
+        cval=None,
+        inverse_ordering=False,
+    ):
         """
         Initialise central parameters
 
@@ -97,7 +106,9 @@ class WeightAndBlend(BasePlugin):
         else:
             raise ValueError(
                 "Weights calculation method '{}' unrecognised".format(
-                    self.wts_calc_method))
+                    self.wts_calc_method
+                )
+            )
 
     def _calculate_blending_weights(self, cube):
         """
@@ -119,16 +130,18 @@ class WeightAndBlend(BasePlugin):
                 config_coord = self.blend_coord
 
             weights = ChooseWeightsLinear(
-                self.weighting_coord, self.wts_dict,
-                config_coord_name=config_coord)(cube)
+                self.weighting_coord, self.wts_dict, config_coord_name=config_coord
+            )(cube)
 
         elif self.wts_calc_method == "linear":
-            weights = ChooseDefaultWeightsLinear(
-                y0val=self.y0val, ynval=self.ynval)(cube, self.blend_coord)
+            weights = ChooseDefaultWeightsLinear(y0val=self.y0val, ynval=self.ynval)(
+                cube, self.blend_coord
+            )
 
         elif self.wts_calc_method == "nonlinear":
             weights = ChooseDefaultWeightsNonLinear(self.cval)(
-                cube, self.blend_coord, inverse_ordering=self.inverse_ordering)
+                cube, self.blend_coord, inverse_ordering=self.inverse_ordering
+            )
 
         return weights
 
@@ -150,15 +163,22 @@ class WeightAndBlend(BasePlugin):
                 Updated 3D cube of spatially-varying weights
         """
         check_if_grid_is_equal_area(cube)
-        grid_cells = distance_to_number_of_grid_cells(cube, fuzzy_length,
-                                                      return_int=False)
+        grid_cells = distance_to_number_of_grid_cells(
+            cube, fuzzy_length, return_int=False
+        )
         plugin = SpatiallyVaryingWeightsFromMask(grid_cells)
         weights = plugin(cube, weights, self.blend_coord)
         return weights
 
-    def process(self, cubelist, cycletime=None, model_id_attr=None,
-                spatial_weights=False, fuzzy_length=20000,
-                attributes_dict=None):
+    def process(
+        self,
+        cubelist,
+        cycletime=None,
+        model_id_attr=None,
+        spatial_weights=False,
+        fuzzy_length=20000,
+        attributes_dict=None,
+    ):
         """
         Merge a cubelist, calculate appropriate blend weights and compute the
         weighted mean. Returns a single cube collapsed over the dimension
@@ -188,8 +208,10 @@ class WeightAndBlend(BasePlugin):
         # cube has a monotonically ascending blend coordinate. Plugin raises an
         # error if blend_coord is not present on all input cubes.
         merger = MergeCubesForWeightedBlending(
-            self.blend_coord, weighting_coord=self.weighting_coord,
-            model_id_attr=model_id_attr)
+            self.blend_coord,
+            weighting_coord=self.weighting_coord,
+            model_id_attr=model_id_attr,
+        )
         cube = merger(cubelist, cycletime=cycletime)
 
         # if blend_coord has only one value (for example cycle blending with
@@ -198,12 +220,14 @@ class WeightAndBlend(BasePlugin):
         # and ensure that the forecast reference time on the returned cube
         # is set to the current IMPROVER processing cycle.
         coord_names = [coord.name() for coord in cube.coords()]
-        if (self.blend_coord not in coord_names or
-                len(cube.coord(self.blend_coord).points) == 1):
+        if (
+            self.blend_coord not in coord_names
+            or len(cube.coord(self.blend_coord).points) == 1
+        ):
             result = cube.copy()
             if attributes_dict is not None:
                 amend_attributes(result, attributes_dict)
-            result, = rebadge_forecasts_as_latest_cycle([result], cycletime)
+            (result,) = rebadge_forecasts_as_latest_cycle([result], cycletime)
 
         # otherwise, calculate weights and blend across specified dimension
         else:
@@ -214,14 +238,15 @@ class WeightAndBlend(BasePlugin):
             # calculate blend weights
             weights = self._calculate_blending_weights(cube)
             if spatial_weights:
-                weights = self._update_spatial_weights(
-                    cube, weights, fuzzy_length)
+                weights = self._update_spatial_weights(cube, weights, fuzzy_length)
 
             # blend across specified dimension
-            BlendingPlugin = WeightedBlendAcrossWholeDimension(
-                self.blend_coord)
+            BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
             result = BlendingPlugin(
-                cube, weights=weights, cycletime=cycletime,
-                attributes_dict=attributes_dict)
+                cube,
+                weights=weights,
+                cycletime=cycletime,
+                attributes_dict=attributes_dict,
+            )
 
         return result

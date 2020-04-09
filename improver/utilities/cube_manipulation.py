@@ -103,13 +103,12 @@ def equalise_cube_attributes(cubes, silent=None):
     if silent is None:
         silent = []
     unmatched = compare_attributes(cubes)
-    warning_msg = 'Deleting unmatched attribute {}, value {}'
+    warning_msg = "Deleting unmatched attribute {}, value {}"
     if len(unmatched) > 0:
         for i, cube in enumerate(cubes):
             for attr in unmatched[i]:
                 if attr not in silent:
-                    warnings.warn(
-                        warning_msg.format(attr, cube.attributes[attr]))
+                    warnings.warn(warning_msg.format(attr, cube.attributes[attr]))
                 cube.attributes.pop(attr)
 
 
@@ -149,8 +148,9 @@ class ConcatenateCubes(BasePlugin):
     time point cube inputs).
     """
 
-    def __init__(self, master_coord, coords_to_associate=None,
-                 coords_to_slice_over=None):
+    def __init__(
+        self, master_coord, coords_to_associate=None, coords_to_slice_over=None
+    ):
         """
         Initialise parameters
 
@@ -177,11 +177,15 @@ class ConcatenateCubes(BasePlugin):
         if self.coords_to_associate is not None:
             associated_coords = self.coords_to_associate.copy()
             associated_coords.append(self.master_coord)
-            if ("time" in associated_coords and
-                    "forecast_period" in associated_coords and
-                    "forecast_reference_time" in associated_coords):
-                msg = ("Time, forecast period and forecast reference time "
-                       "cannot all be associated with a single dimension")
+            if (
+                "time" in associated_coords
+                and "forecast_period" in associated_coords
+                and "forecast_reference_time" in associated_coords
+            ):
+                msg = (
+                    "Time, forecast period and forecast reference time "
+                    "cannot all be associated with a single dimension"
+                )
                 raise ValueError(msg)
 
         # List of attributes to remove silently if unmatched
@@ -221,16 +225,16 @@ class ConcatenateCubes(BasePlugin):
                 if cube.coords(coord):
                     temp_coord = cube.coord(coord)
                     cube.remove_coord(coord)
-                    temp_aux_coord = (
-                        build_coordinate(temp_coord.points,
-                                         bounds=temp_coord.bounds,
-                                         coord_type=AuxCoord,
-                                         template_coord=temp_coord))
-                    coord_names = [
-                        coord.standard_name for coord in cube.dim_coords]
+                    temp_aux_coord = build_coordinate(
+                        temp_coord.points,
+                        bounds=temp_coord.bounds,
+                        coord_type=AuxCoord,
+                        template_coord=temp_coord,
+                    )
+                    coord_names = [coord.standard_name for coord in cube.dim_coords]
                     cube.add_aux_coord(
-                        temp_aux_coord,
-                        data_dims=coord_names.index(self.master_coord))
+                        temp_aux_coord, data_dims=coord_names.index(self.master_coord)
+                    )
 
         return cube
 
@@ -259,8 +263,7 @@ class ConcatenateCubes(BasePlugin):
         for cube in cubes:
             if cube.coords(coord_to_slice_over):
                 for coord_slice in cube.slices_over(coord_to_slice_over):
-                    coord_slice = iris.util.new_axis(
-                        coord_slice, coord_to_slice_over)
+                    coord_slice = iris.util.new_axis(coord_slice, coord_to_slice_over)
                     sliced_by_coord_cubelist.append(coord_slice)
             else:
                 sliced_by_coord_cubelist.append(cube)
@@ -306,7 +309,9 @@ class ConcatenateCubes(BasePlugin):
         if not all(cube.coords(self.master_coord) for cube in cubes):
             raise ValueError(
                 "Master coordinate {} is not present on input cube(s)".format(
-                    self.master_coord))
+                    self.master_coord
+                )
+            )
 
         # slice over requested coordinates
         if self.coords_to_slice_over is not None:
@@ -323,7 +328,8 @@ class ConcatenateCubes(BasePlugin):
         associated_master_cubelist = iris.cube.CubeList([])
         for cube in cubes:
             associated_master_cubelist.append(
-                self._associate_any_coordinate_with_master_coordinate(cube))
+                self._associate_any_coordinate_with_master_coordinate(cube)
+            )
 
         # concatenate cube
         result = associated_master_cubelist.concatenate_cube()
@@ -332,8 +338,11 @@ class ConcatenateCubes(BasePlugin):
 
 
 def concatenate_cubes(
-        cubes_in, coords_to_slice_over=None, master_coord="time",
-        coordinates_for_association=None):
+    cubes_in,
+    coords_to_slice_over=None,
+    master_coord="time",
+    coordinates_for_association=None,
+):
     """
     Wrapper for the ConcatenateCubes.process method
 
@@ -357,8 +366,10 @@ def concatenate_cubes(
             Concatenated cube.
     """
     return ConcatenateCubes(
-        master_coord, coords_to_associate=coordinates_for_association,
-        coords_to_slice_over=coords_to_slice_over)(cubes_in)
+        master_coord,
+        coords_to_associate=coordinates_for_association,
+        coords_to_slice_over=coords_to_slice_over,
+    )(cubes_in)
 
 
 class MergeCubes(BasePlugin):
@@ -368,6 +379,7 @@ class MergeCubes(BasePlugin):
     Accounts for differences in attributes, cell methods and bounds ranges to
     avoid merge failures and anonymous dimensions.
     """
+
     def __init__(self):
         """Initialise constants"""
         # List of attributes to remove silently if unmatched
@@ -415,8 +427,10 @@ class MergeCubes(BasePlugin):
             bounds_ranges = np.abs(np.diff(coord.bounds))
             reference_range = bounds_ranges[0]
             if not np.all(np.isclose(bounds_ranges, reference_range)):
-                msg = ('Cube with mismatching {} bounds ranges '
-                       'cannot be blended'.format(name))
+                msg = (
+                    "Cube with mismatching {} bounds ranges "
+                    "cannot be blended".format(name)
+                )
                 raise ValueError(msg)
 
     def process(self, cubes_in, check_time_bounds_ranges=False):
@@ -496,8 +510,7 @@ def get_filtered_attributes(cube, attribute_filter=None):
     """
     attributes = cube.attributes
     if attribute_filter is not None:
-        attributes = {k: v for (k, v) in attributes.items()
-                      if attribute_filter in k}
+        attributes = {k: v for (k, v) in attributes.items() if attribute_filter in k}
     return attributes
 
 
@@ -519,27 +532,34 @@ def compare_attributes(cubes, attribute_filter=None):
     """
     unmatching_attributes = []
     if len(cubes) == 1:
-        msg = ('Only a single cube so no differences will be found ')
+        msg = "Only a single cube so no differences will be found "
         warnings.warn(msg)
     else:
         reference_attributes = get_filtered_attributes(
-            cubes[0], attribute_filter=attribute_filter)
+            cubes[0], attribute_filter=attribute_filter
+        )
 
         common_keys = reference_attributes.keys()
         for cube in cubes[1:]:
             cube_attributes = get_filtered_attributes(
-                cube, attribute_filter=attribute_filter)
+                cube, attribute_filter=attribute_filter
+            )
             common_keys = {
-                key for key in cube_attributes.keys()
-                if key in common_keys and
-                np.all(cube_attributes[key] == reference_attributes[key])}
+                key
+                for key in cube_attributes.keys()
+                if key in common_keys
+                and np.all(cube_attributes[key] == reference_attributes[key])
+            }
 
         for cube in cubes:
             cube_attributes = get_filtered_attributes(
-                cube, attribute_filter=attribute_filter)
+                cube, attribute_filter=attribute_filter
+            )
             unique_attributes = {
-                key: value for (key, value) in cube_attributes.items()
-                if key not in common_keys}
+                key: value
+                for (key, value) in cube_attributes.items()
+                if key not in common_keys
+            }
             unmatching_attributes.append(unique_attributes)
 
     return unmatching_attributes
@@ -565,16 +585,20 @@ def compare_coords(cubes):
     """
     unmatching_coords = []
     if len(cubes) == 1:
-        msg = ('Only a single cube so no differences will be found ')
+        msg = "Only a single cube so no differences will be found "
         warnings.warn(msg)
     else:
         common_coords = cubes[0].coords()
         for cube in cubes[1:]:
             cube_coords = cube.coords()
             common_coords = [
-                coord for coord in common_coords
-                if (coord in cube_coords and
-                    np.all(cube.coords(coord) == cubes[0].coords(coord)))]
+                coord
+                for coord in common_coords
+                if (
+                    coord in cube_coords
+                    and np.all(cube.coords(coord) == cubes[0].coords(coord))
+                )
+            ]
 
         for i, cube in enumerate(cubes):
             unmatching_coords.append(dict())
@@ -588,24 +612,32 @@ def compare_coords(cubes):
                     aux_val = None
                     if dim_val is None and len(cube.coord_dims(coord)) > 0:
                         aux_val = cube.coord_dims(coord)[0]
-                    unmatching_coords[i].update({coord.name():
-                                                 {'data_dims': dim_val,
-                                                  'aux_dims': aux_val,
-                                                  'coord': coord}})
+                    unmatching_coords[i].update(
+                        {
+                            coord.name(): {
+                                "data_dims": dim_val,
+                                "aux_dims": aux_val,
+                                "coord": coord,
+                            }
+                        }
+                    )
 
     return unmatching_coords
 
 
-def build_coordinate(data, long_name=None,
-                     standard_name=None,
-                     var_name=None,
-                     coord_type=DimCoord,
-                     data_type=None,
-                     units='1',
-                     bounds=None,
-                     coord_system=None,
-                     template_coord=None,
-                     custom_function=None):
+def build_coordinate(
+    data,
+    long_name=None,
+    standard_name=None,
+    var_name=None,
+    coord_type=DimCoord,
+    data_type=None,
+    units="1",
+    bounds=None,
+    coord_system=None,
+    template_coord=None,
+    custom_function=None,
+):
     """
     Construct an iris.coords.Dim/Auxcoord using the provided options.
 
@@ -659,7 +691,7 @@ def build_coordinate(data, long_name=None,
             coord_type_out = type(template_coord)
         if data_type is None:
             data_type_out = type(template_coord.points[0])
-        if units == '1':
+        if units == "1":
             units_out = template_coord.units
         if coord_system is None:
             coord_system_out = template_coord.coord_system
@@ -671,12 +703,15 @@ def build_coordinate(data, long_name=None,
     if custom_function is not None:
         data = custom_function(data)
 
-    crd_out = coord_type_out(data, long_name=long_name_out,
-                             standard_name=std_name_out,
-                             var_name=var_name_out,
-                             units=units_out,
-                             coord_system=coord_system_out,
-                             bounds=bounds_out)
+    crd_out = coord_type_out(
+        data,
+        long_name=long_name_out,
+        standard_name=std_name_out,
+        var_name=var_name_out,
+        units=units_out,
+        coord_system=coord_system_out,
+        bounds=bounds_out,
+    )
 
     if std_name_out is None and var_name_out is None:
         crd_out.rename(long_name_out)
@@ -709,11 +744,13 @@ def sort_coord_in_cube(cube, coord, descending=False):
     coord_to_sort = cube.coord(coord)
     if isinstance(coord_to_sort, DimCoord):
         if coord_to_sort.circular:
-            msg = ("The {} coordinate is circular. If the values in the "
-                   "coordinate span a boundary then the sorting may return "
-                   "an undesirable result.".format(coord_to_sort.name()))
+            msg = (
+                "The {} coordinate is circular. If the values in the "
+                "coordinate span a boundary then the sorting may return "
+                "an undesirable result.".format(coord_to_sort.name())
+            )
             warnings.warn(msg)
-    dim, = cube.coord_dims(coord_to_sort)
+    (dim,) = cube.coord_dims(coord_to_sort)
     index = [slice(None)] * cube.ndim
     index[dim] = np.argsort(coord_to_sort.points)
     if descending:
@@ -774,8 +811,8 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
 
     # if anchor is end, reshuffle the list
     if not anchor_start:
-        new_dims_end = new_dims[len(coords_to_reorder):]
-        new_dims_end.extend(new_dims[:len(coords_to_reorder)])
+        new_dims_end = new_dims[len(coords_to_reorder) :]
+        new_dims_end.extend(new_dims[: len(coords_to_reorder)])
         new_dims = new_dims_end
 
     # transpose cube using new coordinate order
@@ -805,10 +842,8 @@ def clip_cube_data(cube, minimum_value, maximum_value):
     original_methods = cube.cell_methods
 
     result = iris.cube.CubeList()
-    for cube_slice in cube.slices([cube.coord(axis='y'),
-                                   cube.coord(axis='x')]):
-        cube_slice.data = np.clip(cube_slice.data,
-                                  minimum_value, maximum_value)
+    for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
+        cube_slice.data = np.clip(cube_slice.data, minimum_value, maximum_value)
         result.append(cube_slice)
 
     result = result.merge_cube()
@@ -849,42 +884,45 @@ def expand_bounds(result_cube, cubelist, coord_names, use_midpoint=False):
     for coord in coord_names:
 
         if len(result_cube.coord(coord).points) != 1:
-            emsg = ('the expand bounds function should only be used on a'
-                    'coordinate with a single point. The coordinate \"{}\" '
-                    'has {} points.')
-            raise ValueError(emsg.format(
-                coord,
-                len(result_cube.coord(coord).points)))
+            emsg = (
+                "the expand bounds function should only be used on a"
+                'coordinate with a single point. The coordinate "{}" '
+                "has {} points."
+            )
+            raise ValueError(emsg.format(coord, len(result_cube.coord(coord).points)))
 
-        bounds = ([cube.coord(coord).bounds for cube in cubelist])
+        bounds = [cube.coord(coord).bounds for cube in cubelist]
         if any(b is None for b in bounds):
             if not all(b is None for b in bounds):
-                raise ValueError('cannot expand bounds for a mixture of '
-                                 'bounded / unbounded coordinates')
-            points = ([cube.coord(coord).points for cube in cubelist])
+                raise ValueError(
+                    "cannot expand bounds for a mixture of "
+                    "bounded / unbounded coordinates"
+                )
+            points = [cube.coord(coord).points for cube in cubelist]
             new_low_bound = np.min(points)
             new_top_bound = np.max(points)
         else:
             new_low_bound = np.min(bounds)
             new_top_bound = np.max(bounds)
         result_coord = result_cube.coord(coord)
-        result_coord.bounds = np.array(
-            [[new_low_bound, new_top_bound]])
+        result_coord.bounds = np.array([[new_low_bound, new_top_bound]])
         if result_coord.bounds.dtype == np.float64:
             result_coord.bounds = result_coord.bounds.astype(np.float32)
 
         if use_midpoint:
-            if 'seconds' in str(result_coord.units):
+            if "seconds" in str(result_coord.units):
                 # integer division of seconds required to retain precision
                 dtype_orig = result_coord.dtype
                 result_coord.points = [
-                    (new_top_bound - new_low_bound) // 2 + new_low_bound]
+                    (new_top_bound - new_low_bound) // 2 + new_low_bound
+                ]
                 # re-cast to original precision to avoid escalating int32s
                 result_coord.points = result_coord.points.astype(dtype_orig)
             else:
                 # float division of hours required for accuracy
                 result_coord.points = [
-                    (new_top_bound - new_low_bound) / 2. + new_low_bound]
+                    (new_top_bound - new_low_bound) / 2.0 + new_low_bound
+                ]
         else:
             result_coord.points = [new_top_bound]
 

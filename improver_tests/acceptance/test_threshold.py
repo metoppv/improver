@@ -47,9 +47,7 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-values", "280"]
+    args = [input_path, "--output", output_path, "--threshold-values", "280"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -60,10 +58,15 @@ def test_below_threshold(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-values", "280",
-            "--comparison-operator", "<="]
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-values",
+        "280",
+        "--comparison-operator",
+        "<=",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -74,9 +77,7 @@ def test_multiple_thresholds(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-values", "270,280,290"]
+    args = [input_path, "--output", output_path, "--threshold-values", "270,280,290"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -87,10 +88,15 @@ def test_threshold_units(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-values", "6.85",
-            "--threshold-units", "celsius"]
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-values",
+        "6.85",
+        "--threshold-units",
+        "celsius",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -101,10 +107,15 @@ def test_fuzzy_factor(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-values", "280",
-            "--fuzzy-factor", "0.99"]
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-values",
+        "280",
+        "--fuzzy-factor",
+        "0.99",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -116,9 +127,7 @@ def test_fuzzy_bounds(tmp_path):
     threshold_path = kgo_dir / "../fuzzy_bounds/threshold_config.json"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-config", threshold_path]
+    args = [input_path, "--output", output_path, "--threshold-config", threshold_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -129,11 +138,17 @@ def test_threshold_units_fuzzy(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-values", "6.85",
-            "--threshold-units", "celsius",
-            "--fuzzy-factor", "0.2"]
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-values",
+        "6.85",
+        "--threshold-units",
+        "celsius",
+        "--fuzzy-factor",
+        "0.2",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -144,10 +159,15 @@ def test_collapse_realization(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-values", "280",
-            "--collapse-coord", "realization"]
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-values",
+        "280",
+        "--collapse-coord",
+        "realization",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -158,11 +178,17 @@ def test_vicinity(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-values", "0.03,0.1,1.0",
-            "--threshold-units", "mm hr-1",
-            "--vicinity", "10000"]
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-values",
+        "0.03,0.1,1.0",
+        "--threshold-units",
+        "mm hr-1",
+        "--vicinity",
+        "10000",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -173,12 +199,18 @@ def test_vicinity_collapse(tmp_path):
     kgo_path = kgo_dir / "kgo_collapsed.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-values", "0.03,0.1,1.0",
-            "--threshold-units", "mm hr-1",
-            "--vicinity", "10000",
-            "--collapse-coord=realization"]
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-values",
+        "0.03,0.1,1.0",
+        "--threshold-units",
+        "mm hr-1",
+        "--vicinity",
+        "10000",
+        "--collapse-coord=realization",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -189,11 +221,17 @@ def test_vicinity_masked(tmp_path):
     kgo_path = kgo_dir / "kgo_masked.nc"
     input_path = kgo_dir / "masked_precip.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-values", "0.03,0.1,1.0",
-            "--threshold-units", "mm hr-1",
-            "--vicinity", "10000"]
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-values",
+        "0.03,0.1,1.0",
+        "--threshold-units",
+        "mm hr-1",
+        "--vicinity",
+        "10000",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -205,8 +243,6 @@ def test_threshold_config(tmp_path):
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     config_path = kgo_dir / "../json/threshold_config.json"
-    args = [input_path,
-            "--output", output_path,
-            "--threshold-config", config_path]
+    args = [input_path, "--output", output_path, "--threshold-config", config_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

@@ -158,6 +158,7 @@ def check_mandatory_standards(cube):
         ValueError:
             If the cube fails to meet any mandatory dtype and units standards
     """
+
     def check_dtype_and_units(obj):
         """
         Check object meets the mandatory dtype and units.
@@ -177,9 +178,11 @@ def check_mandatory_standards(cube):
         errors = []
         if not dtype_ok:
             req_dtype = get_required_dtype(obj)
-            msg = (f"{obj.name()} of type {type(obj)} does not have "
-                   f"required dtype.\n"
-                   f"Expected: {req_dtype}, ")
+            msg = (
+                f"{obj.name()} of type {type(obj)} does not have "
+                f"required dtype.\n"
+                f"Expected: {req_dtype}, "
+            )
             if isinstance(obj, iris.coords.Coord):
                 msg += f"Actual (points): {obj.points.dtype}"
                 if obj.has_bounds():
@@ -189,9 +192,11 @@ def check_mandatory_standards(cube):
             errors.append(msg)
         if not units_ok:
             req_units = get_required_units(obj)
-            msg = (f"{obj.name()} of type {type(obj)} does not have "
-                   f"required units.\n"
-                   f"Expected: {req_units}, Actual: {obj.units}")
+            msg = (
+                f"{obj.name()} of type {type(obj)} does not have "
+                f"required units.\n"
+                f"Expected: {req_units}, Actual: {obj.units}"
+            )
             errors.append(msg)
         return errors
 
@@ -200,4 +205,4 @@ def check_mandatory_standards(cube):
     for coord in cube.coords():
         error_list.extend(check_dtype_and_units(coord))
     if error_list:
-        raise ValueError('\n'.join(error_list))
+        raise ValueError("\n".join(error_list))

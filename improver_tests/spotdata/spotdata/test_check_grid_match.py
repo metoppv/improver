@@ -50,28 +50,32 @@ class Test_check_grid_match(IrisTest):
         """Set up cubes for use in testing."""
 
         data = np.ones(9).reshape(3, 3).astype(np.float32)
-        self.reference_cube = set_up_variable_cube(data,
-                                                   spatial_grid="equalarea")
+        self.reference_cube = set_up_variable_cube(data, spatial_grid="equalarea")
         self.cube1 = self.reference_cube.copy()
         self.cube2 = self.reference_cube.copy()
-        self.unmatched_cube = set_up_variable_cube(data,
-                                                   spatial_grid="latlon")
+        self.unmatched_cube = set_up_variable_cube(data, spatial_grid="latlon")
 
         self.diagnostic_cube_hash = create_coordinate_hash(self.reference_cube)
 
-        neighbours = np.array([[[0., 0., 0.]]])
+        neighbours = np.array([[[0.0, 0.0, 0.0]]])
         altitudes = np.array([0])
         latitudes = np.array([0])
         longitudes = np.array([0])
         wmo_ids = np.array([0])
-        grid_attributes = ['x_index', 'y_index', 'vertical_displacement']
-        neighbour_methods = ['nearest']
+        grid_attributes = ["x_index", "y_index", "vertical_displacement"]
+        neighbour_methods = ["nearest"]
         self.neighbour_cube = build_spotdata_cube(
-            neighbours, 'grid_neighbours', 1, altitudes, latitudes,
-            longitudes, wmo_ids, grid_attributes=grid_attributes,
-            neighbour_methods=neighbour_methods)
-        self.neighbour_cube.attributes['model_grid_hash'] = (
-            self.diagnostic_cube_hash)
+            neighbours,
+            "grid_neighbours",
+            1,
+            altitudes,
+            latitudes,
+            longitudes,
+            wmo_ids,
+            grid_attributes=grid_attributes,
+            neighbour_methods=neighbour_methods,
+        )
+        self.neighbour_cube.attributes["model_grid_hash"] = self.diagnostic_cube_hash
 
     def test_matching_grids(self):
         """Test a case in which the grids match. There is no assert
@@ -83,8 +87,10 @@ class Test_check_grid_match(IrisTest):
         """Test a case in which a cube with an unmatching grid is included in
         the comparison, raising a ValueError."""
         cubes = [self.reference_cube, self.cube1, self.unmatched_cube]
-        msg = ("Cubes do not share or originate from the same grid, so cannot "
-               "be used together.")
+        msg = (
+            "Cubes do not share or originate from the same grid, so cannot "
+            "be used together."
+        )
         with self.assertRaisesRegex(ValueError, msg):
             check_grid_match(cubes)
 
@@ -113,11 +119,13 @@ class Test_check_grid_match(IrisTest):
         have model_grid_hashes and these do not match."""
         self.cube1.attributes["model_grid_hash"] = "123"
         cubes = [self.neighbour_cube, self.cube1]
-        msg = ("Cubes do not share or originate from the same grid, so cannot "
-               "be used together.")
+        msg = (
+            "Cubes do not share or originate from the same grid, so cannot "
+            "be used together."
+        )
         with self.assertRaisesRegex(ValueError, msg):
             check_grid_match(cubes)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

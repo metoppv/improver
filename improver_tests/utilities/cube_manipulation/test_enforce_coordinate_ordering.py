@@ -56,11 +56,18 @@ class Test_enforce_coordinate_ordering(IrisTest):
         """Set up cube with non-homogeneous data to test with"""
         data = np.arange(27).reshape((3, 3, 3)) + 275
         cube = set_up_variable_cube(data.astype(np.float32))
-        time_points = [cube.coord("time").points[0],
-                       cube.coord("time").points[0] + 3600]
+        time_points = [
+            cube.coord("time").points[0],
+            cube.coord("time").points[0] + 3600,
+        ]
         self.cube = add_coordinate(
-            cube, time_points, "time", coord_units=TIME_COORDS["time"].units,
-            dtype=np.int64, order=[1, 0, 2, 3])
+            cube,
+            time_points,
+            "time",
+            coord_units=TIME_COORDS["time"].units,
+            dtype=np.int64,
+            order=[1, 0, 2, 3],
+        )
 
     def test_move_coordinate_to_start_when_already_at_start(self):
         """Test that a cube with the expected data contents is returned when
@@ -88,8 +95,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         the cube."""
         expected = self.cube.copy()
         expected.transpose([1, 2, 3, 0])
-        enforce_coordinate_ordering(
-            self.cube, "realization", anchor_start=False)
+        enforce_coordinate_ordering(self.cube, "realization", anchor_start=False)
         self.assertEqual(self.cube.coord_dims("realization")[0], 3)
         self.assertArrayAlmostEqual(self.cube.data, expected.data)
 
@@ -109,8 +115,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         coordinates in the cube."""
         expected = self.cube.copy()
         expected.transpose([1, 0, 2, 3])
-        enforce_coordinate_ordering(
-            self.cube, ["time", "realization"])
+        enforce_coordinate_ordering(self.cube, ["time", "realization"])
         self.assertEqual(self.cube.coord_dims("time")[0], 0)
         self.assertEqual(self.cube.coord_dims("realization")[0], 1)
         self.assertArrayAlmostEqual(self.cube.data, expected.data)
@@ -123,7 +128,8 @@ class Test_enforce_coordinate_ordering(IrisTest):
         expected = self.cube.copy()
         expected.transpose([2, 3, 1, 0])
         enforce_coordinate_ordering(
-            self.cube, ["time", "realization"], anchor_start=False)
+            self.cube, ["time", "realization"], anchor_start=False
+        )
         self.assertEqual(self.cube.coord_dims("time")[0], 2)
         self.assertEqual(self.cube.coord_dims("realization")[0], 3)
         self.assertArrayAlmostEqual(self.cube.data, expected.data)
@@ -135,7 +141,8 @@ class Test_enforce_coordinate_ordering(IrisTest):
         expected = self.cube.copy()
         expected.transpose([2, 0, 3, 1])
         enforce_coordinate_ordering(
-            self.cube, ["latitude", "realization", "longitude", "time"])
+            self.cube, ["latitude", "realization", "longitude", "time"]
+        )
         self.assertEqual(self.cube.coord_dims("latitude")[0], 0)
         self.assertEqual(self.cube.coord_dims("realization")[0], 1)
         self.assertEqual(self.cube.coord_dims("longitude")[0], 2)
@@ -148,8 +155,7 @@ class Test_enforce_coordinate_ordering(IrisTest):
         are not present within the cube."""
         expected = self.cube.copy()
         expected.transpose([1, 0, 2, 3])
-        enforce_coordinate_ordering(
-            self.cube, ["time", "realization", "nonsense"])
+        enforce_coordinate_ordering(self.cube, ["time", "realization", "nonsense"])
         self.assertEqual(self.cube.coord_dims("time")[0], 0)
         self.assertEqual(self.cube.coord_dims("realization")[0], 1)
         self.assertArrayAlmostEqual(self.cube.data, expected.data)
@@ -166,12 +172,11 @@ class Test_enforce_coordinate_ordering(IrisTest):
     def test_handles_threshold(self):
         """Test a probability cube is correctly handled"""
         thresholds = np.array([278, 279, 280], dtype=np.float32)
-        data = 0.03*np.arange(27).reshape((3, 3, 3))
+        data = 0.03 * np.arange(27).reshape((3, 3, 3))
         cube = set_up_probability_cube(data.astype(np.float32), thresholds)
-        enforce_coordinate_ordering(
-            cube, ["threshold"], anchor_start=False)
+        enforce_coordinate_ordering(cube, ["threshold"], anchor_start=False)
         self.assertEqual(cube.coord_dims("air_temperature")[0], 2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

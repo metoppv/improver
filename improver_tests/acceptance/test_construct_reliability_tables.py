@@ -48,8 +48,13 @@ def test_basic(tmp_path):
     history_path = kgo_dir / "forecast*.nc"
     truth_path = kgo_dir / "truth*.nc"
     output_path = tmp_path / "output.nc"
-    args = [history_path, truth_path,
-            "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--output", output_path]
+    args = [
+        history_path,
+        truth_path,
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

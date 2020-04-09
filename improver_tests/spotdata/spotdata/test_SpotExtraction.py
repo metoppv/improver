@@ -64,53 +64,67 @@ class Test_SpotExtraction(IrisTest):
         diagnostic_data = np.arange(25).reshape(5, 5)
 
         xcoord = iris.coords.DimCoord(
-            np.linspace(0, 40, 5), standard_name='longitude', units='degrees')
+            np.linspace(0, 40, 5), standard_name="longitude", units="degrees"
+        )
         ycoord = iris.coords.DimCoord(
-            np.linspace(0, 40, 5), standard_name='latitude', units='degrees')
+            np.linspace(0, 40, 5), standard_name="latitude", units="degrees"
+        )
 
         # Grid attributes must be included in diagnostic cubes so their removal
         # can be tested
-        attributes = {
-            'mosg__grid_domain': 'global',
-            'mosg__grid_type': 'standard'}
+        attributes = {"mosg__grid_domain": "global", "mosg__grid_type": "standard"}
 
         diagnostic_cube_xy = iris.cube.Cube(
-            diagnostic_data, standard_name="air_temperature", units='K',
+            diagnostic_data,
+            standard_name="air_temperature",
+            units="K",
             dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
-            attributes=attributes)
+            attributes=attributes,
+        )
         diagnostic_cube_yx = iris.cube.Cube(
-            diagnostic_data.T, standard_name="air_temperature", units='K',
+            diagnostic_data.T,
+            standard_name="air_temperature",
+            units="K",
             dim_coords_and_dims=[(ycoord, 0), (xcoord, 1)],
-            attributes=attributes)
+            attributes=attributes,
+        )
 
         diagnostic_cube_hash = create_coordinate_hash(diagnostic_cube_yx)
 
         # neighbours, each group is for a point under two methods, e.g.
         # [ 0.  0.  0.] is the nearest point to the first spot site, whilst
         # [ 1.  1. -1.] is the nearest land point to the same site.
-        neighbours = np.array([[[0., 0., 0.],
-                                [1., 1., -1.]],
-                               [[0., 0., -1.],
-                                [1., 1., 0.]],
-                               [[2., 2., 0.],
-                                [2., 2., 0.]],
-                               [[2., 2., 1.],
-                                [2., 2., 1.]]])
+        neighbours = np.array(
+            [
+                [[0.0, 0.0, 0.0], [1.0, 1.0, -1.0]],
+                [[0.0, 0.0, -1.0], [1.0, 1.0, 0.0]],
+                [[2.0, 2.0, 0.0], [2.0, 2.0, 0.0]],
+                [[2.0, 2.0, 1.0], [2.0, 2.0, 1.0]],
+            ]
+        )
         altitudes = np.array([0, 1, 3, 2])
         latitudes = np.array([10, 10, 20, 20])
         longitudes = np.array([10, 10, 20, 20])
         wmo_ids = np.arange(4)
-        grid_attributes = ['x_index', 'y_index', 'vertical_displacement']
-        neighbour_methods = ['nearest', 'nearest_land']
+        grid_attributes = ["x_index", "y_index", "vertical_displacement"]
+        neighbour_methods = ["nearest", "nearest_land"]
         neighbour_cube = build_spotdata_cube(
-            neighbours, 'grid_neighbours', 1, altitudes, latitudes,
-            longitudes, wmo_ids, grid_attributes=grid_attributes,
-            neighbour_methods=neighbour_methods)
-        neighbour_cube.attributes['model_grid_hash'] = diagnostic_cube_hash
+            neighbours,
+            "grid_neighbours",
+            1,
+            altitudes,
+            latitudes,
+            longitudes,
+            wmo_ids,
+            grid_attributes=grid_attributes,
+            neighbour_methods=neighbour_methods,
+        )
+        neighbour_cube.attributes["model_grid_hash"] = diagnostic_cube_hash
 
         coordinate_cube = neighbour_cube.extract(
-            iris.Constraint(neighbour_selection_method_name='nearest') &
-            iris.Constraint(grid_attributes_key=['x_index', 'y_index']))
+            iris.Constraint(neighbour_selection_method_name="nearest")
+            & iris.Constraint(grid_attributes_key=["x_index", "y_index"])
+        )
         coordinate_cube.data = np.rint(coordinate_cube.data).astype(int)
 
         self.latitudes = latitudes
@@ -125,8 +139,9 @@ class Test_SpotExtraction(IrisTest):
         for attr in MOSG_GRID_ATTRIBUTES:
             self.expected_attributes.pop(attr, None)
         self.expected_attributes["title"] = "unknown"
-        self.expected_attributes["model_grid_hash"] = (
-            self.neighbour_cube.attributes['model_grid_hash'])
+        self.expected_attributes["model_grid_hash"] = self.neighbour_cube.attributes[
+            "model_grid_hash"
+        ]
 
 
 class Test__repr__(IrisTest):
@@ -137,15 +152,15 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string with defaults."""
         plugin = SpotExtraction()
         result = str(plugin)
-        msg = '<SpotExtraction: neighbour_selection_method: nearest>'
+        msg = "<SpotExtraction: neighbour_selection_method: nearest>"
         self.assertEqual(result, msg)
 
     def test_non_default(self):
         """Test that the __repr__ returns the expected string with non-default
         options."""
-        plugin = SpotExtraction(neighbour_selection_method='nearest_land')
+        plugin = SpotExtraction(neighbour_selection_method="nearest_land")
         result = str(plugin)
-        msg = '<SpotExtraction: neighbour_selection_method: nearest_land>'
+        msg = "<SpotExtraction: neighbour_selection_method: nearest_land>"
         self.assertEqual(result, msg)
 
 
@@ -156,14 +171,14 @@ class Test_extract_coordinates(Test_SpotExtraction):
 
     def test_nearest(self):
         """Test extraction of nearest neighbour x and y indices."""
-        plugin = SpotExtraction(neighbour_selection_method='nearest')
+        plugin = SpotExtraction(neighbour_selection_method="nearest")
         expected = self.neighbours[:, 0, 0:2].astype(int)
         result = plugin.extract_coordinates(self.neighbour_cube)
         self.assertArrayEqual(result.data, expected)
 
     def test_nearest_land(self):
         """Test extraction of nearest land neighbour x and y indices."""
-        plugin = SpotExtraction(neighbour_selection_method='nearest_land')
+        plugin = SpotExtraction(neighbour_selection_method="nearest_land")
         expected = self.neighbours[:, 1, 0:2].astype(int)
         result = plugin.extract_coordinates(self.neighbour_cube)
         self.assertArrayEqual(result.data, expected)
@@ -171,7 +186,7 @@ class Test_extract_coordinates(Test_SpotExtraction):
     def test_invalid_method(self):
         """Test attempt to extract neighbours found with a method that is not
         available within the neighbour cube. Raises an exception."""
-        plugin = SpotExtraction(neighbour_selection_method='furthest')
+        plugin = SpotExtraction(neighbour_selection_method="furthest")
         msg = 'The requested neighbour_selection_method "furthest" is not'
         with self.assertRaisesRegex(ValueError, msg):
             plugin.extract_coordinates(self.neighbour_cube)
@@ -185,8 +200,9 @@ class Test_extract_diagnostic_data(Test_SpotExtraction):
         """Test extraction of diagnostic data that is natively ordered xy."""
         plugin = SpotExtraction()
         expected = [0, 0, 12, 12]
-        result = plugin.extract_diagnostic_data(self.coordinate_cube,
-                                                self.diagnostic_cube_xy)
+        result = plugin.extract_diagnostic_data(
+            self.coordinate_cube, self.diagnostic_cube_xy
+        )
         self.assertArrayEqual(result, expected)
 
     def test_yx_ordered_cube(self):
@@ -194,8 +210,9 @@ class Test_extract_diagnostic_data(Test_SpotExtraction):
         This will be reordered before extraction to become xy."""
         plugin = SpotExtraction()
         expected = [0, 0, 12, 12]
-        result = plugin.extract_diagnostic_data(self.coordinate_cube,
-                                                self.diagnostic_cube_yx)
+        result = plugin.extract_diagnostic_data(
+            self.coordinate_cube, self.diagnostic_cube_yx
+        )
         self.assertArrayEqual(result, expected)
 
 
@@ -207,12 +224,11 @@ class Test_build_diagnostic_cube(Test_SpotExtraction):
         """Test that a cube is built as expected."""
         plugin = SpotExtraction()
         spot_values = [0, 0, 12, 12]
-        result = plugin.build_diagnostic_cube(self.neighbour_cube,
-                                              self.diagnostic_cube_xy,
-                                              spot_values)
-        self.assertArrayEqual(result.coord('latitude').points, self.latitudes)
-        self.assertArrayEqual(result.coord('longitude').points,
-                              self.longitudes)
+        result = plugin.build_diagnostic_cube(
+            self.neighbour_cube, self.diagnostic_cube_xy, spot_values
+        )
+        self.assertArrayEqual(result.coord("latitude").points, self.latitudes)
+        self.assertArrayEqual(result.coord("longitude").points, self.longitudes)
         self.assertArrayEqual(result.data, spot_values)
 
 
@@ -224,10 +240,12 @@ class Test_process(Test_SpotExtraction):
     def test_unmatched_cube_error(self):
         """Test that an error is raised if the neighbour cube and diagnostic
         cube do not have matching grids."""
-        self.neighbour_cube.attributes['model_grid_hash'] = '123'
+        self.neighbour_cube.attributes["model_grid_hash"] = "123"
         plugin = SpotExtraction()
-        msg = ("Cubes do not share or originate from the same grid, so cannot "
-               "be used together.")
+        msg = (
+            "Cubes do not share or originate from the same grid, so cannot "
+            "be used together."
+        )
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(self.neighbour_cube, self.diagnostic_cube_xy)
 
@@ -240,42 +258,41 @@ class Test_process(Test_SpotExtraction):
         self.assertArrayEqual(result.data, expected)
         self.assertEqual(result.name(), self.diagnostic_cube_xy.name())
         self.assertEqual(result.units, self.diagnostic_cube_xy.units)
-        self.assertArrayEqual(result.coord('latitude').points, self.latitudes)
-        self.assertArrayEqual(result.coord('longitude').points,
-                              self.longitudes)
+        self.assertArrayEqual(result.coord("latitude").points, self.latitudes)
+        self.assertArrayEqual(result.coord("longitude").points, self.longitudes)
         self.assertDictEqual(result.attributes, self.expected_attributes)
 
     def test_returned_cube_nearest_land(self):
         """Test that data within the returned cube is as expected for the
         nearest land neighbours."""
-        plugin = SpotExtraction(neighbour_selection_method='nearest_land')
+        plugin = SpotExtraction(neighbour_selection_method="nearest_land")
         expected = [6, 6, 12, 12]
         result = plugin.process(self.neighbour_cube, self.diagnostic_cube_xy)
         self.assertArrayEqual(result.data, expected)
         self.assertEqual(result.name(), self.diagnostic_cube_xy.name())
         self.assertEqual(result.units, self.diagnostic_cube_xy.units)
-        self.assertArrayEqual(result.coord('latitude').points, self.latitudes)
-        self.assertArrayEqual(result.coord('longitude').points,
-                              self.longitudes)
+        self.assertArrayEqual(result.coord("latitude").points, self.latitudes)
+        self.assertArrayEqual(result.coord("longitude").points, self.longitudes)
         self.assertDictEqual(result.attributes, self.expected_attributes)
 
     def test_new_title(self):
         """Test title is updated as expected"""
         expected_attributes = self.expected_attributes
         expected_attributes["title"] = "IMPROVER Spot Forecast"
-        plugin = SpotExtraction(neighbour_selection_method='nearest_land')
-        result = plugin.process(self.neighbour_cube, self.diagnostic_cube_xy,
-                                new_title="IMPROVER Spot Forecast")
+        plugin = SpotExtraction(neighbour_selection_method="nearest_land")
+        result = plugin.process(
+            self.neighbour_cube,
+            self.diagnostic_cube_xy,
+            new_title="IMPROVER Spot Forecast",
+        )
         self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_cube_with_leading_dimensions(self):
         """Test that a cube with a leading dimension such as realization or
         probability results in a spotdata cube with the same leading
         dimension."""
-        realization0 = iris.coords.DimCoord(
-            [0], standard_name='realization', units=1)
-        realization1 = iris.coords.DimCoord(
-            [1], standard_name='realization', units=1)
+        realization0 = iris.coords.DimCoord([0], standard_name="realization", units=1)
+        realization1 = iris.coords.DimCoord([1], standard_name="realization", units=1)
 
         cube0 = self.diagnostic_cube_xy.copy()
         cube1 = self.diagnostic_cube_xy.copy()
@@ -287,17 +304,17 @@ class Test_process(Test_SpotExtraction):
         plugin = SpotExtraction()
         expected = [[0, 0, 12, 12], [0, 0, 12, 12]]
         expected_coord = iris.coords.DimCoord(
-            [0, 1], standard_name='realization', units=1)
+            [0, 1], standard_name="realization", units=1
+        )
         result = plugin.process(self.neighbour_cube, cube)
         self.assertArrayEqual(result.data, expected)
         self.assertEqual(result.name(), cube.name())
         self.assertEqual(result.units, cube.units)
-        self.assertArrayEqual(result.coord('latitude').points, self.latitudes)
-        self.assertArrayEqual(result.coord('longitude').points,
-                              self.longitudes)
-        self.assertEqual(result.coord('realization'), expected_coord)
+        self.assertArrayEqual(result.coord("latitude").points, self.latitudes)
+        self.assertArrayEqual(result.coord("longitude").points, self.longitudes)
+        self.assertEqual(result.coord("realization"), expected_coord)
         self.assertDictEqual(result.attributes, self.expected_attributes)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

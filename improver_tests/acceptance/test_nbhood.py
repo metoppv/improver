@@ -47,12 +47,18 @@ def test_basic_circular(tmp_path):
     kgo_path = kgo_dir / "kgo_circular.nc"
     input_path = kgo_dir / "input_circular.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--neighbourhood-output", "probabilities",
-            "--neighbourhood-shape", "circular",
-            "--radii", "20000",
-            "--weighted-mode",
-            "--output", output_path]
+    args = [
+        input_path,
+        "--neighbourhood-output",
+        "probabilities",
+        "--neighbourhood-shape",
+        "circular",
+        "--radii",
+        "20000",
+        "--weighted-mode",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -63,12 +69,18 @@ def test_basic_square(tmp_path):
     kgo_path = kgo_dir / "kgo_square.nc"
     input_path = kgo_dir / "input_square.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--neighbourhood-output", "probabilities",
-            "--neighbourhood-shape", "square",
-            "--radii", "20000",
-            "--weighted-mode",
-            "--output", output_path]
+    args = [
+        input_path,
+        "--neighbourhood-output",
+        "probabilities",
+        "--neighbourhood-shape",
+        "square",
+        "--radii",
+        "20000",
+        "--weighted-mode",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -79,12 +91,18 @@ def test_masked_square(tmp_path):
     kgo_path = kgo_dir / "kgo_masked.nc"
     input_path = kgo_dir / "input_masked.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--neighbourhood-output", "probabilities",
-            "--neighbourhood-shape", "square",
-            "--radii", "20000",
-            "--weighted-mode",
-            "--output", output_path]
+    args = [
+        input_path,
+        "--neighbourhood-output",
+        "probabilities",
+        "--neighbourhood-shape",
+        "square",
+        "--radii",
+        "20000",
+        "--weighted-mode",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -96,12 +114,19 @@ def test_circular_percentile(tmp_path):
     kgo_path = kgo_dir / "kgo_circular_percentile.nc"
     input_path = kgo_dir / "input_circular_percentile.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--neighbourhood-output", "percentiles",
-            "--neighbourhood-shape", "circular",
-            "--radii", "20000",
-            "--percentiles", "25, 50, 75",
-            "--output", output_path]
+    args = [
+        input_path,
+        "--neighbourhood-output",
+        "percentiles",
+        "--neighbourhood-shape",
+        "circular",
+        "--radii",
+        "20000",
+        "--percentiles",
+        "25, 50, 75",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -113,11 +138,18 @@ def test_masked_square_external(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path,
-            "--neighbourhood-output", "probabilities",
-            "--neighbourhood-shape", "square",
-            "--radii", "20000",
-            "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        "--neighbourhood-output",
+        "probabilities",
+        "--neighbourhood-shape",
+        "square",
+        "--radii",
+        "20000",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -129,12 +161,19 @@ def test_masked_square_remask(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path,
-            "--neighbourhood-output", "probabilities",
-            "--neighbourhood-shape", "square",
-            "--radii", "20000",
-            "--remask",
-            "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        "--neighbourhood-output",
+        "probabilities",
+        "--neighbourhood-shape",
+        "square",
+        "--radii",
+        "20000",
+        "--remask",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -145,12 +184,18 @@ def test_wind_direction(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--neighbourhood-output", "probabilities",
-            "--neighbourhood-shape", "square",
-            "--radii", "20000",
-            "--degrees-as-complex",
-            "--output", output_path]
+    args = [
+        input_path,
+        "--neighbourhood-output",
+        "probabilities",
+        "--neighbourhood-shape",
+        "square",
+        "--radii",
+        "20000",
+        "--degrees-as-complex",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -161,12 +206,18 @@ def test_halo_radius(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--neighbourhood-output", "probabilities",
-            "--neighbourhood-shape", "square",
-            "--radii", "20000",
-            "--weighted-mode",
-            "--halo-radius=162000",
-            "--output", output_path]
+    args = [
+        input_path,
+        "--neighbourhood-output",
+        "probabilities",
+        "--neighbourhood-shape",
+        "square",
+        "--radii",
+        "20000",
+        "--weighted-mode",
+        "--halo-radius=162000",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

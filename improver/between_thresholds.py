@@ -65,8 +65,10 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         """
         threshold_diffs = np.diff(threshold_ranges)
         if any([diff < 1e-5 for diff in threshold_diffs]):
-            raise ValueError('Plugin cannot distinguish between thresholds at '
-                             '{} {}'.format(threshold_ranges, threshold_units))
+            raise ValueError(
+                "Plugin cannot distinguish between thresholds at "
+                "{} {}".format(threshold_ranges, threshold_units)
+            )
         self.threshold_ranges = threshold_ranges
         self.threshold_units = threshold_units
 
@@ -84,22 +86,30 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
                 If any of the required constraints returns None
         """
         thresh_coord = self.cube.coord(self.thresh_coord.name())
-        error_string = (thresh_coord.name() + ' threshold {} ' +
-                        self.threshold_units + ' is not available\n')
-        error_msg = ''
+        error_string = (
+            thresh_coord.name()
+            + " threshold {} "
+            + self.threshold_units
+            + " is not available\n"
+        )
+        error_msg = ""
 
         cubes = []
         for t_range in self.threshold_ranges:
             t_range.sort()
-            lower_constraint = iris.Constraint(coord_values={
-                thresh_coord: lambda t: np.isclose(
-                    t.point, t_range[0], atol=1e-5)})
+            lower_constraint = iris.Constraint(
+                coord_values={
+                    thresh_coord: lambda t: np.isclose(t.point, t_range[0], atol=1e-5)
+                }
+            )
             lower_cube = self.cube.extract(lower_constraint)
             if lower_cube is None:
                 error_msg += error_string.format(t_range[0])
-            upper_constraint = iris.Constraint(coord_values={
-                thresh_coord: lambda t: np.isclose(
-                    t.point, t_range[1], atol=1e-5)})
+            upper_constraint = iris.Constraint(
+                coord_values={
+                    thresh_coord: lambda t: np.isclose(t.point, t_range[1], atol=1e-5)
+                }
+            )
             upper_cube = self.cube.extract(upper_constraint)
             if upper_cube is None:
                 error_msg += error_string.format(t_range[1])
@@ -128,15 +138,18 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
             ValueError: If the spp__relative_to_threshold attribute is
                 not recognised
         """
-        relative_to_threshold = (
-            self.thresh_coord.attributes['spp__relative_to_threshold'])
-        if relative_to_threshold == 'above':
-            multiplier = 1.
-        elif relative_to_threshold == 'below':
-            multiplier = -1.
+        relative_to_threshold = self.thresh_coord.attributes[
+            "spp__relative_to_threshold"
+        ]
+        if relative_to_threshold == "above":
+            multiplier = 1.0
+        elif relative_to_threshold == "below":
+            multiplier = -1.0
         else:
-            raise ValueError('Input cube must contain probabilities of '
-                             'occurrence above or below threshold')
+            raise ValueError(
+                "Input cube must contain probabilities of "
+                "occurrence above or below threshold"
+            )
         return multiplier
 
     def _calculate_probabilities(self):
@@ -153,15 +166,16 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         cubelist = iris.cube.CubeList([])
         for (lower_cube, upper_cube) in self.cube_slices:
             # construct difference cube
-            between_thresholds_data = (
-                lower_cube.data - upper_cube.data) * multiplier
+            between_thresholds_data = (lower_cube.data - upper_cube.data) * multiplier
             between_thresholds_cube = upper_cube.copy(between_thresholds_data)
 
             # add threshold coordinate bounds
             lower_threshold = lower_cube.coord(thresh_name).points[0]
             upper_threshold = upper_cube.coord(thresh_name).points[0]
-            between_thresholds_cube.coord(thresh_name).bounds = (
-                [lower_threshold, upper_threshold])
+            between_thresholds_cube.coord(thresh_name).bounds = [
+                lower_threshold,
+                upper_threshold,
+            ]
 
             cubelist.append(between_thresholds_cube)
 
@@ -178,12 +192,13 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
                 Required threshold-type coordinate units
         """
         output_cube.rename(
-            'probability_of_{}_between_thresholds'.format(
-                extract_diagnostic_name(self.cube.name())))
+            "probability_of_{}_between_thresholds".format(
+                extract_diagnostic_name(self.cube.name())
+            )
+        )
         new_thresh_coord = output_cube.coord(self.thresh_coord.name())
         new_thresh_coord.convert_units(original_units)
-        new_thresh_coord.attributes['spp__relative_to_threshold'] = (
-            'between_thresholds')
+        new_thresh_coord.attributes["spp__relative_to_threshold"] = "between_thresholds"
 
     def process(self, cube):
         """
@@ -201,15 +216,15 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         try:
             self.thresh_coord = find_threshold_coordinate(cube)
         except CoordinateNotFoundError:
-            raise ValueError('Input is not a probability cube '
-                             '(has no threshold-type coordinate)')
+            raise ValueError(
+                "Input is not a probability cube " "(has no threshold-type coordinate)"
+            )
         self.cube = cube.copy()
 
         # check input cube units and convert if needed
         original_units = self.thresh_coord.units
         if original_units != self.threshold_units:
-            self.cube.coord(self.thresh_coord).convert_units(
-                self.threshold_units)
+            self.cube.coord(self.thresh_coord).convert_units(self.threshold_units)
 
         # extract suitable cube slices
         self.cube_slices = self._slice_cube()

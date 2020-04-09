@@ -49,7 +49,7 @@ class Test_build_coordinate(IrisTest):
 
     def test_basic(self):
         """Test that the utility returns a coord."""
-        result = build_coordinate([1.0], long_name='testing')
+        result = build_coordinate([1.0], long_name="testing")
         self.assertIsInstance(result, DimCoord)
 
     def test_use_many_keyword_arguments(self):
@@ -64,9 +64,16 @@ class Test_build_coordinate(IrisTest):
         bounds = np.array([0.5, 1.5])
         coord_system = TransverseMercator
         result = build_coordinate(
-            [1.0], standard_name=standard_name, long_name=long_name,
-            var_name=var_name, coord_type=coord_type, data_type=data_type,
-            units=units, bounds=bounds, coord_system=coord_system)
+            [1.0],
+            standard_name=standard_name,
+            long_name=long_name,
+            var_name=var_name,
+            coord_type=coord_type,
+            data_type=data_type,
+            units=units,
+            bounds=bounds,
+            coord_system=coord_system,
+        )
         self.assertIsInstance(result, AuxCoord)
         self.assertEqual(result.standard_name, "height")
         self.assertEqual(result.long_name, "height")
@@ -75,8 +82,7 @@ class Test_build_coordinate(IrisTest):
         self.assertEqual(result.units, Unit("m"))
         self.assertArrayAlmostEqual(result.bounds, np.array([[0.5, 1.5]]))
         self.assertArrayAlmostEqual(result.points, np.array([1.0]))
-        self.assertEqual(
-            result.coord_system, TransverseMercator)
+        self.assertEqual(result.coord_system, TransverseMercator)
 
     def test_template_coord(self):
         """Test that a coordinate can be built from a template coordinate."""
@@ -89,25 +95,28 @@ class Test_build_coordinate(IrisTest):
 
     def test_custom_function(self):
         """Test that a coordinate can be built when using a custom function."""
+
         def divide_data(data):
             """Basic custom function for testing in build_coordinate"""
-            return data/2
+            return data / 2
+
         result = build_coordinate(
-            [1.0], long_name="realization", custom_function=divide_data)
+            [1.0], long_name="realization", custom_function=divide_data
+        )
         self.assertArrayAlmostEqual(result.points, np.array([0.5]))
 
     def test_build_latitude_coordinate(self):
         """Test building a latitude coordinate."""
         latitudes = np.linspace(-90, 90, 20)
         coord_system = iris.coord_systems.GeogCS(6371229.0)
-        result = build_coordinate(latitudes, long_name='latitude',
-                                  units='degrees',
-                                  coord_system=coord_system)
+        result = build_coordinate(
+            latitudes, long_name="latitude", units="degrees", coord_system=coord_system
+        )
         self.assertArrayEqual(result.points, latitudes)
-        self.assertEqual(result.name(), 'latitude')
+        self.assertEqual(result.name(), "latitude")
         self.assertIsInstance(result, DimCoord)
-        self.assertEqual(result.units, 'degrees')
+        self.assertEqual(result.units, "degrees")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

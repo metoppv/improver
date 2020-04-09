@@ -50,10 +50,12 @@ class Test___repr__(IrisTest):
         """Test the repr function formats the arguments correctly"""
         width = 3.0
         triangular_weights_instance = ChooseDefaultWeightsTriangular(
-            width, units='hours')
+            width, units="hours"
+        )
         result = str(triangular_weights_instance)
-        expected = ("<ChooseDefaultTriangularWeights "
-                    "width=3.0, parameters_units=hours>")
+        expected = (
+            "<ChooseDefaultTriangularWeights " "width=3.0, parameters_units=hours>"
+        )
         self.assertEqual(result, expected)
 
     def test_basic_no_units(self):
@@ -61,8 +63,9 @@ class Test___repr__(IrisTest):
         width = 3.0
         triangular_weights_instance = ChooseDefaultWeightsTriangular(width)
         result = str(triangular_weights_instance)
-        expected = ("<ChooseDefaultTriangularWeights "
-                    "width=3.0, parameters_units=no_unit>")
+        expected = (
+            "<ChooseDefaultTriangularWeights " "width=3.0, parameters_units=no_unit>"
+        )
         self.assertEqual(result, expected)
 
 
@@ -78,7 +81,8 @@ class Test_triangular_weights(IrisTest):
         coord_vals = np.arange(15)
         midpoint = 5
         weights = triangular_weights_instance.triangular_weights(
-            coord_vals, midpoint, width)
+            coord_vals, midpoint, width
+        )
         self.assertIsInstance(weights, np.ndarray)
         self.assertEqual(len(weights), len(coord_vals))
         # Using float32s for weights can give 1.0000001 here - good enough.
@@ -92,12 +96,27 @@ class Test_triangular_weights(IrisTest):
         coord_vals = np.arange(15)
         midpoint = 5
         weights = triangular_weights_instance.triangular_weights(
-            coord_vals, midpoint, width)
-        expected_weights = np.array([0., 0., 0.,
-                                     0.11111111, 0.22222222, 0.33333333,
-                                     0.22222222, 0.11111111, 0.,
-                                     0., 0., 0.,
-                                     0., 0., 0.])
+            coord_vals, midpoint, width
+        )
+        expected_weights = np.array(
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.11111111,
+                0.22222222,
+                0.33333333,
+                0.22222222,
+                0.11111111,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
         self.assertArrayAlmostEqual(weights, expected_weights)
 
     def test_midpoint_at_edge(self):
@@ -109,12 +128,27 @@ class Test_triangular_weights(IrisTest):
         coord_vals = np.arange(15)
         midpoint = 1
         weights = triangular_weights_instance.triangular_weights(
-            coord_vals, midpoint, width)
-        expected_weights = np.array([0.25, 0.375, 0.25,
-                                     0.125, 0., 0.,
-                                     0., 0., 0.,
-                                     0., 0., 0.,
-                                     0., 0., 0.])
+            coord_vals, midpoint, width
+        )
+        expected_weights = np.array(
+            [
+                0.25,
+                0.375,
+                0.25,
+                0.125,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
         self.assertArrayAlmostEqual(weights, expected_weights)
 
     def test_large_width(self):
@@ -127,12 +161,27 @@ class Test_triangular_weights(IrisTest):
         coord_vals = np.arange(15)
         midpoint = 5
         weights = triangular_weights_instance.triangular_weights(
-            coord_vals, midpoint, width)
-        expected_weights = np.array([0.055556, 0.066667, 0.077778,
-                                     0.088889, 0.1, 0.111111,
-                                     0.1, 0.088889, 0.077778,
-                                     0.066667, 0.055556, 0.044444,
-                                     0.033333, 0.022222, 0.011111])
+            coord_vals, midpoint, width
+        )
+        expected_weights = np.array(
+            [
+                0.055556,
+                0.066667,
+                0.077778,
+                0.088889,
+                0.1,
+                0.111111,
+                0.1,
+                0.088889,
+                0.077778,
+                0.066667,
+                0.055556,
+                0.044444,
+                0.033333,
+                0.022222,
+                0.011111,
+            ]
+        )
         self.assertArrayAlmostEqual(weights, expected_weights)
 
     def test_non_integer_midpoint(self):
@@ -144,12 +193,27 @@ class Test_triangular_weights(IrisTest):
         coord_vals = np.arange(15)
         midpoint = 3.5
         weights = triangular_weights_instance.triangular_weights(
-            coord_vals, midpoint, width)
-        expected_weights = np.array([0., 0., 0.125,
-                                     0.375, 0.375, 0.125,
-                                     0., 0., 0.,
-                                     0., 0., 0.,
-                                     0., 0., 0.])
+            coord_vals, midpoint, width
+        )
+        expected_weights = np.array(
+            [
+                0.0,
+                0.0,
+                0.125,
+                0.375,
+                0.375,
+                0.125,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
         self.assertArrayAlmostEqual(weights, expected_weights)
 
     def test_non_integer_width(self):
@@ -160,12 +224,27 @@ class Test_triangular_weights(IrisTest):
         coord_vals = np.arange(15)
         midpoint = 5
         weights = triangular_weights_instance.triangular_weights(
-            coord_vals, midpoint, width)
-        expected_weights = np.array([0., 0., 0.04,
-                                     0.12, 0.2, 0.28,
-                                     0.2, 0.12, 0.04,
-                                     0., 0., 0.,
-                                     0., 0., 0.])
+            coord_vals, midpoint, width
+        )
+        expected_weights = np.array(
+            [
+                0.0,
+                0.0,
+                0.04,
+                0.12,
+                0.2,
+                0.28,
+                0.2,
+                0.12,
+                0.04,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
         self.assertArrayAlmostEqual(weights, expected_weights)
 
     def test_unevenly_spaced_coord(self):
@@ -179,12 +258,27 @@ class Test_triangular_weights(IrisTest):
         coord_vals = np.append(coord_vals, [12, 15, 18, 21, 24])
         midpoint = 8
         weights = triangular_weights_instance.triangular_weights(
-            coord_vals, midpoint, width)
-        expected_weights = np.array([0., 0., 0.,
-                                     0., 0.05, 0.1,
-                                     0.15, 0.2, 0.25,
-                                     0.2, 0.05, 0.,
-                                     0., 0., 0.])
+            coord_vals, midpoint, width
+        )
+        expected_weights = np.array(
+            [
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                0.05,
+                0.1,
+                0.15,
+                0.2,
+                0.25,
+                0.2,
+                0.05,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
@@ -220,13 +314,20 @@ class Test_process(IrisTest):
         """Set up cubes used in unit tests"""
         cube = set_up_variable_cube(
             np.zeros((2, 2), dtype=np.float32),
-            name="lwe_thickness_of_precipitation_amount", units="m",
-            time=dt(2017, 1, 10, 4, 0), frt=dt(2017, 1, 10, 3, 0))
+            name="lwe_thickness_of_precipitation_amount",
+            units="m",
+            time=dt(2017, 1, 10, 4, 0),
+            frt=dt(2017, 1, 10, 3, 0),
+        )
         self.cube = add_coordinate(
-            cube, [dt(2017, 1, 10, 3, 0), dt(2017, 1, 10, 4, 0)],
-            "time", is_datetime=True)
-        data = np.array([[[1., 1.], [1., 1.]],
-                         [[2., 2.], [2., 2.]]], dtype=np.float32)
+            cube,
+            [dt(2017, 1, 10, 3, 0), dt(2017, 1, 10, 4, 0)],
+            "time",
+            is_datetime=True,
+        )
+        data = np.array(
+            [[[1.0, 1.0], [1.0, 1.0]], [[2.0, 2.0], [2.0, 2.0]]], dtype=np.float32
+        )
         self.cube.data = data
         self.coord_name = "forecast_period"
         self.units = Unit("seconds")
@@ -235,12 +336,9 @@ class Test_process(IrisTest):
         """Test plugin produces the correct weights when the parameters for
            the triangle are in the same units as the input cube's coordinate"""
         width = 7200
-        weights_instance = ChooseDefaultWeightsTriangular(
-            width, units=self.units)
+        weights_instance = ChooseDefaultWeightsTriangular(width, units=self.units)
         midpoint = 3600
-        weights = weights_instance.process(self.cube,
-                                           self.coord_name,
-                                           midpoint)
+        weights = weights_instance.process(self.cube, self.coord_name, midpoint)
         expected_weights = np.array([0.33333333, 0.66666667])
         self.assertArrayAlmostEqual(weights.data, expected_weights)
 
@@ -249,12 +347,9 @@ class Test_process(IrisTest):
             the triangle (width and midpoint are in different units to the
             input cube's coordinate"""
         width = 2
-        weights_instance = ChooseDefaultWeightsTriangular(
-            width, units="hours")
+        weights_instance = ChooseDefaultWeightsTriangular(width, units="hours")
         midpoint = 1
-        weights = weights_instance.process(self.cube,
-                                           self.coord_name,
-                                           midpoint)
+        weights = weights_instance.process(self.cube, self.coord_name, midpoint)
         expected_weights = np.array([0.33333333, 0.66666667])
         self.assertArrayAlmostEqual(weights.data, expected_weights)
 
@@ -265,12 +360,12 @@ class Test_process(IrisTest):
         width = 7200
         weights_instance = ChooseDefaultWeightsTriangular(width, units="m")
         midpoint = 3600
-        message = (
-            r"Unable to convert from 'Unit\('m'\)' to 'Unit\('{}'\)'".format(
-                self.units))
+        message = r"Unable to convert from 'Unit\('m'\)' to 'Unit\('{}'\)'".format(
+            self.units
+        )
         with self.assertRaisesRegex(ValueError, message):
             weights_instance.process(self.cube, self.coord_name, midpoint)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

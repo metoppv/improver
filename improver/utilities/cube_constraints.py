@@ -34,7 +34,7 @@
 import iris
 
 
-def create_sorted_lambda_constraint(coord_name, values, tolerance=1.0E-7):
+def create_sorted_lambda_constraint(coord_name, values, tolerance=1.0e-7):
     """
     Create a lambda constraint for a range. This formulation of specifying
     a lambda constraint has the benefit of not needing to hardcode the name
@@ -64,10 +64,9 @@ def create_sorted_lambda_constraint(coord_name, values, tolerance=1.0E-7):
     """
     values = [float(i) for i in values]
     values = sorted(values)
-    values[0] = (1. - tolerance) * values[0]
-    values[1] = (1. + tolerance) * values[1]
-    constr = (
-        iris.Constraint(
-            coord_values={
-                coord_name: lambda cell: values[0] <= cell <= values[1]}))
+    values[0] = (1.0 - tolerance) * values[0]
+    values[1] = (1.0 + tolerance) * values[1]
+    constr = iris.Constraint(
+        coord_values={coord_name: lambda cell: values[0] <= cell <= values[1]}
+    )
     return constr

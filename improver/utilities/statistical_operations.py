@@ -98,19 +98,19 @@ class ProbabilitiesFromPercentiles2D(BasePlugin):
                 The name of the cube being created,
                 e.g.'probability_of_snow_falling_level_below_ground_level'
         """
-        self.percentile_coordinate = find_percentile_coordinate(
-            percentiles_cube)
+        self.percentile_coordinate = find_percentile_coordinate(percentiles_cube)
         if self.percentile_coordinate.points.shape[0] < 2:
-            msg = ("Percentile coordinate has only one value. Interpolation "
-                   "using ProbabilitiesFromPercentiles2D requires multiple "
-                   "values are provided.")
+            msg = (
+                "Percentile coordinate has only one value. Interpolation "
+                "using ProbabilitiesFromPercentiles2D requires multiple "
+                "values are provided."
+            )
             raise ValueError(msg)
         self.percentiles_cube = percentiles_cube
         self.output_name = output_name
 
         # Set inverse_ordering switch
-        percentile_slices = percentiles_cube.slices_over(
-            self.percentile_coordinate)
+        percentile_slices = percentiles_cube.slices_over(self.percentile_coordinate)
         self.inverse_ordering = False
         first_percentile = next(percentile_slices).data
         for percentile_values in percentile_slices:
@@ -120,10 +120,12 @@ class ProbabilitiesFromPercentiles2D(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ProbabilitiesFromPercentiles2D: percentiles_cube: {}, '
-                  'output_name: {}, inverse_ordering: {}'.format(
-                      self.percentiles_cube, self.output_name,
-                      self.inverse_ordering))
+        result = (
+            "<ProbabilitiesFromPercentiles2D: percentiles_cube: {}, "
+            "output_name: {}, inverse_ordering: {}".format(
+                self.percentiles_cube, self.output_name, self.inverse_ordering
+            )
+        )
         return result
 
     def create_probability_cube(self, cube, threshold_cube):
@@ -146,10 +148,10 @@ class ProbabilitiesFromPercentiles2D(BasePlugin):
             iris.cube.Cube:
                 A new 2-dimensional probability cube with suitable metadata.
         """
-        cube_format = next(cube.slices([cube.coord(axis='y'),
-                                        cube.coord(axis='x')]))
-        probabilities = cube_format.copy(data=np.full(cube_format.shape,
-                                                      np.nan, dtype=float))
+        cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
+        probabilities = cube_format.copy(
+            data=np.full(cube_format.shape, np.nan, dtype=float)
+        )
         try:
             probabilities.remove_coord(self.percentile_coordinate)
         except CoordinateNotFoundError:
@@ -157,10 +159,10 @@ class ProbabilitiesFromPercentiles2D(BasePlugin):
 
         probabilities.units = 1
         probabilities.rename(self.output_name)
-        probabilities.attributes['thresholded_using'] = threshold_cube.name()
-        probabilities.attributes['relative_to_threshold'] = 'below'
+        probabilities.attributes["thresholded_using"] = threshold_cube.name()
+        probabilities.attributes["relative_to_threshold"] = "below"
         if self.inverse_ordering is True:
-            probabilities.attributes['relative_to_threshold'] = 'above'
+            probabilities.attributes["relative_to_threshold"] = "above"
         return probabilities
 
     def percentile_interpolation(self, threshold_cube, percentiles_cube):
@@ -344,8 +346,7 @@ class ProbabilitiesFromPercentiles2D(BasePlugin):
 
         """
         percentiles = self.percentile_coordinate.points
-        probabilities = self.create_probability_cube(percentiles_cube,
-                                                     threshold_cube)
+        probabilities = self.create_probability_cube(percentiles_cube, threshold_cube)
 
         # Create array with additional 2 dimensions to contain upper and lower
         # bounds.
@@ -353,41 +354,44 @@ class ProbabilitiesFromPercentiles2D(BasePlugin):
         percentile_bounds = np.full(array_shape, -1, dtype=np.float32)
         value_bounds = np.full(array_shape, np.nan, dtype=np.float32)
 
-        for index, pslice in enumerate(percentiles_cube.slices_over(
-                self.percentile_coordinate)):
+        for index, pslice in enumerate(
+            percentiles_cube.slices_over(self.percentile_coordinate)
+        ):
             # Change to use < & > to force degenerate percentile distributions
             # to use the first percentile band that the threshold falls within.
-            indices = (threshold_cube.data <= pslice.data
-                       if self.inverse_ordering else
-                       threshold_cube.data >= pslice.data)
+            indices = (
+                threshold_cube.data <= pslice.data
+                if self.inverse_ordering
+                else threshold_cube.data >= pslice.data
+            )
             percentile_bounds[0, indices] = percentiles[index]
             value_bounds[0, indices] = pslice.data[indices]
             try:
                 # Usual behaviour where the threshold value falls between
                 # values corresponding to percentiles.
                 percentile_bounds[1, indices] = percentiles[index + 1]
-                value_bounds[1, indices] = percentiles_cube[index+1].data[
-                    indices]
+                value_bounds[1, indices] = percentiles_cube[index + 1].data[indices]
             except IndexError:
                 # Invoked if we have reached the top of the available values.
                 percentile_bounds[1, indices] = percentiles[index]
                 value_bounds[1, indices] = pslice.data[indices]
 
-        with np.errstate(divide='ignore', invalid='ignore'):
-            numerator = (threshold_cube.data - value_bounds[0])
+        with np.errstate(divide="ignore", invalid="ignore"):
+            numerator = threshold_cube.data - value_bounds[0]
             denominator = np.diff(value_bounds, n=1, axis=0)[0]
-            interpolants = numerator/denominator
+            interpolants = numerator / denominator
             interpolants[denominator == 0] = np.inf
 
-        with np.errstate(invalid='ignore'):
-            probabilities.data, = (percentile_bounds[0] + interpolants *
-                                   np.diff(percentile_bounds, n=1, axis=0))
-        probabilities.data = probabilities.data/np.float32(100.)
+        with np.errstate(invalid="ignore"):
+            (probabilities.data,) = percentile_bounds[0] + interpolants * np.diff(
+                percentile_bounds, n=1, axis=0
+            )
+        probabilities.data = probabilities.data / np.float32(100.0)
 
         above_top_band = np.isinf(interpolants)
         below_bottom_band = np.isnan(value_bounds[0])
-        probabilities.data[below_bottom_band] = 0.
-        probabilities.data[above_top_band] = 1.
+        probabilities.data[below_bottom_band] = 0.0
+        probabilities.data[above_top_band] = 1.0
 
         return probabilities
 
@@ -408,31 +412,38 @@ class ProbabilitiesFromPercentiles2D(BasePlugin):
                 percentile values at the "threshold" level.
         """
         cube_slices = self.percentiles_cube.slices(
-            [self.percentile_coordinate, self.percentiles_cube.coord(axis='y'),
-             self.percentiles_cube.coord(axis='x')])
+            [
+                self.percentile_coordinate,
+                self.percentiles_cube.coord(axis="y"),
+                self.percentiles_cube.coord(axis="x"),
+            ]
+        )
 
         if threshold_cube.ndim != 2:
-            msg = ('threshold cube has too many ({} > 2) dimensions - slicing '
-                   'to x-y grid'.format(threshold_cube.ndim))
+            msg = (
+                "threshold cube has too many ({} > 2) dimensions - slicing "
+                "to x-y grid".format(threshold_cube.ndim)
+            )
             warnings.warn(msg)
-            threshold_cube = next(threshold_cube.slices([
-                threshold_cube.coord(axis='y'),
-                threshold_cube.coord(axis='x')]))
+            threshold_cube = next(
+                threshold_cube.slices(
+                    [threshold_cube.coord(axis="y"), threshold_cube.coord(axis="x")]
+                )
+            )
 
         if threshold_cube.units != self.percentiles_cube.units:
             threshold_cube.convert_units(self.percentiles_cube.units)
 
         output_cubes = iris.cube.CubeList()
         for cube_slice in cube_slices:
-            output_cube = self.percentile_interpolation(threshold_cube,
-                                                        cube_slice)
+            output_cube = self.percentile_interpolation(threshold_cube, cube_slice)
             output_cubes.append(output_cube)
 
         probability_cube = output_cubes.merge_cube()
 
-        reference_cube = next(self.percentiles_cube.slices_over(
-            self.percentile_coordinate))
+        reference_cube = next(
+            self.percentiles_cube.slices_over(self.percentile_coordinate)
+        )
 
-        probability_cube = check_cube_coordinates(reference_cube,
-                                                  probability_cube)
+        probability_cube = check_cube_coordinates(reference_cube, probability_cube)
         return probability_cube

@@ -79,21 +79,26 @@ def forecast_period_coord(cube, force_lead_time_calculation=False):
         # Try to calculate forecast period from forecast reference time and
         # time coordinates
         result_coord = _calculate_forecast_period(
-            cube.coord("time"), cube.coord("forecast_reference_time"),
-            dim_coord=create_dim_coord)
+            cube.coord("time"),
+            cube.coord("forecast_reference_time"),
+            dim_coord=create_dim_coord,
+        )
 
     else:
-        msg = ("The forecast period coordinate is not available within {}."
-               "The time coordinate and forecast_reference_time "
-               "coordinate were also not available for calculating "
-               "the forecast_period.".format(cube))
+        msg = (
+            "The forecast period coordinate is not available within {}."
+            "The time coordinate and forecast_reference_time "
+            "coordinate were also not available for calculating "
+            "the forecast_period.".format(cube)
+        )
         raise CoordinateNotFoundError(msg)
 
     return result_coord
 
 
-def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False,
-                               coord_spec=TIME_COORDS['forecast_period']):
+def _calculate_forecast_period(
+    time_coord, frt_coord, dim_coord=False, coord_spec=TIME_COORDS["forecast_period"]
+):
     """
     Calculate a forecast period from existing time and forecast reference
     time coordinates.
@@ -120,29 +125,26 @@ def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False,
     """
     # use cell() access method to get datetime.datetime instances
     time_points = np.array([c.point for c in time_coord.cells()])
-    forecast_reference_time_points = np.array(
-        [c.point for c in frt_coord.cells()])
-    required_lead_times = (
-        time_points - forecast_reference_time_points)
-    required_lead_times = np.array(
-        [x.total_seconds() for x in required_lead_times])
+    forecast_reference_time_points = np.array([c.point for c in frt_coord.cells()])
+    required_lead_times = time_points - forecast_reference_time_points
+    required_lead_times = np.array([x.total_seconds() for x in required_lead_times])
 
     if time_coord.bounds is not None:
         time_bounds = np.array([c.bound for c in time_coord.cells()])
-        required_lead_time_bounds = (
-            time_bounds - forecast_reference_time_points)
+        required_lead_time_bounds = time_bounds - forecast_reference_time_points
         required_lead_time_bounds = np.array(
-            [[b.total_seconds() for b in x]
-             for x in required_lead_time_bounds])
+            [[b.total_seconds() for b in x] for x in required_lead_time_bounds]
+        )
     else:
         required_lead_time_bounds = None
 
     coord_type = iris.coords.DimCoord if dim_coord else iris.coords.AuxCoord
     result_coord = coord_type(
         required_lead_times,
-        standard_name='forecast_period',
+        standard_name="forecast_period",
         bounds=required_lead_time_bounds,
-        units="seconds")
+        units="seconds",
+    )
 
     result_coord.convert_units(coord_spec.units)
 
@@ -156,12 +158,13 @@ def _calculate_forecast_period(time_coord, frt_coord, dim_coord=False,
         result_coord.bounds = result_coord.bounds.astype(coord_spec.dtype)
 
     if np.any(result_coord.points < 0):
-        msg = ("The values for the time {} and "
-               "forecast_reference_time {} coordinates from the "
-               "input cube have produced negative values for the "
-               "forecast_period. A forecast does not generate "
-               "values in the past.").format(time_coord.points,
-                                             frt_coord.points)
+        msg = (
+            "The values for the time {} and "
+            "forecast_reference_time {} coordinates from the "
+            "input cube have produced negative values for the "
+            "forecast_period. A forecast does not generate "
+            "values in the past."
+        ).format(time_coord.points, frt_coord.points)
         warnings.warn(msg)
 
     return result_coord
@@ -188,8 +191,11 @@ def rebadge_forecasts_as_latest_cycle(cubes, cycletime=None):
     """
     if cycletime is None and len(cubes) == 1:
         return cubes
-    cycle_datetime = (find_latest_cycletime(cubes) if cycletime is None
-                      else cycletime_to_datetime(cycletime))
+    cycle_datetime = (
+        find_latest_cycletime(cubes)
+        if cycletime is None
+        else cycletime_to_datetime(cycletime)
+    )
     return unify_cycletime(cubes, cycle_datetime)
 
 
@@ -219,15 +225,19 @@ def unify_cycletime(cubes, cycletime):
     result_cubes = iris.cube.CubeList([])
     for cube in cubes:
         cube = cube.copy()
-        frt_coord_name = 'forecast_reference_time'
+        frt_coord_name = "forecast_reference_time"
         coord_type_spec = TIME_COORDS[frt_coord_name]
         coord_units = Unit(coord_type_spec.units)
-        frt_points = np.around(
-            [coord_units.date2num(cycletime)]).astype(coord_type_spec.dtype)
+        frt_points = np.around([coord_units.date2num(cycletime)]).astype(
+            coord_type_spec.dtype
+        )
         frt_coord = build_coordinate(
-            frt_points, standard_name=frt_coord_name, bounds=None,
+            frt_points,
+            standard_name=frt_coord_name,
+            bounds=None,
             template_coord=cube.coord(frt_coord_name),
-            units=coord_units)
+            units=coord_units,
+        )
 
         cube.remove_coord(frt_coord_name)
         cube.add_aux_coord(frt_coord, data_dims=None)
@@ -235,8 +245,7 @@ def unify_cycletime(cubes, cycletime):
         # Update the forecast period for consistency within each cube
         if cube.coords("forecast_period"):
             cube.remove_coord("forecast_period")
-        fp_coord = forecast_period_coord(
-            cube, force_lead_time_calculation=True)
+        fp_coord = forecast_period_coord(cube, force_lead_time_calculation=True)
         cube.add_aux_coord(fp_coord, data_dims=cube.coord_dims("time"))
         result_cubes.append(cube)
     return result_cubes
@@ -258,11 +267,11 @@ def find_latest_cycletime(cubelist):
             time in the input cubelist.
     """
     # Get cycle time as latest forecast reference time
-    if any([cube.coord_dims("forecast_reference_time")
-            for cube in cubelist]):
+    if any([cube.coord_dims("forecast_reference_time") for cube in cubelist]):
         raise ValueError(
             "Expecting scalar forecast_reference_time for each input "
-            "cube - cannot replace a dimension coordinate")
+            "cube - cannot replace a dimension coordinate"
+        )
 
     frt_coord = cubelist[0].coord("forecast_reference_time").copy()
     for cube in cubelist:
@@ -270,5 +279,5 @@ def find_latest_cycletime(cubelist):
         next_coord.convert_units(frt_coord.units)
         if next_coord.points[0] > frt_coord.points[0]:
             frt_coord = next_coord
-    cycletime, = frt_coord.units.num2date(frt_coord.points)
+    (cycletime,) = frt_coord.units.num2date(frt_coord.points)
     return cycletime

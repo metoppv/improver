@@ -46,7 +46,7 @@ class Test_check_radius_against_distance(IrisTest):
     def setUp(self):
         """Set up the cube."""
         data = np.ones((4, 4), dtype=np.float32)
-        self.cube = set_up_variable_cube(data, spatial_grid='equalarea')
+        self.cube = set_up_variable_cube(data, spatial_grid="equalarea")
 
     def test_error(self):
         """Test correct exception raised when the distance is larger than the
@@ -63,5 +63,5 @@ class Test_check_radius_against_distance(IrisTest):
         check_radius_against_distance(self.cube, distance)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

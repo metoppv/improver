@@ -93,33 +93,32 @@ class RebadgePercentilesAsRealizations(BasePlugin):
             InvalidCubeError:
                 If the realization coordinate already exists on the cube.
         """
-        percentile_coord_name = (
-            find_percentile_coordinate(cube).name())
+        percentile_coord_name = find_percentile_coordinate(cube).name()
 
         if ensemble_realization_numbers is None:
-            ensemble_realization_numbers = (
-                np.arange(
-                    len(cube.coord(percentile_coord_name).points),
-                    dtype=np.int32))
+            ensemble_realization_numbers = np.arange(
+                len(cube.coord(percentile_coord_name).points), dtype=np.int32
+            )
 
-        cube.coord(percentile_coord_name).points = (
-            ensemble_realization_numbers)
+        cube.coord(percentile_coord_name).points = ensemble_realization_numbers
 
         # we can't rebadge if the realization coordinate already exists:
         try:
-            realization_coord = cube.coord('realization')
+            realization_coord = cube.coord("realization")
         except CoordinateNotFoundError:
             realization_coord = None
 
         if realization_coord:
             raise InvalidCubeError(
                 "Cannot rebadge percentile coordinate to realization "
-                "coordinate because a realization coordinate already exists.")
+                "coordinate because a realization coordinate already exists."
+            )
 
         cube.coord(percentile_coord_name).rename("realization")
         cube.coord("realization").units = "1"
-        cube.coord("realization").points = (
-            cube.coord("realization").points.astype(np.int32))
+        cube.coord("realization").points = cube.coord("realization").points.astype(
+            np.int32
+        )
         cube.coord("realization").var_name = "realization"
 
         return cube
@@ -149,7 +148,8 @@ class ResamplePercentiles(BasePlugin):
         self.ecc_bounds_warning = ecc_bounds_warning
 
     def _add_bounds_to_percentiles_and_forecast_at_percentiles(
-            self, percentiles, forecast_at_percentiles, bounds_pairing):
+        self, percentiles, forecast_at_percentiles, bounds_pairing
+    ):
         """
         Padding of the lower and upper bounds of the percentiles for a
         given phenomenon, and padding of forecast values using the
@@ -175,42 +175,51 @@ class ResamplePercentiles(BasePlugin):
                 and self.ecc_bounds_warning is True.
         """
         lower_bound, upper_bound = bounds_pairing
-        percentiles = insert_lower_and_upper_endpoint_to_1d_array(
-            percentiles, 0, 100)
-        forecast_at_percentiles_with_endpoints = \
-            concatenate_2d_array_with_2d_array_endpoints(
-                forecast_at_percentiles, lower_bound, upper_bound)
+        percentiles = insert_lower_and_upper_endpoint_to_1d_array(percentiles, 0, 100)
+        forecast_at_percentiles_with_endpoints = concatenate_2d_array_with_2d_array_endpoints(
+            forecast_at_percentiles, lower_bound, upper_bound
+        )
         if np.any(np.diff(forecast_at_percentiles_with_endpoints) < 0):
-            msg = ("The end points added to the forecast at percentile "
-                   "values representing each percentile must result in "
-                   "an ascending order. "
-                   "In this case, the forecast at percentile values {} "
-                   "is outside the allowable range given by the "
-                   "bounds {}".format(forecast_at_percentiles, bounds_pairing))
+            msg = (
+                "The end points added to the forecast at percentile "
+                "values representing each percentile must result in "
+                "an ascending order. "
+                "In this case, the forecast at percentile values {} "
+                "is outside the allowable range given by the "
+                "bounds {}".format(forecast_at_percentiles, bounds_pairing)
+            )
 
             if self.ecc_bounds_warning:
-                warn_msg = msg + (" The percentile values that have "
-                                  "exceeded the existing bounds will be used "
-                                  "as new bounds.")
+                warn_msg = msg + (
+                    " The percentile values that have "
+                    "exceeded the existing bounds will be used "
+                    "as new bounds."
+                )
                 warnings.warn(warn_msg)
                 if upper_bound < forecast_at_percentiles_with_endpoints.max():
                     upper_bound = forecast_at_percentiles_with_endpoints.max()
                 if lower_bound > forecast_at_percentiles_with_endpoints.min():
                     lower_bound = forecast_at_percentiles_with_endpoints.min()
-                forecast_at_percentiles_with_endpoints = \
-                    concatenate_2d_array_with_2d_array_endpoints(
-                        forecast_at_percentiles, lower_bound, upper_bound)
+                forecast_at_percentiles_with_endpoints = concatenate_2d_array_with_2d_array_endpoints(
+                    forecast_at_percentiles, lower_bound, upper_bound
+                )
             else:
                 raise ValueError(msg)
         if np.any(np.diff(percentiles) < 0):
-            msg = ("The percentiles must be in ascending order."
-                   "The input percentiles were {}".format(percentiles))
+            msg = (
+                "The percentiles must be in ascending order."
+                "The input percentiles were {}".format(percentiles)
+            )
             raise ValueError(msg)
         return percentiles, forecast_at_percentiles_with_endpoints
 
     def _interpolate_percentiles(
-            self, forecast_at_percentiles, desired_percentiles,
-            bounds_pairing, percentile_coord_name):
+        self,
+        forecast_at_percentiles,
+        desired_percentiles,
+        bounds_pairing,
+        percentile_coord_name,
+    ):
         """
         Interpolation of forecast for a set of percentiles from an initial
         set of percentiles to a new set of percentiles. This is constructed
@@ -233,49 +242,54 @@ class ResamplePercentiles(BasePlugin):
                 air_temperature at the required percentiles.
 
         """
-        original_percentiles = (
-            forecast_at_percentiles.coord(percentile_coord_name).points)
+        original_percentiles = forecast_at_percentiles.coord(
+            percentile_coord_name
+        ).points
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
-        enforce_coordinate_ordering(
-            forecast_at_percentiles, percentile_coord_name)
+        enforce_coordinate_ordering(forecast_at_percentiles, percentile_coord_name)
         forecast_at_reshaped_percentiles = convert_cube_data_to_2d(
-            forecast_at_percentiles, coord=percentile_coord_name)
+            forecast_at_percentiles, coord=percentile_coord_name
+        )
 
-        original_percentiles, forecast_at_reshaped_percentiles = (
-            self._add_bounds_to_percentiles_and_forecast_at_percentiles(
-                original_percentiles, forecast_at_reshaped_percentiles,
-                bounds_pairing))
+        (
+            original_percentiles,
+            forecast_at_reshaped_percentiles,
+        ) = self._add_bounds_to_percentiles_and_forecast_at_percentiles(
+            original_percentiles, forecast_at_reshaped_percentiles, bounds_pairing
+        )
 
-        forecast_at_interpolated_percentiles = (
-            np.empty(
-                (len(desired_percentiles),
-                 forecast_at_reshaped_percentiles.shape[0]),
-                dtype=np.float32
-            )
+        forecast_at_interpolated_percentiles = np.empty(
+            (len(desired_percentiles), forecast_at_reshaped_percentiles.shape[0]),
+            dtype=np.float32,
         )
         for index in range(forecast_at_reshaped_percentiles.shape[0]):
             forecast_at_interpolated_percentiles[:, index] = np.interp(
-                desired_percentiles, original_percentiles,
-                forecast_at_reshaped_percentiles[index, :])
+                desired_percentiles,
+                original_percentiles,
+                forecast_at_reshaped_percentiles[index, :],
+            )
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
-        forecast_at_percentiles_data = (
-            restore_non_probabilistic_dimensions(
-                forecast_at_interpolated_percentiles, forecast_at_percentiles,
-                percentile_coord_name, len(desired_percentiles)))
+        forecast_at_percentiles_data = restore_non_probabilistic_dimensions(
+            forecast_at_interpolated_percentiles,
+            forecast_at_percentiles,
+            percentile_coord_name,
+            len(desired_percentiles),
+        )
 
-        template_cube = next(forecast_at_percentiles.slices_over(
-            percentile_coord_name))
+        template_cube = next(forecast_at_percentiles.slices_over(percentile_coord_name))
         template_cube.remove_coord(percentile_coord_name)
         percentile_cube = create_cube_with_percentiles(
-            desired_percentiles, template_cube, forecast_at_percentiles_data,)
+            desired_percentiles, template_cube, forecast_at_percentiles_data,
+        )
         return percentile_cube
 
-    def process(self, forecast_at_percentiles, no_of_percentiles=None,
-                sampling="quantile"):
+    def process(
+        self, forecast_at_percentiles, no_of_percentiles=None, sampling="quantile"
+    ):
         """
         1. Creates a list of percentiles.
         2. Accesses the lower and upper bound pair of the forecast values,
@@ -310,21 +324,23 @@ class ResamplePercentiles(BasePlugin):
         percentile_coord = find_percentile_coordinate(forecast_at_percentiles)
 
         if no_of_percentiles is None:
-            no_of_percentiles = (
-                len(forecast_at_percentiles.coord(
-                    percentile_coord).points))
+            no_of_percentiles = len(
+                forecast_at_percentiles.coord(percentile_coord).points
+            )
 
-        percentiles = choose_set_of_percentiles(
-            no_of_percentiles, sampling=sampling)
+        percentiles = choose_set_of_percentiles(no_of_percentiles, sampling=sampling)
 
         cube_units = forecast_at_percentiles.units
-        bounds_pairing = (
-            get_bounds_of_distribution(
-                forecast_at_percentiles.name(), cube_units))
+        bounds_pairing = get_bounds_of_distribution(
+            forecast_at_percentiles.name(), cube_units
+        )
 
         forecast_at_percentiles = self._interpolate_percentiles(
-            forecast_at_percentiles, percentiles, bounds_pairing,
-            percentile_coord.name())
+            forecast_at_percentiles,
+            percentiles,
+            bounds_pairing,
+            percentile_coord.name(),
+        )
         return forecast_at_percentiles
 
 
@@ -358,7 +374,8 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         self.ecc_bounds_warning = ecc_bounds_warning
 
     def _add_bounds_to_thresholds_and_probabilities(
-            self, threshold_points, probabilities_for_cdf, bounds_pairing):
+        self, threshold_points, probabilities_for_cdf, bounds_pairing
+    ):
         """
         Padding of the lower and upper bounds of the distribution for a
         given phenomenon for the threshold_points, and padding of
@@ -392,41 +409,48 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 the diagnostic and self.ecc_bounds_warning is True.
         """
         lower_bound, upper_bound = bounds_pairing
-        threshold_points_with_endpoints = \
-            insert_lower_and_upper_endpoint_to_1d_array(
-                threshold_points, lower_bound, upper_bound)
+        threshold_points_with_endpoints = insert_lower_and_upper_endpoint_to_1d_array(
+            threshold_points, lower_bound, upper_bound
+        )
         probabilities_for_cdf = concatenate_2d_array_with_2d_array_endpoints(
-            probabilities_for_cdf, 0, 1)
+            probabilities_for_cdf, 0, 1
+        )
 
         if np.any(np.diff(threshold_points_with_endpoints) < 0):
-            msg = ("The calculated threshold values {} are not in ascending "
-                   "order as required for the cumulative distribution "
-                   "function (CDF). This is due to the threshold values "
-                   "exceeding the range given by the ECC bounds {}."
-                   .format(threshold_points_with_endpoints, bounds_pairing))
+            msg = (
+                "The calculated threshold values {} are not in ascending "
+                "order as required for the cumulative distribution "
+                "function (CDF). This is due to the threshold values "
+                "exceeding the range given by the ECC bounds {}.".format(
+                    threshold_points_with_endpoints, bounds_pairing
+                )
+            )
             # If ecc_bounds_warning has been set, generate a warning message
             # rather than raising an exception so that subsequent processing
             # can continue. Then apply the new bounds as necessary to
             # ensure the threshold values and endpoints are in ascending
             # order and avoid problems further along the processing chain.
             if self.ecc_bounds_warning:
-                warn_msg = msg + (" The threshold points that have "
-                                  "exceeded the existing bounds will be used "
-                                  "as new bounds.")
+                warn_msg = msg + (
+                    " The threshold points that have "
+                    "exceeded the existing bounds will be used "
+                    "as new bounds."
+                )
                 warnings.warn(warn_msg)
                 if upper_bound < max(threshold_points_with_endpoints):
                     upper_bound = max(threshold_points_with_endpoints)
                 if lower_bound > min(threshold_points_with_endpoints):
                     lower_bound = min(threshold_points_with_endpoints)
-                threshold_points_with_endpoints = \
-                    insert_lower_and_upper_endpoint_to_1d_array(
-                        threshold_points, lower_bound, upper_bound)
+                threshold_points_with_endpoints = insert_lower_and_upper_endpoint_to_1d_array(
+                    threshold_points, lower_bound, upper_bound
+                )
             else:
                 raise ValueError(msg)
         return threshold_points_with_endpoints, probabilities_for_cdf
 
     def _probabilities_to_percentiles(
-            self, forecast_probabilities, percentiles, bounds_pairing):
+        self, forecast_probabilities, percentiles, bounds_pairing
+    ):
         """
         Conversion of probabilities to percentiles through the construction
         of an cumulative distribution function. This is effectively
@@ -460,10 +484,10 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
-        enforce_coordinate_ordering(
-            forecast_probabilities, threshold_coord.name())
+        enforce_coordinate_ordering(forecast_probabilities, threshold_coord.name())
         prob_slices = convert_cube_data_to_2d(
-            forecast_probabilities, coord=threshold_coord.name())
+            forecast_probabilities, coord=threshold_coord.name()
+        )
 
         # The requirement below for a monotonically changing probability
         # across thresholds can be thwarted by precision errors of order 1E-10,
@@ -471,67 +495,88 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         prob_slices = np.around(prob_slices, 9)
 
         # Invert probabilities for data thresholded above thresholds.
-        relation = find_threshold_coordinate(
-            forecast_probabilities).attributes['spp__relative_to_threshold']
-        if relation == 'above':
+        relation = find_threshold_coordinate(forecast_probabilities).attributes[
+            "spp__relative_to_threshold"
+        ]
+        if relation == "above":
             probabilities_for_cdf = 1 - prob_slices
-        elif relation == 'below':
+        elif relation == "below":
             probabilities_for_cdf = prob_slices
         else:
-            msg = ("Probabilities to percentiles only implemented for "
-                   "thresholds above or below a given value."
-                   "The relation to threshold is given as {}".format(relation))
+            msg = (
+                "Probabilities to percentiles only implemented for "
+                "thresholds above or below a given value."
+                "The relation to threshold is given as {}".format(relation)
+            )
             raise NotImplementedError(msg)
 
-        threshold_points, probabilities_for_cdf = (
-            self._add_bounds_to_thresholds_and_probabilities(
-                threshold_points, probabilities_for_cdf, bounds_pairing))
+        (
+            threshold_points,
+            probabilities_for_cdf,
+        ) = self._add_bounds_to_thresholds_and_probabilities(
+            threshold_points, probabilities_for_cdf, bounds_pairing
+        )
 
         if np.any(np.diff(probabilities_for_cdf) < 0):
-            msg = ("The probability values used to construct the "
-                   "Cumulative Distribution Function (CDF) "
-                   "must be ascending i.e. in order to yield "
-                   "a monotonically increasing CDF."
-                   "The probabilities are {}".format(probabilities_for_cdf))
+            msg = (
+                "The probability values used to construct the "
+                "Cumulative Distribution Function (CDF) "
+                "must be ascending i.e. in order to yield "
+                "a monotonically increasing CDF."
+                "The probabilities are {}".format(probabilities_for_cdf)
+            )
             warnings.warn(msg)
 
         # Convert percentiles into fractions.
         percentiles_as_fractions = np.array(
-            [x/100.0 for x in percentiles], dtype=np.float32)
+            [x / 100.0 for x in percentiles], dtype=np.float32
+        )
 
-        forecast_at_percentiles = (
-            np.empty((len(percentiles),
-                      probabilities_for_cdf.shape[0]), dtype=np.float32)) \
-            # pylint: disable=unsubscriptable-object
-        for index in range(probabilities_for_cdf.shape[0]): \
-                # pylint: disable=unsubscriptable-object
+        forecast_at_percentiles = np.empty(
+            (len(percentiles), probabilities_for_cdf.shape[0]), dtype=np.float32
+        )  # pylint: disable=unsubscriptable-object
+        for index in range(
+            probabilities_for_cdf.shape[0]
+        ):  # pylint: disable=unsubscriptable-object
             forecast_at_percentiles[:, index] = np.interp(
-                percentiles_as_fractions, probabilities_for_cdf[index, :],
-                threshold_points)
+                percentiles_as_fractions,
+                probabilities_for_cdf[index, :],
+                threshold_points,
+            )
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
-        forecast_at_percentiles = (
-            restore_non_probabilistic_dimensions(
-                forecast_at_percentiles, forecast_probabilities,
-                threshold_coord.name(), len(percentiles)))
+        forecast_at_percentiles = restore_non_probabilistic_dimensions(
+            forecast_at_percentiles,
+            forecast_probabilities,
+            threshold_coord.name(),
+            len(percentiles),
+        )
 
-        template_cube = next(forecast_probabilities.slices_over(
-            threshold_coord.name()))
+        template_cube = next(forecast_probabilities.slices_over(threshold_coord.name()))
+        template_cube.rename(template_cube.name().replace("probability_of_", ""))
         template_cube.rename(
-            template_cube.name().replace("probability_of_", ""))
-        template_cube.rename(
-            template_cube.name().replace(
-                "_above_threshold", "").replace("_below_threshold", ""))
+            template_cube.name()
+            .replace("_above_threshold", "")
+            .replace("_below_threshold", "")
+        )
         template_cube.remove_coord(threshold_coord.name())
 
         percentile_cube = create_cube_with_percentiles(
-            percentiles, template_cube, forecast_at_percentiles,
-            cube_unit=threshold_unit)
+            percentiles,
+            template_cube,
+            forecast_at_percentiles,
+            cube_unit=threshold_unit,
+        )
         return percentile_cube
 
-    def process(self, forecast_probabilities, no_of_percentiles=None,
-                percentiles=None, sampling="quantile"):
+    def process(
+        self,
+        forecast_probabilities,
+        no_of_percentiles=None,
+        percentiles=None,
+        sampling="quantile",
+    ):
         """
         1. Concatenates cubes with a threshold coordinate.
         2. Creates a list of percentiles.
@@ -575,50 +620,53 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         if no_of_percentiles is not None and percentiles is not None:
             raise ValueError(
                 "Cannot specify both no_of_percentiles and percentiles to "
-                "{}".format(self.__class__.__name__))
+                "{}".format(self.__class__.__name__)
+            )
 
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
 
         phenom_name = (
-            forecast_probabilities.name().replace(
-                "probability_of_", "").replace("_above_threshold", "").replace(
-                    "_below_threshold", ""))
+            forecast_probabilities.name()
+            .replace("probability_of_", "")
+            .replace("_above_threshold", "")
+            .replace("_below_threshold", "")
+        )
 
         if no_of_percentiles is None:
-            no_of_percentiles = (
-                len(forecast_probabilities.coord(
-                    threshold_coord.name()).points))
+            no_of_percentiles = len(
+                forecast_probabilities.coord(threshold_coord.name()).points
+            )
 
         if percentiles is None:
             percentiles = choose_set_of_percentiles(
-                no_of_percentiles, sampling=sampling)
+                no_of_percentiles, sampling=sampling
+            )
         elif not isinstance(percentiles, (tuple, list)):
             percentiles = [percentiles]
         percentiles = np.array(percentiles, dtype=np.float32)
 
-        cube_units = (
-            forecast_probabilities.coord(threshold_coord.name()).units)
-        bounds_pairing = (
-            get_bounds_of_distribution(
-                phenom_name, cube_units))
+        cube_units = forecast_probabilities.coord(threshold_coord.name()).units
+        bounds_pairing = get_bounds_of_distribution(phenom_name, cube_units)
 
         # If a cube still has multiple realizations, slice over these to reduce
         # the memory requirements into manageable chunks.
         try:
-            slices_over_realization = forecast_probabilities.slices_over(
-                "realization")
+            slices_over_realization = forecast_probabilities.slices_over("realization")
         except CoordinateNotFoundError:
             slices_over_realization = [forecast_probabilities]
 
         cubelist = iris.cube.CubeList([])
         for cube_realization in slices_over_realization:
-            cubelist.append(self._probabilities_to_percentiles(
-                cube_realization, percentiles, bounds_pairing))
+            cubelist.append(
+                self._probabilities_to_percentiles(
+                    cube_realization, percentiles, bounds_pairing
+                )
+            )
         forecast_at_percentiles = cubelist.merge_cube()
         return forecast_at_percentiles
 
 
-class ConvertLocationAndScaleParameters():
+class ConvertLocationAndScaleParameters:
     """
     Base Class to support the plugins that compute percentiles and
     probabilities from the location and scale parameters.
@@ -658,8 +706,10 @@ calculate_truncated_normal_crps`,
         try:
             self.distribution = getattr(stats, distribution)
         except AttributeError as err:
-            msg = ("The distribution requested {} is not a valid distribution "
-                   "in scipy.stats. {}".format(distribution, err))
+            msg = (
+                "The distribution requested {} is not a valid distribution "
+                "in scipy.stats. {}".format(distribution, err)
+            )
             raise AttributeError(msg)
 
         if shape_parameters is None:
@@ -668,10 +718,11 @@ calculate_truncated_normal_crps`,
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ConvertLocationAndScaleParameters: distribution: {}; '
-                  'shape_parameters: {}>')
-        return result.format(
-            self.distribution.name, self.shape_parameters)
+        result = (
+            "<ConvertLocationAndScaleParameters: distribution: {}; "
+            "shape_parameters: {}>"
+        )
+        return result.format(self.distribution.name, self.shape_parameters)
 
     def _rescale_shape_parameters(self, location_parameter, scale_parameter):
         """
@@ -705,17 +756,21 @@ calculate_truncated_normal_crps`,
             if self.shape_parameters:
                 rescaled_values = []
                 for value in self.shape_parameters:
-                    rescaled_values.append((value - location_parameter) /
-                                           scale_parameter)
+                    rescaled_values.append(
+                        (value - location_parameter) / scale_parameter
+                    )
                 self.shape_parameters = rescaled_values
             else:
-                msg = ("For the truncated normal distribution, "
-                       "shape parameters must be specified.")
+                msg = (
+                    "For the truncated normal distribution, "
+                    "shape parameters must be specified."
+                )
                 raise ValueError(msg)
 
 
 class ConvertLocationAndScaleParametersToPercentiles(
-        BasePlugin, ConvertLocationAndScaleParameters):
+    BasePlugin, ConvertLocationAndScaleParameters
+):
     """
     Plugin focusing on generating percentiles from location and scale
     parameters. In combination with the EnsembleReordering plugin, this is
@@ -724,13 +779,15 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ConvertLocationAndScaleParametersToPercentiles: '
-                  'distribution: {}; shape_parameters: {}>')
+        result = (
+            "<ConvertLocationAndScaleParametersToPercentiles: "
+            "distribution: {}; shape_parameters: {}>"
+        )
         return result.format(self.distribution.name, self.shape_parameters)
 
     def _location_and_scale_parameters_to_percentiles(
-            self, location_parameter, scale_parameter, template_cube,
-            percentiles):
+        self, location_parameter, scale_parameter, template_cube, percentiles
+    ):
         """
         Function returning percentiles based on the supplied location and
         scale parameters.
@@ -765,17 +822,15 @@ class ConvertLocationAndScaleParametersToPercentiles(
         scale_data = np.ma.filled(scale_parameter.data, 1).flatten()
 
         # Convert percentiles into fractions.
-        percentiles = np.array(
-            [x/100.0 for x in percentiles], dtype=np.float32)
+        percentiles = np.array([x / 100.0 for x in percentiles], dtype=np.float32)
 
-        result = np.zeros((len(percentiles),
-                           location_data.shape[0]), dtype=np.float32)
+        result = np.zeros((len(percentiles), location_data.shape[0]), dtype=np.float32)
 
         self._rescale_shape_parameters(location_data, np.sqrt(scale_data))
 
         percentile_method = self.distribution(
-            *self.shape_parameters, loc=location_data,
-            scale=np.sqrt(scale_data))
+            *self.shape_parameters, loc=location_data, scale=np.sqrt(scale_data)
+        )
 
         # Loop over percentiles, and use the distribution as the
         # "percentile_method" with the location and scale parameter to
@@ -789,20 +844,21 @@ class ConvertLocationAndScaleParametersToPercentiles(
             # value is used for all gridpoints with a NaN.
             if np.any(scale_data == 0):
                 nan_index = np.argwhere(np.isnan(result[index, :]))
-                result[index, nan_index] = (location_data[nan_index])
+                result[index, nan_index] = location_data[nan_index]
             if np.any(np.isnan(result)):
-                msg = ("NaNs are present within the result for the {} "
-                       "percentile. Unable to calculate the percent point "
-                       "function.")
+                msg = (
+                    "NaNs are present within the result for the {} "
+                    "percentile. Unable to calculate the percent point "
+                    "function."
+                )
                 raise ValueError(msg)
 
         # Convert percentiles back into percentages.
-        percentiles = [x*100.0 for x in percentiles]
+        percentiles = [x * 100.0 for x in percentiles]
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
-        result = result.reshape(
-            (len(percentiles),) + location_parameter.data.shape)
+        result = result.reshape((len(percentiles),) + location_parameter.data.shape)
 
         for prob_coord_name in ["realization", "percentile"]:
             if template_cube.coords(prob_coord_name, dim_coords=True):
@@ -811,21 +867,29 @@ class ConvertLocationAndScaleParametersToPercentiles(
                 template_slice.remove_coord(prob_coord)
 
         percentile_cube = create_cube_with_percentiles(
-            percentiles, template_slice, result)
+            percentiles, template_slice, result
+        )
         # Define a mask to be reapplied later
-        mask = np.logical_or(np.ma.getmaskarray(location_parameter.data),
-                             np.ma.getmaskarray(scale_parameter.data))
+        mask = np.logical_or(
+            np.ma.getmaskarray(location_parameter.data),
+            np.ma.getmaskarray(scale_parameter.data),
+        )
         # Make the mask defined above fit the data size and then apply to the
         # percentile cube.
-        mask_array = np.stack([mask]*len(percentiles))
-        percentile_cube.data = np.ma.masked_where(
-            mask_array, percentile_cube.data)
+        mask_array = np.stack([mask] * len(percentiles))
+        percentile_cube.data = np.ma.masked_where(mask_array, percentile_cube.data)
         # Remove cell methods associated with finding the ensemble mean
         percentile_cube.cell_methods = {}
         return percentile_cube
 
-    def process(self, location_parameter, scale_parameter, template_cube,
-                no_of_percentiles=None, percentiles=None):
+    def process(
+        self,
+        location_parameter,
+        scale_parameter,
+        template_cube,
+        no_of_percentiles=None,
+        percentiles=None,
+    ):
         """
         Generate ensemble percentiles from the location and scale parameters.
 
@@ -858,24 +922,26 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
         """
         if no_of_percentiles and percentiles:
-            msg = ("Please specify either the number of percentiles or "
-                   "provide a list of percentiles. The number of percentiles "
-                   "provided was {} and the list of percentiles "
-                   "provided was {}".format(no_of_percentiles, percentiles))
+            msg = (
+                "Please specify either the number of percentiles or "
+                "provide a list of percentiles. The number of percentiles "
+                "provided was {} and the list of percentiles "
+                "provided was {}".format(no_of_percentiles, percentiles)
+            )
             raise ValueError(msg)
 
         if no_of_percentiles:
             percentiles = choose_set_of_percentiles(no_of_percentiles)
-        calibrated_forecast_percentiles = (
-            self._location_and_scale_parameters_to_percentiles(
-                location_parameter, scale_parameter, template_cube,
-                percentiles))
+        calibrated_forecast_percentiles = self._location_and_scale_parameters_to_percentiles(
+            location_parameter, scale_parameter, template_cube, percentiles
+        )
 
         return calibrated_forecast_percentiles
 
 
 class ConvertLocationAndScaleParametersToProbabilities(
-        BasePlugin, ConvertLocationAndScaleParameters):
+    BasePlugin, ConvertLocationAndScaleParameters
+):
     """
     Plugin to generate probabilities relative to given thresholds from the
     location and scale parameters of a distribution.
@@ -883,8 +949,10 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ConvertLocationAndScaleParametersToProbabilities: '
-                  'distribution: {}; shape_parameters: {}>')
+        result = (
+            "<ConvertLocationAndScaleParametersToProbabilities: "
+            "distribution: {}; shape_parameters: {}>"
+        )
         return result.format(self.distribution.name, self.shape_parameters)
 
     def _check_template_cube(self, cube):
@@ -903,10 +971,11 @@ class ConvertLocationAndScaleParametersToProbabilities(
         """
         check_for_x_and_y_axes(cube, require_dim_coords=True)
         dim_coords = get_dim_coord_names(cube)
-        msg = ('{} expects a cube with only a leading threshold dimension, '
-               'followed by spatial (y/x) dimensions. '
-               'Got dimensions: {}'.format(
-                   self.__class__.__name__, dim_coords))
+        msg = (
+            "{} expects a cube with only a leading threshold dimension, "
+            "followed by spatial (y/x) dimensions. "
+            "Got dimensions: {}".format(self.__class__.__name__, dim_coords)
+        )
 
         try:
             threshold_coord = find_threshold_coordinate(cube)
@@ -921,8 +990,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
     @staticmethod
     def _check_unit_compatibility(
-            location_parameter, scale_parameter,
-            probability_cube_template):
+        location_parameter, scale_parameter, probability_cube_template
+    ):
         """
         The location parameter, scale parameters, and threshold values come
         from three different cubes. They should all be in the same base unit,
@@ -941,21 +1010,22 @@ class ConvertLocationAndScaleParametersToProbabilities(
         Raises:
             ValueError: If units of input cubes are not compatible.
         """
-        threshold_units = (
-            find_threshold_coordinate(probability_cube_template).units)
+        threshold_units = find_threshold_coordinate(probability_cube_template).units
 
         try:
             location_parameter.convert_units(threshold_units)
-            scale_parameter.convert_units(threshold_units**2)
+            scale_parameter.convert_units(threshold_units ** 2)
         except ValueError as err:
-            msg = ('Error: {} This is likely because the mean '
-                   'variance and template cube threshold units are '
-                   'not equivalent/compatible.'.format(err))
+            msg = (
+                "Error: {} This is likely because the mean "
+                "variance and template cube threshold units are "
+                "not equivalent/compatible.".format(err)
+            )
             raise ValueError(msg)
 
     def _location_and_scale_parameters_to_probabilities(
-            self, location_parameter, scale_parameter,
-            probability_cube_template):
+        self, location_parameter, scale_parameter, probability_cube_template
+    ):
         """
         Function returning probabilities relative to provided thresholds based
         on the supplied location and scale parameters.
@@ -985,14 +1055,14 @@ class ConvertLocationAndScaleParametersToProbabilities(
         # and replace with ones
         location_parameter.data = np.ma.filled(location_parameter.data, 1)
         scale_parameter.data = np.ma.filled(scale_parameter.data, 1)
-        thresholds = (
-            find_threshold_coordinate(probability_cube_template).points)
+        thresholds = find_threshold_coordinate(probability_cube_template).points
         relative_to_threshold = find_threshold_coordinate(
-            probability_cube_template).attributes['spp__relative_to_threshold']
+            probability_cube_template
+        ).attributes["spp__relative_to_threshold"]
 
         self._rescale_shape_parameters(
-            location_parameter.data.flatten(),
-            np.sqrt(scale_parameter.data).flatten())
+            location_parameter.data.flatten(), np.sqrt(scale_parameter.data).flatten()
+        )
 
         # Loop over thresholds, and use the specified distribution with the
         # location and scale parameter to calculate the probabilities relative
@@ -1002,28 +1072,26 @@ class ConvertLocationAndScaleParametersToProbabilities(
         distribution = self.distribution(
             *self.shape_parameters,
             loc=location_parameter.data.flatten(),
-            scale=np.sqrt(scale_parameter.data.flatten()))
+            scale=np.sqrt(scale_parameter.data.flatten()),
+        )
 
         probability_method = distribution.cdf
-        if relative_to_threshold == 'above':
+        if relative_to_threshold == "above":
             probability_method = distribution.sf
 
         for index, threshold in enumerate(thresholds):
             probabilities[index, ...] = np.reshape(
-                probability_method(threshold),
-                probabilities.shape[1:]) \
-                # pylint: disable=unsubscriptable-object
+                probability_method(threshold), probabilities.shape[1:]
+            )  # pylint: disable=unsubscriptable-object
 
         probability_cube = probability_cube_template.copy(data=probabilities)
         # Make the mask defined above fit the data size and then apply to the
         # probability cube.
-        mask_array = np.array([mask]*len(probabilities))
-        probability_cube.data = np.ma.masked_where(
-            mask_array, probability_cube.data)
+        mask_array = np.array([mask] * len(probabilities))
+        probability_cube.data = np.ma.masked_where(mask_array, probability_cube.data)
         return probability_cube
 
-    def process(self, location_parameter, scale_parameter,
-                probability_cube_template):
+    def process(self, location_parameter, scale_parameter, probability_cube_template):
         """
         Generate probabilities from the location and scale parameters of the
         distribution.
@@ -1046,13 +1114,12 @@ class ConvertLocationAndScaleParametersToProbabilities(
         """
         self._check_template_cube(probability_cube_template)
         self._check_unit_compatibility(
-            location_parameter, scale_parameter,
-            probability_cube_template)
+            location_parameter, scale_parameter, probability_cube_template
+        )
 
-        probability_cube = (
-            self._location_and_scale_parameters_to_probabilities(
-                location_parameter, scale_parameter,
-                probability_cube_template))
+        probability_cube = self._location_and_scale_parameters_to_probabilities(
+            location_parameter, scale_parameter, probability_cube_template
+        )
 
         return probability_cube
 
@@ -1073,8 +1140,10 @@ class EnsembleReordering(BasePlugin):
 
     @staticmethod
     def _recycle_raw_ensemble_realizations(
-            post_processed_forecast_percentiles, raw_forecast_realizations,
-            percentile_coord_name):
+        post_processed_forecast_percentiles,
+        raw_forecast_realizations,
+        percentile_coord_name,
+    ):
         """
         Function to determine whether there is a mismatch between the number
         of percentiles and the number of raw forecast realizations. If more
@@ -1103,8 +1172,8 @@ class EnsembleReordering(BasePlugin):
                 in the post-processed forecast cube.
         """
         plen = len(
-            post_processed_forecast_percentiles.coord(
-                percentile_coord_name).points)
+            post_processed_forecast_percentiles.coord(percentile_coord_name).points
+        )
         mlen = len(raw_forecast_realizations.coord("realization").points)
         if plen == mlen:
             pass
@@ -1125,23 +1194,24 @@ class EnsembleReordering(BasePlugin):
             # the raw_forecast_realizations. Edit the realization number as
             # appropriate and append to a cubelist containing rebadged
             # raw ensemble realizations.
-            for realization, index in zip(
-                    realization_list, new_realization_numbers):
+            for realization, index in zip(realization_list, new_realization_numbers):
                 constr = iris.Constraint(realization=realization)
-                raw_forecast_realization = raw_forecast_realizations.extract(
-                    constr)
+                raw_forecast_realization = raw_forecast_realizations.extract(constr)
                 raw_forecast_realization.coord("realization").points = index
-                raw_forecast_realizations_extended.append(
-                    raw_forecast_realization)
+                raw_forecast_realizations_extended.append(raw_forecast_realization)
             raw_forecast_realizations = concatenate_cubes(
                 raw_forecast_realizations_extended,
-                coords_to_slice_over=["realization", "time"])
+                coords_to_slice_over=["realization", "time"],
+            )
         return raw_forecast_realizations
 
     @staticmethod
     def rank_ecc(
-            post_processed_forecast_percentiles, raw_forecast_realizations,
-            random_ordering=False, random_seed=None):
+        post_processed_forecast_percentiles,
+        raw_forecast_realizations,
+        random_ordering=False,
+        random_seed=None,
+    ):
         """
         Function to apply Ensemble Copula Coupling. This ranks the
         post-processed forecast realizations based on a ranking determined from
@@ -1174,8 +1244,9 @@ class EnsembleReordering(BasePlugin):
         """
         results = iris.cube.CubeList([])
         for rawfc, calfc in zip(
-                raw_forecast_realizations.slices_over("time"),
-                post_processed_forecast_percentiles.slices_over("time")):
+            raw_forecast_realizations.slices_over("time"),
+            post_processed_forecast_percentiles.slices_over("time"),
+        ):
             if random_seed is not None:
                 random_seed = int(random_seed)
             random_seed = np.random.RandomState(random_seed)
@@ -1202,19 +1273,21 @@ class EnsembleReordering(BasePlugin):
             mask = np.ma.getmask(calfc.data)
             calfc.data = choose(ranking, calfc.data)
             if mask is not np.ma.nomask:
-                calfc.data = np.ma.MaskedArray(
-                    calfc.data, mask, dtype=np.float32)
+                calfc.data = np.ma.MaskedArray(calfc.data, mask, dtype=np.float32)
             results.append(calfc)
         # Ensure we haven't lost any dimensional coordinates with only one
         # value in.
         results = results.merge_cube()
-        results = check_cube_coordinates(
-            post_processed_forecast_percentiles, results)
+        results = check_cube_coordinates(post_processed_forecast_percentiles, results)
         return results
 
     def process(
-            self, post_processed_forecast, raw_forecast,
-            random_ordering=False, random_seed=None):
+        self,
+        post_processed_forecast,
+        raw_forecast,
+        random_ordering=False,
+        random_seed=None,
+    ):
         """
         Reorder post-processed forecast using the ordering of the
         raw ensemble.
@@ -1243,24 +1316,25 @@ class EnsembleReordering(BasePlugin):
                 input percentiles.
         """
 
-        percentile_coord_name = (
-            find_percentile_coordinate(post_processed_forecast).name())
+        percentile_coord_name = find_percentile_coordinate(
+            post_processed_forecast
+        ).name()
 
-        enforce_coordinate_ordering(
-            post_processed_forecast, percentile_coord_name)
+        enforce_coordinate_ordering(post_processed_forecast, percentile_coord_name)
         enforce_coordinate_ordering(raw_forecast, "realization")
-        raw_forecast = (
-            self._recycle_raw_ensemble_realizations(
-                post_processed_forecast, raw_forecast,
-                percentile_coord_name))
+        raw_forecast = self._recycle_raw_ensemble_realizations(
+            post_processed_forecast, raw_forecast, percentile_coord_name
+        )
         post_processed_forecast_realizations = self.rank_ecc(
-            post_processed_forecast, raw_forecast,
+            post_processed_forecast,
+            raw_forecast,
             random_ordering=random_ordering,
-            random_seed=random_seed)
+            random_seed=random_seed,
+        )
         plugin = RebadgePercentilesAsRealizations()
         post_processed_forecast_realizations = plugin(
-            post_processed_forecast_realizations)
+            post_processed_forecast_realizations
+        )
 
-        enforce_coordinate_ordering(
-            post_processed_forecast_realizations, "realization")
+        enforce_coordinate_ordering(post_processed_forecast_realizations, "realization")
         return post_processed_forecast_realizations

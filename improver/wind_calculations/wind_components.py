@@ -41,8 +41,7 @@ from improver import BasePlugin
 from improver.utilities.cube_manipulation import compare_coords
 
 # Global coordinate reference system used in StaGE (GRS80)
-GLOBAL_CRS = GeogCS(semi_major_axis=6378137.0,
-                    inverse_flattening=298.257222101)
+GLOBAL_CRS = GeogCS(semi_major_axis=6378137.0, inverse_flattening=298.257222101)
 
 
 class ResolveWindComponents(BasePlugin):
@@ -53,7 +52,7 @@ class ResolveWindComponents(BasePlugin):
 
     def __repr__(self):
         """Represent the plugin instance as a string"""
-        return '<ResolveWindComponents>'
+        return "<ResolveWindComponents>"
 
     @staticmethod
     def calc_true_north_offset(reference_cube):
@@ -72,44 +71,60 @@ class ResolveWindComponents(BasePlugin):
                 Angle in radians by which wind direction wrt true North at
                 each point must be rotated to be relative to grid North.
         """
-        reference_x_coord = reference_cube.coord(axis='x')
-        reference_y_coord = reference_cube.coord(axis='y')
+        reference_x_coord = reference_cube.coord(axis="x")
+        reference_y_coord = reference_cube.coord(axis="y")
 
         # find corners of reference_cube grid in lat / lon coordinates
-        latlon = [GLOBAL_CRS.as_cartopy_crs().transform_point(
-            reference_x_coord.points[i], reference_y_coord.points[j],
-            reference_cube.coord_system().as_cartopy_crs()) for i in [0, -1]
-                                                            for j in [0, -1]]
+        latlon = [
+            GLOBAL_CRS.as_cartopy_crs().transform_point(
+                reference_x_coord.points[i],
+                reference_y_coord.points[j],
+                reference_cube.coord_system().as_cartopy_crs(),
+            )
+            for i in [0, -1]
+            for j in [0, -1]
+        ]
         latlon = np.array(latlon).T.tolist()
 
         # define lat / lon coordinates to cover the reference_cube grid at an
         # equivalent resolution
-        lat_points = np.linspace(np.floor(min(latlon[1])),
-                                 np.ceil(max(latlon[1])),
-                                 len(reference_y_coord.points))
-        lon_points = np.linspace(np.floor(min(latlon[0])),
-                                 np.ceil(max(latlon[0])),
-                                 len(reference_x_coord.points))
+        lat_points = np.linspace(
+            np.floor(min(latlon[1])),
+            np.ceil(max(latlon[1])),
+            len(reference_y_coord.points),
+        )
+        lon_points = np.linspace(
+            np.floor(min(latlon[0])),
+            np.ceil(max(latlon[0])),
+            len(reference_x_coord.points),
+        )
 
-        lat_coord = DimCoord(lat_points, 'latitude', units='degrees',
-                             coord_system=GLOBAL_CRS)
-        lon_coord = DimCoord(lon_points, 'longitude', units='degrees',
-                             coord_system=GLOBAL_CRS)
+        lat_coord = DimCoord(
+            lat_points, "latitude", units="degrees", coord_system=GLOBAL_CRS
+        )
+        lon_coord = DimCoord(
+            lon_points, "longitude", units="degrees", coord_system=GLOBAL_CRS
+        )
 
         # define a unit vector wind towards true North over the lat / lon grid
         udata = np.zeros(reference_cube.shape, dtype=np.float32)
         vdata = np.ones(reference_cube.shape, dtype=np.float32)
 
-        ucube_truenorth = Cube(udata, "grid_eastward_wind",
-                               dim_coords_and_dims=[(lat_coord, 0),
-                                                    (lon_coord, 1)])
-        vcube_truenorth = Cube(vdata, "grid_northward_wind",
-                               dim_coords_and_dims=[(lat_coord, 0),
-                                                    (lon_coord, 1)])
+        ucube_truenorth = Cube(
+            udata,
+            "grid_eastward_wind",
+            dim_coords_and_dims=[(lat_coord, 0), (lon_coord, 1)],
+        )
+        vcube_truenorth = Cube(
+            vdata,
+            "grid_northward_wind",
+            dim_coords_and_dims=[(lat_coord, 0), (lon_coord, 1)],
+        )
 
         # rotate unit vector onto reference_cube coordinate system
         ucube, vcube = rotate_winds(
-            ucube_truenorth, vcube_truenorth, reference_cube.coord_system())
+            ucube_truenorth, vcube_truenorth, reference_cube.coord_system()
+        )
 
         # unmask and regrid rotated winds onto reference_cube grid
         ucube.data = ucube.data.data
@@ -149,7 +164,7 @@ class ResolveWindComponents(BasePlugin):
                     Cube containing wind vector component in the positive
                     y-direction
         """
-        angle.convert_units('radians')
+        angle.convert_units("radians")
         angle.data += adj
 
         # output vectors should be pointing "to" not "from"
@@ -187,23 +202,25 @@ class ResolveWindComponents(BasePlugin):
         """
         # check cubes contain the correct data (assuming CF standard names)
         if "wind_speed" not in wind_speed.name():
-            msg = '{} cube does not contain wind speeds'
-            raise ValueError('{} {}'.format(wind_speed.name(), msg))
+            msg = "{} cube does not contain wind speeds"
+            raise ValueError("{} {}".format(wind_speed.name(), msg))
 
         if "wind" not in wind_dir.name() or "direction" not in wind_dir.name():
-            msg = '{} cube does not contain wind directions'
-            raise ValueError('{} {}'.format(wind_dir.name(), msg))
+            msg = "{} cube does not contain wind directions"
+            raise ValueError("{} {}".format(wind_dir.name(), msg))
 
         # check input cube coordinates match
         unmatched_coords = compare_coords([wind_speed, wind_dir])
         if unmatched_coords != [{}, {}]:
-            msg = 'Wind speed and direction cubes have unmatched coordinates'
-            raise ValueError('{} {}'.format(msg, unmatched_coords))
+            msg = "Wind speed and direction cubes have unmatched coordinates"
+            raise ValueError("{} {}".format(msg, unmatched_coords))
 
         # calculate angle adjustments for wind direction
         wind_dir_slice = next(
-            wind_dir.slices([wind_dir.coord(axis='y').name(),
-                             wind_dir.coord(axis='x').name()]))
+            wind_dir.slices(
+                [wind_dir.coord(axis="y").name(), wind_dir.coord(axis="x").name()]
+            )
+        )
         adj = self.calc_true_north_offset(wind_dir_slice)
 
         # calculate grid eastward and northward speeds

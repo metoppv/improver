@@ -55,8 +55,9 @@ class Test_process(unittest.TestCase):
         self.plugin = DummyPlugin()
         self.cube = set_up_variable_cube(
             np.ones((3, 3, 3), dtype=np.float32),
-            standard_grid_metadata='uk_det',
-            attributes={'title': 'UKV Model Forecast'})
+            standard_grid_metadata="uk_det",
+            attributes={"title": "UKV Model Forecast"},
+        )
 
     def test_title_updated(self):
         """Test title is updated as expected"""
@@ -72,5 +73,5 @@ class Test_process(unittest.TestCase):
         self.assertEqual(result.attributes["title"], expected_title)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

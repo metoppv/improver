@@ -58,8 +58,8 @@ class Test_check_for_x_and_y_axes(IrisTest):
     def setUp(self):
         """Set up a cube."""
         self.cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
-            num_grid_points=5)
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1, num_grid_points=5
+        )
 
     def test_no_y_coordinate(self):
         """Test that the expected exception is raised, if there is no
@@ -152,7 +152,8 @@ class Test_check_cube_coordinates(IrisTest):
         cube = iris.util.squeeze(cube)
         exception_coordinates = ["time"]
         result = check_cube_coordinates(
-            cube, new_cube, exception_coordinates=exception_coordinates)
+            cube, new_cube, exception_coordinates=exception_coordinates
+        )
         dim_coords = tuple(new_cube.coord("time")) + cube.dim_coords
         self.assertEqual(result.dim_coords, dim_coords)
 
@@ -163,11 +164,9 @@ class Test_check_cube_coordinates(IrisTest):
         cube = set_up_cube()
         new_cube = cube[0].copy()
         cube = iris.util.squeeze(cube)
-        msg = 'The number of dimension coordinates within the new cube'
-        with self.assertRaisesRegex(iris.exceptions.CoordinateNotFoundError,
-                                    msg):
-            check_cube_coordinates(
-                cube, new_cube)
+        msg = "The number of dimension coordinates within the new cube"
+        with self.assertRaisesRegex(iris.exceptions.CoordinateNotFoundError, msg):
+            check_cube_coordinates(cube, new_cube)
 
     def test_missing_exception_coordinates(self):
         """Test that if the new_cube has additional coordinates compared with
@@ -178,10 +177,10 @@ class Test_check_cube_coordinates(IrisTest):
         cube = iris.util.squeeze(cube)
         exception_coordinates = ["height"]
         msg = "All permitted exception_coordinates must be on the new_cube."
-        with self.assertRaisesRegex(iris.exceptions.CoordinateNotFoundError,
-                                    msg):
+        with self.assertRaisesRegex(iris.exceptions.CoordinateNotFoundError, msg):
             check_cube_coordinates(
-                cube, new_cube, exception_coordinates=exception_coordinates)
+                cube, new_cube, exception_coordinates=exception_coordinates
+            )
 
     def test_coord_promotion_missing_scalar(self):
         """Test case in which a scalar coordinate has been lost from new_cube,
@@ -189,10 +188,9 @@ class Test_check_cube_coordinates(IrisTest):
         coordinates to the progenitor cube. This raises an error."""
         cube = set_up_cube()
         new_cube = iris.util.squeeze(cube)
-        new_cube.remove_coord('realization')
-        msg = 'The number of dimension coordinates within the new cube'
-        with self.assertRaisesRegex(iris.exceptions.CoordinateNotFoundError,
-                                    msg):
+        new_cube.remove_coord("realization")
+        msg = "The number of dimension coordinates within the new cube"
+        with self.assertRaisesRegex(iris.exceptions.CoordinateNotFoundError, msg):
             check_cube_coordinates(cube, new_cube)
 
 
@@ -215,7 +213,8 @@ class Test_find_dimension_coordinate_mismatch(IrisTest):
         second_cube = cube.copy()
         second_cube.remove_coord("time")
         result = find_dimension_coordinate_mismatch(
-            first_cube, second_cube, two_way_mismatch=False)
+            first_cube, second_cube, two_way_mismatch=False
+        )
         self.assertIsInstance(result, list)
         self.assertFalse(result)
 
@@ -228,7 +227,8 @@ class Test_find_dimension_coordinate_mismatch(IrisTest):
         first_cube.remove_coord("time")
         second_cube = cube.copy()
         result = find_dimension_coordinate_mismatch(
-            first_cube, second_cube, two_way_mismatch=False)
+            first_cube, second_cube, two_way_mismatch=False
+        )
         self.assertIsInstance(result, list)
         self.assertListEqual(result, ["time"])
 
@@ -247,6 +247,7 @@ class Test_find_dimension_coordinate_mismatch(IrisTest):
 
 class Test_spatial_coords_match(IrisTest):
     """Test for function testing cube spatial coords."""
+
     def setUp(self):
         """Create two unmatching cubes for spatial comparison."""
         self.cube_a = set_up_cube(num_grid_points=16)
@@ -265,16 +266,16 @@ class Test_spatial_coords_match(IrisTest):
     def test_other_coord_diffs(self):
         """Test when given cubes that differ in non-spatial coords."""
         cube_c = self.cube_a.copy()
-        r_coord = cube_c.coord('realization')
-        r_coord.points = [r*2 for r in r_coord.points]
+        r_coord = cube_c.coord("realization")
+        r_coord.points = [r * 2 for r in r_coord.points]
         result = spatial_coords_match(self.cube_a, cube_c)
         self.assertTrue(result)
 
     def test_other_coord_bigger_diffs(self):
         """Test when given cubes that differ in shape on non-spatial coords."""
         cube_c = set_up_cube(num_grid_points=16, num_realization_points=4)
-        r_coord = cube_c.coord('realization')
-        r_coord.points = [r*2 for r in r_coord.points]
+        r_coord = cube_c.coord("realization")
+        r_coord.points = [r * 2 for r in r_coord.points]
         result = spatial_coords_match(self.cube_a, cube_c)
         self.assertTrue(result)
 
@@ -286,16 +287,16 @@ class Test_spatial_coords_match(IrisTest):
     def test_unmatching_x(self):
         """Test when given two spatially different cubes of same length."""
         cube_c = self.cube_a.copy()
-        x_coord = cube_c.coord(axis='x')
-        x_coord.points = [x*2. for x in x_coord.points]
+        x_coord = cube_c.coord(axis="x")
+        x_coord.points = [x * 2.0 for x in x_coord.points]
         result = spatial_coords_match(self.cube_a, cube_c)
         self.assertFalse(result)
 
     def test_unmatching_y(self):
         """Test when given two spatially different cubes of same length."""
         cube_c = self.cube_a.copy()
-        y_coord = cube_c.coord(axis='y')
-        y_coord.points = [y*1.01 for y in y_coord.points]
+        y_coord = cube_c.coord(axis="y")
+        y_coord.points = [y * 1.01 for y in y_coord.points]
         result = spatial_coords_match(self.cube_a, cube_c)
         self.assertFalse(result)
 
@@ -318,13 +319,15 @@ class Test_time_coords_match(IrisTest):
         """Test returns True when cubes time coordinates match. In this case
         the raise_exception option is True but we do not expect a exception."""
         result = time_coords_match(
-            self.ref_cube, self.ref_cube.copy(), raise_exception=True)
+            self.ref_cube, self.ref_cube.copy(), raise_exception=True
+        )
         self.assertTrue(result)
 
     def test_validity_time_mismatch(self):
         """Test returns False when cubes validity times do not match."""
         cube_different_vt = set_up_variable_cube(
-            self.data, time=datetime(2017, 11, 10, 5, 0))
+            self.data, time=datetime(2017, 11, 10, 5, 0)
+        )
         result = time_coords_match(self.ref_cube, cube_different_vt)
         self.assertFalse(result)
 
@@ -332,7 +335,8 @@ class Test_time_coords_match(IrisTest):
         """Test returns False when cubes forecast reference times do not
         match."""
         cube_different_frt = set_up_variable_cube(
-            self.data, frt=datetime(2017, 11, 10, 1, 0))
+            self.data, frt=datetime(2017, 11, 10, 1, 0)
+        )
         result = time_coords_match(self.ref_cube, cube_different_frt)
         self.assertFalse(result)
 
@@ -340,44 +344,51 @@ class Test_time_coords_match(IrisTest):
         """Test raises exception when cubes validity times do not match and
         raise_exception=True."""
         cube_different_vt = set_up_variable_cube(
-            self.data, time=datetime(2017, 11, 10, 5, 0))
-        msg = ("The following coordinates of the two cubes do not match:"
-               " forecast_period, time")
+            self.data, time=datetime(2017, 11, 10, 5, 0)
+        )
+        msg = (
+            "The following coordinates of the two cubes do not match:"
+            " forecast_period, time"
+        )
         with self.assertRaisesRegex(ValueError, msg):
-            time_coords_match(self.ref_cube, cube_different_vt,
-                              raise_exception=True)
+            time_coords_match(self.ref_cube, cube_different_vt, raise_exception=True)
 
     def test_forecast_reference_time_mismatch_with_exception(self):
         """Test raises exception when cubes forecast reference times do not
         match and raise_exception=True."""
         cube_different_frt = set_up_variable_cube(
-            self.data, frt=datetime(2017, 11, 10, 1, 0))
-        msg = ("The following coordinates of the two cubes do not match:"
-               " forecast_period, forecast_reference_time")
+            self.data, frt=datetime(2017, 11, 10, 1, 0)
+        )
+        msg = (
+            "The following coordinates of the two cubes do not match:"
+            " forecast_period, forecast_reference_time"
+        )
         with self.assertRaisesRegex(ValueError, msg):
-            time_coords_match(self.ref_cube, cube_different_frt,
-                              raise_exception=True)
+            time_coords_match(self.ref_cube, cube_different_frt, raise_exception=True)
 
     def test_all_times_mismatch_with_exception(self):
         """Test raises exception when all cube time coordinates differ and
         raise_exception=True."""
         cube_different_both = set_up_variable_cube(
-            self.data, time=datetime(2017, 11, 10, 6, 0),
-            frt=datetime(2017, 11, 10, 1, 0))
-        msg = ("The following coordinates of the two cubes do not match:"
-               " forecast_period, time, forecast_reference_time")
+            self.data,
+            time=datetime(2017, 11, 10, 6, 0),
+            frt=datetime(2017, 11, 10, 1, 0),
+        )
+        msg = (
+            "The following coordinates of the two cubes do not match:"
+            " forecast_period, time, forecast_reference_time"
+        )
         with self.assertRaisesRegex(ValueError, msg):
-            time_coords_match(self.ref_cube, cube_different_both,
-                              raise_exception=True)
+            time_coords_match(self.ref_cube, cube_different_both, raise_exception=True)
 
     def test_coordinate_not_found_exception(self):
         """Test an exception is raised if any of the temporal coordinates are
         missing."""
-        self.ref_cube.remove_coord('time')
+        self.ref_cube.remove_coord("time")
         msg = "Expected to find exactly 1 time coordinate, but found none."
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             time_coords_match(self.ref_cube, self.ref_cube.copy())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

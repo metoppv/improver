@@ -38,10 +38,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(percentiles_cube: cli.inputcube,
-            threshold_cube: cli.inputcube,
-            *,
-            output_diagnostic_name):
+def process(
+    percentiles_cube: cli.inputcube,
+    threshold_cube: cli.inputcube,
+    *,
+    output_diagnostic_name,
+):
     r"""Probability from a percentiled field at a 2D threshold level.
 
     Probabilities are generated at a fixed threshold (height) from a set of
@@ -86,8 +88,9 @@ def process(percentiles_cube: cli.inputcube,
             A cube of probabilities obtained by interpolating between
             percentile values at the "threshold" level.
     """
-    from improver.utilities.statistical_operations import \
-        ProbabilitiesFromPercentiles2D
+    from improver.utilities.statistical_operations import ProbabilitiesFromPercentiles2D
+
     probability_cube = ProbabilitiesFromPercentiles2D(
-        percentiles_cube, output_diagnostic_name)(threshold_cube)
+        percentiles_cube, output_diagnostic_name
+    )(threshold_cube)
     return probability_cube
