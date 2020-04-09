@@ -32,6 +32,7 @@
 
 from improver.wxcode.weather_symbols import WeatherSymbols
 
+
 def check_diagnostic_lists_consistency(query):
     """
     Checks if specific input lists have same nested list
