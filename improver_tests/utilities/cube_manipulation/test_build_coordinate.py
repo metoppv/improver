@@ -57,7 +57,6 @@ class Test_build_coordinate(IrisTest):
         are specified."""
         standard_name = "height"
         long_name = "height"
-        var_name = "height"
         coord_type = AuxCoord
         data_type = np.int64
         units = "m"
@@ -65,12 +64,11 @@ class Test_build_coordinate(IrisTest):
         coord_system = TransverseMercator
         result = build_coordinate(
             [1.0], standard_name=standard_name, long_name=long_name,
-            var_name=var_name, coord_type=coord_type, data_type=data_type,
+            coord_type=coord_type, data_type=data_type,
             units=units, bounds=bounds, coord_system=coord_system)
         self.assertIsInstance(result, AuxCoord)
         self.assertEqual(result.standard_name, "height")
         self.assertEqual(result.long_name, "height")
-        self.assertEqual(result.var_name, "height")
         self.assertIsInstance(result.points[0], np.int64)
         self.assertEqual(result.units, Unit("m"))
         self.assertArrayAlmostEqual(result.bounds, np.array([[0.5, 1.5]]))

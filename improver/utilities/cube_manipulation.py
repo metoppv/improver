@@ -594,7 +594,6 @@ def compare_coords(cubes):
 
 def build_coordinate(data, long_name=None,
                      standard_name=None,
-                     var_name=None,
                      coord_type=DimCoord,
                      data_type=None,
                      units='1',
@@ -612,8 +611,6 @@ def build_coordinate(data, long_name=None,
             Name of the coordinate to be built.
         standard_name (str):
             CF Name of the coordinate to be built.
-        var_name (str):
-            Variable name
         coord_type (iris.coords.Coord):
             Selection between Dim and Aux coord.
         data_type (<type>):
@@ -637,7 +634,6 @@ def build_coordinate(data, long_name=None,
     """
     long_name_out = long_name
     std_name_out = standard_name
-    var_name_out = var_name
     coord_type_out = coord_type
     data_type_out = data_type
     units_out = units
@@ -649,8 +645,6 @@ def build_coordinate(data, long_name=None,
             long_name_out = template_coord.long_name
         if standard_name is None:
             std_name_out = template_coord.standard_name
-        if var_name is None:
-            var_name_out = template_coord.var_name
         if isinstance(coord_type, DimCoord):
             coord_type_out = type(template_coord)
         if data_type is None:
@@ -669,13 +663,9 @@ def build_coordinate(data, long_name=None,
 
     crd_out = coord_type_out(data, long_name=long_name_out,
                              standard_name=std_name_out,
-                             var_name=var_name_out,
                              units=units_out,
                              coord_system=coord_system_out,
                              bounds=bounds_out)
-
-    if std_name_out is None and var_name_out is None:
-        crd_out.rename(long_name_out)
 
     return crd_out
 
