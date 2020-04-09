@@ -128,7 +128,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
                 np.array([1000 * i], dtype=np.int32), units='1',
                 long_name='model_id')
             new_model_coord = AuxCoord(
-                [model_title], units='no_unit', 
+                [model_title], units='no_unit',
                 long_name='model_configuration')
 
             cube.add_aux_coord(new_model_id_coord)

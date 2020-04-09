@@ -215,12 +215,12 @@ class ConcatenateCubes(BasePlugin):
         if cube.coords(self.master_coord, dim_coords=True):
             for coord in coordinates:
                 if cube.coords(coord):
-                    temp_coord = cube.coord(coord)
+                    temp_coord = cube.coord(coord).copy()
                     cube.remove_coord(coord)
                     coord_names = [
                         coord.standard_name for coord in cube.dim_coords]
                     cube.add_aux_coord(
-                        temp_coord, #temp_aux_coord,
+                        temp_coord,
                         data_dims=coord_names.index(self.master_coord))
 
         return cube
