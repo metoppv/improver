@@ -70,9 +70,9 @@ class Test_WXCode(IrisTest):
             threshold_units='m s-1',
             time=time, frt=frt)
 
-        data_rain = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 1.0, 1.0, 1.0,
-                              0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 1.0, 0.01, 1.0,
-                              0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+        data_rain = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 1.00, 1.00,
+                              1.00, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 1.00,
+                              0.01, 1.00, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
                               0.01, 0.01, 0.01], dtype=np.float32).reshape(
                                   (3, 3, 3))
 
@@ -231,7 +231,7 @@ class Test_get_parameter_names(IrisTest):
         """Test that the get_parameter_names method does what it says."""
         plugin = WeatherSymbols()
         condition = ['parameter_name_one', '*', '4.0',
-                      '+', 'parameter_name_two']
+                     '+', 'parameter_name_two']
         expected = ['parameter_name_one', 'parameter_name_two']
         result = plugin.get_parameter_names(condition)
         self.assertEqual(result, expected)
@@ -441,8 +441,10 @@ class Test_create_condition_chain(IrisTest):
              AuxCoord(0.1, units='mm hr-1')],
             [AuxCoord(0.1, units='mm hr-1'),
              AuxCoord(0.1, units='mm hr-1')]]
-        query['rain_or_snow']['diagnostic_conditions'] = [['above', 'above'],
-                                      ['above', 'above']]
+        query['rain_or_snow']['diagnostic_conditions'] = [
+            ['above', 'above'],
+            ['above', 'above'],
+        ]
         plugin = WeatherSymbols()
         test_condition = query['rain_or_snow']
         result = plugin.create_condition_chain(test_condition)
