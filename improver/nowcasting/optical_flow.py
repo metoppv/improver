@@ -34,10 +34,13 @@ classes for advection nowcasting.
 """
 import warnings
 
-import numpy as np
 import iris
+import numpy as np
 from iris.exceptions import (
-    CoordinateCollapseError, CoordinateNotFoundError, InvalidCubeError)
+    CoordinateCollapseError,
+    CoordinateNotFoundError,
+    InvalidCubeError,
+)
 from scipy import ndimage, signal
 
 from improver import BasePlugin

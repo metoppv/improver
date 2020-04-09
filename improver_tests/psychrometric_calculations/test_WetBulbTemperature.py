@@ -39,7 +39,8 @@ from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
-    WetBulbTemperature)
+    WetBulbTemperature,
+)
 
 from ..set_up_test_cubes import set_up_variable_cube
 

@@ -38,8 +38,13 @@ from iris.coords import DimCoord
 from iris.tests import IrisTest
 
 from improver.utilities.pad_spatial import (
-    _create_cube_with_padded_data, create_cube_with_halo, pad_coord,
-    pad_cube_with_halo, remove_cube_halo, remove_halo_from_cube)
+    _create_cube_with_padded_data,
+    create_cube_with_halo,
+    pad_coord,
+    pad_cube_with_halo,
+    remove_cube_halo,
+    remove_halo_from_cube,
+)
 
 from ..set_up_test_cubes import set_up_variable_cube
 

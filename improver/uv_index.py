@@ -32,7 +32,9 @@
 at surface and radiation flux in UV upward at the surface."""
 
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_mandatory_attributes)
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 
 
 def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6,

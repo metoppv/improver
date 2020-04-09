@@ -34,6 +34,8 @@ import unittest
 from unittest.mock import patch
 
 import numpy as np
+from iris.cube import CubeList
+
 import improver
 from improver.cli import (
     clizefy,
@@ -47,7 +49,6 @@ from improver.cli import (
     with_output,
 )
 from improver.utilities.load import load_cube
-from iris.cube import CubeList
 
 from ..set_up_test_cubes import set_up_variable_cube
 

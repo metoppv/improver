@@ -39,10 +39,14 @@ from scipy.ndimage import generic_filter
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_mandatory_attributes)
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, get_dim_coord_names)
+    enforce_coordinate_ordering,
+    get_dim_coord_names,
+)
 
 
 class ApplyGriddedLapseRate(PostProcessingPlugin):

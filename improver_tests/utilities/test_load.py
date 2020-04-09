@@ -43,8 +43,11 @@ from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
 
 from ..set_up_test_cubes import (
-    add_coordinate, set_up_percentile_cube, set_up_probability_cube,
-    set_up_variable_cube)
+    add_coordinate,
+    set_up_percentile_cube,
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 
 
 class Test_load_cube(IrisTest):

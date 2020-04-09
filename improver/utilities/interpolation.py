@@ -31,11 +31,13 @@
 """Module to contain interpolation functions."""
 
 import warnings
-import numpy as np
+
 import iris
-from improver import BasePlugin
+import numpy as np
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
+
+from improver import BasePlugin
 
 
 def interpolate_missing_data(

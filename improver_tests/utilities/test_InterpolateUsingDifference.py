@@ -35,9 +35,10 @@ import unittest
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.interpolation import InterpolateUsingDifference
-from ..set_up_test_cubes import set_up_variable_cube, add_coordinate
+from improver.utilities.warnings_handler import ManageWarnings
+
+from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 class Test_Setup(unittest.TestCase):

@@ -31,14 +31,17 @@
 """Module for calculating the probability of specific precipitation phases."""
 
 import operator
+
 import iris
 import numpy as np
 from cf_units import Unit
 
 from improver import BasePlugin
-from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_mandatory_attributes)
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
+from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 from improver.utilities.cube_checker import spatial_coords_match
 
 

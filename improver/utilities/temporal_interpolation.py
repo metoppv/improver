@@ -32,15 +32,14 @@
 
 from datetime import datetime, timedelta
 
-import numpy as np
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
-from improver.utilities.spatial import (
-    lat_lon_determine, transform_grid_to_lat_lon)
+from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 from improver.utilities.temporal import iris_time_to_datetime
 
 

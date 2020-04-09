@@ -33,8 +33,8 @@ This module contains a plugin to calculate the enhancement of precipitation
 over orography.
 """
 
-import numpy as np
 import iris
+import numpy as np
 from iris.analysis.cartography import rotate_winds
 from scipy.ndimage import uniform_filter1d
 
@@ -43,14 +43,19 @@ from improver.constants import R_WATER_VAPOUR
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.nbhood.nbhood import NeighbourhoodProcessing
-from improver.psychrometric_calculations.psychrometric_calculations \
-    import calculate_svp_in_air
+from improver.psychrometric_calculations.psychrometric_calculations import (
+    calculate_svp_in_air,
+)
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import (
-    compare_coords, enforce_coordinate_ordering, sort_coord_in_cube)
+    compare_coords,
+    enforce_coordinate_ordering,
+    sort_coord_in_cube,
+)
 from improver.utilities.spatial import (
     DifferenceBetweenAdjacentGridSquares,
-    number_of_grid_cells_to_distance)
+    number_of_grid_cells_to_distance,
+)
 
 
 class OrographicEnhancement(BasePlugin):

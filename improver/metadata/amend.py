@@ -37,7 +37,9 @@ import iris
 from dateutil import tz
 
 from improver.metadata.constants.mo_attributes import (
-    GRID_ID_LOOKUP, MOSG_GRID_DEFINITION)
+    GRID_ID_LOOKUP,
+    MOSG_GRID_DEFINITION,
+)
 
 
 def update_stage_v110_metadata(cube):

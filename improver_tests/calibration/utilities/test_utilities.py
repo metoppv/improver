@@ -37,21 +37,24 @@ import unittest
 
 import iris
 import numpy as np
-from numpy.testing import assert_array_equal
 from iris.tests import IrisTest
 from iris.util import squeeze
+from numpy.testing import assert_array_equal
 
 from improver.calibration.utilities import (
-    check_predictor, convert_cube_data_to_2d,
-    flatten_ignoring_masked_data, filter_non_matching_cubes,
-    create_unified_frt_coord, merge_land_and_sea)
-
-from ..reliability_calibration.test_AggregateReliabilityCalibrationTables \
-    import Test_Aggregation
-from ..ensemble_calibration.helper_functions import (set_up_temperature_cube,
-                                                     SetupCubes)
+    check_predictor,
+    convert_cube_data_to_2d,
+    create_unified_frt_coord,
+    filter_non_matching_cubes,
+    flatten_ignoring_masked_data,
+    merge_land_and_sea,
+)
 
 from ...set_up_test_cubes import set_up_percentile_cube
+from ..ensemble_calibration.helper_functions import SetupCubes, set_up_temperature_cube
+from ..reliability_calibration.test_AggregateReliabilityCalibrationTables import (
+    Test_Aggregation,
+)
 
 
 class Test_convert_cube_data_to_2d(IrisTest):

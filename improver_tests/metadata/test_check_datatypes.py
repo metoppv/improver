@@ -33,15 +33,17 @@
 import unittest
 
 import numpy as np
-from iris.tests import IrisTest
-from iris.cube import CubeList
 from iris.coords import AuxCoord
+from iris.cube import CubeList
+from iris.tests import IrisTest
 
-from improver.metadata.check_datatypes import (
-    check_mandatory_standards, check_units)
+from improver.metadata.check_datatypes import check_mandatory_standards, check_units
 
 from ..set_up_test_cubes import (
-    set_up_percentile_cube, set_up_probability_cube, set_up_variable_cube)
+    set_up_percentile_cube,
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 
 
 class Test_check_mandatory_standards(IrisTest):

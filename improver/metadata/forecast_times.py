@@ -37,9 +37,9 @@ import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants import FLOAT_TYPES
 from improver.metadata.constants.time_types import TIME_COORDS
-from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import cycletime_to_datetime
 

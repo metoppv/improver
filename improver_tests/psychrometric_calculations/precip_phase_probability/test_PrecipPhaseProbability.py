@@ -32,15 +32,15 @@
 
 import unittest
 
+import iris
 import numpy as np
 from cf_units import Unit
-import iris
 from iris.tests import IrisTest
 
-from improver.psychrometric_calculations.precip_phase_probability import (
-    PrecipPhaseProbability)
 from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
-
+from improver.psychrometric_calculations.precip_phase_probability import (
+    PrecipPhaseProbability,
+)
 from improver_tests.set_up_test_cubes import set_up_variable_cube
 
 

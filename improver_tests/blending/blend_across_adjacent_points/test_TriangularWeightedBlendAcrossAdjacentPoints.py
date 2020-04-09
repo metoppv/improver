@@ -39,7 +39,8 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.blending.blend_across_adjacent_points import (
-    TriangularWeightedBlendAcrossAdjacentPoints)
+    TriangularWeightedBlendAcrossAdjacentPoints,
+)
 from improver.metadata.amend import add_coord
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.warnings_handler import ManageWarnings

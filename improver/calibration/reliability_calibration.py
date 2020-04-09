@@ -32,18 +32,19 @@
 
 import warnings
 
-import scipy
-
 import iris
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
+import scipy
+from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin, PostProcessingPlugin
-from improver.utilities.cube_manipulation import MergeCubes, collapsed
-from improver.metadata.utilities import generate_mandatory_attributes
+from improver.calibration.utilities import (
+    create_unified_frt_coord,
+    filter_non_matching_cubes,
+)
 from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.calibration.utilities import (filter_non_matching_cubes,
-                                            create_unified_frt_coord)
+from improver.metadata.utilities import generate_mandatory_attributes
+from improver.utilities.cube_manipulation import MergeCubes, collapsed
 
 
 class ConstructReliabilityCalibrationTables(BasePlugin):

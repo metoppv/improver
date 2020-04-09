@@ -37,7 +37,9 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name, find_threshold_coordinate)
+    extract_diagnostic_name,
+    find_threshold_coordinate,
+)
 
 
 class OccurrenceBetweenThresholds(PostProcessingPlugin):

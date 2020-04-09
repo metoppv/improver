@@ -37,7 +37,9 @@ from cf_units import Unit
 
 from improver import BasePlugin
 from improver.utilities.temporal import (
-    extract_nearest_time_point, iris_time_to_datetime)
+    extract_nearest_time_point,
+    iris_time_to_datetime,
+)
 
 
 class ExtendRadarMask(BasePlugin):

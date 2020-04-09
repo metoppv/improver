@@ -31,15 +31,16 @@
 """Unit tests for the ConstructReliabilityCalibrationTables plugin."""
 
 import unittest
-
 from datetime import datetime
+
 import iris
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
-from improver.utilities.cube_manipulation import MergeCubes
 from improver.calibration.reliability_calibration import (
-    ConstructReliabilityCalibrationTables as Plugin)
+    ConstructReliabilityCalibrationTables as Plugin,
+)
+from improver.utilities.cube_manipulation import MergeCubes
 from improver_tests.set_up_test_cubes import set_up_probability_cube
 
 

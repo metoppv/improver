@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing wind direction averaging plugins."""
 
-import numpy as np
 import iris
+import numpy as np
 from iris.coords import CellMethod
 
 from improver import BasePlugin

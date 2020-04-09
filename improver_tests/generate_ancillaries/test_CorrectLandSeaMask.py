@@ -37,8 +37,9 @@ import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.generate_ancillaries.generate_ancillary import \
-    CorrectLandSeaMask as CorrectLand
+from improver.generate_ancillaries.generate_ancillary import (
+    CorrectLandSeaMask as CorrectLand,
+)
 
 
 class Test_process(IrisTest):

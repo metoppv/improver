@@ -36,7 +36,9 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
-    _svp_from_lookup, calculate_svp_in_air)
+    _svp_from_lookup,
+    calculate_svp_in_air,
+)
 
 
 class Test_calculate_svp_in_air(IrisTest):

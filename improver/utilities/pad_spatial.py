@@ -38,7 +38,9 @@ from cf_units import Unit
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, get_dim_coord_names)
+    enforce_coordinate_ordering,
+    get_dim_coord_names,
+)
 from improver.utilities.spatial import distance_to_number_of_grid_cells
 
 

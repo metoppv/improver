@@ -48,11 +48,17 @@ from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.warnings_handler import ManageWarnings
 
 from ...set_up_test_cubes import (
-    add_coordinate, set_up_percentile_cube, set_up_probability_cube,
-    set_up_variable_cube)
+    add_coordinate,
+    set_up_percentile_cube,
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 from .test_PercentileBlendingAggregator import (
-    BLENDED_PERCENTILE_DATA, BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS,
-    BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS, PERCENTILE_DATA)
+    BLENDED_PERCENTILE_DATA,
+    BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS,
+    BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS,
+    PERCENTILE_DATA,
+)
 
 COORD_COLLAPSE_WARNING = "Collapsing a non-contiguous coordinate"
 

@@ -41,7 +41,8 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    ConvertProbabilitiesToPercentiles as Plugin)
+    ConvertProbabilitiesToPercentiles as Plugin,
+)
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -49,7 +50,8 @@ from ...calibration.ensemble_calibration.helper_functions import (
     add_forecast_reference_time_and_forecast_period,
     set_up_probability_above_threshold_spot_temperature_cube,
     set_up_probability_above_threshold_temperature_cube,
-    set_up_probability_threshold_cube)
+    set_up_probability_threshold_cube,
+)
 
 
 class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):

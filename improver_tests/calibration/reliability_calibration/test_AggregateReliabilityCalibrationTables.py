@@ -36,12 +36,14 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from improver.calibration.reliability_calibration import (
-    AggregateReliabilityCalibrationTables as Plugin)
-
+    AggregateReliabilityCalibrationTables as Plugin,
+)
 from improver.calibration.reliability_calibration import (
-    ConstructReliabilityCalibrationTables as CalPlugin)
-from improver_tests.calibration.reliability_calibration.\
-    test_ConstructReliabilityCalibrationTables import Test_Setup
+    ConstructReliabilityCalibrationTables as CalPlugin,
+)
+from improver_tests.calibration.reliability_calibration.test_ConstructReliabilityCalibrationTables import (
+    Test_Setup,
+)
 
 
 class Test_Aggregation(Test_Setup):

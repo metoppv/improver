@@ -42,10 +42,10 @@ from iris.tests import IrisTest
 
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.circular_kernel import (
-    GeneratePercentilesFromACircularNeighbourhood)
+    GeneratePercentilesFromACircularNeighbourhood,
+)
 
-from ..nbhood.test_BaseNeighbourhoodProcessing import (
-    set_up_cube, set_up_cube_lat_long)
+from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube, set_up_cube_lat_long
 
 
 class Test__repr__(IrisTest):

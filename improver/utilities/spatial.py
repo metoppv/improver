@@ -35,9 +35,9 @@ import copy
 import cartopy.crs as ccrs
 import iris
 import numpy as np
-from scipy.ndimage.filters import maximum_filter
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
+from scipy.ndimage.filters import maximum_filter
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.utilities.cube_checker import check_cube_coordinates

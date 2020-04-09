@@ -33,8 +33,8 @@
 import copy
 import itertools
 
-import numpy as np
 import iris
+import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 

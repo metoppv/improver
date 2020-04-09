@@ -43,7 +43,9 @@ from improver.nbhood.use_nbhood import CollapseMaskedNeighbourhoodCoordinate
 
 from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 from .test_ApplyNeighbourhoodProcessingWithAMask import (
-    add_dimensions_to_cube, set_up_topographic_zone_cube)
+    add_dimensions_to_cube,
+    set_up_topographic_zone_cube,
+)
 
 
 class Test__repr__(IrisTest):

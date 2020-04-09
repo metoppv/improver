@@ -32,8 +32,8 @@
 
 import warnings
 
-import numpy as np
 import iris
+import numpy as np
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
 

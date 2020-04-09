@@ -30,24 +30,27 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain Psychrometric Calculations."""
 
+import iris
 import numpy as np
 from cf_units import Unit
-
-import iris
 from iris.cube import CubeList
 from stratify import interpolate
 
 import improver.constants as consts
 from improver import BasePlugin
 from improver.metadata.utilities import (
-    generate_mandatory_attributes, create_new_diagnostic_cube)
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 from improver.psychrometric_calculations import svp_table
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import sort_coord_in_cube
+from improver.utilities.interpolation import interpolate_missing_data
 from improver.utilities.mathematical_operations import Integration
 from improver.utilities.spatial import (
-    OccurrenceWithinVicinity, number_of_grid_cells_to_distance)
-from improver.utilities.interpolation import interpolate_missing_data
+    OccurrenceWithinVicinity,
+    number_of_grid_cells_to_distance,
+)
 
 
 def _svp_from_lookup(temperature):
