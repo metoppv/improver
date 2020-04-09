@@ -70,10 +70,10 @@ class Test_WXCode(IrisTest):
             threshold_units='m s-1',
             time=time, frt=frt)
 
-        data_rain = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
-                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0], dtype=np.float32).reshape(
+        data_rain = np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 1.0, 1.0, 1.0,
+                              0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 1.0, 0.01, 1.0,
+                              0.01, 0.01, 0.01, 0.01, 0.01, 0.01,
+                              0.01, 0.01, 0.01], dtype=np.float32).reshape(
                                   (3, 3, 3))
 
         rainfall_rate = set_up_probability_cube(
@@ -90,7 +90,7 @@ class Test_WXCode(IrisTest):
             time=time, frt=frt)
 
         precip_vicinity = set_up_probability_cube(
-            data_rain, thresholds,
+            data_precip, thresholds,
             variable_name='lwe_precipitation_rate_in_vicinity',
             threshold_units='m s-1',
             time=time, frt=frt)
@@ -374,7 +374,8 @@ class Test_create_condition_chain(IrisTest):
                         t_min=(1. - WeatherSymbols().float_tolerance),
                         t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
-        self.assertIsInstance(result[0], str)
+        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertEqual(len(result), 1)
         self.assertEqual(result[0], expected)
 
     def test_old_naming_convention(self):
@@ -395,7 +396,57 @@ class Test_create_condition_chain(IrisTest):
                         t_min=(1. - WeatherSymbols().float_tolerance),
                         t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)
-        self.assertIsInstance(result[0], str)
+        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], expected)
+
+    def test_with_gamma(self):
+        """Test with a condition that uses the gamma option"""
+        query = {
+            'rain_or_snow': self.dummy_queries['significant_precipitation'],
+        }
+        query['rain_or_snow']['diagnostic_fields'] = [
+            [
+                'probability_of_lwe_sleetfall_rate_above_threshold',
+                'probability_of_rainfall_rate_above_threshold',
+            ],
+            [
+                'probability_of_lwe_sleetfall_rate_above_threshold',
+                'probability_of_lwe_snowfall_rate_above_threshold',
+            ],
+        ]
+        query['rain_or_snow']['diagnostic_thresholds'] = [
+            [AuxCoord(0.1, units='mm hr-1'),
+             AuxCoord(0.1, units='mm hr-1')],
+            [AuxCoord(0.1, units='mm hr-1'),
+             AuxCoord(0.1, units='mm hr-1')]]
+        query['rain_or_snow']['diagnostic_conditions'] = [['above', 'above'],
+                                      ['above', 'above']]
+        query['rain_or_snow']['diagnostic_gamma'] = [1.0, 1.0]
+        plugin = WeatherSymbols()
+        test_condition = query['rain_or_snow']
+        result = plugin.create_condition_chain(test_condition)
+        print(result)
+        expected = ("((cubes.extract(iris.Constraint(name='probability_of_"
+                    "lwe_sleetfall_rate_above_threshold', lwe_sleetfall_rate="
+                    "lambda cell: 0.1 * {t_min} < cell < 0.1 * {t_max})"
+                    ")[0].data - cubes.extract(iris.Constraint("
+                    "name='probability_of_rainfall_rate_above_threshold', "
+                    "rainfall_rate=lambda cell: 0.1 * {t_min} < cell < "
+                    "0.1 * {t_max}))[0].data * 1.0) >= 0.5) | "
+                    "((cubes.extract(iris.Constraint(name="
+                    "'probability_of_lwe_sleetfall_rate_above_threshold', "
+                    "lwe_sleetfall_rate=lambda cell: 0.1 * {t_min} < cell "
+                    "< 0.1 * {t_max}))[0].data - "
+                    "cubes.extract(iris.Constraint(name="
+                    "'probability_of_lwe_snowfall_rate_above_threshold', "
+                    "lwe_snowfall_rate=lambda cell: 0.1 * {t_min} < cell "
+                    "< 0.1 * {t_max}))[0].data * 1.0) >= 0.5)".format(
+                        t_min=(1. - WeatherSymbols().float_tolerance),
+                        t_max=(1. + WeatherSymbols().float_tolerance)))
+        self.assertIsInstance(result, list)
+        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertEqual(len(result), 1)
         self.assertEqual(result[0], expected)
 
 
