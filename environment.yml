@@ -20,6 +20,7 @@ dependencies:
   - mock
   - isort=4.3.21
   - black=19.10b0
+  - pip
   - pip:
     - od
     - sigtools>=2.0
