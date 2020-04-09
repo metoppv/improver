@@ -419,18 +419,20 @@ class Test_create_condition_chain(IrisTest):
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], expected)
 
-    def test_with_gamma(self):
-        """Test with a condition that uses the gamma option"""
+    def test_complex_condition(self):
+        """Test with a condition that uses an operator"""
         query = {
             'rain_or_snow': self.dummy_queries['significant_precipitation'],
         }
         query['rain_or_snow']['diagnostic_fields'] = [
             [
                 'probability_of_lwe_sleetfall_rate_above_threshold',
+                '-',
                 'probability_of_rainfall_rate_above_threshold',
             ],
             [
                 'probability_of_lwe_sleetfall_rate_above_threshold',
+                '-',
                 'probability_of_lwe_snowfall_rate_above_threshold',
             ],
         ]
@@ -441,26 +443,25 @@ class Test_create_condition_chain(IrisTest):
              AuxCoord(0.1, units='mm hr-1')]]
         query['rain_or_snow']['diagnostic_conditions'] = [['above', 'above'],
                                       ['above', 'above']]
-        query['rain_or_snow']['diagnostic_gamma'] = [1.0, 1.0]
         plugin = WeatherSymbols()
         test_condition = query['rain_or_snow']
         result = plugin.create_condition_chain(test_condition)
         print(result)
-        expected = ("((cubes.extract(iris.Constraint(name='probability_of_"
+        expected = ("(( cubes.extract(iris.Constraint(name='probability_of_"
                     "lwe_sleetfall_rate_above_threshold', lwe_sleetfall_rate="
                     "lambda cell: 0.1 * {t_min} < cell < 0.1 * {t_max})"
                     ")[0].data - cubes.extract(iris.Constraint("
                     "name='probability_of_rainfall_rate_above_threshold', "
                     "rainfall_rate=lambda cell: 0.1 * {t_min} < cell < "
-                    "0.1 * {t_max}))[0].data * 1.0) >= 0.5) | "
-                    "((cubes.extract(iris.Constraint(name="
+                    "0.1 * {t_max}))[0].data) >= 0.5) | "
+                    "(( cubes.extract(iris.Constraint(name="
                     "'probability_of_lwe_sleetfall_rate_above_threshold', "
                     "lwe_sleetfall_rate=lambda cell: 0.1 * {t_min} < cell "
                     "< 0.1 * {t_max}))[0].data - "
                     "cubes.extract(iris.Constraint(name="
                     "'probability_of_lwe_snowfall_rate_above_threshold', "
                     "lwe_snowfall_rate=lambda cell: 0.1 * {t_min} < cell "
-                    "< 0.1 * {t_max}))[0].data * 1.0) >= 0.5)".format(
+                    "< 0.1 * {t_max}))[0].data) >= 0.5)".format(
                         t_min=(1. - WeatherSymbols().float_tolerance),
                         t_max=(1. + WeatherSymbols().float_tolerance)))
         self.assertIsInstance(result, list)

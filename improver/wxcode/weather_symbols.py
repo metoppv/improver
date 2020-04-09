@@ -383,9 +383,15 @@ class WeatherSymbols(BasePlugin):
             loop += 1
 
             if isinstance(diagnostic, list):
-                for d, t in zip(self.get_parameter_names(diagnostic), d_threshold):
-                    extract_constraint = [self.construct_extract_constraint(
-                        d, t, self.coord_named_threshold)]
+                d_threshold_index = -1
+                extract_constraint = []
+                for item in diagnostic:
+                    if self._is_variable(item):
+                        d_threshold_index += 1
+                        extract_constraint.append(self.construct_extract_constraint(
+                            item, d_threshold[d_threshold_index], self.coord_named_threshold))
+                    else:
+                        extract_constraint.append(item)
             else:
                 extract_constraint = self.construct_extract_constraint(
                     diagnostic, d_threshold, self.coord_named_threshold)
