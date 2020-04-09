@@ -32,9 +32,9 @@
 """Plugin to regrid cube data and standardise metadata"""
 
 import warnings
+import numpy as np
 
 import iris
-import numpy as np
 from iris.analysis import Linear, Nearest
 from iris.exceptions import CoordinateNotFoundError
 from scipy.interpolate import griddata
@@ -164,8 +164,8 @@ class StandardiseGridAndMetadata(BasePlugin):
                 self.landmask_name, repr(target_grid)))
             warnings.warn(msg)
 
-        plugin = AdjustLandSeaPoints(vicinity_radius=self.landmask_vicinity)
-        return plugin.process(cube, self.landmask_source_grid, target_grid)
+        return AdjustLandSeaPoints(vicinity_radius=self.landmask_vicinity)(
+            cube, self.landmask_source_grid, target_grid)
 
     def _regrid_to_target(self, cube, target_grid, regridded_title):
         """
@@ -337,7 +337,7 @@ class StandardiseGridAndMetadata(BasePlugin):
         return cube
 
 
-class AdjustLandSeaPoints:
+class AdjustLandSeaPoints(BasePlugin):
     """
     Replace data values at points where the nearest-regridding technique
     selects a source grid-point with an opposite land-sea-mask value to the

@@ -54,5 +54,4 @@ def process(wet_bulb_temperature: cli.inputcube):
     from improver.psychrometric_calculations.psychrometric_calculations \
         import WetBulbTemperatureIntegral
 
-    result = WetBulbTemperatureIntegral().process(wet_bulb_temperature)
-    return result
+    return WetBulbTemperatureIntegral()(wet_bulb_temperature)

@@ -55,5 +55,5 @@ def process(cube: cli.inputcube,
     from improver.nowcasting.utilities import ExtendRadarMask
 
     # extend mask
-    result = ExtendRadarMask().process(cube, coverage)
+    result = ExtendRadarMask()(cube, coverage)
     return result

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
@@ -29,28 +28,27 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to run land_sea_mask ancillary generation."""
+"""Tests for the apply-reliability-calibration CLI."""
 
-from improver import cli
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@cli.clizefy
-@cli.with_output
-def process(land_sea_mask: cli.inputcube):
-    """Generate a land_sea_mask ancillary.
-
-    Reads in the interpolated land_sea_mask and rounds
-    values < 0.5 to False
-    values >= 0.5 to True.
-
-    Args:
-        land_sea_mask (iris.cube.Cube):
-            Cube to process.
-
-    Returns:
-        iris.cube.Cube:
-            A land_sea_mask of boolean values.
+def test_calibration(tmp_path):
     """
-    from improver.generate_ancillaries.generate_ancillary import (
-        CorrectLandSeaMask)
-    return CorrectLandSeaMask()(land_sea_mask)
+    Test calibration of a forecast using a reliability calibration table.
+    """
+    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
+    kgo_path = kgo_dir / "kgo.nc"
+    forecast_path = kgo_dir / "forecast.nc"
+    table_path = kgo_dir / "collapsed_table.nc"
+    output_path = tmp_path / "output.nc"
+    args = [forecast_path, table_path,
+            "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

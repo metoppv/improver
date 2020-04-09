@@ -44,7 +44,7 @@ from iris.tests import IrisTest
 
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.utilities.cube_manipulation import merge_cubes
+from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.warnings_handler import ManageWarnings
 
 from ...set_up_test_cubes import (
@@ -611,7 +611,7 @@ class Test_process(Test_weighted_blend):
         cube2.add_aux_coord(model_crd2)
 
         cubes = iris.cube.CubeList([cube1, cube2])
-        cube = merge_cubes(cubes)
+        cube = MergeCubes()(cubes)
 
         plugin = WeightedBlendAcrossWholeDimension(coord_name)
         expected_frt = 1447837200

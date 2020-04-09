@@ -92,13 +92,13 @@ def process(cube: cli.inputcube,
         realizations_count = len(raw_cube.coord("realization").points)
 
     result = ConvertProbabilitiesToPercentiles(
-        ecc_bounds_warning=ignore_ecc_bounds).process(
-        cube, no_of_percentiles=realizations_count)
+        ecc_bounds_warning=ignore_ecc_bounds)(
+            cube, no_of_percentiles=realizations_count)
 
     if raw_cube:
-        result = EnsembleReordering().process(
+        result = EnsembleReordering()(
             result, raw_cube, random_ordering=False, random_seed=random_seed)
     else:
-        result = RebadgePercentilesAsRealizations().process(result)
+        result = RebadgePercentilesAsRealizations()(result)
 
     return result

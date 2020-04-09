@@ -40,8 +40,8 @@ Statistics (EMOS).
 import datetime
 import warnings
 
-import iris
 import numpy as np
+import iris
 from iris.exceptions import CoordinateNotFoundError
 from scipy import stats
 from scipy.optimize import minimize
@@ -59,7 +59,7 @@ from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_iris_time)
 
 
-class ContinuousRankedProbabilityScoreMinimisers:
+class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     """
     Minimise the Continuous Ranked Probability Score (CRPS)
 
@@ -828,7 +828,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             optimised_coeffs = initial_guess
         else:
             optimised_coeffs = (
-                self.minimiser.process(
+                self.minimiser(
                     initial_guess, forecast_predictor,
                     truth, forecast_var,
                     self.predictor,

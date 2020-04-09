@@ -29,28 +29,45 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to run land_sea_mask ancillary generation."""
+"""CLI to apply reliability calibration."""
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(land_sea_mask: cli.inputcube):
-    """Generate a land_sea_mask ancillary.
+def process(forecast: cli.inputcube,
+            reliability_table: cli.inputcube,
+            *,
+            minimum_forecast_count=200):
+    """
+    Calibrate a probability forecast using the provided reliability calibration
+    table. This calibration is designed to improve the reliability of
+    probability forecasts without significantly degrading their resolution.
 
-    Reads in the interpolated land_sea_mask and rounds
-    values < 0.5 to False
-    values >= 0.5 to True.
+    The method implemented here is described in Flowerdew J. 2014. Calibrating
+    ensemble reliability whilst preserving spatial structure. Tellus, Ser. A
+    Dyn. Meteorol. Oceanogr. 66.
 
     Args:
-        land_sea_mask (iris.cube.Cube):
-            Cube to process.
-
+        forecast (iris.cube.Cube):
+            The forecast to be calibrated.
+        reliability_table (iris.cube.Cube):
+            The reliability calibration table to use in calibrating the
+            forecast.
+        minimum_forecast_count (int):
+            The minimum number of forecast counts in a forecast probability
+            bin for it to be used in calibration. If the reliability
+            table for a forecast threshold includes any bins with
+            insufficient counts that threshold will be returned unchanged.
+            The default value of 200 is that used in Flowerdew 2014.
     Returns:
         iris.cube.Cube:
-            A land_sea_mask of boolean values.
+            Calibrated forecast.
     """
-    from improver.generate_ancillaries.generate_ancillary import (
-        CorrectLandSeaMask)
-    return CorrectLandSeaMask()(land_sea_mask)
+    from improver.calibration.reliability_calibration import (
+        ApplyReliabilityCalibration)
+
+    plugin = ApplyReliabilityCalibration(
+        minimum_forecast_count=minimum_forecast_count)
+    return plugin(forecast, reliability_table)

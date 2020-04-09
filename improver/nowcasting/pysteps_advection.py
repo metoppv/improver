@@ -35,6 +35,7 @@ from datetime import timedelta
 
 from iris.coords import AuxCoord
 
+from improver import BasePlugin
 from improver.metadata.amend import (amend_attributes, set_history_attribute)
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.utilities.spatial import (
@@ -51,7 +52,7 @@ with redirect_stdout():
     from pysteps.extrapolation.semilagrangian import extrapolate
 
 
-class PystepsExtrapolate(object):
+class PystepsExtrapolate(BasePlugin):
     """Wrapper for the pysteps semi-Lagrangian extrapolation method
 
     Reference:

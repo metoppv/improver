@@ -145,8 +145,8 @@ def process(*cubes: cli.inputcube,
         coordinate, weighting_method,
         weighting_coord=weighting_coord, wts_dict=weighting_config,
         y0val=y0val, ynval=ynval, cval=cval)
-    result = plugin.process(
+
+    return plugin(
         cubes, cycletime=cycletime, model_id_attr=model_id_attr,
-        spatial_weights=spatial_weights_from_mask, fuzzy_length=fuzzy_length,
-        attributes_dict=attributes_config)
-    return result
+        spatial_weights=spatial_weights_from_mask,
+        fuzzy_length=fuzzy_length, attributes_dict=attributes_config)

@@ -32,8 +32,8 @@
 
 import unittest
 
-import iris
 import numpy as np
+import iris
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -63,7 +63,7 @@ class Test__init__(IrisTest):
                             'output_cube': None}
         result = AdjustLandSeaPoints()
         members = {attr: getattr(result, attr) for attr in dir(result)
-                   if not attr.startswith("__")}
+                   if not attr.startswith("_")}
         non_methods = {key: val for key, val in members.items()
                        if not callable(val)}
         regridder = non_methods.pop('regridder')

@@ -451,10 +451,11 @@ def main(prog_name: parameters.pass_name,
             If given, will write profiling to the file given.
             To write to stdout, use a hyphen (-)
         memprofile (str):
-            Creates 2 files, a tracemalloc snapsot at the point of
-            highest memory consumption of your program (*_SNAPSHOT)
+            Creates 2 files by adding a suffix to the provided arguemnt -
+            a tracemalloc snapsot at the point of highest memory consumption
+            of your program (suffixed with _SNAPSHOT)
             and a track of the maximum memory used by your program
-            over time (*_MAX_TRACKER).
+            over time (suffixed with _MAX_TRACKER).
         verbose (bool):
             Print executed commands
         dry_run (bool):

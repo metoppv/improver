@@ -60,5 +60,5 @@ def process(*cubes: cli.inputcube,
     from improver.calibration.reliability_calibration import (
         AggregateReliabilityCalibrationTables)
 
-    return AggregateReliabilityCalibrationTables().process(
+    return AggregateReliabilityCalibrationTables()(
         cubes, coordinates=coordinates)

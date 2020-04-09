@@ -124,7 +124,7 @@ class Test_process(IrisTest):
         """Test output is a list of cubes with expected contents and
         global attributes"""
         expected_analysis = self.rain_cube.data.copy()
-        result = self.plugin.process(
+        result = self.plugin(
             self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
         self.assertIsInstance(result, list)
         # check result is a list including a cube at the analysis time
@@ -151,7 +151,7 @@ class Test_process(IrisTest):
             "institution": "Met Office",
             "title": "Nowcast on UK 2 km Standard Grid"}
         plugin = PystepsExtrapolate(self.interval, self.max_lead_time)
-        result = plugin.process(
+        result = plugin(
             self.rain_cube, self.ucube, self.vcube, self.orogenh_cube,
             attributes_dict=attributes_dict.copy())
         result[0].attributes.pop("history")
@@ -159,7 +159,7 @@ class Test_process(IrisTest):
 
     def test_time_coordinates(self):
         """Test cubelist has correct time metadata"""
-        result = self.plugin.process(
+        result = self.plugin(
             self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
         for i, cube in enumerate(result):
             # check values (and implicitly units - all seconds)
@@ -190,7 +190,7 @@ class Test_process(IrisTest):
         self.rain_cube.add_aux_coord(
             iris.coords.AuxCoord(np.array([0], dtype=np.int32),
                                  'forecast_period', 'seconds'))
-        result = self.plugin.process(
+        result = self.plugin(
             self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
         result_coords = {coord.name() for coord in result[0].coords()}
         self.assertSetEqual(result_coords, expected_coords)
@@ -198,7 +198,7 @@ class Test_process(IrisTest):
     def test_values_integer_step(self):
         """Test values for an advection speed of one grid square per time step
         over 8 time steps (9 output forecasts including T+0)"""
-        result = self.plugin.process(
+        result = self.plugin(
             self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
         for i, cube in enumerate(result):
             expected_data = np.full((8, 8), np.nan)
@@ -234,7 +234,7 @@ class Test_process(IrisTest):
 
         self.ucube.data = 0.6*self.ucube.data
         self.vcube.data = 0.6*self.vcube.data
-        result = self.plugin.process(
+        result = self.plugin(
             self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
 
         self.assertTrue(
@@ -250,7 +250,7 @@ class Test_process(IrisTest):
             275*np.ones((5, 5), dtype=np.float32), spatial_grid='equalarea')
         msg = 'air_temperature is not a precipitation rate cube'
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process(
+            self.plugin(
                 invalid_cube, self.ucube, self.vcube, self.orogenh_cube)
 
     def test_error_unsuitable_grid(self):
@@ -259,7 +259,7 @@ class Test_process(IrisTest):
             np.ones((5, 5), dtype=np.float32),
             name='rainfall_rate', units='mm/h')
         with self.assertRaises(ValueError):
-            self.plugin.process(
+            self.plugin(
                 invalid_cube, self.ucube, self.vcube, self.orogenh_cube)
 
 

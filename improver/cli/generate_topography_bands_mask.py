@@ -83,7 +83,7 @@ def process(orography: cli.inputcube,
     orography = next(orography.slices(
         [orography.coord(axis='y'), orography.coord(axis='x')]))
 
-    result = GenerateOrographyBandAncils().process(
+    result = GenerateOrographyBandAncils()(
         orography, bands_config, landmask=land_sea_mask)
     result = result.concatenate_cube()
     return result

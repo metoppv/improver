@@ -72,8 +72,8 @@ def process(orographic_enhancement: cli.inputcube,
     original_cube_list.sort(key=lambda x: x.coord("time").points[0])
 
     # subtract orographic enhancement
-    cube_list = ApplyOrographicEnhancement("subtract").process(
-            original_cube_list, orographic_enhancement)
+    cube_list = ApplyOrographicEnhancement("subtract")(
+        original_cube_list, orographic_enhancement)
 
     # calculate optical flow velocities from T-1 to T and T-2 to T-1, and
     # average to produce the velocities for use in advection

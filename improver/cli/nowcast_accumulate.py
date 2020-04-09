@@ -93,7 +93,7 @@ def process(cube: cli.inputcube,
 
     from improver.nowcasting.accumulation import Accumulation
     from improver.nowcasting.pysteps_advection import PystepsExtrapolate
-    from improver.utilities.cube_manipulation import merge_cubes
+    from improver.utilities.cube_manipulation import MergeCubes
 
     u_cube, v_cube = advection_velocity
 
@@ -102,7 +102,7 @@ def process(cube: cli.inputcube,
 
     # extrapolate input data to the maximum required lead time
     forecast_plugin = PystepsExtrapolate(ACCUMULATION_FIDELITY, max_lead_time)
-    forecast_cubes = forecast_plugin.process(
+    forecast_cubes = forecast_plugin(
         cube, u_cube, v_cube, orographic_enhancement,
         attributes_dict=attributes_config)
 
@@ -110,9 +110,10 @@ def process(cube: cli.inputcube,
                             lead_time_interval))
 
     # Accumulate high frequency rate into desired accumulation intervals.
-    result = Accumulation(
+    plugin = Accumulation(
         accumulation_units=accumulation_units,
         accumulation_period=accumulation_period * 60,
-        forecast_periods=lead_times * 60).process(forecast_cubes)
+        forecast_periods=lead_times * 60)
+    result = plugin(forecast_cubes)
 
-    return merge_cubes(result)
+    return MergeCubes()(result)

@@ -75,4 +75,4 @@ def process(*cubes: cli.inputcube,
         raise RuntimeError('Not enough input arguments. '
                            'See help for more information.')
 
-    return WeatherSymbols(wxtree=wxtree).process(CubeList(cubes))
+    return WeatherSymbols(wxtree=wxtree)(CubeList(cubes))

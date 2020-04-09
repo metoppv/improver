@@ -161,7 +161,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
             neighbourhooded_cube = NeighbourhoodProcessing(
                 self.neighbourhood_method, self.radii,
                 lead_times=self.lead_times,
-                weighted_mode=self.weighted_mode).process(cube)
+                weighted_mode=self.weighted_mode)(cube)
             neighbourhooded_cube_dict[threshold] = neighbourhooded_cube
 
         # Ignore runtime warnings from divide by 0 errors.
@@ -208,7 +208,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
                 between adjacent grid squares along x and y, respectively.
         """
         diff_along_x_cube, diff_along_y_cube = (
-            DifferenceBetweenAdjacentGridSquares().process(cube))
+            DifferenceBetweenAdjacentGridSquares()(cube))
         # Compute the absolute values of the differences to ensure that
         # negative differences are included.
         diff_along_x_cube.data = np.absolute(diff_along_x_cube.data)

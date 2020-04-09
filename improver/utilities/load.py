@@ -36,7 +36,7 @@ import glob
 import iris
 
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, merge_cubes)
+    enforce_coordinate_ordering, MergeCubes)
 
 
 @contextlib.contextmanager
@@ -114,7 +114,7 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
     if len(cubes) == 1:
         cube = cubes[0]
     else:
-        cube = merge_cubes(cubes)
+        cube = MergeCubes()(cubes)
 
     # Remove metadata prefix cube attributes
     if 'bald__isPrefixedBy' in cube.attributes.keys():

@@ -72,14 +72,14 @@ def process(cube: cli.inputcube,
             New cubes with updated time and extrapolated data.
     """
     from improver.nowcasting.pysteps_advection import PystepsExtrapolate
-    from improver.utilities.cube_manipulation import merge_cubes
+    from improver.utilities.cube_manipulation import MergeCubes
 
     u_cube, v_cube = advection_velocity
 
     # extrapolate input data to required lead times
     forecast_plugin = PystepsExtrapolate(lead_time_interval, max_lead_time)
-    forecast_cubes = forecast_plugin.process(cube, u_cube, v_cube,
-                                             orographic_enhancement,
-                                             attributes_dict=attributes_config)
+    forecast_cubes = forecast_plugin(
+        cube, u_cube, v_cube, orographic_enhancement,
+        attributes_dict=attributes_config)
 
-    return merge_cubes(forecast_cubes)
+    return MergeCubes()(forecast_cubes)

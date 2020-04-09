@@ -44,6 +44,7 @@ def process(*cubes: cli.inputcube,
     r"""Combine input cubes.
 
     Combine the input cubes into a single cube using the requested operation.
+    The first cube in the input list provides the template for output metadata.
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
@@ -70,7 +71,7 @@ def process(*cubes: cli.inputcube,
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubes[0].name()
-    result = CubeCombiner(operation, warnings_on=check_metadata).process(
+    result = CubeCombiner(operation, warnings_on=check_metadata)(
         CubeList(cubes), new_name, use_midpoint=use_midpoint)
 
     return result

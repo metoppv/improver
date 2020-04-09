@@ -33,8 +33,8 @@
 
 import warnings
 
-import iris
 import numpy as np
+import iris
 from iris.analysis import Aggregator
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
@@ -189,7 +189,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
             self._create_model_coordinates(cubelist)
 
         # merge resulting cubelist
-        result = MergeCubes().process(cubelist, check_time_bounds_ranges=True)
+        result = MergeCubes()(cubelist, check_time_bounds_ranges=True)
 
         return result
 
@@ -455,7 +455,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         if len(set(time_points)) > 1:
             msg = ("Attempting to blend data for different validity times. The"
                    " time points within the input cube are {}".format(
-                    time_points))
+                       time_points))
             raise ValueError(msg)
 
     @staticmethod

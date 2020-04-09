@@ -190,7 +190,7 @@ def process(cube: cli.inputcube,
                 intermediate_cube = result_land.copy()
             # Collapse the masking coordinate.
             result_land = CollapseMaskedNeighbourhoodCoordinate(
-                masking_coordinate, weights=weights).process(result_land)
+                masking_coordinate, weights=weights)(result_land)
         result = result_land
 
     # Section for neighbourhood processing sea points.

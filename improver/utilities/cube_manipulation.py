@@ -32,8 +32,8 @@
 
 import warnings
 
-import iris
 import numpy as np
+import iris
 from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
@@ -356,11 +356,9 @@ def concatenate_cubes(
         iris.cube.Cube:
             Concatenated cube.
     """
-    plugin = ConcatenateCubes(
+    return ConcatenateCubes(
         master_coord, coords_to_associate=coordinates_for_association,
-        coords_to_slice_over=coords_to_slice_over)
-    result = plugin.process(cubes_in)
-    return result
+        coords_to_slice_over=coords_to_slice_over)(cubes_in)
 
 
 class MergeCubes(BasePlugin):
@@ -476,22 +474,6 @@ class MergeCubes(BasePlugin):
             self._check_time_bounds_ranges(result)
 
         return result
-
-
-def merge_cubes(cubes):
-    """
-    Wrapper for MergeCubes().process()
-
-    Args:
-        cubes (iris.cube.CubeList or iris.cube.Cube):
-            Cubes to be merged.
-
-    Returns:
-        iris.cube.Cube:
-            Merged cube.
-    """
-    result = MergeCubes().process(cubes)
-    return result
 
 
 def get_filtered_attributes(cube, attribute_filter=None):
@@ -876,6 +858,9 @@ def expand_bounds(result_cube, cubelist, coord_names, use_midpoint=False):
 
         bounds = ([cube.coord(coord).bounds for cube in cubelist])
         if any(b is None for b in bounds):
+            if not all(b is None for b in bounds):
+                raise ValueError('cannot expand bounds for a mixture of '
+                                 'bounded / unbounded coordinates')
             points = ([cube.coord(coord).points for cube in cubelist])
             new_low_bound = np.min(points)
             new_top_bound = np.max(points)

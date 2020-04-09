@@ -69,4 +69,4 @@ def process(*cubes: cli.inputcube):
         raise ValueError(
             "Cubes with mismatched validity times are not compatible.")
 
-    return GenerateTimeLaggedEnsemble().process(cubes)
+    return GenerateTimeLaggedEnsemble()(cubes)

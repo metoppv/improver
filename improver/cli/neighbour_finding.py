@@ -129,7 +129,7 @@ def process(orography: cli.inputcube,
 
     from improver.spotdata.neighbour_finding import NeighbourSelection
     from improver.utilities.cube_manipulation import (
-        merge_cubes, enforce_coordinate_ordering)
+        MergeCubes, enforce_coordinate_ordering)
 
     PROJECTION_LIST = [
         'AlbersEqualArea', 'AzimuthalEquidistant', 'EuroPP', 'Geocentric',
@@ -186,16 +186,16 @@ def process(orography: cli.inputcube,
 
         all_methods = iris.cube.CubeList([])
         for method in methods:
-            all_methods.append(NeighbourSelection(**method).process(*fargs))
+            all_methods.append(NeighbourSelection(**method)(*fargs))
 
         squeezed_cubes = iris.cube.CubeList([])
         for index, cube in enumerate(all_methods):
             cube.coord('neighbour_selection_method').points = np.int32(index)
             squeezed_cubes.append(iris.util.squeeze(cube))
 
-        result = merge_cubes(squeezed_cubes)
+        result = MergeCubes()(squeezed_cubes)
     else:
-        result = NeighbourSelection(**kwargs).process(*fargs)
+        result = NeighbourSelection(**kwargs)(*fargs)
 
     enforce_coordinate_ordering(
         result,

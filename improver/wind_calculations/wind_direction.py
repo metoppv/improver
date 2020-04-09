@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing wind direction averaging plugins."""
 
-import iris
 import numpy as np
+import iris
 from iris.coords import CellMethod
 
 from improver import BasePlugin
@@ -373,7 +373,7 @@ class WindDirection(BasePlugin):
             # Performs smoothing over a 6km square neighbourhood.
             # Then calculates the mean wind direction.
             child_class = WindDirection(backup_method="first_realization")
-            child_class.wdir_complex = self.nbhood.process(
+            child_class.wdir_complex = self.nbhood(
                 wdir_cube.copy(data=self.wdir_complex)).data
             child_class.realization_axis = self.realization_axis
             child_class.wdir_slice_mean = self.wdir_slice_mean.copy()

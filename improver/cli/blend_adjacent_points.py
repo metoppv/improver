@@ -108,13 +108,13 @@ def process(*cubes: cli.inputcube,
     cubes = CubeList(cubes)
 
     if blend_time_using_forecast_period and coordinate == 'forecast_period':
-        cube = MergeCubes().process(cubes, check_time_bounds_ranges=True)
+        cube = MergeCubes()(cubes, check_time_bounds_ranges=True)
     elif blend_time_using_forecast_period:
         msg = ('"--blend-time-using-forecast-period" can only be used with '
                '"forecast_period" coordinate')
         raise ValueError(msg)
     else:
-        cube = MergeCubes().process(cubes)
+        cube = MergeCubes()(cubes)
 
     blending_plugin = TriangularWeightedBlendAcrossAdjacentPoints(
         coordinate, central_point, units, width)

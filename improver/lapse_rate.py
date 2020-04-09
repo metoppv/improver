@@ -32,12 +32,11 @@
 
 import iris
 import numpy as np
-from iris.analysis.maths import multiply
 from iris.exceptions import CoordinateNotFoundError
 from numpy.linalg import lstsq
 from scipy.ndimage import generic_filter
 
-from improver import BasePlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube, generate_mandatory_attributes)
@@ -46,76 +45,93 @@ from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering, get_dim_coord_names)
 
 
-def apply_gridded_lapse_rate(temperature, lapse_rate, source_orog, dest_orog):
-    """
-    Function to apply a lapse rate adjustment to temperature data forecast
-    at "source_orog" heights, to be applicable at "dest_orog" heights.
+class ApplyGriddedLapseRate(PostProcessingPlugin):
+    """Class to apply a lapse rate adjustment to a temperature data forecast"""
 
-    Args:
-        temperature (iris.cube.Cube):
-            Input temperature field to be adjusted
-        lapse_rate (iris.cube.Cube):
-            Cube of pre-calculated lapse rates (units modified in place), which
-            must match the temperature cube
-        source_orog (iris.cube.Cube):
-            2D cube of source orography heights (units modified in place)
-        dest_orog (iris.cube.Cube):
-            2D cube of destination orography heights (units modified in place)
+    @staticmethod
+    def _check_dim_coords(temperature, lapse_rate):
+        """Throw an error if the dimension coordinates are not the same for
+        temperature and lapse rate cubes
 
-    Returns:
-        iris.cube.Cube:
-            Lapse-rate adjusted temperature field
-    """
-    # check dimensions and coordinates match on input cubes
-    for crd in temperature.coords(dim_coords=True):
-        try:
-            if crd != lapse_rate.coord(crd.name()):
-                raise ValueError(
-                    'Lapse rate cube coordinate "{}" does not match '
-                    'temperature cube coordinate'.format(crd.name()))
-        except CoordinateNotFoundError:
-            raise ValueError('Lapse rate cube has no coordinate '
-                             '"{}"'.format(crd.name()))
+        Args:
+            temperature (iris.cube.Cube)
+            lapse_rate (iris.cube.Cube)
+        """
+        for crd in temperature.coords(dim_coords=True):
+            try:
+                if crd != lapse_rate.coord(crd.name()):
+                    raise ValueError(
+                        'Lapse rate cube coordinate "{}" does not match '
+                        'temperature cube coordinate'.format(crd.name()))
+            except CoordinateNotFoundError:
+                raise ValueError('Lapse rate cube has no coordinate '
+                                 '"{}"'.format(crd.name()))
 
-    if not spatial_coords_match(temperature, source_orog):
-        raise ValueError(
-            'Source orography spatial coordinates do not match '
-            'temperature grid')
-    if not spatial_coords_match(temperature, dest_orog):
-        raise ValueError(
-            'Destination orography spatial coordinates do not match '
-            'temperature grid')
+    def _calc_orog_diff(self, source_orog, dest_orog):
+        """Get difference in orography heights, in metres
 
-    # calculate height difference (in m) on which to adjust
-    source_orog.convert_units('m')
-    dest_orog.convert_units('m')
-    orog_diff = (
-        next(dest_orog.slices([dest_orog.coord(axis='y'),
-                               dest_orog.coord(axis='x')])) -
-        next(source_orog.slices([source_orog.coord(axis='y'),
-                                 source_orog.coord(axis='x')])))
+        Args:
+            source_orog (iris.cube.Cube):
+                2D cube of source orography heights (units modified in place)
+            dest_orog (iris.cube.Cube):
+                2D cube of destination orography heights (units modified in
+                place)
 
-    # convert lapse rate cube to K m-1
-    lapse_rate.convert_units('K m-1')
+        Returns:
+            iris.cube.Cube
+        """
+        source_orog.convert_units('m')
+        dest_orog.convert_units('m')
+        orog_diff = (next(dest_orog.slices(self.xy_coords)) -
+                     next(source_orog.slices(self.xy_coords)))
+        return orog_diff
 
-    # adjust temperatures
-    adjusted_temperature = []
-    for lrsubcube, tempsubcube in zip(
-            lapse_rate.slices([lapse_rate.coord(axis='y'),
-                               lapse_rate.coord(axis='x')]),
-            temperature.slices([temperature.coord(axis='y'),
-                                temperature.coord(axis='x')])):
+    def process(self, temperature, lapse_rate, source_orog, dest_orog):
+        """Applies lapse rate correction to temperature forecast.  All cubes'
+        units are modified in place.
 
-        # calculate temperature adjustment in K
-        adjustment = multiply(orog_diff, lrsubcube)
+        Args:
+            temperature (iris.cube.Cube):
+                Input temperature field to be adjusted
+            lapse_rate (iris.cube.Cube):
+                Cube of pre-calculated lapse rates
+            source_orog (iris.cube.Cube):
+                2D cube of source orography heights
+            dest_orog (iris.cube.Cube):
+                2D cube of destination orography heights
 
-        # apply adjustment to each spatial slice of the temperature cube
-        newcube = tempsubcube.copy()
-        newcube.convert_units('K')
-        newcube.data += adjustment.data
-        adjusted_temperature.append(newcube)
+        Returns:
+            iris.cube.Cube:
+                Lapse-rate adjusted temperature field, in Kelvin
+        """
+        lapse_rate.convert_units('K m-1')
+        self.xy_coords = [lapse_rate.coord(axis='y'),
+                          lapse_rate.coord(axis='x')]
 
-    return iris.cube.CubeList(adjusted_temperature).merge_cube()
+        self._check_dim_coords(temperature, lapse_rate)
+
+        if not spatial_coords_match(temperature, source_orog):
+            raise ValueError(
+                'Source orography spatial coordinates do not match '
+                'temperature grid')
+
+        if not spatial_coords_match(temperature, dest_orog):
+            raise ValueError(
+                'Destination orography spatial coordinates do not match '
+                'temperature grid')
+
+        orog_diff = self._calc_orog_diff(source_orog, dest_orog)
+
+        adjusted_temperature = []
+        for lr_slice, t_slice in zip(
+                lapse_rate.slices(self.xy_coords),
+                temperature.slices(self.xy_coords)):
+            newcube = t_slice.copy()
+            newcube.convert_units('K')
+            newcube.data += np.multiply(orog_diff.data, lr_slice.data)
+            adjusted_temperature.append(newcube)
+
+        return iris.cube.CubeList(adjusted_temperature).merge_cube()
 
 
 class SaveNeighbourhood:

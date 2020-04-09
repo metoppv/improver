@@ -149,10 +149,9 @@ def process(neighbour_cube: cli.inputcube,
     neighbour_selection_method = NeighbourSelection(
         land_constraint=land_constraint,
         minimum_dz=similar_altitude).neighbour_finding_method_name()
-    plugin = SpotExtraction(
-        neighbour_selection_method=neighbour_selection_method)
-    result = plugin.process(neighbour_cube, cube,
-                            new_title=new_title)
+    result = SpotExtraction(
+        neighbour_selection_method=neighbour_selection_method)(
+            neighbour_cube, cube, new_title=new_title)
 
     # If a probability or percentile diagnostic cube is provided, extract
     # the given percentile if available. This is done after the spot-extraction
@@ -165,15 +164,14 @@ def process(neighbour_cube: cli.inputcube,
         except CoordinateNotFoundError:
             if 'probability_of_' in result.name():
                 result = ConvertProbabilitiesToPercentiles(
-                    ecc_bounds_warning=ignore_ecc_bounds).process(
-                    result, percentiles=extract_percentiles)
+                    ecc_bounds_warning=ignore_ecc_bounds)(
+                        result, percentiles=extract_percentiles)
                 result = iris.util.squeeze(result)
             elif result.coords('realization', dim_coords=True):
                 fast_percentile_method = not np.ma.isMaskedArray(result.data)
                 result = PercentileConverter(
                     'realization', percentiles=extract_percentiles,
-                    fast_percentile_method=fast_percentile_method).process(
-                    result)
+                    fast_percentile_method=fast_percentile_method)(result)
             else:
                 msg = ('Diagnostic cube is not a known probabilistic type. '
                        'The {} percentile could not be extracted. Extracting '
