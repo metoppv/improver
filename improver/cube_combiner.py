@@ -136,7 +136,21 @@ class CubeCombiner(BasePlugin):
     def process(self, cube_list, new_diagnostic_name, use_midpoint=False):
         """
         Combine data and metadata from a list of input cubes into a single
-        cube, using the specified operation to combine the cube data.
+        cube, using the specified operation to combine the cube data.  The
+        first cube in the input list provides the template for the combined
+        cube metadata.
+
+        NOTE the behaviour for the "multiply" operation is different from
+        other types of cube combination.  The only valid use case for
+        "multiply" is to apply a factor that conditions an input probability
+        field - that is, to apply Bayes Theorem.  The input probability is
+        therefore used as the source of ALL input metadata, and should always
+        be the first cube in the input list.  The factor(s) by which this is
+        multiplied are not compared for any mis-match in scalar coordinates,
+        neither do they to contribute to expanded bounds.
+
+        TODO the "multiply" case should be factored out into a separate plugin
+        given its substantial differences from other combine use cases.
 
         Args:
             cube_list (iris.cube.CubeList or list):
@@ -170,11 +184,14 @@ class CubeCombiner(BasePlugin):
         if self.operation == 'mean':
             result.data = result.data / len(cube_list)
 
-        # update any coordinates that have been expanded, and rename output
-        expanded_coord_names = self._get_expanded_coord_names(cube_list)
-        if expanded_coord_names:
-            result = expand_bounds(result, cube_list, expanded_coord_names,
-                                   use_midpoint=use_midpoint)
+        # where the operation is "multiply", retain all coordinate metadata
+        # from the first cube in the list; otherwise expand coordinate bounds
+        if self.operation != 'multiply':
+            expanded_coord_names = self._get_expanded_coord_names(cube_list)
+            if expanded_coord_names:
+                result = expand_bounds(result, cube_list, expanded_coord_names,
+                                       use_midpoint=use_midpoint)
+
         result.rename(new_diagnostic_name)
 
         return result

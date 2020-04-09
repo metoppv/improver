@@ -39,7 +39,8 @@ from iris.tests import IrisTest
 
 from improver.cube_combiner import CubeCombiner
 
-from ..set_up_test_cubes import set_up_probability_cube
+from ..set_up_test_cubes import (
+    set_up_probability_cube, set_up_variable_cube)
 
 
 class Test__init__(IrisTest):
@@ -237,6 +238,29 @@ class Test_process(CombinerTest):
         cubelist = iris.cube.CubeList([self.cube1])
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cubelist, 'new_cube_name')
+
+    def test_multiply_preserves_bounds(self):
+        """Test specific case for precipitation type, where multiplying a
+        precipitation accumulation by a point-time probability of snow retains
+        the bounds on the original accumulation."""
+        validity_time = datetime(2015, 11, 19, 0)
+        time_bounds = [datetime(2015, 11, 18, 23),
+                       datetime(2015, 11, 19, 0)]
+        forecast_reference_time = datetime(2015, 11, 18, 22)
+        precip_accum = set_up_variable_cube(
+            np.full((2, 3, 3), 1.5, dtype=np.float32),
+            name="lwe_thickness_of_precipitation_amount", units='mm',
+            time=validity_time, time_bounds=time_bounds,
+            frt=forecast_reference_time)
+        snow_prob = set_up_variable_cube(
+            np.full(precip_accum.shape, 0.2, dtype=np.float32),
+            name='probability_of_snow', units='1', time=validity_time,
+            frt=forecast_reference_time)
+        plugin = CubeCombiner('multiply')
+        result = plugin.process([precip_accum, snow_prob],
+                                'lwe_thickness_of_snowfall_amount')
+        self.assertArrayAlmostEqual(result.data, np.full((2, 3, 3), 0.3))
+        self.assertArrayEqual(result.coord("time"), precip_accum.coord("time"))
 
 
 if __name__ == '__main__':

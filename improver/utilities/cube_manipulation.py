@@ -858,6 +858,9 @@ def expand_bounds(result_cube, cubelist, coord_names, use_midpoint=False):
 
         bounds = ([cube.coord(coord).bounds for cube in cubelist])
         if any(b is None for b in bounds):
+            if not all(b is None for b in bounds):
+                raise ValueError('cannot expand bounds for a mixture of '
+                                 'bounded / unbounded coordinates')
             points = ([cube.coord(coord).points for cube in cubelist])
             new_low_bound = np.min(points)
             new_top_bound = np.max(points)

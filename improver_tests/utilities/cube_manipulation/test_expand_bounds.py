@@ -178,6 +178,15 @@ class Test_expand_bounds(IrisTest):
             expand_bounds(
                 self.cubelist[0], self.cubelist, ['latitude'])
 
+    def test_error_remove_bounds(self):
+        """Test the expand_bounds function fails if its effect would be
+        to remove bounds from a bounded coordinate, ie if a mixture of
+        bounded and unbounded coordinates are input"""
+        self.cubelist[1].coord("time").bounds = None
+        msg = 'cannot expand bounds for a mixture of bounded / unbounded'
+        with self.assertRaisesRegex(ValueError, msg):
+            expand_bounds(self.cubelist[0], self.cubelist, ['time'])
+
 
 if __name__ == '__main__':
     unittest.main()
