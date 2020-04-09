@@ -223,9 +223,7 @@ class DayNightMask(BasePlugin):
         daynight_mask = next(cube.slices([cube.coord('time'),
                                           cube.coord(axis='y'),
                                           cube.coord(axis='x')])).copy()
-        daynight_mask.long_name = 'day_night_mask'
-        daynight_mask.standard_name = None
-        daynight_mask.var_name = None
+        daynight_mask.rename('day_night_mask')
         daynight_mask.units = unit.Unit('1')
         daynight_mask.data = np.ones(daynight_mask.data.shape,
                                      dtype='int')*self.night

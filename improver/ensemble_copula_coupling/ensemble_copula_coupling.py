@@ -110,7 +110,6 @@ class RebadgePercentilesAsRealizations(BasePlugin):
         cube.coord("realization").units = "1"
         cube.coord("realization").points = (
             cube.coord("realization").points.astype(np.int32))
-        cube.coord("realization").var_name = "realization"
 
         return cube
 
