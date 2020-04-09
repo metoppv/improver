@@ -248,7 +248,6 @@ class test_set_up_variable_cube(IrisTest):
         self.assertEqual(result.coord_dims("realization"), (0,))
         self.assertArrayEqual(
             result.coord("realization").points, np.array([0, 1, 2]))
-        self.assertEqual(result.coord("realization").var_name, "realization")
         self.assertEqual(result.coord_dims("latitude"), (1,))
         self.assertEqual(result.coord_dims("longitude"), (2,))
 
@@ -310,7 +309,6 @@ class test_set_up_percentile_cube(IrisTest):
         and metadata"""
         result = set_up_percentile_cube(self.data, self.percentiles)
         perc_coord = result.coord("percentile")
-        self.assertEqual(perc_coord.var_name, "percentile")
         self.assertArrayEqual(perc_coord.points, self.percentiles)
         self.assertEqual(perc_coord.units, "%")
         check_mandatory_standards(result)

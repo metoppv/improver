@@ -124,14 +124,13 @@ def strip_var_names(cubes):
     Returns:
         iris.cube.CubeList
     """
-    retain_var_names = ["threshold", "percentile", "realization"]
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])
     for cube in cubes:
         cube.var_name = None
         for coord in cube.coords():
             # retain var name required for threshold coordinate
-            if coord.var_name not in retain_var_names:
+            if coord.var_name != "threshold":
                 coord.var_name = None
     return cubes
 
