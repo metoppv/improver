@@ -65,7 +65,9 @@ def iris_nimrod_patcher():
 
 def load_cube(filepath, constraints=None, no_lazy_load=False,
               allow_none=False):
-    """Load the filepath provided using Iris into a cube.
+    """Load the filepath provided using Iris into a cube.  Strips off all
+    var names except for "threshold"-type coordinates, where this is different
+    from the standard or long name.
 
     Args:
         filepath (str or list):

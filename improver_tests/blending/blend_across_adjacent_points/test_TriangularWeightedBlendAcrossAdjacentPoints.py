@@ -230,7 +230,6 @@ class Test_process(IrisTest):
         expected_cube = self.cube[0].copy(data.astype(np.float32))
 
         # Add height axis to expected output cube.
-        changes = {'points': [0.5], 'units': '1', 'var_name': 'threshold'}
         expected_cube = add_coordinate(
             expected_cube, [0.5], "height", coord_units="m")
 

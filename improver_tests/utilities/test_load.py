@@ -229,6 +229,25 @@ class Test_load_cube(IrisTest):
         with self.assertRaises(TypeError):
             load_cube(None)
 
+    def test_var_names_removed(self):
+        """Test a cube with an unnecessary coordinate var name does not have
+        this on load"""
+        self.cube.coord("realization").var_name = "realization"
+        os.remove(self.filepath)
+        save_netcdf(self.cube, self.filepath)
+        result = load_cube(self.filepath)
+        self.assertIsNone(result.coord("realization").var_name)
+
+    def test_threshold_var_name_retained(self):
+        """Test necessary coordinate var name is retained"""
+        cube = set_up_probability_cube(
+            np.ones((3, 3, 3), dtype=np.float32),
+            np.array([285, 286, 287], dtype=np.float32))
+        os.remove(self.filepath)
+        save_netcdf(cube, self.filepath)
+        result = load_cube(self.filepath)
+        self.assertEqual(cube.coord("air_temperature").var_name, "threshold")
+
 
 class Test_load_cubelist(IrisTest):
 
