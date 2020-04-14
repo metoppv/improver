@@ -846,6 +846,15 @@ class Test_process(Test_WXCode):
         result = plugin.process(cubes)
         self.assertArrayEqual(result.data, self.expected_wxcode_alternate)
 
+    def test_null(self):
+        """Test that unset values raise an error"""
+        plugin = WeatherSymbols()
+        plugin.queries[plugin.start_node]["fail"] = None
+        expected_error = "Output weather_code cube contains invalid weather" \
+                         " codes"
+        with self.assertRaisesRegex(ValueError, expected_error):
+            plugin.process(self.cubes)
+
 
 if __name__ == '__main__':
     unittest.main()
