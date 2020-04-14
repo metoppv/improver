@@ -668,6 +668,7 @@ class Test_create_symbol_cube(IrisTest):
         self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
         self.assertEqual(result.attributes['weather_code_meaning'],
                          self.wxmeaning)
+        self.assertTrue((result.data == -1).all())
 
     def test_removes_bounds(self):
         """Test bounds are removed from time and forecast period coordinate"""

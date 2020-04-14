@@ -550,7 +550,8 @@ class WeatherSymbols(BasePlugin):
         Returns:
             iris.cube.Cube:
                 A cube with suitable metadata to describe the weather symbols
-                that will fill it
+                that will fill it and data initiated with the value -1 to allow
+                any unset points to be readily identified.
         """
         threshold_coord = find_threshold_coordinate(cubes[0])
         template_cube = next(cubes[0].slices_over([threshold_coord])).copy()
@@ -563,7 +564,8 @@ class WeatherSymbols(BasePlugin):
         attributes = generate_mandatory_attributes(cubes)
         symbols = create_new_diagnostic_cube(
             "weather_code", "1", template_cube, attributes,
-            optional_attributes=weather_code_attributes(), dtype=np.int32)
+            optional_attributes=weather_code_attributes(),
+            data=np.ones_like(template_cube.data, dtype=np.int32) * -1)
         return symbols
 
     @staticmethod
