@@ -246,7 +246,7 @@ class Test_load_cube(IrisTest):
         os.remove(self.filepath)
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
-        self.assertEqual(cube.coord("air_temperature").var_name, "threshold")
+        self.assertEqual(result.coord("air_temperature").var_name, "threshold")
 
 
 class Test_load_cubelist(IrisTest):
