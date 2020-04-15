@@ -360,7 +360,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         unmasked_cube_data = cube.data.copy()
         if np.ma.is_masked(cube.data):
             unmasked_cube_data = cube.data.data.copy()
-            unmasked_cube_data[cube.data.mask] = np.nan
+            unmasked_cube_data[cube.data.mask] = -np.inf
         # The following command finds the maximum value for each grid point
         # from within a square of length "size"
         max_data = maximum_filter(unmasked_cube_data, size=grid_cells)
