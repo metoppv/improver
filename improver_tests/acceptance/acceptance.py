@@ -184,7 +184,8 @@ def compare(output_path, kgo_path, recreate=True,
         None
     """
     # don't show this function in pytest tracebacks
-    __tracebackhide__ = True  # pylint: disable=unused-variable
+    # pylint: disable=unused-variable
+    __tracebackhide__ = True
     assert output_path.is_absolute()
     assert kgo_path.is_absolute()
     if not isinstance(atol, (int, float)):

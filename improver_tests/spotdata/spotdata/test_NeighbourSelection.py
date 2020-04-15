@@ -505,9 +505,8 @@ class Test_build_KDTree(Test_NeighbourSelection):
         expected_length = (self.region_land_mask.shape[0] *
                            self.region_land_mask.shape[1])
 
-        self.assertEqual(
-            result_nodes.shape[0],  # pylint: disable=unsubscriptable-object
-            expected_length)
+        # pylint: disable=unsubscriptable-object
+        self.assertEqual(result_nodes.shape[0], expected_length)
         self.assertIsInstance(result, scipy.spatial.ckdtree.cKDTree)
 
     def test_only_land(self):
@@ -519,9 +518,8 @@ class Test_build_KDTree(Test_NeighbourSelection):
         result, result_nodes = plugin.build_KDTree(self.region_land_mask)
         expected_length = np.nonzero(self.region_land_mask.data)[0].shape[0]
 
-        self.assertEqual(
-            result_nodes.shape[0],  # pylint: disable=unsubscriptable-object
-            expected_length)
+        # pylint: disable=unsubscriptable-object
+        self.assertEqual(result_nodes.shape[0], expected_length)
         self.assertIsInstance(result, scipy.spatial.ckdtree.cKDTree)
 
 
