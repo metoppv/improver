@@ -532,12 +532,12 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             [x / 100.0 for x in percentiles], dtype=np.float32
         )
 
+        # pylint: disable=unsubscriptable-object
         forecast_at_percentiles = np.empty(
             (len(percentiles), probabilities_for_cdf.shape[0]), dtype=np.float32
-        )  # pylint: disable=unsubscriptable-object
-        for index in range(
-            probabilities_for_cdf.shape[0]
-        ):  # pylint: disable=unsubscriptable-object
+        )
+        # pylint: disable=unsubscriptable-object
+        for index in range(probabilities_for_cdf.shape[0]):
             forecast_at_percentiles[:, index] = np.interp(
                 percentiles_as_fractions,
                 probabilities_for_cdf[index, :],
@@ -1080,9 +1080,10 @@ class ConvertLocationAndScaleParametersToProbabilities(
             probability_method = distribution.sf
 
         for index, threshold in enumerate(thresholds):
+            # pylint: disable=unsubscriptable-object
             probabilities[index, ...] = np.reshape(
                 probability_method(threshold), probabilities.shape[1:]
-            )  # pylint: disable=unsubscriptable-object
+            )
 
         probability_cube = probability_cube_template.copy(data=probabilities)
         # Make the mask defined above fit the data size and then apply to the

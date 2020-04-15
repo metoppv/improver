@@ -442,12 +442,14 @@ class RoughnessCorrectionUtilities:
         elif h_in.ndim == 1:
             hup = h_in[upidx].flatten()
             hlow = h_in[loidx].flatten()
+        # pylint: disable=unsubscriptable-object
         uup = u_in.take(
             upidx.flatten() + np.arange(0, upidx.size * u_in.shape[2], u_in.shape[2])
-        )  # pylint: disable=unsubscriptable-object
+        )
+        # pylint: disable=unsubscriptable-object
         ulow = u_in.take(
             loidx.flatten() + np.arange(0, loidx.size * u_in.shape[2], u_in.shape[2])
-        )  # pylint: disable=unsubscriptable-object
+        )
         mask = mask.flatten()
         uath = np.full(mask.shape, RMDI, dtype=np.float32)
         if dolog:
