@@ -47,7 +47,7 @@ from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
 
-from improver import BasePlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
     check_predictor, convert_cube_data_to_2d,
     flatten_ignoring_masked_data, filter_non_matching_cubes,
@@ -1108,7 +1108,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         return location_parameter_cube, scale_parameter_cube
 
 
-class ApplyEMOS(BasePlugin):  # TODO change to PostProcessingPlugin later
+class ApplyEMOS(PostProcessingPlugin):
     """
     Class to calibrate an input forecast given EMOS coefficients
     """
