@@ -37,6 +37,7 @@ from improver.wxcode.wxcode_decision_tree import (
 from improver.wxcode.wxcode_decision_tree_global import (
     START_NODE_GLOBAL, wxcode_decision_tree_global)
 from improver.wxcode.weather_symbols import WeatherSymbols
+from improver.wxcode.utilities import WX_DICT
 from . import check_diagnostic_lists_consistency
 
 TREE_NAMES = ['high_resolution', 'global']
@@ -139,14 +140,14 @@ def test_diagnostic_condition(tree_name):
 @pytest.mark.parametrize('tree_name', TREE_NAMES)
 def test_node_points_to_valid_value(tree_name):
     """Test that succeed and fail point to valid values or nodes."""
+    valid_codes = list(WX_DICT.keys())
     tree = TREES[tree_name]
     for node in tree:
-        succeed = tree[node]['succeed']
-        if isinstance(succeed, str):
-            assert succeed in tree.keys()
-        fail = tree[node]['fail']
-        if isinstance(fail, str):
-            assert fail in tree
+        for value in tree[node]['succeed'], tree[node]['fail']:
+            if isinstance(value, str):
+                assert value in tree.keys()
+            else:
+                assert value in valid_codes
 
 
 @pytest.mark.parametrize('tree_name', TREE_NAMES)

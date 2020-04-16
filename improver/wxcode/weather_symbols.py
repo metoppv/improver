@@ -568,25 +568,6 @@ class WeatherSymbols(BasePlugin):
             data=np.ones_like(template_cube.data, dtype=np.int32) * -1)
         return symbols
 
-    @staticmethod
-    def check_all_valid(cube):
-        """
-        Checks all data points match a valid symbol and raises an error if
-        any do not.
-
-        Args:
-            cube:
-                Weather symbols cube to be checked.
-
-        Raises:
-            ValueError:
-                If any cube.data are not in
-                cube.attributes['weather_code']
-        """
-        if not np.isin(cube.data, cube.attributes['weather_code']).all():
-            raise ValueError(f"Output {cube.name()} cube contains invalid "
-                             "weather codes")
-
     def process(self, cubes):
         """Apply the decision tree to the input cubes to produce weather
         symbol output.
@@ -599,11 +580,6 @@ class WeatherSymbols(BasePlugin):
         Returns:
             iris.cube.Cube:
                 A cube of weather symbols.
-
-        Raises:
-            ValueError:
-                If any cube.data are not in the list of valid codes in
-                cube.attributes['weather_code']
         """
         # Check input cubes contain required data
         optional_node_data_missing = self.check_input_cubes(cubes)
@@ -656,5 +632,4 @@ class WeatherSymbols(BasePlugin):
                 symbols.data[np.where(eval(test_chain))] = symbol_code
         # Update symbols for day or night.
         symbols = update_daynight(symbols)
-        self.check_all_valid(symbols)
         return symbols
