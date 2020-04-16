@@ -448,7 +448,6 @@ class Test_create_condition_chain(IrisTest):
         plugin = WeatherSymbols()
         test_condition = query['rain_or_snow']
         result = plugin.create_condition_chain(test_condition)
-        print(result)
         expected = ("(( cubes.extract(iris.Constraint(name='probability_of_"
                     "lwe_sleetfall_rate_above_threshold', lwe_sleetfall_rate="
                     "lambda cell: 0.1 * {t_min} < cell < 0.1 * {t_max})"

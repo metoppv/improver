@@ -38,7 +38,7 @@ def wxcode_decision_tree_global():
     """
     Define queries that comprise the weather symbol decision tree.
 
-    Each queries contains the following elements:
+    Each query contains the following elements:
         * succeed: The next query to call if the diagnostic being queried
               satisfies the current query.
         * fail: The next query to call if the diagnostic being queried
@@ -55,7 +55,10 @@ def wxcode_decision_tree_global():
         * diagnostics_fields: The diagnostics which are being used in the
               query. If this is a list of lists, the fields are manipulated
               according to the operators in the list and then compared
-              with the probability threshold.
+              with the probability threshold. In some cases, a factor of 0.7 is
+              applied to one field to allow an asymmetric condition to be
+              tested allowing priority to be given to a more significant symbol
+              such as snow vs rain.
         * diagnostic_thresholds: The thresholding that is expected to have
               been applied to the input data; this is used to extract the
               appropriate data from the input cubes.
