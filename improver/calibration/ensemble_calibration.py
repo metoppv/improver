@@ -50,13 +50,23 @@ from scipy.stats import norm
 from improver import BasePlugin
 from improver.calibration.utilities import (
     check_predictor, convert_cube_data_to_2d,
-    flatten_ignoring_masked_data, filter_non_matching_cubes)
+    flatten_ignoring_masked_data, filter_non_matching_cubes,
+    merge_land_and_sea)
+from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import time_coords_match
 from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
                                                   collapsed)
 from improver.utilities.temporal import (
     cycletime_to_datetime, datetime_to_iris_time)
+
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        EnsembleReordering,
+        ConvertLocationAndScaleParametersToPercentiles,
+        ConvertLocationAndScaleParametersToProbabilities,
+        ConvertProbabilitiesToPercentiles,
+        RebadgePercentilesAsRealizations,
+        ResamplePercentiles)
 
 
 class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
@@ -838,17 +848,17 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         return coefficients_cube
 
 
-class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
+class CalibratedForecastDistributionParameters(BasePlugin):
     """
-    Class to apply the optimised EMOS coefficients to the current forecast.
-
+    Class to calculate calibrated forecast distribution parameters given an
+    uncalibrated input forecast and EMOS coefficients.
     """
     def __init__(self, predictor="mean"):
         """
         Create a plugin that uses the coefficients created using EMOS from
         historical forecasts and corresponding truths and applies these
-        coefficients to the current forecast to generate a location and scale
-        parameter that represents the calibrated distribution.
+        coefficients to the current forecast to generate location and scale
+        parameters that represent the calibrated distribution at each point.
 
         Args:
             predictor (str):
@@ -863,7 +873,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ApplyCoefficientsFromEnsembleCalibration: predictor: {}>')
+        result = ('<CalibratedForecastDistributionParameters: predictor: {}>')
         return result.format(self.predictor)
 
     def _spatial_domain_match(self):
@@ -1096,3 +1106,174 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 flip_mask, location_parameter_cube.data)
 
         return location_parameter_cube, scale_parameter_cube
+
+
+class ApplyEMOS(BasePlugin):  # TODO change to PostProcessingPlugin later
+    """
+    Class to calibrate an input forecast given EMOS coefficients
+    """
+
+    @staticmethod
+    def _get_forecast_type(forecast):
+        """Identifies whether the forecast is in probability, realization
+        or percentile space
+
+        Args:
+            forecast (iris.cube.Cube)
+        """
+        try:
+            find_percentile_coordinate(forecast)
+        except CoordinateNotFoundError:
+            if forecast.name().startswith("probability_of"):
+                return "probabilities"
+            return "realizations"
+        return "percentiles"
+
+    def _convert_to_realizations(self, forecast, realizations_count,
+                                 ignore_ecc_bounds):
+        """Convert an input forecast of probabilities or percentiles into
+        pseudo-realizations
+
+        Args:
+            forecast (iris.cube.Cube)
+            realizations_count (int):
+                Number of pseudo-realizations to generate from the input
+                forecast
+            ignore_ecc_bounds (bool)
+        """
+        if not realizations_count:
+            raise ValueError(
+                "The 'realizations_count' argument must be defined "
+                "for forecasts provided as {}".format(self.forecast_type))
+
+        if self.forecast_type == "probabilities":
+            conversion_plugin = ConvertProbabilitiesToPercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds)
+        if self.forecast_type == "percentiles":
+            conversion_plugin = ResamplePercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds)
+
+        forecast_as_percentiles = conversion_plugin(
+            forecast, no_of_percentiles=realizations_count)
+        forecast_as_realizations = RebadgePercentilesAsRealizations()(
+            forecast_as_percentiles)
+
+        return forecast_as_realizations
+
+    def _calibrate_forecast(self, forecast, randomise, random_seed):
+        """
+        Generate calibrated probability, percentile or realization output
+
+        Args:
+            forecast (iris.cube.Cube):
+                Uncalibrated input forecast
+            randomise (bool):
+                If True, order realization output randomly rather than using
+                the input forecast.  If forecast type is not realizations, this
+                is ignored.
+            random_seed (int):
+                For realizations input if randomise is True, random seed for
+                generating re-ordered percentiles.  If randomise is False, the
+                random seed may still be used for splitting ties.
+
+        Returns:
+            iris.cube.Cube:
+                Calibrated forecast
+        """
+        if self.forecast_type == "probabilities":
+            conversion_plugin = \
+                ConvertLocationAndScaleParametersToProbabilities(
+                    distribution=self.distribution["name"],
+                    shape_parameters=self.distribution["shape"])
+            result = conversion_plugin(
+                self.distribution["location"], self.distribution["scale"],
+                forecast)
+
+        else:
+            conversion_plugin = ConvertLocationAndScaleParametersToPercentiles(
+                distribution=self.distribution["name"],
+                shape_parameters=self.distribution["shape"])
+
+            if self.forecast_type == "percentiles":
+                perc_coord = find_percentile_coordinate(forecast)
+                result = conversion_plugin(
+                    self.distribution["location"], self.distribution["scale"],
+                    forecast, percentiles=perc_coord.points)
+            else:
+                no_of_percentiles = len(forecast.coord('realization').points)
+                percentiles = conversion_plugin(
+                    self.distribution["location"], self.distribution["scale"],
+                    forecast, no_of_percentiles=no_of_percentiles)
+                result = EnsembleReordering().process(
+                    percentiles, forecast, random_ordering=randomise,
+                    random_seed=random_seed)
+
+        return result
+
+    def process(self, forecast, coefficients, land_sea_mask=None,
+                realizations_count=None, ignore_ecc_bounds=True,
+                predictor='mean', distribution='norm', shape_parameters=None,
+                randomise=False, random_seed=None):
+        """Calibrate input forecast using pre-calculated coefficients
+
+        Args:
+            forecast (iris.cube.Cube):
+                Uncalibrated forecast as probabilities, percentiles or
+                realizations
+            coefficients (iris.cube.Cube):
+                EMOS coefficients
+            land_sea_mask (iris.cube.Cube or None):
+                Land sea mask where a value of "1" represents land points and
+                "0" represents sea.  If set, allows calibration of land points
+                only.
+            realizations_count (int or None):
+                Number of realizations to use when generating the intermediate
+                calibrated forecast from probability or percentile inputs
+            ignore_ecc_bounds (bool):
+                If True, allow percentiles from probabilities to exceed the ECC
+                bounds range.  If input is not probabilities, this is ignored.
+            predictor (str):
+                Predictor to be used to calculate the location parameter of the
+                calibrated distribution.  Value is "mean" or "realizations".
+            distribution (str):
+                Expected forecast distribution
+            shape_parameters (list of float or None):
+                Fixed shape parameters if the forecast distribution is
+                non-Gaussian
+            randomise (bool):
+                Used in generating calibrated realizations.  If input forecast
+                is probabilities or percentiles, this is ignored.
+            random_seed (int or None):
+                Used in generating calibrated realizations.  If input forecast
+                is probabilities or percentiles, this is ignored.
+
+        Returns:
+            iris.cube.Cube:
+                Calibrated forecast in the form of the input (ie probabilities
+                percentiles or realizations)
+        """
+        self.forecast_type = self._get_forecast_type(forecast)
+
+        forecast_as_realizations = forecast.copy()
+        if self.forecast_type != "realizations":
+            forecast_as_realizations = self._convert_to_realizations(
+                forecast.copy(), realizations_count, ignore_ecc_bounds)
+
+        calibration_plugin = CalibratedForecastDistributionParameters(
+            predictor=predictor)
+        location_parameter, scale_parameter = calibration_plugin(
+            forecast_as_realizations, coefficients, landsea_mask=land_sea_mask)
+
+        self.distribution = {
+            "name": distribution,
+            "location": location_parameter,
+            "scale": scale_parameter,
+            "shape": shape_parameters}
+
+        result = self._calibrate_forecast(forecast, randomise, random_seed)
+
+        if land_sea_mask:
+            # fill in masked sea points with uncalibrated data
+            merge_land_and_sea(result, forecast)
+
+        return result

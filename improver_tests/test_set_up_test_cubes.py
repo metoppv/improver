@@ -207,7 +207,7 @@ class test_set_up_variable_cube(IrisTest):
         result = set_up_variable_cube(self.data, name="temp_in_the_air")
         self.assertEqual(result.name(), "temp_in_the_air")
 
-    def test_var_name(self):
+    def test_name_and_units(self):
         """Test ability to set data name and units"""
         result = set_up_variable_cube(
             self.data-273.15, name='wet_bulb_temperature', units='degC')
