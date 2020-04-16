@@ -228,16 +228,6 @@ class Test_load_cube(IrisTest):
         result = load_cube(self.filepath)
         self.assertTrue(result.has_lazy_data())
 
-    def test_none_file_with_allow_none(self):
-        """Test that with None as filepath and allow_none, it returns None."""
-        self.assertIsNone(load_cube(None, allow_none=True))
-
-    def test_none_file_without_allow_none(self):
-        """Test that with None as filepath and without allow_none,
-         it raises a TypeError."""
-        with self.assertRaises(TypeError):
-            load_cube(None)
-
     def test_var_names_removed(self):
         """Test a cube with an unnecessary coordinate var name does not have
         this on load"""
