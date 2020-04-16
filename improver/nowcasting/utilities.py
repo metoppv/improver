@@ -97,85 +97,96 @@ class ExtendRadarMask(BasePlugin):
 
 
 class FillRadarHoles(BasePlugin):
-    """Interpolate small "no data" regions in the vicinity of individual radars
+    """Interpolate small "no data" regions in the radar composite domain
     """
-
-    def __init__(self):
-        """Initialise plugin"""
-        self.radar_lookup = None
-        self.radius_m = 10000
-
-    def _create_radar_grid_lookup(self, x_coord, y_coord):
-        """Generate a lookup table of radar locations as x,y coordinates
-        on the composite grid
-
-        Args:
-            x_coord (iris.coords.DimCoord):
-                X-axis coordinate of the input radar cube
-            y_coord (iris.coords.DimCoord):
-                Y-axis coordinate of the input radar cube
-        """
-        # 1) read in lookup table
-        #   (TODO write lookup table containing names & lat/lon)
-
-        # 2) generate list of x, y grid point locations for each radar
-        pass
 
     @staticmethod
     def _rr_to_log_rr(data):
-        """Convert rainrates in mm/h into log space
+        """Convert rainrates in mm/h into log space.  This does not preserve
+        values below 0.001; however, since the radar encodes trace rain rates
+        with a value of 0.03 mm/h, this should not have any effect on "real"
+        data.
 
         Args:
-            data (np.ndarray)
+            data (np.ma.MaskedArray)
+
+        Returns:
+            np.ma.MaskedArray
         """
         min_rr_mmh = 0.001
-        return np.where(data > min_rr_mmh, np.log10(data), np.nan)
+        result = np.where(data > min_rr_mmh, np.log10(data), np.nan)
+        return np.ma.MaskedArray(result, mask=data.mask)
 
     @staticmethod
     def _log_rr_to_rr(data):
         """Convert log rainrate into mm/h
 
         Args:
-            data (np.ndarray)
+            data (np.ma.MaskedArray)
         """
-        return np.where(np.isfinite(data), np.power(10, data), 0.)
+        result = np.where(np.isfinite(data), np.power(10, data), 0.)
+        return np.ma.MaskedArray(result, mask=data.mask)
 
     @staticmethod
-    def _interpolate_points(data):
-        """Linearly interpolate data to masked points"""
-        pass  # TODO
+    def _find_speckle(mask):
+        """Flag pixels that are masked but a certain proportion of their
+        neighbours contain valid data.  The constants "pmasked" and "radius"
+        have been empirically tuned for UK radar data.  With the constants
+        as set, this method will flag "holes" of up to 24 pixels in size.
 
-    def _fill_radar_holes(self, masked_radar, radius):
+        Args:
+            mask (np.ndarray):
+                Mask array in which masked points evaluate as "True".  Array
+                may be boolean (True / False) or integer (1 / 0).
+
+        Returns:
+            np.ndarray:
+                Array in which isolated masked points ("speckle") have a value
+                of 1
+        """
+        # minimum proportion of masked neighbours, below which a pixel is
+        # "speckle"
+        pmasked = 0.3
+        # radius of neighbourhood over which to search for masked neighbours
+        r = 4
+        # populate "speckle" array
+        speckle = np.full_like(mask, 0, dtype=np.int32)
+        for y in range(r, mask.shape[0]-r-1, 1):
+            for x in range(r, mask.shape[1]-r-1, 1):
+                if mask[y, x]:
+                    nbhood = np.mean(mask[y-r:y+r+1, x-r:x+r+1])
+                    if nbhood < pmasked:
+                        speckle[y, x] = 1
+        return speckle
+
+    @staticmethod
+    def _interpolate_points(data, speckle):
+        """Interpolate data to "speckle" points from a 5x5 neighbourhood.  This
+        neighbourhood size has been tuned to match the constants used in
+        identifying "speckle"."""
+        new_data = data.copy()
+        r = 2
+        for y in range(nr, data.shape[0]-r-1, 1):
+            for x in range(nr, data.shape[1]-r-1, 1):
+                if speckle[y, x]:
+                    surroundings = data[y-nr:y+r+1, x-nr:x+r+1]
+                    valid_surroundings = surroundings[
+                        np.where(~surroundings.mask)]
+                    new_data[y, x] = np.mean(valid_surroundings)
+                    new_data.mask[y, x] = False
+        return new_data
+
+    def _fill_radar_holes(self, masked_radar):
         """Interpolate holes near individual radars.  Modifies array in place.
 
         Args:
             masked_radar (numpy.ndarray):
-                Data to interpolate
-            radius (int):
-                Radius in grid cells around each radar location to search
-                for missing points
+                Precipitation rate data in mm/h to be interpolated
         """
-        for (x, y) in self.radar_lookup:
-            xmin = x - radius
-            xmax = x + radius + 1
-            ymin = y - radius
-            ymax = y + radius + 1
-
-            search_region = masked_radar[ymin:ymax, xmin:xmax]
-
-            # log transform data with bounds
-            log_rr = self._rr_to_log_rr(search_region)
-
-            # interpolate masked points linearly in log space
-            interpolated_log_rr = self._interpolate_points(log_rr)
-
-            # transform back into rate space (must be reversible)
-            interpolated_rr = self._log_rr_to_rr(interpolated_log_rr)
-
-            # reassign to this region in the masked array and unmask
-            masked_radar.mask[ymin:ymax, xmin:xmax] = np.full_like(
-                interpolated_rr, False)
-            masked_radar.data[ymin:ymax, xmin:xmax] = interpolated_rr
+        speckle = self._find_speckle(masked_radar.mask)
+        log_rr = self._rr_to_log_rr(masked_radar)
+        interpolated_log_rr = self._interpolate_points(log_rr, speckle)
+        masked_radar = self._log_rr_to_rr(interpolated_log_rr)
 
     def process(self, masked_radar):
         """
@@ -191,15 +202,11 @@ class FillRadarHoles(BasePlugin):
                 A masked cube with continuous coverage over the radar composite
                 domain, where missing data has been interpolated
         """
-        self._create_radar_grid_lookup(masked_radar.coord(axis='x'),
-                                       masked_radar.coord(axis='y'))
-        radius = distance_to_number_of_grid_cells(masked_radar, self.radius_m)
-
         # extract precipitation rate data in mm h-1
         masked_radar_mmh = masked_radar.copy()
         masked_radar_mmh.convert_units('mm h-1')
 
-        # for each radar location, interpolate "holes" within 10 km
+        # interpolate "holes" in data
         self._fill_in_radar_holes(masked_radar_mmh.data)
 
         # return new cube in original units
