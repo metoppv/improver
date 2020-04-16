@@ -123,17 +123,17 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
         if 'bald__isPrefixedBy' in cube.attributes.keys():
             cube.attributes.pop('bald__isPrefixedBy')
 
-        # Ensure the probabilistic coordinates are the first coordinates within a
-        # cube and are in the specified order.
+        # Ensure the probabilistic coordinates are the first coordinates within
+        # a cube and are in the specified order.
         enforce_coordinate_ordering(
             cube, ["realization", "percentile", "threshold"])
-        # Ensure the y and x dimensions are the last dimensions within the cube.
+        # Ensure the y and x dimensions are the last within the cube.
         y_name = cube.coord(axis="y").name()
         x_name = cube.coord(axis="x").name()
         enforce_coordinate_ordering(
             cube, [y_name, x_name], anchor_start=False)
         if no_lazy_load:
-            # Force the cube's data into memory by touching the .data attribute.
+            # Force cube's data into memory by touching the .data attribute.
             # pylint: disable=pointless-statement
             cube.data
 
