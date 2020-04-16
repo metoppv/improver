@@ -247,6 +247,7 @@ class LapseRate(BasePlugin):
         # this array
         self.nbhoodarray_size = self.nbhood_size**2
         self.ind_central_point = int(self.nbhoodarray_size/2)
+        self.ind_central_point2 = int(self.nbhood_size/2)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -332,6 +333,52 @@ class LapseRate(BasePlugin):
 
         return height_diff_mask
 
+    def _rolling_window(self, A, temp_shape, shape):
+        """Rolling ND-window."""
+        adjshp = (*temp_shape, *shape)
+        strides = A.strides + A.strides
+        return np.lib.stride_tricks.as_strided(
+            A, shape=adjshp, strides=strides, writeable=False)
+
+    def _generate_values(self, temp, orog):
+        shape = self.nbhood_size
+        padding_size = int(shape/2)
+        shape = (shape, shape)
+        temp_orig_shape = temp.shape
+
+        temp = np.pad(temp, padding_size,
+                      mode='constant', constant_values=np.nan)
+        orog = np.pad(orog, padding_size,
+                      mode='constant', constant_values=np.nan)
+        return (self._rolling_window(temp, temp_orig_shape, shape), 
+                self._rolling_window(orog, temp_orig_shape, shape))
+
+    def alinfit(self, X, Y, mask=None, axis=-1, gradient_only=False):
+        if not isinstance(axis, tuple):
+            axis = (axis,)
+        if mask is not None:
+            X = np.where(mask, np.nan, X)
+            Y = np.where(mask, np.nan, Y)
+
+        N = np.sum(~np.isnan(X))
+        X_sum = np.nansum(X, axis=axis)
+        Y_sum = np.nansum(Y, axis=axis)
+        XY_cov = np.nansum(X * Y, axis=axis) - X_sum * Y_sum / N
+        X_var = np.nansum(X * X, axis=axis) - X_sum * X_sum / N
+        a = XY_cov / X_var
+
+        ycheck = np.isclose(np.nanstd(Y, axis=axis), 0)
+        xcheck = np.isclose(np.nanstd(X, axis=axis), 0)
+        a = np.where(ycheck & xcheck, DALR, a)
+
+        y_nan_check = np.isnan(Y[..., self.ind_central_point2, self.ind_central_point2])
+        a = np.where(y_nan_check, DALR, a)
+
+        if gradient_only:
+            return a
+        b = (Y_sum - a*X_sum) / N
+        return a, b
+
     def _generate_heightdiff_mask(self, all_orog_subsections):
         """
         Create a mask for any neighbouring points where the height
@@ -364,6 +411,13 @@ class LapseRate(BasePlugin):
             height_diff = np.absolute(height_diff)
             yield np.where(height_diff >= self.max_height_diff, True, False)
 
+    def _height_diff_mask(self, orog_subsections):
+        central_points = orog_subsections[..., self.ind_central_point2, self.ind_central_point2]
+        central_points = central_points[np.newaxis, np.newaxis].T
+
+        height_diff = np.absolute(np.subtract(orog_subsections, central_points))
+        return np.where(height_diff >= self.max_height_diff, True, False)
+
     def _generate_lapse_rate_array(
             self, temperature_data, orography_data, land_sea_mask_data):
         """
@@ -388,40 +442,66 @@ class LapseRate(BasePlugin):
 
         # Generate data neighbourhoods on which to calculate lapse rates
         # pylint: disable=unsubscriptable-object
-        dataarray_size = temperature_data.shape[0] * temperature_data.shape[1]
+        #dataarray_size = temperature_data.shape[0] * temperature_data.shape[1]
 
-        temp_nbhoods = np.zeros(
-            (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
-        fnc = SaveNeighbourhood(allbuffers=temp_nbhoods)
-        generic_filter(temperature_data, fnc.filter,
-                       size=self.nbhood_size,
-                       mode='constant', cval=np.nan)
+        #temp_nbhoods = np.zeros(
+        #    (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
+        #fnc = SaveNeighbourhood(allbuffers=temp_nbhoods)
+        #generic_filter(temperature_data, fnc.filter,
+        #               size=self.nbhood_size,
+        #               mode='constant', cval=np.nan)
 
-        orog_nbhoods = np.zeros(
-            (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
-        fnc = SaveNeighbourhood(allbuffers=orog_nbhoods)
-        generic_filter(orography_data, fnc.filter,
-                       size=self.nbhood_size,
-                       mode='constant', cval=np.nan)
+        #orog_nbhoods = np.zeros(
+        #    (dataarray_size, self.nbhoodarray_size), dtype=np.float32)
+        #fnc = SaveNeighbourhood(allbuffers=orog_nbhoods)
+        #generic_filter(orography_data, fnc.filter,
+        #               size=self.nbhood_size,
+        #               mode='constant', cval=np.nan)
 
-        # height_diff_mask is True for points where the height
-        # difference between the central point and its neighbours
-        # is > max_height_diff.
-        generator_height_diff = self._generate_heightdiff_mask(orog_nbhoods)
-        lapse_rate_array = []
-        # Loop through both arrays and find gradient of surface temperature
-        # with orography height - ie lapse rate.
-        # TODO: This for loop is the bottleneck in the code and needs to
-        # be parallelised.
-        for counter, height_diff in enumerate(generator_height_diff):
-            # Mask points with extreme height differences as NaN.
-            temp = np.where(height_diff, np.nan, temp_nbhoods[counter])
-            orog = np.where(height_diff, np.nan, orog_nbhoods[counter])
-            lapse_rate_array.append(self._calc_lapse_rate(temp, orog))
+        ## height_diff_mask is True for points where the height
+        ## difference between the central point and its neighbours
+        ## is > max_height_diff.
+        #generator_height_diff = self._generate_heightdiff_mask(orog_nbhoods)
+        #lapse_rate_array = []
+        ## Loop through both arrays and find gradient of surface temperature
+        ## with orography height - ie lapse rate.
+        ## TODO: This for loop is the bottleneck in the code and needs to
+        ## be parallelised.
+        #for counter, height_diff in enumerate(generator_height_diff):
+        #    # Mask points with extreme height differences as NaN.
+        #    temp = np.where(height_diff, np.nan, temp_nbhoods[counter])
+        #    orog = np.where(height_diff, np.nan, orog_nbhoods[counter])
+        #    lapse_rate_array.append(self._calc_lapse_rate(temp, orog))
 
-        lapse_rate_array = np.array(
-            lapse_rate_array, dtype=np.float32).reshape(
-                (temperature_data.shape))
+        #### METHOD 2 - USING ALINFIT
+        lapse_rate_array_new = []
+        temp_nbhoods_window, orog_nbhoods_window = self._generate_values(
+            temperature_data, orography_data)
+        for temp, orog in zip(temp_nbhoods_window, orog_nbhoods_window):
+            height_diff_mask = self._height_diff_mask(orog)
+            grad = self.alinfit(orog, temp, mask=height_diff_mask,
+                                axis=(-2, -1), gradient_only=True)
+            lapse_rate_array_new.append(grad)
+        lapse_rate_array = np.array(lapse_rate_array_new, dtype=np.float32)
+
+        #### METHOD 3 - USING LSTSQ
+        #lapse_rate_array_new_2 = []
+        #for temp_array, orog_array in zip(temp_nbhoods_window, orog_nbhoods_window):
+        #    for temp, orog in zip(temp_array, orog_array):
+        #        #create mask here
+        #        lapse_rate_array_new_2.append(self._calc_lapse_rate(temp.flatten(), orog.flatten()))
+        #lapse_rate_array_new_2 = np.array(lapse_rate_array_new_2, 
+        #                                  dtype=np.float32).reshape(temperature_data.shape)
+        #print(lapse_rate_array_new_2)
+
+
+        #lapse_rate_array = np.array(
+        #    lapse_rate_array, dtype=np.float32).reshape(
+        #        (temperature_data.shape))
+
+        #print(lapse_rate_array)
+
+        #print(np.isclose(np.array(lapse_rate_array_new), lapse_rate_array, rtol=1e-2))
 
         # Enforce upper and lower limits on lapse rate values.
         lapse_rate_array = np.where(lapse_rate_array < self.min_lapse_rate,
