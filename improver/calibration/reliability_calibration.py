@@ -274,7 +274,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         expected_shape = self.expected_table_shape + forecast_slice.shape
         dummy_data = np.zeros((expected_shape))
 
-        diagnostic = forecast.coord(var_name='threshold').name()
+        diagnostic = find_threshold_coordinate(forecast).name()
         attributes = self._define_metadata(forecast)
 
         # Define reliability table specific coordinates
@@ -548,8 +548,8 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             ValueError: If the threshold coordinates are different in the two
                         cubes.
         """
-        if not (forecast.coord(var_name='threshold') ==
-                reliability_table.coord(var_name='threshold')):
+        if not (find_threshold_coordinate(forecast) ==
+                find_threshold_coordinate(reliability_table)):
             raise ValueError('Threshold coordinates do not match between '
                              'reliability table and forecast cube.')
 
@@ -694,7 +694,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 The forecast cube following calibration.
         """
         self._threshold_coords_equivalent(forecast, reliability_table)
-        self.threshold_coord = forecast.coord(var_name='threshold')
+        self.threshold_coord = find_threshold_coordinate(forecast)
 
         forecast_thresholds = forecast.slices_over(
             self.threshold_coord)

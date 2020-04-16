@@ -40,7 +40,6 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.metadata.constants import FLOAT_TYPES
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.check_datatypes import check_mandatory_standards
-from improver.utilities.cube_manipulation import build_coordinate
 from improver.utilities.temporal import cycletime_to_datetime
 
 
@@ -224,11 +223,7 @@ def unify_cycletime(cubes, cycletime):
         coord_units = Unit(coord_type_spec.units)
         frt_points = np.around(
             [coord_units.date2num(cycletime)]).astype(coord_type_spec.dtype)
-        frt_coord = build_coordinate(
-            frt_points, standard_name=frt_coord_name, bounds=None,
-            template_coord=cube.coord(frt_coord_name),
-            units=coord_units)
-
+        frt_coord = cube.coord(frt_coord_name).copy(points=frt_points)
         cube.remove_coord(frt_coord_name)
         cube.add_aux_coord(frt_coord, data_dims=None)
 

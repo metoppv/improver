@@ -80,7 +80,7 @@ def process(cube: cli.inputcube,
         output_cube = probabilities_to_realizations.process(
             cube, raw_cube=raw_cube, realizations_count=realizations_count,
             random_seed=random_seed, ignore_ecc_bounds=ignore_ecc_bounds)
-    elif cube.coords(var_name='realization'):
+    elif cube.coords('realization'):
         output_cube = cube
     else:
         raise ValueError("Unable to convert to realizations:\n" + str(cube))

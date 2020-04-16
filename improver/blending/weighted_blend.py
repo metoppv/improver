@@ -47,8 +47,8 @@ from improver.metadata.forecast_times import (
     forecast_period_coord, rebadge_forecasts_as_latest_cycle)
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.utilities.cube_manipulation import (
-    MergeCubes, build_coordinate, enforce_coordinate_ordering,
-    sort_coord_in_cube, collapsed, get_dim_coord_names)
+    MergeCubes, enforce_coordinate_ordering, sort_coord_in_cube,
+    collapsed, get_dim_coord_names)
 from improver.utilities.temporal import cycletime_to_number
 
 
@@ -124,14 +124,12 @@ class MergeCubesForWeightedBlending(BasePlugin):
             model_titles.append(model_title)
             cube.attributes[self.model_id_attr] = "blend"
 
-            new_model_id_coord = build_coordinate([1000 * i],
-                                                  long_name='model_id',
-                                                  data_type=np.int32)
-            new_model_coord = (
-                build_coordinate([model_title],
-                                 long_name='model_configuration',
-                                 coord_type=AuxCoord,
-                                 data_type=np.str))
+            new_model_id_coord = AuxCoord(
+                np.array([1000 * i], dtype=np.int32), units='1',
+                long_name='model_id')
+            new_model_coord = AuxCoord(
+                [model_title], units='no_unit',
+                long_name='model_configuration')
 
             cube.add_aux_coord(new_model_id_coord)
             cube.add_aux_coord(new_model_coord)

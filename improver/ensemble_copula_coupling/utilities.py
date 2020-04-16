@@ -163,8 +163,7 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data,
 
     """
     percentile_coord = iris.coords.DimCoord(
-        np.float32(percentiles), long_name='percentile',
-        units=unit.Unit("%"), var_name='percentile')
+        np.float32(percentiles), long_name='percentile', units=unit.Unit("%"))
 
     metadata_dict = copy.deepcopy(template_cube.metadata._asdict())
     result = iris.cube.Cube(cube_data, **metadata_dict)

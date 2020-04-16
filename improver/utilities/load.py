@@ -36,7 +36,7 @@ import glob
 import iris
 
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, MergeCubes)
+    enforce_coordinate_ordering, strip_var_names, MergeCubes)
 
 
 @contextlib.contextmanager
@@ -65,7 +65,9 @@ def iris_nimrod_patcher():
 
 def load_cube(filepath, constraints=None, no_lazy_load=False,
               allow_none=False):
-    """Load the filepath provided using Iris into a cube.
+    """Load the filepath provided using Iris into a cube.  Strips off all
+    var names except for "threshold"-type coordinates, where this is different
+    from the standard or long name.
 
     Args:
         filepath (str or list):
@@ -106,11 +108,15 @@ def load_cube(filepath, constraints=None, no_lazy_load=False,
             for item in filepath:
                 cubes.extend(iris.load(item, constraints=constraints))
 
-    # Merge loaded cubes
     if not cubes:
         message = "No cubes found using constraints {}".format(constraints)
         raise ValueError(message)
 
+    # Remove var_name from cubes and coordinates (except where needed to
+    # describe probabilistic data)
+    cubes = strip_var_names(cubes)
+
+    # Merge loaded cubes
     if len(cubes) == 1:
         cube = cubes[0]
     else:
