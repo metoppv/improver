@@ -334,7 +334,16 @@ class LapseRate(BasePlugin):
         return height_diff_mask
 
     def _rolling_window(self, A, temp_shape, shape):
-        """Rolling ND-window."""
+        """Creates views of the array A, this avoids
+        creating a massive matrix of points in a neighbourhood
+        calculation
+
+        Args:
+            A:
+                The input array (2D)
+            temp_shape:
+                The shape 
+            shape:"""
         adjshp = (*temp_shape, *shape)
         strides = A.strides + A.strides
         return np.lib.stride_tricks.as_strided(
@@ -356,11 +365,12 @@ class LapseRate(BasePlugin):
     def alinfit(self, X, Y, mask=None, axis=-1, gradient_only=False):
         if not isinstance(axis, tuple):
             axis = (axis,)
-        if mask is not None:
-            X = np.where(mask, np.nan, X)
-            Y = np.where(mask, np.nan, Y)
-
-        N = np.sum(~np.isnan(X))
+        if mask is None:
+            N = np.sum(~np.isnan(X))
+        else:
+            N = np.nansum(mask, axis=axis)
+            X = np.where(mask, X, np.nan)
+            Y = np.where(mask, Y, np.nan)
         X_sum = np.nansum(X, axis=axis)
         Y_sum = np.nansum(Y, axis=axis)
         XY_cov = np.nansum(X * Y, axis=axis) - X_sum * Y_sum / N
@@ -369,7 +379,7 @@ class LapseRate(BasePlugin):
 
         ycheck = np.isclose(np.nanstd(Y, axis=axis), 0)
         xcheck = np.isclose(np.nanstd(X, axis=axis), 0)
-        a = np.where(ycheck & xcheck, DALR, a)
+        a = np.where(ycheck | xcheck, DALR, a)
 
         y_nan_check = np.isnan(Y[..., self.ind_central_point2, self.ind_central_point2])
         a = np.where(y_nan_check, DALR, a)
@@ -416,7 +426,7 @@ class LapseRate(BasePlugin):
         central_points = central_points[np.newaxis, np.newaxis].T
 
         height_diff = np.absolute(np.subtract(orog_subsections, central_points))
-        return np.where(height_diff >= self.max_height_diff, True, False)
+        return np.where(height_diff < self.max_height_diff, True, False)
 
     def _generate_lapse_rate_array(
             self, temperature_data, orography_data, land_sea_mask_data):
@@ -482,7 +492,11 @@ class LapseRate(BasePlugin):
             grad = self.alinfit(orog, temp, mask=height_diff_mask,
                                 axis=(-2, -1), gradient_only=True)
             lapse_rate_array_new.append(grad)
-        lapse_rate_array = np.array(lapse_rate_array_new, dtype=np.float32)
+        lapse_rate_array_new = np.array(lapse_rate_array_new, dtype=np.float32)
+
+        print(temperature_data)
+        print(orography_data)
+        print(lapse_rate_array_new)
 
         #### METHOD 3 - USING LSTSQ
         #lapse_rate_array_new_2 = []
@@ -494,20 +508,19 @@ class LapseRate(BasePlugin):
         #                                  dtype=np.float32).reshape(temperature_data.shape)
         #print(lapse_rate_array_new_2)
 
-
         #lapse_rate_array = np.array(
         #    lapse_rate_array, dtype=np.float32).reshape(
         #        (temperature_data.shape))
 
-        #print(lapse_rate_array)
-
-        #print(np.isclose(np.array(lapse_rate_array_new), lapse_rate_array, rtol=1e-2))
+        lapse_rate_array = lapse_rate_array_new 
 
         # Enforce upper and lower limits on lapse rate values.
         lapse_rate_array = np.where(lapse_rate_array < self.min_lapse_rate,
                                     self.min_lapse_rate, lapse_rate_array)
+        print(lapse_rate_array)
         lapse_rate_array = np.where(lapse_rate_array > self.max_lapse_rate,
                                     self.max_lapse_rate, lapse_rate_array)
+        print(lapse_rate_array)
         return lapse_rate_array
 
     def process(self, temperature, orography, land_sea_mask,

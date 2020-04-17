@@ -328,19 +328,17 @@ class Test_process(IrisTest):
     @ManageWarnings(
         ignored_messages=["invalid value encountered in greater_equal"],
         warning_types=[RuntimeWarning])
-    def test_constant_temp_orog(self):
+    def test_constant_orog(self):
         """Test that the function returns expected DALR values where the
-           temperature and orography fields are constant values.
+           orography fields are constant values.
         """
-        expected_out = np.array([[[0.0082, 0.0081, 0.0081, DALR, DALR],
-                                  [0.0081, 0.008, 0.008, DALR, DALR],
-                                  [0.0081, 0.008, 0.008, DALR, DALR],
+        expected_out = np.array([[[DALR, DALR, DALR, DALR, DALR],
+                                  [DALR, DALR, DALR, DALR, DALR],
+                                  [DALR, DALR, DALR, DALR, DALR],
                                   [DALR, DALR, DALR, DALR, DALR],
                                   [DALR, DALR, DALR, DALR, DALR]]])
 
         self.temperature.data[:, :, :] = 0.08
-        # The array should contain non DALR values around this single point
-        # and DALR values elsewhere.
         self.temperature.data[:, 1, 1] = 0.09
         self.orography.data[:, :] = 10
 
@@ -388,11 +386,11 @@ class Test_process(IrisTest):
         """Test that the function limits the lapse rate to +DALR and -3*DALR.
            Where DALR = Dry Adiabatic Lapse Rate.
         """
-        expected_out = np.array([[[0.0294, 0.0294, 0.0, DALR, DALR],
-                                  [0.0294, 0.0294, 0.0, DALR, DALR],
-                                  [0.0294, 0.0294, 0.0, DALR, DALR],
-                                  [0.0294, 0.0294, 0.0, DALR, DALR],
-                                  [0.0294, 0.0294, 0.0, DALR, DALR]]])
+        expected_out = np.array([[[0.0294, 0.0294, 0.0294, 0., DALR],
+                                  [0.0294, 0.0294, 0.0294, 0., DALR],
+                                  [0.0294, 0.0294, 0.0294, 0., DALR],
+                                  [0.0294, 0.0294, 0.0294, 0., DALR],
+                                  [0.0294, 0.0294, 0.0294, 0., DALR]]])
 
         # West data points should be -3*DALR and East should be DALR.
         self.temperature.data[:, :, 0] = 2
@@ -400,6 +398,8 @@ class Test_process(IrisTest):
         self.temperature.data[:, :, 3] = -1
         self.temperature.data[:, :, 4] = -2
         self.orography.data[:, :] = 10
+        self.orography.data[:, 0] = 15
+        self.orography.data[:, 3] = 0
 
         result = LapseRate(nbhood_radius=1).process(self.temperature,
                                                     self.orography,
@@ -424,6 +424,8 @@ class Test_process(IrisTest):
         self.temperature.data[:, :, 3] = -1
         self.temperature.data[:, :, 4] = -2
         self.orography.data[:, :] = 10
+        self.orography.data[:, 0] = 15
+        self.orography.data[:, 2] = 0
 
         result = LapseRate(nbhood_radius=1,
                            max_lapse_rate=-4 * DALR).process(
@@ -451,6 +453,9 @@ class Test_process(IrisTest):
         self.temperature.data[:, :, 3] = -1
         self.temperature.data[:, :, 4] = -2
         self.orography.data[:, :] = 10
+        self.orography.data[:, 0] = 15
+        self.orography.data[:, 2] = 0
+        self.orography.data[:, 4] = 12
 
         result = LapseRate(nbhood_radius=1,
                            min_lapse_rate=2 * DALR).process(
@@ -478,6 +483,9 @@ class Test_process(IrisTest):
         self.temperature.data[:, :, 3] = -1
         self.temperature.data[:, :, 4] = -2
         self.orography.data[:, :] = 10
+        self.orography.data[:, 0] = 15
+        self.orography.data[:, 2] = 0
+        self.orography.data[:, 4] = 12
 
         result = LapseRate(nbhood_radius=1,
                            max_lapse_rate=-4 * DALR,
@@ -495,19 +503,23 @@ class Test_process(IrisTest):
         """Test that the function handles a NaN temperature value by replacing
            it with DALR.
         """
-        expected_out = np.array([[[0.0294, 0.0294, 0.0, DALR, DALR],
-                                  [0.0294, 0.0294, 0.0, DALR, DALR],
-                                  [0.0294, 0.0294, DALR, DALR, DALR],
-                                  [0.0294, 0.0294, 0.0, DALR, DALR],
-                                  [0.0294, 0.0294, 0.0, DALR, DALR]]])
+        expected_out = np.array([[[DALR, 0.015, 0.01, 0.006428571, 0.005],
+                                  [DALR, 0.015, 0.01, 0.006428571, 0.005],
+                                  [DALR, 0.015, DALR, 0.006428571, 0.005],
+                                  [DALR, 0.015, 0.01, 0.006428571, 0.005],
+                                  [DALR, 0.015, 0.01, 0.006428571, 0.005]]])
 
         # West data points should be -3*DALR and East should be DALR.
-        self.temperature.data[:, :, 0] = 2
-        self.temperature.data[:, :, 1] = 1
-        self.temperature.data[:, :, 3] = -1
-        self.temperature.data[:, :, 4] = -2
+        self.temperature.data[:, :, 0] = -0.2
+        self.temperature.data[:, :, 1] = -0.1
+        self.temperature.data[:, :, 2] =  0.0
+        self.temperature.data[:, :, 3] =  0.1
+        self.temperature.data[:, :, 4] =  0.2
         self.temperature.data[:, 2, 2] = np.nan
-        self.orography.data[:, :] = 10
+        self.orography.data[:, 0:2] = 0
+        self.orography.data[:, 2] = 10
+        self.orography.data[:, 3] = 20
+        self.orography.data[:, 4] = 40
 
         result = LapseRate(nbhood_radius=1).process(self.temperature,
                                                     self.orography,
@@ -521,19 +533,21 @@ class Test_process(IrisTest):
         """Test that the function returns DALR values wherever a land/sea
            mask is true. Mask is True for land-points and False for Sea.
         """
-        expected_out = np.array([[[0.0294, 0.0294, 0.0, DALR, DALR],
-                                  [0.0294, 0.0294, 0.0, DALR, DALR],
-                                  [0.0294, 0.0294, 0.0, DALR, DALR],
+        expected_out = np.array([[[DALR, 0.003, 0.006, 0.009, DALR],
+                                  [DALR, 0.003, 0.006, 0.009, DALR],
+                                  [DALR, 0.003, 0.006, 0.009, DALR],
                                   [DALR, DALR, DALR, DALR, DALR],
                                   [DALR, DALR, DALR, DALR, DALR]]])
 
         # West data points should be -3*DALR and East should be DALR, South
         # should be zero.
-        self.temperature.data[:, :, 0] = 2
-        self.temperature.data[:, :, 1] = 1
-        self.temperature.data[:, :, 3] = -1
-        self.temperature.data[:, :, 4] = -2
+        self.temperature.data[:, :, 0] = 0.02
+        self.temperature.data[:, :, 1] = 0.01
+        self.temperature.data[:, :, 2] = 0.03
+        self.temperature.data[:, :, 3] = -0.01
+        self.temperature.data[:, :, 4] = -0.02
         self.orography.data[:, :] = 10
+        self.orography.data[:, 2] = 15
         self.land_sea_mask.data[3:5, :] = 0
 
         result = LapseRate(nbhood_radius=1).process(self.temperature,
@@ -550,7 +564,7 @@ class Test_process(IrisTest):
         max_height_diff = 35metres."""
         expected_out = np.array([[[DALR, DALR, DALR, -0.00642857, -0.005],
                                   [DALR, DALR, DALR, -0.0065517, -0.003],
-                                  [DALR, DALR, DALR, -0.0065517, 0.0],
+                                  [DALR, DALR, DALR, -0.0065517, DALR],
                                   [DALR, DALR, DALR, -0.0065517, -0.003],
                                   [DALR, DALR, DALR, -0.00642857, -0.005]]])
 
