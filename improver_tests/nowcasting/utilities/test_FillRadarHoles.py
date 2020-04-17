@@ -34,9 +34,11 @@
 import pytest
 import numpy as np
 from numpy.ma import MaskedArray
+from iris.cube import Cube
 
 from improver.nowcasting.utilities import FillRadarHoles
-from improver.tests.set_up_test_cubes import set_up_variable_cube
+from ...set_up_test_cubes import set_up_variable_cube
+
 
 def create_masked_rainrate_data():
     """Create a masked data array of rain rates in mm/h"""
@@ -50,6 +52,28 @@ def create_masked_rainrate_data():
     data[4:9, 5:10] = nonzero_data.astype(np.float32)
     mask = np.where(np.isfinite(data), False, True)
     return MaskedArray(data, mask=mask)
+
+
+RAIN_DATA = create_masked_rainrate_data()
+
+RAIN_CUBE = set_up_variable_cube(
+    RAIN_DATA, name="lwe_precipitation_rate", units="mm/h",
+    spatial_grid="equalarea")
+
+PLUGIN = FillRadarHoles()
+
+
+def test_basic():
+    """Test that the plugin returns a masked cube"""
+    result = PLUGIN(RAIN_CUBE)
+    assert isinstance(result, Cube)
+    assert isinstance(result.data, MaskedArray)
+
+
+
+
+
+
 
 
 

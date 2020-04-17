@@ -166,8 +166,8 @@ class FillRadarHoles(BasePlugin):
         identifying "speckle"."""
         new_data = data.copy()
         r = 2
-        for y in range(nr, data.shape[0]-r-1, 1):
-            for x in range(nr, data.shape[1]-r-1, 1):
+        for y in range(r, data.shape[0]-r-1, 1):
+            for x in range(r, data.shape[1]-r-1, 1):
                 if speckle[y, x]:
                     surroundings = data[y-nr:y+r+1, x-nr:x+r+1]
                     valid_surroundings = surroundings[
@@ -207,7 +207,7 @@ class FillRadarHoles(BasePlugin):
         masked_radar_mmh.convert_units('mm h-1')
 
         # interpolate "holes" in data
-        self._fill_in_radar_holes(masked_radar_mmh.data)
+        self._fill_radar_holes(masked_radar_mmh.data)
 
         # return new cube in original units
         masked_radar_mmh.convert_units(masked_radar.units)
