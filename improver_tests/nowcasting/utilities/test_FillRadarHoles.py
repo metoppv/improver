@@ -57,31 +57,41 @@ def create_masked_rainrate_data():
 
 RAIN_DATA = create_masked_rainrate_data()
 
-INTERPOLATED_RAIN_DATA = RAIN_DATA.copy()
-INTERPOLATED_RAIN_DATA.data[7:10, 8:10] = [
+# first case: speckle, rates in mm/h
+RAIN_CUBE = set_up_variable_cube(
+    RAIN_DATA, name="lwe_precipitation_rate", units="mm h-1",
+    spatial_grid="equalarea"
+)
+
+INTERPOLATED_RAIN = RAIN_DATA.copy()
+INTERPOLATED_RAIN.data[7:10, 8:10] = [
     [0.2, 0.07138586],
     [0.11366593, 0.09165306],
     [0.09488520, 0.07650946]
 ]
-INTERPOLATED_RAIN_DATA.mask = np.full((16, 16), False)
+INTERPOLATED_RAIN.mask = np.full(INTERPOLATED_RAIN.shape, False)
 
-RAIN_CUBE = set_up_variable_cube(
-    RAIN_DATA, name="lwe_precipitation_rate", units="mm/h",
-    spatial_grid="equalarea"
-)
+# second case: speckle, rates in m/s
+MS_RAIN_CUBE = RAIN_CUBE.copy()
+MS_RAIN_CUBE.convert_units("m s-1")
 
+MS_INTERPOLATED_RAIN = INTERPOLATED_RAIN / (3600.0 * 1000.0) 
+
+# third case: widespread mask
 MASKED_RAIN_CUBE = RAIN_CUBE.copy()
 MASKED_RAIN_CUBE.data[:11, :11] = np.nan
 MASKED_RAIN_CUBE.data.mask = np.where(
     np.isfinite(MASKED_RAIN_CUBE.data.data), False, True
 )
 
-# set up alternate cases for which interpolation should ("speckle") and
-# should not ("masked") be triggered
-CASES = ["speckle", "masked"]
-INPUT_CUBES = {"speckle": RAIN_CUBE,
+# set up alternate test cases for which interpolation should ("speckle_*")
+# and should not ("masked") be triggered
+CASES = ["speckle_mmh", "speckle_ms", "masked"]
+INPUT_CUBES = {"speckle_mmh": RAIN_CUBE,
+               "speckle_ms": MS_RAIN_CUBE,
                "masked": MASKED_RAIN_CUBE}
-OUTPUT_DATA = {"speckle": INTERPOLATED_RAIN_DATA,
+OUTPUT_DATA = {"speckle_mmh": INTERPOLATED_RAIN,
+               "speckle_ms": MS_INTERPOLATED_RAIN,
                "masked": MASKED_RAIN_CUBE.data.copy()}
 
 PLUGIN = FillRadarHoles()
@@ -102,8 +112,10 @@ def test_values(case):
     assert np.array_equal(result.data.mask, OUTPUT_DATA[case].mask)
 
 
-
-
-
-
-
+def test_log_transform_reversability():
+    """Test that data in mm h-1 are reproduced when transforming to
+    and from log rainrates"""
+    log_rr = PLUGIN._rr_to_log_rr(RAIN_CUBE.data)
+    assert all(np.isnan(log_rr[np.where(RAIN_CUBE.data == 0)]))
+    rr = PLUGIN._log_rr_to_rr(log_rr)
+    assert np.allclose(rr, RAIN_CUBE.data)
