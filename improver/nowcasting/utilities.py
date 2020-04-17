@@ -169,7 +169,7 @@ class FillRadarHoles(BasePlugin):
         for y in range(r, data.shape[0]-r-1, 1):
             for x in range(r, data.shape[1]-r-1, 1):
                 if speckle[y, x]:
-                    surroundings = data[y-nr:y+r+1, x-nr:x+r+1]
+                    surroundings = data[y-r:y+r+1, x-r:x+r+1]
                     valid_surroundings = surroundings[
                         np.where(~surroundings.mask)]
                     new_data[y, x] = np.mean(valid_surroundings)
@@ -186,7 +186,7 @@ class FillRadarHoles(BasePlugin):
         speckle = self._find_speckle(masked_radar.mask)
         log_rr = self._rr_to_log_rr(masked_radar)
         interpolated_log_rr = self._interpolate_points(log_rr, speckle)
-        masked_radar = self._log_rr_to_rr(interpolated_log_rr)
+        return self._log_rr_to_rr(interpolated_log_rr)
 
     def process(self, masked_radar):
         """
@@ -207,7 +207,7 @@ class FillRadarHoles(BasePlugin):
         masked_radar_mmh.convert_units('mm h-1')
 
         # interpolate "holes" in data
-        self._fill_radar_holes(masked_radar_mmh.data)
+        masked_radar_mmh.data = self._fill_radar_holes(masked_radar_mmh.data)
 
         # return new cube in original units
         masked_radar_mmh.convert_units(masked_radar.units)
