@@ -73,7 +73,9 @@ def iris_nimrod_patcher():
 
 
 def load_cubelist(filepath, constraints=None, no_lazy_load=False):
-    """Load cubes from filepath(s) into a cubelist.
+    """Load cubes from filepath(s) into a cubelist. Strips off all
+    var names except for "threshold"-type coordinates, where this is different
+    from the standard or long name.
 
     Args:
         filepath (str or list):
@@ -141,7 +143,7 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
 
 
 def load_cube(filepath, constraints=None, no_lazy_load=False):
-    """Load the filepath provided using Iris into a cube.  Strips off all
+    """Load the filepath provided using Iris into a cube. Strips off all
     var names except for "threshold"-type coordinates, where this is different
     from the standard or long name.
 
