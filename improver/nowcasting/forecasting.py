@@ -34,8 +34,8 @@ This module defines plugins used to create nowcast extrapolation forecasts.
 import datetime
 import warnings
 
-import numpy as np
 import iris
+import numpy as np
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
@@ -43,7 +43,9 @@ from improver import BasePlugin
 from improver.metadata.amend import amend_attributes, set_history_attribute
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_mandatory_attributes)
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
@@ -78,12 +80,13 @@ class AdvectField(BasePlugin):
         check_input_coords(vel_y)
 
         # check input velocity cubes have the same spatial coordinates
-        if (vel_x.coord(axis="x") != vel_y.coord(axis="x") or
-                vel_x.coord(axis="y") != vel_y.coord(axis="y")):
+        if vel_x.coord(axis="x") != vel_y.coord(axis="x") or vel_x.coord(
+            axis="y"
+        ) != vel_y.coord(axis="y"):
             raise InvalidCubeError("Velocity cubes on unmatched grids")
 
-        vel_x.convert_units('m s-1')
-        vel_y.convert_units('m s-1')
+        vel_x.convert_units("m s-1")
+        vel_y.convert_units("m s-1")
 
         self.vel_x = vel_x
         self.vel_y = vel_y
@@ -98,15 +101,23 @@ class AdvectField(BasePlugin):
 
     def __repr__(self):
         """Represent the plugin instance as a string."""
-        result = ('<AdvectField: vel_x={}, vel_y={}, '
-                  'attributes_dict={}>'.format(
-                      repr(self.vel_x), repr(self.vel_y),
-                      self.attributes_dict))
+        result = "<AdvectField: vel_x={}, vel_y={}, " "attributes_dict={}>".format(
+            repr(self.vel_x), repr(self.vel_y), self.attributes_dict
+        )
         return result
 
     @staticmethod
-    def _increment_output_array(indata, outdata, cond, xdest_grid, ydest_grid,
-                                xsrc_grid, ysrc_grid, x_weight, y_weight):
+    def _increment_output_array(
+        indata,
+        outdata,
+        cond,
+        xdest_grid,
+        ydest_grid,
+        xsrc_grid,
+        ysrc_grid,
+        x_weight,
+        y_weight,
+    ):
         """
         Calculate and add contribution to the advected array from one source
         grid point, for all points where boolean condition "cond" is valid.
@@ -139,7 +150,8 @@ class AdvectField(BasePlugin):
         xsrc = xsrc_grid[cond]
         ysrc = ysrc_grid[cond]
         outdata[ydest, xdest] += (
-            indata[ysrc, xsrc]*x_weight[ydest, xdest]*y_weight[ydest, xdest])
+            indata[ysrc, xsrc] * x_weight[ydest, xdest] * y_weight[ydest, xdest]
+        )
 
     def _advect_field(self, data, grid_vel_x, grid_vel_y, timestep):
         """
@@ -172,8 +184,7 @@ class AdvectField(BasePlugin):
 
         # Set up grids of data coordinates (meshgrid inverts coordinate order)
         ydim, xdim = data.shape
-        (xgrid, ygrid) = np.meshgrid(np.arange(xdim),
-                                     np.arange(ydim))
+        (xgrid, ygrid) = np.meshgrid(np.arange(xdim), np.arange(ydim))
 
         # For each grid point on the output field, trace its (x,y) "source"
         # location backwards using advection velocities.  The source location
@@ -187,7 +198,7 @@ class AdvectField(BasePlugin):
         # the bounds of the field, set the output field to 0
         def point_in_bounds(x, y, nx, ny):
             """Check point (y, x) lies within defined bounds"""
-            return (x >= 0.) & (x < nx) & (y >= 0.) & (y < ny)
+            return (x >= 0.0) & (x < nx) & (y >= 0.0) & (y < ny)
 
         cond_pt = point_in_bounds(xsrc_point_frac, ysrc_point_frac, xdim, ydim)
         adv_field[cond_pt] = 0
@@ -202,10 +213,8 @@ class AdvectField(BasePlugin):
         # surrounding the source coordinates
         x_weight_upper = xsrc_point_frac - xsrc_point_lower.astype(float)
         y_weight_upper = ysrc_point_frac - ysrc_point_lower.astype(float)
-        x_weights = np.array([1. - x_weight_upper, x_weight_upper],
-                             dtype=np.float32)
-        y_weights = np.array([1. - y_weight_upper, y_weight_upper],
-                             dtype=np.float32)
+        x_weights = np.array([1.0 - x_weight_upper, x_weight_upper], dtype=np.float32)
+        y_weights = np.array([1.0 - y_weight_upper, y_weight_upper], dtype=np.float32)
 
         # Check whether the input data is masked - if so substitute NaNs for
         # the masked data.  Note there is an implicit type conversion here: if
@@ -218,7 +227,8 @@ class AdvectField(BasePlugin):
             for ypt, ywt in zip(y_points, y_weights):
                 cond = point_in_bounds(xpt, ypt, xdim, ydim) & cond_pt
                 self._increment_output_array(
-                    data, adv_field, cond, xgrid, ygrid, xpt, ypt, xwt, ywt)
+                    data, adv_field, cond, xgrid, ygrid, xpt, ypt, xwt, ywt
+                )
 
         # Replace NaNs with a mask
         adv_field = np.ma.masked_where(~np.isfinite(adv_field), adv_field)
@@ -245,8 +255,7 @@ class AdvectField(BasePlugin):
         time_coord = advected_cube.coord(time_coord_name)
         time_coord.points = new_time
         time_coord.convert_units(time_coord_spec.units)
-        time_coord.points = np.around(time_coord.points).astype(
-            time_coord_spec.dtype)
+        time_coord.points = np.around(time_coord.points).astype(time_coord_spec.dtype)
 
     @staticmethod
     def _add_forecast_reference_time(input_time, advected_cube):
@@ -260,8 +269,7 @@ class AdvectField(BasePlugin):
         frt_coord = input_time.copy()
         frt_coord.rename(frt_coord_name)
         frt_coord.convert_units(frt_coord_spec.units)
-        frt_coord.points = np.around(frt_coord.points).astype(
-            frt_coord_spec.dtype)
+        frt_coord.points = np.around(frt_coord.points).astype(frt_coord_spec.dtype)
         advected_cube.add_aux_coord(frt_coord)
 
     @staticmethod
@@ -273,9 +281,9 @@ class AdvectField(BasePlugin):
             pass
 
         forecast_period_seconds = np.int32(timestep.total_seconds())
-        forecast_period_coord = AuxCoord(forecast_period_seconds,
-                                         standard_name="forecast_period",
-                                         units="seconds")
+        forecast_period_coord = AuxCoord(
+            forecast_period_seconds, standard_name="forecast_period", units="seconds"
+        )
         advected_cube.add_aux_coord(forecast_period_coord)
 
     def _create_output_cube(self, cube, advected_data, timestep):
@@ -295,19 +303,17 @@ class AdvectField(BasePlugin):
         """
         attributes = generate_mandatory_attributes([cube])
         if "institution" in cube.attributes.keys():
-            attributes["source"] = "{} Nowcast".format(
-                attributes["institution"])
+            attributes["source"] = "{} Nowcast".format(attributes["institution"])
         else:
             attributes["source"] = "Nowcast"
         advected_cube = create_new_diagnostic_cube(
-            cube.name(), cube.units, cube, attributes, data=advected_data)
+            cube.name(), cube.units, cube, attributes, data=advected_data
+        )
         amend_attributes(advected_cube, self.attributes_dict)
         set_history_attribute(advected_cube, "Nowcast")
 
-        self._update_time(
-            cube.coord("time").copy(), advected_cube, timestep)
-        self._add_forecast_reference_time(
-            cube.coord("time").copy(), advected_cube)
+        self._update_time(cube.coord("time").copy(), advected_cube, timestep)
+        self._add_forecast_reference_time(cube.coord("time").copy(), advected_cube)
         self._add_forecast_period(advected_cube, timestep)
 
         return advected_cube
@@ -339,16 +345,16 @@ class AdvectField(BasePlugin):
         check_input_coords(cube, require_time=True)
 
         # check spatial coordinates match those of plugin velocities
-        if (cube.coord(axis="x") != self.x_coord or
-                cube.coord(axis="y") != self.y_coord):
-            raise InvalidCubeError("Input data grid does not match advection "
-                                   "velocities")
+        if cube.coord(axis="x") != self.x_coord or cube.coord(axis="y") != self.y_coord:
+            raise InvalidCubeError(
+                "Input data grid does not match advection " "velocities"
+            )
 
         # derive velocities in "grid squares per second"
         def grid_spacing(coord):
             """Calculate grid spacing along a given spatial axis"""
             new_coord = coord.copy()
-            new_coord.convert_units('m')
+            new_coord.convert_units("m")
             return np.float32(np.diff((new_coord).points)[0])
 
         grid_vel_x = self.vel_x.data / grid_spacing(cube.coord(axis="x"))
@@ -360,8 +366,9 @@ class AdvectField(BasePlugin):
             warnings.warn("input data contains unmasked NaNs")
 
         # perform advection and create output cube
-        advected_data = self._advect_field(cube.data, grid_vel_x, grid_vel_y,
-                                           round(timestep.total_seconds()))
+        advected_data = self._advect_field(
+            cube.data, grid_vel_x, grid_vel_y, round(timestep.total_seconds())
+        )
         advected_cube = self._create_output_cube(cube, advected_data, timestep)
         return advected_cube
 
@@ -372,8 +379,14 @@ class CreateExtrapolationForecast(BasePlugin):
     For precipitation rate forecasts, orographic enhancement must be used.
     """
 
-    def __init__(self, input_cube, vel_x, vel_y,
-                 orographic_enhancement_cube=None, attributes_dict=None):
+    def __init__(
+        self,
+        input_cube,
+        vel_x,
+        vel_y,
+        orographic_enhancement_cube=None,
+        attributes_dict=None,
+    ):
         """
         Initialises the object.
         This includes checking if orographic enhancement is provided and
@@ -405,25 +418,34 @@ class CreateExtrapolationForecast(BasePlugin):
 
         self.orographic_enhancement_cube = orographic_enhancement_cube
         if self.orographic_enhancement_cube:
-            input_cube, = ApplyOrographicEnhancement("subtract")(
-                input_cube, self.orographic_enhancement_cube)
-        elif ("precipitation_rate" in input_cube.name()
-              or "rainfall_rate" in input_cube.name()):
-            msg = ("For precipitation or rainfall fields, orographic "
-                   "enhancement cube must be supplied.")
+            (input_cube,) = ApplyOrographicEnhancement("subtract")(
+                input_cube, self.orographic_enhancement_cube
+            )
+        elif (
+            "precipitation_rate" in input_cube.name()
+            or "rainfall_rate" in input_cube.name()
+        ):
+            msg = (
+                "For precipitation or rainfall fields, orographic "
+                "enhancement cube must be supplied."
+            )
             raise ValueError(msg)
         self.input_cube = input_cube
         self.advection_plugin = AdvectField(
-            vel_x, vel_y, attributes_dict=attributes_dict)
+            vel_x, vel_y, attributes_dict=attributes_dict
+        )
 
     def __repr__(self):
         """Represent the plugin instance as a string."""
-        result = ('<CreateExtrapolationForecast: input_cube = {}, '
-                  'orographic_enhancement_cube = {}, '
-                  'advection_plugin = {}>'.format(
-                      repr(self.input_cube),
-                      repr(self.orographic_enhancement_cube),
-                      repr(self.advection_plugin)))
+        result = (
+            "<CreateExtrapolationForecast: input_cube = {}, "
+            "orographic_enhancement_cube = {}, "
+            "advection_plugin = {}>".format(
+                repr(self.input_cube),
+                repr(self.orographic_enhancement_cube),
+                repr(self.advection_plugin),
+            )
+        )
         return result
 
     def extrapolate(self, leadtime_minutes):
@@ -449,12 +471,12 @@ class CreateExtrapolationForecast(BasePlugin):
         """
         # cast to float as datetime.timedelta cannot accept np.int
         timestep = datetime.timedelta(minutes=float(leadtime_minutes))
-        forecast_cube = self.advection_plugin(
-            self.input_cube, timestep)
+        forecast_cube = self.advection_plugin(self.input_cube, timestep)
         if self.orographic_enhancement_cube:
             # Add orographic enhancement.
-            forecast_cube, = ApplyOrographicEnhancement("add")(
-                forecast_cube, self.orographic_enhancement_cube)
+            (forecast_cube,) = ApplyOrographicEnhancement("add")(
+                forecast_cube, self.orographic_enhancement_cube
+            )
 
         return forecast_cube
 

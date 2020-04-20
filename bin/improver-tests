@@ -118,11 +118,16 @@ function improver_test_licence {
     echo_ok "IMPROVER licences"
 }
 
-function improver_test_pycodestyle {
-    # Pycodestyle testing.
-    ${PYCODESTYLE:-pycodestyle} $FILES_TO_TEST
-    echo_ok "pycodestyle"
+function improver_test_black {
+    ${BLACK:-black} $FILES_TO_TEST
+    echo_ok "black"
 }
+
+function improver_test_isort {
+    ${ISORT:-isort} $FILES_TO_TEST
+    echo_ok "isort"
+}
+
 
 function improver_test_pylint {
     # Pylint score generation.
@@ -175,7 +180,7 @@ function print_usage {
     cat <<'__USAGE__'
 improver tests [OPTIONS] [SUBTEST...] [SUBCLI...]
 
-Run pycodestyle, pylint, documentation, unit and CLI acceptance tests.
+Run black, isort, pylint, documentation, unit and CLI acceptance tests.
 
 Optional arguments:
     --debug         Run in verbose mode (may take longer for CLI)
@@ -183,8 +188,8 @@ Optional arguments:
 
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: pycodestyle, pylint, pylintE, licence,
-                    doc, unit, cli. pycodestyle, pylintE, licence, doc, unit,
+                    Valid names are: black, isort, pylint, pylintE, licence,
+                    doc, unit, cli. black, isort, pylintE, licence, doc, unit,
                     and cli are the default tests.
 __USAGE__
 }
@@ -226,7 +231,7 @@ for arg in "$@"; do
         print_usage
         exit 0
         ;;
-        pycodestyle|pylint|pylintE|licence|doc|unit|cli)
+        black|isort|pylint|pylintE|licence|doc|unit|cli)
         SUBTESTS="$SUBTESTS $arg"
         ;;
         $cli_tasks)
@@ -244,7 +249,7 @@ if [[ -n "$SUBTESTS" ]]; then
     TESTS="$SUBTESTS"
 else
     # Default tests.
-    TESTS="pycodestyle pylintE licence doc unit cli"
+    TESTS="isort black pylintE licence doc unit cli"
 fi
 
 # If cli sub test is not specified by user, do all cli tests.

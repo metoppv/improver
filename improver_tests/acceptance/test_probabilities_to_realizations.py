@@ -59,9 +59,7 @@ def test_n_realizations(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--realizations-count=12",
-            input_path,
-            "--output", output_path]
+    args = ["--realizations-count=12", input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -74,10 +72,7 @@ def test_basic_reordering(tmp_path):
     raw_path = kgo_dir / "raw_ens.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--random-seed", "0",
-            input_path,
-            raw_path,
-            "--output", output_path]
+    args = ["--random-seed", "0", input_path, raw_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -85,17 +80,21 @@ def test_basic_reordering(tmp_path):
 @pytest.mark.slow
 def test_reordering_n_realizations(tmp_path):
     """Test reordering with specified number of realizations"""
-    kgo_dir = acc.kgo_root() / \
-        "probabilities-to-realizations/reordering_6_reals"
+    kgo_dir = acc.kgo_root() / "probabilities-to-realizations/reordering_6_reals"
     kgo_path = kgo_dir / "kgo.nc"
     raw_path = kgo_dir / "../basic_reordering/raw_ens.nc"
     input_path = kgo_dir / "../basic_reordering/input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--random-seed", "0",
-            "--realizations-count", "6",
-            input_path,
-            raw_path,
-            "--output", output_path]
+    args = [
+        "--random-seed",
+        "0",
+        "--realizations-count",
+        "6",
+        input_path,
+        raw_path,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -103,16 +102,19 @@ def test_reordering_n_realizations(tmp_path):
 @pytest.mark.slow
 def test_reordering_ecc_bounds(tmp_path):
     """Test reordering to generate realizations from probabilities"""
-    kgo_dir = acc.kgo_root() / \
-        "probabilities-to-realizations/ecc_bounds_warning"
+    kgo_dir = acc.kgo_root() / "probabilities-to-realizations/ecc_bounds_warning"
     kgo_path = kgo_dir / "kgo.nc"
     raw_path = kgo_dir / "raw_ens.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--ignore-ecc-bounds",
-            "--random-seed", "0",
-            input_path,
-            raw_path,
-            "--output", output_path]
+    args = [
+        "--ignore-ecc-bounds",
+        "--random-seed",
+        "0",
+        input_path,
+        raw_path,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

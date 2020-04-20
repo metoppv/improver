@@ -87,8 +87,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<SpatiallyVaryingWeightsFromMask: fuzzy_length: {}>'.format(
-                      self.fuzzy_length))
+        result = "<SpatiallyVaryingWeightsFromMask: fuzzy_length: {}>".format(
+            self.fuzzy_length
+        )
         return result
 
     @staticmethod
@@ -113,8 +114,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
             weights_data = np.where(cube.data.mask, 0, 1).astype(np.float32)
         else:
             weights_data = np.ones(cube.data.shape, dtype=np.float32)
-            message = ("Input cube to SpatiallyVaryingWeightsFromMask "
-                       "must be masked")
+            message = "Input cube to SpatiallyVaryingWeightsFromMask " "must be masked"
             warnings.warn(message)
         weights_from_mask = cube.copy(data=weights_data)
         weights_from_mask.rename("weights")
@@ -144,8 +144,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 the input cube as it has been sliced over x and y coordinates.
         """
         result = iris.cube.CubeList()
-        x_coord = weights_from_mask.coord(axis='x').name()
-        y_coord = weights_from_mask.coord(axis='y').name()
+        x_coord = weights_from_mask.coord(axis="x").name()
+        y_coord = weights_from_mask.coord(axis="y").name()
         # The distance_transform_edt works on N-D cubes, so we want to make
         # sure we only apply it to x-y slices.
         for weights in weights_from_mask.slices([y_coord, x_coord]):
@@ -154,18 +154,17 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 # are no zeros present.
                 result.append(weights.copy())
             else:
-                fuzzy_data = distance_transform_edt(weights.data == 1., 1)
+                fuzzy_data = distance_transform_edt(weights.data == 1.0, 1)
                 fuzzy_data = fuzzy_data.astype(np.float32)
                 rescaled_fuzzy_data = rescale(
-                    fuzzy_data, data_range=[0., self.fuzzy_length],
-                    clip=True)
+                    fuzzy_data, data_range=[0.0, self.fuzzy_length], clip=True
+                )
                 result.append(weights.copy(data=rescaled_fuzzy_data))
         result = result.merge_cube()
         return result
 
     @staticmethod
-    def multiply_weights(weights_from_mask, one_dimensional_weights_cube,
-                         blend_coord):
+    def multiply_weights(weights_from_mask, one_dimensional_weights_cube, blend_coord):
         """
         Multiply two cubes together by taking slices along the coordinate
         matching the blend_coord string.
@@ -197,17 +196,22 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 leading dimension on the output cube.
         """
         result = iris.cube.CubeList()
-        if (weights_from_mask.coord(blend_coord) !=
-                one_dimensional_weights_cube.coord(blend_coord)):
-            message = ("The blend_coord {} does not match on "
-                       "weights_from_mask and "
-                       "one_dimensional_weights_cube".format(blend_coord))
+        if weights_from_mask.coord(blend_coord) != one_dimensional_weights_cube.coord(
+            blend_coord
+        ):
+            message = (
+                "The blend_coord {} does not match on "
+                "weights_from_mask and "
+                "one_dimensional_weights_cube".format(blend_coord)
+            )
             raise ValueError(message)
         for masked_weight_slice, one_dimensional_weight in zip(
-                weights_from_mask.slices_over(blend_coord),
-                one_dimensional_weights_cube.slices_over(blend_coord)):
+            weights_from_mask.slices_over(blend_coord),
+            one_dimensional_weights_cube.slices_over(blend_coord),
+        ):
             masked_weight_slice.data = (
-                masked_weight_slice.data * one_dimensional_weight.data)
+                masked_weight_slice.data * one_dimensional_weight.data
+            )
             result.append(masked_weight_slice)
         result = result.merge_cube()
         return result
@@ -240,21 +244,20 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 The blend_coord will be the leading dimension on the
                 output cube.
         """
-        summed_weights = collapsed(weights_cube,
-                                   blend_coord,
-                                   iris.analysis.SUM)
+        summed_weights = collapsed(weights_cube, blend_coord, iris.analysis.SUM)
 
         result = iris.cube.CubeList()
         # Slice over blend_coord so the dimensions match.
-        for weight_slice in (
-                weights_cube.slices_over(blend_coord)):
+        for weight_slice in weights_cube.slices_over(blend_coord):
             # Only divide where the sum of weights are positive. Setting
             # the out keyword args sets the default value for where
             # the sum of the weights are zero.
             normalised_data = np.divide(
-                weight_slice.data, summed_weights.data,
+                weight_slice.data,
+                summed_weights.data,
                 out=np.zeros_like(weight_slice.data),
-                where=(summed_weights.data > 0))
+                where=(summed_weights.data > 0),
+            )
             result.append(weight_slice.copy(data=normalised_data))
         return result.merge_cube()
 
@@ -301,17 +304,18 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         else:
             message = (
                 "Blend coordinate must only be across one dimension. "
-                "Coordinate {} is associated with dimensions {}")
+                "Coordinate {} is associated with dimensions {}"
+            )
             message = message.format(blend_coord, blend_dim)
             raise ValueError(message)
         blend_coord = cube_to_collapse.coord(
-            dimensions=blend_dim, dim_coords=True).name()
+            dimensions=blend_dim, dim_coords=True
+        ).name()
         # Find original dim coords in input cube
-        original_dim_coords = [
-            coord.name() for coord in cube_to_collapse.dim_coords]
+        original_dim_coords = [coord.name() for coord in cube_to_collapse.dim_coords]
         # Slice over relevant coords.
-        x_coord = cube_to_collapse.coord(axis='x').name()
-        y_coord = cube_to_collapse.coord(axis='y').name()
+        x_coord = cube_to_collapse.coord(axis="x").name()
+        y_coord = cube_to_collapse.coord(axis="y").name()
         coords_to_slice_over = [blend_coord, y_coord, x_coord]
         slices = cube_to_collapse.slices(coords_to_slice_over)
         # Check they all have the same mask
@@ -323,7 +327,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                     message = (
                         "The mask on the input cube can only vary along the "
                         "blend_coord, differences in the mask were found "
-                        "along another dimension")
+                        "along another dimension"
+                    )
                     raise ValueError(message)
         # Remove old dim coords
         for coord in original_dim_coords:
@@ -332,8 +337,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         # Return slice template
         return first_slice
 
-    def process(self, cube_to_collapse, one_dimensional_weights_cube,
-                blend_coord):
+    def process(self, cube_to_collapse, one_dimensional_weights_cube, blend_coord):
         """
         Create fuzzy spatial weights based on missing data in the cube we
         are going to collapse and combine these with 1D weights along the
@@ -362,15 +366,11 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 cube_to_collapsemask and the one_dimensional weights supplied.
                 Contains the dimensions, blend_coord, y, x.
         """
-        template_cube = self.create_template_slice(
-            cube_to_collapse, blend_coord)
-        weights_from_mask = self.create_initial_weights_from_mask(
-            template_cube)
-        weights_from_mask = self.smooth_initial_weights(
-            weights_from_mask)
+        template_cube = self.create_template_slice(cube_to_collapse, blend_coord)
+        weights_from_mask = self.create_initial_weights_from_mask(template_cube)
+        weights_from_mask = self.smooth_initial_weights(weights_from_mask)
         final_weights = self.multiply_weights(
-            weights_from_mask, one_dimensional_weights_cube,
-            blend_coord)
-        final_weights = self.normalised_masked_weights(
-            final_weights, blend_coord)
+            weights_from_mask, one_dimensional_weights_cube, blend_coord
+        )
+        final_weights = self.normalised_masked_weights(final_weights, blend_coord)
         return final_weights

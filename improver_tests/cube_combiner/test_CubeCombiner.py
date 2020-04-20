@@ -39,8 +39,7 @@ from iris.tests import IrisTest
 
 from improver.cube_combiner import CubeCombiner
 
-from ..set_up_test_cubes import (
-    set_up_probability_cube, set_up_variable_cube)
+from ..set_up_test_cubes import set_up_probability_cube, set_up_variable_cube
 
 
 class Test__init__(IrisTest):
@@ -49,14 +48,14 @@ class Test__init__(IrisTest):
 
     def test_basic(self):
         """Test that the __init__ sets things up correctly"""
-        plugin = CubeCombiner('+')
-        self.assertEqual(plugin.operation, '+')
+        plugin = CubeCombiner("+")
+        self.assertEqual(plugin.operation, "+")
 
     def test_raise_error_wrong_operation(self):
         """Test __init__ raises a ValueError for invalid operation"""
-        msg = 'Unknown operation '
+        msg = "Unknown operation "
         with self.assertRaisesRegex(ValueError, msg):
-            CubeCombiner('%')
+            CubeCombiner("%")
 
 
 class Test__repr__(IrisTest):
@@ -65,8 +64,8 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(CubeCombiner('+'))
-        msg = '<CubeCombiner: operation=+, warnings_on = False>'
+        result = str(CubeCombiner("+"))
+        msg = "<CubeCombiner: operation=+, warnings_on = False>"
         self.assertEqual(result, msg)
 
 
@@ -77,30 +76,33 @@ class CombinerTest(IrisTest):
         """ Set up cubes for testing. """
         data = np.full((1, 2, 2), 0.5, dtype=np.float32)
         self.cube1 = set_up_probability_cube(
-            data, np.array([0.001], dtype=np.float32),
+            data,
+            np.array([0.001], dtype=np.float32),
             variable_name="lwe_thickness_of_precipitation_amount",
             time=datetime(2015, 11, 19, 0),
-            time_bounds=(datetime(2015, 11, 18, 23),
-                         datetime(2015, 11, 19, 0)),
-            frt=datetime(2015, 11, 18, 22))
+            time_bounds=(datetime(2015, 11, 18, 23), datetime(2015, 11, 19, 0)),
+            frt=datetime(2015, 11, 18, 22),
+        )
 
         data = np.full((1, 2, 2), 0.6, dtype=np.float32)
         self.cube2 = set_up_probability_cube(
-            data, np.array([0.001], dtype=np.float32),
+            data,
+            np.array([0.001], dtype=np.float32),
             variable_name="lwe_thickness_of_precipitation_amount",
             time=datetime(2015, 11, 19, 1),
-            time_bounds=(datetime(2015, 11, 19, 0),
-                         datetime(2015, 11, 19, 1)),
-            frt=datetime(2015, 11, 18, 22))
+            time_bounds=(datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 1)),
+            frt=datetime(2015, 11, 18, 22),
+        )
 
         data = np.full((1, 2, 2), 0.1, dtype=np.float32)
         self.cube3 = set_up_probability_cube(
-            data, np.array([0.001], dtype=np.float32),
+            data,
+            np.array([0.001], dtype=np.float32),
             variable_name="lwe_thickness_of_precipitation_amount",
             time=datetime(2015, 11, 19, 1),
-            time_bounds=(datetime(2015, 11, 19, 0),
-                         datetime(2015, 11, 19, 1)),
-            frt=datetime(2015, 11, 18, 22))
+            time_bounds=(datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 1)),
+            frt=datetime(2015, 11, 18, 22),
+        )
 
 
 class Test__get_expanded_coord_names(CombinerTest):
@@ -109,29 +111,33 @@ class Test__get_expanded_coord_names(CombinerTest):
     def test_basic(self):
         """Test correct names are returned for scalar coordinates with
         different values"""
-        expected_coord_set = {'time', 'forecast_period'}
-        result = CubeCombiner('+')._get_expanded_coord_names([
-            self.cube1, self.cube2, self.cube3])
+        expected_coord_set = {"time", "forecast_period"}
+        result = CubeCombiner("+")._get_expanded_coord_names(
+            [self.cube1, self.cube2, self.cube3]
+        )
         self.assertIsInstance(result, list)
         self.assertSetEqual(set(result), expected_coord_set)
 
     def test_identical_inputs(self):
         """Test no coordinates are returned if inputs are identical"""
-        result = CubeCombiner('+')._get_expanded_coord_names([
-            self.cube1, self.cube1, self.cube1])
+        result = CubeCombiner("+")._get_expanded_coord_names(
+            [self.cube1, self.cube1, self.cube1]
+        )
         self.assertFalse(result)
 
     def test_unmatched_coords_ignored(self):
         """Test coordinates that are not present on all cubes are ignored,
         regardless of input order"""
-        expected_coord_set = {'time', 'forecast_period'}
+        expected_coord_set = {"time", "forecast_period"}
         height = iris.coords.AuxCoord([1.5], "height", units="m")
         self.cube1.add_aux_coord(height)
-        result = CubeCombiner('+')._get_expanded_coord_names([
-            self.cube1, self.cube2, self.cube3])
+        result = CubeCombiner("+")._get_expanded_coord_names(
+            [self.cube1, self.cube2, self.cube3]
+        )
         self.assertSetEqual(set(result), expected_coord_set)
-        result = CubeCombiner('+')._get_expanded_coord_names([
-            self.cube3, self.cube2, self.cube1])
+        result = CubeCombiner("+")._get_expanded_coord_names(
+            [self.cube3, self.cube2, self.cube1]
+        )
         self.assertSetEqual(set(result), expected_coord_set)
 
 
@@ -141,47 +147,45 @@ class Test_process(CombinerTest):
 
     def test_basic(self):
         """Test that the plugin returns a Cube. """
-        plugin = CubeCombiner('+')
+        plugin = CubeCombiner("+")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        result = plugin.process(cubelist, 'new_cube_name')
+        result = plugin.process(cubelist, "new_cube_name")
         self.assertIsInstance(result, Cube)
-        self.assertEqual(result.name(), 'new_cube_name')
+        self.assertEqual(result.name(), "new_cube_name")
         expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_mean(self):
         """Test that the plugin calculates the mean correctly. """
-        plugin = CubeCombiner('mean')
+        plugin = CubeCombiner("mean")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        result = plugin.process(cubelist, 'new_cube_name')
+        result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((1, 2, 2), 0.55, dtype=np.float32)
-        self.assertEqual(result.name(), 'new_cube_name')
+        self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_bounds_expansion(self):
         """Test that the plugin calculates the sum of the input cubes
         correctly and expands the time coordinate bounds on the
         resulting output."""
-        plugin = CubeCombiner('add')
+        plugin = CubeCombiner("add")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        result = plugin.process(cubelist, 'new_cube_name')
+        result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
-        self.assertEqual(result.name(), 'new_cube_name')
+        self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertEqual(result.coord('time').points[0], 1447894800)
-        self.assertArrayEqual(result.coord('time').bounds,
-                              [[1447887600, 1447894800]])
+        self.assertEqual(result.coord("time").points[0], 1447894800)
+        self.assertArrayEqual(result.coord("time").bounds, [[1447887600, 1447894800]])
 
     def test_bounds_expansion_midpoint(self):
         """Test option to use the midpoint between the bounds as the time
         coordinate point, rather than the (default) maximum."""
-        plugin = CubeCombiner('add')
+        plugin = CubeCombiner("add")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        result = plugin.process(cubelist, 'new_cube_name', use_midpoint=True)
-        self.assertEqual(result.name(), 'new_cube_name')
-        self.assertEqual(result.coord('time').points[0], 1447891200)
-        self.assertArrayEqual(result.coord('time').bounds,
-                              [[1447887600, 1447894800]])
+        result = plugin.process(cubelist, "new_cube_name", use_midpoint=True)
+        self.assertEqual(result.name(), "new_cube_name")
+        self.assertEqual(result.coord("time").points[0], 1447891200)
+        self.assertArrayEqual(result.coord("time").bounds, [[1447887600, 1447894800]])
 
     def test_unmatched_scalar_coords(self):
         """Test a scalar coordinate that is present on the first cube is
@@ -189,23 +193,19 @@ class Test_process(CombinerTest):
         not present on the output."""
         height = iris.coords.AuxCoord([1.5], "height", units="m")
         self.cube1.add_aux_coord(height)
-        result = CubeCombiner('add').process(
-            [self.cube1, self.cube2], 'new_cube_name')
+        result = CubeCombiner("add").process([self.cube1, self.cube2], "new_cube_name")
         self.assertEqual(result.coord("height"), height)
-        result = CubeCombiner('add').process(
-            [self.cube2, self.cube1], 'new_cube_name')
+        result = CubeCombiner("add").process([self.cube2, self.cube1], "new_cube_name")
         result_coords = [coord.name() for coord in result.coords()]
         self.assertNotIn("height", result_coords)
 
     def test_mean_multi_cube(self):
         """Test that the plugin calculates the mean for three cubes."""
-        plugin = CubeCombiner('mean')
-        cubelist = iris.cube.CubeList([self.cube1,
-                                       self.cube2,
-                                       self.cube3])
-        result = plugin.process(cubelist, 'new_cube_name')
+        plugin = CubeCombiner("mean")
+        cubelist = iris.cube.CubeList([self.cube1, self.cube2, self.cube3])
+        result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((1, 2, 2), 0.4, dtype=np.float32)
-        self.assertEqual(result.name(), 'new_cube_name')
+        self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_with_mask(self):
@@ -214,54 +214,58 @@ class Test_process(CombinerTest):
         expected_data = np.full((1, 2, 2), 1.2, dtype=np.float32)
         mask = [[[False, True], [False, False]]]
         self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
-        plugin = CubeCombiner('add')
-        result = plugin.process(
-            [self.cube1, self.cube2, self.cube3], 'new_cube_name')
+        plugin = CubeCombiner("add")
+        result = plugin.process([self.cube1, self.cube2, self.cube3], "new_cube_name")
         self.assertIsInstance(result.data, np.ma.MaskedArray)
         self.assertArrayAlmostEqual(result.data.data, expected_data)
         self.assertArrayEqual(result.data.mask, mask)
 
     def test_exception_mismatched_dimensions(self):
         """Test an error is raised if dimension coordinates do not match"""
-        self.cube2.coord("lwe_thickness_of_precipitation_amount").rename(
-            "snow_depth")
-        plugin = CubeCombiner('+')
+        self.cube2.coord("lwe_thickness_of_precipitation_amount").rename("snow_depth")
+        plugin = CubeCombiner("+")
         msg = "Cannot combine cubes with different dimensions"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process([self.cube1, self.cube2], 'new_cube_name')
+            plugin.process([self.cube1, self.cube2], "new_cube_name")
 
     def test_exception_for_single_entry_cubelist(self):
         """Test that the plugin raises an exception if a cubelist containing
         only one cube is passed in."""
-        plugin = CubeCombiner('-')
+        plugin = CubeCombiner("-")
         msg = "Expecting 2 or more cubes in cube_list"
         cubelist = iris.cube.CubeList([self.cube1])
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(cubelist, 'new_cube_name')
+            plugin.process(cubelist, "new_cube_name")
 
     def test_multiply_preserves_bounds(self):
         """Test specific case for precipitation type, where multiplying a
         precipitation accumulation by a point-time probability of snow retains
         the bounds on the original accumulation."""
         validity_time = datetime(2015, 11, 19, 0)
-        time_bounds = [datetime(2015, 11, 18, 23),
-                       datetime(2015, 11, 19, 0)]
+        time_bounds = [datetime(2015, 11, 18, 23), datetime(2015, 11, 19, 0)]
         forecast_reference_time = datetime(2015, 11, 18, 22)
         precip_accum = set_up_variable_cube(
             np.full((2, 3, 3), 1.5, dtype=np.float32),
-            name="lwe_thickness_of_precipitation_amount", units='mm',
-            time=validity_time, time_bounds=time_bounds,
-            frt=forecast_reference_time)
+            name="lwe_thickness_of_precipitation_amount",
+            units="mm",
+            time=validity_time,
+            time_bounds=time_bounds,
+            frt=forecast_reference_time,
+        )
         snow_prob = set_up_variable_cube(
             np.full(precip_accum.shape, 0.2, dtype=np.float32),
-            name='probability_of_snow', units='1', time=validity_time,
-            frt=forecast_reference_time)
-        plugin = CubeCombiner('multiply')
-        result = plugin.process([precip_accum, snow_prob],
-                                'lwe_thickness_of_snowfall_amount')
+            name="probability_of_snow",
+            units="1",
+            time=validity_time,
+            frt=forecast_reference_time,
+        )
+        plugin = CubeCombiner("multiply")
+        result = plugin.process(
+            [precip_accum, snow_prob], "lwe_thickness_of_snowfall_amount"
+        )
         self.assertArrayAlmostEqual(result.data, np.full((2, 3, 3), 0.3))
         self.assertArrayEqual(result.coord("time"), precip_accum.coord("time"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

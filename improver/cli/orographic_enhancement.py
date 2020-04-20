@@ -57,27 +57,30 @@ def extract_and_check(cube, height_value, units):
 
     # Write constraint in this format so a constraint is constructed that
     # is suitable for floating point comparison
-    height_constraint = ["height=[{}:{}]".format(height_value-0.1,
-                                                 height_value+0.1)]
+    height_constraint = [
+        "height=[{}:{}]".format(height_value - 0.1, height_value + 0.1)
+    ]
     cube = extract_subcube(cube, height_constraint, units=[units])
 
     if cube is not None:
         return cube
 
-    raise ValueError('No data available at height {}{}'.format(
-        height_value, units))
+    raise ValueError("No data available at height {}{}".format(height_value, units))
 
 
 @cli.clizefy
 @cli.with_output
-def process(temperature: cli.inputcube,
-            humidity: cli.inputcube,
-            pressure: cli.inputcube,
-            wind_speed: cli.inputcube,
-            wind_direction: cli.inputcube,
-            orography: cli.inputcube,
-            *,
-            boundary_height: float = 1000.0, boundary_height_units='m'):
+def process(
+    temperature: cli.inputcube,
+    humidity: cli.inputcube,
+    pressure: cli.inputcube,
+    wind_speed: cli.inputcube,
+    wind_direction: cli.inputcube,
+    orography: cli.inputcube,
+    *,
+    boundary_height: float = 1000.0,
+    boundary_height_units="m",
+):
     """Calculate orographic enhancement
 
     Uses the ResolveWindComponents() and OrographicEnhancement() plugins.
@@ -109,8 +112,7 @@ def process(temperature: cli.inputcube,
             input orography grid.
     """
     from improver.orographic_enhancement import OrographicEnhancement
-    from improver.wind_calculations.wind_components import \
-        ResolveWindComponents
+    from improver.wind_calculations.wind_components import ResolveWindComponents
 
     constraint_info = (boundary_height, boundary_height_units)
 
@@ -123,5 +125,6 @@ def process(temperature: cli.inputcube,
     # resolve u and v wind components
     u_wind, v_wind = ResolveWindComponents()(wind_speed, wind_direction)
     # calculate orographic enhancement
-    return OrographicEnhancement()(temperature, humidity, pressure,
-                                   u_wind, v_wind, orography)
+    return OrographicEnhancement()(
+        temperature, humidity, pressure, u_wind, v_wind, orography
+    )

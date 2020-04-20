@@ -30,7 +30,7 @@ jobs:
       env:
         CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
     - uses: codecov/codecov-action@v1
-  Pycodestyle-and-Pylint:
+  Codestyle-and-Pylint:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -48,7 +48,9 @@ jobs:
         conda list --export
     - name: conda activate
       run:  echo "::add-path::/usr/share/miniconda/envs/improver/bin"
-    - name: pycodestyle 
-      run:  pycodestyle improver improver_tests
+    - name: isort
+      run:  isort --check-only --recursive .
+    - name: black
+      run:  black --check .
     - name: pylint
       run: pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests

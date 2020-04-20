@@ -33,8 +33,8 @@
 import copy
 import itertools
 
-import numpy as np
 import iris
+import numpy as np
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 
@@ -88,12 +88,10 @@ class FrictionVelocity(BasePlugin):
         self.mask = mask
 
         # Check that input cubes are the same size
-        array_sizes = [np.size(u_href), np.size(h_ref), np.size(z_0),
-                       np.size(mask)]
+        array_sizes = [np.size(u_href), np.size(h_ref), np.size(z_0), np.size(mask)]
 
         if not all(x == array_sizes[0] for x in array_sizes):
-            raise ValueError('Different size input arrays u_href, h_ref, z_0, '
-                             'mask')
+            raise ValueError("Different size input arrays u_href, h_ref, z_0, " "mask")
 
     def process(self):
         """Function to calculate the friction velocity.
@@ -112,7 +110,7 @@ class FrictionVelocity(BasePlugin):
         """
         ustar = np.full(self.u_href.shape, RMDI, dtype=np.float32)
         numerator = self.u_href[self.mask]
-        with np.errstate(invalid='ignore'):
+        with np.errstate(invalid="ignore"):
             denominator = np.log(self.h_ref[self.mask] / self.z_0[self.mask])
         ustar[self.mask] = VONKARMAN * (numerator / denominator)
         return ustar
@@ -172,9 +170,9 @@ class RoughnessCorrectionUtilities:
         self.hcmask, self.rcmask = self._setmask()  # HC mask, RC mask
         if self.z_0 is not None:
             self.z_0[z_0 <= 0] = Z0M_SEA
-        self.dx_min = ppres / 2.  # scales smaller than this not resolved in pp
+        self.dx_min = ppres / 2.0  # scales smaller than this not resolved in pp
         # the original code had hardcoded 500
-        self.dx_max = 3. * modres  # scales larger than this resolved in model
+        self.dx_max = 3.0 * modres  # scales larger than this resolved in model
         # the original code had hardcoded 4000
         self.wavenum = self._calc_wav()  # k = 2*pi / L
         self.h_ref = self._calc_h_ref()
@@ -306,9 +304,9 @@ class RoughnessCorrectionUtilities:
 
         """
         wavn = np.full(self.a_over_s.shape, RMDI, dtype=np.float32)
-        wavn[self.hcmask] = (
-            (self.a_over_s[self.hcmask] * np.pi) / self.h_over_2[self.hcmask]
-        )
+        wavn[self.hcmask] = (self.a_over_s[self.hcmask] * np.pi) / self.h_over_2[
+            self.hcmask
+        ]
         wavn[wavn > np.pi / self.dx_min] = np.pi / self.dx_min
         wavn[self.h_over_2 == 0] = RMDI
         wavn[abs(wavn) < np.pi / self.dx_max] = np.pi / self.dx_max
@@ -342,13 +340,12 @@ class RoughnessCorrectionUtilities:
         alpha = -np.log(ABSOLUTE_CORRECTION_TOL)
         tunable_param = np.full(self.wavenum.shape, RMDI, dtype=np.float32)
         h_ref = np.full(self.wavenum.shape, RMDI, dtype=np.float32)
-        tunable_param[self.hcmask] = (
-            alpha + np.log(self.wavenum[self.hcmask] *
-                           self.h_over_2[self.hcmask]))
+        tunable_param[self.hcmask] = alpha + np.log(
+            self.wavenum[self.hcmask] * self.h_over_2[self.hcmask]
+        )
         tunable_param[tunable_param > 1.0] = 1.0
         tunable_param[tunable_param < 0.0] = 0.0
-        h_ref[self.hcmask] = (
-            tunable_param[self.hcmask] / self.wavenum[self.hcmask])
+        h_ref[self.hcmask] = tunable_param[self.hcmask] / self.wavenum[self.hcmask]
         h_ref[h_ref < 1.0] = 1.0
         h_ref = np.minimum(h_ref, HREF_SCALE * self.h_over_2)
         h_ref[h_ref < 1.0] = 1.0
@@ -392,9 +389,9 @@ class RoughnessCorrectionUtilities:
         arr_ones = np.ones(unew.shape, dtype=np.float32)
 
         first_arg = (ustar[:, :, np.newaxis] * arr_ones)[cond]
-        sec_arg = np.log(hgrid /
-                         (np.reshape(self.z_0, self.z_0.shape + (1,)) *
-                          arr_ones))[cond]
+        sec_arg = np.log(
+            hgrid / (np.reshape(self.z_0, self.z_0.shape + (1,)) * arr_ones)
+        )[cond]
 
         unew[cond] = (first_arg * sec_arg) / VONKARMAN
 
@@ -429,37 +426,40 @@ class RoughnessCorrectionUtilities:
         hhere = np.ma.masked_less(hhere, 0.0)
         upidx = np.argmax(h_in > hhere[:, :, np.newaxis], axis=2)
         # loidx = np.maximum(upidx-1, 0) #if RMDI, need below
-        loidx = np.argmin(np.ma.masked_less(hhere[:, :, np.newaxis] -
-                                            h_in, 0.0), axis=2)
+        loidx = np.argmin(
+            np.ma.masked_less(hhere[:, :, np.newaxis] - h_in, 0.0), axis=2
+        )
 
         if h_in.ndim == 3:
-            hup = h_in.take(upidx.flatten() + np.arange(0, upidx.size *
-                                                        h_in.shape[2],
-                                                        h_in.shape[2]))
-            hlow = h_in.take(loidx.flatten() + np.arange(0, loidx.size *
-                                                         h_in.shape[2],
-                                                         h_in.shape[2]))
+            hup = h_in.take(
+                upidx.flatten()
+                + np.arange(0, upidx.size * h_in.shape[2], h_in.shape[2])
+            )
+            hlow = h_in.take(
+                loidx.flatten()
+                + np.arange(0, loidx.size * h_in.shape[2], h_in.shape[2])
+            )
         elif h_in.ndim == 1:
             hup = h_in[upidx].flatten()
             hlow = h_in[loidx].flatten()
+        # pylint: disable=unsubscriptable-object
         uup = u_in.take(
-            upidx.flatten() +
-            np.arange(0, upidx.size * u_in.shape[2], u_in.shape[2])) \
-            # pylint: disable=unsubscriptable-object
+            upidx.flatten() + np.arange(0, upidx.size * u_in.shape[2], u_in.shape[2])
+        )
+        # pylint: disable=unsubscriptable-object
         ulow = u_in.take(
-            loidx.flatten() +
-            np.arange(0, loidx.size * u_in.shape[2], u_in.shape[2])) \
-            # pylint: disable=unsubscriptable-object
+            loidx.flatten() + np.arange(0, loidx.size * u_in.shape[2], u_in.shape[2])
+        )
         mask = mask.flatten()
         uath = np.full(mask.shape, RMDI, dtype=np.float32)
         if dolog:
-            uath[mask] = self._interpolate_log(hup[mask], hlow[mask],
-                                               hhere.flatten()[mask],
-                                               uup[mask], ulow[mask])
+            uath[mask] = self._interpolate_log(
+                hup[mask], hlow[mask], hhere.flatten()[mask], uup[mask], ulow[mask]
+            )
         else:
-            uath[mask] = self._interpolate_1d(hup[mask], hlow[mask],
-                                              hhere.flatten()[mask],
-                                              uup[mask], ulow[mask])
+            uath[mask] = self._interpolate_1d(
+                hup[mask], hlow[mask], hhere.flatten()[mask], uup[mask], ulow[mask]
+            )
         uath = np.reshape(uath, hhere.shape)
         return uath
 
@@ -486,13 +486,13 @@ class RoughnessCorrectionUtilities:
 
         """
         interp = np.full(xup.shape, RMDI, dtype=np.float32)
-        diffs = (xup - xlow)
-        interp[diffs != 0] = (
-            ylow[diffs != 0] + ((at_x[diffs != 0] - xlow[diffs != 0]) /
-                                diffs[diffs != 0] * (yup[diffs != 0] -
-                                                     ylow[diffs != 0])))
-        interp[diffs == 0] = at_x[diffs == 0] / xup[diffs == 0] * (
-            yup[diffs == 0])
+        diffs = xup - xlow
+        interp[diffs != 0] = ylow[diffs != 0] + (
+            (at_x[diffs != 0] - xlow[diffs != 0])
+            / diffs[diffs != 0]
+            * (yup[diffs != 0] - ylow[diffs != 0])
+        )
+        interp[diffs == 0] = at_x[diffs == 0] / xup[diffs == 0] * (yup[diffs == 0])
         return interp
 
     @staticmethod
@@ -523,11 +523,10 @@ class RoughnessCorrectionUtilities:
         mfrac = xup / xlow
         mtest = (xup / xlow != 1) & (at_x != xup)
         ain[mtest] = (yup[mtest] - ylow[mtest]) / np.log(mfrac[mtest])
-        loginterp[mtest] = ain[mtest] * np.log(at_x[mtest] / xup[mtest]) + yup[
-            mtest]
-        mtest = (xup / xlow == 1)  # below lowest layer, make lin interp
+        loginterp[mtest] = ain[mtest] * np.log(at_x[mtest] / xup[mtest]) + yup[mtest]
+        mtest = xup / xlow == 1  # below lowest layer, make lin interp
         loginterp[mtest] = at_x[mtest] / xup[mtest] * (yup[mtest])
-        mtest = (at_x == xup)  # just use yup
+        mtest = at_x == xup  # just use yup
         loginterp[mtest] = yup[mtest]
         return loginterp
 
@@ -575,8 +574,7 @@ class RoughnessCorrectionUtilities:
         expon = np.ones([xdim, ydim, zdim], dtype=np.float32)
         mult = self.wavenum[:, :, np.newaxis] * heightg
         expon[mult > 0.0001] = np.exp(-mult[mult > 0.0001])
-        hc_add = (expon * u_a[:, :, np.newaxis] *
-                  ml2[:, :, np.newaxis] * onemfrac)
+        hc_add = expon * u_a[:, :, np.newaxis] * ml2[:, :, np.newaxis] * onemfrac
         hc_add[~mask, :] = 0
         return hc_add
 
@@ -592,8 +590,7 @@ class RoughnessCorrectionUtilities:
 
         """
         delt_z = np.full(self.pporo.shape, RMDI, dtype=np.float32)
-        delt_z[self.hcmask] = self.pporo[self.hcmask] - self.modoro[
-            self.hcmask]
+        delt_z[self.hcmask] = self.pporo[self.hcmask] - self.modoro[self.hcmask]
         return delt_z
 
     def do_rc_hc_all(self, hgrid, uorig):
@@ -615,7 +612,7 @@ class RoughnessCorrectionUtilities:
 
         """
         if hgrid.ndim == 3:
-            condition1 = ((hgrid == RMDI).any(axis=2))
+            condition1 = (hgrid == RMDI).any(axis=2)
             self.hcmask[condition1] = False
             self.rcmask[condition1] = False
         mask_rc = np.copy(self.rcmask)
@@ -626,8 +623,7 @@ class RoughnessCorrectionUtilities:
             unew = self.calc_roughness_correction(hgrid, uorig, mask_rc)
         else:
             unew = uorig
-        uhref_orig = self._calc_u_at_h(uorig, hgrid, 1.0 / self.wavenum,
-                                       mask_hc)
+        uhref_orig = self._calc_u_at_h(uorig, hgrid, 1.0 / self.wavenum, mask_hc)
         mask_hc[uhref_orig <= 0] = False
         # Setting this value to 1, is equivalent to setting the
         # Bessel function to 1. (Friedrich, 2016)
@@ -636,7 +632,7 @@ class RoughnessCorrectionUtilities:
         onemfrac = 1.0
         hc_add = self._calc_height_corr(uhref_orig, hgrid, mask_hc, onemfrac)
         result = unew + hc_add
-        result[result < 0.] = 0  # HC can be negative if pporo<modeloro
+        result[result < 0.0] = 0  # HC can be negative if pporo<modeloro
         return result.astype(np.float32)
 
 
@@ -646,9 +642,16 @@ class RoughnessCorrection(PostProcessingPlugin):
     zcoordnames = ["height", "model_level_number"]
     tcoordnames = ["time", "forecast_time"]
 
-    def __init__(self, a_over_s_cube, sigma_cube, pporo_cube,
-                 modoro_cube, modres, z0_cube=None,
-                 height_levels_cube=None):
+    def __init__(
+        self,
+        a_over_s_cube,
+        sigma_cube,
+        pporo_cube,
+        modoro_cube,
+        modres,
+        z0_cube=None,
+        height_levels_cube=None,
+    ):
         """Initialise the RoughnessCorrection instance.
 
         Args:
@@ -677,8 +680,11 @@ class RoughnessCorrection(PostProcessingPlugin):
 
         x_name, y_name, _, _ = self.find_coord_names(pporo_cube)
         # Some checking that all the grids match
-        if not (self.check_ancils(a_over_s_cube, sigma_cube, z0_cube,
-                                  pporo_cube, modoro_cube)):
+        if not (
+            self.check_ancils(
+                a_over_s_cube, sigma_cube, z0_cube, pporo_cube, modoro_cube
+            )
+        ):
             raise ValueError("ancillary grids are not consistent")
         # I want this ordering. Careful: iris.cube.Cube.slices is unreliable.
         self.a_over_s = next(a_over_s_cube.slices([y_name, x_name]))
@@ -720,13 +726,11 @@ class RoughnessCorrection(PostProcessingPlugin):
         try:
             xname = cube.coord(axis="x").name()
         except CoordinateNotFoundError as exc:
-            print("'{0}' while xname setting. Args: {1}.".format(exc,
-                                                                 exc.args))
+            print("'{0}' while xname setting. Args: {1}.".format(exc, exc.args))
         try:
             yname = cube.coord(axis="y").name()
         except CoordinateNotFoundError as exc:
-            print("'{0}' while yname setting. Args: {1}.".format(exc,
-                                                                 exc.args))
+            print("'{0}' while yname setting. Args: {1}.".format(exc, exc.args))
         if clist.intersection(self.zcoordnames):
             zname = list(clist.intersection(self.zcoordnames))[0]
         else:
@@ -751,28 +755,25 @@ class RoughnessCorrection(PostProcessingPlugin):
 
         """
         x_name, y_name, _, _ = self.find_coord_names(a_cube)
-        [exp_xname, exp_yname] = ["projection_x_coordinate",
-                                  "projection_y_coordinate"]
+        [exp_xname, exp_yname] = ["projection_x_coordinate", "projection_y_coordinate"]
         exp_unit = Unit("m")
         if (x_name != exp_xname) or (y_name != exp_yname):
             raise ValueError("cannot currently calculate resolution")
 
-        if (a_cube.coord(x_name).bounds is None and
-                a_cube.coord(y_name).bounds is None):
+        if a_cube.coord(x_name).bounds is None and a_cube.coord(y_name).bounds is None:
             xres = (np.diff(a_cube.coord(x_name).points)).mean()
             yres = (np.diff(a_cube.coord(y_name).points)).mean()
         else:
             xres = (np.diff(a_cube.coord(x_name).bounds)).mean()
             yres = (np.diff(a_cube.coord(y_name).bounds)).mean()
-        if (
-                (a_cube.coord(x_name).units != exp_unit) or
-                (a_cube.coord(y_name).units != exp_unit)):
+        if (a_cube.coord(x_name).units != exp_unit) or (
+            a_cube.coord(y_name).units != exp_unit
+        ):
             raise ValueError("cube axis have units different from m.")
         return (abs(xres) + abs(yres)) / 2.0
 
     @staticmethod
-    def check_ancils(a_over_s_cube, sigma_cube, z0_cube, pp_oro_cube,
-                     model_oro_cube):
+    def check_ancils(a_over_s_cube, sigma_cube, z0_cube, pp_oro_cube, model_oro_cube):
         """Check ancils grid and units.
 
         Check if ancil cubes are on the same grid and if they have the
@@ -798,20 +799,25 @@ class RoughnessCorrection(PostProcessingPlugin):
         """
         ancil_list = [a_over_s_cube, sigma_cube, pp_oro_cube, model_oro_cube]
         unwanted_coord_list = [
-            "time", "height", "model_level_number", "forecast_time",
-            "forecast_reference_time", "forecast_period"]
-        for field, exp_unit in zip(ancil_list, [1, Unit("m"),
-                                                Unit("m"), Unit("m")]):
+            "time",
+            "height",
+            "model_level_number",
+            "forecast_time",
+            "forecast_reference_time",
+            "forecast_period",
+        ]
+        for field, exp_unit in zip(ancil_list, [1, Unit("m"), Unit("m"), Unit("m")]):
             for unwanted_coord in unwanted_coord_list:
                 try:
                     field.remove_coord(unwanted_coord)
                 except CoordinateNotFoundError:
                     pass
             if field.units != exp_unit:
-                msg = ('{} ancil field has unexpected unit:'
-                       ' {} (expected) vs. {} (actual)')
-                raise ValueError(
-                    msg.format(field.name(), exp_unit, field.units))
+                msg = (
+                    "{} ancil field has unexpected unit:"
+                    " {} (expected) vs. {} (actual)"
+                )
+                raise ValueError(msg.format(field.name(), exp_unit, field.units))
         if z0_cube is not None:
             ancil_list.append(z0_cube)
             for unwanted_coord in unwanted_coord_list:
@@ -819,17 +825,14 @@ class RoughnessCorrection(PostProcessingPlugin):
                     z0_cube.remove_coord(unwanted_coord)
                 except CoordinateNotFoundError:
                     pass
-            if z0_cube.units != Unit('m'):
-                msg = ("z0 ancil has unexpected unit: should be {} "
-                       "is {}")
-                raise ValueError(msg.format(Unit('m'), z0_cube.units))
+            if z0_cube.units != Unit("m"):
+                msg = "z0 ancil has unexpected unit: should be {} " "is {}"
+                raise ValueError(msg.format(Unit("m"), z0_cube.units))
         permutated_ancil_list = list(itertools.permutations(ancil_list, 2))
         oklist = []
         for entry in permutated_ancil_list:
-            x_axis_flag = (
-                entry[0].coord(axis="y") == entry[1].coord(axis="y"))
-            y_axis_flag = (
-                entry[0].coord(axis="x") == entry[1].coord(axis="x"))
+            x_axis_flag = entry[0].coord(axis="y") == entry[1].coord(axis="y")
+            y_axis_flag = entry[0].coord(axis="x") == entry[1].coord(axis="x")
             oklist.append(x_axis_flag & y_axis_flag)
             # HybridHeightToPhenomOnPressure._cube_compatibility_check(entr[0],
             # entr[1])
@@ -862,7 +865,7 @@ class RoughnessCorrection(PostProcessingPlugin):
         positions = len(coord_names) * [np.nan]
         for coord_index, coord_name in enumerate(coord_names):
             if mcube.coords(coord_name, dim_coords=True):
-                positions[coord_index], = mcube.coord_dims(coord_name)
+                (positions[coord_index],) = mcube.coord_dims(coord_name)
         return positions
 
     def find_heightgrid(self, wind):
@@ -899,9 +902,11 @@ class RoughnessCorrection(PostProcessingPlugin):
                 except CoordinateNotFoundError:
                     raise ValueError("height z coordinate differs from wind z")
             else:
-                raise ValueError("hld must have a dimension length of "
-                                 "either 3 or 1"
-                                 "hld.ndim is {}".format(hld.ndim))
+                raise ValueError(
+                    "hld must have a dimension length of "
+                    "either 3 or 1"
+                    "hld.ndim is {}".format(hld.ndim)
+                )
             hld = hld.data
         return hld
 
@@ -945,8 +950,9 @@ class RoughnessCorrection(PostProcessingPlugin):
         if not isinstance(input_cube, iris.cube.Cube):
             msg = "wind input is not a cube, but {}"
             raise TypeError(msg.format(type(input_cube)))
-        (self.x_name, self.y_name, self.z_name,
-         self.t_name) = self.find_coord_names(input_cube)
+        (self.x_name, self.y_name, self.z_name, self.t_name) = self.find_coord_names(
+            input_cube
+        )
         xwp, ywp, zwp, twp = self.find_coord_order(input_cube)
         if np.isnan(twp):
             input_cube.transpose([ywp, xwp, zwp])
@@ -958,17 +964,22 @@ class RoughnessCorrection(PostProcessingPlugin):
         else:
             z0_data = self.z_0.data
         roughness_correction = RoughnessCorrectionUtilities(
-            self.a_over_s.data, self.sigma.data, z0_data, self.pp_oro.data,
-            self.model_oro.data, self.ppres, self.modres)
+            self.a_over_s.data,
+            self.sigma.data,
+            z0_data,
+            self.pp_oro.data,
+            self.model_oro.data,
+            self.ppres,
+            self.modres,
+        )
         self.check_wind_ancil(xwp, ywp)
         hld = self.find_heightgrid(input_cube)
         for time_slice in input_cube.slices_over("time"):
-            if np.isnan(time_slice.data).any() or (time_slice.data < 0.).any():
-                msg = ('{} has invalid wind data')
+            if np.isnan(time_slice.data).any() or (time_slice.data < 0.0).any():
+                msg = "{} has invalid wind data"
                 raise ValueError(msg.format(time_slice.coord(self.t_name)))
             rc_hc = copy.deepcopy(time_slice)
-            rc_hc.data = roughness_correction.do_rc_hc_all(
-                hld, time_slice.data)
+            rc_hc.data = roughness_correction.do_rc_hc_all(hld, time_slice.data)
             rchc_list.append(rc_hc)
         output_cube = rchc_list.merge_cube()
         # reorder input_cube and output_cube as original

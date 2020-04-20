@@ -47,8 +47,7 @@ def test_single_file(tmp_path):
     kgo_path = kgo_dir / "single_file_kgo.nc"
     input_path = kgo_dir / "orographic_enhancement_T3.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path]
+    args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -60,7 +59,6 @@ def test_multiple_files(tmp_path):
     input_path_t3 = kgo_dir / "orographic_enhancement_T3.nc"
     input_path_t4 = kgo_dir / "orographic_enhancement_T4.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path_t3, input_path_t4,
-            "--output", output_path]
+    args = [input_path_t3, input_path_t4, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

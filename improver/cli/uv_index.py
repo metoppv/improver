@@ -36,10 +36,9 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(uv_flux_up: cli.inputcube,
-            uv_flux_down: cli.inputcube,
-            *,
-            model_id_attr: str = None):
+def process(
+    uv_flux_up: cli.inputcube, uv_flux_down: cli.inputcube, *, model_id_attr: str = None
+):
     """Calculate the UV index using the data in the input cubes.
 
     Calculate the uv index using the radiation flux in UV downward at surface
@@ -59,6 +58,6 @@ def process(uv_flux_up: cli.inputcube,
             Processed Cube.
     """
     from improver.uv_index import calculate_uv_index
-    result = calculate_uv_index(uv_flux_up, uv_flux_down,
-                                model_id_attr=model_id_attr)
+
+    result = calculate_uv_index(uv_flux_up, uv_flux_down, model_id_attr=model_id_attr)
     return result

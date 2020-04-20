@@ -37,7 +37,9 @@ import iris
 from dateutil import tz
 
 from improver.metadata.constants.mo_attributes import (
-    GRID_ID_LOOKUP, MOSG_GRID_DEFINITION)
+    GRID_ID_LOOKUP,
+    MOSG_GRID_DEFINITION,
+)
 
 
 def update_stage_v110_metadata(cube):
@@ -54,12 +56,12 @@ def update_stage_v110_metadata(cube):
         None
     """
     try:
-        grid_id = cube.attributes.pop('grid_id')
+        grid_id = cube.attributes.pop("grid_id")
     except KeyError:
         # Not a version 1.1.0 grid, do nothing
         return
     cube.attributes.update(MOSG_GRID_DEFINITION[GRID_ID_LOOKUP[grid_id]])
-    cube.attributes['mosg__grid_version'] = '1.1.0'
+    cube.attributes["mosg__grid_version"] = "1.1.0"
 
 
 def amend_attributes(cube, attributes_dict):
@@ -81,90 +83,6 @@ def amend_attributes(cube, attributes_dict):
             cube.attributes[attribute_name] = value
 
 
-def add_coord(cube, coord_name, changes, warnings_on=False):
-    """Add coord to the cube.
-
-    Args:
-        cube (iris.cube.Cube):
-            Cube containing combined data.
-        coord_name (str):
-            Name of the coordinate being added.
-        changes (dict):
-            Details of coordinate to be added to the cube, with string keys.
-            Valid keys are 'metatype' (which should have value 'DimCoord' or
-            'AuxCoord'), 'points', 'bounds', 'units', 'attributes' and
-            'var_name'. Any other key strings in the dictionary are ignored.
-            More detail is available in
-            :func:`improver.metadata.amend.amend_metadata`
-        warnings_on (bool):
-            If True output warnings for mismatching metadata.
-
-    Returns:
-        iris.cube.Cube:
-            Cube with added coordinate.
-
-    Raises:
-        ValueError: Trying to add new coord but no points defined.
-        ValueError: Can not add a coordinate of length > 1
-        UserWarning: adding new coordinate.
-
-    """
-    result = cube.copy()
-    # Get the points for the coordinate to be added.
-    # The points must be defined.
-    if 'points' in changes:
-        if len(changes['points']) != 1:
-            msg = ("Can not add a coordinate of length > 1,"
-                   " coord  = {}".format(coord_name))
-            raise ValueError(msg)
-        points = changes['points']
-    else:
-        msg = ("Trying to add new coord but no points defined"
-               " in metadata, coord  = {}".format(coord_name))
-        raise ValueError(msg)
-
-    # Get the bounds, units, var_name and attributes from the
-    # changes dictionary.
-    bounds = None
-    if 'bounds' in changes:
-        bounds = changes['bounds']
-    units = None
-    if 'units' in changes:
-        units = changes['units']
-    var_name = None
-    if 'var_name' in changes:
-        var_name = changes['var_name']
-    attributes = None
-    if 'attributes' in changes:
-        attributes = changes['attributes']
-
-    # Get the type of the coordinate, if specified.
-    metatype = 'DimCoord'
-    if 'metatype' in changes:
-        if changes['metatype'] == 'AuxCoord':
-            new_coord_method = iris.coords.AuxCoord
-            metatype = 'AuxCoord'
-        else:
-            new_coord_method = iris.coords.DimCoord
-    else:
-        new_coord_method = iris.coords.DimCoord
-
-    new_coord = new_coord_method(
-        points=points, bounds=bounds, units=units, attributes=attributes)
-    new_coord.rename(coord_name)
-    new_coord.var_name = var_name
-
-    result.add_aux_coord(new_coord)
-    if metatype == 'DimCoord':
-        result = iris.util.new_axis(result, coord_name)
-    if warnings_on:
-        msg = ("Adding new coordinate "
-               "{} with {}".format(coord_name,
-                                   changes))
-        warnings.warn(msg)
-    return result
-
-
 def set_history_attribute(cube, value, append=False):
     """Add a history attribute to a cube. This uses the current datetime to
     generate the timestamp for the history attribute. The new history attribute
@@ -180,10 +98,10 @@ def set_history_attribute(cube, value, append=False):
             If True, add to the existing history rather than replacing the
             existing attribute.  Default is False.
     """
-    tzinfo = tz.tzoffset('Z', 0)
+    tzinfo = tz.tzoffset("Z", 0)
     timestamp = datetime.strftime(datetime.now(tzinfo), "%Y-%m-%dT%H:%M:%S%Z")
     new_history = "{}: {}".format(timestamp, value)
     if append and "history" in cube.attributes.keys():
-        cube.attributes["history"] += '; {}'.format(new_history)
+        cube.attributes["history"] += "; {}".format(new_history)
     else:
         cube.attributes["history"] = new_history

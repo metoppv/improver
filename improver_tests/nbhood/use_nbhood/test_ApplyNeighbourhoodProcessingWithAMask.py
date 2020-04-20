@@ -74,23 +74,30 @@ def add_dimensions_to_cube(cube, new_dims):
 
 
 def set_up_topographic_zone_cube(
-        mask_data, topographic_zone_point, topographic_zone_bounds,
-        num_time_points=1, num_grid_points=16, num_realization_points=1):
+    mask_data,
+    topographic_zone_point,
+    topographic_zone_bounds,
+    num_time_points=1,
+    num_grid_points=16,
+    num_realization_points=1,
+):
     """Function to generate a cube with a topographic_zone coordinate. This
     uses the existing functionality from the set_up_cube function."""
     mask_cube = set_up_cube(
         zero_point_indices=((0, 0, 0, 0),),
-        num_time_points=num_time_points, num_grid_points=num_grid_points,
-        num_realization_points=num_realization_points)
+        num_time_points=num_time_points,
+        num_grid_points=num_grid_points,
+        num_realization_points=num_realization_points,
+    )
     mask_cube = iris.util.squeeze(mask_cube)
     mask_cube.data = mask_data
-    mask_cube.long_name = 'Topography mask'
-    coord_name = 'topographic_zone'
+    mask_cube.long_name = "Topography mask"
+    coord_name = "topographic_zone"
     threshold_coord = iris.coords.AuxCoord(
-        topographic_zone_point, bounds=topographic_zone_bounds,
-        long_name=coord_name)
+        topographic_zone_point, bounds=topographic_zone_bounds, long_name=coord_name
+    )
     mask_cube.add_aux_coord(threshold_coord)
-    mask_cube.attributes['Topographical Type'] = "Land"
+    mask_cube.attributes["Topographical Type"] = "Land"
     return mask_cube
 
 
@@ -102,12 +109,13 @@ class Test__init__(IrisTest):
         """Test that the __init__ method returns the expected string."""
         coord_for_masking = "topographic_zone"
         radii = 2000
-        result = ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, radii)
-        msg = ("<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
-               "topographic_zone, neighbourhood_method: square, radii: 2000, "
-               "lead_times: None, weighted_mode: True, "
-               "sum_or_fraction: fraction, re_mask: False>")
+        result = ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii)
+        msg = (
+            "<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
+            "topographic_zone, neighbourhood_method: square, radii: 2000, "
+            "lead_times: None, weighted_mode: True, "
+            "sum_or_fraction: fraction, re_mask: False>"
+        )
         self.assertEqual(str(result), msg)
 
 
@@ -119,12 +127,13 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ method returns the expected string."""
         coord_for_masking = "topographic_zone"
         radii = 2000
-        result = str(ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, radii))
-        msg = ("<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
-               "topographic_zone, neighbourhood_method: square, radii: 2000, "
-               "lead_times: None, weighted_mode: True, "
-               "sum_or_fraction: fraction, re_mask: False>")
+        result = str(ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii))
+        msg = (
+            "<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
+            "topographic_zone, neighbourhood_method: square, radii: 2000, "
+            "lead_times: None, weighted_mode: True, "
+            "sum_or_fraction: fraction, re_mask: False>"
+        )
         self.assertEqual(result, msg)
 
 
@@ -134,66 +143,85 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up a cube."""
-        self.cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
+        self.cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
         # The neighbourhood code adds bounds to the coordinates if they are
         # not present so add them now to make it easier to compare input and
         # output from the plugin.
         self.cube.coord("projection_x_coordinate").guess_bounds()
         self.cube.coord("projection_y_coordinate").guess_bounds()
         self.cube = iris.util.squeeze(self.cube)
-        mask_data = np.array([[[1, 0, 0, 0, 0],
-                               [1, 1, 0, 0, 0],
-                               [1, 1, 0, 0, 0],
-                               [0, 0, 0, 0, 0],
-                               [0, 0, 0, 0, 0]],
-                              [[0, 0, 0, 0, 0],
-                               [0, 0, 1, 1, 0],
-                               [0, 0, 1, 1, 0],
-                               [0, 0, 0, 0, 0],
-                               [0, 0, 0, 0, 0]],
-                              [[0, 0, 0, 0, 0],
-                               [0, 0, 0, 0, 0],
-                               [0, 0, 0, 0, 0],
-                               [0, 0, 0, 1, 1],
-                               [0, 0, 0, 1, 1]]])
+        mask_data = np.array(
+            [
+                [
+                    [1, 0, 0, 0, 0],
+                    [1, 1, 0, 0, 0],
+                    [1, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 1, 1, 0],
+                    [0, 0, 1, 1, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 1],
+                    [0, 0, 0, 1, 1],
+                ],
+            ]
+        )
         topographic_zone_points = [50, 150, 250]
         topographic_zone_bounds = [[0, 100], [100, 200], [200, 300]]
 
         mask_cubes = iris.cube.CubeList([])
-        for data, point, bounds in zip(mask_data, topographic_zone_points,
-                                       topographic_zone_bounds):
+        for data, point, bounds in zip(
+            mask_data, topographic_zone_points, topographic_zone_bounds
+        ):
             mask_cubes.append(
-                set_up_topographic_zone_cube(
-                    data, point, bounds, num_grid_points=5))
+                set_up_topographic_zone_cube(data, point, bounds, num_grid_points=5)
+            )
         self.mask_cube = mask_cubes.merge_cube()
 
     def test_basic(self):
         """Test that the expected result is returned, when the
         topographic_zone coordinate is iterated over."""
         expected = np.array(
-            [[[1.00, 1.00, 1.00, np.nan, np.nan],
-              [1.00, 1.00, 1.00, np.nan, np.nan],
-              [1.00, 1.00, 1.00, np.nan, np.nan],
-              [1.00, 1.00, 1.00, np.nan, np.nan],
-              [np.nan, np.nan, np.nan, np.nan, np.nan]],
-             [[np.nan, 1.00, 1.00, 1.00, 1.00],
-              [np.nan, 0.50, 0.75, 0.75, 1.00],
-              [np.nan, 0.50, 0.75, 0.75, 1.00],
-              [np.nan, 0.00, 0.50, 0.50, 1.00],
-              [np.nan, np.nan, np.nan, np.nan, np.nan]],
-             [[np.nan, np.nan, np.nan, np.nan, np.nan],
-              [np.nan, np.nan, np.nan, np.nan, np.nan],
-              [np.nan, np.nan, 1.00, 1.00, 1.00],
-              [np.nan, np.nan, 1.00, 1.00, 1.00],
-              [np.nan, np.nan, 1.00, 1.00, 1.00]]])
+            [
+                [
+                    [1.00, 1.00, 1.00, np.nan, np.nan],
+                    [1.00, 1.00, 1.00, np.nan, np.nan],
+                    [1.00, 1.00, 1.00, np.nan, np.nan],
+                    [1.00, 1.00, 1.00, np.nan, np.nan],
+                    [np.nan, np.nan, np.nan, np.nan, np.nan],
+                ],
+                [
+                    [np.nan, 1.00, 1.00, 1.00, 1.00],
+                    [np.nan, 0.50, 0.75, 0.75, 1.00],
+                    [np.nan, 0.50, 0.75, 0.75, 1.00],
+                    [np.nan, 0.00, 0.50, 0.50, 1.00],
+                    [np.nan, np.nan, np.nan, np.nan, np.nan],
+                ],
+                [
+                    [np.nan, np.nan, np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, 1.00, 1.00, 1.00],
+                    [np.nan, np.nan, 1.00, 1.00, 1.00],
+                    [np.nan, np.nan, 1.00, 1.00, 1.00],
+                ],
+            ]
+        )
         coord_for_masking = "topographic_zone"
         radii = 2000
         num_zones = len(self.mask_cube.coord(coord_for_masking).points)
-        expected_shape = tuple(
-            [num_zones] + list(self.cube.data.shape))
-        result = ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, radii)(self.cube, self.mask_cube)
+        expected_shape = tuple([num_zones] + list(self.cube.data.shape))
+        result = ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii)(
+            self.cube, self.mask_cube
+        )
         self.assertEqual(result.data.shape, expected_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -203,11 +231,13 @@ class Test_process(IrisTest):
         """
         self.cube.remove_coord("realization")
         cube = add_dimensions_to_cube(
-            self.cube, OrderedDict([("threshold", 3), ("realization", 4)]))
+            self.cube, OrderedDict([("threshold", 3), ("realization", 4)])
+        )
         coord_for_masking = "topographic_zone"
         radii = 2000
-        result = ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, radii)(cube, self.mask_cube)
+        result = ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii)(
+            cube, self.mask_cube
+        )
         expected_dims = list(cube.dim_coords)
         expected_dims.insert(2, self.mask_cube.coord("topographic_zone"))
         self.assertEqual(result.dim_coords, tuple(expected_dims))
@@ -223,12 +253,12 @@ class Test_process(IrisTest):
            Check that a dimension coordinate with a single point is preserved
            and not demoted to a scalar coordinate."""
         self.cube.remove_coord("realization")
-        cube = add_dimensions_to_cube(self.cube,
-                                      {"threshold": 4, "realization": 1})
+        cube = add_dimensions_to_cube(self.cube, {"threshold": 4, "realization": 1})
         coord_for_masking = "topographic_zone"
         radii = 2000
-        result = ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, radii)(cube, self.mask_cube)
+        result = ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii)(
+            cube, self.mask_cube
+        )
         expected_dims = list(cube.dim_coords)
         expected_dims.insert(2, self.mask_cube.coord("topographic_zone"))
 
@@ -243,24 +273,35 @@ class Test_process(IrisTest):
         """Test that identical successive slices of the cube produce
            identical results."""
         expected = np.array(
-            [[[1.00, 1.00, 1.00, np.nan, np.nan],
-              [1.00, 1.00, 1.00, np.nan, np.nan],
-              [1.00, 1.00, 1.00, np.nan, np.nan],
-              [1.00, 1.00, 1.00, np.nan, np.nan],
-              [np.nan, np.nan, np.nan, np.nan, np.nan]],
-             [[np.nan, 1.00, 1.00, 1.00, 1.00],
-              [np.nan, 0.50, 0.75, 0.75, 1.00],
-              [np.nan, 0.50, 0.75, 0.75, 1.00],
-              [np.nan, 0.00, 0.50, 0.50, 1.00],
-              [np.nan, np.nan, np.nan, np.nan, np.nan]],
-             [[np.nan, np.nan, np.nan, np.nan, np.nan],
-              [np.nan, np.nan, np.nan, np.nan, np.nan],
-              [np.nan, np.nan, 1.00, 1.00, 1.00],
-              [np.nan, np.nan, 1.00, 1.00, 1.00],
-              [np.nan, np.nan, 1.00, 1.00, 1.00]]])
+            [
+                [
+                    [1.00, 1.00, 1.00, np.nan, np.nan],
+                    [1.00, 1.00, 1.00, np.nan, np.nan],
+                    [1.00, 1.00, 1.00, np.nan, np.nan],
+                    [1.00, 1.00, 1.00, np.nan, np.nan],
+                    [np.nan, np.nan, np.nan, np.nan, np.nan],
+                ],
+                [
+                    [np.nan, 1.00, 1.00, 1.00, 1.00],
+                    [np.nan, 0.50, 0.75, 0.75, 1.00],
+                    [np.nan, 0.50, 0.75, 0.75, 1.00],
+                    [np.nan, 0.00, 0.50, 0.50, 1.00],
+                    [np.nan, np.nan, np.nan, np.nan, np.nan],
+                ],
+                [
+                    [np.nan, np.nan, np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, np.nan, np.nan, np.nan],
+                    [np.nan, np.nan, 1.00, 1.00, 1.00],
+                    [np.nan, np.nan, 1.00, 1.00, 1.00],
+                    [np.nan, np.nan, 1.00, 1.00, 1.00],
+                ],
+            ]
+        )
         cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2), (1, 0, 2, 2)), num_grid_points=5,
-            num_realization_points=2)
+            zero_point_indices=((0, 0, 2, 2), (1, 0, 2, 2)),
+            num_grid_points=5,
+            num_realization_points=2,
+        )
         # The neighbourhood code adds bounds to the coordinates if they are
         # not present so add them now to make it easier to compare input and
         # output from the plugin.
@@ -273,12 +314,13 @@ class Test_process(IrisTest):
         expected_shape = tuple(
             [cube.data.shape[0], num_zones] + list(cube.data.shape[1:])
         )
-        result = ApplyNeighbourhoodProcessingWithAMask(
-            coord_for_masking, radii)(cube, self.mask_cube)
+        result = ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii)(
+            cube, self.mask_cube
+        )
         self.assertEqual(result.data.shape, expected_shape)
         for realization_slice in result.slices_over("realization"):
             self.assertArrayAlmostEqual(realization_slice.data, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

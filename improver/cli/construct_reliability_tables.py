@@ -36,10 +36,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube,
-            truth_attribute,
-            n_probability_bins: int = 5,
-            single_value_limits: bool = True):
+def process(
+    *cubes: cli.inputcube,
+    truth_attribute,
+    n_probability_bins: int = 5,
+    single_value_limits: bool = True,
+):
     """Populate reliability tables for use in reliability calibration.
 
     Loads historical forecasts and gridded truths that are compared to build
@@ -74,10 +76,11 @@ def process(*cubes: cli.inputcube,
     """
     from improver.calibration import split_forecasts_and_truth
     from improver.calibration.reliability_calibration import (
-        ConstructReliabilityCalibrationTables)
+        ConstructReliabilityCalibrationTables,
+    )
 
     forecast, truth, _ = split_forecasts_and_truth(cubes, truth_attribute)
 
     return ConstructReliabilityCalibrationTables(
-        n_probability_bins=n_probability_bins,
-        single_value_limits=single_value_limits)(forecast, truth)
+        n_probability_bins=n_probability_bins, single_value_limits=single_value_limits
+    )(forecast, truth)

@@ -75,9 +75,11 @@ def datetime_to_cycletime(adatetime, cycletime_format="%Y%m%dT%H%MZ"):
 
 
 def cycletime_to_number(
-        cycletime, cycletime_format="%Y%m%dT%H%MZ",
-        time_unit="hours since 1970-01-01 00:00:00",
-        calendar="gregorian"):
+    cycletime,
+    cycletime_format="%Y%m%dT%H%MZ",
+    time_unit="hours since 1970-01-01 00:00:00",
+    calendar="gregorian",
+):
     """Convert a cycletime of the format YYYYMMDDTHHMMZ into a numeric
     time value.
 
@@ -99,8 +101,7 @@ def cycletime_to_number(
             A numeric value to represent the datetime using assumed choices
             for the unit of time and the calendar.
     """
-    dtval = cycletime_to_datetime(cycletime,
-                                  cycletime_format=cycletime_format)
+    dtval = cycletime_to_datetime(cycletime, cycletime_format=cycletime_format)
     return cf_units.date2num(dtval, time_unit, calendar)
 
 
@@ -117,7 +118,7 @@ def iris_time_to_datetime(time_coord, point_or_bound="point"):
             The time element(s) recast as a python datetime object.
     """
     coord = time_coord.copy()
-    coord.convert_units('seconds since 1970-01-01 00:00:00')
+    coord.convert_units("seconds since 1970-01-01 00:00:00")
     if point_or_bound == "point":
         datetime_list = [value.point for value in coord.cells()]
     elif point_or_bound == "bound":
@@ -157,16 +158,15 @@ def datetime_constraint(time_in, time_max=None):
             An iris constraint to be used in extracting data at the given time
             from a cube.
     """
-    time_start = PartialDateTime(
-        time_in.year, time_in.month, time_in.day, time_in.hour)
+    time_start = PartialDateTime(time_in.year, time_in.month, time_in.day, time_in.hour)
 
     if time_max is None:
         time_extract = Constraint(time=lambda cell: cell.point == time_start)
     else:
         time_limit = PartialDateTime(
-            time_max.year, time_max.month, time_max.day, time_max.hour)
-        time_extract = Constraint(
-            time=lambda cell: time_start <= cell < time_limit)
+            time_max.year, time_max.month, time_max.day, time_max.hour
+        )
+        time_extract = Constraint(time=lambda cell: time_start <= cell < time_limit)
     return time_extract
 
 
@@ -190,17 +190,17 @@ def extract_cube_at_time(cubes, time, time_extract):
         ValueError if the desired time is not available within the cubelist.
     """
     try:
-        cube_in, = cubes.extract(time_extract)
+        (cube_in,) = cubes.extract(time_extract)
         return cube_in
     except ValueError:
-        msg = ('Forecast time {} not found within data cubes.'.format(
-            time.strftime("%Y-%m-%d:%H:%M")))
+        msg = "Forecast time {} not found within data cubes.".format(
+            time.strftime("%Y-%m-%d:%H:%M")
+        )
         warnings.warn(msg)
         return None
 
 
-def extract_nearest_time_point(
-        cube, dt, time_name="time", allowed_dt_difference=0):
+def extract_nearest_time_point(cube, dt, time_name="time", allowed_dt_difference=0):
     """Find the nearest time point to the time point provided.
 
     Args:
@@ -230,21 +230,26 @@ def extract_nearest_time_point(
             allowed difference.
     """
     if time_name not in ["time", "forecast_reference_time"]:
-        msg = ("{} is not a valid time_name. "
-               "The time_name must be either "
-               "'time' or 'forecast_reference_time'.")
+        msg = (
+            "{} is not a valid time_name. "
+            "The time_name must be either "
+            "'time' or 'forecast_reference_time'."
+        )
         raise ValueError(msg)
 
     time_point = datetime_to_iris_time(dt)
-    time_point_index = (
-        cube.coord(time_name).nearest_neighbour_index(time_point))
-    nearest_dt, = (
-        iris_time_to_datetime(cube.coord(time_name).copy()[time_point_index]))
+    time_point_index = cube.coord(time_name).nearest_neighbour_index(time_point)
+    (nearest_dt,) = iris_time_to_datetime(
+        cube.coord(time_name).copy()[time_point_index]
+    )
     if abs((dt - nearest_dt).total_seconds()) > allowed_dt_difference:
-        msg = ("The datetime {} is not available within the input "
-               "cube within the allowed difference {} seconds. "
-               "The nearest datetime available was {}".format(
-                       dt, allowed_dt_difference, nearest_dt))
+        msg = (
+            "The datetime {} is not available within the input "
+            "cube within the allowed difference {} seconds. "
+            "The nearest datetime available was {}".format(
+                dt, allowed_dt_difference, nearest_dt
+            )
+        )
         raise ValueError(msg)
     constr = iris.Constraint(coord_values={time_name: nearest_dt})
     cube = cube.extract(constr)

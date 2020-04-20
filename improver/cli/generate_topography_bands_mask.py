@@ -36,10 +36,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(orography: cli.inputcube,
-            land_sea_mask: cli.inputcube = None,
-            *,
-            bands_config: cli.inputjson = None):
+def process(
+    orography: cli.inputcube,
+    land_sea_mask: cli.inputcube = None,
+    *,
+    bands_config: cli.inputjson = None,
+):
     """Runs topographic bands mask generation.
 
     Reads orography and land_sea_mask fields of a cube. Creates a series of
@@ -71,19 +73,26 @@ def process(orography: cli.inputcube,
 
     """
     from improver.generate_ancillaries.generate_ancillary import (
-        GenerateOrographyBandAncils, THRESHOLDS_DICT)
+        GenerateOrographyBandAncils,
+        THRESHOLDS_DICT,
+    )
 
     if bands_config is None:
         bands_config = THRESHOLDS_DICT
 
     if land_sea_mask:
-        land_sea_mask = next(land_sea_mask.slices(
-            [land_sea_mask.coord(axis='y'), land_sea_mask.coord(axis='x')]))
+        land_sea_mask = next(
+            land_sea_mask.slices(
+                [land_sea_mask.coord(axis="y"), land_sea_mask.coord(axis="x")]
+            )
+        )
 
-    orography = next(orography.slices(
-        [orography.coord(axis='y'), orography.coord(axis='x')]))
+    orography = next(
+        orography.slices([orography.coord(axis="y"), orography.coord(axis="x")])
+    )
 
     result = GenerateOrographyBandAncils()(
-        orography, bands_config, landmask=land_sea_mask)
+        orography, bands_config, landmask=land_sea_mask
+    )
     result = result.concatenate_cube()
     return result

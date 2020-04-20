@@ -38,11 +38,15 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
-from improver.metadata.forecast_times import (
-    _calculate_forecast_period, find_latest_cycletime, forecast_period_coord,
-    rebadge_forecasts_as_latest_cycle, unify_cycletime)
-from improver.utilities.warnings_handler import ManageWarnings
 from improver.metadata.constants.time_types import TimeSpec
+from improver.metadata.forecast_times import (
+    _calculate_forecast_period,
+    find_latest_cycletime,
+    forecast_period_coord,
+    rebadge_forecasts_as_latest_cycle,
+    unify_cycletime,
+)
+from improver.utilities.warnings_handler import ManageWarnings
 
 from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
@@ -63,9 +67,8 @@ class Test_forecast_period_coord(IrisTest):
     def test_no_forecast_period(self):
         """Test that an iris.coords.AuxCoord is returned from a cube with no
         forecast period"""
-        self.cube.remove_coord('forecast_period')
-        result = forecast_period_coord(
-            self.cube, force_lead_time_calculation=True)
+        self.cube.remove_coord("forecast_period")
+        result = forecast_period_coord(self.cube, force_lead_time_calculation=True)
         self.assertIsInstance(result, iris.coords.AuxCoord)
 
     def test_values(self):
@@ -85,10 +88,8 @@ class Test_forecast_period_coord(IrisTest):
         fp_coord = self.cube.coord("forecast_period").copy()
         # put incorrect data into the existing coordinate so we can test it is
         # correctly recalculated
-        self.cube.coord("forecast_period").points = np.array([-3600],
-                                                             dtype=np.int32)
-        result = forecast_period_coord(
-            self.cube, force_lead_time_calculation=True)
+        self.cube.coord("forecast_period").points = np.array([-3600], dtype=np.int32)
+        result = forecast_period_coord(self.cube, force_lead_time_calculation=True)
         self.assertArrayEqual(result.points, fp_coord.points)
         self.assertEqual(result.units, fp_coord.units)
         self.assertEqual(result.dtype, fp_coord.dtype)
@@ -122,7 +123,8 @@ class Test__calculate_forecast_period(IrisTest):
     def test_dim_coord(self):
         """Test it is possible to create a dimension coordinate"""
         result = _calculate_forecast_period(
-            self.time_coord, self.frt_coord, dim_coord=True)
+            self.time_coord, self.frt_coord, dim_coord=True
+        )
         self.assertIsInstance(result, iris.coords.DimCoord)
 
     def test_values(self):
@@ -139,11 +141,11 @@ class Test__calculate_forecast_period(IrisTest):
         """
         local_spec = TimeSpec(calendar=None, dtype=np.float64, units="hours")
 
-        result = _calculate_forecast_period(self.time_coord, self.frt_coord,
-                                            coord_spec=local_spec)
-        self.assertEqual(result.units, 'hours')
-        self.assertArrayAlmostEqual(result.points * 3600.,
-                                    self.fp_coord.points)
+        result = _calculate_forecast_period(
+            self.time_coord, self.frt_coord, coord_spec=local_spec
+        )
+        self.assertEqual(result.units, "hours")
+        self.assertArrayAlmostEqual(result.points * 3600.0, self.fp_coord.points)
         self.assertEqual(result.dtype, np.float64)
 
     def test_bounds(self):
@@ -180,14 +182,12 @@ class Test__calculate_forecast_period(IrisTest):
         """Test a warning is raised if the calculated forecast period is
         negative"""
         # default cube has a 4 hour forecast period, so add 5 hours to frt
-        self.frt_coord.points = self.frt_coord.points + 5*3600
+        self.frt_coord.points = self.frt_coord.points + 5 * 3600
         result = _calculate_forecast_period(self.time_coord, self.frt_coord)
         warning_msg = "The values for the time"
         result = _calculate_forecast_period(self.time_coord, self.frt_coord)
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
+        self.assertTrue(any(item.category == UserWarning for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
         self.assertEqual(result.points, [-3600])
 
 
@@ -196,20 +196,23 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
 
     def setUp(self):
         """Set up some cubes with different cycle times"""
-        self.cycletime = '20190711T1200Z'
+        self.cycletime = "20190711T1200Z"
         validity_time = datetime(2019, 7, 11, 14)
         self.cube_early = set_up_variable_cube(
             np.full((4, 4), 273.15, dtype=np.float32),
-            time=validity_time, frt=datetime(2019, 7, 11, 9))
+            time=validity_time,
+            frt=datetime(2019, 7, 11, 9),
+        )
         self.cube_late = set_up_variable_cube(
             np.full((4, 4), 273.15, dtype=np.float32),
-            time=validity_time, frt=datetime(2019, 7, 11, 10))
+            time=validity_time,
+            frt=datetime(2019, 7, 11, 10),
+        )
 
     def test_cubelist(self):
         """Test a list of cubes is returned with the latest frt"""
         expected = self.cube_late.copy()
-        result = rebadge_forecasts_as_latest_cycle(
-            [self.cube_early, self.cube_late])
+        result = rebadge_forecasts_as_latest_cycle([self.cube_early, self.cube_late])
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(len(result), 2)
         for cube in result:
@@ -219,22 +222,23 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
     def test_cycletime(self):
         """Test a list of cubes using the cycletime argument"""
         expected_frt_point = (
-            self.cube_late.coord("forecast_reference_time").points[0] + 2*3600)
-        expected_fp_point = (
-            self.cube_late.coord("forecast_period").points[0] - 2*3600)
+            self.cube_late.coord("forecast_reference_time").points[0] + 2 * 3600
+        )
+        expected_fp_point = self.cube_late.coord("forecast_period").points[0] - 2 * 3600
         result = rebadge_forecasts_as_latest_cycle(
-            [self.cube_early, self.cube_late], cycletime=self.cycletime)
+            [self.cube_early, self.cube_late], cycletime=self.cycletime
+        )
         for cube in result:
-            self.assertEqual(cube.coord("forecast_reference_time").points[0],
-                             expected_frt_point)
-            self.assertEqual(cube.coord("forecast_period").points[0],
-                             expected_fp_point)
+            self.assertEqual(
+                cube.coord("forecast_reference_time").points[0], expected_frt_point
+            )
+            self.assertEqual(cube.coord("forecast_period").points[0], expected_fp_point)
 
     def test_single_cube(self):
         """Test a single cube is returned unchanged if the cycletime argument
         is not set"""
         expected = self.cube_early.copy()
-        result, = rebadge_forecasts_as_latest_cycle([self.cube_early])
+        (result,) = rebadge_forecasts_as_latest_cycle([self.cube_early])
         for coord in ["forecast_reference_time", "forecast_period"]:
             self.assertEqual(result.coord(coord), expected.coord(coord))
 
@@ -242,15 +246,16 @@ class Test_rebadge_forecasts_as_latest_cycle(IrisTest):
         """Test a single cube has its forecast reference time and period
         updated if cycletime is specified"""
         expected_frt_point = (
-            self.cube_late.coord("forecast_reference_time").points[0] + 2*3600)
-        expected_fp_point = (
-            self.cube_late.coord("forecast_period").points[0] - 2*3600)
-        result, = rebadge_forecasts_as_latest_cycle(
-            [self.cube_late], cycletime=self.cycletime)
-        self.assertEqual(result.coord("forecast_reference_time").points[0],
-                         expected_frt_point)
-        self.assertEqual(result.coord("forecast_period").points[0],
-                         expected_fp_point)
+            self.cube_late.coord("forecast_reference_time").points[0] + 2 * 3600
+        )
+        expected_fp_point = self.cube_late.coord("forecast_period").points[0] - 2 * 3600
+        (result,) = rebadge_forecasts_as_latest_cycle(
+            [self.cube_late], cycletime=self.cycletime
+        )
+        self.assertEqual(
+            result.coord("forecast_reference_time").points[0], expected_frt_point
+        )
+        self.assertEqual(result.coord("forecast_period").points[0], expected_fp_point)
 
 
 class Test_unify_cycletime(IrisTest):
@@ -262,17 +267,24 @@ class Test_unify_cycletime(IrisTest):
         self.cycletime = datetime(2017, 1, 10, 6)
         cube_uk_det = set_up_variable_cube(
             np.full((4, 4), 273.15, dtype=np.float32),
-            time=self.cycletime, frt=datetime(2017, 1, 10, 3))
+            time=self.cycletime,
+            frt=datetime(2017, 1, 10, 3),
+        )
 
         # set up forecast periods of 6, 8 and 10 hours
         time_points = [1484038800, 1484046000, 1484053200]
         cube_uk_det = add_coordinate(
-            cube_uk_det, time_points, "time", dtype=np.int64,
-            coord_units="seconds since 1970-01-01 00:00:00")
+            cube_uk_det,
+            time_points,
+            "time",
+            dtype=np.int64,
+            coord_units="seconds since 1970-01-01 00:00:00",
+        )
 
         self.cube_uk_det = add_coordinate(cube_uk_det, [1000], "model_id")
         self.cube_uk_det.add_aux_coord(
-            iris.coords.AuxCoord(["uk_det"], long_name="model_configuration"))
+            iris.coords.AuxCoord(["uk_det"], long_name="model_configuration")
+        )
 
     def test_cubelist_input(self):
         """Test when supplying a cubelist as input containing cubes
@@ -281,25 +293,28 @@ class Test_unify_cycletime(IrisTest):
         configurations have a common forecast_reference_time."""
         cube_uk_ens = set_up_variable_cube(
             np.full((3, 4, 4), 273.15, dtype=np.float32),
-            time=self.cycletime, frt=datetime(2017, 1, 10, 4))
+            time=self.cycletime,
+            frt=datetime(2017, 1, 10, 4),
+        )
 
         # set up forecast periods of 5, 7 and 9 hours
         time_points = [1484031600, 1484038800, 1484046000]
         cube_uk_ens = add_coordinate(
-            cube_uk_ens, time_points, "time", dtype=np.int64,
-            coord_units="seconds since 1970-01-01 00:00:00")
+            cube_uk_ens,
+            time_points,
+            "time",
+            dtype=np.int64,
+            coord_units="seconds since 1970-01-01 00:00:00",
+        )
 
         expected_uk_det = self.cube_uk_det.copy()
-        frt_units = expected_uk_det.coord('forecast_reference_time').units
-        frt_points = [
-            np.round(frt_units.date2num(self.cycletime)).astype(np.int64)]
+        frt_units = expected_uk_det.coord("forecast_reference_time").units
+        frt_points = [np.round(frt_units.date2num(self.cycletime)).astype(np.int64)]
         expected_uk_det.coord("forecast_reference_time").points = frt_points
-        expected_uk_det.coord("forecast_period").points = (
-            np.array([3, 5, 7]) * 3600)
+        expected_uk_det.coord("forecast_period").points = np.array([3, 5, 7]) * 3600
         expected_uk_ens = cube_uk_ens.copy()
         expected_uk_ens.coord("forecast_reference_time").points = frt_points
-        expected_uk_ens.coord("forecast_period").points = (
-            np.array([1, 3, 5]) * 3600)
+        expected_uk_ens.coord("forecast_period").points = np.array([1, 3, 5]) * 3600
         expected = iris.cube.CubeList([expected_uk_det, expected_uk_ens])
 
         cubes = iris.cube.CubeList([self.cube_uk_det, cube_uk_ens])
@@ -313,12 +328,10 @@ class Test_unify_cycletime(IrisTest):
         configuration only. This effectively updates the
         forecast_reference_time on the cube to the specified cycletime."""
         expected_uk_det = self.cube_uk_det.copy()
-        frt_units = expected_uk_det.coord('forecast_reference_time').units
-        frt_points = [
-            np.round(frt_units.date2num(self.cycletime)).astype(np.int64)]
+        frt_units = expected_uk_det.coord("forecast_reference_time").units
+        frt_points = [np.round(frt_units.date2num(self.cycletime)).astype(np.int64)]
         expected_uk_det.coord("forecast_reference_time").points = frt_points
-        expected_uk_det.coord("forecast_period").points = (
-            np.array([3, 5, 7]) * 3600)
+        expected_uk_det.coord("forecast_period").points = np.array([3, 5, 7]) * 3600
         result = unify_cycletime([self.cube_uk_det], self.cycletime)
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result[0], expected_uk_det)
@@ -329,12 +342,10 @@ class Test_unify_cycletime(IrisTest):
         created from a forecast_reference_time coordinate and a time
         coordinate."""
         expected_uk_det = self.cube_uk_det.copy()
-        frt_units = expected_uk_det.coord('forecast_reference_time').units
-        frt_points = [
-            np.round(frt_units.date2num(self.cycletime)).astype(np.int64)]
+        frt_units = expected_uk_det.coord("forecast_reference_time").units
+        frt_points = [np.round(frt_units.date2num(self.cycletime)).astype(np.int64)]
         expected_uk_det.coord("forecast_reference_time").points = frt_points
-        expected_uk_det.coord("forecast_period").points = (
-            np.array([3, 5, 7]) * 3600)
+        expected_uk_det.coord("forecast_period").points = np.array([3, 5, 7]) * 3600
         cube_uk_det = self.cube_uk_det.copy()
         cube_uk_det.remove_coord("forecast_period")
         result = unify_cycletime([cube_uk_det], self.cycletime)
@@ -351,17 +362,20 @@ class Test_find_latest_cycletime(IrisTest):
            and forecast_period coordinates"""
         self.input_cube = set_up_variable_cube(
             np.full((7, 7), 273.15, dtype=np.float32),
-            time=datetime(2015, 11, 23, 6), frt=datetime(2015, 11, 23, 3))
+            time=datetime(2015, 11, 23, 6),
+            frt=datetime(2015, 11, 23, 3),
+        )
         self.input_cube2 = self.input_cube.copy()
         self.input_cube2.coord("forecast_reference_time").points = np.array(
-            self.input_cube2.coord("forecast_reference_time").points[0] + 3600)
-        self.input_cubelist = iris.cube.CubeList(
-            [self.input_cube, self.input_cube2])
+            self.input_cube2.coord("forecast_reference_time").points[0] + 3600
+        )
+        self.input_cubelist = iris.cube.CubeList([self.input_cube, self.input_cube2])
 
     def test_basic(self):
         """Test the type of the output and that the input is unchanged."""
         original_cubelist = iris.cube.CubeList(
-            [self.input_cube.copy(), self.input_cube2.copy()])
+            [self.input_cube.copy(), self.input_cube2.copy()]
+        )
         cycletime = find_latest_cycletime(self.input_cubelist)
         self.assertEqual(self.input_cubelist[0], original_cubelist[0])
         self.assertEqual(self.input_cubelist[1], original_cubelist[1])
@@ -371,46 +385,41 @@ class Test_find_latest_cycletime(IrisTest):
         """Test the returned cycle time is the latest in the input cubelist."""
         cycletime = find_latest_cycletime(self.input_cubelist)
         expected_datetime = datetime(2015, 11, 23, 4)
-        self.assertEqual(timedelta(hours=0, seconds=0),
-                         cycletime - expected_datetime)
+        self.assertEqual(timedelta(hours=0, seconds=0), cycletime - expected_datetime)
 
     def test_two_cubes_same_reference_time(self):
         """Test the a cycletime is still found when two cubes have the same
            cycletime."""
-        input_cubelist = iris.cube.CubeList(
-            [self.input_cube, self.input_cube.copy()])
+        input_cubelist = iris.cube.CubeList([self.input_cube, self.input_cube.copy()])
         cycletime = find_latest_cycletime(input_cubelist)
         expected_datetime = datetime(2015, 11, 23, 3)
-        self.assertEqual(timedelta(hours=0, seconds=0),
-                         cycletime - expected_datetime)
+        self.assertEqual(timedelta(hours=0, seconds=0), cycletime - expected_datetime)
 
     def test_one_input_cube(self):
         """Test the a cycletime is still found when only one input cube."""
         input_cubelist = iris.cube.CubeList([self.input_cube])
         cycletime = find_latest_cycletime(input_cubelist)
         expected_datetime = datetime(2015, 11, 23, 3)
-        self.assertEqual(timedelta(hours=0, seconds=0),
-                         cycletime - expected_datetime)
+        self.assertEqual(timedelta(hours=0, seconds=0), cycletime - expected_datetime)
 
     def test_different_units(self):
         """Test the right cycletime is still returned if the coords have
         different units."""
         self.input_cube2.coord("forecast_reference_time").convert_units(
-            'minutes since 1970-01-01 00:00:00')
+            "minutes since 1970-01-01 00:00:00"
+        )
         cycletime = find_latest_cycletime(self.input_cubelist)
         expected_datetime = datetime(2015, 11, 23, 4)
-        self.assertEqual(timedelta(hours=0, seconds=0),
-                         cycletime - expected_datetime)
+        self.assertEqual(timedelta(hours=0, seconds=0), cycletime - expected_datetime)
 
     def test_raises_error(self):
         """Test the error is raised if time is dimensional"""
-        input_cube2 = iris.util.new_axis(
-            self.input_cube2, "forecast_reference_time")
+        input_cube2 = iris.util.new_axis(self.input_cube2, "forecast_reference_time")
         input_cubelist = iris.cube.CubeList([self.input_cube, input_cube2])
         msg = "Expecting scalar forecast_reference_time for each input cube"
         with self.assertRaisesRegex(ValueError, msg):
             find_latest_cycletime(input_cubelist)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

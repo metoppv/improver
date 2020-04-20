@@ -30,34 +30,43 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module defining Met Office specific attributes"""
 
-GRID_TYPE = 'standard'
-STAGE_VERSION = '1.3.0'
+GRID_TYPE = "standard"
+STAGE_VERSION = "1.3.0"
 
-MOSG_GRID_ATTRIBUTES = {
-    'mosg__grid_type', 'mosg__grid_version', 'mosg__grid_domain'}
+MOSG_GRID_ATTRIBUTES = {"mosg__grid_type", "mosg__grid_version", "mosg__grid_domain"}
 
 # Define current StaGE grid metadata
 MOSG_GRID_DEFINITION = {
-    'uk_ens': {'mosg__grid_type': GRID_TYPE,
-               'mosg__model_configuration': 'uk_ens',
-               'mosg__grid_domain': 'uk_extended',
-               'mosg__grid_version': STAGE_VERSION},
-    'gl_ens': {'mosg__grid_type': GRID_TYPE,
-               'mosg__model_configuration': 'gl_ens',
-               'mosg__grid_domain': 'global',
-               'mosg__grid_version': STAGE_VERSION},
-    'uk_det': {'mosg__grid_type': GRID_TYPE,
-               'mosg__model_configuration': 'uk_det',
-               'mosg__grid_domain': 'uk_extended',
-               'mosg__grid_version': STAGE_VERSION},
-    'gl_det': {'mosg__grid_type': GRID_TYPE,
-               'mosg__model_configuration': 'gl_det',
-               'mosg__grid_domain': 'global',
-               'mosg__grid_version': STAGE_VERSION}
+    "uk_ens": {
+        "mosg__grid_type": GRID_TYPE,
+        "mosg__model_configuration": "uk_ens",
+        "mosg__grid_domain": "uk_extended",
+        "mosg__grid_version": STAGE_VERSION,
+    },
+    "gl_ens": {
+        "mosg__grid_type": GRID_TYPE,
+        "mosg__model_configuration": "gl_ens",
+        "mosg__grid_domain": "global",
+        "mosg__grid_version": STAGE_VERSION,
+    },
+    "uk_det": {
+        "mosg__grid_type": GRID_TYPE,
+        "mosg__model_configuration": "uk_det",
+        "mosg__grid_domain": "uk_extended",
+        "mosg__grid_version": STAGE_VERSION,
+    },
+    "gl_det": {
+        "mosg__grid_type": GRID_TYPE,
+        "mosg__model_configuration": "gl_det",
+        "mosg__grid_domain": "global",
+        "mosg__grid_version": STAGE_VERSION,
+    },
 }
 
 # Map correct metadata from StaGE v1.1.0
-GRID_ID_LOOKUP = {'enukx_standard_v1': 'uk_ens',
-                  'engl_standard_v1': 'gl_ens',
-                  'ukvx_standard_v1': 'uk_det',
-                  'glm_standard_v1': 'gl_det'}
+GRID_ID_LOOKUP = {
+    "enukx_standard_v1": "uk_ens",
+    "engl_standard_v1": "gl_ens",
+    "ukvx_standard_v1": "uk_det",
+    "glm_standard_v1": "gl_det",
+}
