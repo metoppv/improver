@@ -74,8 +74,8 @@ class WeatherSymbols(BasePlugin):
         Key Args:
             wxtree (str):
                 Used to choose weather symbol decision tree.
-                Default is 'high_resolution'
-                'global' will load the global weather symbol decision tree.
+                Default is "high_resolution"
+                "global" will load the global weather symbol decision tree.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
@@ -128,7 +128,7 @@ class WeatherSymbols(BasePlugin):
 
         Returns:
             bool:
-                False if thing is one of ['+', '-', '*', '/'] or if float(
+                False if thing is one of ["+", "-", "*", "/"] or if float(
                 thing) does not raise a ValueError, else True.
 
         """
@@ -312,8 +312,8 @@ class WeatherSymbols(BasePlugin):
                 (by name) from the input cube list and the correct threshold
                 from that cube.
                 A list should contain only cube names, operators and numbers,
-                e.g. ['probability_of_lwe_snowfall_rate_above_threshold', '-',
-                  'probability_of_rainfall_rate_above_threshold', '*', '0.7']
+                e.g. ["probability_of_lwe_snowfall_rate_above_threshold", "-",
+                  "probability_of_rainfall_rate_above_threshold", "*", "0.7"]
             condition (str):
                 The condition statement (e.g. greater than, >).
             probability_threshold (float):
