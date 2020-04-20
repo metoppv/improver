@@ -130,7 +130,7 @@ class FillRadarHoles(BasePlugin):
         Args:
             data (np.ma.MaskedArray)
         """
-        result = np.where(np.isfinite(data), np.power(10, data), 0.)
+        result = np.where(np.isfinite(data), np.power(10, data), 0.0)
         return np.ma.MaskedArray(result, mask=data.mask)
 
     @staticmethod
@@ -157,10 +157,10 @@ class FillRadarHoles(BasePlugin):
         r = 4
         # populate "speckle" array
         speckle = np.full_like(mask, 0, dtype=np.int32)
-        for y in range(r, mask.shape[0]-r-1, 1):
-            for x in range(r, mask.shape[1]-r-1, 1):
+        for y in range(r, mask.shape[0] - r - 1, 1):
+            for x in range(r, mask.shape[1] - r - 1, 1):
                 if mask[y, x]:
-                    nbhood = np.mean(mask[y-r:y+r+1, x-r:x+r+1])
+                    nbhood = np.mean(mask[y - r : y + r + 1, x - r : x + r + 1])
                     if nbhood < pmasked:
                         speckle[y, x] = 1
         return speckle
@@ -172,12 +172,11 @@ class FillRadarHoles(BasePlugin):
         identifying "speckle"."""
         new_data = data.copy()
         r = 2
-        for y in range(r, data.shape[0]-r-1, 1):
-            for x in range(r, data.shape[1]-r-1, 1):
+        for y in range(r, data.shape[0] - r - 1, 1):
+            for x in range(r, data.shape[1] - r - 1, 1):
                 if speckle[y, x]:
-                    surroundings = data[y-r:y+r+1, x-r:x+r+1]
-                    valid_surroundings = surroundings[
-                        np.where(~surroundings.mask)]
+                    surroundings = data[y - r : y + r + 1, x - r : x + r + 1]
+                    valid_surroundings = surroundings[np.where(~surroundings.mask)]
                     new_data[y, x] = np.mean(valid_surroundings)
                     new_data.mask[y, x] = False
         return new_data
@@ -210,7 +209,7 @@ class FillRadarHoles(BasePlugin):
         """
         # extract precipitation rate data in mm h-1
         masked_radar_mmh = masked_radar.copy()
-        masked_radar_mmh.convert_units('mm h-1')
+        masked_radar_mmh.convert_units("mm h-1")
 
         # interpolate "holes" in data
         masked_radar_mmh.data = self._fill_radar_holes(masked_radar_mmh.data)

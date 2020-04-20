@@ -44,11 +44,14 @@ from ...set_up_test_cubes import set_up_variable_cube
 def create_masked_rainrate_data():
     """Create a masked data array of rain rates in mm/h"""
     nonzero_data = np.array(
-        [[0.03, 0.1, 0.1, 0.1, 0.03],
-         [0.1, 0.2, 0.2, np.nan, 0.1],
-         [0.2, 0.5, np.nan, np.nan, 0.2],
-         [0.1, 0.5, np.nan, np.nan, 0.1],
-         [0.03, 0.2, 0.2, 0.1, 0.03]])
+        [
+            [0.03, 0.1, 0.1, 0.1, 0.03],
+            [0.1, 0.2, 0.2, np.nan, 0.1],
+            [0.2, 0.5, np.nan, np.nan, 0.2],
+            [0.1, 0.5, np.nan, np.nan, 0.1],
+            [0.03, 0.2, 0.2, 0.1, 0.03],
+        ]
+    )
     data = np.zeros((16, 16), dtype=np.float32)
     data[5:12, 5:12] = np.full((7, 7), 0.03, dtype=np.float32)
     data[6:11, 6:11] = nonzero_data.astype(np.float32)
@@ -60,15 +63,14 @@ RAIN_DATA = create_masked_rainrate_data()
 
 # first case: speckle, rates in mm/h
 RAIN_CUBE = set_up_variable_cube(
-    RAIN_DATA, name="lwe_precipitation_rate", units="mm h-1",
-    spatial_grid="equalarea"
+    RAIN_DATA, name="lwe_precipitation_rate", units="mm h-1", spatial_grid="equalarea"
 )
 
 INTERPOLATED_RAIN = RAIN_DATA.copy()
 INTERPOLATED_RAIN.data[7:10, 8:10] = [
     [0.2, 0.07138586],
     [0.11366593, 0.09165306],
-    [0.09488520, 0.07650946]
+    [0.09488520, 0.07650946],
 ]
 INTERPOLATED_RAIN.mask = np.full(INTERPOLATED_RAIN.shape, False)
 
@@ -76,7 +78,7 @@ INTERPOLATED_RAIN.mask = np.full(INTERPOLATED_RAIN.shape, False)
 MS_RAIN_CUBE = RAIN_CUBE.copy()
 MS_RAIN_CUBE.convert_units("m s-1")
 
-MS_INTERPOLATED_RAIN = INTERPOLATED_RAIN / (3600.0 * 1000.0) 
+MS_INTERPOLATED_RAIN = INTERPOLATED_RAIN / (3600.0 * 1000.0)
 
 # third case: widespread mask
 MASKED_RAIN_CUBE = RAIN_CUBE.copy()
@@ -88,12 +90,16 @@ MASKED_RAIN_CUBE.data.mask = np.where(
 # set up alternate test cases for which interpolation should ("speckle_*")
 # and should not ("masked") be triggered
 CASES = ["speckle_mmh", "speckle_ms", "masked"]
-INPUT_CUBES = {"speckle_mmh": RAIN_CUBE,
-               "speckle_ms": MS_RAIN_CUBE,
-               "masked": MASKED_RAIN_CUBE}
-OUTPUT_DATA = {"speckle_mmh": INTERPOLATED_RAIN,
-               "speckle_ms": MS_INTERPOLATED_RAIN,
-               "masked": MASKED_RAIN_CUBE.data.copy()}
+INPUT_CUBES = {
+    "speckle_mmh": RAIN_CUBE,
+    "speckle_ms": MS_RAIN_CUBE,
+    "masked": MASKED_RAIN_CUBE,
+}
+OUTPUT_DATA = {
+    "speckle_mmh": INTERPOLATED_RAIN,
+    "speckle_ms": MS_INTERPOLATED_RAIN,
+    "masked": MASKED_RAIN_CUBE.data.copy(),
+}
 
 PLUGIN = FillRadarHoles()
 
