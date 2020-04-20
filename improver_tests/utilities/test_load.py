@@ -64,9 +64,11 @@ class Test_load_cube(IrisTest):
         time2 = datetime(2017, 11, 10, 5, 0)
         frt = datetime(2017, 11, 10, 0, 0)
         self.cube = set_up_variable_cube(
-            np.ones((3, 3, 3), dtype=np.float32), time=time, frt=frt)
+            np.ones((3, 3, 3), dtype=np.float32), time=time, frt=frt
+        )
         self.cube2 = set_up_variable_cube(
-            np.zeros((3, 3, 3), dtype=np.float32), time=time2, frt=frt)
+            np.zeros((3, 3, 3), dtype=np.float32), time=time2, frt=frt
+        )
         save_netcdf(self.cube, self.filepath)
         save_netcdf(self.cube2, self.filepath2)
         self.realization_points = self.cube.coord("realization").points
@@ -261,7 +263,7 @@ class Test_load_cube(IrisTest):
     def test_merge_multiple(self):
         """Test that multiple cubes are merged on load."""
         result = load_cube([self.filepath, self.filepath2])
-        self.assertEqual(len(result.coord('time').points), 2)
+        self.assertEqual(len(result.coord("time").points), 2)
 
 
 class Test_load_cubelist(IrisTest):
