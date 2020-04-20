@@ -48,8 +48,12 @@ from improver.grids import ELLIPSOID, STANDARD_GRID_CCRS
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.wxcode.utilities import (
-    WX_DICT, weather_code_attributes, expand_nested_lists,
-    interrogate_decision_tree, update_daynight)
+    WX_DICT,
+    expand_nested_lists,
+    interrogate_decision_tree,
+    update_daynight,
+    weather_code_attributes,
+)
 
 from ...calibration.ensemble_calibration.helper_functions import set_up_cube
 

@@ -36,8 +36,7 @@ import cf_units as unit
 import numpy as np
 
 from improver import BasePlugin
-from improver.utilities.spatial import (
-    lat_lon_determine, transform_grid_to_lat_lon)
+from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 from improver.utilities.temporal import iris_time_to_datetime
 
 

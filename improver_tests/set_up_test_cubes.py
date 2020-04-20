@@ -42,10 +42,10 @@ from cf_units import Unit, date2num
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.metadata.constants.time_types import TIME_COORDS
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants.mo_attributes import MOSG_GRID_DEFINITION
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import forecast_period_coord
 
 

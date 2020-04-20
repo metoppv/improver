@@ -31,9 +31,9 @@
 """A module for creating ancillary data"""
 
 import warnings
-import numpy as np
 
 import iris
+import numpy as np
 
 from improver import BasePlugin
 from improver.constants import TRIPLE_PT_WATER

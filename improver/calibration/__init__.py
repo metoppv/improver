@@ -32,8 +32,8 @@
 
 from collections import OrderedDict
 
-from improver.utilities.cube_manipulation import MergeCubes
 from improver.metadata.probabilistic import extract_diagnostic_name
+from improver.utilities.cube_manipulation import MergeCubes
 
 
 def split_forecasts_and_truth(cubes, truth_attribute):

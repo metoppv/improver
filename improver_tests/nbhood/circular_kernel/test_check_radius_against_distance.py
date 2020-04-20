@@ -32,8 +32,8 @@
 
 import unittest
 
-from iris.tests import IrisTest
 import numpy as np
+from iris.tests import IrisTest
 
 from improver.nbhood.circular_kernel import check_radius_against_distance
 from improver_tests.set_up_test_cubes import set_up_variable_cube

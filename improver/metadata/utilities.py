@@ -38,7 +38,9 @@ import iris
 import numpy as np
 
 from improver.metadata.constants.attributes import (
-    MANDATORY_ATTRIBUTE_DEFAULTS, MANDATORY_ATTRIBUTES)
+    MANDATORY_ATTRIBUTE_DEFAULTS,
+    MANDATORY_ATTRIBUTES,
+)
 
 
 def create_new_diagnostic_cube(

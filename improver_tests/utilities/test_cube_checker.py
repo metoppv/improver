@@ -40,9 +40,12 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.utilities.cube_checker import (
-    check_cube_coordinates, check_for_x_and_y_axes,
-    find_dimension_coordinate_mismatch, spatial_coords_match,
-    time_coords_match)
+    check_cube_coordinates,
+    check_for_x_and_y_axes,
+    find_dimension_coordinate_mismatch,
+    spatial_coords_match,
+    time_coords_match,
+)
 
 from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 from ..set_up_test_cubes import set_up_variable_cube

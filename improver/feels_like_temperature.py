@@ -33,9 +33,12 @@
 import numpy as np
 
 from improver.metadata.utilities import (
-    generate_mandatory_attributes, create_new_diagnostic_cube)
-from improver.psychrometric_calculations.psychrometric_calculations \
-    import calculate_svp_in_air
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
+from improver.psychrometric_calculations.psychrometric_calculations import (
+    calculate_svp_in_air,
+)
 
 
 def _calculate_wind_chill(temperature, wind_speed):

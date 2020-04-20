@@ -40,8 +40,8 @@ Statistics (EMOS).
 import datetime
 import warnings
 
-import numpy as np
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 from scipy import stats
 from scipy.optimize import minimize
@@ -49,24 +49,25 @@ from scipy.stats import norm
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
-    check_predictor, convert_cube_data_to_2d,
-    flatten_ignoring_masked_data, filter_non_matching_cubes,
-    merge_land_and_sea)
+    check_predictor,
+    convert_cube_data_to_2d,
+    filter_non_matching_cubes,
+    flatten_ignoring_masked_data,
+    merge_land_and_sea,
+)
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    ConvertLocationAndScaleParametersToPercentiles,
+    ConvertLocationAndScaleParametersToProbabilities,
+    ConvertProbabilitiesToPercentiles,
+    EnsembleReordering,
+    RebadgePercentilesAsRealizations,
+    ResamplePercentiles,
+)
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import time_coords_match
-from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
-                                                  collapsed)
-from improver.utilities.temporal import (
-    cycletime_to_datetime, datetime_to_iris_time)
-
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        EnsembleReordering,
-        ConvertLocationAndScaleParametersToPercentiles,
-        ConvertLocationAndScaleParametersToProbabilities,
-        ConvertProbabilitiesToPercentiles,
-        RebadgePercentilesAsRealizations,
-        ResamplePercentiles)
+from improver.utilities.cube_manipulation import collapsed, enforce_coordinate_ordering
+from improver.utilities.temporal import cycletime_to_datetime, datetime_to_iris_time
 
 
 class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):

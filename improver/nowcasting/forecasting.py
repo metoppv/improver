@@ -34,8 +34,8 @@ This module defines plugins used to create nowcast extrapolation forecasts.
 import datetime
 import warnings
 
-import numpy as np
 import iris
+import numpy as np
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 
@@ -43,7 +43,9 @@ from improver import BasePlugin
 from improver.metadata.amend import amend_attributes, set_history_attribute
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_mandatory_attributes)
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 

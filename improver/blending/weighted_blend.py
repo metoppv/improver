@@ -33,8 +33,8 @@
 
 import warnings
 
-import numpy as np
 import iris
+import numpy as np
 from iris.analysis import Aggregator
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
@@ -42,13 +42,21 @@ from iris.exceptions import CoordinateNotFoundError
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import amend_attributes
 from improver.metadata.constants.attributes import (
-    MANDATORY_ATTRIBUTE_DEFAULTS, MANDATORY_ATTRIBUTES)
+    MANDATORY_ATTRIBUTE_DEFAULTS,
+    MANDATORY_ATTRIBUTES,
+)
 from improver.metadata.forecast_times import (
-    forecast_period_coord, rebadge_forecasts_as_latest_cycle)
+    forecast_period_coord,
+    rebadge_forecasts_as_latest_cycle,
+)
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.utilities.cube_manipulation import (
-    MergeCubes, enforce_coordinate_ordering, sort_coord_in_cube,
-    collapsed, get_dim_coord_names)
+    MergeCubes,
+    collapsed,
+    enforce_coordinate_ordering,
+    get_dim_coord_names,
+    sort_coord_in_cube,
+)
 from improver.utilities.temporal import cycletime_to_number
 
 

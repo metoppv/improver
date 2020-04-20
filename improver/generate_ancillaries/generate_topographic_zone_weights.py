@@ -39,7 +39,9 @@ from iris.exceptions import InvalidCubeError
 
 from improver import BasePlugin
 from improver.generate_ancillaries.generate_ancillary import (
-    GenerateOrographyBandAncils, _make_mask_cube)
+    GenerateOrographyBandAncils,
+    _make_mask_cube,
+)
 
 
 class GenerateTopographicZoneWeights(BasePlugin):

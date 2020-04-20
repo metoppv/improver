@@ -34,11 +34,12 @@ Unit tests for ConvertLocationAndScaleParameters
 import unittest
 
 import numpy as np
-from scipy import stats
 from iris.tests import IrisTest
+from scipy import stats
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    ConvertLocationAndScaleParameters as Plugin)
+    ConvertLocationAndScaleParameters as Plugin,
+)
 
 
 class Test__init__(IrisTest):

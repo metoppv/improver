@@ -41,8 +41,7 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_percentile_coordinate
-from improver.utilities.statistical_operations import (
-    ProbabilitiesFromPercentiles2D)
+from improver.utilities.statistical_operations import ProbabilitiesFromPercentiles2D
 from improver.utilities.warnings_handler import ManageWarnings
 
 

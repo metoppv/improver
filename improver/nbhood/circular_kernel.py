@@ -36,9 +36,13 @@ from scipy.ndimage.filters import correlate
 
 from improver.constants import DEFAULT_PERCENTILES
 from improver.utilities.cube_checker import (
-    check_cube_coordinates, find_dimension_coordinate_mismatch)
+    check_cube_coordinates,
+    find_dimension_coordinate_mismatch,
+)
 from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, distance_to_number_of_grid_cells)
+    check_if_grid_is_equal_area,
+    distance_to_number_of_grid_cells,
+)
 
 
 def check_radius_against_distance(cube, radius):

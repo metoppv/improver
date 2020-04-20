@@ -31,8 +31,8 @@
 """Module for NowcastLightning class and associated functions."""
 from math import isclose
 
-import numpy as np
 import iris
+import numpy as np
 from iris.exceptions import ConstraintMismatchError
 
 from improver import PostProcessingPlugin
@@ -41,7 +41,9 @@ from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.rescale import apply_double_scaling, rescale
 from improver.utilities.temporal import (
-    extract_nearest_time_point, iris_time_to_datetime)
+    extract_nearest_time_point,
+    iris_time_to_datetime,
+)
 
 
 class NowcastLightning(PostProcessingPlugin):

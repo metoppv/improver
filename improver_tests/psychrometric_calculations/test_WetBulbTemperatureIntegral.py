@@ -38,7 +38,8 @@ from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
-    WetBulbTemperatureIntegral)
+    WetBulbTemperatureIntegral,
+)
 
 from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 

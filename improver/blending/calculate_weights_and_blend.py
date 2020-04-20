@@ -33,14 +33,20 @@
 from improver import BasePlugin
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.blending.weighted_blend import (
-    MergeCubesForWeightedBlending, WeightedBlendAcrossWholeDimension)
+    MergeCubesForWeightedBlending,
+    WeightedBlendAcrossWholeDimension,
+)
 from improver.blending.weights import (
-    ChooseDefaultWeightsLinear, ChooseDefaultWeightsNonLinear,
-    ChooseWeightsLinear)
+    ChooseDefaultWeightsLinear,
+    ChooseDefaultWeightsNonLinear,
+    ChooseWeightsLinear,
+)
 from improver.metadata.amend import amend_attributes
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, distance_to_number_of_grid_cells)
+    check_if_grid_is_equal_area,
+    distance_to_number_of_grid_cells,
+)
 
 
 class WeightAndBlend(BasePlugin):

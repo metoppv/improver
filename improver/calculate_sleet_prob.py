@@ -33,7 +33,9 @@
 import numpy as np
 
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_mandatory_attributes)
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 
 
 def calculate_sleet_probability(prob_of_snow,

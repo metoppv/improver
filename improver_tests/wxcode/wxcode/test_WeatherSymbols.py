@@ -32,9 +32,10 @@
 
 import unittest
 from datetime import datetime as dt
+
+import iris
 import numpy as np
 from cf_units import Unit
-import iris
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 

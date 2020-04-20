@@ -34,24 +34,34 @@ This module defines the plugins required for Ensemble Copula Coupling.
 """
 import warnings
 
-import numpy as np
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from scipy import stats
 
 from improver import BasePlugin
 from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.ensemble_copula_coupling.utilities import (
-    choose_set_of_percentiles, concatenate_2d_array_with_2d_array_endpoints,
-    create_cube_with_percentiles, get_bounds_of_distribution,
+    choose_set_of_percentiles,
+    concatenate_2d_array_with_2d_array_endpoints,
+    create_cube_with_percentiles,
+    get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
-    restore_non_probabilistic_dimensions)
+    restore_non_probabilistic_dimensions,
+)
 from improver.metadata.probabilistic import (
-    find_percentile_coordinate, find_threshold_coordinate)
+    find_percentile_coordinate,
+    find_threshold_coordinate,
+)
 from improver.utilities.cube_checker import (
-    check_cube_coordinates, check_for_x_and_y_axes)
+    check_cube_coordinates,
+    check_for_x_and_y_axes,
+)
 from improver.utilities.cube_manipulation import (
-    concatenate_cubes, enforce_coordinate_ordering, get_dim_coord_names)
+    concatenate_cubes,
+    enforce_coordinate_ordering,
+    get_dim_coord_names,
+)
 from improver.utilities.indexing_operations import choose
 
 

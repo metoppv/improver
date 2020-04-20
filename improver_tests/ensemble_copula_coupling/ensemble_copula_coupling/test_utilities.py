@@ -41,17 +41,22 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
-
 from improver.ensemble_copula_coupling.utilities import (
-    choose_set_of_percentiles, concatenate_2d_array_with_2d_array_endpoints,
-    create_cube_with_percentiles, get_bounds_of_distribution,
+    choose_set_of_percentiles,
+    concatenate_2d_array_with_2d_array_endpoints,
+    create_cube_with_percentiles,
+    get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
-    restore_non_probabilistic_dimensions)
+    restore_non_probabilistic_dimensions,
+)
 
 from ...calibration.ensemble_calibration.helper_functions import (
-    add_forecast_reference_time_and_forecast_period, set_up_cube,
+    add_forecast_reference_time_and_forecast_period,
+    set_up_cube,
     set_up_probability_above_threshold_temperature_cube,
-    set_up_spot_temperature_cube, set_up_temperature_cube)
+    set_up_spot_temperature_cube,
+    set_up_temperature_cube,
+)
 
 
 class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):

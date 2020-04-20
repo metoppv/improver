@@ -32,18 +32,17 @@
 
 import unittest
 
-import numpy as np
-from numpy.testing import assert_array_equal, assert_allclose
-
 import iris
+import numpy as np
+from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.calibration.reliability_calibration import (
-    ApplyReliabilityCalibration as Plugin)
-
+    ApplyReliabilityCalibration as Plugin,
+)
 from improver.calibration.reliability_calibration import (
-    ConstructReliabilityCalibrationTables as CalPlugin)
+    ConstructReliabilityCalibrationTables as CalPlugin,
+)
 from improver.utilities.warnings_handler import ManageWarnings
-
 from improver_tests.set_up_test_cubes import set_up_probability_cube
 
 

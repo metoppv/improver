@@ -35,9 +35,14 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
-    generate_mandatory_attributes, create_new_diagnostic_cube)
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, sort_coord_in_cube, get_dim_coord_names)
+    enforce_coordinate_ordering,
+    get_dim_coord_names,
+    sort_coord_in_cube,
+)
 
 
 class Integration(BasePlugin):

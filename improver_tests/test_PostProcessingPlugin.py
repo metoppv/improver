@@ -31,9 +31,11 @@
 """Unit tests for the improver.PostProcessingPlugin abstract base class"""
 
 import unittest
+
 import numpy as np
 
 from improver import PostProcessingPlugin
+
 from .set_up_test_cubes import set_up_variable_cube
 
 

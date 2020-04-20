@@ -44,7 +44,10 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import iris_time_to_datetime
 
 from ...set_up_test_cubes import (
-    construct_scalar_time_coords, construct_xy_coords, set_up_variable_cube)
+    construct_scalar_time_coords,
+    construct_xy_coords,
+    set_up_variable_cube,
+)
 
 
 class Test_SpotLapseRateAdjust(IrisTest):

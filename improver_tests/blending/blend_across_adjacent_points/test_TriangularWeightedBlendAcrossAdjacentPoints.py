@@ -39,11 +39,12 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.blending.blend_across_adjacent_points import (
-    TriangularWeightedBlendAcrossAdjacentPoints)
+    TriangularWeightedBlendAcrossAdjacentPoints,
+)
 from improver.utilities.cube_manipulation import concatenate_cubes
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...set_up_test_cubes import set_up_variable_cube, add_coordinate
+from ...set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 def set_up_cubes_for_process_tests():

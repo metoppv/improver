@@ -44,10 +44,13 @@ from iris.tests import IrisTest
 from iris.time import PartialDateTime
 
 from improver.utilities.spatial import (
-    calculate_grid_spacing, check_if_grid_is_equal_area,
+    calculate_grid_spacing,
+    check_if_grid_is_equal_area,
     distance_to_number_of_grid_cells,
-    number_of_grid_cells_to_distance, lat_lon_determine,
-    transform_grid_to_lat_lon)
+    lat_lon_determine,
+    number_of_grid_cells_to_distance,
+    transform_grid_to_lat_lon,
+)
 
 from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 from ..set_up_test_cubes import set_up_variable_cube

@@ -40,9 +40,15 @@ from iris.tests import IrisTest
 from iris.time import PartialDateTime
 
 from improver.utilities.temporal import (
-    cycletime_to_datetime, cycletime_to_number, datetime_constraint,
-    datetime_to_cycletime, datetime_to_iris_time, extract_cube_at_time,
-    extract_nearest_time_point, iris_time_to_datetime)
+    cycletime_to_datetime,
+    cycletime_to_number,
+    datetime_constraint,
+    datetime_to_cycletime,
+    datetime_to_iris_time,
+    extract_cube_at_time,
+    extract_nearest_time_point,
+    iris_time_to_datetime,
+)
 from improver.utilities.warnings_handler import ManageWarnings
 
 from ..set_up_test_cubes import add_coordinate, set_up_variable_cube

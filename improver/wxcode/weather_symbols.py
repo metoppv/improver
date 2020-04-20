@@ -38,15 +38,23 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name, find_threshold_coordinate)
+    extract_diagnostic_name,
+    find_threshold_coordinate,
+)
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_mandatory_attributes)
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 from improver.wxcode.utilities import (
-    weather_code_attributes, expand_nested_lists, update_daynight)
-from improver.wxcode.wxcode_decision_tree import (
-    START_NODE, wxcode_decision_tree)
+    expand_nested_lists,
+    update_daynight,
+    weather_code_attributes,
+)
+from improver.wxcode.wxcode_decision_tree import START_NODE, wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
-    START_NODE_GLOBAL, wxcode_decision_tree_global)
+    START_NODE_GLOBAL,
+    wxcode_decision_tree_global,
+)
 
 
 class WeatherSymbols(BasePlugin):

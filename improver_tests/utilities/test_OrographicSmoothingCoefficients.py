@@ -40,8 +40,7 @@ from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.utilities.ancillary_creation import (
-    OrographicSmoothingCoefficients)
+from improver.utilities.ancillary_creation import OrographicSmoothingCoefficients
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 

@@ -30,13 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing maximum memory profiling utilities."""
 
-import tracemalloc
-from queue import Queue
-from threading import Thread
-from resource import getrusage, RUSAGE_SELF
-from datetime import datetime
 import sys
 import time
+import tracemalloc
+from datetime import datetime
+from queue import Queue
+from resource import RUSAGE_SELF, getrusage
+from threading import Thread
 
 
 def memory_profile_start(outfile_prefix):

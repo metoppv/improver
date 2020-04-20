@@ -36,7 +36,10 @@ import glob
 import iris
 
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, strip_var_names, MergeCubes)
+    MergeCubes,
+    enforce_coordinate_ordering,
+    strip_var_names,
+)
 
 
 @contextlib.contextmanager

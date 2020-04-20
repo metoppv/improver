@@ -40,14 +40,19 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
+from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.utilities.temporal import iris_time_to_datetime
 
 from .set_up_test_cubes import (
-    add_coordinate, construct_scalar_time_coords, construct_xy_coords,
-    set_up_percentile_cube, set_up_probability_cube, set_up_variable_cube)
+    add_coordinate,
+    construct_scalar_time_coords,
+    construct_xy_coords,
+    set_up_percentile_cube,
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 
 
 class test_construct_xy_coords(IrisTest):
