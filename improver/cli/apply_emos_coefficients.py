@@ -38,17 +38,19 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            coefficients: cli.inputcube = None,
-            land_sea_mask: cli.inputcube = None,
-            *,
-            distribution,
-            realizations_count: int = None,
-            randomise=False,
-            random_seed: int = None,
-            ignore_ecc_bounds=False,
-            predictor='mean',
-            shape_parameters: cli.comma_separated_list = None):
+def process(
+    cube: cli.inputcube,
+    coefficients: cli.inputcube = None,
+    land_sea_mask: cli.inputcube = None,
+    *,
+    distribution,
+    realizations_count: int = None,
+    randomise=False,
+    random_seed: int = None,
+    ignore_ecc_bounds=False,
+    predictor="mean",
+    shape_parameters: cli.comma_separated_list = None,
+):
     """Applying coefficients for Ensemble Model Output Statistics.
 
     Load in arguments for applying coefficients for Ensemble Model Output
@@ -132,110 +134,44 @@ def process(cube: cli.inputcube,
     import warnings
 
     import numpy as np
-    from iris.exceptions import CoordinateNotFoundError
 
-    from improver.calibration.ensemble_calibration import (
-        ApplyCoefficientsFromEnsembleCalibration)
-    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        EnsembleReordering,
-        ConvertLocationAndScaleParametersToPercentiles,
-        ConvertLocationAndScaleParametersToProbabilities,
-        ConvertProbabilitiesToPercentiles,
-        RebadgePercentilesAsRealizations,
-        ResamplePercentiles)
-    from improver.calibration.utilities import merge_land_and_sea
-    from improver.metadata.probabilistic import find_percentile_coordinate
+    from improver.calibration.ensemble_calibration import ApplyEMOS
 
-    current_forecast = cube
-
-    if current_forecast.name() in ['emos_coefficients', 'land_binary_mask']:
-        msg = "The current forecast cube has the name {}"
-        raise ValueError(msg.format(current_forecast.name()))
+    if cube.name() in ["emos_coefficients", "land_binary_mask"]:
+        msg = "Invalid forecast cube provided (name '{}')"
+        raise ValueError(msg.format(cube.name()))
 
     if coefficients is None:
-        msg = ("There are no coefficients provided for calibration. The "
-               "uncalibrated forecast will be returned.")
+        msg = (
+            "There are no coefficients provided for calibration. The "
+            "uncalibrated forecast will be returned."
+        )
         warnings.warn(msg)
-        return current_forecast
+        return cube
 
-    if coefficients.name() != 'emos_coefficients':
-        msg = ("The current coefficients cube does not have the "
-               "name 'emos_coefficients'")
+    if coefficients.name() != "emos_coefficients":
+        msg = "Invalid coefficients cube provided (name '{}')"
+        raise ValueError(msg.format(coefficients.name()))
+
+    if land_sea_mask and land_sea_mask.name() != "land_binary_mask":
+        msg = "The land_sea_mask cube does not have the " "name 'land_binary_mask'"
         raise ValueError(msg)
-
-    if land_sea_mask and land_sea_mask.name() != 'land_binary_mask':
-        msg = ("The land_sea_mask cube does not have the "
-               "name 'land_binary_mask'")
-        raise ValueError(msg)
-
-    original_current_forecast = current_forecast.copy()
-    try:
-        find_percentile_coordinate(current_forecast)
-        input_forecast_type = "percentiles"
-    except CoordinateNotFoundError:
-        input_forecast_type = "realizations"
-
-    if current_forecast.name().startswith("probability_of"):
-        input_forecast_type = "probabilities"
-        conversion_plugin = ConvertProbabilitiesToPercentiles(
-            ecc_bounds_warning=ignore_ecc_bounds)
-    elif input_forecast_type == "percentiles":
-        # Initialise plugin to resample percentiles so that the percentiles are
-        # evenly spaced.
-        conversion_plugin = ResamplePercentiles(
-            ecc_bounds_warning=ignore_ecc_bounds)
-
-    if input_forecast_type in ["percentiles", "probabilities"]:
-        if not realizations_count:
-            raise ValueError(
-                "The current forecast has been provided as {0}. "
-                "These {0} need to be converted to realizations "
-                "for ensemble calibration. The realizations_count "
-                "argument is used to define the number of realizations "
-                "to construct from the input {0}, so if the "
-                "current forecast is provided as {0} then "
-                "realizations_count must be defined.".format(
-                    input_forecast_type))
-        current_forecast = conversion_plugin.process(
-            current_forecast, no_of_percentiles=realizations_count)
-        current_forecast = (
-            RebadgePercentilesAsRealizations().process(current_forecast))
-
-    # Apply coefficients as part of Ensemble Model Output Statistics (EMOS).
-    ac = ApplyCoefficientsFromEnsembleCalibration(predictor=predictor)
-    location_parameter, scale_parameter = ac.process(
-        current_forecast, coefficients, landsea_mask=land_sea_mask)
 
     if shape_parameters:
         shape_parameters = [np.float32(x) for x in shape_parameters]
 
-    # Convert the output forecast type (i.e. realizations, percentiles,
-    # probabilities) to match the input forecast type.
-    if input_forecast_type == "probabilities":
-        result = ConvertLocationAndScaleParametersToProbabilities(
-            distribution=distribution,
-            shape_parameters=shape_parameters).process(
-            location_parameter, scale_parameter, original_current_forecast)
-    elif input_forecast_type == "percentiles":
-        perc_coord = find_percentile_coordinate(original_current_forecast)
-        result = ConvertLocationAndScaleParametersToPercentiles(
-            distribution=distribution,
-            shape_parameters=shape_parameters).process(
-            location_parameter, scale_parameter, original_current_forecast,
-            percentiles=perc_coord.points)
-    elif input_forecast_type == "realizations":
-        # Ensemble Copula Coupling to generate realizations
-        # from the location and scale parameter.
-        no_of_percentiles = len(current_forecast.coord('realization').points)
-        percentiles = ConvertLocationAndScaleParametersToPercentiles(
-            distribution=distribution,
-            shape_parameters=shape_parameters).process(
-            location_parameter, scale_parameter, original_current_forecast,
-            no_of_percentiles=no_of_percentiles)
-        result = EnsembleReordering().process(
-            percentiles, current_forecast,
-            random_ordering=randomise, random_seed=random_seed)
-    if land_sea_mask:
-        # Fill in masked sea points with uncalibrated data.
-        merge_land_and_sea(result, original_current_forecast)
+    calibration_plugin = ApplyEMOS()
+    result = calibration_plugin(
+        cube,
+        coefficients,
+        land_sea_mask=land_sea_mask,
+        realizations_count=realizations_count,
+        ignore_ecc_bounds=ignore_ecc_bounds,
+        predictor=predictor,
+        distribution=distribution,
+        shape_parameters=shape_parameters,
+        randomise=randomise,
+        random_seed=random_seed,
+    )
+
     return result

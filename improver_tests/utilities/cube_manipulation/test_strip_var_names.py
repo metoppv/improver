@@ -48,7 +48,7 @@ class Test_strip_var_names(unittest.TestCase):
 
     def setUp(self):
         """Use temperature cube to test with."""
-        data = 281*np.ones((3, 3, 3), dtype=np.float32)
+        data = 281 * np.ones((3, 3, 3), dtype=np.float32)
         self.cube = set_up_variable_cube(data)
         self.cube.var_name = "air_temperature"
 
@@ -87,5 +87,5 @@ class Test_strip_var_names(unittest.TestCase):
                 self.assertIsNone(coord.var_name, None)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

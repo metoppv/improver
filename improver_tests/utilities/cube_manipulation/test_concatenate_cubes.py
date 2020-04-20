@@ -52,14 +52,16 @@ class Test_concatenate_cubes(IrisTest):
 
     def setUp(self):
         """Set up temperature cubes to test with."""
-        data = 275*np.ones((3, 3, 3), dtype=np.float32)
-        cube = set_up_variable_cube(data, time=datetime(2017, 9, 9, 11),
-                                    frt=datetime(2017, 9, 9, 6))
+        data = 275 * np.ones((3, 3, 3), dtype=np.float32)
+        cube = set_up_variable_cube(
+            data, time=datetime(2017, 9, 9, 11), frt=datetime(2017, 9, 9, 6)
+        )
         self.cube = iris.util.new_axis(cube, "time")
         self.cube.transpose([1, 0, 2, 3])
         self.later_cube = self.cube.copy()
         self.later_cube.coord("time").points = (
-            self.later_cube.coord("time").points + 3600)
+            self.later_cube.coord("time").points + 3600
+        )
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
@@ -84,11 +86,9 @@ class Test_concatenate_cubes(IrisTest):
         """
         cube = self.cube.copy()
         cube.transpose([1, 0, 2, 3])
-        expected_result = (
-            np.vstack([cube.data, cube.data]).transpose([1, 0, 2, 3]))
+        expected_result = np.vstack([cube.data, cube.data]).transpose([1, 0, 2, 3])
         cubelist = iris.cube.CubeList([self.cube, self.later_cube])
-        result = concatenate_cubes(
-            cubelist, coords_to_slice_over=["realization"])
+        result = concatenate_cubes(cubelist, coords_to_slice_over=["realization"])
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(expected_result, result.data)
 
@@ -110,11 +110,9 @@ class Test_concatenate_cubes(IrisTest):
 
         cubelist = iris.cube.CubeList([cube2, cube3])
 
-        result = concatenate_cubes(
-            cubelist, coords_to_slice_over=["realization"])
+        result = concatenate_cubes(cubelist, coords_to_slice_over=["realization"])
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(
-            result.coord("realization").points, [0, 1, 2])
+        self.assertArrayAlmostEqual(result.coord("realization").points, [0, 1, 2])
 
     def test_cubelist_different_number_of_realizations_time(self):
         """
@@ -146,13 +144,12 @@ class Test_concatenate_cubes(IrisTest):
         """
         expected_time_points = [
             self.cube.coord("time").points[0],
-            self.later_cube.coord("time").points[0]]
+            self.later_cube.coord("time").points[0],
+        ]
         cubelist = iris.cube.CubeList([self.cube, self.later_cube])
-        result = concatenate_cubes(
-            cubelist, coords_to_slice_over=["time"])
+        result = concatenate_cubes(cubelist, coords_to_slice_over=["time"])
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(
-            result.coord("time").points, expected_time_points)
+        self.assertArrayAlmostEqual(result.coord("time").points, expected_time_points)
 
     def test_cubelist_slice_over_realization_only(self):
         """
@@ -161,11 +158,9 @@ class Test_concatenate_cubes(IrisTest):
         realizations is passed in as the input.
         """
         cubelist = iris.cube.CubeList([self.cube, self.later_cube])
-        result = concatenate_cubes(
-            cubelist, coords_to_slice_over=["realization"])
+        result = concatenate_cubes(cubelist, coords_to_slice_over=["realization"])
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(
-            result.coord("realization").points, [0, 1, 2])
+        self.assertArrayAlmostEqual(result.coord("realization").points, [0, 1, 2])
 
     def test_cubelist_with_forecast_reference_time_only(self):
         """
@@ -176,16 +171,19 @@ class Test_concatenate_cubes(IrisTest):
         is maintained within the output cube, after concatenation.
         """
         self.later_cube.coord("forecast_reference_time").points = (
-            self.later_cube.coord("forecast_reference_time").points + 3600)
+            self.later_cube.coord("forecast_reference_time").points + 3600
+        )
         expected_frt_points = [
             self.cube.coord("forecast_reference_time").points[0],
-            self.later_cube.coord("forecast_reference_time").points[0]]
+            self.later_cube.coord("forecast_reference_time").points[0],
+        ]
         cubelist = iris.cube.CubeList([self.cube, self.later_cube])
         result = concatenate_cubes(
-            cubelist, coordinates_for_association=["forecast_reference_time"])
+            cubelist, coordinates_for_association=["forecast_reference_time"]
+        )
         self.assertArrayAlmostEqual(
-            result.coord("forecast_reference_time").points,
-            expected_frt_points)
+            result.coord("forecast_reference_time").points, expected_frt_points
+        )
 
     def test_cubelist_different_var_names(self):
         """
@@ -199,5 +197,5 @@ class Test_concatenate_cubes(IrisTest):
         self.assertIsInstance(result, Cube)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

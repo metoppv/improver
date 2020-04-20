@@ -40,8 +40,8 @@ from improver.utilities.warnings_handler import ManageWarnings
 
 def dummy_func(arg1, keyval1=None):
     """ Dummy function to test """
-    if arg1 == 'User':
-        msg = 'Raising User error'
+    if arg1 == "User":
+        msg = "Raising User error"
         warnings.warn(msg)
     return arg1, keyval1
 
@@ -69,20 +69,18 @@ class Test__init__(IrisTest):
         plugin = ManageWarnings(ignored_messages=messages)
         warning_types = plugin.warning_types
         self.assertEqual(plugin.messages, messages)
-        self.assertTrue(any(item == UserWarning
-                            for item in warning_types))
+        self.assertTrue(any(item == UserWarning for item in warning_types))
 
     def test_ignored_messages_and_warning_types(self):
         """Test OK when ignored_messages and warning_types set."""
         messages = ["Testing", "Testing2"]
         warning_types = [UserWarning, PendingDeprecationWarning]
-        plugin = ManageWarnings(ignored_messages=messages,
-                                warning_types=warning_types)
+        plugin = ManageWarnings(ignored_messages=messages, warning_types=warning_types)
         self.assertEqual(plugin.messages, messages)
-        self.assertTrue(any(item == UserWarning
-                            for item in warning_types))
-        self.assertTrue(any(item == PendingDeprecationWarning
-                            for item in warning_types))
+        self.assertTrue(any(item == UserWarning for item in warning_types))
+        self.assertTrue(
+            any(item == PendingDeprecationWarning for item in warning_types)
+        )
 
     def test_mismatch_warning_types(self):
         """Test Raises error when warning_types does not match."""
@@ -90,8 +88,7 @@ class Test__init__(IrisTest):
         warning_types = [UserWarning]
         msg = "Length of warning_types"
         with self.assertRaisesRegex(ValueError, msg):
-            ManageWarnings(ignored_messages=messages,
-                           warning_types=warning_types)
+            ManageWarnings(ignored_messages=messages, warning_types=warning_types)
 
     def test_record_is_true(self):
         """Test record is set to True."""
@@ -108,35 +105,32 @@ class Test__call__(IrisTest):
     @ManageWarnings()
     def test_basic(self):
         """Test the Function still works with wrapper"""
-        argval, keyval = dummy_func('Test')
-        self.assertEqual(argval, 'Test')
+        argval, keyval = dummy_func("Test")
+        self.assertEqual(argval, "Test")
         self.assertIsNone(keyval)
 
     @ManageWarnings(record=True)
     def test_warning_list(self, warning_list=None):
         """Test when record is True"""
-        argval, keyval = dummy_func('Test2', keyval1='Test3')
-        self.assertEqual(argval, 'Test2')
-        self.assertEqual(keyval, 'Test3')
+        argval, keyval = dummy_func("Test2", keyval1="Test3")
+        self.assertEqual(argval, "Test2")
+        self.assertEqual(keyval, "Test3")
         self.assertEqual(warning_list, [])
 
     @ManageWarnings(record=True)
     def test_tests_warnings(self, warning_list=None):
         """Test picks up user error correctly"""
-        dummy_func('User')
-        user_warning_msg = 'Raising User error'
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(user_warning_msg in str(item)
-                            for item in warning_list))
+        dummy_func("User")
+        user_warning_msg = "Raising User error"
+        self.assertTrue(any(item.category == UserWarning for item in warning_list))
+        self.assertTrue(any(user_warning_msg in str(item) for item in warning_list))
 
-    @ManageWarnings(ignored_messages=["Raising User error"],
-                    record=True)
+    @ManageWarnings(ignored_messages=["Raising User error"], record=True)
     def test_traps_warnings(self, warning_list=None):
         """Test ignores user error correctly"""
-        dummy_func('User')
+        dummy_func("User")
         self.assertEqual(warning_list, [])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

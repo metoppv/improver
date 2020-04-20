@@ -49,4 +49,5 @@ def process(*cubes: cli.inputcube):
     """
     from iris.cube import CubeList
     from improver.utilities.cube_manipulation import MergeCubes
+
     return MergeCubes()(CubeList(cubes))

@@ -132,11 +132,11 @@ def parse_constraint_list(constraints, units=None):
     """
 
     if units is None:
-        list_units = len(constraints)*[None]
+        list_units = len(constraints) * [None]
         units_dict = None
     else:
         if len(units) != len(constraints):
-            msg = 'units list must match constraints'
+            msg = "units list must match constraints"
             raise ValueError(msg)
         list_units = units
         units_dict = {}
@@ -144,9 +144,9 @@ def parse_constraint_list(constraints, units=None):
     simple_constraints_dict = {}
     complex_constraints = []
     for constraint_pair, unit_val in zip(constraints, list_units):
-        key, value = constraint_pair.split('=', 1)
-        key = key.strip(' ')
-        value = value.strip(' ')
+        key, value = constraint_pair.split("=", 1)
+        key = key.strip(" ")
+        value = value.strip(" ")
 
         if is_complex_parsing_required(value):
             complex_constraints.append(create_range_constraint(key, value))
@@ -158,8 +158,8 @@ def parse_constraint_list(constraints, units=None):
             else:
                 simple_constraints_dict[key] = create_constraint(typed_value)
 
-        if unit_val is not None and unit_val.capitalize() != 'None':
-            units_dict[key] = unit_val.strip(' ')
+        if unit_val is not None and unit_val.capitalize() != "None":
+            units_dict[key] = unit_val.strip(" ")
 
     if simple_constraints_dict:
         simple_constraints = iris.Constraint(**simple_constraints_dict)
@@ -211,8 +211,7 @@ def apply_extraction(cube, constraint, units=None, use_original_units=True):
             for coord in original_units:
                 cube.coord(coord).convert_units(original_units[coord])
                 try:
-                    output_cube.coord(coord).convert_units(
-                        original_units[coord])
+                    output_cube.coord(coord).convert_units(original_units[coord])
                 except AttributeError:
                     # an empty output cube (None) is handled by the CLI
                     pass
@@ -248,5 +247,6 @@ def extract_subcube(cube, constraints, units=None, use_original_units=True):
     """
     constraints, units = parse_constraint_list(constraints, units=units)
     output_cube = apply_extraction(
-        cube, constraints, units=units, use_original_units=use_original_units)
+        cube, constraints, units=units, use_original_units=use_original_units
+    )
     return output_cube

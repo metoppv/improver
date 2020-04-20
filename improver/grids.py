@@ -36,13 +36,13 @@ from iris.coord_systems import GeogCS, LambertAzimuthalEqualArea
 GLOBAL_GRID_CCRS = GeogCS(6371229.0)
 
 # Reference ellipsoid for Earth's geoid
-ELLIPSOID = GeogCS(semi_major_axis=6378137.0,
-                   semi_minor_axis=6356752.314140356)
+ELLIPSOID = GeogCS(semi_major_axis=6378137.0, semi_minor_axis=6356752.314140356)
 
 # Projection settings for UKVX standard grid
 STANDARD_GRID_CCRS = LambertAzimuthalEqualArea(
     latitude_of_projection_origin=54.9,
     longitude_of_projection_origin=-2.5,
-    false_easting=0.0, false_northing=0.0,
-    ellipsoid=ELLIPSOID
-    )
+    false_easting=0.0,
+    false_northing=0.0,
+    ellipsoid=ELLIPSOID,
+)

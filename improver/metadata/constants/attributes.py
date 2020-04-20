@@ -33,7 +33,7 @@
 MANDATORY_ATTRIBUTE_DEFAULTS = {
     "title": "unknown",
     "source": "IMPROVER",
-    "institution": "unknown"
+    "institution": "unknown",
 }
 
 MANDATORY_ATTRIBUTES = ["title", "source", "institution"]

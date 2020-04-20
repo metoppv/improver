@@ -40,23 +40,34 @@ Statistics (EMOS).
 import datetime
 import warnings
 
-import numpy as np
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
 
-from improver import BasePlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
-    check_predictor, convert_cube_data_to_2d,
-    flatten_ignoring_masked_data, filter_non_matching_cubes)
+    check_predictor,
+    convert_cube_data_to_2d,
+    filter_non_matching_cubes,
+    flatten_ignoring_masked_data,
+    merge_land_and_sea,
+)
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    ConvertLocationAndScaleParametersToPercentiles,
+    ConvertLocationAndScaleParametersToProbabilities,
+    ConvertProbabilitiesToPercentiles,
+    EnsembleReordering,
+    RebadgePercentilesAsRealizations,
+    ResamplePercentiles,
+)
+from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import time_coords_match
-from improver.utilities.cube_manipulation import (enforce_coordinate_ordering,
-                                                  collapsed)
-from improver.utilities.temporal import (
-    cycletime_to_datetime, datetime_to_iris_time)
+from improver.utilities.cube_manipulation import collapsed, enforce_coordinate_ordering
+from improver.utilities.temporal import cycletime_to_datetime, datetime_to_iris_time
 
 
 class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
@@ -76,6 +87,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     in comparison to comparative results generated in R.
 
     """
+
     # The tolerated percentage change for the final iteration when
     # performing the minimisation.
     TOLERATED_PERCENTAGE_CHANGE = 5
@@ -113,23 +125,32 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         # depending upon the distribution requested.
         self.minimisation_dict = {
             "gaussian": self.calculate_normal_crps,
-            "truncated_gaussian": self.calculate_truncated_normal_crps}
+            "truncated_gaussian": self.calculate_truncated_normal_crps,
+        }
         self.tolerance = tolerance
         # Maximum iterations for minimisation using Nelder-Mead.
         self.max_iterations = max_iterations
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ContinuousRankedProbabilityScoreMinimisers: '
-                  'minimisation_dict: {}; tolerance: {}; max_iterations: {}>')
+        result = (
+            "<ContinuousRankedProbabilityScoreMinimisers: "
+            "minimisation_dict: {}; tolerance: {}; max_iterations: {}>"
+        )
         print_dict = {}
         for key in self.minimisation_dict:
             print_dict.update({key: self.minimisation_dict[key].__name__})
         return result.format(print_dict, self.tolerance, self.max_iterations)
 
     def process(
-            self, initial_guess, forecast_predictor, truth, forecast_var,
-            predictor, distribution):
+        self,
+        initial_guess,
+        forecast_predictor,
+        truth,
+        forecast_var,
+        predictor,
+        distribution,
+    ):
         """
         Function to pass a given function to the scipy minimize
         function to estimate optimised values for the coefficients.
@@ -169,6 +190,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             Warning: If the minimisation did not converge.
 
         """
+
         def calculate_percentage_change_in_last_iteration(allvecs):
             """
             Calculate the percentage change that has occurred within
@@ -184,28 +206,36 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             Warns:
                 Warning: If a satisfactory minimisation has not been achieved.
             """
-            last_iteration_percentage_change = np.absolute(
-                (allvecs[-1] - allvecs[-2]) / allvecs[-2])*100
-            if (np.any(last_iteration_percentage_change >
-                       self.TOLERATED_PERCENTAGE_CHANGE)):
+            last_iteration_percentage_change = (
+                np.absolute((allvecs[-1] - allvecs[-2]) / allvecs[-2]) * 100
+            )
+            if np.any(
+                last_iteration_percentage_change > self.TOLERATED_PERCENTAGE_CHANGE
+            ):
                 np.set_printoptions(suppress=True)
-                msg = ("The final iteration resulted in a percentage change "
-                       "that is greater than the accepted threshold of 5% "
-                       "i.e. {}. "
-                       "\nA satisfactory minimisation has not been achieved. "
-                       "\nLast iteration: {}, "
-                       "\nLast-but-one iteration: {}"
-                       "\nAbsolute difference: {}\n").format(
-                           last_iteration_percentage_change, allvecs[-1],
-                           allvecs[-2], np.absolute(allvecs[-2]-allvecs[-1]))
+                msg = (
+                    "The final iteration resulted in a percentage change "
+                    "that is greater than the accepted threshold of 5% "
+                    "i.e. {}. "
+                    "\nA satisfactory minimisation has not been achieved. "
+                    "\nLast iteration: {}, "
+                    "\nLast-but-one iteration: {}"
+                    "\nAbsolute difference: {}\n"
+                ).format(
+                    last_iteration_percentage_change,
+                    allvecs[-1],
+                    allvecs[-2],
+                    np.absolute(allvecs[-2] - allvecs[-1]),
+                )
                 warnings.warn(msg)
 
         try:
             minimisation_function = self.minimisation_dict[distribution]
         except KeyError as err:
-            msg = ("Distribution requested {} is not supported in {}"
-                   "Error message is {}".format(
-                       distribution, self.minimisation_dict, err))
+            msg = (
+                "Distribution requested {} is not supported in {}"
+                "Error message is {}".format(distribution, self.minimisation_dict, err)
+            )
             raise KeyError(msg)
 
         # Ensure predictor is valid.
@@ -216,13 +246,15 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
         if predictor.lower() == "mean":
             forecast_predictor_data = flatten_ignoring_masked_data(
-                forecast_predictor.data)
+                forecast_predictor.data
+            )
         elif predictor.lower() == "realizations":
             enforce_coordinate_ordering(forecast_predictor, "realization")
             # Need to transpose this array so there are columns for each
             # ensemble member rather than rows.
             forecast_predictor_data = flatten_ignoring_masked_data(
-                forecast_predictor.data, preserve_leading_dimension=True).T
+                forecast_predictor.data, preserve_leading_dimension=True
+            ).T
 
         # Increased precision is needed for stable coefficient calculation.
         # The resulting coefficients are cast to float32 prior to output.
@@ -232,23 +264,34 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         truth_data = truth_data.astype(np.float64)
         sqrt_pi = np.sqrt(np.pi).astype(np.float64)
         optimised_coeffs = minimize(
-            minimisation_function, initial_guess,
-            args=(forecast_predictor_data, truth_data,
-                  forecast_var_data, sqrt_pi, predictor),
-            method="Nelder-Mead", tol=self.tolerance,
-            options={"maxiter": self.max_iterations, "return_all": True})
+            minimisation_function,
+            initial_guess,
+            args=(
+                forecast_predictor_data,
+                truth_data,
+                forecast_var_data,
+                sqrt_pi,
+                predictor,
+            ),
+            method="Nelder-Mead",
+            tol=self.tolerance,
+            options={"maxiter": self.max_iterations, "return_all": True},
+        )
 
         if not optimised_coeffs.success:
-            msg = ("Minimisation did not result in convergence after "
-                   "{} iterations. \n{}".format(
-                       self.max_iterations, optimised_coeffs.message))
+            msg = (
+                "Minimisation did not result in convergence after "
+                "{} iterations. \n{}".format(
+                    self.max_iterations, optimised_coeffs.message
+                )
+            )
             warnings.warn(msg)
         calculate_percentage_change_in_last_iteration(optimised_coeffs.allvecs)
         return optimised_coeffs.x.astype(np.float32)
 
     def calculate_normal_crps(
-            self, initial_guess, forecast_predictor, truth, forecast_var,
-            sqrt_pi, predictor):
+        self, initial_guess, forecast_predictor, truth, forecast_var, sqrt_pi, predictor
+    ):
         """
         Calculate the CRPS for a normal distribution.
 
@@ -287,29 +330,27 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             beta = initial_guess[2:]
         elif predictor.lower() == "realizations":
             beta = np.array(
-                [initial_guess[2]]+(initial_guess[3:]**2).tolist(),
-                dtype=np.float32
+                [initial_guess[2]] + (initial_guess[3:] ** 2).tolist(), dtype=np.float32
             )
 
         new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
         mu = np.dot(all_data, beta)
-        sigma = np.sqrt(
-            initial_guess[0]**2 + initial_guess[1]**2 * forecast_var)
+        sigma = np.sqrt(initial_guess[0] ** 2 + initial_guess[1] ** 2 * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
         normal_pdf = norm.pdf(xz)
-        if np.isfinite(np.min(mu/sigma)):
+        if np.isfinite(np.min(mu / sigma)):
             result = np.nanmean(
-                sigma * (
-                    xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi))
+                sigma * (xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi)
+            )
         else:
             result = self.BAD_VALUE
         return result
 
     def calculate_truncated_normal_crps(
-            self, initial_guess, forecast_predictor, truth, forecast_var,
-            sqrt_pi, predictor):
+        self, initial_guess, forecast_predictor, truth, forecast_var, sqrt_pi, predictor
+    ):
         """
         Calculate the CRPS for a truncated normal distribution with zero
         as the lower bound.
@@ -350,15 +391,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             beta = initial_guess[2:]
         elif predictor.lower() == "realizations":
             beta = np.array(
-                [initial_guess[2]]+(initial_guess[3:]**2).tolist(),
-                dtype=np.float32
+                [initial_guess[2]] + (initial_guess[3:] ** 2).tolist(), dtype=np.float32
             )
 
         new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
         mu = np.dot(all_data, beta)
-        sigma = np.sqrt(
-            initial_guess[0]**2 + initial_guess[1]**2 * forecast_var)
+        sigma = np.sqrt(initial_guess[0] ** 2 + initial_guess[1] ** 2 * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
         normal_pdf = norm.pdf(xz)
@@ -367,10 +406,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         normal_cdf_root_two = norm.cdf(np.sqrt(2) * x0)
         if np.isfinite(np.min(mu / sigma)) or (np.min(mu / sigma) >= -3):
             result = np.nanmean(
-                (sigma / normal_cdf_0**2) *
-                (xz * normal_cdf_0 * (2 * normal_cdf + normal_cdf_0 - 2) +
-                 2 * normal_pdf * normal_cdf_0 -
-                 normal_cdf_root_two / sqrt_pi))
+                (sigma / normal_cdf_0 ** 2)
+                * (
+                    xz * normal_cdf_0 * (2 * normal_cdf + normal_cdf_0 - 2)
+                    + 2 * normal_pdf * normal_cdf_0
+                    - normal_cdf_root_two / sqrt_pi
+                )
+            )
         else:
             result = self.BAD_VALUE
         return result
@@ -381,6 +423,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
     Class focussing on estimating the optimised coefficients for ensemble
     calibration.
     """
+
     # Logical flag for whether initial guess estimates for the coefficients
     # will be estimated using linear regression i.e.
     # ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True, or whether default
@@ -388,8 +431,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
     # ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False.
     ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
 
-    def __init__(self, distribution, current_cycle, desired_units=None,
-                 predictor="mean", tolerance=0.01, max_iterations=1000):
+    def __init__(
+        self,
+        distribution,
+        current_cycle,
+        desired_units=None,
+        predictor="mean",
+        tolerance=0.01,
+        max_iterations=1000,
+    ):
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, calculates coefficients based on historical forecasts and
@@ -439,12 +489,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Warns:
             ImportWarning: If the statsmodels module can't be imported.
         """
-        valid_distributions = (ContinuousRankedProbabilityScoreMinimisers().
-                               minimisation_dict.keys())
+        valid_distributions = (
+            ContinuousRankedProbabilityScoreMinimisers().minimisation_dict.keys()
+        )
         if distribution not in valid_distributions:
-            msg = ("Given distribution {} not available. Available "
-                   "distributions are {}".format(
-                       distribution, valid_distributions))
+            msg = (
+                "Given distribution {} not available. Available "
+                "distributions are {}".format(distribution, valid_distributions)
+            )
             raise ValueError(msg)
         self.distribution = distribution
         self.current_cycle = current_cycle
@@ -455,7 +507,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.tolerance = tolerance
         self.max_iterations = max_iterations
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
-            tolerance=self.tolerance, max_iterations=self.max_iterations)
+            tolerance=self.tolerance, max_iterations=self.max_iterations
+        )
 
         # Setting default values for coeff_names. Beta is the final
         # coefficient name in the list, as there can potentially be
@@ -464,8 +517,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.coeff_names = ["gamma", "delta", "alpha", "beta"]
 
         import imp
+
         try:
-            imp.find_module('statsmodels')
+            imp.find_module("statsmodels")
         except ImportError:
             statsmodels_found = False
             if predictor.lower() == "realizations":
@@ -474,32 +528,41 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     "Will not be able to calculate an initial guess from "
                     "the individual ensemble realizations. "
                     "A default initial guess will be used without "
-                    "estimating coefficients from a linear model.")
+                    "estimating coefficients from a linear model."
+                )
                 warnings.warn(msg, ImportWarning)
         else:
             statsmodels_found = True
             import statsmodels.api as sm
+
             self.sm = sm
         self.statsmodels_found = statsmodels_found
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<EstimateCoefficientsForEnsembleCalibration: '
-                  'distribution: {}; '
-                  'current_cycle: {}; '
-                  'desired_units: {}; '
-                  'predictor: {}; '
-                  'minimiser: {}; '
-                  'coeff_names: {}; '
-                  'tolerance: {}; '
-                  'max_iterations: {}>')
+        result = (
+            "<EstimateCoefficientsForEnsembleCalibration: "
+            "distribution: {}; "
+            "current_cycle: {}; "
+            "desired_units: {}; "
+            "predictor: {}; "
+            "minimiser: {}; "
+            "coeff_names: {}; "
+            "tolerance: {}; "
+            "max_iterations: {}>"
+        )
         return result.format(
-            self.distribution, self.current_cycle, self.desired_units,
-            self.predictor, self.minimiser.__class__, self.coeff_names,
-            self.tolerance, self.max_iterations)
+            self.distribution,
+            self.current_cycle,
+            self.desired_units,
+            self.predictor,
+            self.minimiser.__class__,
+            self.coeff_names,
+            self.tolerance,
+            self.max_iterations,
+        )
 
-    def create_coefficients_cube(
-            self, optimised_coeffs, historic_forecast):
+    def create_coefficients_cube(self, optimised_coeffs, historic_forecast):
         """Create a cube for storing the coefficients computed using EMOS.
 
         .. See the documentation for examples of these cubes.
@@ -530,31 +593,36 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             realization_coeffs = []
             for realization in historic_forecast.coord("realization").points:
                 realization_coeffs.append(
-                    "{}{}".format(self.coeff_names[-1], np.int32(realization)))
+                    "{}{}".format(self.coeff_names[-1], np.int32(realization))
+                )
             coeff_names = self.coeff_names[:-1] + realization_coeffs
         else:
             coeff_names = self.coeff_names
 
         if len(optimised_coeffs) != len(coeff_names):
-            msg = ("The number of coefficients in {} must equal the "
-                   "number of coefficient names {}.".format(
-                       optimised_coeffs, coeff_names))
+            msg = (
+                "The number of coefficients in {} must equal the "
+                "number of coefficient names {}.".format(optimised_coeffs, coeff_names)
+            )
             raise ValueError(msg)
 
         coefficient_index = iris.coords.DimCoord(
             np.arange(len(optimised_coeffs), dtype=np.int32),
-            long_name="coefficient_index", units="1")
+            long_name="coefficient_index",
+            units="1",
+        )
         coefficient_name = iris.coords.AuxCoord(
-            coeff_names, long_name="coefficient_name", units="no_unit")
+            coeff_names, long_name="coefficient_name", units="no_unit"
+        )
         dim_coords_and_dims = [(coefficient_index, 0)]
         aux_coords_and_dims = [(coefficient_name, 0)]
 
         # Create a forecast_reference_time coordinate.
         frt_point = cycletime_to_datetime(self.current_cycle)
         try:
-            frt_coord = (
-                historic_forecast.coord("forecast_reference_time").copy(
-                    datetime_to_iris_time(frt_point)))
+            frt_coord = historic_forecast.coord("forecast_reference_time").copy(
+                datetime_to_iris_time(frt_point)
+            )
         except CoordinateNotFoundError:
             pass
         else:
@@ -562,22 +630,18 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         # Create forecast period and time coordinates.
         try:
-            fp_point = (
-                np.unique(historic_forecast.coord("forecast_period").points))
-            fp_coord = (
-                historic_forecast.coord("forecast_period").copy(fp_point))
+            fp_point = np.unique(historic_forecast.coord("forecast_period").points)
+            fp_coord = historic_forecast.coord("forecast_period").copy(fp_point)
         except CoordinateNotFoundError:
             pass
         else:
             aux_coords_and_dims.append((fp_coord, None))
             if historic_forecast.coords("time"):
                 # Ensure that the fp_point is determined with units of seconds.
-                copy_of_fp_coord = (
-                    historic_forecast.coord("forecast_period").copy())
+                copy_of_fp_coord = historic_forecast.coord("forecast_period").copy()
                 copy_of_fp_coord.convert_units("seconds")
-                fp_point, = np.unique(copy_of_fp_coord.points)
-                time_point = (
-                    frt_point + datetime.timedelta(seconds=float(fp_point)))
+                (fp_point,) = np.unique(copy_of_fp_coord.points)
+                time_point = frt_point + datetime.timedelta(seconds=float(fp_point))
                 time_point = datetime_to_iris_time(time_point)
                 time_coord = historic_forecast.coord("time").copy(time_point)
                 aux_coords_and_dims.append((time_coord, None))
@@ -586,28 +650,35 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         for axis in ["x", "y"]:
             historic_coord_points = historic_forecast.coord(axis=axis).points
             coord_point = np.median(historic_coord_points)
-            coord_bounds = [historic_coord_points[0],
-                            historic_coord_points[-1]]
+            coord_bounds = [historic_coord_points[0], historic_coord_points[-1]]
             new_coord = historic_forecast.coord(axis=axis).copy(
-                points=coord_point, bounds=coord_bounds)
+                points=coord_point, bounds=coord_bounds
+            )
             aux_coords_and_dims.append((new_coord, None))
 
         attributes = {"diagnostic_standard_name": historic_forecast.name()}
         for attribute in historic_forecast.attributes.keys():
             if attribute.endswith("model_configuration"):
-                attributes[attribute] = (
-                    historic_forecast.attributes[attribute])
+                attributes[attribute] = historic_forecast.attributes[attribute]
 
         cube = iris.cube.Cube(
-            optimised_coeffs, long_name="emos_coefficients", units="1",
+            optimised_coeffs,
+            long_name="emos_coefficients",
+            units="1",
             dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims, attributes=attributes)
+            aux_coords_and_dims=aux_coords_and_dims,
+            attributes=attributes,
+        )
         return cube
 
     def compute_initial_guess(
-            self, truth, forecast_predictor, predictor,
-            estimate_coefficients_from_linear_model_flag,
-            no_of_realizations=None):
+        self,
+        truth,
+        forecast_predictor,
+        predictor,
+        estimate_coefficients_from_linear_model_flag,
+        no_of_realizations=None,
+    ):
         """
         Function to compute initial guess of the alpha, beta, gamma
         and delta components of the EMOS coefficients by linear regression
@@ -661,44 +732,48 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Order of coefficients is [gamma, delta, alpha, beta].
 
         """
-        if (predictor.lower() == "mean" and
-                not estimate_coefficients_from_linear_model_flag):
+        if (
+            predictor.lower() == "mean"
+            and not estimate_coefficients_from_linear_model_flag
+        ):
             initial_guess = [0, 1, 0, 1]
-        elif (predictor.lower() == "realizations" and
-              not estimate_coefficients_from_linear_model_flag):
+        elif (
+            predictor.lower() == "realizations"
+            and not estimate_coefficients_from_linear_model_flag
+        ):
             initial_guess = [0, 1, 0] + np.repeat(
-                np.sqrt(1. / no_of_realizations), no_of_realizations).tolist()
+                np.sqrt(1.0 / no_of_realizations), no_of_realizations
+            ).tolist()
         elif estimate_coefficients_from_linear_model_flag:
             truth_flattened = flatten_ignoring_masked_data(truth.data)
             if predictor.lower() == "mean":
                 forecast_predictor_flattened = flatten_ignoring_masked_data(
-                    forecast_predictor.data)
+                    forecast_predictor.data
+                )
                 if (truth_flattened.size == 0) or (
-                        forecast_predictor_flattened.size == 0):
-                    gradient, intercept = ([np.nan, np.nan])
+                    forecast_predictor_flattened.size == 0
+                ):
+                    gradient, intercept = [np.nan, np.nan]
                 else:
-                    gradient, intercept, _, _, _ = (
-                        stats.linregress(
-                            forecast_predictor_flattened, truth_flattened))
+                    gradient, intercept, _, _, _ = stats.linregress(
+                        forecast_predictor_flattened, truth_flattened
+                    )
                 initial_guess = [0, 1, intercept, gradient]
             elif predictor.lower() == "realizations":
                 if self.statsmodels_found:
-                    enforce_coordinate_ordering(
-                        forecast_predictor, "realization")
-                    forecast_predictor_flattened = (
-                        flatten_ignoring_masked_data(
-                            forecast_predictor.data,
-                            preserve_leading_dimension=True))
+                    enforce_coordinate_ordering(forecast_predictor, "realization")
+                    forecast_predictor_flattened = flatten_ignoring_masked_data(
+                        forecast_predictor.data, preserve_leading_dimension=True
+                    )
                     val = self.sm.add_constant(forecast_predictor_flattened.T)
                     est = self.sm.OLS(truth_flattened, val).fit()
                     intercept = est.params[0]
                     gradient = est.params[1:]
-                    initial_guess = [0, 1, intercept]+gradient.tolist()
+                    initial_guess = [0, 1, intercept] + gradient.tolist()
                 else:
-                    initial_guess = (
-                        [0, 1, 0] +
-                        np.repeat(np.sqrt(1./no_of_realizations),
-                                  no_of_realizations).tolist())
+                    initial_guess = [0, 1, 0] + np.repeat(
+                        np.sqrt(1.0 / no_of_realizations), no_of_realizations
+                    ).tolist()
         return np.array(initial_guess, dtype=np.float32)
 
     @staticmethod
@@ -723,9 +798,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         try:
             cube.data[..., ~landsea_mask.data.astype(np.bool)] = np.nan
         except IndexError as err:
-            msg = (
-                "Cube and landsea_mask shapes are not compatible. {}".format(
-                    err))
+            msg = "Cube and landsea_mask shapes are not compatible. {}".format(err)
             raise IndexError(msg)
         else:
             cube.data = np.ma.masked_invalid(cube.data)
@@ -779,14 +852,12 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         """
         if not (historic_forecast and truth):
-            raise ValueError("historic_forecast and truth cubes must be "
-                             "provided.")
+            raise ValueError("historic_forecast and truth cubes must be " "provided.")
 
         # Ensure predictor is valid.
         check_predictor(self.predictor)
 
-        historic_forecast, truth = (
-            filter_non_matching_cubes(historic_forecast, truth))
+        historic_forecast, truth = filter_non_matching_cubes(historic_forecast, truth)
 
         # Make sure inputs have the same units.
         if self.desired_units:
@@ -794,22 +865,25 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             truth.convert_units(self.desired_units)
 
         if historic_forecast.units != truth.units:
-            msg = ("The historic forecast units of {} do not match "
-                   "the truth units {}. These units must match, so that "
-                   "the coefficients can be estimated.")
+            msg = (
+                "The historic forecast units of {} do not match "
+                "the truth units {}. These units must match, so that "
+                "the coefficients can be estimated."
+            )
             raise ValueError(msg)
 
         if self.predictor.lower() == "mean":
             no_of_realizations = None
             forecast_predictor = collapsed(
-                historic_forecast, "realization", iris.analysis.MEAN)
+                historic_forecast, "realization", iris.analysis.MEAN
+            )
         elif self.predictor.lower() == "realizations":
-            no_of_realizations = len(
-                historic_forecast.coord("realization").points)
+            no_of_realizations = len(historic_forecast.coord("realization").points)
             forecast_predictor = historic_forecast
 
         forecast_var = collapsed(
-            historic_forecast, "realization", iris.analysis.VARIANCE)
+            historic_forecast, "realization", iris.analysis.VARIANCE
+        )
 
         # If a landsea_mask is provided mask out the sea points
         if landsea_mask:
@@ -819,36 +893,43 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         # Computing initial guess for EMOS coefficients
         initial_guess = self.compute_initial_guess(
-            truth, forecast_predictor, self.predictor,
+            truth,
+            forecast_predictor,
+            self.predictor,
             self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
-            no_of_realizations=no_of_realizations)
+            no_of_realizations=no_of_realizations,
+        )
 
         # Calculate coefficients if there are no nans in the initial guess.
         if np.any(np.isnan(initial_guess)):
             optimised_coeffs = initial_guess
         else:
-            optimised_coeffs = (
-                self.minimiser(
-                    initial_guess, forecast_predictor,
-                    truth, forecast_var,
-                    self.predictor,
-                    self.distribution.lower()))
-        coefficients_cube = (
-            self.create_coefficients_cube(optimised_coeffs, historic_forecast))
+            optimised_coeffs = self.minimiser(
+                initial_guess,
+                forecast_predictor,
+                truth,
+                forecast_var,
+                self.predictor,
+                self.distribution.lower(),
+            )
+        coefficients_cube = self.create_coefficients_cube(
+            optimised_coeffs, historic_forecast
+        )
         return coefficients_cube
 
 
-class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
+class CalibratedForecastDistributionParameters(BasePlugin):
     """
-    Class to apply the optimised EMOS coefficients to the current forecast.
+    Class to calculate calibrated forecast distribution parameters given an
+    uncalibrated input forecast and EMOS coefficients.
+    """
 
-    """
     def __init__(self, predictor="mean"):
         """
         Create a plugin that uses the coefficients created using EMOS from
         historical forecasts and corresponding truths and applies these
-        coefficients to the current forecast to generate a location and scale
-        parameter that represents the calibrated distribution.
+        coefficients to the current forecast to generate location and scale
+        parameters that represent the calibrated distribution at each point.
 
         Args:
             predictor (str):
@@ -863,7 +944,7 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ApplyCoefficientsFromEnsembleCalibration: predictor: {}>')
+        result = "<CalibratedForecastDistributionParameters: predictor: {}>"
         return result.format(self.predictor)
 
     def _spatial_domain_match(self):
@@ -875,18 +956,26 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
             ValueError: If the domain information of the current_forecast and
                 coefficients_cube do not match.
         """
-        msg = ("The domain along the {} axis given by the current forecast {} "
-               "does not match the domain given by the coefficients cube {}.")
+        msg = (
+            "The domain along the {} axis given by the current forecast {} "
+            "does not match the domain given by the coefficients cube {}."
+        )
 
         for axis in ["x", "y"]:
             current_forecast_points = [
                 self.current_forecast.coord(axis=axis).points[0],
-                self.current_forecast.coord(axis=axis).points[-1]]
-            if not np.allclose(current_forecast_points,
-                               self.coefficients_cube.coord(axis=axis).bounds):
+                self.current_forecast.coord(axis=axis).points[-1],
+            ]
+            if not np.allclose(
+                current_forecast_points, self.coefficients_cube.coord(axis=axis).bounds
+            ):
                 raise ValueError(
-                    msg.format(axis, current_forecast_points,
-                               self.coefficients_cube.coord(axis=axis).bounds))
+                    msg.format(
+                        axis,
+                        current_forecast_points,
+                        self.coefficients_cube.coord(axis=axis).bounds,
+                    )
+                )
 
     def _calculate_location_parameter_from_mean(self, optimised_coeffs):
         """
@@ -907,21 +996,20 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
                 predictor.
 
         """
-        forecast_predictor = collapsed(self.current_forecast,
-                                       "realization",
-                                       iris.analysis.MEAN)
+        forecast_predictor = collapsed(
+            self.current_forecast, "realization", iris.analysis.MEAN
+        )
 
         # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.
         location_parameter = (
-            optimised_coeffs["alpha"] +
-            optimised_coeffs["beta"] * forecast_predictor.data).astype(
-                np.float32)
+            optimised_coeffs["alpha"]
+            + optimised_coeffs["beta"] * forecast_predictor.data
+        ).astype(np.float32)
 
         return location_parameter
 
-    def _calculate_location_parameter_from_realizations(
-            self, optimised_coeffs):
+    def _calculate_location_parameter_from_realizations(self, optimised_coeffs):
         """
         Function to calculate the location parameter when the ensemble
         realizations are the predictor.
@@ -948,16 +1036,14 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         for key in optimised_coeffs.keys():
             if key.startswith("beta"):
                 beta_values = np.append(beta_values, optimised_coeffs[key])
-        a_and_b = np.append(optimised_coeffs["alpha"], beta_values**2)
-        forecast_predictor_flat = (
-            convert_cube_data_to_2d(forecast_predictor))
+        a_and_b = np.append(optimised_coeffs["alpha"], beta_values ** 2)
+        forecast_predictor_flat = convert_cube_data_to_2d(forecast_predictor)
         xy_shape = next(forecast_predictor.slices_over("realization")).shape
         col_of_ones = np.ones(np.prod(xy_shape), dtype=np.float32)
-        ones_and_predictor = (
-            np.column_stack((col_of_ones, forecast_predictor_flat)))
+        ones_and_predictor = np.column_stack((col_of_ones, forecast_predictor_flat))
         location_parameter = (
-            np.dot(ones_and_predictor, a_and_b).reshape(xy_shape).astype(
-                np.float32))
+            np.dot(ones_and_predictor, a_and_b).reshape(xy_shape).astype(np.float32)
+        )
         return location_parameter
 
     def _calculate_scale_parameter(self, optimised_coeffs):
@@ -980,18 +1066,18 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
 
         """
         forecast_var = self.current_forecast.collapsed(
-            "realization", iris.analysis.VARIANCE)
+            "realization", iris.analysis.VARIANCE
+        )
         # Calculating the scale parameter, based on the raw variance S^2,
         # where predicted variance = c + dS^2, where c = (gamma)^2 and
         # d = (delta)^2
         scale_parameter = (
-            optimised_coeffs["gamma"]**2 +
-            optimised_coeffs["delta"]**2 * forecast_var.data).astype(
-                np.float32)
+            optimised_coeffs["gamma"] ** 2
+            + optimised_coeffs["delta"] ** 2 * forecast_var.data
+        ).astype(np.float32)
         return scale_parameter
 
-    def _create_output_cubes(
-            self, location_parameter, scale_parameter):
+    def _create_output_cubes(self, location_parameter, scale_parameter):
         """
         Creation of output cubes containing the location and scale parameters.
 
@@ -1014,11 +1100,19 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         template_cube.remove_coord("realization")
 
         location_parameter_cube = create_new_diagnostic_cube(
-            "location_parameter", template_cube.units, template_cube,
-            template_cube.attributes, data=location_parameter)
+            "location_parameter",
+            template_cube.units,
+            template_cube,
+            template_cube.attributes,
+            data=location_parameter,
+        )
         scale_parameter_cube = create_new_diagnostic_cube(
-            "scale_parameter", f"({template_cube.units})^2",
-            template_cube, template_cube.attributes, data=scale_parameter)
+            "scale_parameter",
+            f"({template_cube.units})^2",
+            template_cube,
+            template_cube.attributes,
+            data=scale_parameter,
+        )
         return location_parameter_cube, scale_parameter_cube
 
     def process(self, current_forecast, coefficients_cube, landsea_mask=None):
@@ -1065,22 +1159,27 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
         time_coords_match(self.current_forecast, self.coefficients_cube)
         self._spatial_domain_match()
 
-        optimised_coeffs = (
-            dict(zip(self.coefficients_cube.coord("coefficient_name").points,
-                     self.coefficients_cube.data)))
+        optimised_coeffs = dict(
+            zip(
+                self.coefficients_cube.coord("coefficient_name").points,
+                self.coefficients_cube.data,
+            )
+        )
 
         if self.predictor.lower() == "mean":
-            location_parameter = (
-                self._calculate_location_parameter_from_mean(optimised_coeffs))
+            location_parameter = self._calculate_location_parameter_from_mean(
+                optimised_coeffs
+            )
         else:
-            location_parameter = (
-                self._calculate_location_parameter_from_realizations(
-                    optimised_coeffs))
+            location_parameter = self._calculate_location_parameter_from_realizations(
+                optimised_coeffs
+            )
 
         scale_parameter = self._calculate_scale_parameter(optimised_coeffs)
 
-        location_parameter_cube, scale_parameter_cube = (
-            self._create_output_cubes(location_parameter, scale_parameter))
+        location_parameter_cube, scale_parameter_cube = self._create_output_cubes(
+            location_parameter, scale_parameter
+        )
 
         # Use a mask to confine calibration to land regions by masking the
         # sea.
@@ -1091,8 +1190,208 @@ class ApplyCoefficientsFromEnsembleCalibration(BasePlugin):
             # the land points as ones, so the mask needs to be flipped here.
             flip_mask = np.logical_not(landsea_mask.data)
             scale_parameter_cube.data = np.ma.masked_where(
-                flip_mask, scale_parameter_cube.data)
+                flip_mask, scale_parameter_cube.data
+            )
             location_parameter_cube.data = np.ma.masked_where(
-                flip_mask, location_parameter_cube.data)
+                flip_mask, location_parameter_cube.data
+            )
 
         return location_parameter_cube, scale_parameter_cube
+
+
+class ApplyEMOS(PostProcessingPlugin):
+    """
+    Class to calibrate an input forecast given EMOS coefficients
+    """
+
+    @staticmethod
+    def _get_forecast_type(forecast):
+        """Identifies whether the forecast is in probability, realization
+        or percentile space
+
+        Args:
+            forecast (iris.cube.Cube)
+        """
+        try:
+            find_percentile_coordinate(forecast)
+        except CoordinateNotFoundError:
+            if forecast.name().startswith("probability_of"):
+                return "probabilities"
+            return "realizations"
+        return "percentiles"
+
+    def _convert_to_realizations(self, forecast, realizations_count, ignore_ecc_bounds):
+        """Convert an input forecast of probabilities or percentiles into
+        pseudo-realizations
+
+        Args:
+            forecast (iris.cube.Cube)
+            realizations_count (int):
+                Number of pseudo-realizations to generate from the input
+                forecast
+            ignore_ecc_bounds (bool)
+        """
+        if not realizations_count:
+            raise ValueError(
+                "The 'realizations_count' argument must be defined "
+                "for forecasts provided as {}".format(self.forecast_type)
+            )
+
+        if self.forecast_type == "probabilities":
+            conversion_plugin = ConvertProbabilitiesToPercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds
+            )
+        if self.forecast_type == "percentiles":
+            conversion_plugin = ResamplePercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds
+            )
+
+        forecast_as_percentiles = conversion_plugin(
+            forecast, no_of_percentiles=realizations_count
+        )
+        forecast_as_realizations = RebadgePercentilesAsRealizations()(
+            forecast_as_percentiles
+        )
+
+        return forecast_as_realizations
+
+    def _calibrate_forecast(self, forecast, randomise, random_seed):
+        """
+        Generate calibrated probability, percentile or realization output
+
+        Args:
+            forecast (iris.cube.Cube):
+                Uncalibrated input forecast
+            randomise (bool):
+                If True, order realization output randomly rather than using
+                the input forecast.  If forecast type is not realizations, this
+                is ignored.
+            random_seed (int):
+                For realizations input if randomise is True, random seed for
+                generating re-ordered percentiles.  If randomise is False, the
+                random seed may still be used for splitting ties.
+
+        Returns:
+            iris.cube.Cube:
+                Calibrated forecast
+        """
+        if self.forecast_type == "probabilities":
+            conversion_plugin = ConvertLocationAndScaleParametersToProbabilities(
+                distribution=self.distribution["name"],
+                shape_parameters=self.distribution["shape"],
+            )
+            result = conversion_plugin(
+                self.distribution["location"], self.distribution["scale"], forecast
+            )
+
+        else:
+            conversion_plugin = ConvertLocationAndScaleParametersToPercentiles(
+                distribution=self.distribution["name"],
+                shape_parameters=self.distribution["shape"],
+            )
+
+            if self.forecast_type == "percentiles":
+                perc_coord = find_percentile_coordinate(forecast)
+                result = conversion_plugin(
+                    self.distribution["location"],
+                    self.distribution["scale"],
+                    forecast,
+                    percentiles=perc_coord.points,
+                )
+            else:
+                no_of_percentiles = len(forecast.coord("realization").points)
+                percentiles = conversion_plugin(
+                    self.distribution["location"],
+                    self.distribution["scale"],
+                    forecast,
+                    no_of_percentiles=no_of_percentiles,
+                )
+                result = EnsembleReordering().process(
+                    percentiles,
+                    forecast,
+                    random_ordering=randomise,
+                    random_seed=random_seed,
+                )
+
+        return result
+
+    def process(
+        self,
+        forecast,
+        coefficients,
+        land_sea_mask=None,
+        realizations_count=None,
+        ignore_ecc_bounds=True,
+        predictor="mean",
+        distribution="norm",
+        shape_parameters=None,
+        randomise=False,
+        random_seed=None,
+    ):
+        """Calibrate input forecast using pre-calculated coefficients
+
+        Args:
+            forecast (iris.cube.Cube):
+                Uncalibrated forecast as probabilities, percentiles or
+                realizations
+            coefficients (iris.cube.Cube):
+                EMOS coefficients
+            land_sea_mask (iris.cube.Cube or None):
+                Land sea mask where a value of "1" represents land points and
+                "0" represents sea.  If set, allows calibration of land points
+                only.
+            realizations_count (int or None):
+                Number of realizations to use when generating the intermediate
+                calibrated forecast from probability or percentile inputs
+            ignore_ecc_bounds (bool):
+                If True, allow percentiles from probabilities to exceed the ECC
+                bounds range.  If input is not probabilities, this is ignored.
+            predictor (str):
+                Predictor to be used to calculate the location parameter of the
+                calibrated distribution.  Value is "mean" or "realizations".
+            distribution (str):
+                Expected forecast distribution
+            shape_parameters (list of float or None):
+                Fixed shape parameters if the forecast distribution is
+                non-Gaussian
+            randomise (bool):
+                Used in generating calibrated realizations.  If input forecast
+                is probabilities or percentiles, this is ignored.
+            random_seed (int or None):
+                Used in generating calibrated realizations.  If input forecast
+                is probabilities or percentiles, this is ignored.
+
+        Returns:
+            iris.cube.Cube:
+                Calibrated forecast in the form of the input (ie probabilities
+                percentiles or realizations)
+        """
+        self.forecast_type = self._get_forecast_type(forecast)
+
+        forecast_as_realizations = forecast.copy()
+        if self.forecast_type != "realizations":
+            forecast_as_realizations = self._convert_to_realizations(
+                forecast.copy(), realizations_count, ignore_ecc_bounds
+            )
+
+        calibration_plugin = CalibratedForecastDistributionParameters(
+            predictor=predictor
+        )
+        location_parameter, scale_parameter = calibration_plugin(
+            forecast_as_realizations, coefficients, landsea_mask=land_sea_mask
+        )
+
+        self.distribution = {
+            "name": distribution,
+            "location": location_parameter,
+            "scale": scale_parameter,
+            "shape": shape_parameters,
+        }
+
+        result = self._calibrate_forecast(forecast, randomise, random_seed)
+
+        if land_sea_mask:
+            # fill in masked sea points with uncalibrated data
+            merge_land_and_sea(result, forecast)
+
+        return result

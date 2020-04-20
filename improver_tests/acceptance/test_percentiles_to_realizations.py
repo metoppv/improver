@@ -47,18 +47,23 @@ def test_percentiles_reordering(tmp_path):
     percentiles, and then reorder the ensemble using the raw ensemble
     realizations
     """
-    kgo_dir = acc.kgo_root() / \
-        "percentiles-to-realizations/percentiles_reordering"
+    kgo_dir = acc.kgo_root() / "percentiles-to-realizations/percentiles_reordering"
     kgo_path = kgo_dir / "kgo.nc"
     forecast_path = kgo_dir / "raw_forecast.nc"
     percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--sampling-method", "quantile",
-            "--realizations-count", "12",
-            "--random-seed", "0",
-            percentiles_path,
-            forecast_path,
-            "--output", output_path]
+    args = [
+        "--sampling-method",
+        "quantile",
+        "--realizations-count",
+        "12",
+        "--random-seed",
+        "0",
+        percentiles_path,
+        forecast_path,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -69,15 +74,19 @@ def test_percentiles_rebadging(tmp_path):
     Test use of ECC to convert one set of percentiles to another set of
     percentiles, and then rebadge the percentiles to be ensemble realizations
     """
-    kgo_dir = acc.kgo_root() / \
-        "percentiles-to-realizations/percentiles_rebadging"
+    kgo_dir = acc.kgo_root() / "percentiles-to-realizations/percentiles_rebadging"
     kgo_path = kgo_dir / "kgo.nc"
     percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--sampling-method", "quantile",
-            "--realizations-count", "12",
-            percentiles_path,
-            "--output", output_path]
+    args = [
+        "--sampling-method",
+        "quantile",
+        "--realizations-count",
+        "12",
+        percentiles_path,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -85,17 +94,25 @@ def test_percentiles_rebadging(tmp_path):
 @pytest.mark.slow
 def test_percentiles_rebadging_numbers(tmp_path):
     """Test rebadging with specified realization numbers"""
-    kgo_dir = acc.kgo_root() / \
-        "percentiles-to-realizations/percentiles_rebadging_extra_option"
+    kgo_dir = (
+        acc.kgo_root()
+        / "percentiles-to-realizations/percentiles_rebadging_extra_option"
+    )
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = kgo_dir / "../percentiles_rebadging"
     percentiles_path = input_dir / "multiple_percentiles_wind_cube.nc"
     output_path = tmp_path / "output.nc"
-    args = [percentiles_path,
-            "--output", output_path,
-            "--sampling-method", "quantile",
-            "--realizations-count", "12",
-            "--realizations", ",".join(str(n) for n in range(100, 112))]
+    args = [
+        percentiles_path,
+        "--output",
+        output_path,
+        "--sampling-method",
+        "quantile",
+        "--realizations-count",
+        "12",
+        "--realizations",
+        ",".join(str(n) for n in range(100, 112)),
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -108,16 +125,19 @@ def test_ecc_bounds_warning(tmp_path):
     Data in this input exceeds the ECC bounds and so tests ecc_bounds_warning
     functionality.
     """
-    kgo_dir = acc.kgo_root() / \
-        "percentiles-to-realizations/ecc_bounds_warning"
+    kgo_dir = acc.kgo_root() / "percentiles-to-realizations/ecc_bounds_warning"
     kgo_path = kgo_dir / "kgo.nc"
-    percentiles_path = kgo_dir / \
-        "multiple_percentiles_wind_cube_out_of_bounds.nc"
+    percentiles_path = kgo_dir / "multiple_percentiles_wind_cube_out_of_bounds.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--sampling-method", "quantile",
-            "--realizations-count", "5",
-            "--ignore-ecc-bounds",
-            percentiles_path,
-            "--output", output_path]
+    args = [
+        "--sampling-method",
+        "quantile",
+        "--realizations-count",
+        "5",
+        "--ignore-ecc-bounds",
+        percentiles_path,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

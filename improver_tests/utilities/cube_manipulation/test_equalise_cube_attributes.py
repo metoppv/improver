@@ -51,12 +51,14 @@ class Test_equalise_cube_attributes(IrisTest):
 
     def setUp(self):
         """Use temperature cube to test with."""
-        data = 278*np.ones((3, 3, 3), dtype=np.float32)
-        cube_attrs = {"history": "2017-01-18T08:59:53: StaGE Decoupler",
-                      "unknown_attribute": "1"}
+        data = 278 * np.ones((3, 3, 3), dtype=np.float32)
+        cube_attrs = {
+            "history": "2017-01-18T08:59:53: StaGE Decoupler",
+            "unknown_attribute": "1",
+        }
         self.cube = set_up_variable_cube(
-            data, time=dt(2017, 1, 10, 3), frt=dt(2017, 1, 10, 0),
-            attributes=cube_attrs)
+            data, time=dt(2017, 1, 10, 3), frt=dt(2017, 1, 10, 0), attributes=cube_attrs
+        )
 
     def test_cubelist_history_removal(self):
         """Test that the utility removes history attribute,
@@ -90,21 +92,17 @@ class Test_equalise_cube_attributes(IrisTest):
         mismatched attribute."""
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
-        cube2.attributes.update({'unknown_attribute': '2'})
+        cube2.attributes.update({"unknown_attribute": "2"})
 
         cubelist = iris.cube.CubeList([cube1, cube2])
 
         equalise_cube_attributes(cubelist)
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
+        self.assertTrue(any(item.category == UserWarning for item in warning_list))
         warning_msg = "Deleting unmatched attribute "
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
-        self.assertNotIn("unknown_attribute",
-                         cubelist[0].attributes.keys())
-        self.assertNotIn("unknown_attribute",
-                         cubelist[1].attributes.keys())
+        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
+        self.assertNotIn("unknown_attribute", cubelist[0].attributes.keys())
+        self.assertNotIn("unknown_attribute", cubelist[1].attributes.keys())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

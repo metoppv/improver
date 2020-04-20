@@ -54,9 +54,15 @@ def test_optical_flow_inputs(tmp_path):
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_path,
-            "--max-lead-time", "30",
-            "--output", output_path]
+    args = [
+        input_path,
+        uv_path,
+        oe_path,
+        "--max-lead-time",
+        "30",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -71,9 +77,15 @@ def test_wind_inputs(tmp_path):
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_path,
-            "--max-lead-time", "30",
-            "--output", output_path]
+    args = [
+        input_path,
+        uv_path,
+        oe_path,
+        "--max-lead-time",
+        "30",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -89,27 +101,32 @@ def test_metadata(tmp_path):
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_path,
-            "--attributes-config", meta_path,
-            "--max-lead-time", "30",
-            "--output", output_path]
+    args = [
+        input_path,
+        uv_path,
+        oe_path,
+        "--attributes-config",
+        meta_path,
+        "--max-lead-time",
+        "30",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
 def test_basic_no_orographic(tmp_path):
     """Test basic extrapolation nowcast without orographic enhancement"""
-    kgo_dir = (acc.kgo_root() /
-               "nowcast-extrapolate/extrapolate_no_orographic_enhancement")
+    kgo_dir = (
+        acc.kgo_root() / "nowcast-extrapolate/extrapolate_no_orographic_enhancement"
+    )
     kgo_path = kgo_dir / "kgo.nc"
-    input_path = (kgo_dir /
-                  "20190101T0300Z-PT0000H00M-cloud_amount_of_total_cloud.nc")
+    input_path = kgo_dir / "20190101T0300Z-PT0000H00M-cloud_amount_of_total_cloud.nc"
     uv_path = kgo_dir / "../optical_flow_uv.nc"
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path,
-            "--max-lead-time", "30",
-            "--output", output_path]
+    args = [input_path, uv_path, "--max-lead-time", "30", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

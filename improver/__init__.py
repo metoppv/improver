@@ -37,6 +37,7 @@ class BasePlugin(ABC):
     Subclasses must be callable. We preserve the process
     method by redirecting to __call__.
     """
+
     def __call__(self, *args, **kwargs):
         """Makes subclasses callable to use process
         Args:
@@ -59,6 +60,7 @@ class PostProcessingPlugin(BasePlugin):
     """An abstract class for IMPROVER post-processing plugins.
     Makes generalised changes to metadata relating to post-processing.
     """
+
     def __call__(self, *args, **kwargs):
         """Makes subclasses callable to use process
         Args:
@@ -79,11 +81,13 @@ class PostProcessingPlugin(BasePlugin):
         """Updates title attribute on output cube to include
         "Post-Processed"
         """
-        from improver.metadata.constants.attributes import \
-            MANDATORY_ATTRIBUTE_DEFAULTS
+        from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+
         default_title = MANDATORY_ATTRIBUTE_DEFAULTS["title"]
-        if ("title" in cube.attributes.keys() and
-                cube.attributes["title"] != default_title and
-                "Post-Processed" not in cube.attributes["title"]):
+        if (
+            "title" in cube.attributes.keys()
+            and cube.attributes["title"] != default_title
+            and "Post-Processed" not in cube.attributes["title"]
+        ):
             title = cube.attributes["title"]
             cube.attributes["title"] = f"Post-Processed {title}"

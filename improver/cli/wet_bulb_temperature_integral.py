@@ -51,7 +51,8 @@ def process(wet_bulb_temperature: cli.inputcube):
         iris.cube.Cube:
             Processed Cube of wet bulb integrals.
     """
-    from improver.psychrometric_calculations.psychrometric_calculations \
-        import WetBulbTemperatureIntegral
+    from improver.psychrometric_calculations.psychrometric_calculations import (
+        WetBulbTemperatureIntegral,
+    )
 
     return WetBulbTemperatureIntegral()(wet_bulb_temperature)

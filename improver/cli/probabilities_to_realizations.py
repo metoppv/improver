@@ -36,12 +36,14 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            raw_cube: cli.inputcube = None,
-            *,
-            realizations_count: int = None,
-            random_seed: int = None,
-            ignore_ecc_bounds=False):
+def process(
+    cube: cli.inputcube,
+    raw_cube: cli.inputcube = None,
+    *,
+    realizations_count: int = None,
+    random_seed: int = None,
+    ignore_ecc_bounds=False,
+):
     """Convert probabilities to ensemble realizations using Ensemble Copula
     Coupling.
 
@@ -83,21 +85,24 @@ def process(cube: cli.inputcube,
             Processed result Cube.
     """
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        ConvertProbabilitiesToPercentiles, RebadgePercentilesAsRealizations,
-        EnsembleReordering)
+        ConvertProbabilitiesToPercentiles,
+        RebadgePercentilesAsRealizations,
+        EnsembleReordering,
+    )
 
     if realizations_count is None and raw_cube:
         # If realizations_count is not given, take the number from the raw
         # ensemble cube.
         realizations_count = len(raw_cube.coord("realization").points)
 
-    result = ConvertProbabilitiesToPercentiles(
-        ecc_bounds_warning=ignore_ecc_bounds)(
-            cube, no_of_percentiles=realizations_count)
+    result = ConvertProbabilitiesToPercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
+        cube, no_of_percentiles=realizations_count
+    )
 
     if raw_cube:
         result = EnsembleReordering()(
-            result, raw_cube, random_ordering=False, random_seed=random_seed)
+            result, raw_cube, random_ordering=False, random_seed=random_seed
+        )
     else:
         result = RebadgePercentilesAsRealizations()(result)
 

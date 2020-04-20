@@ -58,8 +58,9 @@ def check_for_x_and_y_axes(cube, require_dim_coords=False):
         if coord:
             pass
         else:
-            msg = ("The cube does not contain the expected {}"
-                   "coordinates.".format(axis))
+            msg = "The cube does not contain the expected {}" "coordinates.".format(
+                axis
+            )
             raise ValueError(msg)
 
 
@@ -102,19 +103,23 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
             new_cube = iris.util.new_axis(new_cube, coord)
     new_cube_dim_names = [coord.name() for coord in new_cube.dim_coords]
     # If we have the wrong number of dimensions then raise an error.
-    if (len(cube.dim_coords)+len(exception_coordinates) !=
-            len(new_cube.dim_coords)):
+    if len(cube.dim_coords) + len(exception_coordinates) != len(new_cube.dim_coords):
 
-        msg = ('The number of dimension coordinates within the new cube '
-               'do not match the number of dimension coordinates within the '
-               'original cube plus the number of exception coordinates. '
-               '\n input cube dimensions {}, new cube dimensions {}'.format(
-                   cube_dim_names, new_cube_dim_names))
+        msg = (
+            "The number of dimension coordinates within the new cube "
+            "do not match the number of dimension coordinates within the "
+            "original cube plus the number of exception coordinates. "
+            "\n input cube dimensions {}, new cube dimensions {}".format(
+                cube_dim_names, new_cube_dim_names
+            )
+        )
         raise CoordinateNotFoundError(msg)
 
     # Ensure dimension order matches
-    new_cube_dimension_order = {coord.name(): new_cube.coord_dims(
-        coord.name())[0] for coord in new_cube.dim_coords}
+    new_cube_dimension_order = {
+        coord.name(): new_cube.coord_dims(coord.name())[0]
+        for coord in new_cube.dim_coords
+    }
     correct_order = []
     new_cube_only_dims = []
     for coord_name in cube_dim_names:
@@ -124,11 +129,12 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
             new_coord_dim = new_cube.coord_dims(coord_name)[0]
             new_cube_only_dims.append(new_coord_dim)
         except CoordinateNotFoundError:
-            msg = ("All permitted exception_coordinates must be on the"
-                   " new_cube. In this case, coordinate {0} within the list "
-                   "of permitted exception_coordinates ({1}) is not available"
-                   " on the new_cube.").format(
-                        coord_name, exception_coordinates)
+            msg = (
+                "All permitted exception_coordinates must be on the"
+                " new_cube. In this case, coordinate {0} within the list "
+                "of permitted exception_coordinates ({1}) is not available"
+                " on the new_cube."
+            ).format(coord_name, exception_coordinates)
             raise CoordinateNotFoundError(msg)
 
     correct_order = np.array(correct_order)
@@ -140,8 +146,7 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
     return new_cube
 
 
-def find_dimension_coordinate_mismatch(
-        first_cube, second_cube, two_way_mismatch=True):
+def find_dimension_coordinate_mismatch(first_cube, second_cube, two_way_mismatch=True):
     """Determine if there is a mismatch between the dimension coordinates in
     two cubes.
 
@@ -166,8 +171,9 @@ def find_dimension_coordinate_mismatch(
     first_dim_names = [coord.name() for coord in first_cube.dim_coords]
     second_dim_names = [coord.name() for coord in second_cube.dim_coords]
     if two_way_mismatch:
-        mismatch = (list(set(second_dim_names) - set(first_dim_names)) +
-                    list(set(first_dim_names) - set(second_dim_names)))
+        mismatch = list(set(second_dim_names) - set(first_dim_names)) + list(
+            set(first_dim_names) - set(second_dim_names)
+        )
     else:
         mismatch = list(set(second_dim_names) - set(first_dim_names))
     return mismatch
@@ -189,8 +195,9 @@ def spatial_coords_match(first_cube, second_cube):
             precision of the floating-point values (this should be true for
             any cubes derived using cube.regrid()), otherwise False.
     """
-    return (first_cube.coord(axis='x') == second_cube.coord(axis='x') and
-            first_cube.coord(axis='y') == second_cube.coord(axis='y'))
+    return first_cube.coord(axis="x") == second_cube.coord(
+        axis="x"
+    ) and first_cube.coord(axis="y") == second_cube.coord(axis="y")
 
 
 def time_coords_match(first_cube, second_cube, raise_exception=False):
@@ -221,12 +228,12 @@ def time_coords_match(first_cube, second_cube, raise_exception=False):
     cubes_equivalent = True
     mismatches = []
     for coord_name in ["forecast_period", "time", "forecast_reference_time"]:
-        if (first_cube.coord(coord_name) != second_cube.coord(coord_name)):
+        if first_cube.coord(coord_name) != second_cube.coord(coord_name):
             mismatches.append(coord_name)
             cubes_equivalent = False
 
     if mismatches and raise_exception:
         msg = "The following coordinates of the two cubes do not match: {}"
-        raise ValueError(msg.format(', '.join(mismatches)))
+        raise ValueError(msg.format(", ".join(mismatches)))
 
     return cubes_equivalent

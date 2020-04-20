@@ -40,9 +40,15 @@ from iris.tests import IrisTest
 from iris.time import PartialDateTime
 
 from improver.utilities.temporal import (
-    cycletime_to_datetime, cycletime_to_number, datetime_constraint,
-    datetime_to_cycletime, datetime_to_iris_time, extract_cube_at_time,
-    extract_nearest_time_point, iris_time_to_datetime)
+    cycletime_to_datetime,
+    cycletime_to_number,
+    datetime_constraint,
+    datetime_to_cycletime,
+    datetime_to_iris_time,
+    extract_cube_at_time,
+    extract_nearest_time_point,
+    iris_time_to_datetime,
+)
 from improver.utilities.warnings_handler import ManageWarnings
 
 from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
@@ -65,8 +71,7 @@ class Test_cycletime_to_datetime(IrisTest):
         """Test when a cycletime is defined."""
         cycletime = "201711220100"
         dt = datetime(2017, 11, 22, 1, 0)
-        result = cycletime_to_datetime(
-            cycletime, cycletime_format="%Y%m%d%H%M")
+        result = cycletime_to_datetime(cycletime, cycletime_format="%Y%m%d%H%M")
         self.assertEqual(result, dt)
 
 
@@ -115,8 +120,7 @@ class Test_cycletime_to_number(IrisTest):
         """Test when a cycletime is defined."""
         cycletime = "201711220000"
         dt = 419808.0
-        result = cycletime_to_number(
-            cycletime, cycletime_format="%Y%m%d%H%M")
+        result = cycletime_to_number(cycletime, cycletime_format="%Y%m%d%H%M")
         self.assertAlmostEqual(result, dt)
 
     def test_alternative_units_defined(self):
@@ -127,15 +131,15 @@ class Test_cycletime_to_number(IrisTest):
         cycletime = "20171122T0000Z"
         dt = 1511308800
         result = cycletime_to_number(
-            cycletime, time_unit="seconds since 1970-01-01 00:00:00")
+            cycletime, time_unit="seconds since 1970-01-01 00:00:00"
+        )
         self.assertEqual(int(np.round(result)), dt)
 
     def test_alternative_calendar_defined(self):
         """Test when an alternative calendar is defined."""
         cycletime = "20171122T0000Z"
         dt = 419520.0
-        result = cycletime_to_number(
-            cycletime, calendar="365_day")
+        result = cycletime_to_number(cycletime, calendar="365_day")
         self.assertAlmostEqual(result, dt)
 
 
@@ -147,11 +151,12 @@ class Test_iris_time_to_datetime(IrisTest):
         self.cube = set_up_variable_cube(
             np.ones((3, 3), dtype=np.float32),
             time=datetime(2017, 2, 17, 6, 0),
-            frt=datetime(2017, 2, 17, 3, 0))
+            frt=datetime(2017, 2, 17, 3, 0),
+        )
 
     def test_basic(self):
         """Test iris_time_to_datetime returns list of datetime """
-        result = iris_time_to_datetime(self.cube.coord('time'))
+        result = iris_time_to_datetime(self.cube.coord("time"))
         self.assertIsInstance(result, list)
         for item in result:
             self.assertIsInstance(item, datetime)
@@ -163,10 +168,9 @@ class Test_iris_time_to_datetime(IrisTest):
         # Assign time bounds equivalent to [
         # datetime(2017, 2, 17, 5, 0),
         # datetime(2017, 2, 17, 6, 0)]
-        self.cube.coord('time').bounds = [1487307600, 1487311200]
+        self.cube.coord("time").bounds = [1487307600, 1487311200]
 
-        result = iris_time_to_datetime(
-            self.cube.coord('time'), point_or_bound="bound")
+        result = iris_time_to_datetime(self.cube.coord("time"), point_or_bound="bound")
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 1)
         self.assertEqual(len(result[0]), 2)
@@ -178,16 +182,12 @@ class Test_iris_time_to_datetime(IrisTest):
     def test_input_cube_unmodified(self):
         """Test that an input cube with unexpected coordinate units is not
         modified"""
-        self.cube.coord("time").convert_units(
-            "hours since 1970-01-01 00:00:00")
-        self.cube.coord("time").points = (
-            self.cube.coord("time").points.astype(np.int64))
+        self.cube.coord("time").convert_units("hours since 1970-01-01 00:00:00")
+        self.cube.coord("time").points = self.cube.coord("time").points.astype(np.int64)
         reference_coord = self.cube.coord("time").copy()
         iris_time_to_datetime(self.cube.coord("time"))
-        self.assertArrayEqual(self.cube.coord("time").points,
-                              reference_coord.points)
-        self.assertArrayEqual(self.cube.coord("time").units,
-                              reference_coord.units)
+        self.assertArrayEqual(self.cube.coord("time").points, reference_coord.points)
+        self.assertArrayEqual(self.cube.coord("time").units, reference_coord.units)
         self.assertEqual(self.cube.coord("time").dtype, np.int64)
 
 
@@ -212,18 +212,23 @@ class Test_datetime_constraint(IrisTest):
     """
     Test construction of an iris.Constraint from a python datetime object.
     """
+
     def setUp(self):
         """Set up test cubes"""
         cube = set_up_variable_cube(
             np.ones((12, 12), dtype=np.float32),
             time=datetime(2017, 2, 17, 6, 0),
-            frt=datetime(2017, 2, 17, 6, 0))
+            frt=datetime(2017, 2, 17, 6, 0),
+        )
         cube.remove_coord("forecast_period")
-        self.time_points = np.arange(
-            1487311200, 1487354400, 3600).astype(np.int64)
+        self.time_points = np.arange(1487311200, 1487354400, 3600).astype(np.int64)
         self.cube = add_coordinate(
-            cube, self.time_points, "time", dtype=np.int64,
-            coord_units="seconds since 1970-01-01 00:00:00")
+            cube,
+            self.time_points,
+            "time",
+            dtype=np.int64,
+            coord_units="seconds since 1970-01-01 00:00:00",
+        )
 
     def test_constraint_list_equality(self):
         """Check a list of constraints is as expected."""
@@ -233,7 +238,7 @@ class Test_datetime_constraint(IrisTest):
         dt_constraint = plugin(time_start, time_max=time_limit)
         result = self.cube.extract(dt_constraint)
         self.assertEqual(result.shape, (12, 12, 12))
-        self.assertArrayEqual(result.coord('time').points, self.time_points)
+        self.assertArrayEqual(result.coord("time").points, self.time_points)
 
     def test_constraint_type(self):
         """Check type is iris.Constraint."""
@@ -260,23 +265,33 @@ class Test_extract_cube_at_time(IrisTest):
     """
     Test wrapper for iris cube extraction at desired times.
     """
+
     def setUp(self):
         """Set up a test cube with several time points"""
         cube = set_up_variable_cube(
             np.ones((12, 12), dtype=np.float32),
             time=datetime(2017, 2, 17, 6, 0),
-            frt=datetime(2017, 2, 17, 6, 0))
+            frt=datetime(2017, 2, 17, 6, 0),
+        )
         cube.remove_coord("forecast_period")
-        self.time_points = np.arange(
-            1487311200, 1487354400, 3600).astype(np.int64)
+        self.time_points = np.arange(1487311200, 1487354400, 3600).astype(np.int64)
         self.cube = add_coordinate(
-            cube, self.time_points, "time", dtype=np.int64,
-            coord_units="seconds since 1970-01-01 00:00:00")
+            cube,
+            self.time_points,
+            "time",
+            dtype=np.int64,
+            coord_units="seconds since 1970-01-01 00:00:00",
+        )
         self.time_dt = datetime(2017, 2, 17, 6, 0)
         self.time_constraint = iris.Constraint(
-            time=lambda cell: cell.point == PartialDateTime(
-                self.time_dt.year, self.time_dt.month,
-                self.time_dt.day, self.time_dt.hour))
+            time=lambda cell: cell.point
+            == PartialDateTime(
+                self.time_dt.year,
+                self.time_dt.month,
+                self.time_dt.day,
+                self.time_dt.hour,
+            )
+        )
 
     def test_valid_time(self):
         """Case for a time that is available within the diagnostic cube."""
@@ -299,15 +314,14 @@ class Test_extract_cube_at_time(IrisTest):
         """Case for a time that is unavailable within the diagnostic cube."""
         plugin = extract_cube_at_time
         time_dt = datetime(2017, 2, 18, 6, 0)
-        time_constraint = iris.Constraint(time=PartialDateTime(
-            time_dt.year, time_dt.month, time_dt.day, time_dt.hour))
+        time_constraint = iris.Constraint(
+            time=PartialDateTime(time_dt.year, time_dt.month, time_dt.day, time_dt.hour)
+        )
         cubes = CubeList([self.cube])
         plugin(cubes, time_dt, time_constraint)
         warning_msg = "Forecast time"
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
+        self.assertTrue(any(item.category == UserWarning for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
 
 class Test_extract_nearest_time_point(IrisTest):
@@ -319,21 +333,27 @@ class Test_extract_nearest_time_point(IrisTest):
         cube = set_up_variable_cube(
             np.ones((1, 7, 7), dtype=np.float32),
             time=datetime(2015, 11, 23, 7, 0),
-            frt=datetime(2015, 11, 23, 3, 0))
+            frt=datetime(2015, 11, 23, 3, 0),
+        )
         cube.remove_coord("forecast_period")
         time_points = [1448262000, 1448265600]
         self.cube = add_coordinate(
-            cube, time_points, "time", dtype=np.int64,
+            cube,
+            time_points,
+            "time",
+            dtype=np.int64,
             coord_units="seconds since 1970-01-01 00:00:00",
-            order=[1, 0, 2, 3])
+            order=[1, 0, 2, 3],
+        )
 
     def test_time_coord(self):
         """Test that the nearest time point within the time coordinate is
         extracted."""
         expected = self.cube[:, 0, :, :]
         time_point = datetime(2015, 11, 23, 6, 31)
-        result = extract_nearest_time_point(self.cube, time_point,
-                                            allowed_dt_difference=1800)
+        result = extract_nearest_time_point(
+            self.cube, time_point, allowed_dt_difference=1800
+        )
         self.assertEqual(result, expected)
 
     def test_time_coord_lower_case(self):
@@ -341,8 +361,9 @@ class Test_extract_nearest_time_point(IrisTest):
         extracted, when a time of 07:30 is requested."""
         expected = self.cube[:, 0, :, :]
         time_point = datetime(2015, 11, 23, 7, 30)
-        result = extract_nearest_time_point(self.cube, time_point,
-                                            allowed_dt_difference=1800)
+        result = extract_nearest_time_point(
+            self.cube, time_point, allowed_dt_difference=1800
+        )
         self.assertEqual(result, expected)
 
     def test_time_coord_upper_case(self):
@@ -350,23 +371,28 @@ class Test_extract_nearest_time_point(IrisTest):
         extracted, when a time of 07:31 is requested."""
         expected = self.cube[:, 1, :, :]
         time_point = datetime(2015, 11, 23, 7, 31)
-        result = extract_nearest_time_point(self.cube, time_point,
-                                            allowed_dt_difference=1800)
+        result = extract_nearest_time_point(
+            self.cube, time_point, allowed_dt_difference=1800
+        )
         self.assertEqual(result, expected)
 
     def test_forecast_reference_time_coord(self):
         """Test that the nearest time point within the forecast_reference_time
         coordinate is extracted."""
         later_frt = self.cube.copy()
-        later_frt.coord('forecast_reference_time').points = (
-            later_frt.coord('forecast_reference_time').points + 3600)
+        later_frt.coord("forecast_reference_time").points = (
+            later_frt.coord("forecast_reference_time").points + 3600
+        )
         cubes = iris.cube.CubeList([self.cube, later_frt])
         cube = cubes.merge_cube()
         expected = self.cube
         time_point = datetime(2015, 11, 23, 3, 29)
         result = extract_nearest_time_point(
-            cube, time_point, time_name="forecast_reference_time",
-            allowed_dt_difference=1800)
+            cube,
+            time_point,
+            time_name="forecast_reference_time",
+            allowed_dt_difference=1800,
+        )
         self.assertEqual(result, expected)
 
     def test_exception_using_allowed_dt_difference(self):
@@ -375,19 +401,20 @@ class Test_extract_nearest_time_point(IrisTest):
         time_point = datetime(2017, 11, 23, 6, 0)
         msg = "is not available within the input cube"
         with self.assertRaisesRegex(ValueError, msg):
-            extract_nearest_time_point(self.cube, time_point,
-                                       allowed_dt_difference=3600)
+            extract_nearest_time_point(
+                self.cube, time_point, allowed_dt_difference=3600
+            )
 
     def test_time_name_exception(self):
         """Test that an exception is raised, if an invalid time name
         is specified."""
         time_point = datetime(2017, 11, 23, 6, 0)
-        msg = ("The time_name must be either "
-               "'time' or 'forecast_reference_time'")
+        msg = "The time_name must be either " "'time' or 'forecast_reference_time'"
         with self.assertRaisesRegex(ValueError, msg):
-            extract_nearest_time_point(self.cube, time_point,
-                                       time_name="forecast_period")
+            extract_nearest_time_point(
+                self.cube, time_point, time_name="forecast_period"
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

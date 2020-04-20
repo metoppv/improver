@@ -39,8 +39,7 @@ import numpy as np
 from improver.utilities.temporal import iris_time_to_datetime
 
 
-def convert_cube_data_to_2d(
-        forecast, coord="realization", transpose=True):
+def convert_cube_data_to_2d(forecast, coord="realization", transpose=True):
     """
     Function to convert data from a N-dimensional cube into a 2d
     numpy array. The result can be transposed, if required.
@@ -110,8 +109,10 @@ def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
 
             for i in range(1, data_array.shape[0]):
                 if not np.all(first_slice_mask == data_array[i].mask):
-                    msg = ("The mask on the input array is not the same for "
-                           "every slice along the leading dimension.")
+                    msg = (
+                        "The mask on the input array is not the same for "
+                        "every slice along the leading dimension."
+                    )
                     raise ValueError(msg)
         # If the mask is ok, select the unmasked data, flattening it at
         # the same time.
@@ -143,9 +144,10 @@ def check_predictor(predictor):
         ValueError: If the predictor is not valid.
     """
     if predictor.lower() not in ["mean", "realizations"]:
-        msg = ("The requested value for the predictor {} is not an accepted "
-               "value. Accepted values are 'mean' or 'realizations'").format(
-                   predictor.lower())
+        msg = (
+            "The requested value for the predictor {} is not an accepted "
+            "value. Accepted values are 'mean' or 'realizations'"
+        ).format(predictor.lower())
         raise ValueError(msg)
 
 
@@ -181,18 +183,23 @@ def filter_non_matching_cubes(historic_forecast, truth):
     matching_truths = iris.cube.CubeList([])
     for hf_slice in historic_forecast.slices_over("time"):
         if hf_slice.coord("time").has_bounds():
-            point = iris_time_to_datetime(hf_slice.coord("time"),
-                                          point_or_bound="point")
-            bounds, = iris_time_to_datetime(
-                hf_slice.coord("time"), point_or_bound="bound")
-            coord_values = (
-                {"time": lambda cell: point[0] == cell.point and
-                    bounds[0] == cell.bound[0] and
-                    bounds[1] == cell.bound[1]})
+            point = iris_time_to_datetime(
+                hf_slice.coord("time"), point_or_bound="point"
+            )
+            (bounds,) = iris_time_to_datetime(
+                hf_slice.coord("time"), point_or_bound="bound"
+            )
+            coord_values = {
+                "time": lambda cell: point[0] == cell.point
+                and bounds[0] == cell.bound[0]
+                and bounds[1] == cell.bound[1]
+            }
         else:
-            coord_values = (
-                {"time": iris_time_to_datetime(
-                    hf_slice.coord("time"), point_or_bound="point")})
+            coord_values = {
+                "time": iris_time_to_datetime(
+                    hf_slice.coord("time"), point_or_bound="point"
+                )
+            }
 
         constr = iris.Constraint(coord_values=coord_values)
         truth_slice = truth.extract(constr)
@@ -201,11 +208,12 @@ def filter_non_matching_cubes(historic_forecast, truth):
             matching_historic_forecasts.append(hf_slice)
             matching_truths.append(truth_slice)
     if not matching_historic_forecasts and not matching_truths:
-        msg = ("The filtering has found no matches in validity time "
-               "between the historic forecasts and the truths.")
+        msg = (
+            "The filtering has found no matches in validity time "
+            "between the historic forecasts and the truths."
+        )
         raise ValueError(msg)
-    return (matching_historic_forecasts.merge_cube(),
-            matching_truths.merge_cube())
+    return (matching_historic_forecasts.merge_cube(), matching_truths.merge_cube())
 
 
 def create_unified_frt_coord(forecast_reference_time):
@@ -229,13 +237,10 @@ def create_unified_frt_coord(forecast_reference_time):
     frt_bounds_min = forecast_reference_time.points.min()
     frt_bounds_max = frt_point
     if forecast_reference_time.has_bounds():
-        frt_bounds_min = min(frt_bounds_min,
-                             forecast_reference_time.bounds.min())
-        frt_bounds_max = max(frt_bounds_max,
-                             forecast_reference_time.bounds.max())
+        frt_bounds_min = min(frt_bounds_min, forecast_reference_time.bounds.min())
+        frt_bounds_max = max(frt_bounds_max, forecast_reference_time.bounds.max())
     frt_bounds = (frt_bounds_min, frt_bounds_max)
-    return forecast_reference_time[0].copy(points=frt_point,
-                                           bounds=frt_bounds)
+    return forecast_reference_time[0].copy(points=frt_point, bounds=frt_bounds)
 
 
 def merge_land_and_sea(calibrated_land_only, uncalibrated):
