@@ -31,7 +31,6 @@
 """Module for loading cubes."""
 
 import contextlib
-import glob
 
 import iris
 
