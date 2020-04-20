@@ -49,6 +49,6 @@ def load_json_or_none(file_path):
     metadata_dict = None
     if file_path:
         # Load JSON file for metadata amendments.
-        with open(file_path, 'r') as input_file:
+        with open(file_path, "r") as input_file:
             metadata_dict = json.load(input_file)
     return metadata_dict

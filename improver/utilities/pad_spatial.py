@@ -38,7 +38,9 @@ from cf_units import Unit
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering, get_dim_coord_names)
+    enforce_coordinate_ordering,
+    get_dim_coord_names,
+)
 from improver.utilities.spatial import distance_to_number_of_grid_cells
 
 
@@ -73,27 +75,25 @@ def pad_coord(coord, width, method):
     if np.isclose(np.sum(np.diff(increment)), 0):
         increment = increment[0]
     else:
-        msg = ("Non-uniform increments between grid points: "
-               "{}.".format(increment))
+        msg = "Non-uniform increments between grid points: " "{}.".format(increment)
         raise ValueError(msg)
 
-    if method == 'add':
+    if method == "add":
         num_of_new_points = len(orig_points) + width + width
-        new_points = (
-            np.linspace(
-                orig_points[0] - width*increment,
-                orig_points[-1] + width*increment,
-                num_of_new_points,
-                dtype=np.float32)
+        new_points = np.linspace(
+            orig_points[0] - width * increment,
+            orig_points[-1] + width * increment,
+            num_of_new_points,
+            dtype=np.float32,
         )
-    elif method == 'remove':
+    elif method == "remove":
         end_width = -width if width != 0 else None
         new_points = np.float32(orig_points[width:end_width])
     new_points = new_points.astype(orig_points.dtype)
 
     new_points_bounds = np.array(
-        [new_points - 0.5*increment, new_points + 0.5*increment],
-        dtype=np.float32).T
+        [new_points - 0.5 * increment, new_points + 0.5 * increment], dtype=np.float32
+    ).T
     return coord.copy(points=new_points, bounds=new_points_bounds)
 
 
@@ -113,17 +113,19 @@ def create_cube_with_halo(cube, halo_radius):
         iris.cube.Cube:
             New cube defining the halo-padded grid (data set to zero)
     """
-    halo_size_x = distance_to_number_of_grid_cells(cube, halo_radius, axis='x')
-    halo_size_y = distance_to_number_of_grid_cells(cube, halo_radius, axis='y')
+    halo_size_x = distance_to_number_of_grid_cells(cube, halo_radius, axis="x")
+    halo_size_y = distance_to_number_of_grid_cells(cube, halo_radius, axis="y")
 
     # create padded x- and y- coordinates
-    x_coord = pad_coord(cube.coord(axis='x'), halo_size_x, 'add')
-    y_coord = pad_coord(cube.coord(axis='y'), halo_size_y, 'add')
+    x_coord = pad_coord(cube.coord(axis="x"), halo_size_x, "add")
+    y_coord = pad_coord(cube.coord(axis="y"), halo_size_y, "add")
 
     halo_cube = iris.cube.Cube(
         np.zeros((len(y_coord.points), len(x_coord.points)), dtype=np.float32),
-        long_name='grid_with_halo', units=Unit('no_unit'),
-        dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)])
+        long_name="grid_with_halo",
+        units=Unit("no_unit"),
+        dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
+    )
 
     return halo_cube
 
@@ -152,8 +154,8 @@ def _create_cube_with_padded_data(source_cube, data, coord_x, coord_y):
     """
     check_for_x_and_y_axes(source_cube)
 
-    yname = source_cube.coord(axis='y').name()
-    xname = source_cube.coord(axis='x').name()
+    yname = source_cube.coord(axis="y").name()
+    xname = source_cube.coord(axis="x").name()
     ycoord_dim = source_cube.coord_dims(yname)
     xcoord_dim = source_cube.coord_dims(xname)
 
@@ -221,20 +223,27 @@ def pad_cube_with_halo(cube, width_x, width_y, halo_mean_data=True):
         padded_data = np.pad(
             cube.data,
             ((width_y, width_y), (width_x, width_x)),
-            "mean", stat_length=((0.5*width_y, 0.5*width_y),
-                                 (0.5*width_x, 0.5*width_x)))
+            "mean",
+            stat_length=(
+                (0.5 * width_y, 0.5 * width_y),
+                (0.5 * width_x, 0.5 * width_x),
+            ),
+        )
     else:
         padded_data = np.pad(
             cube.data,
             ((width_y, width_y), (width_x, width_x)),
-            "constant", constant_values=(0.0, 0.0))
+            "constant",
+            constant_values=(0.0, 0.0),
+        )
 
-    coord_x = cube.coord(axis='x')
-    padded_x_coord = pad_coord(coord_x, width_x, 'add')
-    coord_y = cube.coord(axis='y')
-    padded_y_coord = pad_coord(coord_y, width_y, 'add')
+    coord_x = cube.coord(axis="x")
+    padded_x_coord = pad_coord(coord_x, width_x, "add")
+    coord_y = cube.coord(axis="y")
+    padded_y_coord = pad_coord(coord_y, width_y, "add")
     padded_cube = _create_cube_with_padded_data(
-        cube, padded_data, padded_x_coord, padded_y_coord)
+        cube, padded_data, padded_x_coord, padded_y_coord
+    )
 
     return padded_cube
 
@@ -260,12 +269,11 @@ def remove_cube_halo(cube, halo_radius):
         iris.cube.Cube:
             New cube with the halo removed.
     """
-    halo_size_x = distance_to_number_of_grid_cells(cube, halo_radius, axis='x')
-    halo_size_y = distance_to_number_of_grid_cells(cube, halo_radius, axis='y')
+    halo_size_x = distance_to_number_of_grid_cells(cube, halo_radius, axis="x")
+    halo_size_y = distance_to_number_of_grid_cells(cube, halo_radius, axis="y")
 
     result_slices = iris.cube.CubeList()
-    for cube_slice in cube.slices([cube.coord(axis='y'),
-                                   cube.coord(axis='x')]):
+    for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
         cube_halo = remove_halo_from_cube(cube_slice, halo_size_x, halo_size_y)
         result_slices.append(cube_halo)
     result = result_slices.merge_cube()
@@ -313,10 +321,11 @@ def remove_halo_from_cube(cube, width_x, width_y):
     end_y = -width_y if width_y != 0 else None
     end_x = -width_x if width_x != 0 else None
     trimmed_data = cube.data[width_y:end_y, width_x:end_x]
-    coord_x = cube.coord(axis='x')
-    trimmed_x_coord = pad_coord(coord_x, width_x, 'remove')
-    coord_y = cube.coord(axis='y')
-    trimmed_y_coord = pad_coord(coord_y, width_y, 'remove')
+    coord_x = cube.coord(axis="x")
+    trimmed_x_coord = pad_coord(coord_x, width_x, "remove")
+    coord_y = cube.coord(axis="y")
+    trimmed_y_coord = pad_coord(coord_y, width_y, "remove")
     trimmed_cube = _create_cube_with_padded_data(
-        cube, trimmed_data, trimmed_x_coord, trimmed_y_coord)
+        cube, trimmed_data, trimmed_x_coord, trimmed_y_coord
+    )
     return trimmed_cube

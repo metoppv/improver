@@ -48,10 +48,16 @@ def test_gaussian(tmp_path):
     input_path = kgo_dir / "input.nc"
     emos_est_path = kgo_dir / "gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path,
-            "--distribution", "norm",
-            "--random-seed", "0",
-            "--output", output_path]
+    args = [
+        input_path,
+        emos_est_path,
+        "--distribution",
+        "norm",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
@@ -63,11 +69,18 @@ def test_truncated_gaussian(tmp_path):
     input_path = kgo_dir / "input.nc"
     emos_est_path = kgo_dir / "truncated_gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path,
-            "--distribution", "truncnorm",
-            "--random-seed", "0",
-            "--shape-parameters", "0,inf",
-            "--output", output_path]
+    args = [
+        input_path,
+        emos_est_path,
+        "--distribution",
+        "truncnorm",
+        "--random-seed",
+        "0",
+        "--shape-parameters",
+        "0,inf",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
@@ -80,10 +93,17 @@ def test_realizations_input_land_sea(tmp_path):
     emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     land_sea_path = kgo_dir / "landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path, land_sea_path,
-            "--distribution", "norm",
-            "--random-seed", "0",
-            "--output", output_path]
+    args = [
+        input_path,
+        emos_est_path,
+        land_sea_path,
+        "--distribution",
+        "norm",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
@@ -95,11 +115,18 @@ def test_realizations_as_predictor(tmp_path):
     input_path = kgo_dir / "../gaussian/input.nc"
     emos_est_path = kgo_dir / "realizations_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path,
-            "--distribution", "norm",
-            "--predictor", "realizations",
-            "--random-seed", "0",
-            "--output", output_path]
+    args = [
+        input_path,
+        emos_est_path,
+        "--distribution",
+        "norm",
+        "--predictor",
+        "realizations",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
@@ -111,13 +138,18 @@ def test_probabilities(tmp_path):
     input_path = kgo_dir / "input.nc"
     emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path,
-            "--distribution", "norm",
-            "--realizations-count", "18",
-            "--output", output_path]
+    args = [
+        input_path,
+        emos_est_path,
+        "--distribution",
+        "norm",
+        "--realizations-count",
+        "18",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 def test_probabilities_input_land_sea(tmp_path):
@@ -128,10 +160,17 @@ def test_probabilities_input_land_sea(tmp_path):
     emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     land_sea_path = kgo_dir / "landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path, land_sea_path,
-            "--distribution", "norm",
-            "--realizations-count", "18",
-            "--output", output_path]
+    args = [
+        input_path,
+        emos_est_path,
+        land_sea_path,
+        "--distribution",
+        "norm",
+        "--realizations-count",
+        "18",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
@@ -142,9 +181,14 @@ def test_probabilities_error(tmp_path):
     input_path = kgo_dir / "input.nc"
     emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path,
-            "--distribution", "norm",
-            "--output", output_path]
+    args = [
+        input_path,
+        emos_est_path,
+        "--distribution",
+        "norm",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(ValueError, match=".*provided as probabilities.*"):
         run_cli(args)
 
@@ -156,13 +200,18 @@ def test_percentiles(tmp_path):
     input_path = kgo_dir / "input.nc"
     emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path,
-            "--distribution", "norm",
-            "--realizations-count", "18",
-            "--output", output_path]
+    args = [
+        input_path,
+        emos_est_path,
+        "--distribution",
+        "norm",
+        "--realizations-count",
+        "18",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 def test_percentiles_input_land_sea(tmp_path):
@@ -173,10 +222,17 @@ def test_percentiles_input_land_sea(tmp_path):
     emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     land_sea_path = kgo_dir / "landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path, land_sea_path,
-            "--distribution", "norm",
-            "--realizations-count", "18",
-            "--output", output_path]
+    args = [
+        input_path,
+        emos_est_path,
+        land_sea_path,
+        "--distribution",
+        "norm",
+        "--realizations-count",
+        "18",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
@@ -187,9 +243,14 @@ def test_percentiles_error(tmp_path):
     input_path = kgo_dir / "input.nc"
     emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path,
-            "--distribution", "norm",
-            "--output", output_path]
+    args = [
+        input_path,
+        emos_est_path,
+        "--distribution",
+        "norm",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(ValueError):
         run_cli(args)
 
@@ -200,18 +261,28 @@ def test_rebadged_percentiles(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [kgo_dir / "../rebadged_percentiles/input.nc", emos_est_path,
-            "--distribution", "norm",
-            "--realizations-count", "18",
-            "--output", output_path]
+    args = [
+        kgo_dir / "../rebadged_percentiles/input.nc",
+        emos_est_path,
+        "--distribution",
+        "norm",
+        "--realizations-count",
+        "18",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     # The known good output in this case is the same as when passing in
     # percentiles directly, apart from a difference in the coordinates, such
     # that the percentile input will have a percentile coordinate, whilst the
     # rebadged percentile input will result in a realization coordinate.
-    acc.compare(output_path, kgo_path,
-                exclude_vars=["realization", "percentile"],
-                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+    acc.compare(
+        output_path,
+        kgo_path,
+        exclude_vars=["realization", "percentile"],
+        atol=LOOSE_TOLERANCE,
+        rtol=LOOSE_TOLERANCE,
+    )
 
 
 def test_no_coefficients(tmp_path):
@@ -219,14 +290,24 @@ def test_no_coefficients(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--distribution", "norm",
-            "--random-seed", "0",
-            "--output", output_path]
+    args = [
+        input_path,
+        "--distribution",
+        "norm",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
     with pytest.warns(UserWarning, match=".*no coefficients provided.*"):
         run_cli(args)
-    acc.compare(output_path, input_path, recreate=False,
-                atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+    acc.compare(
+        output_path,
+        input_path,
+        recreate=False,
+        atol=LOOSE_TOLERANCE,
+        rtol=LOOSE_TOLERANCE,
+    )
 
 
 def test_wrong_coefficients(tmp_path):
@@ -234,10 +315,16 @@ def test_wrong_coefficients(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, input_path,
-            "--distribution", "norm",
-            "--random-seed", "0",
-            "--output", output_path]
+    args = [
+        input_path,
+        input_path,
+        "--distribution",
+        "norm",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(ValueError, match=".*coefficients cube.*"):
         run_cli(args)
 
@@ -248,10 +335,17 @@ def test_wrong_land_sea_mask(tmp_path):
     emos_est_path = kgo_dir / "gaussian_coefficients.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, emos_est_path, emos_est_path,
-            "--distribution", "norm",
-            "--random-seed", "0",
-            "--output", output_path]
+    args = [
+        input_path,
+        emos_est_path,
+        emos_est_path,
+        "--distribution",
+        "norm",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(ValueError, match=".*land_sea_mask.*"):
         run_cli(args)
 
@@ -261,10 +355,15 @@ def test_wrong_forecast_coefficients(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
     emos_est_path = kgo_dir / "gaussian_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [emos_est_path,
-            "--distribution", "norm",
-            "--random-seed", "0",
-            "--output", output_path]
+    args = [
+        emos_est_path,
+        "--distribution",
+        "norm",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(ValueError, match=".*Invalid forecast"):
         run_cli(args)
 
@@ -274,9 +373,14 @@ def test_wrong_forecast_land_sea(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/land_sea"
     land_sea_path = kgo_dir / "landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [land_sea_path,
-            "--distribution", "norm",
-            "--random-seed", "0",
-            "--output", output_path]
+    args = [
+        land_sea_path,
+        "--distribution",
+        "norm",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(ValueError, match=".*Invalid forecast"):
         run_cli(args)

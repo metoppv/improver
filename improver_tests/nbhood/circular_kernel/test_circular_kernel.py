@@ -47,8 +47,7 @@ class Test_circular_kernel(IrisTest):
         ranges = 2
         fullranges = (0, 2, 2)
         weighted_mode = False
-        result = (
-            circular_kernel(fullranges, ranges, weighted_mode))
+        result = circular_kernel(fullranges, ranges, weighted_mode)
         self.assertIsInstance(result, np.ndarray)
 
     def test_single_point_weighted(self):
@@ -56,9 +55,8 @@ class Test_circular_kernel(IrisTest):
         ranges = 1
         fullranges = (1, 1)
         weighted_mode = True
-        expected = [[0., 0., 0.], [0., 1., 0.], [0., 0., 0.]]
-        result = (
-            circular_kernel(fullranges, ranges, weighted_mode))
+        expected = [[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]
+        result = circular_kernel(fullranges, ranges, weighted_mode)
         self.assertArrayAlmostEqual(result, expected)
 
     def test_single_point_unweighted(self):
@@ -69,9 +67,8 @@ class Test_circular_kernel(IrisTest):
         ranges = 1
         fullranges = (1, 1)
         weighted_mode = False
-        expected = [[0., 1., 0.], [1., 1., 1.], [0., 1., 0.]]
-        result = (
-            circular_kernel(fullranges, ranges, weighted_mode))
+        expected = [[0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 0.0]]
+        result = circular_kernel(fullranges, ranges, weighted_mode)
         self.assertArrayEqual(result, expected)
 
     def test_range5_weighted(self):
@@ -90,9 +87,9 @@ class Test_circular_kernel(IrisTest):
             [0.00, 0.20, 0.48, 0.68, 0.80, 0.84, 0.80, 0.68, 0.48, 0.20, 0.00],
             [0.00, 0.00, 0.28, 0.48, 0.60, 0.64, 0.60, 0.48, 0.28, 0.00, 0.00],
             [0.00, 0.00, 0.00, 0.20, 0.32, 0.36, 0.32, 0.20, 0.00, 0.00, 0.00],
-            [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]]
-        result = (
-            circular_kernel(fullranges, ranges, weighted_mode))
+            [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+        ]
+        result = circular_kernel(fullranges, ranges, weighted_mode)
         self.assertArrayAlmostEqual(result, expected)
 
     def test_range5_unweighted(self):
@@ -100,19 +97,20 @@ class Test_circular_kernel(IrisTest):
         ranges = 5
         fullranges = (5, 5)
         weighted_mode = False
-        expected = [[0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.],
-                    [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
-                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                    [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
-                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                    [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                    [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
-                    [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]]
-        result = (
-            circular_kernel(fullranges, ranges, weighted_mode))
+        expected = [
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
+            [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+            [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+            [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+            [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+            [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ]
+        result = circular_kernel(fullranges, ranges, weighted_mode)
         self.assertArrayEqual(result, expected)
 
     def test_single_point_weighted_extra_dims(self):
@@ -121,9 +119,8 @@ class Test_circular_kernel(IrisTest):
         ranges = 1
         fullranges = (0, 0, 1, 1)
         weighted_mode = True
-        expected = [[[[0., 0., 0.], [0., 1., 0.], [0., 0., 0.]]]]
-        result = (
-            circular_kernel(fullranges, ranges, weighted_mode))
+        expected = [[[[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 0.0]]]]
+        result = circular_kernel(fullranges, ranges, weighted_mode)
         self.assertArrayAlmostEqual(result, expected)
 
     def test_single_point_unweighted_extra_dims(self):
@@ -132,9 +129,8 @@ class Test_circular_kernel(IrisTest):
         ranges = 1
         fullranges = (0, 0, 1, 1)
         weighted_mode = False
-        expected = [[[[0., 1., 0.], [1., 1., 1.], [0., 1., 0.]]]]
-        result = (
-            circular_kernel(fullranges, ranges, weighted_mode))
+        expected = [[[[0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 0.0]]]]
+        result = circular_kernel(fullranges, ranges, weighted_mode)
         self.assertArrayEqual(result, expected)
 
     def test_range5_weighted_extra_dims(self):
@@ -142,21 +138,24 @@ class Test_circular_kernel(IrisTest):
         ranges = 5
         fullranges = (0, 0, 5, 5)
         weighted_mode = True
-        expected = [[[
-            [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
-            [0.00, 0.00, 0.00, 0.20, 0.32, 0.36, 0.32, 0.20, 0.00, 0.00, 0.00],
-            [0.00, 0.00, 0.28, 0.48, 0.60, 0.64, 0.60, 0.48, 0.28, 0.00, 0.00],
-            [0.00, 0.20, 0.48, 0.68, 0.80, 0.84, 0.80, 0.68, 0.48, 0.20, 0.00],
-            [0.00, 0.32, 0.60, 0.80, 0.92, 0.96, 0.92, 0.80, 0.60, 0.32, 0.00],
-            [0.00, 0.36, 0.64, 0.84, 0.96, 1.00, 0.96, 0.84, 0.64, 0.36, 0.00],
-            [0.00, 0.32, 0.60, 0.80, 0.92, 0.96, 0.92, 0.80, 0.60, 0.32, 0.00],
-            [0.00, 0.20, 0.48, 0.68, 0.80, 0.84, 0.80, 0.68, 0.48, 0.20, 0.00],
-            [0.00, 0.00, 0.28, 0.48, 0.60, 0.64, 0.60, 0.48, 0.28, 0.00, 0.00],
-            [0.00, 0.00, 0.00, 0.20, 0.32, 0.36, 0.32, 0.20, 0.00, 0.00, 0.00],
-            [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00]
-            ]]]
-        result = (
-            circular_kernel(fullranges, ranges, weighted_mode))
+        expected = [
+            [
+                [
+                    [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+                    [0.00, 0.00, 0.00, 0.20, 0.32, 0.36, 0.32, 0.20, 0.00, 0.00, 0.00],
+                    [0.00, 0.00, 0.28, 0.48, 0.60, 0.64, 0.60, 0.48, 0.28, 0.00, 0.00],
+                    [0.00, 0.20, 0.48, 0.68, 0.80, 0.84, 0.80, 0.68, 0.48, 0.20, 0.00],
+                    [0.00, 0.32, 0.60, 0.80, 0.92, 0.96, 0.92, 0.80, 0.60, 0.32, 0.00],
+                    [0.00, 0.36, 0.64, 0.84, 0.96, 1.00, 0.96, 0.84, 0.64, 0.36, 0.00],
+                    [0.00, 0.32, 0.60, 0.80, 0.92, 0.96, 0.92, 0.80, 0.60, 0.32, 0.00],
+                    [0.00, 0.20, 0.48, 0.68, 0.80, 0.84, 0.80, 0.68, 0.48, 0.20, 0.00],
+                    [0.00, 0.00, 0.28, 0.48, 0.60, 0.64, 0.60, 0.48, 0.28, 0.00, 0.00],
+                    [0.00, 0.00, 0.00, 0.20, 0.32, 0.36, 0.32, 0.20, 0.00, 0.00, 0.00],
+                    [0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00],
+                ]
+            ]
+        ]
+        result = circular_kernel(fullranges, ranges, weighted_mode)
         self.assertArrayAlmostEqual(result, expected)
 
     def test_range5_unweighted_extra_dims(self):
@@ -164,21 +163,26 @@ class Test_circular_kernel(IrisTest):
         ranges = 5
         fullranges = (0, 0, 5, 5)
         weighted_mode = False
-        expected = [[[[0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.],
-                      [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
-                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                      [1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
-                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                      [0., 1., 1., 1., 1., 1., 1., 1., 1., 1., 0.],
-                      [0., 0., 1., 1., 1., 1., 1., 1., 1., 0., 0.],
-                      [0., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]]]]
-        result = (
-            circular_kernel(fullranges, ranges, weighted_mode))
+        expected = [
+            [
+                [
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                ]
+            ]
+        ]
+        result = circular_kernel(fullranges, ranges, weighted_mode)
         self.assertArrayEqual(result, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

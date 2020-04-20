@@ -37,7 +37,9 @@ import iris
 from dateutil import tz
 
 from improver.metadata.constants.mo_attributes import (
-    GRID_ID_LOOKUP, MOSG_GRID_DEFINITION)
+    GRID_ID_LOOKUP,
+    MOSG_GRID_DEFINITION,
+)
 
 
 def update_stage_v110_metadata(cube):
@@ -54,12 +56,12 @@ def update_stage_v110_metadata(cube):
         None
     """
     try:
-        grid_id = cube.attributes.pop('grid_id')
+        grid_id = cube.attributes.pop("grid_id")
     except KeyError:
         # Not a version 1.1.0 grid, do nothing
         return
     cube.attributes.update(MOSG_GRID_DEFINITION[GRID_ID_LOOKUP[grid_id]])
-    cube.attributes['mosg__grid_version'] = '1.1.0'
+    cube.attributes["mosg__grid_version"] = "1.1.0"
 
 
 def amend_attributes(cube, attributes_dict):
@@ -96,10 +98,10 @@ def set_history_attribute(cube, value, append=False):
             If True, add to the existing history rather than replacing the
             existing attribute.  Default is False.
     """
-    tzinfo = tz.tzoffset('Z', 0)
+    tzinfo = tz.tzoffset("Z", 0)
     timestamp = datetime.strftime(datetime.now(tzinfo), "%Y-%m-%dT%H:%M:%S%Z")
     new_history = "{}: {}".format(timestamp, value)
     if append and "history" in cube.attributes.keys():
-        cube.attributes["history"] += '; {}'.format(new_history)
+        cube.attributes["history"] += "; {}".format(new_history)
     else:
         cube.attributes["history"] = new_history

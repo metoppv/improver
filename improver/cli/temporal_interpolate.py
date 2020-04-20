@@ -36,12 +36,14 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(start_cube: cli.inputcube,
-            end_cube: cli.inputcube,
-            *,
-            interval_in_mins: int = None,
-            times: cli.comma_separated_list = None,
-            interpolation_method='linear'):
+def process(
+    start_cube: cli.inputcube,
+    end_cube: cli.inputcube,
+    *,
+    interval_in_mins: int = None,
+    times: cli.comma_separated_list = None,
+    interpolation_method="linear",
+):
     """Interpolate data between validity times.
 
     Interpolate data to intermediate times between the validity times of two
@@ -81,12 +83,11 @@ def process(start_cube: cli.inputcube,
             earliest to latest regardless of the order of the input.
     """
     from improver.utilities.cube_manipulation import MergeCubes
-    from improver.utilities.temporal import (
-        cycletime_to_datetime, iris_time_to_datetime)
+    from improver.utilities.temporal import cycletime_to_datetime, iris_time_to_datetime
     from improver.utilities.temporal_interpolation import TemporalInterpolation
 
-    time_start, = iris_time_to_datetime(start_cube.coord('time'))
-    time_end, = iris_time_to_datetime(end_cube.coord('time'))
+    (time_start,) = iris_time_to_datetime(start_cube.coord("time"))
+    (time_end,) = iris_time_to_datetime(end_cube.coord("time"))
     if time_end < time_start:
         # swap cubes
         start_cube, end_cube = end_cube, start_cube
@@ -95,6 +96,8 @@ def process(start_cube: cli.inputcube,
         times = [cycletime_to_datetime(timestr) for timestr in times]
 
     result = TemporalInterpolation(
-        interval_in_minutes=interval_in_mins, times=times,
-        interpolation_method=interpolation_method)(start_cube, end_cube)
+        interval_in_minutes=interval_in_mins,
+        times=times,
+        interpolation_method=interpolation_method,
+    )(start_cube, end_cube)
     return MergeCubes()(result)

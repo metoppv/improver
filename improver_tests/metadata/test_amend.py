@@ -39,12 +39,18 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.metadata.amend import (
-    amend_attributes, set_history_attribute, update_stage_v110_metadata)
+    amend_attributes,
+    set_history_attribute,
+    update_stage_v110_metadata,
+)
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.warnings_handler import ManageWarnings
 
 from ..set_up_test_cubes import (
-    add_coordinate, set_up_probability_cube, set_up_variable_cube)
+    add_coordinate,
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 
 
 def create_cube_with_threshold(data=None, threshold_values=None):
@@ -61,13 +67,18 @@ def create_cube_with_threshold(data=None, threshold_values=None):
         data[:, 1, :, :] = 0.6
 
     cube = set_up_probability_cube(
-        data[:, 0, :, :], threshold_values, variable_name="rainfall_rate",
-        threshold_units="m s-1", time=dt(2015, 11, 19, 1, 30),
-        frt=dt(2015, 11, 18, 22, 0))
+        data[:, 0, :, :],
+        threshold_values,
+        variable_name="rainfall_rate",
+        threshold_units="m s-1",
+        time=dt(2015, 11, 19, 1, 30),
+        frt=dt(2015, 11, 18, 22, 0),
+    )
 
     time_points = [dt(2015, 11, 19, 0, 30), dt(2015, 11, 19, 1, 30)]
     cube = add_coordinate(
-        cube, time_points, "time", order=[1, 0, 2, 3], is_datetime=True)
+        cube, time_points, "time", order=[1, 0, 2, 3], is_datetime=True
+    )
 
     cube.attributes["attribute_to_update"] = "first_value"
 
@@ -80,7 +91,7 @@ class Test_update_stage_v110_metadata(IrisTest):
 
     def setUp(self):
         """Set up variables for use in testing."""
-        data = 275.*np.ones((3, 3), dtype=np.float32)
+        data = 275.0 * np.ones((3, 3), dtype=np.float32)
         self.cube = set_up_variable_cube(data)
 
     def test_basic(self):
@@ -93,20 +104,17 @@ class Test_update_stage_v110_metadata(IrisTest):
 
     def test_update_ukv(self):
         """Test that cube attributes from ukv 1.1.0 are updated"""
-        self.cube.attributes['grid_id'] = 'ukvx_standard_v1'
+        self.cube.attributes["grid_id"] = "ukvx_standard_v1"
         update_stage_v110_metadata(self.cube)
-        self.assertTrue('mosg__grid_type' in self.cube.attributes.keys())
-        self.assertTrue('mosg__model_configuration' in
-                        self.cube.attributes.keys())
-        self.assertTrue('mosg__grid_domain' in self.cube.attributes.keys())
-        self.assertTrue('mosg__grid_version' in self.cube.attributes.keys())
-        self.assertFalse('grid_id' in self.cube.attributes.keys())
-        self.assertEqual('standard', self.cube.attributes['mosg__grid_type'])
-        self.assertEqual('uk_det',
-                         self.cube.attributes['mosg__model_configuration'])
-        self.assertEqual('uk_extended',
-                         self.cube.attributes['mosg__grid_domain'])
-        self.assertEqual('1.1.0', self.cube.attributes['mosg__grid_version'])
+        self.assertTrue("mosg__grid_type" in self.cube.attributes.keys())
+        self.assertTrue("mosg__model_configuration" in self.cube.attributes.keys())
+        self.assertTrue("mosg__grid_domain" in self.cube.attributes.keys())
+        self.assertTrue("mosg__grid_version" in self.cube.attributes.keys())
+        self.assertFalse("grid_id" in self.cube.attributes.keys())
+        self.assertEqual("standard", self.cube.attributes["mosg__grid_type"])
+        self.assertEqual("uk_det", self.cube.attributes["mosg__model_configuration"])
+        self.assertEqual("uk_extended", self.cube.attributes["mosg__grid_domain"])
+        self.assertEqual("1.1.0", self.cube.attributes["mosg__grid_version"])
 
 
 class Test_amend_attributes(IrisTest):
@@ -115,19 +123,24 @@ class Test_amend_attributes(IrisTest):
     def setUp(self):
         """Set up a cube and dict"""
         self.cube = set_up_variable_cube(
-            280*np.ones((3, 3), dtype=np.float32),
-            attributes={"mosg__grid_version": "1.3.0",
-                        "mosg__model_configuration": "uk_det"})
+            280 * np.ones((3, 3), dtype=np.float32),
+            attributes={
+                "mosg__grid_version": "1.3.0",
+                "mosg__model_configuration": "uk_det",
+            },
+        )
         self.metadata_dict = {
             "mosg__grid_version": "remove",
             "source": "IMPROVER unit tests",
-            "mosg__model_configuration": "other_model"}
+            "mosg__model_configuration": "other_model",
+        }
 
     def test_basic(self):
         """Test function adds, removes and modifies attributes as expected"""
         expected_attributes = {
             "source": "IMPROVER unit tests",
-            "mosg__model_configuration": "other_model"}
+            "mosg__model_configuration": "other_model",
+        }
         amend_attributes(self.cube, self.metadata_dict)
         self.assertDictEqual(self.cube.attributes, expected_attributes)
 
@@ -171,5 +184,5 @@ class Test_set_history_attribute(IrisTest):
         self.assertTrue("Nowcast" in cube.attributes["history"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

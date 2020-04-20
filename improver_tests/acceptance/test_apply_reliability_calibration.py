@@ -48,7 +48,6 @@ def test_calibration(tmp_path):
     forecast_path = kgo_dir / "forecast.nc"
     table_path = kgo_dir / "collapsed_table.nc"
     output_path = tmp_path / "output.nc"
-    args = [forecast_path, table_path,
-            "--output", output_path]
+    args = [forecast_path, table_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

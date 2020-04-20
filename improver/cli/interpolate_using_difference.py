@@ -37,11 +37,13 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            reference_cube: cli.inputcube,
-            limit: cli.inputcube = None,
-            *,
-            limit_as_maximum=True):
+def process(
+    cube: cli.inputcube,
+    reference_cube: cli.inputcube,
+    limit: cli.inputcube = None,
+    *,
+    limit_as_maximum=True,
+):
     """
     Uses interpolation to fill masked regions in the data contained within the
     input cube. This is achieved by calculating the difference between the
@@ -78,5 +80,6 @@ def process(cube: cli.inputcube,
     from improver.utilities.interpolation import InterpolateUsingDifference
 
     result = InterpolateUsingDifference()(
-        cube, reference_cube, limit=limit, limit_as_maximum=limit_as_maximum)
+        cube, reference_cube, limit=limit, limit_as_maximum=limit_as_maximum
+    )
     return result

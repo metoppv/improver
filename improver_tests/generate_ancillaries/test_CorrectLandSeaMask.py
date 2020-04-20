@@ -37,27 +37,27 @@ import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.generate_ancillaries.generate_ancillary import \
-    CorrectLandSeaMask as CorrectLand
+from improver.generate_ancillaries.generate_ancillary import (
+    CorrectLandSeaMask as CorrectLand,
+)
 
 
 class Test_process(IrisTest):
     """Test the land-sea mask correction plugin."""
+
     def setUp(self):
         """setting up paths to test ancillary files"""
-        landmask_data = np.array([[0.2, 0., 0.],
-                                  [0.7, 0.5, 0.05],
-                                  [1, 0.95, 0.7]])
-        self.landmask = Cube(landmask_data, long_name='test land')
-        self.expected_mask = np.array([[False, False, False],
-                                       [True, True, False],
-                                       [True, True, True]])
+        landmask_data = np.array([[0.2, 0.0, 0.0], [0.7, 0.5, 0.05], [1, 0.95, 0.7]])
+        self.landmask = Cube(landmask_data, long_name="test land")
+        self.expected_mask = np.array(
+            [[False, False, False], [True, True, False], [True, True, True]]
+        )
 
     def test_landmaskcorrection(self):
         """Test landmask correction. Note that the name land_binary_mask is
         enforced to reflect the change that has been made."""
         result = CorrectLand().process(self.landmask)
-        self.assertEqual(result.name(), 'land_binary_mask')
+        self.assertEqual(result.name(), "land_binary_mask")
         self.assertArrayEqual(result.data, self.expected_mask)
 
 

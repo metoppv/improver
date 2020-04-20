@@ -40,8 +40,13 @@ from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_extraction import (
-    apply_extraction, create_constraint, create_range_constraint,
-    extract_subcube, is_complex_parsing_required, parse_constraint_list)
+    apply_extraction,
+    create_constraint,
+    create_range_constraint,
+    extract_subcube,
+    is_complex_parsing_required,
+    parse_constraint_list,
+)
 
 from ..set_up_test_cubes import set_up_probability_cube
 
@@ -57,8 +62,9 @@ def islambda(function):
         bool:
             True if the input object is a lambda function, False if not.
     """
-    return (isinstance(function, collections.Callable) and
-            function.__name__ == '<lambda>')
+    return (
+        isinstance(function, collections.Callable) and function.__name__ == "<lambda>"
+    )
 
 
 def set_up_precip_probability_cube():
@@ -66,23 +72,25 @@ def set_up_precip_probability_cube():
     Set up a cube with spatial probabilities of precipitation at three
     exceedance thresholds
     """
-    data = np.array([[[0.85, 0.95, 0.73],
-                      [0.75, 0.85, 0.65],
-                      [0.70, 0.80, 0.62]],
-                     [[0.18, 0.20, 0.15],
-                      [0.11, 0.16, 0.09],
-                      [0.10, 0.14, 0.03]],
-                     [[0.03, 0.04, 0.01],
-                      [0.02, 0.02, 0.00],
-                      [0.01, 0.00, 0.00]]], dtype=np.float32)
-    MMH_TO_MS = 0.001 / 3600.
+    data = np.array(
+        [
+            [[0.85, 0.95, 0.73], [0.75, 0.85, 0.65], [0.70, 0.80, 0.62]],
+            [[0.18, 0.20, 0.15], [0.11, 0.16, 0.09], [0.10, 0.14, 0.03]],
+            [[0.03, 0.04, 0.01], [0.02, 0.02, 0.00], [0.01, 0.00, 0.00]],
+        ],
+        dtype=np.float32,
+    )
+    MMH_TO_MS = 0.001 / 3600.0
 
     cube = set_up_probability_cube(
-        data, MMH_TO_MS * np.array([0.03, 0.1, 1.0], dtype=np.float32),
+        data,
+        MMH_TO_MS * np.array([0.03, 0.1, 1.0], dtype=np.float32),
         variable_name="precipitation_rate",
-        threshold_units="m s-1", spatial_grid="equalarea")
-    cube.coord(axis='x').points = np.arange(3, dtype=np.float32)
-    cube.coord(axis='y').points = np.arange(3, dtype=np.float32)
+        threshold_units="m s-1",
+        spatial_grid="equalarea",
+    )
+    cube.coord(axis="x").points = np.arange(3, dtype=np.float32)
+    cube.coord(axis="y").points = np.arange(3, dtype=np.float32)
 
     return cube
 
@@ -94,8 +102,7 @@ class Test_create_range_constraint(IrisTest):
     def setUp(self):
         """Set up cube for testing range constraint."""
         self.precip_cube = set_up_precip_probability_cube()
-        self.coord_name = find_threshold_coordinate(
-            self.precip_cube).name()
+        self.coord_name = find_threshold_coordinate(self.precip_cube).name()
         self.precip_cube.coord(self.coord_name).convert_units("mm h-1")
         self.expected_data = self.precip_cube[:2].data
 
@@ -143,10 +150,12 @@ class Test_create_constraint(IrisTest):
         """Set up coordinates that can be modified and used to test the
         lambda functions that are created for floating point values. One
         coordinate contains an integer point, the other a float point."""
-        self.i_crd = iris.coords.AuxCoord(np.array([10], dtype=np.int32),
-                                          long_name='a_coordinate')
-        self.f_crd = iris.coords.AuxCoord(np.array([10.0], dtype=np.float32),
-                                          long_name='a_coordinate')
+        self.i_crd = iris.coords.AuxCoord(
+            np.array([10], dtype=np.int32), long_name="a_coordinate"
+        )
+        self.f_crd = iris.coords.AuxCoord(
+            np.array([10.0], dtype=np.float32), long_name="a_coordinate"
+        )
 
     def test_with_string_type(self):
         """Test that an extraction that is to match a string is not changed
@@ -209,17 +218,20 @@ class Test_parse_constraint_list(IrisTest):
         """ Set up some constraints to parse """
         self.constraints = ["percentile=10", "threshold=0.1"]
         self.units = ["none", "mm h-1"]
-        self.p_crd = iris.coords.AuxCoord(np.array([10], dtype=np.int32),
-                                          long_name='a_coordinate')
-        self.t_crd = iris.coords.AuxCoord(np.array([0.1], dtype=np.float32),
-                                          long_name='a_coordinate')
+        self.p_crd = iris.coords.AuxCoord(
+            np.array([10], dtype=np.int32), long_name="a_coordinate"
+        )
+        self.t_crd = iris.coords.AuxCoord(
+            np.array([0.1], dtype=np.float32), long_name="a_coordinate"
+        )
 
     def test_basic_no_units(self):
         """ Test simple key-value splitting with no units """
         result, udict = parse_constraint_list(self.constraints)
         self.assertIsInstance(result, iris.Constraint)
         self.assertCountEqual(
-            list(result._coord_values.keys()), ["threshold", "percentile"])
+            list(result._coord_values.keys()), ["threshold", "percentile"]
+        )
         cdict = result._coord_values
         self.assertTrue(islambda(cdict["percentile"]))
         self.assertTrue(cdict["percentile"](self.p_crd.cell(0)))
@@ -285,7 +297,8 @@ class Test_parse_constraint_list(IrisTest):
         # extract from input cube
         result_cube = precip_cube.extract(result)
         self.assertArrayAlmostEqual(
-            result_cube.coord(threshold_coord).points, np.array([0.03, 0.1]))
+            result_cube.coord(threshold_coord).points, np.array([0.03, 0.1])
+        )
 
 
 class Test_apply_extraction(IrisTest):
@@ -294,14 +307,12 @@ class Test_apply_extraction(IrisTest):
     def setUp(self):
         """ Set up temporary input cube """
         self.precip_cube = set_up_precip_probability_cube()
-        self.threshold_coord = find_threshold_coordinate(
-            self.precip_cube).name()
+        self.threshold_coord = find_threshold_coordinate(self.precip_cube).name()
         self.units_dict = {self.threshold_coord: "mm h-1"}
 
     def test_basic_no_units(self):
         """ Test cube extraction for single constraint without units """
-        constraint_dict = {
-            "name": "probability_of_precipitation_rate_above_threshold"}
+        constraint_dict = {"name": "probability_of_precipitation_rate_above_threshold"}
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr)
         self.assertIsInstance(cube, iris.cube.Cube)
@@ -311,8 +322,8 @@ class Test_apply_extraction(IrisTest):
     def test_basic_with_units(self):
         """ Test cube extraction for single constraint with units """
         constraint_dict = {
-            self.threshold_coord:
-                lambda cell: any(np.isclose(cell.point, [0.1]))}
+            self.threshold_coord: lambda cell: any(np.isclose(cell.point, [0.1]))
+        }
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         self.assertIsInstance(cube, iris.cube.Cube)
@@ -324,12 +335,12 @@ class Test_apply_extraction(IrisTest):
         """ Test cube extraction for single constraint with units,
          where the coordinates are not reconverted into the original units."""
         constraint_dict = {
-            self.threshold_coord:
-                lambda cell: any(np.isclose(cell.point, [0.1]))}
+            self.threshold_coord: lambda cell: any(np.isclose(cell.point, [0.1]))
+        }
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(
-            self.precip_cube, constr, self.units_dict,
-            use_original_units=False)
+            self.precip_cube, constr, self.units_dict, use_original_units=False
+        )
         self.assertIsInstance(cube, iris.cube.Cube)
         self.assertEqual(cube.coord(self.threshold_coord).units, "mm h-1")
         reference_data = self.precip_cube.data[1, :, :]
@@ -339,8 +350,8 @@ class Test_apply_extraction(IrisTest):
         """ Test behaviour with a list of constraints and units """
         constraint_dict = {
             "name": "probability_of_precipitation_rate_above_threshold",
-                    self.threshold_coord:
-                        lambda cell: any(np.isclose(cell.point, [0.03]))}
+            self.threshold_coord: lambda cell: any(np.isclose(cell.point, [0.03])),
+        }
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         self.assertIsInstance(cube, iris.cube.Cube)
@@ -350,8 +361,7 @@ class Test_apply_extraction(IrisTest):
     def test_error_non_coord_units(self):
         """ Test error raised if units are provided for a non-coordinate
         constraint """
-        constraint_dict = {
-            "name": "probability_of_precipitation_rate_above_threshold"}
+        constraint_dict = {"name": "probability_of_precipitation_rate_above_threshold"}
         units_dict = {"name": "1"}
         with self.assertRaises(CoordinateNotFoundError):
             apply_extraction(self.precip_cube, constraint_dict, units_dict)
@@ -362,7 +372,8 @@ class Test_apply_extraction(IrisTest):
         required """
         constraint_dict = {
             "name": "probability_of_precipitation_rate_above_threshold",
-                    self.threshold_coord: 5}
+            self.threshold_coord: 5,
+        }
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         self.assertFalse(cube)
@@ -370,8 +381,8 @@ class Test_apply_extraction(IrisTest):
     def test_list_constraints(self):
         """ Test that a list of constraints behaves correctly """
         constraint_dict = {
-            self.threshold_coord:
-                lambda cell: any(np.isclose(cell.point, [0.1, 1.0]))}
+            self.threshold_coord: lambda cell: any(np.isclose(cell.point, [0.1, 1.0]))
+        }
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         reference_data = self.precip_cube.data[1:, :, :]
@@ -381,11 +392,11 @@ class Test_apply_extraction(IrisTest):
         """ Test that a list of constraints behaves correctly. This includes
         converting the units to the units that the constraints is
         defined in."""
-        lower_bound = 0.03 * (1. - 1.0E-7)
-        upper_bound = 0.1 * (1. + 1.0E-7)
+        lower_bound = 0.03 * (1.0 - 1.0e-7)
+        upper_bound = 0.1 * (1.0 + 1.0e-7)
         constraint_dict = {
-            self.threshold_coord: lambda cell:
-                lower_bound <= cell <= upper_bound}
+            self.threshold_coord: lambda cell: lower_bound <= cell <= upper_bound
+        }
         constr = iris.Constraint(coord_values=constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         reference_data = self.precip_cube.data[:2, :, :]
@@ -406,8 +417,7 @@ class Test_extract_subcube(IrisTest):
         constraints = ["precipitation_rate=0.03"]
         precip_units = ["mm h-1"]
         expected = self.precip_cube[0]
-        result = extract_subcube(self.precip_cube, constraints,
-                                 units=precip_units)
+        result = extract_subcube(self.precip_cube, constraints, units=precip_units)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_multiple_thresholds(self):
@@ -416,8 +426,7 @@ class Test_extract_subcube(IrisTest):
         constraints = ["precipitation_rate=[0.03,0.1]"]
         precip_units = ["mm h-1"]
         expected = self.precip_cube[:2]
-        result = extract_subcube(self.precip_cube, constraints,
-                                 units=precip_units)
+        result = extract_subcube(self.precip_cube, constraints, units=precip_units)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_range_constraint(self):
@@ -432,36 +441,30 @@ class Test_extract_subcube(IrisTest):
         """Test that multiple thresholds are extracted correctly when using the
         key=[value1,value2] syntax for more than one quantity (i.e. multiple
         constraints)."""
-        constraints = ["precipitation_rate=[0.03,0.1]",
-                       "projection_y_coordinate=[1,2]"]
+        constraints = ["precipitation_rate=[0.03,0.1]", "projection_y_coordinate=[1,2]"]
         precip_units = ["mm h-1", "m"]
         expected = self.precip_cube[0:2, 1:, :]
-        result = extract_subcube(self.precip_cube, constraints,
-                                 units=precip_units)
+        result = extract_subcube(self.precip_cube, constraints, units=precip_units)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_multiple_range_constraints(self):
         """Test that multiple range constraints are extracted correctly when
         using the key=[value1:value2] syntax for more than one quantity (i.e.
         multiple constraints)."""
-        constraints = ["precipitation_rate=[0.03:0.1]",
-                       "projection_y_coordinate=[1:2]"]
+        constraints = ["precipitation_rate=[0.03:0.1]", "projection_y_coordinate=[1:2]"]
         precip_units = ["mm h-1", "m"]
         expected = self.precip_cube[0:2, 1:, :]
-        result = extract_subcube(self.precip_cube, constraints,
-                                 units=precip_units)
+        result = extract_subcube(self.precip_cube, constraints, units=precip_units)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_combination_of_equality_and_range_constraints(self):
         """Test that multiple constraints are extracted correctly when
         using a combination of key=[value1,value2] and key=[value1:value2]
         syntax."""
-        constraints = ["precipitation_rate=[0.03,0.1]",
-                       "projection_y_coordinate=[1:2]"]
+        constraints = ["precipitation_rate=[0.03,0.1]", "projection_y_coordinate=[1:2]"]
         precip_units = ["mm h-1", "m"]
         expected = self.precip_cube[0:2, 1:, :]
-        result = extract_subcube(self.precip_cube, constraints,
-                                 units=precip_units)
+        result = extract_subcube(self.precip_cube, constraints, units=precip_units)
         self.assertArrayAlmostEqual(result.data, expected.data)
 
     def test_single_threshold_use_original_units(self):
@@ -472,12 +475,14 @@ class Test_extract_subcube(IrisTest):
         precip_units = ["mm h-1"]
         expected = self.precip_cube[0]
         expected.coord("precipitation_rate").convert_units("mm h-1")
-        result = extract_subcube(self.precip_cube, constraints,
-                                 units=precip_units, use_original_units=False)
+        result = extract_subcube(
+            self.precip_cube, constraints, units=precip_units, use_original_units=False
+        )
         self.assertArrayAlmostEqual(result.data, expected.data)
-        self.assertEqual(expected.coord("precipitation_rate"),
-                         result.coord("precipitation_rate"))
+        self.assertEqual(
+            expected.coord("precipitation_rate"), result.coord("precipitation_rate")
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -36,11 +36,13 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(wind_gust: cli.inputcube,
-            wind_speed: cli.inputcube,
-            *,
-            wind_gust_percentile: float = 50.0,
-            wind_speed_percentile: float = 95.0):
+def process(
+    wind_gust: cli.inputcube,
+    wind_speed: cli.inputcube,
+    *,
+    wind_gust_percentile: float = 50.0,
+    wind_speed_percentile: float = 95.0,
+):
     """Create a cube containing the wind_gust diagnostic.
 
     Calculate revised wind-gust data using a specified percentile of
@@ -62,9 +64,9 @@ def process(wind_gust: cli.inputcube,
         iris.cube.Cube:
             Cube containing the wind-gust diagnostic data.
     """
-    from improver.wind_calculations.wind_gust_diagnostic import (
-        WindGustDiagnostic)
+    from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 
-    result = WindGustDiagnostic(
-        wind_gust_percentile, wind_speed_percentile)(wind_gust, wind_speed)
+    result = WindGustDiagnostic(wind_gust_percentile, wind_speed_percentile)(
+        wind_gust, wind_speed
+    )
     return result

@@ -36,12 +36,14 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from improver.calibration.reliability_calibration import (
-    AggregateReliabilityCalibrationTables as Plugin)
-
+    AggregateReliabilityCalibrationTables as Plugin,
+)
 from improver.calibration.reliability_calibration import (
-    ConstructReliabilityCalibrationTables as CalPlugin)
-from improver_tests.calibration.reliability_calibration.\
-    test_ConstructReliabilityCalibrationTables import Test_Setup
+    ConstructReliabilityCalibrationTables as CalPlugin,
+)
+from improver_tests.calibration.reliability_calibration.test_ConstructReliabilityCalibrationTables import (
+    Test_Setup,
+)
 
 
 class Test_Aggregation(Test_Setup):
@@ -54,22 +56,26 @@ class Test_Aggregation(Test_Setup):
 
         super().setUp()
         reliability_cube_format = CalPlugin()._create_reliability_table_cube(
-            self.forecasts, self.expected_threshold_coord)
-        self.reliability_cube = reliability_cube_format.copy(
-            data=self.expected_table)
+            self.forecasts, self.expected_threshold_coord
+        )
+        self.reliability_cube = reliability_cube_format.copy(data=self.expected_table)
         self.different_frt = self.reliability_cube.copy()
-        new_frt = self.different_frt.coord('forecast_reference_time')
-        new_frt.points = new_frt.points + 48*3600
-        new_frt.bounds = new_frt.bounds + 48*3600
+        new_frt = self.different_frt.coord("forecast_reference_time")
+        new_frt.points = new_frt.points + 48 * 3600
+        new_frt.bounds = new_frt.bounds + 48 * 3600
 
         self.overlapping_frt = self.reliability_cube.copy()
-        new_frt = self.overlapping_frt.coord('forecast_reference_time')
-        new_frt.points = new_frt.points + 6*3600
-        new_frt.bounds = new_frt.bounds + 6*3600
+        new_frt = self.overlapping_frt.coord("forecast_reference_time")
+        new_frt.points = new_frt.points + 6 * 3600
+        new_frt.bounds = new_frt.bounds + 6 * 3600
 
-        self.lat_lon_collapse = np.array([[0., 0., 1., 2., 1.],
-                                          [0., 0.375, 1.5, 1.625, 1.],
-                                          [1., 2., 3., 2., 1.]])
+        self.lat_lon_collapse = np.array(
+            [
+                [0.0, 0.0, 1.0, 2.0, 1.0],
+                [0.0, 0.375, 1.5, 1.625, 1.0],
+                [1.0, 2.0, 3.0, 2.0, 1.0],
+            ]
+        )
 
 
 class Test__repr__(unittest.TestCase):
@@ -78,8 +84,7 @@ class Test__repr__(unittest.TestCase):
 
     def test_basic(self):
         """Test repr is as expected."""
-        self.assertEqual(
-            str(Plugin()), '<AggregateReliabilityCalibrationTables>')
+        self.assertEqual(str(Plugin()), "<AggregateReliabilityCalibrationTables>")
 
 
 class Test__check_frt_coord(Test_Aggregation):
@@ -100,8 +105,7 @@ class Test__check_frt_coord(Test_Aggregation):
         plugin = Plugin()
         msg = "Reliability calibration tables have overlapping"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin._check_frt_coord([self.reliability_cube,
-                                     self.overlapping_frt])
+            plugin._check_frt_coord([self.reliability_cube, self.overlapping_frt])
 
 
 class Test_process(Test_Aggregation):
@@ -112,10 +116,14 @@ class Test_process(Test_Aggregation):
         """Test of aggregating two cubes without any additional coordinate
         collapsing."""
 
-        frt = 'forecast_reference_time'
+        frt = "forecast_reference_time"
         expected_points = self.different_frt.coord(frt).points
-        expected_bounds = [[self.reliability_cube.coord(frt).bounds[0][0],
-                            self.different_frt.coord(frt).bounds[-1][1]]]
+        expected_bounds = [
+            [
+                self.reliability_cube.coord(frt).bounds[0][0],
+                self.different_frt.coord(frt).bounds[-1][1],
+            ]
+        ]
 
         plugin = Plugin()
         result = plugin.process([self.reliability_cube, self.different_frt])
@@ -140,13 +148,14 @@ class Test_process(Test_Aggregation):
         """Test of aggregating over coordinates of a single cube. In this
         instance the latitude and longitude coordinates are collapsed."""
 
-        frt = 'forecast_reference_time'
+        frt = "forecast_reference_time"
         expected_points = self.reliability_cube.coord(frt).points
         expected_bounds = self.reliability_cube.coord(frt).bounds
 
         plugin = Plugin()
-        result = plugin.process([self.reliability_cube],
-                                coordinates=['latitude', 'longitude'])
+        result = plugin.process(
+            [self.reliability_cube], coordinates=["latitude", "longitude"]
+        )
         assert_array_equal(result.data, self.lat_lon_collapse)
         self.assertEqual(result.coord(frt).points, expected_points)
         assert_array_equal(result.coord(frt).bounds, expected_bounds)
@@ -156,14 +165,20 @@ class Test_process(Test_Aggregation):
         this instance the latitude and longitude coordinates are collapsed and
         the values from two input cube combined."""
 
-        frt = 'forecast_reference_time'
+        frt = "forecast_reference_time"
         expected_points = self.different_frt.coord(frt).points
-        expected_bounds = [[self.reliability_cube.coord(frt).bounds[0][0],
-                            self.different_frt.coord(frt).bounds[-1][1]]]
+        expected_bounds = [
+            [
+                self.reliability_cube.coord(frt).bounds[0][0],
+                self.different_frt.coord(frt).bounds[-1][1],
+            ]
+        ]
 
         plugin = Plugin()
-        result = plugin.process([self.reliability_cube, self.different_frt],
-                                coordinates=['latitude', 'longitude'])
+        result = plugin.process(
+            [self.reliability_cube, self.different_frt],
+            coordinates=["latitude", "longitude"],
+        )
         assert_array_equal(result.data, self.lat_lon_collapse * 2)
         self.assertEqual(result.coord(frt).points, expected_points)
         assert_array_equal(result.coord(frt).bounds, expected_bounds)
@@ -180,5 +195,5 @@ class Test_process(Test_Aggregation):
         self.assertEqual(result, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

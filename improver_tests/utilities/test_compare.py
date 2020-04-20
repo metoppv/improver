@@ -48,22 +48,24 @@ SETTINGS = "settings"
 SCALARS = "scalars"
 
 
-@pytest.fixture(scope='function', name='dummy_nc')
+@pytest.fixture(scope="function", name="dummy_nc")
 def dummy_netcdf_dataset(tmp_path):
     """
     Create an example netcdf dataset for use in testing comparison functions
     """
     expected_nc = tmp_path / "expected.nc"
-    dset = nc.Dataset(expected_nc, mode='w', format='NETCDF4')
+    dset = nc.Dataset(expected_nc, mode="w", format="NETCDF4")
     dset.createDimension(LAT, 10)
     dset.createDimension(LON, 12)
     dset.createDimension(BOUNDS, 2)
     lat = dset.createVariable(LAT, np.float64, dimensions=(LAT,))
     lat_bounds = dset.createVariable(
-        f"{LAT}_{BOUNDS}", np.float64, dimensions=(LAT, BOUNDS))
+        f"{LAT}_{BOUNDS}", np.float64, dimensions=(LAT, BOUNDS)
+    )
     lon = dset.createVariable(LON, np.float64, dimensions=(LON,))
     lon_bounds = dset.createVariable(
-        f"{LON}_{BOUNDS}", np.float64, dimensions=(LON, BOUNDS))
+        f"{LON}_{BOUNDS}", np.float64, dimensions=(LON, BOUNDS)
+    )
     dpoint = dset.createVariable(DEWPOINT, np.float32, dimensions=(LAT, LON))
     categ = dset.createVariable(CAT, np.int8, dimensions=(LAT, LON))
     scalar_group = dset.createGroup(SCALARS)
@@ -78,11 +80,9 @@ def dummy_netcdf_dataset(tmp_path):
     lat[:] = lat_data
     lon_data = np.linspace(12, 18.5, 12)
     lon[:] = lon_data
-    lat_bounds_data = np.transpose(
-        np.array([lat_data - 0.25, lat_data + 0.25]))
+    lat_bounds_data = np.transpose(np.array([lat_data - 0.25, lat_data + 0.25]))
     lat_bounds[:] = lat_bounds_data
-    lon_bounds_data = np.transpose(
-        np.array([lon_data - 0.25, lon_data + 0.25]))
+    lon_bounds_data = np.transpose(np.array([lon_data - 0.25, lon_data + 0.25]))
     lon_bounds[:] = lon_bounds_data
 
     lat_fill = np.linspace(0.0, np.pi, 10)
@@ -128,12 +128,12 @@ def test_compare_missing_files(dummy_nc, tmp_path):
     def message_collector(message):
         messages_reported.append(message)
 
-    compare.compare_netcdfs(actual_nc, tmp_path / "missing",
-                            reporter=message_collector)
+    compare.compare_netcdfs(actual_nc, tmp_path / "missing", reporter=message_collector)
     assert len(messages_reported) == 1
     assert "No such file" in messages_reported[0]
-    compare.compare_netcdfs(tmp_path / "missing", expected_nc,
-                            reporter=message_collector)
+    compare.compare_netcdfs(
+        tmp_path / "missing", expected_nc, reporter=message_collector
+    )
     assert len(messages_reported) == 2
     assert "No such file" in messages_reported[1]
 
@@ -141,8 +141,8 @@ def test_compare_missing_files(dummy_nc, tmp_path):
 def test_compare_vars_renamed(dummy_nc):
     """Check that renaming a variable is identified"""
     actual_nc, expected_nc = dummy_nc
-    expected_ds = nc.Dataset(expected_nc, mode='r')
-    actual_ds = nc.Dataset(actual_nc, mode='a')
+    expected_ds = nc.Dataset(expected_nc, mode="r")
+    actual_ds = nc.Dataset(actual_nc, mode="a")
     actual_ds.renameVariable(DEWPOINT, "new_dew")
 
     messages_reported = []
@@ -150,8 +150,9 @@ def test_compare_vars_renamed(dummy_nc):
     def message_collector(message):
         messages_reported.append(message)
 
-    compare.compare_vars("root", actual_ds, expected_ds, 0.0, 0.0, [],
-                         message_collector)
+    compare.compare_vars(
+        "root", actual_ds, expected_ds, 0.0, 0.0, [], message_collector
+    )
     assert len(messages_reported) == 1
     assert DEWPOINT in messages_reported[0]
     assert "new_dew" in messages_reported[0]
@@ -160,8 +161,8 @@ def test_compare_vars_renamed(dummy_nc):
 def test_compare_groups_renamed(dummy_nc):
     """Check that renaming a netCDF group is identified"""
     actual_nc, expected_nc = dummy_nc
-    expected_ds = nc.Dataset(expected_nc, mode='r')
-    actual_ds = nc.Dataset(actual_nc, mode='a')
+    expected_ds = nc.Dataset(expected_nc, mode="r")
+    actual_ds = nc.Dataset(actual_nc, mode="a")
     actual_ds.renameGroup(SCALARS, "new_scalars")
 
     messages_reported = []
@@ -170,7 +171,8 @@ def test_compare_groups_renamed(dummy_nc):
         messages_reported.append(message)
 
     compare.compare_datasets(
-        "grp", actual_ds, expected_ds, 0.0, 0.0, [DEWPOINT], message_collector)
+        "grp", actual_ds, expected_ds, 0.0, 0.0, [DEWPOINT], message_collector
+    )
     assert len(messages_reported) == 1
     assert SCALARS in messages_reported[0]
     assert "new_scalars" in messages_reported[0]
@@ -179,8 +181,8 @@ def test_compare_groups_renamed(dummy_nc):
 def test_compare_netcdf_attrs(dummy_nc):
     """Check that comparing attributes identifies the changed attribute"""
     actual_nc, expected_nc = dummy_nc
-    expected_ds = nc.Dataset(expected_nc, mode='r')
-    actual_ds = nc.Dataset(actual_nc, mode='a')
+    expected_ds = nc.Dataset(expected_nc, mode="r")
+    actual_ds = nc.Dataset(actual_nc, mode="a")
 
     messages_reported = []
 
@@ -188,14 +190,12 @@ def test_compare_netcdf_attrs(dummy_nc):
         messages_reported.append(message)
 
     # Check that attributes initially match - message_collector is not called
-    compare.compare_attributes(
-        "root", actual_ds, expected_ds, message_collector)
+    compare.compare_attributes("root", actual_ds, expected_ds, message_collector)
     assert len(messages_reported) == 0
 
     # Check modifying a simple attribute
     actual_ds.setncattr("float_number", 3.2)
-    compare.compare_attributes(
-        "root", actual_ds, expected_ds, message_collector)
+    compare.compare_attributes("root", actual_ds, expected_ds, message_collector)
     assert len(messages_reported) == 1
     assert "float_number" in messages_reported[0]
     assert "3.2" in messages_reported[0]
@@ -208,7 +208,8 @@ def test_compare_netcdf_attrs(dummy_nc):
     # Check modifying an array attribute
     actual_ds[CAT].setncattr("additional_numbers", np.linspace(0.0, 0.8, 11))
     compare.compare_attributes(
-        "root", actual_ds[CAT], expected_ds[CAT], message_collector)
+        "root", actual_ds[CAT], expected_ds[CAT], message_collector
+    )
     assert len(messages_reported) == 1
     assert "additional_numbers" in messages_reported[0]
 
@@ -218,8 +219,7 @@ def test_compare_netcdf_attrs(dummy_nc):
 
     # Check adding another attribute
     actual_ds.setncattr("extra", "additional")
-    compare.compare_attributes(
-        "longer name", actual_ds, expected_ds, message_collector)
+    compare.compare_attributes("longer name", actual_ds, expected_ds, message_collector)
     assert len(messages_reported) == 1
     assert "longer name" in messages_reported[0]
     # The difference message should mention the attribute which was added
@@ -231,8 +231,7 @@ def test_compare_netcdf_attrs(dummy_nc):
 
     # Check removing an attribute
     actual_ds.delncattr("float_number")
-    compare.compare_attributes(
-        "root", actual_ds, expected_ds, message_collector)
+    compare.compare_attributes("root", actual_ds, expected_ds, message_collector)
     assert len(messages_reported) == 1
     assert "float_number" in messages_reported[0]
 
@@ -240,8 +239,8 @@ def test_compare_netcdf_attrs(dummy_nc):
 def test_compare_data_floats_equal(dummy_nc):
     """Check comparison of floating point data considered exactly equal"""
     actual_nc, expected_nc = dummy_nc
-    expected_ds = nc.Dataset(expected_nc, mode='a')
-    actual_ds = nc.Dataset(actual_nc, mode='a')
+    expected_ds = nc.Dataset(expected_nc, mode="a")
+    actual_ds = nc.Dataset(actual_nc, mode="a")
 
     messages_reported = []
 
@@ -249,8 +248,14 @@ def test_compare_data_floats_equal(dummy_nc):
         messages_reported.append(message)
 
     # Check that data originally matches exactly (zero tolerances)
-    compare.compare_data(DEWPOINT, actual_ds[DEWPOINT], expected_ds[DEWPOINT],
-                         0.0, 0.0, message_collector)
+    compare.compare_data(
+        DEWPOINT,
+        actual_ds[DEWPOINT],
+        expected_ds[DEWPOINT],
+        0.0,
+        0.0,
+        message_collector,
+    )
     assert len(messages_reported) == 0
 
     # Check that NaNs in same position compare equal rather than the
@@ -261,16 +266,22 @@ def test_compare_data_floats_equal(dummy_nc):
     actual_dp = actual_ds[DEWPOINT]
     actual_dp[0, :] = np.nan
     actual_ds.sync()
-    compare.compare_data(DEWPOINT, actual_ds[DEWPOINT], expected_ds[DEWPOINT],
-                         0.0, 0.0, message_collector)
+    compare.compare_data(
+        DEWPOINT,
+        actual_ds[DEWPOINT],
+        expected_ds[DEWPOINT],
+        0.0,
+        0.0,
+        message_collector,
+    )
     assert len(messages_reported) == 0
 
 
 def test_compare_data_floats_relative(dummy_nc):
     """Check comparison of floating point data with relative tolerances"""
     actual_nc, expected_nc = dummy_nc
-    expected_ds = nc.Dataset(expected_nc, mode='a')
-    actual_ds = nc.Dataset(actual_nc, mode='a')
+    expected_ds = nc.Dataset(expected_nc, mode="a")
+    actual_ds = nc.Dataset(actual_nc, mode="a")
 
     messages_reported = []
 
@@ -282,26 +293,44 @@ def test_compare_data_floats_relative(dummy_nc):
     # relative change is a little smaller than 1e-3
     actual_dp[1, :] = np.array(actual_dp[1, :]) * (1.0 + 8e-4)
     # 1e-3 relative tolerance -> no problem
-    compare.compare_data(DEWPOINT, actual_ds[DEWPOINT], expected_ds[DEWPOINT],
-                         1e-3, 0.0, message_collector)
+    compare.compare_data(
+        DEWPOINT,
+        actual_ds[DEWPOINT],
+        expected_ds[DEWPOINT],
+        1e-3,
+        0.0,
+        message_collector,
+    )
     assert len(messages_reported) == 0
     # 5e-4 relative tolerance -> problem reported
-    compare.compare_data(DEWPOINT, actual_ds[DEWPOINT], expected_ds[DEWPOINT],
-                         5e-4, 0.0, message_collector)
+    compare.compare_data(
+        DEWPOINT,
+        actual_ds[DEWPOINT],
+        expected_ds[DEWPOINT],
+        5e-4,
+        0.0,
+        message_collector,
+    )
     assert len(messages_reported) == 1
     assert DEWPOINT in messages_reported[0]
-    assert 'tolerance' in messages_reported[0]
+    assert "tolerance" in messages_reported[0]
     # no relative tolerance -> problem reported
-    compare.compare_data(DEWPOINT, actual_ds[DEWPOINT], expected_ds[DEWPOINT],
-                         0.0, 0.0, message_collector)
+    compare.compare_data(
+        DEWPOINT,
+        actual_ds[DEWPOINT],
+        expected_ds[DEWPOINT],
+        0.0,
+        0.0,
+        message_collector,
+    )
     assert len(messages_reported) == 2
 
 
 def test_compare_data_floats_absolute(dummy_nc):
     """Check comparison of floating point data with absolute tolerances"""
     actual_nc, expected_nc = dummy_nc
-    expected_ds = nc.Dataset(expected_nc, mode='r')
-    actual_ds = nc.Dataset(actual_nc, mode='a')
+    expected_ds = nc.Dataset(expected_nc, mode="r")
+    actual_ds = nc.Dataset(actual_nc, mode="a")
 
     messages_reported = []
 
@@ -313,26 +342,44 @@ def test_compare_data_floats_absolute(dummy_nc):
     # absolute change is a little smaller than 1e-2
     actual_dp[1, :] = np.array(actual_dp[1, :]) + 8e-3
     # 1e-2 absolute tolerance -> no problem
-    compare.compare_data(DEWPOINT, actual_ds[DEWPOINT], expected_ds[DEWPOINT],
-                         0.0, 1e-2, message_collector)
+    compare.compare_data(
+        DEWPOINT,
+        actual_ds[DEWPOINT],
+        expected_ds[DEWPOINT],
+        0.0,
+        1e-2,
+        message_collector,
+    )
     assert len(messages_reported) == 0
     # 5e-3 absolute tolerance -> problem reported
-    compare.compare_data(DEWPOINT, actual_ds[DEWPOINT], expected_ds[DEWPOINT],
-                         0.0, 5e-3, message_collector)
+    compare.compare_data(
+        DEWPOINT,
+        actual_ds[DEWPOINT],
+        expected_ds[DEWPOINT],
+        0.0,
+        5e-3,
+        message_collector,
+    )
     assert len(messages_reported) == 1
     assert DEWPOINT in messages_reported[0]
-    assert 'tolerance' in messages_reported[0]
+    assert "tolerance" in messages_reported[0]
     # no relative tolerance -> problem reported
-    compare.compare_data(DEWPOINT, actual_ds[DEWPOINT], expected_ds[DEWPOINT],
-                         0.0, 0.0, message_collector)
+    compare.compare_data(
+        DEWPOINT,
+        actual_ds[DEWPOINT],
+        expected_ds[DEWPOINT],
+        0.0,
+        0.0,
+        message_collector,
+    )
     assert len(messages_reported) == 2
 
 
 def test_compare_data_integers(dummy_nc):
     """Check comparison of integers"""
     actual_nc, expected_nc = dummy_nc
-    expected_ds = nc.Dataset(expected_nc, mode='r')
-    actual_ds = nc.Dataset(actual_nc, mode='a')
+    expected_ds = nc.Dataset(expected_nc, mode="r")
+    actual_ds = nc.Dataset(actual_nc, mode="a")
 
     messages_reported = []
 
@@ -343,16 +390,13 @@ def test_compare_data_integers(dummy_nc):
     actual_dp[:] = np.array(actual_dp[:]) + 1
 
     # 2 absolute tolerance -> no problem
-    compare.compare_data(CAT, actual_ds[CAT], expected_ds[CAT],
-                         0, 2, message_collector)
+    compare.compare_data(CAT, actual_ds[CAT], expected_ds[CAT], 0, 2, message_collector)
     assert len(messages_reported) == 0
     # 1 absolute tolerance -> no problem
-    compare.compare_data(CAT, actual_ds[CAT], expected_ds[CAT],
-                         0, 1, message_collector)
+    compare.compare_data(CAT, actual_ds[CAT], expected_ds[CAT], 0, 1, message_collector)
     assert len(messages_reported) == 0
     # 0 relative and absolute tolerance -> problem reported
-    compare.compare_data(CAT, actual_ds[CAT], expected_ds[CAT],
-                         0, 0, message_collector)
+    compare.compare_data(CAT, actual_ds[CAT], expected_ds[CAT], 0, 0, message_collector)
     assert len(messages_reported) == 1
     assert "tolerance" in messages_reported[0]
     assert CAT in messages_reported[0]
@@ -361,8 +405,8 @@ def test_compare_data_integers(dummy_nc):
 def test_compare_data_shape(dummy_nc):
     """Check differing data shapes are reported"""
     actual_nc, expected_nc = dummy_nc
-    expected_ds = nc.Dataset(expected_nc, mode='r')
-    actual_ds = nc.Dataset(actual_nc, mode='r')
+    expected_ds = nc.Dataset(expected_nc, mode="r")
+    actual_ds = nc.Dataset(actual_nc, mode="r")
 
     messages_reported = []
 
@@ -370,8 +414,9 @@ def test_compare_data_shape(dummy_nc):
         messages_reported.append(message)
 
     # super loose tolerance, but shapes don't match
-    compare.compare_data("lonlat", actual_ds[LON], expected_ds[LAT],
-                         100.0, 100.0, message_collector)
+    compare.compare_data(
+        "lonlat", actual_ds[LON], expected_ds[LAT], 100.0, 100.0, message_collector
+    )
     assert len(messages_reported) == 1
     assert "shape" in messages_reported[0]
 
@@ -379,8 +424,8 @@ def test_compare_data_shape(dummy_nc):
 def test_compare_extra_dimension(dummy_nc):
     """Check an additional (but unused) dimension is reported"""
     actual_nc, expected_nc = dummy_nc
-    expected_ds = nc.Dataset(expected_nc, mode='a')
-    actual_ds = nc.Dataset(actual_nc, mode='a')
+    expected_ds = nc.Dataset(expected_nc, mode="a")
+    actual_ds = nc.Dataset(actual_nc, mode="a")
 
     actual_ds.createDimension("additional", 100)
 
@@ -401,12 +446,12 @@ def test_compare_extra_dimension(dummy_nc):
     assert "100" in messages_reported[0]
 
 
-@pytest.mark.parametrize('tchange', (DEWPOINT, LAT))
+@pytest.mark.parametrize("tchange", (DEWPOINT, LAT))
 def test_compare_data_type(dummy_nc, tchange):
     """Check differing data types are reported"""
     actual_nc, expected_nc = dummy_nc
-    expected_ds = nc.Dataset(expected_nc, mode='r')
-    actual_ds = nc.Dataset(actual_nc, mode='w')
+    expected_ds = nc.Dataset(expected_nc, mode="r")
+    actual_ds = nc.Dataset(actual_nc, mode="w")
 
     # copy the whole dataset except for the tchange variable
     # netcdf API does not have the concept of deleting a variable
@@ -415,15 +460,14 @@ def test_compare_data_type(dummy_nc, tchange):
     # pylint: disable=no-member
     for dim_name in expected_ds.dimensions.keys():
         # pylint: disable=unsubscriptable-object
-        actual_ds.createDimension(dim_name,
-                                  expected_ds.dimensions[dim_name].size)
+        actual_ds.createDimension(dim_name, expected_ds.dimensions[dim_name].size)
     # pylint: disable=no-member
     for var_name in expected_ds.variables.keys():
         if var_name == tchange:
             continue
         new_var = actual_ds.createVariable(
-            var_name, expected_ds[var_name].datatype,
-            expected_ds[var_name].dimensions)
+            var_name, expected_ds[var_name].datatype, expected_ds[var_name].dimensions
+        )
         new_var[:] = expected_ds[var_name][:]
         for key in expected_ds[var_name].ncattrs():
             new_var.setncattr(key, expected_ds[var_name].getncattr(key))
@@ -434,8 +478,7 @@ def test_compare_data_type(dummy_nc, tchange):
         new_type = np.float64
     else:
         new_type = np.float32
-    new_dew = actual_ds.createVariable(
-        tchange, new_type, expected_var.dimensions)
+    new_dew = actual_ds.createVariable(tchange, new_type, expected_var.dimensions)
     for key in expected_var.ncattrs():
         new_dew.setncattr(key, expected_var.getncattr(key))
     new_dew[:] = expected_var[:].astype(new_type)
@@ -446,6 +489,7 @@ def test_compare_data_type(dummy_nc, tchange):
         messages_reported.append(message)
 
     compare.compare_vars(
-        "root", actual_ds, expected_ds, 0.0, 0.0, None, message_collector)
+        "root", actual_ds, expected_ds, 0.0, 0.0, None, message_collector
+    )
     assert len(messages_reported) == 1
     assert "type" in messages_reported[0]

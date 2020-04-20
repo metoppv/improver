@@ -42,10 +42,10 @@ from cf_units import Unit, date2num
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.metadata.constants.time_types import TIME_COORDS
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants.mo_attributes import MOSG_GRID_DEFINITION
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import forecast_period_coord
 
 
@@ -65,31 +65,41 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
         y_coord, x_coord (tuple):
             Tuple of iris.coords.DimCoord instances
     """
-    if spatial_grid == 'latlon':
+    if spatial_grid == "latlon":
         # make a lat-lon grid including the UK area
         y_coord = DimCoord(
-            np.linspace(40., 80., ypoints, dtype=np.float32),
-            "latitude", units="degrees", coord_system=GLOBAL_GRID_CCRS)
+            np.linspace(40.0, 80.0, ypoints, dtype=np.float32),
+            "latitude",
+            units="degrees",
+            coord_system=GLOBAL_GRID_CCRS,
+        )
         x_coord = DimCoord(
-            np.linspace(-20., 20., xpoints, dtype=np.float32),
-            "longitude", units="degrees", coord_system=GLOBAL_GRID_CCRS)
-    elif spatial_grid == 'equalarea':
+            np.linspace(-20.0, 20.0, xpoints, dtype=np.float32),
+            "longitude",
+            units="degrees",
+            coord_system=GLOBAL_GRID_CCRS,
+        )
+    elif spatial_grid == "equalarea":
         # use UK eastings and northings on standard grid
         # round grid spacing to nearest integer to avoid precision issues
-        grid_spacing = np.around(1000000. / ypoints)
-        y_points_array = [-100000 + i*grid_spacing for i in range(ypoints)]
-        x_points_array = [-400000 + i*grid_spacing for i in range(xpoints)]
+        grid_spacing = np.around(1000000.0 / ypoints)
+        y_points_array = [-100000 + i * grid_spacing for i in range(ypoints)]
+        x_points_array = [-400000 + i * grid_spacing for i in range(xpoints)]
 
         y_coord = DimCoord(
             np.array(y_points_array, dtype=np.float32),
-            "projection_y_coordinate", units="metres",
-            coord_system=STANDARD_GRID_CCRS)
+            "projection_y_coordinate",
+            units="metres",
+            coord_system=STANDARD_GRID_CCRS,
+        )
         x_coord = DimCoord(
             np.array(x_points_array, dtype=np.float32),
-            "projection_x_coordinate", units="metres",
-            coord_system=STANDARD_GRID_CCRS)
+            "projection_x_coordinate",
+            units="metres",
+            coord_system=STANDARD_GRID_CCRS,
+        )
     else:
-        raise ValueError('Grid type {} not recognised'.format(spatial_grid))
+        raise ValueError("Grid type {} not recognised".format(spatial_grid))
 
     return y_coord, x_coord
 
@@ -129,45 +139,59 @@ def construct_scalar_time_coords(time, time_bounds, frt):
 
     fp_coord_spec = TIME_COORDS["forecast_period"]
     if time_point_seconds < frt_point_seconds:
-        raise ValueError('Cannot set up cube with negative forecast period')
-    fp_point_seconds = (
-        time_point_seconds - frt_point_seconds).astype(fp_coord_spec.dtype)
+        raise ValueError("Cannot set up cube with negative forecast period")
+    fp_point_seconds = (time_point_seconds - frt_point_seconds).astype(
+        fp_coord_spec.dtype
+    )
 
     # parse bounds if required
     if time_bounds is not None:
         lower_bound = _create_time_point(time_bounds[0])
         upper_bound = _create_time_point(time_bounds[1])
-        bounds = (min(lower_bound, upper_bound),
-                  max(lower_bound, upper_bound))
+        bounds = (min(lower_bound, upper_bound), max(lower_bound, upper_bound))
         if time_point_seconds < bounds[0] or time_point_seconds > bounds[1]:
             raise ValueError(
-                'Time point {} not within bounds {}-{}'.format(
-                    time, time_bounds[0], time_bounds[1]))
-        fp_bounds = np.array([
-            [bounds[0] - frt_point_seconds,
-             bounds[1] - frt_point_seconds]]).astype(fp_coord_spec.dtype)
+                "Time point {} not within bounds {}-{}".format(
+                    time, time_bounds[0], time_bounds[1]
+                )
+            )
+        fp_bounds = np.array(
+            [[bounds[0] - frt_point_seconds, bounds[1] - frt_point_seconds]]
+        ).astype(fp_coord_spec.dtype)
     else:
         bounds = None
         fp_bounds = None
 
     # create coordinates
-    time_coord = DimCoord(time_point_seconds, "time", bounds=bounds,
-                          units=TIME_COORDS["time"].units)
-    frt_coord = DimCoord(frt_point_seconds, "forecast_reference_time",
-                         units=TIME_COORDS["forecast_reference_time"].units)
-    fp_coord = DimCoord(fp_point_seconds, "forecast_period", bounds=fp_bounds,
-                        units=fp_coord_spec.units)
+    time_coord = DimCoord(
+        time_point_seconds, "time", bounds=bounds, units=TIME_COORDS["time"].units
+    )
+    frt_coord = DimCoord(
+        frt_point_seconds,
+        "forecast_reference_time",
+        units=TIME_COORDS["forecast_reference_time"].units,
+    )
+    fp_coord = DimCoord(
+        fp_point_seconds, "forecast_period", bounds=fp_bounds, units=fp_coord_spec.units
+    )
 
     coord_dims = [(time_coord, None), (frt_coord, None), (fp_coord, None)]
     return coord_dims
 
 
-def set_up_variable_cube(data, name='air_temperature', units='K',
-                         spatial_grid='latlon',
-                         time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
-                         frt=datetime(2017, 11, 10, 0, 0), realizations=None,
-                         include_scalar_coords=None, attributes=None,
-                         standard_grid_metadata=None):
+def set_up_variable_cube(
+    data,
+    name="air_temperature",
+    units="K",
+    spatial_grid="latlon",
+    time=datetime(2017, 11, 10, 4, 0),
+    time_bounds=None,
+    frt=datetime(2017, 11, 10, 0, 0),
+    realizations=None,
+    include_scalar_coords=None,
+    attributes=None,
+    standard_grid_metadata=None,
+):
     """
     Set up a cube containing a single variable field with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -216,8 +240,9 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         if realizations is not None:
             if len(realizations) != data.shape[0]:
                 raise ValueError(
-                    'Cannot generate {} realizations from data of shape '
-                    '{}'.format(len(realizations), data.shape))
+                    "Cannot generate {} realizations from data of shape "
+                    "{}".format(len(realizations), data.shape)
+                )
             realizations = np.array(realizations)
             if issubclass(realizations.dtype.type, np.integer):
                 # expect integer realizations
@@ -233,7 +258,8 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         dim_coords = [(y_coord, 0), (x_coord, 1)]
     else:
         raise ValueError(
-            'Expected 2 or 3 dimensions on input data: got {}'.format(ndims))
+            "Expected 2 or 3 dimensions on input data: got {}".format(ndims)
+        )
 
     # construct list of aux_coords_and_dims
     scalar_coords = construct_scalar_time_coords(time, time_bounds, frt)
@@ -249,9 +275,13 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
         cube_attrs.update(attributes)
 
     # create data cube
-    cube = iris.cube.Cube(data, units=units, attributes=cube_attrs,
-                          dim_coords_and_dims=dim_coords,
-                          aux_coords_and_dims=scalar_coords)
+    cube = iris.cube.Cube(
+        data,
+        units=units,
+        attributes=cube_attrs,
+        dim_coords_and_dims=dim_coords,
+        aux_coords_and_dims=scalar_coords,
+    )
     cube.rename(name)
 
     # don't allow unit tests to set up invalid cubes
@@ -260,12 +290,19 @@ def set_up_variable_cube(data, name='air_temperature', units='K',
     return cube
 
 
-def set_up_percentile_cube(data, percentiles, name='air_temperature',
-                           units='K', spatial_grid='latlon',
-                           time=datetime(2017, 11, 10, 4, 0), time_bounds=None,
-                           frt=datetime(2017, 11, 10, 0, 0),
-                           include_scalar_coords=None, attributes=None,
-                           standard_grid_metadata=None):
+def set_up_percentile_cube(
+    data,
+    percentiles,
+    name="air_temperature",
+    units="K",
+    spatial_grid="latlon",
+    time=datetime(2017, 11, 10, 4, 0),
+    time_bounds=None,
+    frt=datetime(2017, 11, 10, 0, 0),
+    include_scalar_coords=None,
+    attributes=None,
+    standard_grid_metadata=None,
+):
     """
     Set up a cube containing percentiles of a variable with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -303,24 +340,36 @@ def set_up_percentile_cube(data, percentiles, name='air_temperature',
             'gl_det' or 'gl_ens'.
     """
     cube = set_up_variable_cube(
-        data, name=name, units=units, spatial_grid=spatial_grid,
-        time=time, frt=frt, realizations=percentiles, attributes=attributes,
+        data,
+        name=name,
+        units=units,
+        spatial_grid=spatial_grid,
+        time=time,
+        frt=frt,
+        realizations=percentiles,
+        attributes=attributes,
         include_scalar_coords=include_scalar_coords,
-        standard_grid_metadata=standard_grid_metadata)
+        standard_grid_metadata=standard_grid_metadata,
+    )
     cube.coord("realization").rename("percentile")
     cube.coord("percentile").units = Unit("%")
     return cube
 
 
-def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
-                            threshold_units='K',
-                            spp__relative_to_threshold='above',
-                            spatial_grid='latlon',
-                            time=datetime(2017, 11, 10, 4, 0),
-                            time_bounds=None,
-                            frt=datetime(2017, 11, 10, 0, 0),
-                            include_scalar_coords=None, attributes=None,
-                            standard_grid_metadata=None):
+def set_up_probability_cube(
+    data,
+    thresholds,
+    variable_name="air_temperature",
+    threshold_units="K",
+    spp__relative_to_threshold="above",
+    spatial_grid="latlon",
+    time=datetime(2017, 11, 10, 4, 0),
+    time_bounds=None,
+    frt=datetime(2017, 11, 10, 0, 0),
+    include_scalar_coords=None,
+    attributes=None,
+    standard_grid_metadata=None,
+):
     """
     Set up a cube containing probabilities at thresholds with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -365,24 +414,32 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
             'gl_det' or 'gl_ens'.
     """
     # create a "relative to threshold" attribute
-    coord_attributes = {
-        'spp__relative_to_threshold': spp__relative_to_threshold}
+    coord_attributes = {"spp__relative_to_threshold": spp__relative_to_threshold}
 
-    if spp__relative_to_threshold == 'above':
-        name = 'probability_of_{}_above_threshold'.format(variable_name)
-    elif spp__relative_to_threshold == 'below':
-        name = 'probability_of_{}_below_threshold'.format(variable_name)
+    if spp__relative_to_threshold == "above":
+        name = "probability_of_{}_above_threshold".format(variable_name)
+    elif spp__relative_to_threshold == "below":
+        name = "probability_of_{}_below_threshold".format(variable_name)
     else:
-        msg = 'The spp__relative_to_threshold attribute MUST be set for ' \
-              'IMPROVER probability cubes'
+        msg = (
+            "The spp__relative_to_threshold attribute MUST be set for "
+            "IMPROVER probability cubes"
+        )
         raise ValueError(msg)
 
     cube = set_up_variable_cube(
-        data, name=name, units='1', spatial_grid=spatial_grid,
-        time=time, frt=frt, time_bounds=time_bounds,
-        realizations=thresholds, attributes=attributes,
+        data,
+        name=name,
+        units="1",
+        spatial_grid=spatial_grid,
+        time=time,
+        frt=frt,
+        time_bounds=time_bounds,
+        realizations=thresholds,
+        attributes=attributes,
         include_scalar_coords=include_scalar_coords,
-        standard_grid_metadata=standard_grid_metadata)
+        standard_grid_metadata=standard_grid_metadata,
+    )
     cube.coord("realization").rename(variable_name)
     cube.coord(variable_name).var_name = "threshold"
     cube.coord(variable_name).attributes.update(coord_attributes)
@@ -390,9 +447,16 @@ def set_up_probability_cube(data, thresholds, variable_name='air_temperature',
     return cube
 
 
-def add_coordinate(incube, coord_points, coord_name, coord_units=None,
-                   dtype=np.float32, order=None, is_datetime=False,
-                   attributes=None):
+def add_coordinate(
+    incube,
+    coord_points,
+    coord_name,
+    coord_units=None,
+    dtype=np.float32,
+    order=None,
+    is_datetime=False,
+    attributes=None,
+):
     """
     Function to duplicate a sample cube with an additional coordinate to create
     a cubelist. The cubelist is merged to create a single cube, which can be
@@ -445,14 +509,23 @@ def add_coordinate(incube, coord_points, coord_name, coord_units=None,
     for val in coord_points:
         temp_cube = cube.copy()
         temp_cube.add_aux_coord(
-            DimCoord(np.array([val], dtype=dtype), long_name=coord_name,
-                     units=coord_units, attributes=attributes))
+            DimCoord(
+                np.array([val], dtype=dtype),
+                long_name=coord_name,
+                units=coord_units,
+                attributes=attributes,
+            )
+        )
 
         # recalculate forecast period if time or frt have been updated
-        if ("time" in coord_name and coord_units is not None
-                and Unit(coord_units).is_time_reference()):
+        if (
+            "time" in coord_name
+            and coord_units is not None
+            and Unit(coord_units).is_time_reference()
+        ):
             forecast_period = forecast_period_coord(
-                temp_cube, force_lead_time_calculation=True)
+                temp_cube, force_lead_time_calculation=True
+            )
             try:
                 temp_cube.replace_coord(forecast_period)
             except CoordinateNotFoundError:

@@ -38,17 +38,19 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            coefficients: cli.inputcube = None,
-            land_sea_mask: cli.inputcube = None,
-            *,
-            distribution,
-            realizations_count: int = None,
-            randomise=False,
-            random_seed: int = None,
-            ignore_ecc_bounds=False,
-            predictor='mean',
-            shape_parameters: cli.comma_separated_list = None):
+def process(
+    cube: cli.inputcube,
+    coefficients: cli.inputcube = None,
+    land_sea_mask: cli.inputcube = None,
+    *,
+    distribution,
+    realizations_count: int = None,
+    randomise=False,
+    random_seed: int = None,
+    ignore_ecc_bounds=False,
+    predictor="mean",
+    shape_parameters: cli.comma_separated_list = None,
+):
     """Applying coefficients for Ensemble Model Output Statistics.
 
     Load in arguments for applying coefficients for Ensemble Model Output
@@ -135,23 +137,24 @@ def process(cube: cli.inputcube,
 
     from improver.calibration.ensemble_calibration import ApplyEMOS
 
-    if cube.name() in ['emos_coefficients', 'land_binary_mask']:
+    if cube.name() in ["emos_coefficients", "land_binary_mask"]:
         msg = "Invalid forecast cube provided (name '{}')"
         raise ValueError(msg.format(cube.name()))
 
     if coefficients is None:
-        msg = ("There are no coefficients provided for calibration. The "
-               "uncalibrated forecast will be returned.")
+        msg = (
+            "There are no coefficients provided for calibration. The "
+            "uncalibrated forecast will be returned."
+        )
         warnings.warn(msg)
         return cube
 
-    if coefficients.name() != 'emos_coefficients':
+    if coefficients.name() != "emos_coefficients":
         msg = "Invalid coefficients cube provided (name '{}')"
         raise ValueError(msg.format(coefficients.name()))
 
-    if land_sea_mask and land_sea_mask.name() != 'land_binary_mask':
-        msg = ("The land_sea_mask cube does not have the "
-               "name 'land_binary_mask'")
+    if land_sea_mask and land_sea_mask.name() != "land_binary_mask":
+        msg = "The land_sea_mask cube does not have the " "name 'land_binary_mask'"
         raise ValueError(msg)
 
     if shape_parameters:
@@ -159,10 +162,16 @@ def process(cube: cli.inputcube,
 
     calibration_plugin = ApplyEMOS()
     result = calibration_plugin(
-        cube, coefficients, land_sea_mask=land_sea_mask,
+        cube,
+        coefficients,
+        land_sea_mask=land_sea_mask,
         realizations_count=realizations_count,
-        ignore_ecc_bounds=ignore_ecc_bounds, predictor=predictor,
-        distribution=distribution, shape_parameters=shape_parameters,
-        randomise=randomise, random_seed=random_seed)
+        ignore_ecc_bounds=ignore_ecc_bounds,
+        predictor=predictor,
+        distribution=distribution,
+        shape_parameters=shape_parameters,
+        randomise=randomise,
+        random_seed=random_seed,
+    )
 
     return result

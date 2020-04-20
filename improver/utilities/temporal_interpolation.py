@@ -32,15 +32,14 @@
 
 from datetime import datetime, timedelta
 
-import numpy as np
 import iris
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
-from improver.utilities.spatial import (
-    lat_lon_determine, transform_grid_to_lat_lon)
+from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 from improver.utilities.temporal import iris_time_to_datetime
 
 
@@ -53,8 +52,9 @@ class TemporalInterpolation(BasePlugin):
     not available at these times.
     """
 
-    def __init__(self, interval_in_minutes=None, times=None,
-                 interpolation_method='linear'):
+    def __init__(
+        self, interval_in_minutes=None, times=None, interpolation_method="linear"
+    ):
         """
         Initialise class.
 
@@ -80,27 +80,35 @@ class TemporalInterpolation(BasePlugin):
 
         """
         if interval_in_minutes is None and times is None:
-            raise ValueError("TemporalInterpolation: One of "
-                             "'interval_in_minutes' or 'times' must be set. "
-                             "Currently both are none.")
+            raise ValueError(
+                "TemporalInterpolation: One of "
+                "'interval_in_minutes' or 'times' must be set. "
+                "Currently both are none."
+            )
         if interval_in_minutes is not None and times is not None:
-            raise ValueError("TemporalInterpolation: Only one of "
-                             "'interval_in_minutes' or 'times' must be set. "
-                             "Currently both are set.")
+            raise ValueError(
+                "TemporalInterpolation: Only one of "
+                "'interval_in_minutes' or 'times' must be set. "
+                "Currently both are set."
+            )
         self.interval_in_minutes = interval_in_minutes
         self.times = times
-        known_interpolation_methods = ['linear', 'solar', 'daynight']
+        known_interpolation_methods = ["linear", "solar", "daynight"]
         if interpolation_method not in known_interpolation_methods:
-            raise ValueError("TemporalInterpolation: Unknown interpolation "
-                             "method {}. ".format(interpolation_method))
+            raise ValueError(
+                "TemporalInterpolation: Unknown interpolation "
+                "method {}. ".format(interpolation_method)
+            )
         self.interpolation_method = interpolation_method
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<TemporalInterpolation: interval_in_minutes: {}, '
-                  'times: {}, method: {}>')
-        return result.format(self.interval_in_minutes, self.times,
-                             self.interpolation_method)
+        result = (
+            "<TemporalInterpolation: interval_in_minutes: {}, " "times: {}, method: {}>"
+        )
+        return result.format(
+            self.interval_in_minutes, self.times, self.interpolation_method
+        )
 
     def construct_time_list(self, initial_time, final_time):
         """
@@ -135,28 +143,32 @@ class TemporalInterpolation(BasePlugin):
             self.times = sorted(self.times)
             if self.times[0] < initial_time or self.times[-1] > final_time:
                 raise ValueError(
-                    'List of times falls outside the range given by '
-                    'initial_time and final_time. ')
+                    "List of times falls outside the range given by "
+                    "initial_time and final_time. "
+                )
             time_list = self.times
         elif self.interval_in_minutes is not None:
-            if ((final_time - initial_time).seconds %
-                    (60 * self.interval_in_minutes) != 0):
-                msg = ('interval_in_minutes of {} does not'
-                       ' divide into the interval of'
-                       ' {} mins equally.'.format(
-                           self.interval_in_minutes,
-                           int((final_time - initial_time).seconds/60)))
+            if (final_time - initial_time).seconds % (
+                60 * self.interval_in_minutes
+            ) != 0:
+                msg = (
+                    "interval_in_minutes of {} does not"
+                    " divide into the interval of"
+                    " {} mins equally.".format(
+                        self.interval_in_minutes,
+                        int((final_time - initial_time).seconds / 60),
+                    )
+                )
                 raise ValueError(msg)
 
             time_entry = initial_time
             while True:
-                time_entry = (time_entry +
-                              timedelta(minutes=self.interval_in_minutes))
+                time_entry = time_entry + timedelta(minutes=self.interval_in_minutes)
                 if time_entry >= final_time:
                     break
                 time_list.append(time_entry)
 
-        return [('time', time_list)]
+        return [("time", time_list)]
 
     @staticmethod
     def enforce_time_coords_dtype(cube):
@@ -184,18 +196,17 @@ class TemporalInterpolation(BasePlugin):
 
         """
         coord_dtypes = {
-            'time': np.int64,
-            'forecast_reference_time': np.int64,
-            'forecast_period': np.int32,
-            }
+            "time": np.int64,
+            "forecast_reference_time": np.int64,
+            "forecast_period": np.int32,
+        }
         coord_units = {
-            'time': "seconds since 1970-01-01 00:00:00",
-            'forecast_reference_time': "seconds since 1970-01-01 00:00:00",
-            'forecast_period': "seconds",
-            }
+            "time": "seconds since 1970-01-01 00:00:00",
+            "forecast_reference_time": "seconds since 1970-01-01 00:00:00",
+            "forecast_period": "seconds",
+        }
 
-        for coord_name in ["time", "forecast_reference_time",
-                           "forecast_period"]:
+        for coord_name in ["time", "forecast_reference_time", "forecast_period"]:
             if cube.coords(coord_name):
                 coord = cube.coord(coord_name)
                 coord.convert_units(coord_units[coord_name])
@@ -203,8 +214,7 @@ class TemporalInterpolation(BasePlugin):
                 coord.points = coord.points.astype(coord_dtypes[coord_name])
                 if hasattr(coord, "bounds") and coord.bounds is not None:
                     coord.bounds = np.around(coord.bounds)
-                    coord.bounds = (
-                        coord.bounds.astype(coord_dtypes[coord_name]))
+                    coord.bounds = coord.bounds.astype(coord_dtypes[coord_name])
         return cube
 
     @staticmethod
@@ -226,8 +236,9 @@ class TemporalInterpolation(BasePlugin):
         """
         day_of_year = (dtval - datetime(dtval.year, 1, 1)).days
         utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
-        sin_phi = calc_solar_elevation(lats, lons, day_of_year,
-                                       utc_hour, return_sine=True)
+        sin_phi = calc_solar_elevation(
+            lats, lons, day_of_year, utc_hour, return_sine=True
+        )
         return sin_phi
 
     @staticmethod
@@ -250,12 +261,11 @@ class TemporalInterpolation(BasePlugin):
         """
         trg_crs = lat_lon_determine(cube)
         if trg_crs is not None:
-            xycube = next(cube.slices([cube.coord(axis='y'),
-                                       cube.coord(axis='x')]))
+            xycube = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
             lats, lons = transform_grid_to_lat_lon(xycube)
         else:
-            lats_row = cube.coord('latitude').points
-            lons_col = cube.coord('longitude').points
+            lats_row = cube.coord("latitude").points
+            lons_col = cube.coord("longitude").points
             lats = np.repeat(lats_row[:, np.newaxis], len(lons_col), axis=1)
             lons = np.repeat(lons_col[np.newaxis, :], len(lats_row), axis=0)
         return lats, lons
@@ -286,7 +296,7 @@ class TemporalInterpolation(BasePlugin):
         (lats, lons) = self.calc_lats_lons(diag_cube)
         prev_data = diag_cube[0].data
         next_data = diag_cube[1].data
-        dtvals = iris_time_to_datetime(diag_cube.coord('time'))
+        dtvals = iris_time_to_datetime(diag_cube.coord("time"))
         # Calculate sine of solar elevation for cube valid at the
         # beginning of the period.
         dtval_prev = dtvals[0]
@@ -298,10 +308,10 @@ class TemporalInterpolation(BasePlugin):
         # Length of time between beginning and end in seconds
         diff_step = (dtval_next - dtval_prev).seconds
 
-        for single_time in interpolated_cube.slices_over('time'):
+        for single_time in interpolated_cube.slices_over("time"):
             # Calculate sine of solar elevation for cube at this
             # interpolated time.
-            dtval_interp = iris_time_to_datetime(single_time.coord('time'))[0]
+            dtval_interp = iris_time_to_datetime(single_time.coord("time"))[0]
             sin_phi_interp = self.calc_sin_phi(dtval_interp, lats, lons)
             # Length of time between beginning and interpolated time in seconds
             diff_interp = (dtval_interp - dtval_prev).seconds
@@ -319,19 +329,17 @@ class TemporalInterpolation(BasePlugin):
             # has more than x and y coordinates
             # the calculation needs to adapted to accommodate this.
             if len(single_time.shape) > 2:
-                prevv = (
-                    prev_data[..., sun_up[0], sun_up[1]]/sin_phi_prev[sun_up])
-                nextv = (
-                    next_data[..., sun_up[0], sun_up[1]]/sin_phi_next[sun_up])
-                single_time.data[..., sun_up[0], sun_up[1]] = (
-                    sin_phi_interp[sun_up] *
-                    (prevv + (nextv - prevv) * (diff_interp/diff_step)))
+                prevv = prev_data[..., sun_up[0], sun_up[1]] / sin_phi_prev[sun_up]
+                nextv = next_data[..., sun_up[0], sun_up[1]] / sin_phi_next[sun_up]
+                single_time.data[..., sun_up[0], sun_up[1]] = sin_phi_interp[sun_up] * (
+                    prevv + (nextv - prevv) * (diff_interp / diff_step)
+                )
             else:
-                prevv = prev_data[sun_up]/sin_phi_prev[sun_up]
-                nextv = next_data[sun_up]/sin_phi_next[sun_up]
-                single_time.data[sun_up] = (sin_phi_interp[sun_up] *
-                                            (prevv + (nextv - prevv)
-                                             * (diff_interp/diff_step)))
+                prevv = prev_data[sun_up] / sin_phi_prev[sun_up]
+                nextv = next_data[sun_up] / sin_phi_next[sun_up]
+                single_time.data[sun_up] = sin_phi_interp[sun_up] * (
+                    prevv + (nextv - prevv) * (diff_interp / diff_step)
+                )
             # cube with new data added to interpolated_cubes cube List.
             interpolated_cubes.append(single_time)
         return interpolated_cubes
@@ -358,7 +366,7 @@ class TemporalInterpolation(BasePlugin):
         daynightplugin = DayNightMask()
         daynight_mask = daynightplugin(interpolated_cube)
 
-        for i, single_time in enumerate(interpolated_cube.slices_over('time')):
+        for i, single_time in enumerate(interpolated_cube.slices_over("time")):
             index = np.where(daynight_mask.data[i] == daynightplugin.night)
             if len(single_time.shape) > 2:
                 single_time.data[..., index[0], index[1]] = 0.0
@@ -393,48 +401,52 @@ class TemporalInterpolation(BasePlugin):
             ValueError: The input cubes are ordered such that the initial time
                         cube has a later validity time than the final cube.
         """
-        if (not isinstance(cube_t0, iris.cube.Cube) or
-                not isinstance(cube_t1, iris.cube.Cube)):
-            msg = ('Inputs to TemporalInterpolation are not of type '
-                   'iris.cube.Cube, first input is type '
-                   '{}, second input is type {}'.format(type(cube_t0),
-                                                        type(cube_t1)))
+        if not isinstance(cube_t0, iris.cube.Cube) or not isinstance(
+            cube_t1, iris.cube.Cube
+        ):
+            msg = (
+                "Inputs to TemporalInterpolation are not of type "
+                "iris.cube.Cube, first input is type "
+                "{}, second input is type {}".format(type(cube_t0), type(cube_t1))
+            )
             raise TypeError(msg)
 
         try:
-            initial_time, = iris_time_to_datetime(cube_t0.coord('time'))
-            final_time, = iris_time_to_datetime(cube_t1.coord('time'))
+            (initial_time,) = iris_time_to_datetime(cube_t0.coord("time"))
+            (final_time,) = iris_time_to_datetime(cube_t1.coord("time"))
         except CoordinateNotFoundError:
-            msg = ('Cube provided to TemporalInterpolation contains no time '
-                   'coordinate.')
+            msg = (
+                "Cube provided to TemporalInterpolation contains no time " "coordinate."
+            )
             raise CoordinateNotFoundError(msg)
         except ValueError:
-            msg = ('Cube provided to TemporalInterpolation contains multiple '
-                   'validity times, only one expected.')
+            msg = (
+                "Cube provided to TemporalInterpolation contains multiple "
+                "validity times, only one expected."
+            )
             raise ValueError(msg)
 
         if initial_time > final_time:
-            raise ValueError('TemporalInterpolation input cubes '
-                             'ordered incorrectly'
-                             ', with the final time being before the initial '
-                             'time.')
+            raise ValueError(
+                "TemporalInterpolation input cubes "
+                "ordered incorrectly"
+                ", with the final time being before the initial "
+                "time."
+            )
 
         time_list = self.construct_time_list(initial_time, final_time)
         cubes = iris.cube.CubeList([cube_t0, cube_t1])
         cube = MergeCubes()(cubes)
 
-        interpolated_cube = cube.interpolate(time_list,
-                                             iris.analysis.Linear())
+        interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
         self.enforce_time_coords_dtype(interpolated_cube)
         interpolated_cubes = iris.cube.CubeList()
-        if self.interpolation_method == 'solar':
-            interpolated_cubes = self.solar_interpolate(cube,
-                                                        interpolated_cube)
-        elif self.interpolation_method == 'daynight':
-            interpolated_cubes = (
-                self.daynight_interpolate(interpolated_cube))
+        if self.interpolation_method == "solar":
+            interpolated_cubes = self.solar_interpolate(cube, interpolated_cube)
+        elif self.interpolation_method == "daynight":
+            interpolated_cubes = self.daynight_interpolate(interpolated_cube)
         else:
-            for single_time in interpolated_cube.slices_over('time'):
+            for single_time in interpolated_cube.slices_over("time"):
                 interpolated_cubes.append(single_time)
 
         return interpolated_cubes

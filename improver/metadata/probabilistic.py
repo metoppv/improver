@@ -47,10 +47,11 @@ def probability_cube_name_regex(cube_name):
             Probability cube name
     """
     regex = re.compile(
-        '(probability_of_)'  # always starts this way
-        '(?P<diag>.*?)'      # named group for the diagnostic name
-        '(_in_vicinity|)'    # optional group, may be empty
-        '(?P<thresh>_above_threshold|_below_threshold|_between_thresholds|$)')
+        "(probability_of_)"  # always starts this way
+        "(?P<diag>.*?)"  # named group for the diagnostic name
+        "(_in_vicinity|)"  # optional group, may be empty
+        "(?P<thresh>_above_threshold|_below_threshold|_between_thresholds|$)"
+    )
     return regex.match(cube_name)
 
 
@@ -69,8 +70,9 @@ def in_vicinity_name_format(cube_name):
             'probability_of_X_in_vicinity_above_threshold'.
     """
     regex = probability_cube_name_regex(cube_name)
-    new_cube_name = 'probability_of_{diag}_in_vicinity{thresh}'.format(
-        **regex.groupdict())
+    new_cube_name = "probability_of_{diag}_in_vicinity{thresh}".format(
+        **regex.groupdict()
+    )
     return new_cube_name
 
 
@@ -94,10 +96,11 @@ def extract_diagnostic_name(cube_name):
             expression (ie if cube_name_regex(cube_name) returns None).
     """
     try:
-        diagnostic_name = probability_cube_name_regex(cube_name).group('diag')
+        diagnostic_name = probability_cube_name_regex(cube_name).group("diag")
     except AttributeError:
         raise ValueError(
-            'Input {} is not a valid probability cube name'.format(cube_name))
+            "Input {} is not a valid probability cube name".format(cube_name)
+        )
     return diagnostic_name
 
 
@@ -120,8 +123,10 @@ def find_threshold_coordinate(cube):
         CoordinateNotFoundError: If no threshold coordinate is found.
     """
     if not isinstance(cube, iris.cube.Cube):
-        msg = ('Expecting data to be an instance of '
-               'iris.cube.Cube but is {0}.'.format(type(cube)))
+        msg = (
+            "Expecting data to be an instance of "
+            "iris.cube.Cube but is {0}.".format(type(cube))
+        )
         raise TypeError(msg)
 
     threshold_coord = None
@@ -134,8 +139,7 @@ def find_threshold_coordinate(cube):
                 break
 
     if threshold_coord is None:
-        msg = ('No threshold coord found on {0:s} data'.format(
-               cube.name()))
+        msg = "No threshold coord found on {0:s} data".format(cube.name())
         raise CoordinateNotFoundError(msg)
 
     return threshold_coord
@@ -156,25 +160,25 @@ def find_percentile_coordinate(cube):
         ValueError: If there is more than one percentile coords in the cube.
     """
     if not isinstance(cube, iris.cube.Cube):
-        msg = ('Expecting data to be an instance of '
-               'iris.cube.Cube but is {0}.'.format(type(cube)))
+        msg = (
+            "Expecting data to be an instance of "
+            "iris.cube.Cube but is {0}.".format(type(cube))
+        )
         raise TypeError(msg)
     standard_name = cube.name()
     perc_coord = None
     perc_found = 0
     for coord in cube.coords():
-        if coord.name().find('percentile') >= 0:
+        if coord.name().find("percentile") >= 0:
             perc_found += 1
             perc_coord = coord
 
     if perc_found == 0:
-        msg = ('No percentile coord found on {0:s} data'.format(
-               standard_name))
+        msg = "No percentile coord found on {0:s} data".format(standard_name)
         raise CoordinateNotFoundError(msg)
 
     if perc_found > 1:
-        msg = ('Too many percentile coords found on {0:s} data'.format(
-               standard_name))
+        msg = "Too many percentile coords found on {0:s} data".format(standard_name)
         raise ValueError(msg)
 
     return perc_coord

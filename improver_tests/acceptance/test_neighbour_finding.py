@@ -54,9 +54,7 @@ def test_nearest(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, landmask_path,
-            sites_path,
-            "--output", output_path]
+    args = [orography_path, landmask_path, sites_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -70,10 +68,14 @@ def test_nearest_land(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, landmask_path,
-            sites_path,
-            "--land-constraint",
-            "--output", output_path]
+    args = [
+        orography_path,
+        landmask_path,
+        sites_path,
+        "--land-constraint",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -88,11 +90,16 @@ def test_nearest_minimum_dz(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, landmask_path,
-            sites_path,
-            "--similar-altitude",
-            "--search-radius", "50000",
-            "--output", output_path]
+    args = [
+        orography_path,
+        landmask_path,
+        sites_path,
+        "--similar-altitude",
+        "--search-radius",
+        "50000",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -102,18 +109,22 @@ def test_nearest_minimum_dz(tmp_path, domain, model):
 def test_nearest_land_minimum_dz(tmp_path, domain, model):
     """Test neighbour finding with land constraint plus min altitude diff"""
     kgo_dir = acc.kgo_root() / "neighbour-finding"
-    kgo_path = kgo_dir / \
-        f"outputs/nearest_land_constraint_minimum_dz_{domain}_kgo.nc"
+    kgo_path = kgo_dir / f"outputs/nearest_land_constraint_minimum_dz_{domain}_kgo.nc"
     sites_path = kgo_dir / f"inputs/{domain}_sites.json"
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, landmask_path,
-            sites_path,
-            "--land-constraint",
-            "--similar-altitude",
-            "--search-radius", "50000",
-            "--output", output_path]
+    args = [
+        orography_path,
+        landmask_path,
+        sites_path,
+        "--land-constraint",
+        "--similar-altitude",
+        "--search-radius",
+        "50000",
+        "--output",
+        output_path,
+    ]
     if domain == "uk":
         args += ["--node-limit", "100"]
     run_cli(args)
@@ -130,10 +141,14 @@ def test_all_methods(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, landmask_path,
-            sites_path,
-            "--all-methods",
-            "--output", output_path]
+    args = [
+        orography_path,
+        landmask_path,
+        sites_path,
+        "--all-methods",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -147,20 +162,29 @@ def test_alternative_coordinate_system(tmp_path):
     orography_path = kgo_dir / "inputs/global_orography.nc"
     landmask_path = kgo_dir / "inputs/global_landmask.nc"
     output_path = tmp_path / "output.nc"
-    coord_opts = {"central_latitude": 54.9,
-                  "central_longitude": -2.5,
-                  "false_easting": 0.0,
-                  "false_northing": 0.0,
-                  "globe": {"semimajor_axis": 6378137.0,
-                            "semiminor_axis": 6356752.314140356}}
+    coord_opts = {
+        "central_latitude": 54.9,
+        "central_longitude": -2.5,
+        "false_easting": 0.0,
+        "false_northing": 0.0,
+        "globe": {"semimajor_axis": 6378137.0, "semiminor_axis": 6356752.314140356},
+    }
     coord_opts_json = json.dumps(coord_opts)
-    args = [orography_path, landmask_path,
-            sites_path,
-            "--site-coordinate-system", "LambertAzimuthalEqualArea",
-            "--site-coordinate-options", coord_opts_json,
-            "--site-x-coordinate", "projection_x_coordinate",
-            "--site-y-coordinate", "projection_y_coordinate",
-            "--output", output_path]
+    args = [
+        orography_path,
+        landmask_path,
+        sites_path,
+        "--site-coordinate-system",
+        "LambertAzimuthalEqualArea",
+        "--site-coordinate-options",
+        coord_opts_json,
+        "--site-x-coordinate",
+        "projection_x_coordinate",
+        "--site-y-coordinate",
+        "projection_y_coordinate",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -172,11 +196,15 @@ def test_incompatible_constraints(tmp_path):
     orography_path = kgo_dir / "inputs/ukvx_orography.nc"
     landmask_path = kgo_dir / "inputs/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, landmask_path,
-            sites_path,
-            "--land-constraint",
-            "--all-methods",
-            "--output", output_path]
+    args = [
+        orography_path,
+        landmask_path,
+        sites_path,
+        "--land-constraint",
+        "--all-methods",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(ValueError, match=".*all_methods.*"):
         run_cli(args)
 
@@ -189,9 +217,7 @@ def test_invalid_site(tmp_path):
     orography_path = kgo_dir / "inputs/global_orography.nc"
     landmask_path = kgo_dir / "inputs/global_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, landmask_path,
-            sites_path,
-            "--output", output_path]
+    args = [orography_path, landmask_path, sites_path, "--output", output_path]
     with pytest.warns(UserWarning, match=".*outside the grid.*"):
         run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -205,9 +231,7 @@ def test_coord_beyond_bounds(tmp_path):
     orography_path = kgo_dir / "inputs/global_orography.nc"
     landmask_path = kgo_dir / "inputs/global_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, landmask_path,
-            sites_path,
-            "--output", output_path]
+    args = [orography_path, landmask_path, sites_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path, exclude_vars=["longitude"])
 
@@ -220,8 +244,6 @@ def test_unset_wmo_ids(tmp_path):
     orography_path = kgo_dir / "inputs/ukvx_orography.nc"
     landmask_path = kgo_dir / "inputs/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, landmask_path,
-            sites_path,
-            "--output", output_path]
+    args = [orography_path, landmask_path, sites_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
