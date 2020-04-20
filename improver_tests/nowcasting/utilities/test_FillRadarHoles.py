@@ -31,12 +31,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the FillRadarHoles plugin"""
 
-import pytest
 import numpy as np
-from numpy.ma import MaskedArray
+import pytest
 from iris.cube import Cube
+from numpy.ma import MaskedArray
 
 from improver.nowcasting.utilities import FillRadarHoles
+
 from ...set_up_test_cubes import set_up_variable_cube
 
 
