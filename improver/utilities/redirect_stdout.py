@@ -31,8 +31,8 @@
 """Contains a class to trap stdout. Deprecated from PySteps v1.1.0 in favour
 of adding "silent_import=True" to the pyconfig file."""
 
-import sys
 import contextlib
+import sys
 
 
 @contextlib.contextmanager

@@ -39,7 +39,9 @@ import numpy as np
 
 from improver.utilities.load import load_cube
 from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, calculate_grid_spacing)
+    calculate_grid_spacing,
+    check_if_grid_is_equal_area,
+)
 
 
 class PystepsImporter(object):

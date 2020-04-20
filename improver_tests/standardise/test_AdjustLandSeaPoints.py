@@ -32,8 +32,8 @@
 
 import unittest
 
-import numpy as np
 import iris
+import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -57,17 +57,21 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test that instantiating the class results in an object with
         expected variables."""
-        expected_members = {'nearest_cube': None,
-                            'input_land': None,
-                            'output_land': None,
-                            'output_cube': None}
+        expected_members = {
+            "nearest_cube": None,
+            "input_land": None,
+            "output_land": None,
+            "output_cube": None,
+        }
         result = AdjustLandSeaPoints()
-        members = {attr: getattr(result, attr) for attr in dir(result)
-                   if not attr.startswith("_")}
-        non_methods = {key: val for key, val in members.items()
-                       if not callable(val)}
-        regridder = non_methods.pop('regridder')
-        vicinity = members.pop('vicinity')
+        members = {
+            attr: getattr(result, attr)
+            for attr in dir(result)
+            if not attr.startswith("_")
+        }
+        non_methods = {key: val for key, val in members.items() if not callable(val)}
+        regridder = non_methods.pop("regridder")
+        vicinity = members.pop("vicinity")
         self.assertDictEqual(non_methods, expected_members)
         self.assertTrue(isinstance(regridder, iris.analysis.Nearest))
         self.assertTrue(isinstance(vicinity, OccurrenceWithinVicinity))
@@ -75,7 +79,7 @@ class Test__init__(IrisTest):
     def test_extrap_arg(self):
         """Test with extrapolation_mode argument."""
         result = AdjustLandSeaPoints(extrapolation_mode="mask")
-        regridder = getattr(result, 'regridder')
+        regridder = getattr(result, "regridder")
         self.assertTrue(isinstance(regridder, iris.analysis.Nearest))
 
     def test_extrap_arg_error(self):
@@ -86,10 +90,10 @@ class Test__init__(IrisTest):
 
     def test_vicinity_arg(self):
         """Test with vicinity_radius argument."""
-        result = AdjustLandSeaPoints(vicinity_radius=30000.)
-        vicinity = getattr(result, 'vicinity')
+        result = AdjustLandSeaPoints(vicinity_radius=30000.0)
+        vicinity = getattr(result, "vicinity")
         self.assertTrue(isinstance(vicinity, OccurrenceWithinVicinity))
-        self.assertEqual(vicinity.distance, 30000.)
+        self.assertEqual(vicinity.distance, 30000.0)
 
     def test_vicinity_arg_error(self):
         """Test with invalid vicinity_radius argument.
@@ -103,8 +107,10 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the expected string is returned."""
-        expected = ("<AdjustLandSeaPoints: regridder: Nearest('nanmask'); "
-                    "vicinity: <OccurrenceWithinVicinity: distance: 25000.0>>")
+        expected = (
+            "<AdjustLandSeaPoints: regridder: Nearest('nanmask'); "
+            "vicinity: <OccurrenceWithinVicinity: distance: 25000.0>>"
+        )
         result = repr(AdjustLandSeaPoints())
         self.assertEqual(result, expected)
 
@@ -122,18 +128,18 @@ class Test_correct_where_input_true(IrisTest):
         this allows it to be used in place of input_land to trigger the
         expected behaviour in the function.
         """
-        self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.)
+        self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.0)
         cube = squeeze(
-            set_up_cube(num_grid_points=3,
-                        zero_point_indices=((0, 0, 1, 1),)))
+            set_up_cube(num_grid_points=3, zero_point_indices=((0, 0, 1, 1),))
+        )
         self.plugin.input_land = cube.copy()
         self.plugin.output_land = cube.copy()
         self.plugin.nearest_cube = cube.copy()
         self.plugin.nearest_cube.data[0, 1] = 0.5
         self.plugin.output_cube = self.plugin.nearest_cube.copy()
         self.move_sea_point = squeeze(
-            set_up_cube(num_grid_points=3,
-                        zero_point_indices=((0, 0, 0, 1),)))
+            set_up_cube(num_grid_points=3, zero_point_indices=((0, 0, 0, 1),))
+        )
 
     def test_basic_sea(self):
         """Test that nothing changes with argument zero (sea)."""
@@ -196,17 +202,17 @@ class Test_correct_where_input_true(IrisTest):
         # Define 5 x 5 arrays with output sea point at [1, 1] and input sea
         # point at [4, 4]. The alternative value of 0.5 at [4, 4] should not
         # be selected with a small vicinity_radius.
-        self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.)
+        self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.0)
         cube = squeeze(
-            set_up_cube(num_grid_points=5,
-                        zero_point_indices=((0, 0, 1, 1),)))
+            set_up_cube(num_grid_points=5, zero_point_indices=((0, 0, 1, 1),))
+        )
         self.plugin.output_land = cube.copy()
         self.plugin.nearest_cube = cube.copy()
         self.plugin.nearest_cube.data[4, 4] = 0.5
         self.plugin.output_cube = self.plugin.nearest_cube.copy()
         self.plugin.input_land = squeeze(
-            set_up_cube(num_grid_points=5,
-                        zero_point_indices=((0, 0, 4, 4),)))
+            set_up_cube(num_grid_points=5, zero_point_indices=((0, 0, 4, 4),))
+        )
 
         output_cube = self.plugin.output_cube.copy()
         self.plugin.correct_where_input_true(0)
@@ -214,10 +220,8 @@ class Test_correct_where_input_true(IrisTest):
 
     def test_no_matching_points(self):
         """Test code runs and makes no changes if no sea points are present."""
-        self.plugin.input_land.data = np.ones_like(
-            self.plugin.input_land.data)
-        self.plugin.output_land.data = np.ones_like(
-            self.plugin.output_land.data)
+        self.plugin.input_land.data = np.ones_like(self.plugin.input_land.data)
+        self.plugin.output_land.data = np.ones_like(self.plugin.output_land.data)
         output_cube = self.plugin.output_cube.copy()
         self.plugin.correct_where_input_true(0)
         self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
@@ -225,10 +229,8 @@ class Test_correct_where_input_true(IrisTest):
     def test_all_matching_points(self):
         """Test code runs and makes no changes if all land points are
         present."""
-        self.plugin.input_land.data = np.ones_like(
-            self.plugin.input_land.data)
-        self.plugin.output_land.data = np.ones_like(
-            self.plugin.output_land.data)
+        self.plugin.input_land.data = np.ones_like(self.plugin.input_land.data)
+        self.plugin.output_land.data = np.ones_like(self.plugin.output_land.data)
         output_cube = self.plugin.output_cube.copy()
         self.plugin.correct_where_input_true(1)
         self.assertArrayEqual(output_cube.data, self.plugin.output_cube.data)
@@ -246,42 +248,51 @@ class Test_process(IrisTest):
         input_cube: 0. at [1, 1]; 0.5 at [0, 1]; 0.1 at [4, 4]
         These should trigger all the behavior we expect.
         """
-        self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.)
+        self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.0)
 
         self.output_land = squeeze(
-            set_up_cube(num_grid_points=5,
-                        zero_point_indices=((0, 0, 1, 1),
-                                            (0, 0, 0, 0))))
+            set_up_cube(
+                num_grid_points=5, zero_point_indices=((0, 0, 1, 1), (0, 0, 0, 0))
+            )
+        )
 
         self.cube = squeeze(
-            set_up_cube(num_grid_points=5,
-                        zero_point_indices=((0, 0, 1, 1),)))
+            set_up_cube(num_grid_points=5, zero_point_indices=((0, 0, 1, 1),))
+        )
         self.cube.data[0, 1] = 0.5
         self.cube.data[4, 4] = 0.1
 
         self.input_land = squeeze(
-            set_up_cube(num_grid_points=5,
-                        zero_point_indices=((0, 0, 0, 1),
-                                            (0, 0, 4, 4))))
+            set_up_cube(
+                num_grid_points=5, zero_point_indices=((0, 0, 0, 1), (0, 0, 4, 4))
+            )
+        )
 
         # Lat-lon coords for reprojection
         # These coords result in a 1:1 regridding with the above cubes.
-        x_coord = DimCoord(np.linspace(-3.281, -3.153, 5),
-                           standard_name='longitude',
-                           units='degrees',
-                           coord_system=ELLIPSOID)
-        y_coord = DimCoord(np.linspace(54.896, 54.971, 5),
-                           standard_name='latitude',
-                           units='degrees',
-                           coord_system=ELLIPSOID)
-        self.input_land_ll = Cube(self.input_land.data,
-                                  long_name='land_sea_mask',
-                                  units='1',
-                                  dim_coords_and_dims=[(y_coord, 0),
-                                                       (x_coord, 1)])
+        x_coord = DimCoord(
+            np.linspace(-3.281, -3.153, 5),
+            standard_name="longitude",
+            units="degrees",
+            coord_system=ELLIPSOID,
+        )
+        y_coord = DimCoord(
+            np.linspace(54.896, 54.971, 5),
+            standard_name="latitude",
+            units="degrees",
+            coord_system=ELLIPSOID,
+        )
+        self.input_land_ll = Cube(
+            self.input_land.data,
+            long_name="land_sea_mask",
+            units="1",
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
+        )
 
-    @ManageWarnings(ignored_messages=["Using a non-tuple sequence for "],
-                    warning_types=[FutureWarning])
+    @ManageWarnings(
+        ignored_messages=["Using a non-tuple sequence for "],
+        warning_types=[FutureWarning],
+    )
     def test_basic(self):
         """Test that the expected changes occur and meta-data are unchanged."""
         expected = self.cube.data.copy()
@@ -290,20 +301,17 @@ class Test_process(IrisTest):
         # Output sea-point populated with data from input sea-point:
         expected[1, 1] = 0.5
         # Output land-point populated with data from input land-point:
-        expected[0, 1] = 1.
+        expected[0, 1] = 1.0
         # Output land-point populated with data from input sea-point due to
         # vicinity-constraint:
-        expected[4, 4] = 1.
-        result = self.plugin.process(self.cube,
-                                     self.input_land,
-                                     self.output_land)
+        expected[4, 4] = 1.0
+        result = self.plugin.process(self.cube, self.input_land, self.output_land)
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.data, expected)
         self.assertDictEqual(result.attributes, self.cube.attributes)
         self.assertEqual(result.name(), self.cube.name())
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES,
-                    warning_types=WARNING_TYPES)
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_with_regridding(self):
         """Test when input grid is on a different projection."""
         self.input_land = self.input_land_ll
@@ -313,25 +321,22 @@ class Test_process(IrisTest):
         # Output sea-point populated with data from input sea-point:
         expected[1, 1] = 0.5
         # Output land-point populated with data from input land-point:
-        expected[0, 1] = 1.
+        expected[0, 1] = 1.0
         # Output land-point populated with data from input sea-point due to
         # vicinity-constraint:
-        expected[4, 4] = 1.
-        result = self.plugin.process(self.cube,
-                                     self.input_land,
-                                     self.output_land)
+        expected[4, 4] = 1.0
+        result = self.plugin.process(self.cube, self.input_land, self.output_land)
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.data, expected)
         self.assertDictEqual(result.attributes, self.cube.attributes)
         self.assertEqual(result.name(), self.cube.name())
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES,
-                    warning_types=WARNING_TYPES)
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_multi_realization(self):
         """Test that the expected changes occur and meta-data are unchanged
         when handling a multi-realization cube."""
         cube = self.cube.copy()
-        cube.coord('realization').points = [1]
+        cube.coord("realization").points = [1]
         cubes = iris.cube.CubeList([self.cube, cube])
         cube = cubes.merge_cube()
 
@@ -342,13 +347,11 @@ class Test_process(IrisTest):
         # Output sea-point populated with data from input sea-point:
         expected[:, 1, 1] = 0.5
         # Output land-point populated with data from input land-point:
-        expected[:, 0, 1] = 1.
+        expected[:, 0, 1] = 1.0
         # Output land-point populated with data from input sea-point due to
         # vicinity-constraint:
-        expected[:, 4, 4] = 1.
-        result = self.plugin.process(cube,
-                                     self.input_land,
-                                     self.output_land)
+        expected[:, 4, 4] = 1.0
+        result = self.plugin.process(cube, self.input_land, self.output_land)
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.data, expected)
         self.assertDictEqual(result.attributes, self.cube.attributes)
@@ -359,10 +362,8 @@ class Test_process(IrisTest):
         self.cube = self.input_land_ll
         msg = "X and Y coordinates do not match for cubes"
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process(self.cube,
-                                self.input_land,
-                                self.output_land)
+            self.plugin.process(self.cube, self.input_land, self.output_land)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -44,9 +44,15 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [perc_input, "--output", output_path,
-            "--coordinates", "realization",
-            "--percentiles", "25.0,50,75.0"]
+    args = [
+        perc_input,
+        "--output",
+        output_path,
+        "--coordinates",
+        "realization",
+        "--percentiles",
+        "25.0,50,75.0",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -59,9 +65,15 @@ def test_probconvert(tmp_path, count):
     kgo_path = kgo_dir / f"{count}_realization_kgo.nc"
     prob_input = kgo_dir / f"{count}_realization.nc"
     output_path = tmp_path / "output.nc"
-    args = [prob_input, "--output", output_path,
-            "--coordinates", "realization",
-            "--percentiles", "25,50,75"]
+    args = [
+        prob_input,
+        "--output",
+        output_path,
+        "--coordinates",
+        "realization",
+        "--percentiles",
+        "25,50,75",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -72,9 +84,15 @@ def test_num_percentiles(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [perc_input, "--output", output_path,
-            "--coordinates", "realization",
-            "--percentiles-count", "3"]
+    args = [
+        perc_input,
+        "--output",
+        output_path,
+        "--coordinates",
+        "realization",
+        "--percentiles-count",
+        "3",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -85,9 +103,15 @@ def test_masked(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [perc_input, "--output", output_path,
-            "--coordinates", "realization",
-            "--percentiles", "25.0,50,75.0"]
+    args = [
+        perc_input,
+        "--output",
+        output_path,
+        "--coordinates",
+        "realization",
+        "--percentiles",
+        "25.0,50,75.0",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -99,9 +123,15 @@ def test_eccbounds(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [perc_input, "--output", output_path,
-            "--coordinates", "realization",
-            "--percentiles", "25,50,75",
-            "--ignore-ecc-bounds"]
+    args = [
+        perc_input,
+        "--output",
+        output_path,
+        "--coordinates",
+        "realization",
+        "--percentiles",
+        "25,50,75",
+        "--ignore-ecc-bounds",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

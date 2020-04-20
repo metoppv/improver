@@ -38,21 +38,24 @@ ACCUMULATION_FIDELITY = 1
 
 # Creates the value_converter that clize needs.
 inputadvection = cli.create_constrained_inputcubelist_converter(
-    ['precipitation_advection_x_velocity', 'grid_eastward_wind'],
-    ['precipitation_advection_y_velocity', 'grid_northward_wind'])
+    ["precipitation_advection_x_velocity", "grid_eastward_wind"],
+    ["precipitation_advection_y_velocity", "grid_northward_wind"],
+)
 
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            advection_velocity: inputadvection,
-            orographic_enhancement: cli.inputcube,
-            *,
-            attributes_config: cli.inputjson = None,
-            max_lead_time=360,
-            lead_time_interval=15,
-            accumulation_period=15,
-            accumulation_units='m'):
+def process(
+    cube: cli.inputcube,
+    advection_velocity: inputadvection,
+    orographic_enhancement: cli.inputcube,
+    *,
+    attributes_config: cli.inputjson = None,
+    max_lead_time=360,
+    lead_time_interval=15,
+    accumulation_period=15,
+    accumulation_units="m",
+):
     """Module to extrapolate and accumulate the weather with 1 min fidelity.
 
     Args:
@@ -104,16 +107,16 @@ def process(cube: cli.inputcube,
     forecast_plugin = PystepsExtrapolate(ACCUMULATION_FIDELITY, max_lead_time)
     forecast_cubes = forecast_plugin(
         cube, u_cube, v_cube, orographic_enhancement,
-        attributes_dict=attributes_config)
-
-    lead_times = (np.arange(lead_time_interval, max_lead_time + 1,
-                            lead_time_interval))
+        attributes_dict=attributes_config
+    )
+    lead_times = np.arange(lead_time_interval, max_lead_time + 1, lead_time_interval)
 
     # Accumulate high frequency rate into desired accumulation intervals.
     plugin = Accumulation(
         accumulation_units=accumulation_units,
         accumulation_period=accumulation_period * 60,
-        forecast_periods=lead_times * 60)
+        forecast_periods=lead_times * 60,
+    )
     result = plugin(forecast_cubes)
 
     return MergeCubes()(result)

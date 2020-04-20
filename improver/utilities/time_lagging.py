@@ -64,8 +64,7 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
 
         # Take all the realizations from all the input cube and
         # put in one array
-        all_realizations = [
-            cube.coord("realization").points for cube in cubelist]
+        all_realizations = [cube.coord("realization").points for cube in cubelist]
         all_realizations = np.concatenate(all_realizations)
         # Find unique realizations
         unique_realizations = np.unique(all_realizations)
@@ -77,14 +76,14 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
             for cube in cubelist:
                 n_realization = len(cube.coord("realization").points)
                 cube.coord("realization").points = np.arange(
-                    first_realization, first_realization + n_realization,
-                    dtype=np.int32)
+                    first_realization, first_realization + n_realization, dtype=np.int32
+                )
                 first_realization = first_realization + n_realization
 
         # slice over realization to deal with cases where direct concatenation
         # would result in a non-monotonic coordinate
         lagged_ensemble = concatenate_cubes(
-            cubelist, master_coord="realization",
-            coords_to_slice_over=["realization"])
+            cubelist, master_coord="realization", coords_to_slice_over=["realization"]
+        )
 
         return lagged_ensemble

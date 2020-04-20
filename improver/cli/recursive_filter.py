@@ -34,17 +34,20 @@
 from improver import cli
 
 input_smoothing_coefficients = cli.create_constrained_inputcubelist_converter(
-    'smoothing_coefficient_x', 'smoothing_coefficient_y')
+    "smoothing_coefficient_x", "smoothing_coefficient_y"
+)
 
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            smoothing_coefficients: input_smoothing_coefficients,
-            mask: cli.inputcube = None,
-            *,
-            iterations: int = 1,
-            remask=False):
+def process(
+    cube: cli.inputcube,
+    smoothing_coefficients: input_smoothing_coefficients,
+    mask: cli.inputcube = None,
+    *,
+    iterations: int = 1,
+    remask=False,
+):
     """Module to apply a recursive filter to neighbourhooded data.
 
     Run a recursive filter to convert a square neighbourhood into a
@@ -76,11 +79,14 @@ def process(cube: cli.inputcube,
     """
     from improver.nbhood.recursive_filter import RecursiveFilter
 
-    smoothing_coefficients_x_cube, smoothing_coefficients_y_cube = (
-        smoothing_coefficients)
+    (
+        smoothing_coefficients_x_cube,
+        smoothing_coefficients_y_cube,
+    ) = smoothing_coefficients
     plugin = RecursiveFilter(iterations=iterations, re_mask=remask)
     return plugin(
         cube,
         smoothing_coefficients_x=smoothing_coefficients_x_cube,
         smoothing_coefficients_y=smoothing_coefficients_y_cube,
-        mask_cube=mask)
+        mask_cube=mask,
+    )

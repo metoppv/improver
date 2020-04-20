@@ -44,7 +44,7 @@ class Test_radius_by_lead_time(unittest.TestCase):
         returned objects are a float equal to the input radius and a NoneType
         representing the lead times."""
 
-        radii = ['10000']
+        radii = ["10000"]
         lead_times = None
         radii_out, lead_times_out = radius_by_lead_time(radii, lead_times)
 
@@ -57,8 +57,8 @@ class Test_radius_by_lead_time(unittest.TestCase):
         returned objects are two lists, one of radii as floats and one of lead
         times as ints."""
 
-        radii = ['10000', '20000']
-        lead_times = ['0', '10']
+        radii = ["10000", "20000"]
+        lead_times = ["0", "10"]
         radii_out, lead_times_out = radius_by_lead_time(radii, lead_times)
 
         self.assertEqual(radii_out, list(map(float, radii)))
@@ -70,8 +70,8 @@ class Test_radius_by_lead_time(unittest.TestCase):
         """Test that when multiple radii are provided with an unmatched number
         of lead times an exception is raised."""
 
-        radii = ['10000', '20000']
-        lead_times = ['0', '10', '20']
+        radii = ["10000", "20000"]
+        lead_times = ["0", "10", "20"]
 
         msg = "If leadtimes are supplied, it must be a list of equal length"
         with self.assertRaisesRegex(ValueError, msg):
@@ -81,7 +81,7 @@ class Test_radius_by_lead_time(unittest.TestCase):
         """Test that when multiple radii are provided with no lead times an
         exception is raised."""
 
-        radii = ['10000', '20000']
+        radii = ["10000", "20000"]
         lead_times = None
 
         msg = "Multiple radii have been supplied but no associated lead times."
@@ -89,5 +89,5 @@ class Test_radius_by_lead_time(unittest.TestCase):
             radius_by_lead_time(radii, lead_times)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

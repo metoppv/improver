@@ -36,11 +36,13 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube,
-            operation='+',
-            new_name=None,
-            use_midpoint=False,
-            check_metadata=False):
+def process(
+    *cubes: cli.inputcube,
+    operation="+",
+    new_name=None,
+    use_midpoint=False,
+    check_metadata=False,
+):
     r"""Combine input cubes.
 
     Combine the input cubes into a single cube using the requested operation.
@@ -67,11 +69,13 @@ def process(*cubes: cli.inputcube,
     """
     from improver.cube_combiner import CubeCombiner
     from iris.cube import CubeList
+
     if not cubes:
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubes[0].name()
     result = CubeCombiner(operation, warnings_on=check_metadata)(
-        CubeList(cubes), new_name, use_midpoint=use_midpoint)
+        CubeList(cubes), new_name, use_midpoint=use_midpoint
+    )
 
     return result

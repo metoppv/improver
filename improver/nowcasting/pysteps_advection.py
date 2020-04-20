@@ -30,20 +30,21 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Semi-Lagrangian backward advection plugin using pysteps"""
 
-import numpy as np
 from datetime import timedelta
 
+import numpy as np
 from iris.coords import AuxCoord
 
 from improver import BasePlugin
-from improver.metadata.amend import (amend_attributes, set_history_attribute)
+from improver.metadata.amend import amend_attributes, set_history_attribute
 from improver.metadata.utilities import generate_mandatory_attributes
-from improver.utilities.spatial import (
-    check_if_grid_is_equal_area, calculate_grid_spacing)
-from improver.utilities.temporal import (
-    iris_time_to_datetime, datetime_to_iris_time)
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.redirect_stdout import redirect_stdout
+from improver.utilities.spatial import (
+    calculate_grid_spacing,
+    check_if_grid_is_equal_area,
+)
+from improver.utilities.temporal import datetime_to_iris_time, iris_time_to_datetime
 
 # PySteps prints a message on import to stdout - trap this
 # This should be removed for PySteps v1.1.0 which has a configuration setting

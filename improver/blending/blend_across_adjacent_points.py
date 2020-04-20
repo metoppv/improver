@@ -76,20 +76,25 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
 
         # Set up a plugin to calculate the triangular weights.
         self.WeightsPlugin = ChooseDefaultWeightsTriangular(
-            width, units=parameter_units)
+            width, units=parameter_units
+        )
 
         # Set up the blending function, based on whether weighted blending or
         # maximum probabilities are needed.
-        self.BlendingPlugin = (
-            WeightedBlendAcrossWholeDimension(coord, timeblending=True))
+        self.BlendingPlugin = WeightedBlendAcrossWholeDimension(
+            coord, timeblending=True
+        )
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        msg = ('<TriangularWeightedBlendAcrossAdjacentPoints:'
-               ' coord = {0:s}, central_point = {1:.2f}, '
-               'parameter_units = {2:s}, width = {3:.2f}')
+        msg = (
+            "<TriangularWeightedBlendAcrossAdjacentPoints:"
+            " coord = {0:s}, central_point = {1:.2f}, "
+            "parameter_units = {2:s}, width = {3:.2f}"
+        )
         return msg.format(
-            self.coord, self.central_point, self.parameter_units, self.width)
+            self.coord, self.central_point, self.parameter_units, self.width
+        )
 
     def _find_central_point(self, cube):
         """
@@ -110,18 +115,22 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
         """
         # Convert central point into the units of the cube, so that a
         # central point can be extracted.
-        central_point = (
-            Unit(self.parameter_units).convert(
-                self.central_point, cube.coord(self.coord).units))
+        central_point = Unit(self.parameter_units).convert(
+            self.central_point, cube.coord(self.coord).units
+        )
         constr = iris.Constraint(
-            coord_values={self.coord: lambda cell:
-                          cell.point == central_point})
+            coord_values={self.coord: lambda cell: cell.point == central_point}
+        )
         central_point_cube = cube.extract(constr)
         if central_point_cube is None:
-            msg = ("The central point {} in units of {} not available "
-                   "within input cube coordinate points: {}.".format(
-                       self.central_point, self.parameter_units,
-                       cube.coord(self.coord).points))
+            msg = (
+                "The central point {} in units of {} not available "
+                "within input cube coordinate points: {}.".format(
+                    self.central_point,
+                    self.parameter_units,
+                    cube.coord(self.coord).points,
+                )
+            )
             raise ValueError(msg)
         return central_point_cube
 

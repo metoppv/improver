@@ -35,9 +35,10 @@ import unittest
 import numpy as np
 from numpy.testing import assert_array_equal
 
-from improver.utilities.warnings_handler import ManageWarnings
 from improver.utilities.interpolation import InterpolateUsingDifference
-from ..set_up_test_cubes import set_up_variable_cube, add_coordinate
+from improver.utilities.warnings_handler import ManageWarnings
+
+from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 class Test_Setup(unittest.TestCase):
@@ -46,26 +47,33 @@ class Test_Setup(unittest.TestCase):
 
     def setUp(self):
         """ Set up arrays for testing."""
-        snow_sleet = np.array([[5.0, 5.0, 5.0],
-                               [10., 10., 10.],
-                               [5.0, 5.0, 5.0]], dtype=np.float32)
-        sleet_rain = np.array([[4.0, 4.0, 4.0],
-                               [np.nan, np.nan, np.nan],
-                               [3.0, 3.0, 3.0]], dtype=np.float32)
+        snow_sleet = np.array(
+            [[5.0, 5.0, 5.0], [10.0, 10.0, 10.0], [5.0, 5.0, 5.0]], dtype=np.float32
+        )
+        sleet_rain = np.array(
+            [[4.0, 4.0, 4.0], [np.nan, np.nan, np.nan], [3.0, 3.0, 3.0]],
+            dtype=np.float32,
+        )
         sleet_rain = np.ma.masked_invalid(sleet_rain)
-        limit_data = np.array([[4.0, 4.0, 4.0],
-                               [10., 8., 6.],
-                               [4.0, 4.0, 4.0]], dtype=np.float32)
+        limit_data = np.array(
+            [[4.0, 4.0, 4.0], [10.0, 8.0, 6.0], [4.0, 4.0, 4.0]], dtype=np.float32
+        )
 
         self.snow_sleet = set_up_variable_cube(
-            snow_sleet, name="altitude_of_snow_falling_level", units='m',
-            spatial_grid='equalarea')
+            snow_sleet,
+            name="altitude_of_snow_falling_level",
+            units="m",
+            spatial_grid="equalarea",
+        )
         self.sleet_rain = set_up_variable_cube(
-            sleet_rain, name="altitude_of_rain_falling_level", units='m',
-            spatial_grid='equalarea')
+            sleet_rain,
+            name="altitude_of_rain_falling_level",
+            units="m",
+            spatial_grid="equalarea",
+        )
         self.limit = set_up_variable_cube(
-            limit_data, name="surface_altitude", units='m',
-            spatial_grid='equalarea')
+            limit_data, name="surface_altitude", units="m", spatial_grid="equalarea"
+        )
 
 
 class Test_repr(unittest.TestCase):
@@ -74,8 +82,9 @@ class Test_repr(unittest.TestCase):
 
     def test_basic(self):
         """Test expected string representation is returned."""
-        self.assertEqual(str(InterpolateUsingDifference()),
-                         "<InterpolateUsingDifference>")
+        self.assertEqual(
+            str(InterpolateUsingDifference()), "<InterpolateUsingDifference>"
+        )
 
 
 class Test__check_inputs(Test_Setup):
@@ -89,37 +98,41 @@ class Test__check_inputs(Test_Setup):
         msg = "The reference cube contains np.nan data"
         with self.assertRaisesRegex(ValueError, msg):
             InterpolateUsingDifference()._check_inputs(
-                self.sleet_rain, self.snow_sleet, None)
+                self.sleet_rain, self.snow_sleet, None
+            )
 
     def test_incompatible_reference_cube_units(self):
         """Test an exception is raised if the reference cube has units that
         are incompatible with the input cube."""
 
-        self.snow_sleet.units = 's'
+        self.snow_sleet.units = "s"
         msg = "Reference cube and/or limit do not have units compatible"
         with self.assertRaisesRegex(ValueError, msg):
             InterpolateUsingDifference()._check_inputs(
-                self.sleet_rain, self.snow_sleet, None)
+                self.sleet_rain, self.snow_sleet, None
+            )
 
     def test_incompatible_limit_units(self):
         """Test an exception is raised if the limit cube has units that
         are incompatible with the input cube."""
 
-        self.limit.units = 's'
+        self.limit.units = "s"
         msg = "Reference cube and/or limit do not have units compatible"
         with self.assertRaisesRegex(ValueError, msg):
             InterpolateUsingDifference()._check_inputs(
-                self.sleet_rain, self.snow_sleet, limit=self.limit)
+                self.sleet_rain, self.snow_sleet, limit=self.limit
+            )
 
     def test_convert_units(self):
         """Test that a reference cube and limit cube with different but
         compatible units are converted without an exception being raised."""
 
-        self.snow_sleet.convert_units('cm')
-        self.limit.convert_units('cm')
+        self.snow_sleet.convert_units("cm")
+        self.limit.convert_units("cm")
 
         InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.limit)
+            self.sleet_rain, self.snow_sleet, limit=self.limit
+        )
 
 
 class Test_process(Test_Setup):
@@ -130,12 +143,11 @@ class Test_process(Test_Setup):
         """Test interpolation to complete an incomplete field using a reference
         field. No limit is imposed upon the returned interpolated values."""
 
-        expected = np.array([[4.0, 4.0, 4.0],
-                             [8.5, 8.5, 8.5],
-                             [3.0, 3.0, 3.0]], dtype=np.float32)
+        expected = np.array(
+            [[4.0, 4.0, 4.0], [8.5, 8.5, 8.5], [3.0, 3.0, 3.0]], dtype=np.float32
+        )
 
-        result = InterpolateUsingDifference().process(self.sleet_rain,
-                                                      self.snow_sleet)
+        result = InterpolateUsingDifference().process(self.sleet_rain, self.snow_sleet)
 
         assert_array_equal(result.data, expected)
         self.assertEqual(result.coords(), self.sleet_rain.coords())
@@ -146,13 +158,13 @@ class Test_process(Test_Setup):
         field. A limit is imposed upon the returned interpolated values,
         forcing these values to the maximum limit if they exceed it."""
 
-        expected = np.array([[4.0, 4.0, 4.0],
-                             [8.5, 8.0, 6.0],
-                             [3.0, 3.0, 3.0]], dtype=np.float32)
+        expected = np.array(
+            [[4.0, 4.0, 4.0], [8.5, 8.0, 6.0], [3.0, 3.0, 3.0]], dtype=np.float32
+        )
 
         result = InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.limit,
-            limit_as_maximum=True)
+            self.sleet_rain, self.snow_sleet, limit=self.limit, limit_as_maximum=True
+        )
 
         assert_array_equal(result.data, expected)
         self.assertEqual(result.coords(), self.sleet_rain.coords())
@@ -163,13 +175,13 @@ class Test_process(Test_Setup):
         field. A limit is imposed upon the returned interpolated values,
         forcing these values to the minimum limit if they are below it."""
 
-        expected = np.array([[4.0, 4.0, 4.0],
-                             [10., 8.5, 8.5],
-                             [3.0, 3.0, 3.0]], dtype=np.float32)
+        expected = np.array(
+            [[4.0, 4.0, 4.0], [10.0, 8.5, 8.5], [3.0, 3.0, 3.0]], dtype=np.float32
+        )
 
         result = InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.limit,
-            limit_as_maximum=False)
+            self.sleet_rain, self.snow_sleet, limit=self.limit, limit_as_maximum=False
+        )
 
         assert_array_equal(result.data, expected)
         self.assertEqual(result.coords(), self.sleet_rain.coords())
@@ -181,16 +193,16 @@ class Test_process(Test_Setup):
         forcing these values to the minimum limit if they are below it. The
         inputs are multi-realization."""
 
-        snow_sleet = add_coordinate(self.snow_sleet, [0, 1], 'realization')
-        sleet_rain = add_coordinate(self.sleet_rain, [0, 1], 'realization')
+        snow_sleet = add_coordinate(self.snow_sleet, [0, 1], "realization")
+        sleet_rain = add_coordinate(self.sleet_rain, [0, 1], "realization")
 
-        expected = np.array([[4.0, 4.0, 4.0],
-                             [10., 8.5, 8.5],
-                             [3.0, 3.0, 3.0]], dtype=np.float32)
+        expected = np.array(
+            [[4.0, 4.0, 4.0], [10.0, 8.5, 8.5], [3.0, 3.0, 3.0]], dtype=np.float32
+        )
 
         result = InterpolateUsingDifference().process(
-            sleet_rain, snow_sleet, limit=self.limit,
-            limit_as_maximum=False)
+            sleet_rain, snow_sleet, limit=self.limit, limit_as_maximum=False
+        )
 
         assert_array_equal(result[0].data, expected)
         assert_array_equal(result[1].data, expected)
@@ -206,31 +218,36 @@ class Test_process(Test_Setup):
         case we apply the reference field as a lower bound to the interpolated
         values."""
 
-        snow_sleet = np.array([[15., 15., 15.],
-                               [10., 10., 10.],
-                               [8.0, 8.0, 8.0]], dtype=np.float32)
+        snow_sleet = np.array(
+            [[15.0, 15.0, 15.0], [10.0, 10.0, 10.0], [8.0, 8.0, 8.0]], dtype=np.float32
+        )
 
-        sleet_rain = np.array([[5.0, 5.0, 5.0],
-                               [np.nan, np.nan, np.nan],
-                               [15., 15., 15.]], dtype=np.float32)
+        sleet_rain = np.array(
+            [[5.0, 5.0, 5.0], [np.nan, np.nan, np.nan], [15.0, 15.0, 15.0]],
+            dtype=np.float32,
+        )
         sleet_rain = np.ma.masked_invalid(sleet_rain)
 
         self.snow_sleet.data = snow_sleet
         self.sleet_rain.data = sleet_rain
 
-        expected_unlimited = np.array([[5.0, 5.0, 5.0],
-                                       [8.5, 8.5, 8.5],
-                                       [15., 15., 15.]], dtype=np.float32)
-        expected_limited = np.array([[5.0, 5.0, 5.0],
-                                     [10., 10., 10.],
-                                     [15., 15., 15.]], dtype=np.float32)
+        expected_unlimited = np.array(
+            [[5.0, 5.0, 5.0], [8.5, 8.5, 8.5], [15.0, 15.0, 15.0]], dtype=np.float32
+        )
+        expected_limited = np.array(
+            [[5.0, 5.0, 5.0], [10.0, 10.0, 10.0], [15.0, 15.0, 15.0]], dtype=np.float32
+        )
 
         result_unlimited = InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet)
+            self.sleet_rain, self.snow_sleet
+        )
 
         result_limited = InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.snow_sleet,
-            limit_as_maximum=False)
+            self.sleet_rain,
+            self.snow_sleet,
+            limit=self.snow_sleet,
+            limit_as_maximum=False,
+        )
 
         assert_array_equal(result_unlimited.data, expected_unlimited)
         assert_array_equal(result_limited.data, expected_limited)
@@ -241,18 +258,18 @@ class Test_process(Test_Setup):
         secondary use of nearest neighbour interpolation completes the
         field."""
 
-        sleet_rain = np.array([[np.nan, np.nan, 4.0],
-                               [np.nan, np.nan, np.nan],
-                               [3.0, 3.0, 3.0]], dtype=np.float32)
+        sleet_rain = np.array(
+            [[np.nan, np.nan, 4.0], [np.nan, np.nan, np.nan], [3.0, 3.0, 3.0]],
+            dtype=np.float32,
+        )
         sleet_rain = np.ma.masked_invalid(sleet_rain)
         self.sleet_rain.data = sleet_rain
 
-        expected = np.array([[3.5, 4.0, 4.0],
-                             [8.5, 8.5, 8.5],
-                             [3.0, 3.0, 3.0]], dtype=np.float32)
+        expected = np.array(
+            [[3.5, 4.0, 4.0], [8.5, 8.5, 8.5], [3.0, 3.0, 3.0]], dtype=np.float32
+        )
 
-        result = InterpolateUsingDifference().process(self.sleet_rain,
-                                                      self.snow_sleet)
+        result = InterpolateUsingDifference().process(self.sleet_rain, self.snow_sleet)
 
         assert_array_equal(result.data, expected)
         self.assertEqual(result.coords(), self.sleet_rain.coords())
@@ -267,34 +284,32 @@ class Test_process(Test_Setup):
         expected = self.sleet_rain.copy()
         warning_msg = "Input cube unmasked, no data to fill in, returning"
 
-        result = InterpolateUsingDifference().process(
-                self.sleet_rain, self.snow_sleet)
+        result = InterpolateUsingDifference().process(self.sleet_rain, self.snow_sleet)
 
         self.assertEqual(result, expected)
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item)
-                            for item in warning_list))
+        self.assertTrue(any(item.category == UserWarning for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
     def test_convert_units(self):
         """Test that a reference cube and limit cube with different but
         compatible units are converted for use and return the expected
         result."""
 
-        expected = np.array([[4.0, 4.0, 4.0],
-                             [8.5, 8.0, 6.0],
-                             [3.0, 3.0, 3.0]], dtype=np.float32)
+        expected = np.array(
+            [[4.0, 4.0, 4.0], [8.5, 8.0, 6.0], [3.0, 3.0, 3.0]], dtype=np.float32
+        )
 
-        self.snow_sleet.convert_units('cm')
-        self.limit.convert_units('cm')
+        self.snow_sleet.convert_units("cm")
+        self.limit.convert_units("cm")
 
         result = InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.limit)
+            self.sleet_rain, self.snow_sleet, limit=self.limit
+        )
 
         assert_array_equal(result.data, expected)
         self.assertEqual(result.coords(), self.sleet_rain.coords())
         self.assertEqual(result.metadata, self.sleet_rain.metadata)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

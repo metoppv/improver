@@ -37,7 +37,9 @@ from cf_units import Unit
 
 from improver import BasePlugin
 from improver.utilities.temporal import (
-    extract_nearest_time_point, iris_time_to_datetime)
+    extract_nearest_time_point,
+    iris_time_to_datetime,
+)
 
 
 class ExtendRadarMask(BasePlugin):
@@ -76,14 +78,18 @@ class ExtendRadarMask(BasePlugin):
         # check cube coordinates match
         for crd in radar_data.coords():
             if coverage.coord(crd.name()) != crd:
-                raise ValueError('Rain rate and coverage composites unmatched '
-                                 '- coord {}'.format(crd.name()))
+                raise ValueError(
+                    "Rain rate and coverage composites unmatched "
+                    "- coord {}".format(crd.name())
+                )
 
         # accommodate data from multiple times
-        radar_data_slices = radar_data.slices([radar_data.coord(axis='y'),
-                                               radar_data.coord(axis='x')])
-        coverage_slices = coverage.slices([coverage.coord(axis='y'),
-                                           coverage.coord(axis='x')])
+        radar_data_slices = radar_data.slices(
+            [radar_data.coord(axis="y"), radar_data.coord(axis="x")]
+        )
+        coverage_slices = coverage.slices(
+            [coverage.coord(axis="y"), coverage.coord(axis="x")]
+        )
 
         cube_list = iris.cube.CubeList()
         for rad, cov in zip(radar_data_slices, coverage_slices):
@@ -115,17 +121,18 @@ class ApplyOrographicEnhancement(BasePlugin):
         """
         # A minimum precipitation rate in mm/h that will be used as a lower
         # precipitation rate threshold.
-        self.min_precip_rate_mmh = 1/32.
+        self.min_precip_rate_mmh = 1 / 32.0
         self.operation = operation
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<ApplyOrographicEnhancement: operation: {}>')
+        result = "<ApplyOrographicEnhancement: operation: {}>"
         return result.format(self.operation)
 
     @staticmethod
-    def _select_orographic_enhancement_cube(precip_cube, oe_cubes,
-                                            allowed_time_diff=1800):
+    def _select_orographic_enhancement_cube(
+        precip_cube, oe_cubes, allowed_time_diff=1800
+    ):
         """Select the orographic enhancement cube with the required time
         coordinate.
 
@@ -153,9 +160,10 @@ class ApplyOrographicEnhancement(BasePlugin):
                 offset.  So this error will never be thrown.)
 
         """
-        time_point, = iris_time_to_datetime(precip_cube.coord("time").copy())
+        (time_point,) = iris_time_to_datetime(precip_cube.coord("time").copy())
         oe_cube = extract_nearest_time_point(
-            oe_cubes, time_point, allowed_dt_difference=allowed_time_diff)
+            oe_cubes, time_point, allowed_dt_difference=allowed_time_diff
+        )
         return oe_cube
 
     def _apply_orographic_enhancement(self, precip_cube, oe_cube):
@@ -182,14 +190,14 @@ class ApplyOrographicEnhancement(BasePlugin):
         # Set orographic enhancement to be zero for points with a
         # precipitation rate of < 1/32 mm/hr.
         original_units = Unit("mm/hr")
-        threshold_in_cube_units = (
-            original_units.convert(self.min_precip_rate_mmh,
-                                   precip_cube.units))
+        threshold_in_cube_units = original_units.convert(
+            self.min_precip_rate_mmh, precip_cube.units
+        )
 
         # Ignore invalid warnings generated if e.g. a NaN is encountered
         # within the less than (<) comparison.
-        with np.errstate(invalid='ignore'):
-            oe_cube.data[precip_cube.data < threshold_in_cube_units] = 0.
+        with np.errstate(invalid="ignore"):
+            oe_cube.data[precip_cube.data < threshold_in_cube_units] = 0.0
 
         # Add / subtract orographic enhancement where data is not masked
         cube = precip_cube.copy()
@@ -198,9 +206,11 @@ class ApplyOrographicEnhancement(BasePlugin):
         elif self.operation == "subtract":
             cube.data = cube.data - oe_cube.data
         else:
-            msg = ("Operation '{}' not supported for combining "
-                   "precipitation rate and "
-                   "orographic enhancement.".format(self.operation))
+            msg = (
+                "Operation '{}' not supported for combining "
+                "precipitation rate and "
+                "orographic enhancement.".format(self.operation)
+            )
             raise ValueError(msg)
 
         return cube
@@ -225,23 +235,24 @@ class ApplyOrographicEnhancement(BasePlugin):
         """
         if self.operation == "subtract":
             original_units = Unit("mm/hr")
-            threshold_in_cube_units = (
-                original_units.convert(self.min_precip_rate_mmh,
-                                       cube.units))
-            threshold_in_precip_cube_units = (
-                original_units.convert(self.min_precip_rate_mmh,
-                                       precip_cube.units))
+            threshold_in_cube_units = original_units.convert(
+                self.min_precip_rate_mmh, cube.units
+            )
+            threshold_in_precip_cube_units = original_units.convert(
+                self.min_precip_rate_mmh, precip_cube.units
+            )
 
             # Ignore invalid warnings generated if e.g. a NaN is encountered
             # within the less than (<) comparison.
-            with np.errstate(invalid='ignore'):
+            with np.errstate(invalid="ignore"):
                 # Create a mask computed from where the input precipitation
                 # cube is greater or equal to the threshold and the result
                 # of combining the precipitation rate input cube with the
                 # orographic enhancement has generated a cube with
                 # precipitation rates less than the threshold.
-                mask = ((precip_cube.data >= threshold_in_precip_cube_units) &
-                        (cube.data <= threshold_in_cube_units))
+                mask = (precip_cube.data >= threshold_in_precip_cube_units) & (
+                    cube.data <= threshold_in_cube_units
+                )
 
                 # Set any values lower than the threshold to be equal to
                 # the minimum precipitation rate.
@@ -270,7 +281,8 @@ class ApplyOrographicEnhancement(BasePlugin):
         updated_cubes = iris.cube.CubeList([])
         for precip_cube in precip_cubes:
             oe_cube = self._select_orographic_enhancement_cube(
-                precip_cube, orographic_enhancement_cube.copy())
+                precip_cube, orographic_enhancement_cube.copy()
+            )
             cube = self._apply_orographic_enhancement(precip_cube, oe_cube)
             cube = self._apply_minimum_precip_rate(precip_cube, cube)
             updated_cubes.append(cube)

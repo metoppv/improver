@@ -55,9 +55,15 @@ def test_optical_flow_inputs(tmp_path):
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_path,
-            "--max-lead-time", "90",
-            "--output", output_path]
+    args = [
+        input_path,
+        uv_path,
+        oe_path,
+        "--max-lead-time",
+        "90",
+        "--output",
+        output_path
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -73,9 +79,15 @@ def test_wind_inputs(tmp_path):
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_path,
-            "--max-lead-time", "90",
-            "--output", output_path]
+    args = [
+        input_path,
+        uv_path,
+        oe_path,
+        "--max-lead-time",
+        "90",
+        "--output",
+        output_path
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -92,9 +104,16 @@ def test_metadata(tmp_path):
 
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_path,
-            "--attributes-config", meta_path,
-            "--max-lead-time", "30",
-            "--output", output_path]
+    args = [
+        input_path,
+        uv_path,
+        oe_path,
+        "--attributes-config",
+        meta_path,
+        "--max-lead-time",
+        "30",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

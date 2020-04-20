@@ -51,8 +51,7 @@ def test_regrid_basic(tmp_path):
     input_path = kgo_dir / "global_cutout.nc"
     target_path = kgo_dir / "ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, target_path,
-            "--output", output_path]
+    args = [input_path, target_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -64,10 +63,16 @@ def test_regrid_nearest(tmp_path):
     input_path = kgo_dir / "../regrid-basic/global_cutout.nc"
     target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, target_path,
-            "--output", output_path,
-            "--regrid-mode", "nearest",
-            "--regridded-title", GLOBAL_UK_TITLE]
+    args = [
+        input_path,
+        target_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "nearest",
+        "--regridded-title",
+        GLOBAL_UK_TITLE,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -79,11 +84,18 @@ def test_regrid_extrapolate(tmp_path):
     input_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
     target_path = kgo_dir / "../regrid-basic/global_cutout.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, target_path,
-            "--output", output_path,
-            "--regrid-mode", "nearest",
-            "--extrapolation-mode", "extrapolate",
-            "--regridded-title", UKV_GLOBAL_TITLE]
+    args = [
+        input_path,
+        target_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "nearest",
+        "--extrapolation-mode",
+        "extrapolate",
+        "--regridded-title",
+        UKV_GLOBAL_TITLE,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -96,10 +108,16 @@ def test_regrid_json(tmp_path):
     target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
     metadata_path = kgo_dir / "metadata.json"
     output_path = tmp_path / "output.nc"
-    args = [input_path, target_path,
-            "--output", output_path,
-            "--attributes-config", metadata_path,
-            "--regridded-title", GLOBAL_UK_TITLE]
+    args = [
+        input_path,
+        target_path,
+        "--output",
+        output_path,
+        "--attributes-config",
+        metadata_path,
+        "--regridded-title",
+        GLOBAL_UK_TITLE,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -111,12 +129,19 @@ def test_change_metadata(tmp_path):
     input_path = kgo_dir / "input.nc"
     metadata_path = kgo_dir / "radar_metadata.json"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path,
-            "--new-name", "lwe_precipitation_rate",
-            "--new-units", "m s-1",
-            "--attributes-config", metadata_path,
-            "--coords-to-remove", "height"]
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--new-name",
+        "lwe_precipitation_rate",
+        "--new-units",
+        "m s-1",
+        "--attributes-config",
+        metadata_path,
+        "--coords-to-remove",
+        "height",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -141,10 +166,17 @@ def test_regrid_nearest_landmask(tmp_path):
     landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
     target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, target_path, landmask_path,
-            "--output", output_path,
-            "--regrid-mode", "nearest-with-mask",
-            "--regridded-title", GLOBAL_UK_TITLE]
+    args = [
+        input_path,
+        target_path,
+        landmask_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "nearest-with-mask",
+        "--regridded-title",
+        GLOBAL_UK_TITLE,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -159,10 +191,17 @@ def test_regrid_check_landmask(tmp_path):
     landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
     target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, target_path, landmask_path,
-            "--output", output_path,
-            "--regrid-mode", "nearest-with-mask",
-            "--regridded-title", GLOBAL_UK_TITLE]
+    args = [
+        input_path,
+        target_path,
+        landmask_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "nearest-with-mask",
+        "--regridded-title",
+        GLOBAL_UK_TITLE,
+    ]
     with pytest.warns(UserWarning, match=".*land_binary_mask.*"):
         run_cli(args)
     # Don't recreate output as it is the same as other test
@@ -176,8 +215,7 @@ def test_args_error_landmask(tmp_path):
     landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
     target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, target_path, landmask_path,
-            "--output", output_path]
+    args = [input_path, target_path, landmask_path, "--output", output_path]
     with pytest.raises(ValueError, match=".*nearest-with-mask.*"):
         run_cli(args)
 
@@ -188,9 +226,14 @@ def test_args_error_no_landmask(tmp_path):
     input_path = kgo_dir / "../regrid-basic/global_cutout.nc"
     target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, target_path,
-            "--output", output_path,
-            "--regrid-mode", "nearest-with-mask"]
+    args = [
+        input_path,
+        target_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "nearest-with-mask",
+    ]
     with pytest.raises(ValueError, match=".*input landmask.*"):
         run_cli(args)
 
@@ -204,10 +247,17 @@ def test_regrid_nearest_landmask_multi_realization(tmp_path):
     landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
     target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, target_path, landmask_path,
-            "--output", output_path,
-            "--regrid-mode", "nearest-with-mask",
-            "--regridded-title", GLOBAL_UK_TITLE]
+    args = [
+        input_path,
+        target_path,
+        landmask_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "nearest-with-mask",
+        "--regridded-title",
+        GLOBAL_UK_TITLE,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -219,8 +269,7 @@ def test_stage_v110_basic(tmp_path):
     input_path = kgo_dir / "input.nc"
     target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, target_path,
-            "--output", output_path]
+    args = [input_path, target_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -232,8 +281,7 @@ def test_nimrod_radarrate_basic(tmp_path):
     kgo_path = kgo_dir / "kgo_preciprate.nc"
     input_path = kgo_dir / "input_preciprate.nimrod"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path]
+    args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -245,7 +293,6 @@ def test_nimrod_radarcoverage_basic(tmp_path):
     kgo_path = kgo_dir / "kgo_coverage.nc"
     input_path = kgo_dir / "input_coverage.nimrod"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--output", output_path]
+    args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

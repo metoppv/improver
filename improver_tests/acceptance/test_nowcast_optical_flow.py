@@ -51,12 +51,13 @@ def test_basic(tmp_path):
     """Test basic optical flow nowcast"""
     kgo_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
     kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / f"20181103{hhmm}_{RADAR_REGRID}.nc"
-                   for hhmm in ("1530", "1545", "1600")]
+    input_paths = [
+        kgo_dir / f"20181103{hhmm}_{RADAR_REGRID}.nc"
+        for hhmm in ("1530", "1545", "1600")
+    ]
     oe_path = kgo_dir / OE
     output_path = tmp_path / "output.nc"
-    args = [oe_path, *input_paths,
-            "--output", output_path]
+    args = [oe_path, *input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -66,12 +67,15 @@ def test_remasked(tmp_path):
     """Test remasked optical flow"""
     kgo_dir = acc.kgo_root() / "nowcast-optical-flow/remasked"
     kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / f"20181127{hhmm}_{RADAR_REMASK}.nc"
-                   for hhmm in ("1330", "1345", "1400")]
-    oe_path = kgo_dir / "20181127T1400Z-PT0004H00M-orographic_enhancement_" \
-                        "standard_resolution.nc"
+    input_paths = [
+        kgo_dir / f"20181127{hhmm}_{RADAR_REMASK}.nc"
+        for hhmm in ("1330", "1345", "1400")
+    ]
+    oe_path = (
+        kgo_dir / "20181127T1400Z-PT0004H00M-orographic_enhancement_"
+        "standard_resolution.nc"
+    )
     output_path = tmp_path / "output.nc"
-    args = [oe_path, *input_paths,
-            "--output", output_path]
+    args = [oe_path, *input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

@@ -41,8 +41,7 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 
 # Parameterisation to test generation of masks and weights with appropriate
 # classes and KGO directories
-MASK_WEIGHT = ["generate-topography-bands-mask",
-               "generate-topography-bands-weights"]
+MASK_WEIGHT = ["generate-topography-bands-mask", "generate-topography-bands-weights"]
 BASIC_MULTI = ["basic", "multi_realization"]
 
 
@@ -55,8 +54,7 @@ def test_basic(tmp_path, maskweight, realizations):
     orography_path = kgo_dir / "input_orog.nc"
     landmask_path = kgo_dir / "input_land.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, landmask_path,
-            "--output", output_path]
+    args = [orography_path, landmask_path, "--output", output_path]
     acc.run_cli(maskweight)(args)
     acc.compare(output_path, kgo_path)
 
@@ -70,10 +68,14 @@ def test_bounds_json(tmp_path, maskweight):
     landmask_path = kgo_dir / "input_land.nc"
     bounds_path = kgo_dir / "bounds.json"
     output_path = tmp_path / "output.nc"
-    args = [orography_path,
-            landmask_path,
-            "--bands-config", bounds_path,
-            "--output", output_path]
+    args = [
+        orography_path,
+        landmask_path,
+        "--bands-config",
+        bounds_path,
+        "--output",
+        output_path,
+    ]
     acc.run_cli(maskweight)(args)
     acc.compare(output_path, kgo_path)
 

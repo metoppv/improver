@@ -35,18 +35,22 @@ from improver import cli
 
 # Creates the value_converter that clize needs.
 inputadvection = cli.create_constrained_inputcubelist_converter(
-    ['precipitation_advection_x_velocity', 'grid_eastward_wind'],
-    ['precipitation_advection_y_velocity', 'grid_northward_wind'])
+    ["precipitation_advection_x_velocity", "grid_eastward_wind"],
+    ["precipitation_advection_y_velocity", "grid_northward_wind"],
+)
 
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            advection_velocity: inputadvection,
-            orographic_enhancement: cli.inputcube = None,
-            *,
-            attributes_config: cli.inputjson = None,
-            max_lead_time: int = 360, lead_time_interval: int = 15):
+def process(
+    cube: cli.inputcube,
+    advection_velocity: inputadvection,
+    orographic_enhancement: cli.inputcube = None,
+    *,
+    attributes_config: cli.inputjson = None,
+    max_lead_time: int = 360,
+    lead_time_interval: int = 15,
+):
     """Module to extrapolate input cubes given advection velocity fields.
 
     Args:
@@ -80,6 +84,7 @@ def process(cube: cli.inputcube,
     forecast_plugin = PystepsExtrapolate(lead_time_interval, max_lead_time)
     forecast_cubes = forecast_plugin(
         cube, u_cube, v_cube, orographic_enhancement,
-        attributes_dict=attributes_config)
+        attributes_dict=attributes_config
+    )
 
     return MergeCubes()(forecast_cubes)

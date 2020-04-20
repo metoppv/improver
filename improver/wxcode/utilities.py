@@ -33,40 +33,41 @@
 from collections import OrderedDict
 
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
-from improver.wxcode.wxcode_decision_tree_global import (
-    wxcode_decision_tree_global)
+from improver.wxcode.wxcode_decision_tree_global import wxcode_decision_tree_global
 
-_WX_DICT_IN = {0: 'Clear_Night',
-               1: 'Sunny_Day',
-               2: 'Partly_Cloudy_Night',
-               3: 'Partly_Cloudy_Day',
-               4: 'Dust',
-               5: 'Mist',
-               6: 'Fog',
-               7: 'Cloudy',
-               8: 'Overcast',
-               9: 'Light_Shower_Night',
-               10: 'Light_Shower_Day',
-               11: 'Drizzle',
-               12: 'Light_Rain',
-               13: 'Heavy_Shower_Night',
-               14: 'Heavy_Shower_Day',
-               15: 'Heavy_Rain',
-               16: 'Sleet_Shower_Night',
-               17: 'Sleet_Shower_Day',
-               18: 'Sleet',
-               19: 'Hail_Shower_Night',
-               20: 'Hail_Shower_Day',
-               21: 'Hail',
-               22: 'Light_Snow_Shower_Night',
-               23: 'Light_Snow_Shower_Day',
-               24: 'Light_Snow',
-               25: 'Heavy_Snow_Shower_Night',
-               26: 'Heavy_Snow_Shower_Day',
-               27: 'Heavy_Snow',
-               28: 'Thunder_Shower_Night',
-               29: 'Thunder_Shower_Day',
-               30: 'Thunder'}
+_WX_DICT_IN = {
+    0: "Clear_Night",
+    1: "Sunny_Day",
+    2: "Partly_Cloudy_Night",
+    3: "Partly_Cloudy_Day",
+    4: "Dust",
+    5: "Mist",
+    6: "Fog",
+    7: "Cloudy",
+    8: "Overcast",
+    9: "Light_Shower_Night",
+    10: "Light_Shower_Day",
+    11: "Drizzle",
+    12: "Light_Rain",
+    13: "Heavy_Shower_Night",
+    14: "Heavy_Shower_Day",
+    15: "Heavy_Rain",
+    16: "Sleet_Shower_Night",
+    17: "Sleet_Shower_Day",
+    18: "Sleet",
+    19: "Hail_Shower_Night",
+    20: "Hail_Shower_Day",
+    21: "Hail",
+    22: "Light_Snow_Shower_Night",
+    23: "Light_Snow_Shower_Day",
+    24: "Light_Snow",
+    25: "Heavy_Snow_Shower_Night",
+    26: "Heavy_Snow_Shower_Day",
+    27: "Heavy_Snow",
+    28: "Thunder_Shower_Night",
+    29: "Thunder_Shower_Day",
+    30: "Thunder",
+}
 
 WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 
@@ -80,11 +81,12 @@ def weather_code_attributes():
             Attributes defining weather code meanings.
     """
     import numpy as np
+
     attributes = {}
     wx_keys = np.array(list(WX_DICT.keys()))
-    attributes.update({'weather_code': wx_keys})
+    attributes.update({"weather_code": wx_keys})
     wxstring = " ".join(WX_DICT.values())
-    attributes.update({'weather_code_meaning': wxstring})
+    attributes.update({"weather_code_meaning": wxstring})
     return attributes
 
 
@@ -132,11 +134,11 @@ def update_daynight(cubewx):
     import improver.utilities.solar as solar
 
     if not cubewx.coords("time"):
-        msg = ("cube must have time coordinate ")
+        msg = "cube must have time coordinate "
         raise CoordinateNotFoundError(msg)
-    time_dim = cubewx.coord_dims('time')
+    time_dim = cubewx.coord_dims("time")
     if not time_dim:
-        cubewx_daynight = iris.util.new_axis(cubewx.copy(), 'time')
+        cubewx_daynight = iris.util.new_axis(cubewx.copy(), "time")
     else:
         cubewx_daynight = cubewx.copy()
     daynightplugin = solar.DayNightMask()
@@ -151,7 +153,8 @@ def update_daynight(cubewx):
         cubewx_daynight.data[index] = np.where(
             daynight_mask.data[index] == daynightplugin.day,
             cubewx_daynight.data[index],
-            cubewx_daynight.data[index] - 1)
+            cubewx_daynight.data[index] - 1,
+        )
 
     if not time_dim:
         cubewx_daynight = iris.util.squeeze(cubewx_daynight)
@@ -178,18 +181,18 @@ def interrogate_decision_tree(wxtree):
 
     # Get current weather symbol decision tree and populate a list of
     # required inputs for printing.
-    if wxtree == 'high_resolution':
+    if wxtree == "high_resolution":
         queries = wxcode_decision_tree()
-    elif wxtree == 'global':
+    elif wxtree == "global":
         queries = wxcode_decision_tree_global()
     else:
-        raise ValueError('Unknown decision tree name provided.')
+        raise ValueError("Unknown decision tree name provided.")
 
     # Diagnostic names and threshold values.
     requirements = {}
     for query in queries.values():
-        diagnostics = expand_nested_lists(query, 'diagnostic_fields')
-        thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
+        diagnostics = expand_nested_lists(query, "diagnostic_fields")
+        thresholds = expand_nested_lists(query, "diagnostic_thresholds")
         for diagnostic, threshold in zip(diagnostics, thresholds):
             requirements.setdefault(diagnostic, set()).add(threshold)
 
@@ -197,12 +200,12 @@ def interrogate_decision_tree(wxtree):
     # CLI help.
     output = []
     for requirement, uniq_thresh in sorted(requirements.items()):
-        units, = set(u for (_, u) in uniq_thresh)  # enforces same units
-        thresh_str = ', '.join(map(str, sorted(v for (v, _) in uniq_thresh)))
-        output.append('{} ({}): {}'.format(requirement, units, thresh_str))
+        (units,) = set(u for (_, u) in uniq_thresh)  # enforces same units
+        thresh_str = ", ".join(map(str, sorted(v for (v, _) in uniq_thresh)))
+        output.append("{} ({}): {}".format(requirement, units, thresh_str))
 
     n_files = len(output)
-    formatted_string = ('{}\n'*n_files)
+    formatted_string = "{}\n" * n_files
     formatted_output = formatted_string.format(*output)
 
     return formatted_output

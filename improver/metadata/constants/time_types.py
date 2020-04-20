@@ -36,13 +36,11 @@ import numpy as np
 
 TimeSpec = namedtuple("TimeSpec", ("calendar", "dtype", "units"))
 
-_TIME_REFERENCE_SPEC = TimeSpec(calendar="gregorian",
-                                dtype=np.int64,
-                                units="seconds since 1970-01-01 00:00:00")
+_TIME_REFERENCE_SPEC = TimeSpec(
+    calendar="gregorian", dtype=np.int64, units="seconds since 1970-01-01 00:00:00"
+)
 
-_TIME_INTERVAL_SPEC = TimeSpec(calendar=None,
-                               dtype=np.int32,
-                               units="seconds")
+_TIME_INTERVAL_SPEC = TimeSpec(calendar=None, dtype=np.int32, units="seconds")
 
 TIME_COORDS = {
     "time": _TIME_REFERENCE_SPEC,

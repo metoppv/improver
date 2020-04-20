@@ -51,8 +51,9 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test default parameters"""
         plugin = MergeCubes()
-        self.assertSequenceEqual(plugin.silent_attributes,
-                                 ["history", "title", "mosg__grid_version"])
+        self.assertSequenceEqual(
+            plugin.silent_attributes, ["history", "title", "mosg__grid_version"]
+        )
 
 
 class Test__equalise_cell_methods(IrisTest):
@@ -61,9 +62,10 @@ class Test__equalise_cell_methods(IrisTest):
     def setUp(self):
         """Use temperature probability cube to test with."""
         data = np.array(
-            [0.9*np.ones((3, 3)), 0.5*np.ones((3, 3)), 0.1*np.ones((3, 3))],
-            dtype=np.float32)
-        thresholds = np.array([273., 275., 277.], dtype=np.float32)
+            [0.9 * np.ones((3, 3)), 0.5 * np.ones((3, 3)), 0.1 * np.ones((3, 3))],
+            dtype=np.float32,
+        )
+        thresholds = np.array([273.0, 275.0, 277.0], dtype=np.float32)
         self.cube = set_up_probability_cube(data.copy(), thresholds)
         self.cell_method1 = iris.coords.CellMethod("mean", "realization")
         self.cell_method2 = iris.coords.CellMethod("mean", "time")
@@ -84,8 +86,9 @@ class Test__equalise_cell_methods(IrisTest):
         cube2 = self.cube.copy()
         cube3 = self.cube.copy()
         cube1.cell_methods = tuple([self.cell_method1, self.cell_method2])
-        cube2.cell_methods = tuple([self.cell_method1, self.cell_method2,
-                                    self.cell_method3])
+        cube2.cell_methods = tuple(
+            [self.cell_method1, self.cell_method2, self.cell_method3]
+        )
         cube3.cell_methods = tuple([self.cell_method1, self.cell_method3])
         cubelist = iris.cube.CubeList([cube1, cube2, cube3])
         self.plugin._equalise_cell_methods(cubelist)
@@ -101,20 +104,24 @@ class Test__check_time_bounds_ranges(IrisTest):
     def setUp(self):
         """Set up some cubes with different time bounds ranges"""
         frt = dt(2017, 11, 9, 21, 0)
-        times = [dt(2017, 11, 10, 3, 0),
-                 dt(2017, 11, 10, 4, 0),
-                 dt(2017, 11, 10, 5, 0)]
-        time_bounds = np.array([
-            [dt(2017, 11, 10, 2, 0), dt(2017, 11, 10, 3, 0)],
-            [dt(2017, 11, 10, 3, 0), dt(2017, 11, 10, 4, 0)],
-            [dt(2017, 11, 10, 4, 0), dt(2017, 11, 10, 5, 0)]])
+        times = [dt(2017, 11, 10, 3, 0), dt(2017, 11, 10, 4, 0), dt(2017, 11, 10, 5, 0)]
+        time_bounds = np.array(
+            [
+                [dt(2017, 11, 10, 2, 0), dt(2017, 11, 10, 3, 0)],
+                [dt(2017, 11, 10, 3, 0), dt(2017, 11, 10, 4, 0)],
+                [dt(2017, 11, 10, 4, 0), dt(2017, 11, 10, 5, 0)],
+            ]
+        )
 
         cubes = iris.cube.CubeList([])
         for tpoint, tbounds in zip(times, time_bounds):
             cube = set_up_probability_cube(
-                0.6*np.ones((2, 3, 3), dtype=np.float32),
-                np.array([278., 280.], dtype=np.float32),
-                time=tpoint, frt=frt, time_bounds=tbounds)
+                0.6 * np.ones((2, 3, 3), dtype=np.float32),
+                np.array([278.0, 280.0], dtype=np.float32),
+                time=tpoint,
+                frt=frt,
+                time_bounds=tbounds,
+            )
             cubes.append(cube)
         self.matched_cube = cubes.merge_cube()
 
@@ -122,9 +129,12 @@ class Test__check_time_bounds_ranges(IrisTest):
         cubes = iris.cube.CubeList([])
         for tpoint, tbounds in zip(times, time_bounds):
             cube = set_up_probability_cube(
-                0.6*np.ones((2, 3, 3), dtype=np.float32),
-                np.array([278., 280.], dtype=np.float32),
-                time=tpoint, frt=frt, time_bounds=tbounds)
+                0.6 * np.ones((2, 3, 3), dtype=np.float32),
+                np.array([278.0, 280.0], dtype=np.float32),
+                time=tpoint,
+                frt=frt,
+                time_bounds=tbounds,
+            )
             cubes.append(cube)
         self.unmatched_cube = cubes.merge_cube()
         self.plugin = MergeCubes()
@@ -136,14 +146,13 @@ class Test__check_time_bounds_ranges(IrisTest):
     def test_inverted(self):
         """Test no error when bounds ranges match but bounds are in the wrong
         order"""
-        inverted_bounds = np.flip(
-            self.matched_cube.coord("time").bounds.copy(), axis=1)
+        inverted_bounds = np.flip(self.matched_cube.coord("time").bounds.copy(), axis=1)
         self.matched_cube.coord("time").bounds = inverted_bounds
         self.plugin._check_time_bounds_ranges(self.matched_cube)
 
     def test_error(self):
         """Test error when bounds do not match"""
-        msg = 'Cube with mismatching time bounds ranges'
+        msg = "Cube with mismatching time bounds ranges"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._check_time_bounds_ranges(self.unmatched_cube)
 
@@ -166,19 +175,31 @@ class Test_process(IrisTest):
         # set up some UKV cubes with 4, 5 and 6 hour forecast periods and
         # different histories
         self.cube_ukv = set_up_probability_cube(
-            data.copy(), thresholds.copy(), standard_grid_metadata='uk_det',
-            time=time_point, frt=dt(2015, 11, 23, 3),
-            attributes={'history': 'something'})
+            data.copy(),
+            thresholds.copy(),
+            standard_grid_metadata="uk_det",
+            time=time_point,
+            frt=dt(2015, 11, 23, 3),
+            attributes={"history": "something"},
+        )
 
         self.cube_ukv_t1 = set_up_probability_cube(
-            data.copy(), thresholds.copy(), standard_grid_metadata='uk_det',
-            time=time_point, frt=dt(2015, 11, 23, 2),
-            attributes={'history': 'different'})
+            data.copy(),
+            thresholds.copy(),
+            standard_grid_metadata="uk_det",
+            time=time_point,
+            frt=dt(2015, 11, 23, 2),
+            attributes={"history": "different"},
+        )
 
         self.cube_ukv_t2 = set_up_probability_cube(
-            data.copy(), thresholds.copy(), standard_grid_metadata='uk_det',
-            time=time_point, frt=dt(2015, 11, 23, 1),
-            attributes={'history': 'entirely'})
+            data.copy(),
+            thresholds.copy(),
+            standard_grid_metadata="uk_det",
+            time=time_point,
+            frt=dt(2015, 11, 23, 1),
+            attributes={"history": "entirely"},
+        )
 
         self.plugin = MergeCubes()
 
@@ -206,8 +227,8 @@ class Test_process(IrisTest):
         input cubes"""
         result = self.plugin.process([self.cube_ukv, self.cube_ukv_t1])
         self.assertNotIn("history", result.attributes.keys())
-        self.assertEqual(self.cube_ukv.attributes['history'], 'something')
-        self.assertEqual(self.cube_ukv_t1.attributes['history'], 'different')
+        self.assertEqual(self.cube_ukv.attributes["history"], "something")
+        self.assertEqual(self.cube_ukv_t1.attributes["history"], "different")
 
     def test_identical_cubes(self):
         """Test that merging identical cubes fails."""
@@ -218,14 +239,13 @@ class Test_process(IrisTest):
 
     def test_lagged_ukv(self):
         """Test lagged UKV merge OK (forecast periods in seconds)"""
-        expected_fp_points = 3600*np.array([6, 5, 4], dtype=np.int32)
-        cubes = iris.cube.CubeList([self.cube_ukv,
-                                    self.cube_ukv_t1,
-                                    self.cube_ukv_t2])
+        expected_fp_points = 3600 * np.array([6, 5, 4], dtype=np.int32)
+        cubes = iris.cube.CubeList([self.cube_ukv, self.cube_ukv_t1, self.cube_ukv_t2])
         result = self.plugin.process(cubes)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
-            result.coord("forecast_period").points, expected_fp_points)
+            result.coord("forecast_period").points, expected_fp_points
+        )
 
     def test_check_time_bounds_ranges(self):
         """Test optional failure when time bounds ranges are not matched
@@ -233,21 +253,28 @@ class Test_process(IrisTest):
         time_point = dt(2015, 11, 23, 7)
         time_bounds = [dt(2015, 11, 23, 4), time_point]
         cube1 = set_up_variable_cube(
-            self.cube_ukv.data.copy(), standard_grid_metadata='uk_det',
-            time=time_point, frt=dt(2015, 11, 23, 3), time_bounds=time_bounds)
+            self.cube_ukv.data.copy(),
+            standard_grid_metadata="uk_det",
+            time=time_point,
+            frt=dt(2015, 11, 23, 3),
+            time_bounds=time_bounds,
+        )
         cube2 = cube1.copy()
         cube2.coord("forecast_reference_time").points = (
-            cube2.coord("forecast_reference_time").points + 3600)
+            cube2.coord("forecast_reference_time").points + 3600
+        )
         cube2.coord("time").bounds = [
             cube2.coord("time").bounds[0, 0] + 3600,
-            cube2.coord("time").bounds[0, 1]]
+            cube2.coord("time").bounds[0, 1],
+        ]
         cube2.coord("forecast_period").bounds = [
             cube2.coord("forecast_period").bounds[0, 0] + 3600,
-            cube2.coord("forecast_period").bounds[0, 1]]
+            cube2.coord("forecast_period").bounds[0, 1],
+        ]
         msg = "Cube with mismatching time bounds ranges cannot be blended"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.process([cube1, cube2], check_time_bounds_ranges=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

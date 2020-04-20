@@ -50,12 +50,17 @@ def test_optical_flow_inputs(tmp_path):
                   "201811031600_radar_rainrate_composite_UK_regridded.nc")
     uv_path = input_dir / "optical_flow_uv.nc"
     oe_path = input_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
-
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_path,
-            "--max-lead-time", "30",
-            "--output", output_path]
+    args = [
+        input_path,
+        uv_path,
+        oe_path,
+        "--max-lead-time",
+        "30",
+        "--output",
+        output_path,
+    ]
 
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -71,12 +76,17 @@ def test_wind_inputs(tmp_path):
                   "201811031600_radar_rainrate_composite_UK_regridded.nc")
     uv_path = input_dir / "wind_uv.nc"
     oe_path = input_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
-
     output_path = tmp_path / "output.nc"
 
-    args = [input_path, uv_path, oe_path,
-            "--max-lead-time", "30",
-            "--output", output_path]
+    args = [
+        input_path,
+        uv_path,
+        oe_path,
+        "--max-lead-time",
+        "30",
+        "--output",
+        output_path,
+    ]
 
     run_cli(args)
     acc.compare(output_path, kgo_path)

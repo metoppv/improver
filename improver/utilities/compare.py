@@ -50,8 +50,14 @@ import numpy as np
 from improver.constants import DEFAULT_TOLERANCE
 
 
-def compare_netcdfs(actual_path, desired_path, rtol=DEFAULT_TOLERANCE,
-                    atol=DEFAULT_TOLERANCE, exclude_vars=None, reporter=None):
+def compare_netcdfs(
+    actual_path,
+    desired_path,
+    rtol=DEFAULT_TOLERANCE,
+    atol=DEFAULT_TOLERANCE,
+    exclude_vars=None,
+    reporter=None,
+):
     """
     Compare two netCDF files.
 
@@ -67,31 +73,31 @@ def compare_netcdfs(actual_path, desired_path, rtol=DEFAULT_TOLERANCE,
     Returns:
         None
     """
+
     def raise_reporter(message):
         raise ValueError(message)
+
     if exclude_vars is None:
         exclude_vars = []
     if reporter is None:
         reporter = raise_reporter
 
     try:
-        actual_ds = netCDF4.Dataset(str(actual_path), mode='r')
+        actual_ds = netCDF4.Dataset(str(actual_path), mode="r")
     except OSError as exc:
         reporter(str(exc))
         return
     try:
-        desired_ds = netCDF4.Dataset(str(desired_path), mode='r')
+        desired_ds = netCDF4.Dataset(str(desired_path), mode="r")
     except OSError as exc:
         reporter(str(exc))
         return
     desired_ds.set_auto_maskandscale(False)
     actual_ds.set_auto_maskandscale(False)
-    compare_datasets("", actual_ds, desired_ds, rtol, atol,
-                     exclude_vars, reporter)
+    compare_datasets("", actual_ds, desired_ds, rtol, atol, exclude_vars, reporter)
 
 
-def compare_datasets(name, actual_ds, desired_ds, rtol, atol,
-                     exclude_vars, reporter):
+def compare_datasets(name, actual_ds, desired_ds, rtol, atol, exclude_vars, reporter):
     """
     Compare netCDF datasets.
     This function can call itself recursively to handle nested groups in
@@ -116,21 +122,26 @@ def compare_datasets(name, actual_ds, desired_ds, rtol, atol,
     desired_groups = set(desired_ds.groups.keys())
 
     if actual_groups != desired_groups:
-        msg = (f"different groups {name}: "
-               f"{sorted(actual_groups ^ desired_groups)}")
+        msg = f"different groups {name}: " f"{sorted(actual_groups ^ desired_groups)}"
         reporter(msg)
 
     check_groups = actual_groups.intersection(desired_groups)
     for group in check_groups:
-        compare_attributes(group, actual_ds.groups[group],
-                           desired_ds.groups[group], reporter)
-        compare_datasets(group,
-                         actual_ds.groups[group], desired_ds.groups[group],
-                         rtol, atol, exclude_vars, reporter)
+        compare_attributes(
+            group, actual_ds.groups[group], desired_ds.groups[group], reporter
+        )
+        compare_datasets(
+            group,
+            actual_ds.groups[group],
+            desired_ds.groups[group],
+            rtol,
+            atol,
+            exclude_vars,
+            reporter,
+        )
 
     compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter)
-    compare_vars(name, actual_ds, desired_ds, rtol, atol,
-                 exclude_vars, reporter)
+    compare_vars(name, actual_ds, desired_ds, rtol, atol, exclude_vars, reporter)
 
 
 def compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter):
@@ -154,8 +165,7 @@ def compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter):
     desired_dims = set(desired_ds.dimensions.keys()) - set(exclude_vars)
 
     if actual_dims != desired_dims:
-        msg = ("different dimensions - "
-               f"{name} {sorted(actual_dims ^ desired_dims)}")
+        msg = "different dimensions - " f"{name} {sorted(actual_dims ^ desired_dims)}"
         reporter(msg)
 
     check_dims = actual_dims.intersection(desired_dims)
@@ -163,13 +173,13 @@ def compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter):
         actual_len = actual_ds.dimensions[dim].size
         desired_len = desired_ds.dimensions[dim].size
         if actual_len != desired_len:
-            msg = ("different dimension size - "
-                   f"{name}/{dim} {actual_len} {desired_len}")
+            msg = (
+                "different dimension size - " f"{name}/{dim} {actual_len} {desired_len}"
+            )
             reporter(msg)
 
 
-def compare_vars(name, actual_ds, desired_ds, rtol, atol,
-                 exclude_vars, reporter):
+def compare_vars(name, actual_ds, desired_ds, rtol, atol, exclude_vars, reporter):
     """
     Compare variables in a netCDF dataset/group.
 
@@ -192,8 +202,7 @@ def compare_vars(name, actual_ds, desired_ds, rtol, atol,
     desired_vars = set(desired_ds.variables) - set(exclude_vars)
 
     if actual_vars != desired_vars:
-        msg = (f"different variables - {name} "
-               f"{sorted(actual_vars ^ desired_vars)}")
+        msg = f"different variables - {name} " f"{sorted(actual_vars ^ desired_vars)}"
         reporter(msg)
 
     check_vars = actual_vars.intersection(desired_vars)
@@ -210,11 +219,9 @@ def compare_vars(name, actual_ds, desired_ds, rtol, atol,
         desired_var = desired_ds.variables[var]
         compare_attributes(var_path, actual_var, desired_var, reporter)
         if var in coord_vars:
-            compare_data(var_path, actual_var, desired_var,
-                         0.0, 0.0, reporter)
+            compare_data(var_path, actual_var, desired_var, 0.0, 0.0, reporter)
         else:
-            compare_data(var_path, actual_var, desired_var,
-                         rtol, atol, reporter)
+            compare_data(var_path, actual_var, desired_var, rtol, atol, reporter)
 
 
 def compare_attributes(name, actual_ds, desired_ds, reporter):
@@ -239,8 +246,10 @@ def compare_attributes(name, actual_ds, desired_ds, reporter):
     desired_attrs.discard("history")
 
     if actual_attrs != desired_attrs:
-        msg = (f"different attributes of {name} - "
-               f"{sorted(actual_attrs ^ desired_attrs)}")
+        msg = (
+            f"different attributes of {name} - "
+            f"{sorted(actual_attrs ^ desired_attrs)}"
+        )
         reporter(msg)
 
     check_attrs = actual_attrs.intersection(desired_attrs)
@@ -250,12 +259,16 @@ def compare_attributes(name, actual_ds, desired_ds, reporter):
         assert isinstance(desired_attr, type(actual_attr))
         if isinstance(desired_attr, np.ndarray):
             if not np.array_equal(actual_attr, desired_attr):
-                msg = (f"different attribute value {name}/{key} - "
-                       f"{actual_attr} {desired_attr}")
+                msg = (
+                    f"different attribute value {name}/{key} - "
+                    f"{actual_attr} {desired_attr}"
+                )
                 reporter(msg)
         elif actual_attr != desired_attr:
-            msg = (f"different attribute value {name}/{key} - "
-                   f"{actual_attr} {desired_attr}")
+            msg = (
+                f"different attribute value {name}/{key} - "
+                f"{actual_attr} {desired_attr}"
+            )
             reporter(msg)
 
 
@@ -281,15 +294,16 @@ def compare_data(name, actual_var, desired_var, rtol, atol, reporter):
     actual_data = actual_var[:]
     desired_data = desired_var[:]
     difference_found = False
-    numpy_err_message = ''
+    numpy_err_message = ""
     try:
-        if actual_data.dtype.kind in ['b', 'O', 'S', 'U', 'V']:
+        if actual_data.dtype.kind in ["b", "O", "S", "U", "V"]:
             # numpy boolean, object, bytestring, unicode and void types don't
             # have numerical "closeness" so use exact equality for these
             np.testing.assert_equal(actual_data, desired_data, verbose=True)
         else:
-            np.testing.assert_allclose(actual_data, desired_data, rtol, atol,
-                                       equal_nan=True, verbose=True)
+            np.testing.assert_allclose(
+                actual_data, desired_data, rtol, atol, equal_nan=True, verbose=True
+            )
     except AssertionError as exc:
         difference_found = True
         numpy_err_message = str(exc).strip()

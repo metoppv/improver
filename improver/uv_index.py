@@ -32,11 +32,12 @@
 at surface and radiation flux in UV upward at the surface."""
 
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_mandatory_attributes)
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 
 
-def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6,
-                       model_id_attr=None):
+def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6, model_id_attr=None):
     """
     A plugin to calculate the uv index using radiation flux in UV downward
     at surface, radiation flux UV upward at surface and a scaling factor.
@@ -78,26 +79,32 @@ def calculate_uv_index(uv_upward, uv_downward, scale_factor=3.6,
         Modeling Earth Systems 9, 2654-2671.
 
     """
-    if uv_upward.name() != 'surface_upwelling_ultraviolet_flux_in_air':
-        msg = ("The radiation flux in UV upward has the wrong name, "
-               "it should be "
-               "surface_upwelling_ultraviolet_flux_in_air "
-               "but is {}".format(uv_upward.name()))
+    if uv_upward.name() != "surface_upwelling_ultraviolet_flux_in_air":
+        msg = (
+            "The radiation flux in UV upward has the wrong name, "
+            "it should be "
+            "surface_upwelling_ultraviolet_flux_in_air "
+            "but is {}".format(uv_upward.name())
+        )
         raise ValueError(msg)
-    if uv_downward.name() != 'surface_downwelling_ultraviolet_flux_in_air':
-        msg = ("The radiation flux in UV downward has the wrong name, "
-               "it should be "
-               "surface_downwelling_ultraviolet_flux_in_air "
-               "but is {}".format(uv_downward.name()))
+    if uv_downward.name() != "surface_downwelling_ultraviolet_flux_in_air":
+        msg = (
+            "The radiation flux in UV downward has the wrong name, "
+            "it should be "
+            "surface_downwelling_ultraviolet_flux_in_air "
+            "but is {}".format(uv_downward.name())
+        )
         raise ValueError(msg)
     if uv_upward.units != uv_downward.units:
         msg = "The input uv files do not have the same units."
         raise ValueError(msg)
 
     uv_data = (uv_upward.data + uv_downward.data) * scale_factor
-    attributes = generate_mandatory_attributes([
-        uv_upward, uv_downward], model_id_attr=model_id_attr)
+    attributes = generate_mandatory_attributes(
+        [uv_upward, uv_downward], model_id_attr=model_id_attr
+    )
     uv_index = create_new_diagnostic_cube(
-        "ultraviolet_index", "1", uv_upward, attributes, data=uv_data)
+        "ultraviolet_index", "1", uv_upward, attributes, data=uv_data
+    )
 
     return uv_index

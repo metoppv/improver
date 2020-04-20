@@ -83,21 +83,27 @@ def choose(index_array, array_set):
                     of the array_set array (N-1).
     """
     if index_array.shape != array_set.shape:
-        msg = ("The choose function only works with an index_array that "
-               "matches the shape of array_set.\nindex_array shape: {}\n"
-               "array_set shape: {}".format(index_array.shape,
-                                            array_set.shape))
+        msg = (
+            "The choose function only works with an index_array that "
+            "matches the shape of array_set.\nindex_array shape: {}\n"
+            "array_set shape: {}".format(index_array.shape, array_set.shape)
+        )
         raise ValueError(msg)
     if index_array.max() > array_set.shape[0] - 1:
-        msg = ('index_array contains an index that is larger than the '
-               'number of sub-arrays from which data can be drawn.\nMax '
-               'index: {}\nNumber of sub-arrays: {}'.format(
-                   index_array.max(), array_set.shape[0]))
+        msg = (
+            "index_array contains an index that is larger than the "
+            "number of sub-arrays from which data can be drawn.\nMax "
+            "index: {}\nNumber of sub-arrays: {}".format(
+                index_array.max(), array_set.shape[0]
+            )
+        )
         raise IndexError(msg)
 
     result = np.array(
-        [array_set[index_array[I]][I[1:]]
-         for I in np.lib.index_tricks.ndindex(index_array.shape)]
-        ).reshape(index_array.shape)
+        [
+            array_set[index_array[I]][I[1:]]
+            for I in np.lib.index_tricks.ndindex(index_array.shape)
+        ]
+    ).reshape(index_array.shape)
 
     return result
