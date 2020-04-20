@@ -37,18 +37,20 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            target_grid: cli.inputcube = None,
-            land_sea_mask: cli.inputcube = None,
-            *,
-            regrid_mode='bilinear',
-            extrapolation_mode='nanmask',
-            land_sea_mask_vicinity: float = 25000,
-            regridded_title: str = None,
-            attributes_config: cli.inputjson = None,
-            coords_to_remove: cli.comma_separated_list = None,
-            new_name: str = None,
-            new_units: str = None):
+def process(
+    cube: cli.inputcube,
+    target_grid: cli.inputcube = None,
+    land_sea_mask: cli.inputcube = None,
+    *,
+    regrid_mode="bilinear",
+    extrapolation_mode="nanmask",
+    land_sea_mask_vicinity: float = 25000,
+    regridded_title: str = None,
+    attributes_config: cli.inputjson = None,
+    coords_to_remove: cli.comma_separated_list = None,
+    new_name: str = None,
+    new_units: str = None,
+):
     """Standardises a cube by one or more of regridding, updating meta-data etc
 
     Standardise a source cube. Available options are regridding (bi-linear or
@@ -123,10 +125,11 @@ def process(cube: cli.inputcube,
     from improver.metadata.amend import update_stage_v110_metadata
     from improver.standardise import StandardiseGridAndMetadata
 
-    if (land_sea_mask and
-            "nearest-with-mask" not in regrid_mode):
-        msg = ("Land-mask file supplied without appropriate regrid-mode. "
-               "Use --regrid-mode nearest-with-mask.")
+    if land_sea_mask and "nearest-with-mask" not in regrid_mode:
+        msg = (
+            "Land-mask file supplied without appropriate regrid-mode. "
+            "Use --regrid-mode nearest-with-mask."
+        )
         raise ValueError(msg)
 
     # update_stage_v110_metadata is deprecated. Please ensure metadata is
@@ -134,11 +137,18 @@ def process(cube: cli.inputcube,
     update_stage_v110_metadata(cube)
 
     plugin = StandardiseGridAndMetadata(
-        regrid_mode=regrid_mode, extrapolation_mode=extrapolation_mode,
+        regrid_mode=regrid_mode,
+        extrapolation_mode=extrapolation_mode,
         landmask=land_sea_mask,
-        landmask_vicinity=land_sea_mask_vicinity)
+        landmask_vicinity=land_sea_mask_vicinity,
+    )
 
     return plugin(
-        cube, target_grid, new_name=new_name, new_units=new_units,
-        regridded_title=regridded_title, coords_to_remove=coords_to_remove,
-        attributes_dict=attributes_config)
+        cube,
+        target_grid,
+        new_name=new_name,
+        new_units=new_units,
+        regridded_title=regridded_title,
+        coords_to_remove=coords_to_remove,
+        attributes_dict=attributes_config,
+    )

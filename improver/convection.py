@@ -54,10 +54,17 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
     """
 
     def __init__(
-            self, lower_threshold, higher_threshold, neighbourhood_method,
-            radii, fuzzy_factor=None, comparison_operator='>',
-            lead_times=None, weighted_mode=True,
-            use_adjacent_grid_square_differences=True):
+        self,
+        lower_threshold,
+        higher_threshold,
+        neighbourhood_method,
+        radii,
+        fuzzy_factor=None,
+        comparison_operator=">",
+        lead_times=None,
+        weighted_mode=True,
+        use_adjacent_grid_square_differences=True,
+    ):
         """
         Args:
             lower_threshold (float):
@@ -105,22 +112,29 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         self.comparison_operator = comparison_operator
         self.lead_times = lead_times
         self.weighted_mode = weighted_mode
-        self.use_adjacent_grid_square_differences = (
-            use_adjacent_grid_square_differences)
+        self.use_adjacent_grid_square_differences = use_adjacent_grid_square_differences
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<DiagnoseConvectivePrecipitation: lower_threshold {}; '
-                  'higher_threshold {}; neighbourhood_method: {}; '
-                  'radii: {}; fuzzy_factor {}; '
-                  'comparison_operator: {}; lead_times: {}; '
-                  'weighted_mode: {};'
-                  'use_adjacent_grid_square_differences: {}>')
+        result = (
+            "<DiagnoseConvectivePrecipitation: lower_threshold {}; "
+            "higher_threshold {}; neighbourhood_method: {}; "
+            "radii: {}; fuzzy_factor {}; "
+            "comparison_operator: {}; lead_times: {}; "
+            "weighted_mode: {};"
+            "use_adjacent_grid_square_differences: {}>"
+        )
         return result.format(
-            self.lower_threshold, self.higher_threshold,
-            self.neighbourhood_method, self.radii, self.fuzzy_factor,
-            self.comparison_operator, self.lead_times, self.weighted_mode,
-            self.use_adjacent_grid_square_differences)
+            self.lower_threshold,
+            self.higher_threshold,
+            self.neighbourhood_method,
+            self.radii,
+            self.fuzzy_factor,
+            self.comparison_operator,
+            self.lead_times,
+            self.weighted_mode,
+            self.use_adjacent_grid_square_differences,
+        )
 
     def _calculate_convective_ratio(self, cubelist, threshold_list):
         """
@@ -161,34 +175,39 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         neighbourhooded_cube_dict = {}
         for cube, threshold in zip(cubelist, threshold_list):
             neighbourhooded_cube = NeighbourhoodProcessing(
-                self.neighbourhood_method, self.radii,
+                self.neighbourhood_method,
+                self.radii,
                 lead_times=self.lead_times,
-                weighted_mode=self.weighted_mode)(cube)
+                weighted_mode=self.weighted_mode,
+            )(cube)
             neighbourhooded_cube_dict[threshold] = neighbourhooded_cube
 
         # Ignore runtime warnings from divide by 0 errors.
-        with np.errstate(invalid='ignore', divide='ignore'):
+        with np.errstate(invalid="ignore", divide="ignore"):
             convective_ratio = np.divide(
                 neighbourhooded_cube_dict[self.higher_threshold].data,
-                neighbourhooded_cube_dict[self.lower_threshold].data)
+                neighbourhooded_cube_dict[self.lower_threshold].data,
+            )
 
         infinity_condition = np.sum(np.isinf(convective_ratio)) > 0.0
-        with np.errstate(invalid='ignore'):
-            greater_than_1_condition = (
-                np.sum(convective_ratio > 1.0) > 0.0)
+        with np.errstate(invalid="ignore"):
+            greater_than_1_condition = np.sum(convective_ratio > 1.0) > 0.0
 
         if infinity_condition or greater_than_1_condition:
             if infinity_condition:
-                start_msg = ("A value of infinity was found for the "
-                             "convective ratio: {}.").format(
-                                 convective_ratio)
+                start_msg = (
+                    "A value of infinity was found for the " "convective ratio: {}."
+                ).format(convective_ratio)
             elif greater_than_1_condition:
-                start_msg = ("A value of greater than 1.0 was found for the "
-                             "convective ratio: {}.").format(
-                                 convective_ratio)
-            msg = ("{}\nThis value is not plausible as the fraction above the "
-                   "higher threshold must be less than the fraction "
-                   "above the lower threshold.").format(start_msg)
+                start_msg = (
+                    "A value of greater than 1.0 was found for the "
+                    "convective ratio: {}."
+                ).format(convective_ratio)
+            msg = (
+                "{}\nThis value is not plausible as the fraction above the "
+                "higher threshold must be less than the fraction "
+                "above the lower threshold."
+            ).format(start_msg)
             raise ValueError(msg)
 
         return convective_ratio
@@ -209,8 +228,9 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
                 Cubelist containing cubes with the absolute difference
                 between adjacent grid squares along x and y, respectively.
         """
-        diff_along_x_cube, diff_along_y_cube = (
-            DifferenceBetweenAdjacentGridSquares()(cube))
+        diff_along_x_cube, diff_along_y_cube = DifferenceBetweenAdjacentGridSquares()(
+            cube
+        )
         # Compute the absolute values of the differences to ensure that
         # negative differences are included.
         diff_along_x_cube.data = np.absolute(diff_along_x_cube.data)
@@ -235,11 +255,14 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         cubes = iris.cube.CubeList([])
         for cube in cubelist:
             threshold_cube = BasicThreshold(
-                threshold, fuzzy_factor=self.fuzzy_factor,
-                comparison_operator=self.comparison_operator)(cube.copy())
+                threshold,
+                fuzzy_factor=self.fuzzy_factor,
+                comparison_operator=self.comparison_operator,
+            )(cube.copy())
             # Will only ever contain one slice on threshold
             for cube_slice in threshold_cube.slices_over(
-                    find_threshold_coordinate(threshold_cube)):
+                find_threshold_coordinate(threshold_cube)
+            ):
                 threshold_cube = cube_slice
 
             cubes.append(threshold_cube)
@@ -304,23 +327,26 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         threshold_list = [self.lower_threshold, self.higher_threshold]
         if self.use_adjacent_grid_square_differences:
             for threshold in threshold_list:
-                diff_cubelist = (
-                    self.absolute_differences_between_adjacent_grid_squares(
-                        cube))
+                diff_cubelist = self.absolute_differences_between_adjacent_grid_squares(
+                    cube
+                )
                 thresholded_cubes = self.iterate_over_threshold(
-                    diff_cubelist, threshold)
+                    diff_cubelist, threshold
+                )
                 cubelist.append(
                     self.sum_differences_between_adjacent_grid_squares(
-                        cube, thresholded_cubes))
+                        cube, thresholded_cubes
+                    )
+                )
         else:
             for threshold in threshold_list:
                 cubelist.extend(self.iterate_over_threshold([cube], threshold))
 
-        convective_ratios = (
-            self._calculate_convective_ratio(cubelist, threshold_list))
+        convective_ratios = self._calculate_convective_ratio(cubelist, threshold_list)
 
         attributes = generate_mandatory_attributes([cube])
         output_cube = create_new_diagnostic_cube(
-            "convective_ratio", "1", cube, attributes, data=convective_ratios)
+            "convective_ratio", "1", cube, attributes, data=convective_ratios
+        )
 
         return output_cube

@@ -36,16 +36,18 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(wind_speed: cli.inputcube,
-            sigma: cli.inputcube,
-            target_orography: cli.inputcube,
-            standard_orography: cli.inputcube,
-            silhouette_roughness: cli.inputcube,
-            vegetative_roughness: cli.inputcube = None,
-            *,
-            model_resolution: float,
-            output_height_level: float = None,
-            output_height_level_units='m'):
+def process(
+    wind_speed: cli.inputcube,
+    sigma: cli.inputcube,
+    target_orography: cli.inputcube,
+    standard_orography: cli.inputcube,
+    silhouette_roughness: cli.inputcube,
+    vegetative_roughness: cli.inputcube = None,
+    *,
+    model_resolution: float,
+    output_height_level: float = None,
+    output_height_level_units="m",
+):
     """Wind downscaling.
 
     Run wind downscaling to apply roughness correction and height correction
@@ -105,21 +107,26 @@ def process(wind_speed: cli.inputcube,
     from improver.wind_calculations import wind_downscaling
 
     if output_height_level_units and output_height_level is None:
-        warnings.warn('output_height_level_units has been set but no '
-                      'associated height level has been provided. These units '
-                      'will have no effect.')
+        warnings.warn(
+            "output_height_level_units has been set but no "
+            "associated height level has been provided. These units "
+            "will have no effect."
+        )
     try:
-        wind_speed_iterator = wind_speed.slices_over('realization')
+        wind_speed_iterator = wind_speed.slices_over("realization")
     except CoordinateNotFoundError:
         wind_speed_iterator = [wind_speed]
     wind_speed_list = iris.cube.CubeList()
     for wind_speed_slice in wind_speed_iterator:
-        result = (
-            wind_downscaling.RoughnessCorrection(
-                silhouette_roughness, sigma, target_orography,
-                standard_orography, model_resolution,
-                z0_cube=vegetative_roughness,
-                height_levels_cube=None)(wind_speed_slice))
+        result = wind_downscaling.RoughnessCorrection(
+            silhouette_roughness,
+            sigma,
+            target_orography,
+            standard_orography,
+            model_resolution,
+            z0_cube=vegetative_roughness,
+            height_levels_cube=None,
+        )(wind_speed_slice)
         wind_speed_list.append(result)
     # TODO: Remove temporary fix for chunking problems when merging cubes
     max_npoints = max([np.prod(cube.data.shape) for cube in wind_speed_list])
@@ -127,19 +134,21 @@ def process(wind_speed: cli.inputcube,
         iris._lazy_data._MAX_CHUNK_SIZE *= 2
     wind_speed = wind_speed_list.merge_cube()
     non_dim_coords = [x.name() for x in wind_speed.coords(dim_coords=False)]
-    if 'realization' in non_dim_coords:
-        wind_speed = iris.util.new_axis(wind_speed, 'realization')
+    if "realization" in non_dim_coords:
+        wind_speed = iris.util.new_axis(wind_speed, "realization")
     if output_height_level is not None:
-        constraints = {'height': output_height_level}
-        units = {'height': output_height_level_units}
+        constraints = {"height": output_height_level}
+        units = {"height": output_height_level_units}
         single_level = apply_extraction(
-            wind_speed, iris.Constraint(**constraints), units)
+            wind_speed, iris.Constraint(**constraints), units
+        )
         if not single_level:
             raise ValueError(
-                'Requested height level not found, no cube '
-                'returned. Available height levels are:\n'
-                '{0:}\nin units of {1:}'.format(
-                    wind_speed.coord('height').points,
-                    wind_speed.coord('height').units))
+                "Requested height level not found, no cube "
+                "returned. Available height levels are:\n"
+                "{0:}\nin units of {1:}".format(
+                    wind_speed.coord("height").points, wind_speed.coord("height").units
+                )
+            )
         wind_speed = single_level
     return wind_speed

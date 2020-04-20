@@ -36,10 +36,9 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            *,
-            threshold_ranges: cli.inputjson,
-            threshold_units=None):
+def process(
+    cube: cli.inputcube, *, threshold_ranges: cli.inputjson, threshold_units=None
+):
     """
     Calculate the probabilities of occurrence between thresholds
 

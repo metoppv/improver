@@ -51,7 +51,8 @@ class CubeCombiner(BasePlugin):
         "multiply": np.multiply,
         "max": np.maximum,
         "min": np.minimum,
-        "mean": np.add}  # mean is calculated in two steps: sum and normalise
+        "mean": np.add,
+    }  # mean is calculated in two steps: sum and normalise
 
     def __init__(self, operation, warnings_on=False):
         """
@@ -70,16 +71,16 @@ class CubeCombiner(BasePlugin):
         try:
             self.operator = self.COMBINE_OPERATORS[operation]
         except KeyError:
-            msg = 'Unknown operation {}'.format(operation)
+            msg = "Unknown operation {}".format(operation)
             raise ValueError(msg)
         self.operation = operation
         self.warnings_on = warnings_on
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = ('<CubeCombiner: operation=' +
-                '{}, warnings_on = {}>'.format(self.operation,
-                                               self.warnings_on))
+        desc = "<CubeCombiner: operation=" + "{}, warnings_on = {}>".format(
+            self.operation, self.warnings_on
+        )
         return desc
 
     @staticmethod
@@ -99,8 +100,10 @@ class CubeCombiner(BasePlugin):
             coords = cube.coords(dim_coords=True)
             compare = [a == b for a, b in zip(coords, ref_coords)]
             if not np.all(compare):
-                msg = ("Cannot combine cubes with different dimensions:\n"
-                       "{} and {}".format(repr(cube_list[0]), repr(cube)))
+                msg = (
+                    "Cannot combine cubes with different dimensions:\n"
+                    "{} and {}".format(repr(cube_list[0]), repr(cube))
+                )
                 raise ValueError(msg)
 
     @staticmethod
@@ -119,17 +122,21 @@ class CubeCombiner(BasePlugin):
                 List of coordinate names to expand
         """
         shared_scalar_coords = {
-            coord.name() for coord in cube_list[0].coords(dim_coords=False)}
+            coord.name() for coord in cube_list[0].coords(dim_coords=False)
+        }
         for cube in cube_list[1:]:
             cube_scalar_coords = {
-                coord.name() for coord in cube.coords(dim_coords=False)}
+                coord.name() for coord in cube.coords(dim_coords=False)
+            }
             shared_scalar_coords = shared_scalar_coords & cube_scalar_coords
 
         expanded_coords = []
         for cube in cube_list[1:]:
             for coord in shared_scalar_coords:
-                if (cube.coord(coord) != cube_list[0].coord(coord) and
-                        coord not in expanded_coords):
+                if (
+                    cube.coord(coord) != cube_list[0].coord(coord)
+                    and coord not in expanded_coords
+                ):
                     expanded_coords.append(coord)
         return expanded_coords
 
@@ -170,7 +177,7 @@ class CubeCombiner(BasePlugin):
             ValueError: If the cubelist contains only one cube.
         """
         if len(cube_list) < 2:
-            msg = 'Expecting 2 or more cubes in cube_list'
+            msg = "Expecting 2 or more cubes in cube_list"
             raise ValueError(msg)
 
         self._check_dimensions_match(cube_list)
@@ -181,16 +188,17 @@ class CubeCombiner(BasePlugin):
             result.data = self.operator(result.data, cube.data)
 
         # normalise mean (for which self.operator is np.add)
-        if self.operation == 'mean':
+        if self.operation == "mean":
             result.data = result.data / len(cube_list)
 
         # where the operation is "multiply", retain all coordinate metadata
         # from the first cube in the list; otherwise expand coordinate bounds
-        if self.operation != 'multiply':
+        if self.operation != "multiply":
             expanded_coord_names = self._get_expanded_coord_names(cube_list)
             if expanded_coord_names:
-                result = expand_bounds(result, cube_list, expanded_coord_names,
-                                       use_midpoint=use_midpoint)
+                result = expand_bounds(
+                    result, cube_list, expanded_coord_names, use_midpoint=use_midpoint
+                )
 
         result.rename(new_diagnostic_name)
 

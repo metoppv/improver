@@ -47,11 +47,8 @@ def test_filling_without_limit(tmp_path):
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
     kgo_path = kgo_dir / "sleet_rain_unlimited_kgo.nc"
     output_path = tmp_path / "output.nc"
-    input_paths = [kgo_dir / x for x in
-                   ("sleet_rain_unfilled.nc",
-                    "snow_sleet.nc")]
-    args = [*input_paths,
-            "--output", output_path]
+    input_paths = [kgo_dir / x for x in ("sleet_rain_unfilled.nc", "snow_sleet.nc")]
+    args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -62,12 +59,10 @@ def test_filling_with_maximum_limit(tmp_path):
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
     kgo_path = kgo_dir / "sleet_rain_max_limited_kgo.nc"
     output_path = tmp_path / "output.nc"
-    input_paths = [kgo_dir / x for x in
-                   ("sleet_rain_unfilled.nc",
-                    "snow_sleet.nc",
-                    "orog.nc")]
-    args = [*input_paths,
-            "--output", output_path]
+    input_paths = [
+        kgo_dir / x for x in ("sleet_rain_unfilled.nc", "snow_sleet.nc", "orog.nc")
+    ]
+    args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -78,13 +73,10 @@ def test_filling_with_minimum_limit(tmp_path):
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
     kgo_path = kgo_dir / "sleet_rain_min_limited_kgo.nc"
     output_path = tmp_path / "output.nc"
-    input_paths = [kgo_dir / x for x in
-                   ("sleet_rain_unfilled.nc",
-                    "snow_sleet.nc",
-                    "orog.nc")]
-    args = [*input_paths,
-            "--limit-as-maximum", "False",
-            "--output", output_path]
+    input_paths = [
+        kgo_dir / x for x in ("sleet_rain_unfilled.nc", "snow_sleet.nc", "orog.nc")
+    ]
+    args = [*input_paths, "--limit-as-maximum", "False", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -96,10 +88,9 @@ def test_filling_with_nearest_use(tmp_path):
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
     kgo_path = kgo_dir / "sleet_rain_nearest_filled_kgo.nc"
     output_path = tmp_path / "output.nc"
-    input_paths = [kgo_dir / x for x in
-                   ("sleet_rain_unfilled_corner.nc",
-                    "snow_sleet.nc")]
-    args = [*input_paths,
-            "--output", output_path]
+    input_paths = [
+        kgo_dir / x for x in ("sleet_rain_unfilled_corner.nc", "snow_sleet.nc")
+    ]
+    args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

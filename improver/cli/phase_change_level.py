@@ -36,9 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube,
-            phase_change,
-            horizontal_interpolation=True):
+def process(*cubes: cli.inputcube, phase_change, horizontal_interpolation=True):
     """Height of precipitation phase change relative to sea level.
 
     Calculated as a continuous 2D field by finding the height above sea level
@@ -74,11 +72,12 @@ def process(*cubes: cli.inputcube,
         iris.cube.Cube:
             Processed Cube of phase change altitude relative to sea level.
     """
-    from improver.psychrometric_calculations.psychrometric_calculations \
-        import PhaseChangeLevel
+    from improver.psychrometric_calculations.psychrometric_calculations import (
+        PhaseChangeLevel,
+    )
 
     plugin = PhaseChangeLevel(
-        phase_change=phase_change,
-        horizontal_interpolation=horizontal_interpolation)
+        phase_change=phase_change, horizontal_interpolation=horizontal_interpolation
+    )
     result = plugin(cubes)
     return result

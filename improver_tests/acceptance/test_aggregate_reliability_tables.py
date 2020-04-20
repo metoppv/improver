@@ -47,9 +47,7 @@ def test_coordinate_collapse(tmp_path):
     kgo_path = kgo_dir / "collapse_lat_lon_kgo.nc"
     input_path = kgo_dir / "reliability_table.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--coordinates", "latitude,longitude",
-            "--output", output_path]
+    args = [input_path, "--coordinates", "latitude,longitude", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -62,7 +60,6 @@ def test_multiple_tables(tmp_path):
     kgo_path = kgo_dir / "multiple_tables_kgo.nc"
     input_paths = sorted(kgo_dir.glob("reliability_table*.nc"))
     output_path = tmp_path / "output.nc"
-    args = [*input_paths,
-            "--output", output_path]
+    args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

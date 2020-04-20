@@ -58,9 +58,9 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up temperature cube for testing."""
-        cube = (
-            add_forecast_reference_time_and_forecast_period(
-                set_up_temperature_cube()))
+        cube = add_forecast_reference_time_and_forecast_period(
+            set_up_temperature_cube()
+        )
         percentile_points = np.arange(len(cube.coord("realization").points))
         cube.coord("realization").points = percentile_points
         cube.coord("realization").rename("percentile")
@@ -82,12 +82,13 @@ class Test_process(IrisTest):
         particular values for the ensemble realization numbers."""
         cube = self.current_temperature_cube
         plen = len(cube.coord("percentile").points)
-        ensemble_realization_numbers = np.arange(plen)+12
+        ensemble_realization_numbers = np.arange(plen) + 12
         plugin = Plugin()
         result = plugin.process(cube, ensemble_realization_numbers)
         self.assertEqual(len(result.coord("realization").points), plen)
         self.assertArrayAlmostEqual(
-            result.coord("realization").points, np.array([12, 13, 14]))
+            result.coord("realization").points, np.array([12, 13, 14])
+        )
 
     def test_number_of_realizations(self):
         """Check the values for the realization coordinate generated without
@@ -98,18 +99,19 @@ class Test_process(IrisTest):
         result = plugin.process(cube)
         self.assertEqual(len(result.coord("realization").points), plen)
         self.assertArrayAlmostEqual(
-            result.coord("realization").points, np.array([0, 1, 2]))
+            result.coord("realization").points, np.array([0, 1, 2])
+        )
 
     def test_raises_exception_if_realization_already_exists(self):
         """Check that we raise an exception if a realization coordinate already
         exists."""
         cube = self.current_temperature_cube
-        cube.add_aux_coord(AuxCoord(0, 'realization'))
+        cube.add_aux_coord(AuxCoord(0, "realization"))
         plugin = Plugin()
         msg = r"Cannot rebadge percentile coordinate to realization.*"
         with self.assertRaisesRegex(InvalidCubeError, msg):
             plugin.process(cube)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

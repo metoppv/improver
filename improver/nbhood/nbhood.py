@@ -91,9 +91,11 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         self.lead_times = lead_times
         if self.lead_times is not None:
             if len(radii) != len(lead_times):
-                msg = ("There is a mismatch in the number of radii "
-                       "and the number of lead times. "
-                       "Unable to continue due to mismatch.")
+                msg = (
+                    "There is a mismatch in the number of radii "
+                    "and the number of lead times. "
+                    "Unable to continue due to mismatch."
+                )
                 raise ValueError(msg)
 
     def _find_radii(self, cube_lead_times=None):
@@ -122,10 +124,11 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
             neighbourhood_method = self.neighbourhood_method()
         else:
             neighbourhood_method = self.neighbourhood_method
-        result = ('<BaseNeighbourhoodProcessing: neighbourhood_method: {}; '
-                  'radii: {}; lead_times: {}>')
-        return result.format(
-            neighbourhood_method, self.radii, self.lead_times)
+        result = (
+            "<BaseNeighbourhoodProcessing: neighbourhood_method: {}; "
+            "radii: {}; lead_times: {}>"
+        )
+        return result.format(neighbourhood_method, self.radii, self.lead_times)
 
     def process(self, cube, mask_cube=None):
         """
@@ -145,18 +148,20 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
                 the resulting field is smoothed.
 
         """
-        if (not getattr(self.neighbourhood_method, "run", None) or
-                not callable(self.neighbourhood_method.run)):
-            msg = ("{} is not valid as a neighbourhood_method. "
-                   "Please choose a valid neighbourhood_method with a "
-                   "run method.".format(
-                       self.neighbourhood_method))
+        if not getattr(self.neighbourhood_method, "run", None) or not callable(
+            self.neighbourhood_method.run
+        ):
+            msg = (
+                "{} is not valid as a neighbourhood_method. "
+                "Please choose a valid neighbourhood_method with a "
+                "run method.".format(self.neighbourhood_method)
+            )
             raise ValueError(msg)
 
         # Check if a dimensional realization coordinate exists. If so, the
         # cube is sliced, so that it becomes a scalar coordinate.
         try:
-            cube.coord('realization', dim_coords=True)
+            cube.coord("realization", dim_coords=True)
         except iris.exceptions.CoordinateNotFoundError:
             slices_over_realization = [cube]
         else:
@@ -169,42 +174,46 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         for cube_realization in slices_over_realization:
             if self.lead_times is None:
                 cube_new = self.neighbourhood_method.run(
-                    cube_realization, self.radii, mask_cube=mask_cube)
+                    cube_realization, self.radii, mask_cube=mask_cube
+                )
             else:
                 # Interpolate to find the radius at each required lead time.
                 fp_coord = forecast_period_coord(cube_realization)
                 fp_coord.convert_units("hours")
-                required_radii = self._find_radii(
-                    cube_lead_times=fp_coord.points)
+                required_radii = self._find_radii(cube_lead_times=fp_coord.points)
 
                 cubes_time = iris.cube.CubeList([])
                 # Find the number of grid cells required for creating the
                 # neighbourhood, and then apply the neighbourhood
                 # processing method to smooth the field.
-                for cube_slice, radius in (
-                        zip(cube_realization.slices_over("time"),
-                            required_radii)):
+                for cube_slice, radius in zip(
+                    cube_realization.slices_over("time"), required_radii
+                ):
                     cube_slice = self.neighbourhood_method.run(
-                        cube_slice, radius, mask_cube=mask_cube)
+                        cube_slice, radius, mask_cube=mask_cube
+                    )
                     cubes_time.append(cube_slice)
                 if len(cubes_time) > 1:
                     cube_new = concatenate_cubes(
-                        cubes_time, coords_to_slice_over=["time"])
+                        cubes_time, coords_to_slice_over=["time"]
+                    )
                 else:
                     cube_new = cubes_time[0]
             cubes_real.append(cube_new)
         if len(cubes_real) > 1:
             combined_cube = concatenate_cubes(
-                cubes_real, coords_to_slice_over=["realization"])
+                cubes_real, coords_to_slice_over=["realization"]
+            )
         else:
             combined_cube = cubes_real[0]
 
         # Promote dimensional coordinates that used to be present.
-        exception_coordinates = (
-            find_dimension_coordinate_mismatch(
-                cube, combined_cube, two_way_mismatch=False))
+        exception_coordinates = find_dimension_coordinate_mismatch(
+            cube, combined_cube, two_way_mismatch=False
+        )
         combined_cube = check_cube_coordinates(
-            cube, combined_cube, exception_coordinates=exception_coordinates)
+            cube, combined_cube, exception_coordinates=exception_coordinates
+        )
 
         return combined_cube
 
@@ -214,8 +223,12 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
     """Class for generating percentiles from a neighbourhood."""
 
     def __init__(
-            self, neighbourhood_method, radii, lead_times=None,
-            percentiles=DEFAULT_PERCENTILES):
+        self,
+        neighbourhood_method,
+        radii,
+        lead_times=None,
+        percentiles=DEFAULT_PERCENTILES,
+    ):
         """
         Create a neighbourhood processing subclass that generates percentiles
         from a neighbourhood of points.
@@ -237,17 +250,20 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
                 DEFAULT_PERCENTILES.
         """
         super(GeneratePercentilesFromANeighbourhood, self).__init__(
-            neighbourhood_method, radii, lead_times=lead_times)
+            neighbourhood_method, radii, lead_times=lead_times
+        )
 
-        methods = {
-            "circular": GeneratePercentilesFromACircularNeighbourhood}
+        methods = {"circular": GeneratePercentilesFromACircularNeighbourhood}
         try:
             method = methods[neighbourhood_method]
             self.neighbourhood_method = method(percentiles=percentiles)
         except KeyError:
-            msg = ("The neighbourhood_method requested: {} is not a "
-                   "supported method. Please choose from: {}".format(
-                       neighbourhood_method, methods.keys()))
+            msg = (
+                "The neighbourhood_method requested: {} is not a "
+                "supported method. Please choose from: {}".format(
+                    neighbourhood_method, methods.keys()
+                )
+            )
             raise KeyError(msg)
 
 
@@ -257,9 +273,14 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
     within the chosen neighbourhood."""
 
     def __init__(
-            self, neighbourhood_method, radii, lead_times=None,
-            weighted_mode=True, sum_or_fraction="fraction",
-            re_mask=False):
+        self,
+        neighbourhood_method,
+        radii,
+        lead_times=None,
+        weighted_mode=True,
+        sum_or_fraction="fraction",
+        re_mask=False,
+    ):
         """
         Create a neighbourhood processing subclass that applies a smoothing
         to points in a cube.
@@ -297,17 +318,18 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 originally masked.
         """
         super(NeighbourhoodProcessing, self).__init__(
-            neighbourhood_method, radii, lead_times=lead_times)
+            neighbourhood_method, radii, lead_times=lead_times
+        )
 
-        methods = {
-            "circular": CircularNeighbourhood,
-            "square": SquareNeighbourhood}
+        methods = {"circular": CircularNeighbourhood, "square": SquareNeighbourhood}
         try:
             method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(
-                weighted_mode, sum_or_fraction, re_mask)
+            self.neighbourhood_method = method(weighted_mode, sum_or_fraction, re_mask)
         except KeyError:
-            msg = ("The neighbourhood_method requested: {} is not a "
-                   "supported method. Please choose from: {}".format(
-                       neighbourhood_method, methods.keys()))
+            msg = (
+                "The neighbourhood_method requested: {} is not a "
+                "supported method. Please choose from: {}".format(
+                    neighbourhood_method, methods.keys()
+                )
+            )
             raise KeyError(msg)

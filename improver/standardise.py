@@ -73,27 +73,29 @@ def grid_contains_cutout(grid, cutout):
 
     # check whether "cutout" coordinate points match a subset of "grid"
     # points on both axes
-    for axis in ['x', 'y']:
+    for axis in ["x", "y"]:
         grid_coord = grid.coord(axis=axis)
         cutout_coord = cutout.coord(axis=axis)
         # check coordinate metadata
-        if (cutout_coord.name() != grid_coord.name() or
-                cutout_coord.units != grid_coord.units or
-                cutout_coord.coord_system != grid_coord.coord_system):
+        if (
+            cutout_coord.name() != grid_coord.name()
+            or cutout_coord.units != grid_coord.units
+            or cutout_coord.coord_system != grid_coord.coord_system
+        ):
             return False
 
         # search for cutout coordinate points in larger grid
         cutout_start = cutout_coord.points[0]
-        find_start = [np.isclose(cutout_start, grid_point)
-                      for grid_point in grid_coord.points]
+        find_start = [
+            np.isclose(cutout_start, grid_point) for grid_point in grid_coord.points
+        ]
         if not np.any(find_start):
             return False
 
         start = find_start.index(True)
         end = start + len(cutout_coord.points)
         try:
-            if not np.allclose(cutout_coord.points,
-                               grid_coord.points[start:end]):
+            if not np.allclose(cutout_coord.points, grid_coord.points[start:end]):
                 return False
         except ValueError:
             # raised by np.allclose if "end" index overshoots edge of grid
@@ -107,12 +109,19 @@ class StandardiseGridAndMetadata(BasePlugin):
 
     """Plugin to regrid cube data and standardise metadata"""
 
-    REGRID_REQUIRES_LANDMASK = {"bilinear": False,
-                                "nearest": False,
-                                "nearest-with-mask": True}
+    REGRID_REQUIRES_LANDMASK = {
+        "bilinear": False,
+        "nearest": False,
+        "nearest-with-mask": True,
+    }
 
-    def __init__(self, regrid_mode='bilinear', extrapolation_mode='nanmask',
-                 landmask=None, landmask_vicinity=25000):
+    def __init__(
+        self,
+        regrid_mode="bilinear",
+        extrapolation_mode="nanmask",
+        landmask=None,
+        landmask_vicinity=25000,
+    ):
         """
         Initialise regridding parameters
 
@@ -132,13 +141,12 @@ class StandardiseGridAndMetadata(BasePlugin):
             ValueError: If a landmask is required but not passed in
         """
         if landmask is None and "nearest-with-mask" in regrid_mode:
-            msg = ("Regrid mode {} requires an input landmask cube")
+            msg = "Regrid mode {} requires an input landmask cube"
             raise ValueError(msg.format(regrid_mode))
         self.regrid_mode = regrid_mode
         self.extrapolation_mode = extrapolation_mode
         self.landmask_source_grid = landmask
-        self.landmask_vicinity = (
-            None if landmask is None else landmask_vicinity)
+        self.landmask_vicinity = None if landmask is None else landmask_vicinity
         self.landmask_name = "land_binary_mask"
 
     def _adjust_landsea(self, cube, target_grid):
@@ -158,17 +166,20 @@ class StandardiseGridAndMetadata(BasePlugin):
             iris.cube.Cube: Adjusted cube
         """
         if self.landmask_name not in self.landmask_source_grid.name():
-            msg = ("Expected {} in input_landmask cube but found {}".format(
-                self.landmask_name, repr(self.landmask_source_grid)))
+            msg = "Expected {} in input_landmask cube but found {}".format(
+                self.landmask_name, repr(self.landmask_source_grid)
+            )
             warnings.warn(msg)
 
         if self.landmask_name not in target_grid.name():
-            msg = ("Expected {} in target_grid cube but found {}".format(
-                self.landmask_name, repr(target_grid)))
+            msg = "Expected {} in target_grid cube but found {}".format(
+                self.landmask_name, repr(target_grid)
+            )
             warnings.warn(msg)
 
         return AdjustLandSeaPoints(vicinity_radius=self.landmask_vicinity)(
-            cube, self.landmask_source_grid, target_grid)
+            cube, self.landmask_source_grid, target_grid
+        )
 
     def _regrid_to_target(self, cube, target_grid, regridded_title):
         """
@@ -197,8 +208,9 @@ class StandardiseGridAndMetadata(BasePlugin):
             cube = self._adjust_landsea(cube, target_grid)
 
         # identify grid-describing attributes on source cube that need updating
-        required_grid_attributes = [attr for attr in cube.attributes
-                                    if attr in MOSG_GRID_ATTRIBUTES]
+        required_grid_attributes = [
+            attr for attr in cube.attributes if attr in MOSG_GRID_ATTRIBUTES
+        ]
         # update attributes if available on target grid, otherwise remove
         for key in required_grid_attributes:
             if key in target_grid.attributes:
@@ -208,7 +220,9 @@ class StandardiseGridAndMetadata(BasePlugin):
 
         cube.attributes["title"] = (
             MANDATORY_ATTRIBUTE_DEFAULTS["title"]
-            if regridded_title is None else regridded_title)
+            if regridded_title is None
+            else regridded_title
+        )
 
         return cube
 
@@ -249,6 +263,7 @@ class StandardiseGridAndMetadata(BasePlugin):
                 Cube to be updated in place
 
         """
+
         def as_correct_dtype(obj, required_dtype):
             """
             Returns an object updated if necessary to the required dtype
@@ -280,9 +295,16 @@ class StandardiseGridAndMetadata(BasePlugin):
                     coord.bounds = np.around(coord.bounds)
                 coord.bounds = as_correct_dtype(coord.bounds, req_dtype)
 
-    def process(self, cube, target_grid=None, new_name=None, new_units=None,
-                regridded_title=None, coords_to_remove=None,
-                attributes_dict=None):
+    def process(
+        self,
+        cube,
+        target_grid=None,
+        new_name=None,
+        new_units=None,
+        regridded_title=None,
+        coords_to_remove=None,
+        attributes_dict=None,
+    ):
         """
         Perform regridding and metadata adjustments
 
@@ -317,8 +339,7 @@ class StandardiseGridAndMetadata(BasePlugin):
             # grid in the required coordinates
             if self.REGRID_REQUIRES_LANDMASK[self.regrid_mode]:
                 if not grid_contains_cutout(self.landmask_source_grid, cube):
-                    raise ValueError(
-                        "Source landmask does not match input grid")
+                    raise ValueError("Source landmask does not match input grid")
             cube = self._regrid_to_target(cube, target_grid, regridded_title)
 
         # standard metadata updates
@@ -350,7 +371,7 @@ class AdjustLandSeaPoints(BasePlugin):
     Where no match is found within the vicinity, the data value is not changed.
     """
 
-    def __init__(self, extrapolation_mode="nanmask", vicinity_radius=25000.):
+    def __init__(self, extrapolation_mode="nanmask", vicinity_radius=25000.0):
         """
         Initialise class
 
@@ -377,7 +398,8 @@ class AdjustLandSeaPoints(BasePlugin):
         Print a human-readable representation of the instantiated object.
         """
         return "<AdjustLandSeaPoints: regridder: {}; vicinity: {}>".format(
-            self.regridder, self.vicinity)
+            self.regridder, self.vicinity
+        )
 
     def correct_where_input_true(self, selector_val):
         """
@@ -410,28 +432,33 @@ class AdjustLandSeaPoints(BasePlugin):
         # points are filled with the nearest value in the same mask
         # classification.
         (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
-        selector_data = griddata(use_points,
-                                 self.nearest_cube.data[use_points],
-                                 (y_points, x_points), method="nearest")
+        selector_data = griddata(
+            use_points,
+            self.nearest_cube.data[use_points],
+            (y_points, x_points),
+            method="nearest",
+        )
 
         # Identify nearby points on regridded input_land that match the
         # selector_value
         if selector_val > 0.5:
             thresholder = BasicThreshold(0.5)
         else:
-            thresholder = BasicThreshold(0.5, comparison_operator='<=')
+            thresholder = BasicThreshold(0.5, comparison_operator="<=")
         in_vicinity = self.vicinity(thresholder(self.input_land))
 
         # Identify those points sourced from the opposite mask that are
         # close to a source point of the correct mask
-        mismatch_points, = np.logical_and(
-            np.logical_and(self.output_land.data == selector_val,
-                           self.input_land.data != selector_val),
-            in_vicinity.data > 0.5)
+        (mismatch_points,) = np.logical_and(
+            np.logical_and(
+                self.output_land.data == selector_val,
+                self.input_land.data != selector_val,
+            ),
+            in_vicinity.data > 0.5,
+        )
 
         # Replace these points with the filled-domain data
-        self.output_cube.data[mismatch_points] = (
-            selector_data[mismatch_points])
+        self.output_cube.data[mismatch_points] = selector_data[mismatch_points]
 
     def process(self, cube, input_land, output_land):
         """
@@ -456,8 +483,10 @@ class AdjustLandSeaPoints(BasePlugin):
         """
         # Check cube and output_land are on the same grid:
         if not spatial_coords_match(cube, output_land):
-            raise ValueError('X and Y coordinates do not match for cubes {}'
-                             'and {}'.format(repr(cube), repr(output_land)))
+            raise ValueError(
+                "X and Y coordinates do not match for cubes {}"
+                "and {}".format(repr(cube), repr(output_land))
+            )
         self.output_land = output_land
 
         # Regrid input_land to output_land grid.
@@ -465,8 +494,7 @@ class AdjustLandSeaPoints(BasePlugin):
 
         # Slice over x-y grids for multi-realization data.
         result = iris.cube.CubeList()
-        for xyslice in cube.slices(
-                [cube.coord(axis='y'), cube.coord(axis='x')]):
+        for xyslice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
 
             # Store and copy cube ready for the output data
             self.nearest_cube = xyslice

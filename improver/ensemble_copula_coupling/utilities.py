@@ -43,8 +43,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 
 
-def concatenate_2d_array_with_2d_array_endpoints(
-        array_2d, low_endpoint, high_endpoint):
+def concatenate_2d_array_with_2d_array_endpoints(array_2d, low_endpoint, high_endpoint):
     """
     For a 2d array, add a 2d array as the lower and upper endpoints.
     The concatenation to add the lower and upper endpoints to the 2d array
@@ -64,12 +63,9 @@ def concatenate_2d_array_with_2d_array_endpoints(
             2d array of values after padding with the low_endpoint and
             high_endpoint.
     """
-    lower_array = (
-        np.full((array_2d.shape[0], 1), low_endpoint, dtype=array_2d.dtype))
-    upper_array = (
-        np.full((array_2d.shape[0], 1), high_endpoint, dtype=array_2d.dtype))
-    array_2d = np.concatenate(
-        (lower_array, array_2d, upper_array), axis=1)
+    lower_array = np.full((array_2d.shape[0], 1), low_endpoint, dtype=array_2d.dtype)
+    upper_array = np.full((array_2d.shape[0], 1), high_endpoint, dtype=array_2d.dtype)
+    array_2d = np.concatenate((lower_array, array_2d, upper_array), axis=1)
     return array_2d
 
 
@@ -110,27 +106,27 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
     if sampling in ["quantile"]:
         # Generate percentiles from 1/N+1 to N/N+1.
         percentiles = np.linspace(
-            1/float(1+no_of_percentiles),
-            no_of_percentiles/float(1+no_of_percentiles),
-            no_of_percentiles).tolist()
+            1 / float(1 + no_of_percentiles),
+            no_of_percentiles / float(1 + no_of_percentiles),
+            no_of_percentiles,
+        ).tolist()
     elif sampling in ["random"]:
         # Generate percentiles from 1/N+1 to N/N+1.
         # Random sampling doesn't currently sample the ends of the
         # distribution i.e. 0 to 1/N+1 and N/N+1 to 1.
         percentiles = np.random.uniform(
-            1/float(1+no_of_percentiles),
-            no_of_percentiles/float(1+no_of_percentiles),
-            no_of_percentiles)
+            1 / float(1 + no_of_percentiles),
+            no_of_percentiles / float(1 + no_of_percentiles),
+            no_of_percentiles,
+        )
         percentiles = sorted(list(percentiles))
     else:
-        msg = "The {} sampling option is not yet implemented.".format(
-            sampling)
+        msg = "The {} sampling option is not yet implemented.".format(sampling)
         raise ValueError(msg)
-    return [item*100 for item in percentiles]
+    return [item * 100 for item in percentiles]
 
 
-def create_cube_with_percentiles(percentiles, template_cube, cube_data,
-                                 cube_unit=None):
+def create_cube_with_percentiles(percentiles, template_cube, cube_data, cube_unit=None):
     """
     Create a cube with a percentile coordinate based on a template cube.
     The resulting cube will have an extra percentile coordinate compared with
@@ -163,7 +159,8 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data,
 
     """
     percentile_coord = iris.coords.DimCoord(
-        np.float32(percentiles), long_name='percentile', units=unit.Unit("%"))
+        np.float32(percentiles), long_name="percentile", units=unit.Unit("%")
+    )
 
     metadata_dict = copy.deepcopy(template_cube.metadata._asdict())
     result = iris.cube.Cube(cube_data, **metadata_dict)
@@ -176,15 +173,15 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data,
     # The dimension associated with the auxiliary and derived coordinates
     # has also been incremented by one.
     for coord in template_cube.dim_coords:
-        dim, = template_cube.coord_dims(coord)
-        result.add_dim_coord(coord.copy(), dim+1)
+        (dim,) = template_cube.coord_dims(coord)
+        result.add_dim_coord(coord.copy(), dim + 1)
     for coord in template_cube.aux_coords:
         dims = template_cube.coord_dims(coord)
-        dims = tuple([dim+1 for dim in dims])
+        dims = tuple([dim + 1 for dim in dims])
         result.add_aux_coord(coord.copy(), dims)
     for coord in template_cube.derived_coords:
         dims = template_cube.coord_dims(coord)
-        dims = tuple([dim+1 for dim in dims])
+        dims = tuple([dim + 1 for dim in dims])
         result.add_aux_coord(coord.copy(), dims)
     return result
 
@@ -221,19 +218,20 @@ def get_bounds_of_distribution(bounds_pairing_key, desired_units):
         bounds_pairing = BOUNDS_FOR_ECDF[bounds_pairing_key].value
         bounds_pairing_units = BOUNDS_FOR_ECDF[bounds_pairing_key].units
     except KeyError as err:
-        msg = ("The bounds_pairing_key: {} is not recognised "
-               "within BOUNDS_FOR_ECDF {}. \n"
-               "Error: {}".format(
-                   bounds_pairing_key, BOUNDS_FOR_ECDF, err))
+        msg = (
+            "The bounds_pairing_key: {} is not recognised "
+            "within BOUNDS_FOR_ECDF {}. \n"
+            "Error: {}".format(bounds_pairing_key, BOUNDS_FOR_ECDF, err)
+        )
         raise KeyError(msg)
     bounds_pairing_units = unit.Unit(bounds_pairing_units)
     bounds_pairing = bounds_pairing_units.convert(
-        np.array(bounds_pairing), desired_units)
+        np.array(bounds_pairing), desired_units
+    )
     return bounds_pairing
 
 
-def insert_lower_and_upper_endpoint_to_1d_array(
-        array_1d, low_endpoint, high_endpoint):
+def insert_lower_and_upper_endpoint_to_1d_array(array_1d, low_endpoint, high_endpoint):
     """
     For a 1d array, add a lower and upper endpoint.
 
@@ -257,8 +255,11 @@ def insert_lower_and_upper_endpoint_to_1d_array(
 
 
 def restore_non_probabilistic_dimensions(
-        array_to_reshape, original_cube, input_probabilistic_dimension_name,
-        output_probabilistic_dimension_length):
+    array_to_reshape,
+    original_cube,
+    input_probabilistic_dimension_name,
+    output_probabilistic_dimension_length,
+):
     """
     Reshape a 2d array, so that it has the dimensions of the original cube,
     whilst ensuring that the probabilistic dimension is the first dimension.
@@ -288,27 +289,26 @@ def restore_non_probabilistic_dimensions(
             not a coordinate on the original_cube.
     """
     shape_to_reshape_to = list(original_cube.shape)
-    if original_cube.coords(
-            input_probabilistic_dimension_name, dim_coords=True):
-        if original_cube.coord_dims(
-                input_probabilistic_dimension_name)[0] == 0:
-            pat_coord_position = (
-                original_cube.coord_dims(input_probabilistic_dimension_name))
+    if original_cube.coords(input_probabilistic_dimension_name, dim_coords=True):
+        if original_cube.coord_dims(input_probabilistic_dimension_name)[0] == 0:
+            pat_coord_position = original_cube.coord_dims(
+                input_probabilistic_dimension_name
+            )
             shape_to_reshape_to.pop(pat_coord_position[0])
         else:
-            msg = ("The {} coordinate is a dimension coordinate but is not "
-                   "the first dimension coordinate in the cube: {}.\n"
-                   "The enforce_coordinate_ordering function may be "
-                   "useful. ".format(
-                       input_probabilistic_dimension_name, original_cube))
+            msg = (
+                "The {} coordinate is a dimension coordinate but is not "
+                "the first dimension coordinate in the cube: {}.\n"
+                "The enforce_coordinate_ordering function may be "
+                "useful. ".format(input_probabilistic_dimension_name, original_cube)
+            )
             raise ValueError(msg)
-    elif original_cube.coords(
-            input_probabilistic_dimension_name, dim_coords=False):
+    elif original_cube.coords(input_probabilistic_dimension_name, dim_coords=False):
         pass
     else:
-        msg = ("A {} coordinate is not available on the {} cube.".format(
-            input_probabilistic_dimension_name, original_cube))
+        msg = "A {} coordinate is not available on the {} cube.".format(
+            input_probabilistic_dimension_name, original_cube
+        )
         raise CoordinateNotFoundError(msg)
-    shape_to_reshape_to = (
-        [output_probabilistic_dimension_length] + shape_to_reshape_to)
+    shape_to_reshape_to = [output_probabilistic_dimension_length] + shape_to_reshape_to
     return array_to_reshape.reshape(shape_to_reshape_to)

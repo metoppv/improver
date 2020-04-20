@@ -50,7 +50,7 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WeightsUtilities())
-        msg = '<WeightsUtilities>'
+        msg = "<WeightsUtilities>"
         self.assertEqual(result, msg)
 
 
@@ -72,14 +72,14 @@ class Test_normalise_weights(IrisTest):
     def test_fails_weight_less_than_zero(self):
         """Test it fails if weight less than zero. """
         weights_in = np.array([-1.0, 0.1])
-        msg = ('Weights must be positive')
+        msg = "Weights must be positive"
         with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.normalise_weights(weights_in)
 
     def test_fails_sum_equals_zero(self):
         """Test it fails if sum of input weights is zero. """
         weights_in = np.array([0.0, 0.0, 0.0])
-        msg = ('Sum of weights must be > 0.0')
+        msg = "Sum of weights must be > 0.0"
         with self.assertRaisesRegex(ValueError, msg):
             WeightsUtilities.normalise_weights(weights_in)
 
@@ -92,30 +92,24 @@ class Test_normalise_weights(IrisTest):
 
     def test_returns_correct_values_2darray_axis0(self):
         """Test normalizing along the columns of the array."""
-        weights_in = np.array([[6.0, 3.0, 1.0],
-                               [4.0, 1.0, 3.0]])
+        weights_in = np.array([[6.0, 3.0, 1.0], [4.0, 1.0, 3.0]])
         result = WeightsUtilities.normalise_weights(weights_in, axis=0)
-        expected_result = np.array([[0.6, 0.75, 0.25],
-                                    [0.4, 0.25, 0.75]])
+        expected_result = np.array([[0.6, 0.75, 0.25], [0.4, 0.25, 0.75]])
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_returns_correct_values_2darray_axis1(self):
         """Test normalizing along the rows of the array."""
-        weights_in = np.array([[6.0, 3.0, 1.0],
-                               [4.0, 1.0, 3.0]])
+        weights_in = np.array([[6.0, 3.0, 1.0], [4.0, 1.0, 3.0]])
         result = WeightsUtilities.normalise_weights(weights_in, axis=1)
-        expected_result = np.array([[0.6, 0.3, 0.1],
-                                    [0.5, 0.125, 0.375]])
+        expected_result = np.array([[0.6, 0.3, 0.1], [0.5, 0.125, 0.375]])
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_returns_correct_values_2darray_zero_weights(self):
         """Test normalizing along the columns of the array when there are
            zeros in the input array."""
-        weights_in = np.array([[6.0, 3.0, 0.0],
-                               [0.0, 1.0, 3.0]])
+        weights_in = np.array([[6.0, 3.0, 0.0], [0.0, 1.0, 3.0]])
         result = WeightsUtilities.normalise_weights(weights_in, axis=0)
-        expected_result = np.array([[1.0, 0.75, 0.0],
-                                    [0.0, 0.25, 1.0]])
+        expected_result = np.array([[1.0, 0.75, 0.0], [0.0, 0.25, 1.0]])
         self.assertArrayAlmostEqual(result, expected_result)
 
 
@@ -130,17 +124,16 @@ class Test_build_weights_cube(IrisTest):
         """Test building a cube with weights along the blending coordinate."""
 
         weights = np.array([0.4, 0.6])
-        blending_coord = 'time'
+        blending_coord = "time"
 
         plugin = WeightsUtilities.build_weights_cube
         result = plugin(self.cube, weights, blending_coord)
 
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), 'weights')
+        self.assertEqual(result.name(), "weights")
         self.assertFalse(result.attributes)
         self.assertArrayEqual(result.data, weights)
-        self.assertEqual(result.coords(dim_coords=True)[0].name(),
-                         blending_coord)
+        self.assertEqual(result.coords(dim_coords=True)[0].name(), blending_coord)
         self.assertEqual(len(result.coords(dim_coords=True)), 1)
 
     def test_aux_coord_for_blending_coord(self):
@@ -151,15 +144,14 @@ class Test_build_weights_cube(IrisTest):
         coordinate."""
 
         weights = np.array([0.4, 0.6])
-        blending_coord = 'forecast_period'
+        blending_coord = "forecast_period"
         plugin = WeightsUtilities.build_weights_cube
         result = plugin(self.cube, weights, blending_coord)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), 'weights')
+        self.assertEqual(result.name(), "weights")
         self.assertFalse(result.attributes)
         self.assertArrayEqual(result.data, weights)
-        self.assertEqual(result.coords(dim_coords=True)[0].name(),
-                         "time")
+        self.assertEqual(result.coords(dim_coords=True)[0].name(), "time")
         self.assertEqual(len(result.coords(dim_coords=True)), 1)
         coord_names = [coord.name() for coord in result.coords()]
         self.assertIn("forecast_period", coord_names)
@@ -176,24 +168,24 @@ class Test_build_weights_cube(IrisTest):
         result = plugin(cube, weights, blending_coord)
 
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), 'weights')
+        self.assertEqual(result.name(), "weights")
         self.assertFalse(result.attributes)
         self.assertArrayEqual(result.data, weights)
-        self.assertEqual(result.coords(dim_coords=True)[0].name(),
-                         blending_coord)
+        self.assertEqual(result.coords(dim_coords=True)[0].name(), blending_coord)
 
     def test_incompatible_weights(self):
         """Test building a cube with weights that do not match the length of
         the blending coordinate."""
 
         weights = np.array([0.4, 0.4, 0.2])
-        blending_coord = 'time'
-        msg = ("Weights array provided is not the same size as the "
-               "blending coordinate")
+        blending_coord = "time"
+        msg = (
+            "Weights array provided is not the same size as the " "blending coordinate"
+        )
         plugin = WeightsUtilities.build_weights_cube
         with self.assertRaisesRegex(ValueError, msg):
             plugin(self.cube, weights, blending_coord)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -49,7 +49,7 @@ class WeightsUtilities:
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<WeightsUtilities>')
+        result = "<WeightsUtilities>"
         return result
 
     @staticmethod
@@ -73,13 +73,15 @@ class WeightsUtilities:
                 ValueError: sum of weights in the input is 0.
         """
         if np.any(weights.min(axis=axis) < 0.0):
-            msg = ('Weights must be positive. The weights have at least one '
-                   'value < 0.0: {}'.format(weights))
+            msg = (
+                "Weights must be positive. The weights have at least one "
+                "value < 0.0: {}".format(weights)
+            )
             raise ValueError(msg)
 
         sumval = np.sum(weights, axis=axis, keepdims=True)
         if np.any(sumval == 0):
-            msg = 'Sum of weights must be > 0.0'
+            msg = "Sum of weights must be > 0.0"
             raise ValueError(msg)
 
         normalised_weights = weights / sumval
@@ -106,10 +108,13 @@ class WeightsUtilities:
         """
 
         if len(weights) != len(cube.coord(blending_coord).points):
-            msg = ("Weights array provided is not the same size as the "
-                   "blending coordinate; weights shape: {}, blending "
-                   "coordinate shape: {}".format(
-                       len(weights), len(cube.coord(blending_coord).points)))
+            msg = (
+                "Weights array provided is not the same size as the "
+                "blending coordinate; weights shape: {}, blending "
+                "coordinate shape: {}".format(
+                    len(weights), len(cube.coord(blending_coord).points)
+                )
+            )
             raise ValueError(msg)
 
         try:
@@ -121,12 +126,15 @@ class WeightsUtilities:
         # Find dim associated with blending_coord and don't remove any coords
         # associated with this dimension.
         blending_dim = cube.coord_dims(blending_coord)
-        defunct_coords = [crd.name() for crd in cube.coords(dim_coords=True)
-                          if not cube.coord_dims(crd) == blending_dim]
+        defunct_coords = [
+            crd.name()
+            for crd in cube.coords(dim_coords=True)
+            if not cube.coord_dims(crd) == blending_dim
+        ]
         for crd in defunct_coords:
             weights_cube.remove_coord(crd)
         weights_cube.data = weights
-        weights_cube.rename('weights')
+        weights_cube.rename("weights")
         weights_cube.units = 1
 
         return weights_cube
@@ -136,8 +144,9 @@ class ChooseWeightsLinear(BasePlugin):
     """Plugin to interpolate weights linearly to the required points, where
     original weights are provided as a configuration dictionary"""
 
-    def __init__(self, weighting_coord_name, config_dict,
-                 config_coord_name="model_configuration"):
+    def __init__(
+        self, weighting_coord_name, config_dict, config_coord_name="model_configuration"
+    ):
         """
         Set up for calculating linear weights from a dictionary or input cube
 
@@ -183,10 +192,12 @@ class ChooseWeightsLinear(BasePlugin):
 
     def __repr__(self):
         """Represent the plugin instance as a string"""
-        msg = ("<ChooseWeightsLinear(): weighting_coord_name = {}, "
-               "config_coord_name = {}, config_dict = {}>".format(
-                   self.weighting_coord_name, self.config_coord_name,
-                   str(self.config_dict)))
+        msg = (
+            "<ChooseWeightsLinear(): weighting_coord_name = {}, "
+            "config_coord_name = {}, config_dict = {}>".format(
+                self.weighting_coord_name, self.config_coord_name, str(self.config_dict)
+            )
+        )
         return msg
 
     def _check_config_dict(self):
@@ -202,19 +213,21 @@ class ChooseWeightsLinear(BasePlugin):
         """
         # Check all keys
         for key in self.config_dict.keys():
-            weighting_len = (
-                len(self.config_dict[key][self.weighting_coord_name]))
-            weights_len = (
-                len(self.config_dict[key][self.weights_key_name]))
+            weighting_len = len(self.config_dict[key][self.weighting_coord_name])
+            weights_len = len(self.config_dict[key][self.weights_key_name])
             if weighting_len != weights_len:
-                msg = ("{} is {}, {} is {}."
-                       "These items in the configuration dictionary "
-                       "have different lengths i.e. {} != {}".format(
-                           self.weighting_coord_name,
-                           self.config_dict[key][self.weighting_coord_name],
-                           self.weights_key_name,
-                           self.config_dict[key][self.weights_key_name],
-                           weighting_len, weights_len))
+                msg = (
+                    "{} is {}, {} is {}."
+                    "These items in the configuration dictionary "
+                    "have different lengths i.e. {} != {}".format(
+                        self.weighting_coord_name,
+                        self.config_dict[key][self.weighting_coord_name],
+                        self.weights_key_name,
+                        self.config_dict[key][self.weights_key_name],
+                        weighting_len,
+                        weights_len,
+                    )
+                )
                 raise ValueError(msg)
 
     def _get_interpolation_inputs_from_dict(self, cube):
@@ -248,25 +261,25 @@ class ChooseWeightsLinear(BasePlugin):
                     provided by the source weights.
 
         """
-        config_point, = cube.coord(self.config_coord_name).points
-        source_points = (
-            self.config_dict[config_point][self.weighting_coord_name])
+        (config_point,) = cube.coord(self.config_coord_name).points
+        source_points = self.config_dict[config_point][self.weighting_coord_name]
         source_points = np.array(source_points)
         if "units" in self.config_dict[config_point].keys():
             units = cf_units.Unit(self.config_dict[config_point]["units"])
             source_points = units.convert(
-                source_points, cube.coord(self.weighting_coord_name).units)
+                source_points, cube.coord(self.weighting_coord_name).units
+            )
 
         target_points = cube.coord(self.weighting_coord_name).points
-        source_weights = (
-            self.config_dict[config_point][self.weights_key_name])
+        source_weights = self.config_dict[config_point][self.weights_key_name]
 
         fill_value = (source_weights[0], source_weights[-1])
         return source_points, target_points, source_weights, fill_value
 
     @staticmethod
     def _interpolate_to_find_weights(
-            source_points, target_points, source_weights, fill_value, axis=0):
+        source_points, target_points, source_weights, fill_value, axis=0
+    ):
         """
         Use of scipy.interpolate.interp1d to interpolate source_weights
         (valid at source_points) onto target_points grid.  This allows
@@ -294,8 +307,13 @@ class ChooseWeightsLinear(BasePlugin):
             numpy.ndarray:
                 Weights corresponding to target_points following interpolation.
         """
-        f_out = interp1d(source_points, source_weights, axis=axis,
-                         fill_value=fill_value, bounds_error=False)
+        f_out = interp1d(
+            source_points,
+            source_weights,
+            axis=axis,
+            fill_value=fill_value,
+            bounds_error=False,
+        )
         weights = f_out(target_points)
         return weights
 
@@ -317,22 +335,30 @@ class ChooseWeightsLinear(BasePlugin):
                 the same shape as "cube", without the x and y dimensions.
         """
         cubelist = iris.cube.CubeList([])
-        for cube_slice, weight in (
-                zip(cube.slices_over(self.weighting_coord_name), weights)):
+        for cube_slice, weight in zip(
+            cube.slices_over(self.weighting_coord_name), weights
+        ):
             sub_slice = cube_slice[..., 0, 0]
-            sub_slice.data = np.ones(sub_slice.data.shape)*weight
+            sub_slice.data = np.ones(sub_slice.data.shape) * weight
             cubelist.append(sub_slice)
 
         # re-order dimension coordinates to match input cube
-        new_weights_cube = (
-            check_cube_coordinates(cube[..., 0, 0], cubelist.merge_cube()))
+        new_weights_cube = check_cube_coordinates(
+            cube[..., 0, 0], cubelist.merge_cube()
+        )
 
         # remove all scalar coordinates that are not time-, model- or
         # blend-related
         dim_coords = new_weights_cube.coords(dim_coords=True)
-        keep_coords = ["time", "forecast_period", "forecast_reference_time",
-                       "model_id", "model_configuration",
-                       self.weighting_coord_name, self.config_coord_name]
+        keep_coords = [
+            "time",
+            "forecast_period",
+            "forecast_reference_time",
+            "model_id",
+            "model_configuration",
+            self.weighting_coord_name,
+            self.config_coord_name,
+        ]
         for coord in new_weights_cube.coords():
             if coord not in dim_coords and coord.name() not in keep_coords:
                 new_weights_cube.remove_coord(coord)
@@ -342,7 +368,7 @@ class ChooseWeightsLinear(BasePlugin):
 
         # rename cube
         new_weights_cube.rename(self.weights_key_name)
-        new_weights_cube.units = cf_units.Unit('1')
+        new_weights_cube.units = cf_units.Unit("1")
 
         return new_weights_cube
 
@@ -362,16 +388,19 @@ class ChooseWeightsLinear(BasePlugin):
                 has been renamed using the self.weights_key_name but
                 otherwise matches the input cube.
         """
-        source_points, target_points, source_weights, fill_value = (
-            self._get_interpolation_inputs_from_dict(cube))
+        (
+            source_points,
+            target_points,
+            source_weights,
+            fill_value,
+        ) = self._get_interpolation_inputs_from_dict(cube)
         axis = 0
 
         weights = self._interpolate_to_find_weights(
-            source_points, target_points, source_weights, fill_value,
-            axis=axis)
+            source_points, target_points, source_weights, fill_value, axis=axis
+        )
 
-        new_weights_cube = self._create_new_weights_cube(
-            cube, weights)
+        new_weights_cube = self._create_new_weights_cube(cube, weights)
 
         return new_weights_cube
 
@@ -391,9 +420,11 @@ class ChooseWeightsLinear(BasePlugin):
         if cube.coord_dims(self.weighting_coord_name):
             slice_list = [
                 cube.coord(self.weighting_coord_name),
-                cube.coord(axis='y'), cube.coord(axis='x')]
+                cube.coord(axis="y"),
+                cube.coord(axis="x"),
+            ]
         else:
-            slice_list = [cube.coord(axis='y'), cube.coord(axis='x')]
+            slice_list = [cube.coord(axis="y"), cube.coord(axis="x")]
         return slice_list
 
     def _slice_input_cubes(self, cubes):
@@ -420,15 +451,12 @@ class ChooseWeightsLinear(BasePlugin):
             else:
                 # if passed a merged cube, split this up into a cube list
                 cubelist = []
-                for cube in cubes.slices_over(
-                        cubes.coord(self.config_coord_name)):
-                    cubelist.append(
-                        next(cube.slices(self._define_slice(cube))))
+                for cube in cubes.slices_over(cubes.coord(self.config_coord_name)):
+                    cubelist.append(next(cube.slices(self._define_slice(cube))))
         else:
             cubelist = []
             for cube in cubes:
-                cubelist.append(
-                    next(cube.slices(self._define_slice(cube))))
+                cubelist.append(next(cube.slices(self._define_slice(cube))))
 
         return iris.cube.CubeList(cubelist)
 
@@ -461,9 +489,9 @@ class ChooseWeightsLinear(BasePlugin):
         # normalise weights
         new_weights_cube = cube_slices.merge_cube()
         axis = new_weights_cube.coord_dims(self.config_coord_name)
-        new_weights_cube.data = (
-            WeightsUtilities.normalise_weights(
-                new_weights_cube.data, axis=axis))
+        new_weights_cube.data = WeightsUtilities.normalise_weights(
+            new_weights_cube.data, axis=axis
+        )
 
         return new_weights_cube
 
@@ -482,12 +510,13 @@ class ChooseDefaultWeightsLinear(BasePlugin):
                 Relative weight of last point.
         """
         if y0val is None or ynval is None:
-            raise ValueError('y0val and ynval are required arguments to the '
-                             'ChooseDefaultWeightsLinear plugin')
+            raise ValueError(
+                "y0val and ynval are required arguments to the "
+                "ChooseDefaultWeightsLinear plugin"
+            )
 
         if y0val < 0.0:
-            msg = ('y0val must be a float >= 0.0, '
-                   'y0val = {0:s}'.format(str(y0val)))
+            msg = "y0val must be a float >= 0.0, " "y0val = {0:s}".format(str(y0val))
             raise ValueError(msg)
 
         self.y0val = float(y0val)
@@ -509,14 +538,15 @@ class ChooseDefaultWeightsLinear(BasePlugin):
             weights = np.array([1.0], dtype=np.float32)
             return weights
 
-        slope = (self.ynval - self.y0val)/(num_of_weights - 1.0)
+        slope = (self.ynval - self.y0val) / (num_of_weights - 1.0)
 
         weights_list = []
         for tval in range(0, num_of_weights):
-            weights_list.append(slope*tval + self.y0val)
+            weights_list.append(slope * tval + self.y0val)
 
         weights = WeightsUtilities.normalise_weights(
-            np.array(weights_list, dtype=np.float32))
+            np.array(weights_list, dtype=np.float32)
+        )
 
         return weights
 
@@ -542,25 +572,28 @@ class ChooseDefaultWeightsLinear(BasePlugin):
             TypeError : input is not a cube
         """
         if not isinstance(cube, iris.cube.Cube):
-            msg = ('The first argument must be an instance of '
-                   'iris.cube.Cube but is'
-                   ' {0:s}'.format(str(type(cube))))
+            msg = (
+                "The first argument must be an instance of "
+                "iris.cube.Cube but is"
+                " {0:s}".format(str(type(cube)))
+            )
             raise TypeError(msg)
 
         weights = self.linear_weights(len(cube.coord(coord_name).points))
-        weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
-                                                           coord_name)
+        weights_cube = WeightsUtilities.build_weights_cube(cube, weights, coord_name)
         return weights_cube
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = ('<ChooseDefaultWeightsLinear y0val='
-                '{:4.1f}, ynval={:4.1f}>'.format(self.y0val, self.ynval))
+        desc = "<ChooseDefaultWeightsLinear y0val=" "{:4.1f}, ynval={:4.1f}>".format(
+            self.y0val, self.ynval
+        )
         return desc
 
 
 class ChooseDefaultWeightsNonLinear(BasePlugin):
     """ Calculate Default Weights using NonLinear Function. """
+
     def __init__(self, cval):
         """
         Set up for calculating default weights using non-linear function.
@@ -577,12 +610,16 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
             ValueError: an inappropriate value of cval is input.
         """
         if cval is None:
-            raise ValueError('cval is a required argument to the '
-                             'ChooseDefaultWeightsNonLinear plugin')
+            raise ValueError(
+                "cval is a required argument to the "
+                "ChooseDefaultWeightsNonLinear plugin"
+            )
 
         if cval <= 0.0 or cval > 1.0:
-            msg = ('cval must be greater than 0.0 and less '
-                   'than or equal to 1.0 cval = {}'.format(cval))
+            msg = (
+                "cval must be greater than 0.0 and less "
+                "than or equal to 1.0 cval = {}".format(cval)
+            )
             raise ValueError(msg)
         self.cval = cval
 
@@ -600,10 +637,11 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
         """
         weights_list = []
         for tval_minus1 in range(0, num_of_weights):
-            weights_list.append(self.cval**(tval_minus1))
+            weights_list.append(self.cval ** (tval_minus1))
 
         weights = WeightsUtilities.normalise_weights(
-            np.array(weights_list, dtype=np.float32))
+            np.array(weights_list, dtype=np.float32)
+        )
 
         return weights
 
@@ -633,21 +671,23 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
             TypeError : input is not a cube
         """
         if not isinstance(cube, iris.cube.Cube):
-            msg = ('The first argument must be an instance of '
-                   'iris.cube.Cube but is'
-                   ' {0:s}'.format(str(type(cube))))
+            msg = (
+                "The first argument must be an instance of "
+                "iris.cube.Cube but is"
+                " {0:s}".format(str(type(cube)))
+            )
             raise TypeError(msg)
 
         if inverse_ordering:
             # make a copy of the input cube from which to calculate weights
             inverted_cube = cube.copy()
             inverted_cube = sort_coord_in_cube(
-                inverted_cube, coord_name, descending=True)
+                inverted_cube, coord_name, descending=True
+            )
             cube = inverted_cube
 
         weights = self.nonlinear_weights(len(cube.coord(coord_name).points))
-        weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
-                                                           coord_name)
+        weights_cube = WeightsUtilities.build_weights_cube(cube, weights, coord_name)
 
         if inverse_ordering:
             # re-sort the weights cube so that it is in ascending order of
@@ -658,13 +698,13 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = ('<ChooseDefaultWeightsNonLinear '
-                'cval={0:4.1f}>'.format(self.cval))
+        desc = "<ChooseDefaultWeightsNonLinear " "cval={0:4.1f}>".format(self.cval)
         return desc
 
 
 class ChooseDefaultWeightsTriangular(BasePlugin):
     """ Calculate Default Weights using a Triangular Function. """
+
     def __init__(self, width, units="no_unit"):
         """Set up for calculating default weights using triangular function.
 
@@ -681,8 +721,7 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        msg = ("<ChooseDefaultTriangularWeights "
-               "width={}, parameters_units={}>")
+        msg = "<ChooseDefaultTriangularWeights " "width={}, parameters_units={}>"
         desc = msg.format(self.width, self.parameters_units)
         return desc
 
@@ -723,14 +762,15 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
             if point == midpoint:
                 weight = 1
             else:
-                weight = 1-abs(point-midpoint)*slope
+                weight = 1 - abs(point - midpoint) * slope
             return weight
 
-        slope = 1.0/width
+        slope = 1.0 / width
         weights = np.zeros(coord_vals.shape, dtype=np.float32)
         # Find the indices of the points where there will be non-zero weights.
-        condition = ((coord_vals >= (midpoint-width)) &
-                     (coord_vals <= (midpoint+width)))
+        condition = (coord_vals >= (midpoint - width)) & (
+            coord_vals <= (midpoint + width)
+        )
         points_with_weights = np.where(condition)[0]
         # Calculate for weights for points where we want a non-zero weight.
         for index in points_with_weights:
@@ -762,9 +802,11 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
                 TypeError : input is not a cube
         """
         if not isinstance(cube, iris.cube.Cube):
-            msg = ('The first argument must be an instance of '
-                   'iris.cube.Cube but is'
-                   ' {0:s}'.format(str(type(cube))))
+            msg = (
+                "The first argument must be an instance of "
+                "iris.cube.Cube but is"
+                " {0:s}".format(str(type(cube)))
+            )
             raise TypeError(msg)
 
         cube_coord = cube.coord(coord_name)
@@ -773,16 +815,14 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
 
         # Rescale width and midpoint if in different units to the coordinate
         if coord_units != self.parameters_units:
-            width_in_coord_units = (
-                self.parameters_units.convert(self.width, coord_units))
-            midpoint = (
-                self.parameters_units.convert(midpoint, coord_units))
+            width_in_coord_units = self.parameters_units.convert(
+                self.width, coord_units
+            )
+            midpoint = self.parameters_units.convert(midpoint, coord_units)
         else:
             width_in_coord_units = copy.deepcopy(self.width)
 
-        weights = self.triangular_weights(
-            coord_vals, midpoint, width_in_coord_units)
+        weights = self.triangular_weights(coord_vals, midpoint, width_in_coord_units)
 
-        weights_cube = WeightsUtilities.build_weights_cube(cube, weights,
-                                                           coord_name)
+        weights_cube = WeightsUtilities.build_weights_cube(cube, weights, coord_name)
         return weights_cube

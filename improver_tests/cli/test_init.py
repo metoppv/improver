@@ -133,57 +133,56 @@ class Test_maybe_coerce_with(unittest.TestCase):
 class Test_inputcube(unittest.TestCase):
     """Tests the input cube function"""
 
-    @patch('improver.cli.maybe_coerce_with', return_value='return')
+    @patch("improver.cli.maybe_coerce_with", return_value="return")
     def test_basic(self, m):
         """Tests that input cube calls load_cube with the string"""
         result = inputcube("foo")
         m.assert_called_with(improver.utilities.load.load_cube, "foo")
-        self.assertEqual(result, 'return')
+        self.assertEqual(result, "return")
 
 
 class Test_inputjson(unittest.TestCase):
     """Tests the input cube function"""
 
-    @patch('improver.cli.maybe_coerce_with', return_value={"mocked": 1})
+    @patch("improver.cli.maybe_coerce_with", return_value={"mocked": 1})
     def test_basic(self, m):
         """Tests that input json calls load_json_or_none with the string"""
         result = inputjson("foo")
-        m.assert_called_with(
-            improver.utilities.cli_utilities.load_json_or_none, "foo")
+        m.assert_called_with(improver.utilities.cli_utilities.load_json_or_none, "foo")
         self.assertEqual(result, {"mocked": 1})
 
 
 class Test_with_output(unittest.TestCase):
     """Tests the with_output wrapper"""
 
-    @patch('improver.utilities.save.save_netcdf')
+    @patch("improver.utilities.save.save_netcdf")
     def test_without_output(self, m):
         """Tests that the result of the wrapped function is returned"""
         result = wrapped_with_output(2)
         m.assert_not_called()
         self.assertEqual(result, 4)
 
-    @patch('improver.utilities.save.save_netcdf')
+    @patch("improver.utilities.save.save_netcdf")
     def test_with_output(self, m):
         """Tests that save_netcdf it called with object and string"""
         # pylint disable is needed as it can't see the wrappers output kwarg.
         # pylint: disable=E1123
         result = wrapped_with_output(2, output="foo")
-        m.assert_called_with(4, 'foo')
+        m.assert_called_with(4, "foo")
         self.assertEqual(result, None)
 
 
 class Test_with_intermediate_output(unittest.TestCase):
     """Tests the intermediate output wrapper"""
 
-    @patch('improver.utilities.save.save_netcdf')
+    @patch("improver.utilities.save.save_netcdf")
     def test_without_output(self, m):
         """Tests that the wrapped function is called and result is returned"""
         result = wrapped_with_intermediate_output(2)
         m.assert_not_called()
         self.assertEqual(result, 4)
 
-    @patch('improver.utilities.save.save_netcdf')
+    @patch("improver.utilities.save.save_netcdf")
     def test_with_output(self, m):
         """Tests with an intermediate_output
 
@@ -194,7 +193,7 @@ class Test_with_intermediate_output(unittest.TestCase):
         # pylint disable is needed as it can't see the wrappers output kwarg.
         # pylint: disable=unexpected-keyword-arg
         result = wrapped_with_intermediate_output(2, intermediate_output="foo")
-        m.assert_called_with(True, 'foo')
+        m.assert_called_with(True, "foo")
         self.assertEqual(result, 4)
 
 
@@ -225,7 +224,7 @@ def replace_load_with_extract(func, cube, constraints=None):
     if constraints:
         cube = cube.extract(constraints)
     if isinstance(cube, CubeList):
-        cube, = cube.copy()
+        (cube,) = cube.copy()
     if cube is None:
         raise ValueError
     return cube
@@ -237,70 +236,72 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     def setUp(self):
         data = np.zeros((2, 2), dtype=np.float32)
         self.wind_speed_cube = set_up_variable_cube(data, name="wind_speed")
-        self.wind_dir_cube = set_up_variable_cube(
-            data, name="wind_from_direction")
+        self.wind_dir_cube = set_up_variable_cube(data, name="wind_from_direction")
         self.wind_cubes = CubeList([self.wind_speed_cube, self.wind_dir_cube])
 
-    @patch('improver.cli.maybe_coerce_with', return_value='return')
+    @patch("improver.cli.maybe_coerce_with", return_value="return")
     def test_basic(self, m):
         """Tests that it returns a function which itself returns 2 cubes"""
         result = create_constrained_inputcubelist_converter(
-            'wind_speed', 'wind_from_direction')
+            "wind_speed", "wind_from_direction"
+        )
         result("foo")
-        m.assert_any_call(load_cube, "foo", constraints='wind_speed')
-        m.assert_any_call(load_cube, "foo", constraints='wind_from_direction')
+        m.assert_any_call(load_cube, "foo", constraints="wind_speed")
+        m.assert_any_call(load_cube, "foo", constraints="wind_from_direction")
         self.assertEqual(m.call_count, 2)
 
-    @patch('improver.cli.maybe_coerce_with', return_value='return')
+    @patch("improver.cli.maybe_coerce_with", return_value="return")
     def test_list(self, m):
         """Tests that a list returns a function which itself returns 2 cubes"""
         result = create_constrained_inputcubelist_converter(
-            ['wind_speed'], ['wind_from_direction'])
+            ["wind_speed"], ["wind_from_direction"]
+        )
         result("foo")
-        m.assert_any_call(load_cube, "foo", constraints='wind_speed')
-        m.assert_any_call(
-            load_cube, "foo", constraints='wind_from_direction')
+        m.assert_any_call(load_cube, "foo", constraints="wind_speed")
+        m.assert_any_call(load_cube, "foo", constraints="wind_from_direction")
         self.assertEqual(m.call_count, 2)
 
-    @patch('improver.cli.maybe_coerce_with', new=replace_load_with_extract)
+    @patch("improver.cli.maybe_coerce_with", new=replace_load_with_extract)
     def test_list_one_valid(self):
         """Tests that a list returns a function which itself returns 1 cube
         that matches the constraints provided."""
-        obj = create_constrained_inputcubelist_converter(
-            ['wind_speed', 'nonsense'])
+        obj = create_constrained_inputcubelist_converter(["wind_speed", "nonsense"])
         result = obj(self.wind_speed_cube)
         self.assertEqual(result, [self.wind_speed_cube])
 
-    @patch('improver.cli.maybe_coerce_with', new=replace_load_with_extract)
+    @patch("improver.cli.maybe_coerce_with", new=replace_load_with_extract)
     def test_list_two_valid(self):
         """Tests that providing two valid constraints raises a ValueError."""
         obj = create_constrained_inputcubelist_converter(
-            ['wind_speed', 'wind_from_direction'])
-        msg = 'Incorrect number of valid inputs available'
+            ["wind_speed", "wind_from_direction"]
+        )
+        msg = "Incorrect number of valid inputs available"
         with self.assertRaisesRegex(ValueError, msg):
             obj(self.wind_cubes)
 
-    @patch('improver.cli.maybe_coerce_with', new=replace_load_with_extract)
+    @patch("improver.cli.maybe_coerce_with", new=replace_load_with_extract)
     def test_list_no_match(self):
         """Tests that providing no valid constraints raises a ValueError."""
-        obj = create_constrained_inputcubelist_converter(['nonsense'])
-        msg = 'Incorrect number of valid inputs available'
+        obj = create_constrained_inputcubelist_converter(["nonsense"])
+        msg = "Incorrect number of valid inputs available"
         with self.assertRaisesRegex(ValueError, msg):
             obj(self.wind_cubes)
 
-    @patch('improver.cli.maybe_coerce_with', new=replace_load_with_extract)
+    @patch("improver.cli.maybe_coerce_with", new=replace_load_with_extract)
     def test_list_one_optional_constraint(self):
         """Tests that a list returns a function which itself returns 2 cubes"""
         obj = create_constrained_inputcubelist_converter(
-            ['wind_speed', 'nonsense'], 'wind_from_direction')
+            ["wind_speed", "nonsense"], "wind_from_direction"
+        )
         result = obj(self.wind_cubes)
         self.assertEqual(result, self.wind_cubes)
 
-    @patch('improver.cli.maybe_coerce_with', new=replace_load_with_extract)
+    @patch("improver.cli.maybe_coerce_with", new=replace_load_with_extract)
     def test_list_mismatching_lengths(self):
         """Tests that a list returns a function which itself returns 2 cubes"""
         obj = create_constrained_inputcubelist_converter(
-            ['wind_speed', 'nonsense'], ['wind_from_direction'])
+            ["wind_speed", "nonsense"], ["wind_from_direction"]
+        )
         result = obj(self.wind_cubes)
         self.assertEqual(result, self.wind_cubes)
 
@@ -308,7 +309,7 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
 class Test_clizefy(unittest.TestCase):
     """Test the clizefy decorator function"""
 
-    @patch('improver.cli.docutilize', return_value=None)
+    @patch("improver.cli.docutilize", return_value=None)
     def test_basic(self, m):
         """Tests basic behaviour"""
 
@@ -317,11 +318,11 @@ class Test_clizefy(unittest.TestCase):
 
         clizefied = clizefy(func)
         self.assertIs(func, clizefied)
-        self.assertTrue(hasattr(clizefied, 'cli'))
+        self.assertTrue(hasattr(clizefied, "cli"))
         clizefied_cli = clizefied.cli
         clizefied_again = clizefy()(clizefied)
         self.assertIs(clizefied_cli, clizefied_again.cli)
-        clizefied_cli('argv[0]', '--help')
+        clizefied_cli("argv[0]", "--help")
         m.assert_called_with(func.__doc__)
 
 
@@ -330,23 +331,22 @@ class Test_unbracket(unittest.TestCase):
 
     def test_basic(self):
         """Tests that a list of strings changes '[' into nested lists"""
-        to_test = ['foo', '[', 'bar', 'a', 'b', ']',
-                   '[', 'baz', 'c', ']', '-o', 'z']
-        expected = ['foo', ['bar', 'a', 'b'], ['baz', 'c'], '-o', 'z']
+        to_test = ["foo", "[", "bar", "a", "b", "]", "[", "baz", "c", "]", "-o", "z"]
+        expected = ["foo", ["bar", "a", "b"], ["baz", "c"], "-o", "z"]
         result = unbracket(to_test)
         self.assertEqual(result, expected)
 
     def test_mismatched_open_brackets(self):
         """Tests if there isn't a corresponding ']' it raises an error"""
-        msg = 'Mismatched bracket at position'
+        msg = "Mismatched bracket at position"
         with self.assertRaisesRegex(ValueError, msg):
-            unbracket(['foo', '[', 'bar'])
+            unbracket(["foo", "[", "bar"])
 
     def test_mismatched_close_brackets(self):
         """Tests if there isn't a corresponding '[' it raises an error"""
-        msg = 'Mismatched bracket at position'
+        msg = "Mismatched bracket at position"
         with self.assertRaisesRegex(ValueError, msg):
-            unbracket(['foo', ']', 'bar'])
+            unbracket(["foo", "]", "bar"])
 
 
 def test_import_cli():
@@ -357,13 +357,16 @@ def test_import_cli():
     """
     import subprocess  # nosec
     import sys
+
     # Must run in a subprocess to ensure "fresh" Python interpreter without
     # modules pulled by other tests
-    script = ('import improver.cli, sys; '
-              'assert "numpy" not in sys.modules, '
-              '"rogue numpy import via improver.cli"')
-    subprocess.run([sys.executable, '-c', script], check=True)  # nosec
+    script = (
+        "import improver.cli, sys; "
+        'assert "numpy" not in sys.modules, '
+        '"rogue numpy import via improver.cli"'
+    )
+    subprocess.run([sys.executable, "-c", script], check=True)  # nosec
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

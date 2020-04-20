@@ -36,9 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(wind_direction: cli.inputcube,
-            *,
-            backup_method="neighbourhood"):
+def process(wind_direction: cli.inputcube, *, backup_method="neighbourhood"):
     """Calculates mean wind direction from ensemble realization.
 
     Create a cube containing the wind direction averaged over the ensemble
@@ -64,6 +62,5 @@ def process(wind_direction: cli.inputcube,
     """
     from improver.wind_calculations.wind_direction import WindDirection
 
-    result = (
-        WindDirection(backup_method=backup_method)(wind_direction)[0])
+    result = WindDirection(backup_method=backup_method)(wind_direction)[0]
     return result

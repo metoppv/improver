@@ -36,10 +36,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(forecast: cli.inputcube,
-            reliability_table: cli.inputcube,
-            *,
-            minimum_forecast_count=200):
+def process(
+    forecast: cli.inputcube,
+    reliability_table: cli.inputcube,
+    *,
+    minimum_forecast_count=200,
+):
     """
     Calibrate a probability forecast using the provided reliability calibration
     table. This calibration is designed to improve the reliability of
@@ -65,9 +67,7 @@ def process(forecast: cli.inputcube,
         iris.cube.Cube:
             Calibrated forecast.
     """
-    from improver.calibration.reliability_calibration import (
-        ApplyReliabilityCalibration)
+    from improver.calibration.reliability_calibration import ApplyReliabilityCalibration
 
-    plugin = ApplyReliabilityCalibration(
-        minimum_forecast_count=minimum_forecast_count)
+    plugin = ApplyReliabilityCalibration(minimum_forecast_count=minimum_forecast_count)
     return plugin(forecast, reliability_table)

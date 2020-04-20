@@ -40,8 +40,8 @@ class ManageWarnings:
     Ignore a selection of warnings, and either raise any remaining warnings
     to standard error or record them in a list of warning objects.
     """
-    def __init__(self, ignored_messages=None, warning_types=None,
-                 record=False):
+
+    def __init__(self, ignored_messages=None, warning_types=None, record=False):
         """
         Set up a decorator with the warnings we want to ignore and what
         we want to do with any remaining warnings.
@@ -68,7 +68,7 @@ class ManageWarnings:
         """
         if ignored_messages is not None:
             if not isinstance(ignored_messages, list):
-                msg = 'Expecting list of strings for ignored_messages'
+                msg = "Expecting list of strings for ignored_messages"
                 raise TypeError(msg)
         self.messages = ignored_messages
         if warning_types is None and self.messages is not None:
@@ -77,10 +77,11 @@ class ManageWarnings:
             self.warning_types = warning_types
         self.record = record
         if self.messages and (len(self.warning_types) != len(self.messages)):
-            message = ("Length of warning_types ({}) does no equal length"
-                       "of warning messages({})")
-            message = message.format(len(self.warning_types),
-                                     len(self.messages))
+            message = (
+                "Length of warning_types ({}) does no equal length"
+                "of warning messages({})"
+            )
+            message = message.format(len(self.warning_types), len(self.messages))
             raise ValueError(message)
 
     @staticmethod
@@ -90,7 +91,7 @@ class ManageWarnings:
         all imported modules.
         """
         for mod in list(sys.modules.values()):
-            if hasattr(mod, '__warningregistry__'):
+            if hasattr(mod, "__warningregistry__"):
                 mod.__warningregistry__.clear()
 
     def __call__(self, func):
@@ -110,6 +111,7 @@ class ManageWarnings:
                 The wrapped function with the warnings context manager and
                 necessary filters turned on.
         """
+
         def warnings_wrapper(*args, **kwargs):
             """
             Wrapper function to set up the warnings.catch_warnings context
@@ -120,14 +122,13 @@ class ManageWarnings:
                 warnings.filterwarnings("always")
                 self.reset_warning_registry()
                 if self.messages is not None:
-                    for message, warning_type in zip(self.messages,
-                                                     self.warning_types):
-                        warnings.filterwarnings("ignore", message,
-                                                warning_type)
+                    for message, warning_type in zip(self.messages, self.warning_types):
+                        warnings.filterwarnings("ignore", message, warning_type)
                 if self.record:
                     result = func(*args, warning_list=warning_list, **kwargs)
                 else:
                     result = func(*args, **kwargs)
                 self.reset_warning_registry()
                 return result
+
         return warnings_wrapper

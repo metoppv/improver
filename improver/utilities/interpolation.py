@@ -41,8 +41,8 @@ from improver import BasePlugin
 
 
 def interpolate_missing_data(
-        data, method='linear', limit=None, limit_as_maximum=True,
-        valid_points=None):
+    data, method="linear", limit=None, limit_as_maximum=True, valid_points=None
+):
     """
     Args:
         data (numpy.ndarray):
@@ -87,7 +87,8 @@ def interpolate_missing_data(
         values = data[index]
         try:
             data_updated = griddata(
-                np.where(index), values, (y_points, x_points), method=method)
+                np.where(index), values, (y_points, x_points), method=method
+            )
         except QhullError:
             data_filled = data
         else:
@@ -96,11 +97,9 @@ def interpolate_missing_data(
     if limit is not None:
         index = ~np.isfinite(data) & np.isfinite(data_filled)
         if limit_as_maximum:
-            data_filled[index] = np.clip(data_filled[index], None,
-                                         limit[index])
+            data_filled[index] = np.clip(data_filled[index], None, limit[index])
         else:
-            data_filled[index] = np.clip(data_filled[index], limit[index],
-                                         None)
+            data_filled[index] = np.clip(data_filled[index], limit[index], None)
 
     index = ~np.isfinite(data)
     data[index] = data_filled[index]
@@ -132,16 +131,18 @@ class InterpolateUsingDifference(BasePlugin):
         """
         if np.isnan(reference_cube.data).any():
             raise ValueError(
-                'The reference cube contains np.nan data indicating that it '
-                'is not complete across the domain.')
+                "The reference cube contains np.nan data indicating that it "
+                "is not complete across the domain."
+            )
         try:
             reference_cube.convert_units(cube.units)
             if limit is not None:
                 limit.convert_units(cube.units)
         except ValueError as err:
             raise type(err)(
-                'Reference cube and/or limit do not have units compatible with'
-                ' cube. ' + str(err))
+                "Reference cube and/or limit do not have units compatible with"
+                " cube. " + str(err)
+            )
 
     def process(self, cube, reference_cube, limit=None, limit_as_maximum=True):
         """
@@ -177,48 +178,54 @@ class InterpolateUsingDifference(BasePlugin):
                         entire domain.
         """
         if not np.ma.is_masked(cube.data):
-            warnings.warn('Input cube unmasked, no data to fill in, returning '
-                          'unchanged.')
+            warnings.warn(
+                "Input cube unmasked, no data to fill in, returning " "unchanged."
+            )
             return cube
 
         self._check_inputs(cube, reference_cube, limit)
 
         filled_cube = iris.cube.CubeList()
-        xaxis, yaxis = cube.coord(axis='x'), cube.coord(axis='y')
-        for cslice, rslice in zip(cube.slices([yaxis, xaxis]),
-                                  reference_cube.slices([yaxis, xaxis])):
+        xaxis, yaxis = cube.coord(axis="x"), cube.coord(axis="y")
+        for cslice, rslice in zip(
+            cube.slices([yaxis, xaxis]), reference_cube.slices([yaxis, xaxis])
+        ):
 
             invalid_points = cslice.data.mask.copy()
             valid_points = ~invalid_points
 
-            difference_field = np.subtract(rslice.data, cslice.data,
-                                           out=np.full(cslice.shape, np.nan),
-                                           where=valid_points)
+            difference_field = np.subtract(
+                rslice.data,
+                cslice.data,
+                out=np.full(cslice.shape, np.nan),
+                where=valid_points,
+            )
             interpolated_difference = interpolate_missing_data(
-                    difference_field, valid_points=valid_points)
+                difference_field, valid_points=valid_points
+            )
 
             # If any invalid points remain in the difference field, use nearest
             # neighbour interpolation to fill these with the nearest difference
             remain_invalid = np.isnan(interpolated_difference)
             if remain_invalid.any():
                 interpolated_difference = interpolate_missing_data(
-                        difference_field, valid_points=~remain_invalid,
-                        method='nearest')
+                    difference_field, valid_points=~remain_invalid, method="nearest"
+                )
 
             result = cslice.copy()
             result.data[invalid_points] = (
-                rslice.data[invalid_points] -
-                interpolated_difference[invalid_points])
+                rslice.data[invalid_points] - interpolated_difference[invalid_points]
+            )
 
             if limit is not None:
                 if limit_as_maximum:
                     result.data[invalid_points] = np.clip(
-                        result.data[invalid_points], None,
-                        limit.data[invalid_points])
+                        result.data[invalid_points], None, limit.data[invalid_points]
+                    )
                 else:
                     result.data[invalid_points] = np.clip(
-                        result.data[invalid_points],
-                        limit.data[invalid_points], None)
+                        result.data[invalid_points], limit.data[invalid_points], None
+                    )
             filled_cube.append(result)
 
         return filled_cube.merge_cube()

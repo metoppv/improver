@@ -67,8 +67,9 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(CircularNeighbourhood())
-        msg = ('<CircularNeighbourhood: weighted_mode: True, '
-               'sum_or_fraction: fraction>')
+        msg = (
+            "<CircularNeighbourhood: weighted_mode: True, " "sum_or_fraction: fraction>"
+        )
         self.assertEqual(str(result), msg)
 
 
@@ -79,12 +80,12 @@ class Test_apply_circular_kernel(IrisTest):
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
         cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1,
-            num_grid_points=5)
+            zero_point_indices=((0, 0, 2, 2),), num_time_points=1, num_grid_points=5
+        )
         ranges = 2
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=False).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=False).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertIsInstance(result, Cube)
 
     def test_single_point(self):
@@ -94,9 +95,9 @@ class Test_apply_circular_kernel(IrisTest):
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][5 + index][5:10] = slice_
         ranges = 3
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_flat(self):
@@ -109,16 +110,15 @@ class Test_apply_circular_kernel(IrisTest):
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_2_CENTROID_FLAT):
             expected[0][0][5 + index][5:10] = slice_
         ranges = 2
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=False).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=False).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_multi_point_multitimes(self):
         """Test behaviour for points over multiple times."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 0, 10, 10), (0, 1, 7, 7)],
-            num_time_points=2
+            zero_point_indices=[(0, 0, 10, 10), (0, 1, 7, 7)], num_time_points=2
         )
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
@@ -126,9 +126,9 @@ class Test_apply_circular_kernel(IrisTest):
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][1][5 + index][5:10] = slice_
         ranges = 3
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_to_null(self):
@@ -144,9 +144,9 @@ class Test_apply_circular_kernel(IrisTest):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
                 expected[0][time_index][5 + index][5:10] = slice_
         ranges = 3
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_other_point(self):
@@ -161,9 +161,9 @@ class Test_apply_circular_kernel(IrisTest):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
                 expected[0][time_index][5 + index][5:10] = slice_
         ranges = 3
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_1(self):
@@ -172,9 +172,9 @@ class Test_apply_circular_kernel(IrisTest):
         expected = np.ones_like(cube.data)
         expected[0][0][7][7] = 0.0
         ranges = 1
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5(self):
@@ -185,139 +185,148 @@ class Test_apply_circular_kernel(IrisTest):
             for index, slice_ in enumerate(SINGLE_POINT_RANGE_5_CENTROID):
                 expected[0][time_index][3 + index][3:12] = slice_
         ranges = 5
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5_small_domain(self):
         """Test behaviour - non-zero point, small domain, large range.
         This exhibits the undesirable edge reflection behaviour."""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 1, 1),), num_grid_points=4)
-        expected = np.array([
-            [[[0.97636177, 0.97533402, 0.97636177, 0.97944502],
-              [0.97533402, 0.97430627, 0.97533402, 0.97841727],
-              [0.97636177, 0.97533402, 0.97636177, 0.97944502],
-              [0.97944502, 0.97841727, 0.97944502, 0.98252826]]]
-        ])
+        cube = set_up_cube(zero_point_indices=((0, 0, 1, 1),), num_grid_points=4)
+        expected = np.array(
+            [
+                [
+                    [
+                        [0.97636177, 0.97533402, 0.97636177, 0.97944502],
+                        [0.97533402, 0.97430627, 0.97533402, 0.97841727],
+                        [0.97636177, 0.97533402, 0.97636177, 0.97944502],
+                        [0.97944502, 0.97841727, 0.97944502, 0.98252826],
+                    ]
+                ]
+            ]
+        )
         ranges = 5
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_point_pair(self):
         """Test behaviour for two nearby non-zero grid cells."""
-        cube = set_up_cube(
-            zero_point_indices=[(0, 0, 7, 6), (0, 0, 7, 8)])
-        expected_snippet = np.array([
-            [0.992, 0.968, 0.952, 0.936, 0.952, 0.968, 0.992],
-            [0.968, 0.944, 0.904, 0.888, 0.904, 0.944, 0.968],
-            [0.96, 0.936, 0.888, 0.872, 0.888, 0.936, 0.96],
-            [0.968, 0.944, 0.904, 0.888, 0.904, 0.944, 0.968],
-            [0.992, 0.968, 0.952, 0.936, 0.952, 0.968, 0.992]
-        ])
+        cube = set_up_cube(zero_point_indices=[(0, 0, 7, 6), (0, 0, 7, 8)])
+        expected_snippet = np.array(
+            [
+                [0.992, 0.968, 0.952, 0.936, 0.952, 0.968, 0.992],
+                [0.968, 0.944, 0.904, 0.888, 0.904, 0.944, 0.968],
+                [0.96, 0.936, 0.888, 0.872, 0.888, 0.936, 0.96],
+                [0.968, 0.944, 0.904, 0.888, 0.904, 0.944, 0.968],
+                [0.992, 0.968, 0.952, 0.936, 0.952, 0.968, 0.992],
+            ]
+        )
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(expected_snippet):
             expected[0][0][5 + index][4:11] = slice_
         ranges = 3
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_edge(self):
         """Test behaviour for a non-zero grid cell quite near the edge."""
         cube = set_up_cube(
-            zero_point_indices=[
-                (0, 0, 7, 2)])  # Just within range of the edge.
+            zero_point_indices=[(0, 0, 7, 2)]
+        )  # Just within range of the edge.
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][5 + index][0:5] = slice_
         ranges = 3
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
         """Test behaviour for a single non-zero grid cell near the edge."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 0, 7, 1)])  # Range 3 goes over the edge.
+            zero_point_indices=[(0, 0, 7, 1)]
+        )  # Range 3 goes over the edge.
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][5 + index][0:4] = slice_[1:]
         ranges = 3
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
         """Test behaviour for a non-zero grid cell on the edge."""
-        cube = set_up_cube(
-            zero_point_indices=[(0, 0, 7, 0)])  # On the (y) edge.
+        cube = set_up_cube(zero_point_indices=[(0, 0, 7, 0)])  # On the (y) edge.
         expected = np.ones_like(cube.data)
-        expected_centroid = np.array([
-            [0.92, 0.96, 0.992],
-            [0.848, 0.912, 0.968],
-            [0.824, 0.896, 0.96],
-            [0.848, 0.912, 0.968],
-            [0.92, 0.96, 0.992],
-        ])
+        expected_centroid = np.array(
+            [
+                [0.92, 0.96, 0.992],
+                [0.848, 0.912, 0.968],
+                [0.824, 0.896, 0.96],
+                [0.848, 0.912, 0.968],
+                [0.92, 0.96, 0.992],
+            ]
+        )
         for index, slice_ in enumerate(expected_centroid):
             expected[0][0][5 + index][0:3] = slice_
         ranges = 3
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_corner(self):
         """Test behaviour for a non-zero grid cell quite near a corner."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 0, 2, 2)])  # Just within corner range.
+            zero_point_indices=[(0, 0, 2, 2)]
+        )  # Just within corner range.
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][0][index][0:5] = slice_
         ranges = 3
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_corner(self):
         """Test behaviour for a non-zero grid cell near the corner."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 0, 1, 1)])  # Kernel goes over the corner.
+            zero_point_indices=[(0, 0, 1, 1)]
+        )  # Kernel goes over the corner.
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             if index == 0:
                 continue
             expected[0][0][index - 1][0:4] = slice_[1:]
         ranges = 3
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
         """Test behaviour for a single non-zero grid cell on the corner."""
         cube = set_up_cube(
-            zero_point_indices=[(0, 0, 0, 0)])  # Point is right on the corner.
+            zero_point_indices=[(0, 0, 0, 0)]
+        )  # Point is right on the corner.
         expected = np.ones_like(cube.data)
-        expected_centroid = np.array([
-            [0.592, 0.768, 0.92],
-            [0.768, 0.872, 0.96],
-            [0.92, 0.96, 0.992],
-        ])
+        expected_centroid = np.array(
+            [[0.592, 0.768, 0.92], [0.768, 0.872, 0.96], [0.92, 0.96, 0.992],]
+        )
         for index, slice_ in enumerate(expected_centroid):
             expected[0][0][index][0:3] = slice_
         ranges = 3
-        result = (
-            CircularNeighbourhood(
-                weighted_mode=True).apply_circular_kernel(cube, ranges))
+        result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
+            cube, ranges
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
 
@@ -329,14 +338,17 @@ class Test_run(IrisTest):
 
     def test_basic(self):
         """Test that a cube with correct data is produced by the run method"""
-        data = np.array([[0.992, 0.968, 0.96, 0.968, 0.992],
-                         [0.968, 0.944, 0.936, 0.944, 0.968],
-                         [0.96, 0.936, 0.928, 0.936, 0.96],
-                         [0.968, 0.944, 0.936, 0.944, 0.968],
-                         [0.992, 0.968, 0.96, 0.968, 0.992]])
+        data = np.array(
+            [
+                [0.992, 0.968, 0.96, 0.968, 0.992],
+                [0.968, 0.944, 0.936, 0.944, 0.968],
+                [0.96, 0.936, 0.928, 0.936, 0.96],
+                [0.968, 0.944, 0.936, 0.944, 0.968],
+                [0.992, 0.968, 0.96, 0.968, 0.992],
+            ]
+        )
 
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
+        cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
         result = CircularNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, data)
@@ -345,13 +357,11 @@ class Test_run(IrisTest):
         """Test that a NotImplementedError is raised, if a mask cube is passed
         in when using a circular neighbourhood, as this option is not
         supported."""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
-        msg = ("The use of a mask cube with a circular kernel is "
-               "not yet implemented.")
+        cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
+        msg = "The use of a mask cube with a circular kernel is " "not yet implemented."
         with self.assertRaisesRegex(NotImplementedError, msg):
             CircularNeighbourhood().run(cube, self.RADIUS, mask_cube=cube)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

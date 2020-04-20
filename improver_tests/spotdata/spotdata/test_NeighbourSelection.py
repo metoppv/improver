@@ -60,50 +60,81 @@ class Test_NeighbourSelection(IrisTest):
         # Global coordinates and cubes
         projection = iris.coord_systems.GeogCS(6371229.0)
         xcoord = iris.coords.DimCoord(
-            np.linspace(-160, 160, 9), standard_name='longitude',
-            units='degrees', coord_system=projection,
-            circular=True)
+            np.linspace(-160, 160, 9),
+            standard_name="longitude",
+            units="degrees",
+            coord_system=projection,
+            circular=True,
+        )
         xcoord.guess_bounds()
         ycoord = iris.coords.DimCoord(
-            np.linspace(-80, 80, 9), standard_name='latitude',
-            units='degrees', coord_system=projection,
-            circular=False)
+            np.linspace(-80, 80, 9),
+            standard_name="latitude",
+            units="degrees",
+            coord_system=projection,
+            circular=False,
+        )
         ycoord.guess_bounds()
 
         global_land_mask = iris.cube.Cube(
-            land_data, standard_name="land_binary_mask", units=1,
-            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
+            land_data,
+            standard_name="land_binary_mask",
+            units=1,
+            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
+        )
         global_orography = iris.cube.Cube(
-            orography_data, standard_name="surface_altitude", units='m',
-            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
+            orography_data,
+            standard_name="surface_altitude",
+            units="m",
+            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
+        )
 
         # Regional grid coordinates and cubes
         projection = iris.coord_systems.LambertAzimuthalEqualArea(
             ellipsoid=iris.coord_systems.GeogCS(
-                semi_major_axis=6378137.0, semi_minor_axis=6356752.314140356))
+                semi_major_axis=6378137.0, semi_minor_axis=6356752.314140356
+            )
+        )
         xcoord = iris.coords.DimCoord(
-            np.linspace(-1E5, 1E5, 9), standard_name='projection_x_coordinate',
-            units='m', coord_system=projection)
+            np.linspace(-1e5, 1e5, 9),
+            standard_name="projection_x_coordinate",
+            units="m",
+            coord_system=projection,
+        )
         xcoord.guess_bounds()
         ycoord = iris.coords.DimCoord(
-            np.linspace(-5E4, 5E4, 9), standard_name='projection_y_coordinate',
-            units='degrees', coord_system=projection)
+            np.linspace(-5e4, 5e4, 9),
+            standard_name="projection_y_coordinate",
+            units="degrees",
+            coord_system=projection,
+        )
         ycoord.guess_bounds()
 
         region_land_mask = iris.cube.Cube(
-            land_data, standard_name="land_binary_mask", units=1,
-            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
+            land_data,
+            standard_name="land_binary_mask",
+            units=1,
+            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
+        )
         region_orography = iris.cube.Cube(
-            orography_data, standard_name="surface_altitude", units='m',
-            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)])
+            orography_data,
+            standard_name="surface_altitude",
+            units="m",
+            dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
+        )
 
         # Create site lists
         self.global_sites = [
-            {'altitude': 2.0, 'latitude': 0.0, 'longitude': -64.0,
-             'wmo_id': 1}]
+            {"altitude": 2.0, "latitude": 0.0, "longitude": -64.0, "wmo_id": 1}
+        ]
         self.region_sites = [
-            {'altitude': 2.0, 'projection_x_coordinate': -4.0E4,
-             'projection_y_coordinate': 0.0, 'wmo_id': 1}]
+            {
+                "altitude": 2.0,
+                "projection_x_coordinate": -4.0e4,
+                "projection_y_coordinate": 0.0,
+                "wmo_id": 1,
+            }
+        ]
 
         self.global_land_mask = global_land_mask
         self.global_orography = global_orography
@@ -120,25 +151,32 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string with defaults."""
         plugin = NeighbourSelection()
         result = str(plugin)
-        msg = ("<NeighbourSelection: land_constraint: False, minimum_dz: False"
-               ", search_radius: 10000.0, site_coordinate_system: <class "
-               "'cartopy.crs.PlateCarree'>, site_x_coordinate:longitude, "
-               "site_y_coordinate: latitude, node_limit: 36>")
+        msg = (
+            "<NeighbourSelection: land_constraint: False, minimum_dz: False"
+            ", search_radius: 10000.0, site_coordinate_system: <class "
+            "'cartopy.crs.PlateCarree'>, site_x_coordinate:longitude, "
+            "site_y_coordinate: latitude, node_limit: 36>"
+        )
         self.assertEqual(result, msg)
 
     def test_non_default(self):
         """Test that the __repr__ returns the expected string with defaults."""
-        plugin = NeighbourSelection(land_constraint=True, minimum_dz=True,
-                                    search_radius=1000,
-                                    site_coordinate_system=ccrs.Mercator(),
-                                    site_x_coordinate='x_axis',
-                                    site_y_coordinate='y_axis',
-                                    node_limit=100)
+        plugin = NeighbourSelection(
+            land_constraint=True,
+            minimum_dz=True,
+            search_radius=1000,
+            site_coordinate_system=ccrs.Mercator(),
+            site_x_coordinate="x_axis",
+            site_y_coordinate="y_axis",
+            node_limit=100,
+        )
         result = str(plugin)
-        msg = ("<NeighbourSelection: land_constraint: True, minimum_dz: True,"
-               " search_radius: 1000, site_coordinate_system: <class "
-               "'cartopy.crs.Mercator'>, site_x_coordinate:x_axis, "
-               "site_y_coordinate: y_axis, node_limit: 100>")
+        msg = (
+            "<NeighbourSelection: land_constraint: True, minimum_dz: True,"
+            " search_radius: 1000, site_coordinate_system: <class "
+            "'cartopy.crs.Mercator'>, site_x_coordinate:x_axis, "
+            "site_y_coordinate: y_axis, node_limit: 100>"
+        )
         self.assertEqual(result, msg)
 
 
@@ -151,7 +189,7 @@ class Test_neighbour_finding_method_name(IrisTest):
         """Test name generated when using the default nearest neighbour
         method."""
         plugin = NeighbourSelection()
-        expected = 'nearest'
+        expected = "nearest"
         result = plugin.neighbour_finding_method_name()
         self.assertEqual(result, expected)
 
@@ -159,7 +197,7 @@ class Test_neighbour_finding_method_name(IrisTest):
         """Test name generated when using the nearest land neighbour
         method."""
         plugin = NeighbourSelection(land_constraint=True)
-        expected = 'nearest_land'
+        expected = "nearest_land"
         result = plugin.neighbour_finding_method_name()
         self.assertEqual(result, expected)
 
@@ -167,7 +205,7 @@ class Test_neighbour_finding_method_name(IrisTest):
         """Test name generated when using the nearest land neighbour
         with smallest vertical displacment method."""
         plugin = NeighbourSelection(land_constraint=True, minimum_dz=True)
-        expected = 'nearest_land_minimum_dz'
+        expected = "nearest_land_minimum_dz"
         result = plugin.neighbour_finding_method_name()
         self.assertEqual(result, expected)
 
@@ -175,7 +213,7 @@ class Test_neighbour_finding_method_name(IrisTest):
         """Test name generated when using the nearest neighbour with the
         smallest vertical displacment method."""
         plugin = NeighbourSelection(minimum_dz=True)
-        expected = 'nearest_minimum_dz'
+        expected = "nearest_minimum_dz"
         result = plugin.neighbour_finding_method_name()
         self.assertEqual(result, expected)
 
@@ -192,11 +230,14 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         plugin = NeighbourSelection()
         x_points = np.array([0, 10, 20])
         y_points = np.array([0, 0, 10])
-        expected = [[0., 0.], [1111782.53516264, 0.],
-                    [2189747.33076441, 1121357.32401753]]
+        expected = [
+            [0.0, 0.0],
+            [1111782.53516264, 0.0],
+            [2189747.33076441, 1121357.32401753],
+        ]
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points,
-            self.region_orography.coord_system().as_cartopy_crs())
+            x_points, y_points, self.region_orography.coord_system().as_cartopy_crs()
+        )
         self.assertArrayAlmostEqual(result, expected)
 
     def test_region_to_global(self):
@@ -204,14 +245,14 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         global coordinate system, in this case Lambert Azimuthal Equal Areas
         to PlateCarree."""
         plugin = NeighbourSelection(
-            site_coordinate_system=self.region_projection.as_cartopy_crs())
+            site_coordinate_system=self.region_projection.as_cartopy_crs()
+        )
         x_points = np.array([0, 1, 2])
         y_points = np.array([0, 0, 1])
-        expected = [[0., 0.], [8.98315284e-06, 0.],
-                    [1.79663057e-05, 9.04369476e-06]]
+        expected = [[0.0, 0.0], [8.98315284e-06, 0.0], [1.79663057e-05, 9.04369476e-06]]
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points,
-            self.global_orography.coord_system().as_cartopy_crs())
+            x_points, y_points, self.global_orography.coord_system().as_cartopy_crs()
+        )
         self.assertArrayAlmostEqual(result, expected)
 
     def test_global_to_global(self):
@@ -222,8 +263,8 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         y_points = np.array([0, 0, 10])
         expected = np.stack((x_points, y_points), axis=1)
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points,
-            self.global_orography.coord_system().as_cartopy_crs())
+            x_points, y_points, self.global_orography.coord_system().as_cartopy_crs()
+        )
 
         self.assertArrayAlmostEqual(result, expected)
 
@@ -231,13 +272,14 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
         """Test coordinates generated when the input and output coordinate
         systems are the same, in this case Lambert Azimuthal Equal Areas."""
         plugin = NeighbourSelection(
-            site_coordinate_system=self.region_projection.as_cartopy_crs())
+            site_coordinate_system=self.region_projection.as_cartopy_crs()
+        )
         x_points = np.array([0, 1, 2])
         y_points = np.array([0, 0, 1])
         expected = np.stack((x_points, y_points), axis=1)
         result = plugin._transform_sites_coordinate_system(
-            x_points, y_points,
-            self.region_orography.coord_system().as_cartopy_crs())
+            x_points, y_points, self.region_orography.coord_system().as_cartopy_crs()
+        )
 
         self.assertArrayAlmostEqual(result, expected)
 
@@ -250,20 +292,17 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
     def test_all_valid(self):
         """Test case in which all sites are valid and fall within domain."""
         plugin = NeighbourSelection()
-        sites = [{'projection_x_coordinate': 1.0E4,
-                  'projection_y_coordinate': 1.0E4},
-                 {'projection_x_coordinate': 1.0E5,
-                  'projection_y_coordinate': 5.0E4}]
-        x_points = np.array(
-            [site['projection_x_coordinate'] for site in sites])
-        y_points = np.array(
-            [site['projection_y_coordinate'] for site in sites])
+        sites = [
+            {"projection_x_coordinate": 1.0e4, "projection_y_coordinate": 1.0e4},
+            {"projection_x_coordinate": 1.0e5, "projection_y_coordinate": 5.0e4},
+        ]
+        x_points = np.array([site["projection_x_coordinate"] for site in sites])
+        y_points = np.array([site["projection_y_coordinate"] for site in sites])
         site_coords = np.stack((x_points, y_points), axis=1)
 
-        sites_out, site_coords_out, out_x, out_y = (
-            plugin.check_sites_are_within_domain(
-                sites, site_coords, x_points, y_points,
-                self.region_orography))
+        sites_out, site_coords_out, out_x, out_y = plugin.check_sites_are_within_domain(
+            sites, site_coords, x_points, y_points, self.region_orography
+        )
 
         self.assertArrayEqual(sites_out, sites)
         self.assertArrayEqual(site_coords_out, site_coords)
@@ -274,23 +313,19 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
     def test_some_invalid(self, warning_list=None):
         """Test case with some sites falling outside the regional domain."""
         plugin = NeighbourSelection()
-        sites = [{'projection_x_coordinate': 1.0E4,
-                  'projection_y_coordinate': 1.0E4},
-                 {'projection_x_coordinate': 1.0E5,
-                  'projection_y_coordinate': 5.0E4},
-                 {'projection_x_coordinate': 1.0E6,
-                  'projection_y_coordinate': 1.0E5}]
+        sites = [
+            {"projection_x_coordinate": 1.0e4, "projection_y_coordinate": 1.0e4},
+            {"projection_x_coordinate": 1.0e5, "projection_y_coordinate": 5.0e4},
+            {"projection_x_coordinate": 1.0e6, "projection_y_coordinate": 1.0e5},
+        ]
 
-        x_points = np.array(
-            [site['projection_x_coordinate'] for site in sites])
-        y_points = np.array(
-            [site['projection_y_coordinate'] for site in sites])
+        x_points = np.array([site["projection_x_coordinate"] for site in sites])
+        y_points = np.array([site["projection_y_coordinate"] for site in sites])
         site_coords = np.stack((x_points, y_points), axis=1)
 
-        sites_out, site_coords_out, out_x, out_y = (
-            plugin.check_sites_are_within_domain(
-                sites, site_coords, x_points, y_points,
-                self.region_orography))
+        sites_out, site_coords_out, out_x, out_y = plugin.check_sites_are_within_domain(
+            sites, site_coords, x_points, y_points, self.region_orography
+        )
 
         self.assertArrayEqual(sites_out, sites[0:2])
         self.assertArrayEqual(site_coords_out[0:2], site_coords[0:2])
@@ -299,30 +334,27 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
 
         msg = "1 spot sites fall outside the grid"
         self.assertTrue(any([msg in str(warning) for warning in warning_list]))
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
+        self.assertTrue(any(item.category == UserWarning for item in warning_list))
 
     @ManageWarnings(record=True)
     def test_global_invalid(self, warning_list=None):
         """Test case with some sites falling outside the global domain."""
         plugin = NeighbourSelection()
         sites = [
-            {'latitude': 0.0, 'longitude': 0.0},
-            {'latitude': 50.0, 'longitude': 0.0},
-            {'latitude': 100.0, 'longitude': 0.0}]
+            {"latitude": 0.0, "longitude": 0.0},
+            {"latitude": 50.0, "longitude": 0.0},
+            {"latitude": 100.0, "longitude": 0.0},
+        ]
 
-        x_points = np.array(
-            [site['longitude'] for site in sites])
-        y_points = np.array(
-            [site['latitude'] for site in sites])
+        x_points = np.array([site["longitude"] for site in sites])
+        y_points = np.array([site["latitude"] for site in sites])
         site_coords = np.stack((x_points, y_points), axis=1)
 
         plugin.global_coordinate_system = True
 
-        sites_out, site_coords_out, out_x, out_y = (
-            plugin.check_sites_are_within_domain(
-                sites, site_coords, x_points, y_points,
-                self.global_orography))
+        sites_out, site_coords_out, out_x, out_y = plugin.check_sites_are_within_domain(
+            sites, site_coords, x_points, y_points, self.global_orography
+        )
 
         self.assertArrayEqual(sites_out, sites[0:2])
         self.assertArrayEqual(site_coords_out[0:2], site_coords[0:2])
@@ -331,8 +363,7 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
 
         msg = "1 spot sites fall outside the grid"
         self.assertTrue(any([msg in str(warning) for warning in warning_list]))
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
+        self.assertTrue(any(item.category == UserWarning for item in warning_list))
 
     def test_global_circular_valid(self):
         """Test case with a site defined using a longitide exceeding 180
@@ -340,22 +371,20 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
         as the circular x-coordinate means it will still be used correctly."""
         plugin = NeighbourSelection()
         sites = [
-            {'latitude': 0.0, 'longitude': 100.0},
-            {'latitude': 30.0, 'longitude': 200.0},
-            {'latitude': 60.0, 'longitude': 300.0}]
+            {"latitude": 0.0, "longitude": 100.0},
+            {"latitude": 30.0, "longitude": 200.0},
+            {"latitude": 60.0, "longitude": 300.0},
+        ]
 
-        x_points = np.array(
-            [site['longitude'] for site in sites])
-        y_points = np.array(
-            [site['latitude'] for site in sites])
+        x_points = np.array([site["longitude"] for site in sites])
+        y_points = np.array([site["latitude"] for site in sites])
         site_coords = np.stack((x_points, y_points), axis=1)
 
         plugin.global_coordinate_system = True
 
-        sites_out, site_coords_out, out_x, out_y = (
-            plugin.check_sites_are_within_domain(
-                sites, site_coords, x_points, y_points,
-                self.global_orography))
+        sites_out, site_coords_out, out_x, out_y = plugin.check_sites_are_within_domain(
+            sites, site_coords, x_points, y_points, self.global_orography
+        )
 
         self.assertArrayEqual(sites_out, sites)
         self.assertArrayEqual(site_coords_out, site_coords)
@@ -373,15 +402,16 @@ class Test_get_nearest_indices(Test_NeighbourSelection):
 
         plugin = NeighbourSelection()
 
-        x_points = np.array([site['projection_x_coordinate']
-                             for site in self.region_sites])
-        y_points = np.array([site['projection_y_coordinate']
-                             for site in self.region_sites])
+        x_points = np.array(
+            [site["projection_x_coordinate"] for site in self.region_sites]
+        )
+        y_points = np.array(
+            [site["projection_y_coordinate"] for site in self.region_sites]
+        )
         site_coords = np.stack((x_points, y_points), axis=1)
 
         expected = [[2, 4]]
-        result = plugin.get_nearest_indices(site_coords,
-                                            self.region_orography)
+        result = plugin.get_nearest_indices(site_coords, self.region_orography)
         self.assertArrayEqual(result, expected)
 
 
@@ -399,8 +429,7 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         plugin = NeighbourSelection()
         x_points = np.array([0])
         y_points = np.array([0])
-        result = plugin.geocentric_cartesian(self.global_orography,
-                                             x_points, y_points)
+        result = plugin.geocentric_cartesian(self.global_orography, x_points, y_points)
         radius = self.global_orography.coord_system().semi_major_axis
         expected = [[radius, 0, 0]]
         self.assertArrayAlmostEqual(result, expected)
@@ -414,8 +443,7 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         plugin = NeighbourSelection()
         x_points = np.array([0])
         y_points = np.array([90])
-        result = plugin.geocentric_cartesian(self.global_orography,
-                                             x_points, y_points)
+        result = plugin.geocentric_cartesian(self.global_orography, x_points, y_points)
         radius = self.global_orography.coord_system().semi_major_axis
         expected = [[0, 0, radius]]
         self.assertArrayAlmostEqual(result, expected)
@@ -429,10 +457,9 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         plugin = NeighbourSelection()
         x_points = np.array([0])
         y_points = np.array([45])
-        result = plugin.geocentric_cartesian(self.global_orography,
-                                             x_points, y_points)
+        result = plugin.geocentric_cartesian(self.global_orography, x_points, y_points)
         radius = self.global_orography.coord_system().semi_major_axis
-        component = radius/np.sqrt(2.)
+        component = radius / np.sqrt(2.0)
         expected = [[component, 0, component]]
 
         self.assertArrayAlmostEqual(result, expected)
@@ -446,10 +473,9 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         plugin = NeighbourSelection()
         x_points = np.array([45])
         y_points = np.array([0])
-        result = plugin.geocentric_cartesian(self.global_orography,
-                                             x_points, y_points)
+        result = plugin.geocentric_cartesian(self.global_orography, x_points, y_points)
         radius = self.global_orography.coord_system().semi_major_axis
-        component = radius/np.sqrt(2.)
+        component = radius / np.sqrt(2.0)
         expected = [[component, component, 0]]
 
         self.assertArrayAlmostEqual(result, expected)
@@ -464,11 +490,10 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         plugin = NeighbourSelection()
         x_points = np.array([45])
         y_points = np.array([45])
-        result = plugin.geocentric_cartesian(self.global_orography,
-                                             x_points, y_points)
+        result = plugin.geocentric_cartesian(self.global_orography, x_points, y_points)
         radius = self.global_orography.coord_system().semi_major_axis
-        component = radius/np.sqrt(2.)
-        sub_component = component/np.sqrt(2.)
+        component = radius / np.sqrt(2.0)
+        sub_component = component / np.sqrt(2.0)
         expected = [[sub_component, sub_component, component]]
 
         self.assertArrayAlmostEqual(result, expected)
@@ -481,11 +506,10 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
         plugin = NeighbourSelection()
         x_points = np.array([-45])
         y_points = np.array([-45])
-        result = plugin.geocentric_cartesian(self.global_orography,
-                                             x_points, y_points)
+        result = plugin.geocentric_cartesian(self.global_orography, x_points, y_points)
         radius = self.global_orography.coord_system().semi_major_axis
-        component = radius/np.sqrt(2.)
-        sub_component = component/np.sqrt(2.)
+        component = radius / np.sqrt(2.0)
+        sub_component = component / np.sqrt(2.0)
         expected = [[sub_component, -sub_component, -component]]
 
         self.assertArrayAlmostEqual(result, expected)
@@ -502,8 +526,9 @@ class Test_build_KDTree(Test_NeighbourSelection):
 
         plugin = NeighbourSelection()
         result, result_nodes = plugin.build_KDTree(self.region_land_mask)
-        expected_length = (self.region_land_mask.shape[0] *
-                           self.region_land_mask.shape[1])
+        expected_length = (
+            self.region_land_mask.shape[0] * self.region_land_mask.shape[1]
+        )
 
         # pylint: disable=unsubscriptable-object
         self.assertEqual(result_nodes.shape[0], expected_length)
@@ -537,14 +562,14 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
         coordinates of the first node to be returned."""
 
         plugin = NeighbourSelection()
-        site_altitude = 3.
+        site_altitude = 3.0
         nodes = np.array([[0, 4], [1, 4], [2, 4], [3, 4], [4, 4]])
         distance = np.arange(5)
         indices = np.arange(5)
 
-        result = plugin.select_minimum_dz(self.region_orography,
-                                          site_altitude, nodes,
-                                          distance, indices)
+        result = plugin.select_minimum_dz(
+            self.region_orography, site_altitude, nodes, distance, indices
+        )
         self.assertArrayEqual(result, nodes[0])
 
     def test_some_invalid_points(self):
@@ -554,14 +579,14 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
         result."""
 
         plugin = NeighbourSelection()
-        site_altitude = 5.
+        site_altitude = 5.0
         nodes = np.array([[0, 4], [1, 4], [2, 4], [3, 4], [4, 4]])
         distance = np.array([0, 1, 2, 3, np.inf])
         indices = np.arange(5)
 
-        result = plugin.select_minimum_dz(self.region_orography,
-                                          site_altitude, nodes,
-                                          distance, indices)
+        result = plugin.select_minimum_dz(
+            self.region_orography, site_altitude, nodes, distance, indices
+        )
         self.assertArrayEqual(result, nodes[1])
 
     def test_all_invalid_points(self):
@@ -569,14 +594,14 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
         so the returned value should be None."""
 
         plugin = NeighbourSelection()
-        site_altitude = 5.
+        site_altitude = 5.0
         nodes = np.array([[0, 4], [1, 4], [2, 4], [3, 4], [4, 4]])
         distance = np.full(5, np.inf)
         indices = np.arange(5)
 
-        result = plugin.select_minimum_dz(self.region_orography,
-                                          site_altitude, nodes,
-                                          distance, indices)
+        result = plugin.select_minimum_dz(
+            self.region_orography, site_altitude, nodes, distance, indices
+        )
         self.assertEqual(result, None)
 
     @ManageWarnings(record=True)
@@ -586,19 +611,18 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
         search_radius."""
 
         plugin = NeighbourSelection(search_radius=6)
-        site_altitude = 3.
+        site_altitude = 3.0
         nodes = np.array([[0, 4], [1, 4], [2, 4], [3, 4], [4, 4]])
         distance = np.arange(5)
         indices = np.arange(5)
 
-        plugin.select_minimum_dz(self.region_orography,
-                                 site_altitude, nodes,
-                                 distance, indices)
+        plugin.select_minimum_dz(
+            self.region_orography, site_altitude, nodes, distance, indices
+        )
 
         msg = "Limit on number of nearest neighbours"
         self.assertTrue(any([msg in str(warning) for warning in warning_list]))
-        self.assertTrue(any(item.category == UserWarning
-                            for item in warning_list))
+        self.assertTrue(any(item.category == UserWarning for item in warning_list))
 
 
 class Test_process(Test_NeighbourSelection):
@@ -609,23 +633,25 @@ class Test_process(Test_NeighbourSelection):
         """Test an error is raised if a regional grid is provided for which the
         spatial coordinates do not have units of metres."""
 
-        self.region_orography.coord(axis='x').convert_units('feet')
-        msg = 'Cube spatial coordinates for regional grids'
+        self.region_orography.coord(axis="x").convert_units("feet")
+        msg = "Cube spatial coordinates for regional grids"
 
         plugin = NeighbourSelection()
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(self.region_sites, self.region_orography,
-                           self.region_land_mask)
+            plugin.process(
+                self.region_sites, self.region_orography, self.region_land_mask
+            )
 
     def test_different_cube_grids(self):
         """Test an error is raised if the land mask and orography cubes
         provided are on different grids."""
 
-        msg = 'Orography and land_mask cubes are not on the same'
+        msg = "Orography and land_mask cubes are not on the same"
         plugin = NeighbourSelection()
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(self.region_sites, self.region_orography,
-                           self.global_land_mask)
+            plugin.process(
+                self.region_sites, self.region_orography, self.global_land_mask
+            )
 
     def test_global_attribute(self):
         """Test that a cube is returned with a model_grid_hash that matches
@@ -633,11 +659,12 @@ class Test_process(Test_NeighbourSelection):
 
         expected = create_coordinate_hash(self.global_orography)
         plugin = NeighbourSelection()
-        result = plugin.process(self.global_sites, self.global_orography,
-                                self.global_land_mask)
+        result = plugin.process(
+            self.global_sites, self.global_orography, self.global_land_mask
+        )
 
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.attributes['model_grid_hash'], expected)
+        self.assertEqual(result.attributes["model_grid_hash"], expected)
 
     def test_wmo_ids(self):
         """Test that the returned cube has the wmo_ids present when they are
@@ -645,13 +672,12 @@ class Test_process(Test_NeighbourSelection):
 
         plugin = NeighbourSelection()
         sites = self.global_sites + [self.global_sites.copy()[0].copy()]
-        sites[1]['wmo_id'] = None
-        expected = ['1', 'None']
+        sites[1]["wmo_id"] = None
+        expected = ["1", "None"]
 
-        result = plugin.process(sites, self.global_orography,
-                                self.global_land_mask)
+        result = plugin.process(sites, self.global_orography, self.global_land_mask)
 
-        self.assertArrayEqual(result.coord('wmo_id').points, expected)
+        self.assertArrayEqual(result.coord("wmo_id").points, expected)
 
     def test_global_nearest(self):
         """Test that a cube is returned, here using a conventional site list
@@ -659,8 +685,9 @@ class Test_process(Test_NeighbourSelection):
         expected, with a vertical displacement of 2.."""
 
         plugin = NeighbourSelection()
-        result = plugin.process(self.global_sites, self.global_orography,
-                                self.global_land_mask)
+        result = plugin.process(
+            self.global_sites, self.global_orography, self.global_land_mask
+        )
         expected = [[[2, 4, 2]]]
 
         self.assertIsInstance(result, iris.cube.Cube)
@@ -672,29 +699,33 @@ class Test_process(Test_NeighbourSelection):
         coordinates defined in latitudes and longitudes, so they should be
         unchanged."""
 
-        latitude_expected = np.array([self.global_sites[0]['latitude']],
-                                     dtype=np.float32)
-        longitude_expected = np.array([self.global_sites[0]['longitude']],
-                                      dtype=np.float32)
+        latitude_expected = np.array(
+            [self.global_sites[0]["latitude"]], dtype=np.float32
+        )
+        longitude_expected = np.array(
+            [self.global_sites[0]["longitude"]], dtype=np.float32
+        )
         plugin = NeighbourSelection()
-        result = plugin.process(self.global_sites, self.global_orography,
-                                self.global_land_mask)
+        result = plugin.process(
+            self.global_sites, self.global_orography, self.global_land_mask
+        )
 
-        self.assertIsNotNone(result.coord('latitude'))
-        self.assertIsNotNone(result.coord('longitude'))
-        self.assertArrayAlmostEqual(result.coord('latitude').points,
-                                    latitude_expected)
-        self.assertArrayAlmostEqual(result.coord('longitude').points,
-                                    longitude_expected)
+        self.assertIsNotNone(result.coord("latitude"))
+        self.assertIsNotNone(result.coord("longitude"))
+        self.assertArrayAlmostEqual(result.coord("latitude").points, latitude_expected)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, longitude_expected
+        )
 
     def test_global_land(self):
         """Test how the neighbour index changes when a land constraint is
         imposed. Here we expect to go 'west' to the first band of land
         which has an altitude of 5m. So we expect [1, 4, -3]."""
 
-        plugin = NeighbourSelection(land_constraint=True, search_radius=1E7)
-        result = plugin.process(self.global_sites, self.global_orography,
-                                self.global_land_mask)
+        plugin = NeighbourSelection(land_constraint=True, search_radius=1e7)
+        result = plugin.process(
+            self.global_sites, self.global_orography, self.global_land_mask
+        )
         expected = [[[1, 4, -3]]]
 
         self.assertArrayEqual(result.data, expected)
@@ -705,10 +736,12 @@ class Test_process(Test_NeighbourSelection):
         'west' to the second band of land that we encounter, which has an
         altitude closer to that of the site. So we expect [0, 4, 1]."""
 
-        plugin = NeighbourSelection(land_constraint=True, minimum_dz=True,
-                                    search_radius=1E8)
-        result = plugin.process(self.global_sites, self.global_orography,
-                                self.global_land_mask)
+        plugin = NeighbourSelection(
+            land_constraint=True, minimum_dz=True, search_radius=1e8
+        )
+        result = plugin.process(
+            self.global_sites, self.global_orography, self.global_land_mask
+        )
         expected = [[[0, 4, 1]]]
 
         self.assertArrayEqual(result.data, expected)
@@ -725,13 +758,15 @@ class Test_process(Test_NeighbourSelection):
         the grid point returned. Therefore, the short path must be across the
         dateline, rather than across this island travelling west."""
 
-        self.global_sites[0]['longitude'] = 64.
-        self.global_sites[0]['altitude'] = 3.
+        self.global_sites[0]["longitude"] = 64.0
+        self.global_sites[0]["altitude"] = 3.0
 
-        plugin = NeighbourSelection(land_constraint=True, minimum_dz=True,
-                                    search_radius=1E8)
-        result = plugin.process(self.global_sites, self.global_orography,
-                                self.global_land_mask)
+        plugin = NeighbourSelection(
+            land_constraint=True, minimum_dz=True, search_radius=1e8
+        )
+        result = plugin.process(
+            self.global_sites, self.global_orography, self.global_land_mask
+        )
         expected = [[[0, 4, 2]]]
 
         self.assertArrayEqual(result.data, expected)
@@ -743,13 +778,15 @@ class Test_process(Test_NeighbourSelection):
         expected = create_coordinate_hash(self.region_orography)
         plugin = NeighbourSelection(
             site_coordinate_system=self.region_projection.as_cartopy_crs(),
-            site_x_coordinate='projection_x_coordinate',
-            site_y_coordinate='projection_y_coordinate')
-        result = plugin.process(self.region_sites, self.region_orography,
-                                self.region_land_mask)
+            site_x_coordinate="projection_x_coordinate",
+            site_y_coordinate="projection_y_coordinate",
+        )
+        result = plugin.process(
+            self.region_sites, self.region_orography, self.region_land_mask
+        )
 
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.attributes['model_grid_hash'], expected)
+        self.assertEqual(result.attributes["model_grid_hash"], expected)
 
     def test_region_nearest(self):
         """Test that a cube is returned, this time using the site list in
@@ -759,10 +796,12 @@ class Test_process(Test_NeighbourSelection):
 
         plugin = NeighbourSelection(
             site_coordinate_system=self.region_projection.as_cartopy_crs(),
-            site_x_coordinate='projection_x_coordinate',
-            site_y_coordinate='projection_y_coordinate')
-        result = plugin.process(self.region_sites, self.region_orography,
-                                self.region_land_mask)
+            site_x_coordinate="projection_x_coordinate",
+            site_y_coordinate="projection_y_coordinate",
+        )
+        result = plugin.process(
+            self.region_sites, self.region_orography, self.region_land_mask
+        )
         expected = [[[2, 4, 2]]]
 
         self.assertIsInstance(result, iris.cube.Cube)
@@ -775,19 +814,21 @@ class Test_process(Test_NeighbourSelection):
 
         plugin = NeighbourSelection(
             site_coordinate_system=self.region_projection.as_cartopy_crs(),
-            site_x_coordinate='projection_x_coordinate',
-            site_y_coordinate='projection_y_coordinate')
-        result = plugin.process(self.region_sites, self.region_orography,
-                                self.region_land_mask)
+            site_x_coordinate="projection_x_coordinate",
+            site_y_coordinate="projection_y_coordinate",
+        )
+        result = plugin.process(
+            self.region_sites, self.region_orography, self.region_land_mask
+        )
         latitude_expected = np.array([0], dtype=np.float32)
         longitude_expected = np.array([-0.359327], dtype=np.float32)
 
-        self.assertIsNotNone(result.coord('latitude'))
-        self.assertIsNotNone(result.coord('longitude'))
-        self.assertArrayAlmostEqual(result.coord('latitude').points,
-                                    latitude_expected)
-        self.assertArrayAlmostEqual(result.coord('longitude').points,
-                                    longitude_expected)
+        self.assertIsNotNone(result.coord("latitude"))
+        self.assertIsNotNone(result.coord("longitude"))
+        self.assertArrayAlmostEqual(result.coord("latitude").points, latitude_expected)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, longitude_expected
+        )
 
     def test_region_land(self):
         """Test how the neighbour index changes when a land constraint is
@@ -795,12 +836,15 @@ class Test_process(Test_NeighbourSelection):
         which has an altitude of 5m. So we expect [1, 4, -3]."""
 
         plugin = NeighbourSelection(
-            land_constraint=True, search_radius=2E5,
+            land_constraint=True,
+            search_radius=2e5,
             site_coordinate_system=self.region_projection.as_cartopy_crs(),
-            site_x_coordinate='projection_x_coordinate',
-            site_y_coordinate='projection_y_coordinate')
-        result = plugin.process(self.region_sites, self.region_orography,
-                                self.region_land_mask)
+            site_x_coordinate="projection_x_coordinate",
+            site_y_coordinate="projection_y_coordinate",
+        )
+        result = plugin.process(
+            self.region_sites, self.region_orography, self.region_land_mask
+        )
         expected = [[[1, 4, -3]]]
 
         self.assertArrayEqual(result.data, expected)
@@ -812,12 +856,16 @@ class Test_process(Test_NeighbourSelection):
         altitude closer to that of the site. So we expect [0, 4, 1]."""
 
         plugin = NeighbourSelection(
-            land_constraint=True, minimum_dz=True, search_radius=2E5,
+            land_constraint=True,
+            minimum_dz=True,
+            search_radius=2e5,
             site_coordinate_system=self.region_projection.as_cartopy_crs(),
-            site_x_coordinate='projection_x_coordinate',
-            site_y_coordinate='projection_y_coordinate')
-        result = plugin.process(self.region_sites, self.region_orography,
-                                self.region_land_mask)
+            site_x_coordinate="projection_x_coordinate",
+            site_y_coordinate="projection_y_coordinate",
+        )
+        result = plugin.process(
+            self.region_sites, self.region_orography, self.region_land_mask
+        )
         expected = [[[0, 4, 1]]]
 
         self.assertArrayEqual(result.data, expected)
@@ -831,10 +879,11 @@ class Test_process(Test_NeighbourSelection):
         western island. Note that nudging the value to -59.9 will return the
         island to the east as expected."""
 
-        self.global_sites[0]['longitude'] = -60.
+        self.global_sites[0]["longitude"] = -60.0
         plugin = NeighbourSelection()
-        result = plugin.process(self.global_sites, self.global_orography,
-                                self.global_land_mask)
+        result = plugin.process(
+            self.global_sites, self.global_orography, self.global_land_mask
+        )
         expected = [[[2, 4, 2]]]
 
         self.assertArrayEqual(result.data, expected)
@@ -846,10 +895,11 @@ class Test_process(Test_NeighbourSelection):
         found using the KDTree. Using the KDTree the neighbour to the east is
         returned everytime the test is run."""
 
-        self.global_sites[0]['longitude'] = -60.0
-        plugin = NeighbourSelection(land_constraint=True, search_radius=1E8)
-        result = plugin.process(self.global_sites, self.global_orography,
-                                self.global_land_mask)
+        self.global_sites[0]["longitude"] = -60.0
+        plugin = NeighbourSelection(land_constraint=True, search_radius=1e8)
+        result = plugin.process(
+            self.global_sites, self.global_orography, self.global_land_mask
+        )
         expected = [[[4, 4, 2]]]
 
         self.assertArrayEqual(result.data, expected)
@@ -863,18 +913,20 @@ class Test_process(Test_NeighbourSelection):
         neigbour is found using the KDTree.  Using the KDTree the neighbour to
         the east is returned everytime the test is run."""
 
-        self.global_sites[0]['longitude'] = -60.0
-        self.global_sites[0]['altitude'] = 5.
-        self.global_orography.data[4, 4] = 5.
+        self.global_sites[0]["longitude"] = -60.0
+        self.global_sites[0]["altitude"] = 5.0
+        self.global_orography.data[4, 4] = 5.0
 
-        plugin = NeighbourSelection(land_constraint=True, search_radius=1E8,
-                                    minimum_dz=True)
-        result = plugin.process(self.global_sites, self.global_orography,
-                                self.global_land_mask)
+        plugin = NeighbourSelection(
+            land_constraint=True, search_radius=1e8, minimum_dz=True
+        )
+        result = plugin.process(
+            self.global_sites, self.global_orography, self.global_land_mask
+        )
         expected = [[[4, 4, 0]]]
 
         self.assertArrayEqual(result.data, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

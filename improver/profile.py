@@ -58,8 +58,9 @@ def profile_hook_enable(dump_filename=None):
     atexit.register(profile_stop, profiler, dump_filename=dump_filename)
 
 
-def profile_stop(profiler, sort_field='cumulative', dump_filename=None,
-                 dump_line_count=100):
+def profile_stop(
+    profiler, sort_field="cumulative", dump_filename=None, dump_line_count=100
+):
     """Stop a given profiler and print or dump stats.
 
     Args:

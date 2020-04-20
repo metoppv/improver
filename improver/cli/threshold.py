@@ -36,15 +36,17 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            *,
-            threshold_values: cli.comma_separated_list = None,
-            threshold_config: cli.inputjson = None,
-            threshold_units: str = None,
-            comparison_operator='>',
-            fuzzy_factor: float = None,
-            collapse_coord: str = None,
-            vicinity: float = None):
+def process(
+    cube: cli.inputcube,
+    *,
+    threshold_values: cli.comma_separated_list = None,
+    threshold_config: cli.inputjson = None,
+    threshold_units: str = None,
+    comparison_operator=">",
+    fuzzy_factor: float = None,
+    collapse_coord: str = None,
+    vicinity: float = None,
+):
     """Module to apply thresholding to a parameter dataset.
 
     Calculate the threshold truth values of input data relative to the
@@ -118,10 +120,10 @@ def process(cube: cli.inputcube,
     if threshold_config and threshold_values:
         raise ValueError(
             "--threshold-config and --threshold-values are mutually exclusive "
-            "- please set one or the other, not both")
+            "- please set one or the other, not both"
+        )
     if threshold_config and fuzzy_factor:
-        raise ValueError(
-            "--threshold-config cannot be used for fuzzy thresholding")
+        raise ValueError("--threshold-config cannot be used for fuzzy thresholding")
 
     if threshold_config:
         thresholds = []
@@ -139,16 +141,19 @@ def process(cube: cli.inputcube,
         fuzzy_bounds = None
 
     result_no_collapse_coord = BasicThreshold(
-        thresholds, fuzzy_factor=fuzzy_factor,
-        fuzzy_bounds=fuzzy_bounds, threshold_units=threshold_units,
-        comparison_operator=comparison_operator)(cube)
+        thresholds,
+        fuzzy_factor=fuzzy_factor,
+        fuzzy_bounds=fuzzy_bounds,
+        threshold_units=threshold_units,
+        comparison_operator=comparison_operator,
+    )(cube)
 
     if vicinity is not None:
         # smooth thresholded occurrences over local vicinity
-        result_no_collapse_coord = OccurrenceWithinVicinity(
-            vicinity)(result_no_collapse_coord)
-        new_cube_name = in_vicinity_name_format(
-            result_no_collapse_coord.name())
+        result_no_collapse_coord = OccurrenceWithinVicinity(vicinity)(
+            result_no_collapse_coord
+        )
+        new_cube_name = in_vicinity_name_format(result_no_collapse_coord.name())
         result_no_collapse_coord.rename(new_cube_name)
 
     if collapse_coord is None:
@@ -156,8 +161,7 @@ def process(cube: cli.inputcube,
 
     # Raise warning if result_no_collapse_coord is masked array
     if np.ma.isMaskedArray(result_no_collapse_coord.data):
-        warnings.warn("Collapse-coord option not fully tested with "
-                      "masked data.")
+        warnings.warn("Collapse-coord option not fully tested with " "masked data.")
     # Take a weighted mean across realizations with equal weights
     plugin = WeightAndBlend(collapse_coord, "linear", y0val=1.0, ynval=1.0)
 

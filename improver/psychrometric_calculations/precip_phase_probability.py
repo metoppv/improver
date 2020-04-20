@@ -57,7 +57,8 @@ class PrecipPhaseProbability(BasePlugin):
     and where the orography is lower than the percentile value, the returned
     probability-of-rain is 1, else 0.
     """
-    def __init__(self, radius=10000.):
+
+    def __init__(self, radius=10000.0):
         """
         Initialise plugin
         Args:
@@ -65,7 +66,7 @@ class PrecipPhaseProbability(BasePlugin):
                 Neighbourhood radius from which 80th percentile is found (m)
         """
         self.percentile_plugin = GeneratePercentilesFromANeighbourhood
-        self._nbhood_shape = 'circular'
+        self._nbhood_shape = "circular"
         self.radius = radius
 
     def _extract_input_cubes(self, cubes):
@@ -99,41 +100,45 @@ class PrecipPhaseProbability(BasePlugin):
         if isinstance(cubes, list):
             cubes = iris.cube.CubeList(cubes)
         if len(cubes) != 2:
-            raise ValueError(f'Expected 2 cubes, found {len(cubes)}')
+            raise ValueError(f"Expected 2 cubes, found {len(cubes)}")
 
         if not spatial_coords_match(cubes[0], cubes[1]):
-            raise ValueError('Spatial coords mismatch between '
-                             f'{cubes[0]} and '
-                             f'{cubes[1]}')
+            raise ValueError(
+                "Spatial coords mismatch between " f"{cubes[0]} and " f"{cubes[1]}"
+            )
 
-        extracted_cube = cubes.extract('altitude_of_snow_falling_level')
+        extracted_cube = cubes.extract("altitude_of_snow_falling_level")
         if extracted_cube:
-            self.falling_level_cube, = extracted_cube
-            self.param = 'snow'
+            (self.falling_level_cube,) = extracted_cube
+            self.param = "snow"
             self.comparator = operator.gt
             self.get_discriminating_percentile = self.percentile_plugin(
-                self._nbhood_shape, self.radius, percentiles=[80.])
+                self._nbhood_shape, self.radius, percentiles=[80.0]
+            )
         else:
-            extracted_cube = cubes.extract('altitude_of_rain_falling_level')
+            extracted_cube = cubes.extract("altitude_of_rain_falling_level")
             if not extracted_cube:
                 raise ValueError(
-                    'Could not extract a rain or snow falling-level '
-                    f'cube from {cubes}')
-            self.falling_level_cube, = extracted_cube
-            self.param = 'rain'
+                    "Could not extract a rain or snow falling-level "
+                    f"cube from {cubes}"
+                )
+            (self.falling_level_cube,) = extracted_cube
+            self.param = "rain"
             self.comparator = operator.lt
             # We want rain at or above the surface, so inverse of 80th
             # centile is the 20th centile.
             self.get_discriminating_percentile = self.percentile_plugin(
-                self._nbhood_shape, self.radius, percentiles=[20.])
+                self._nbhood_shape, self.radius, percentiles=[20.0]
+            )
 
-        orography_name = 'surface_altitude'
+        orography_name = "surface_altitude"
         extracted_cube = cubes.extract(orography_name)
         if extracted_cube:
-            self.orography_cube, = extracted_cube
+            (self.orography_cube,) = extracted_cube
         else:
-            raise ValueError(f'Could not extract {orography_name} cube from '
-                             f'{cubes}')
+            raise ValueError(
+                f"Could not extract {orography_name} cube from " f"{cubes}"
+            )
 
         if self.falling_level_cube.units != self.orography_cube.units:
             self.falling_level_cube = self.falling_level_cube.copy()
@@ -165,21 +170,21 @@ class PrecipPhaseProbability(BasePlugin):
         """
         self._extract_input_cubes(cubes)
         processed_falling_level = iris.util.squeeze(
-            self.get_discriminating_percentile(
-                self.falling_level_cube))
+            self.get_discriminating_percentile(self.falling_level_cube)
+        )
 
         result_data = np.where(
-            self.comparator(
-                self.orography_cube.data,
-                processed_falling_level.data),
-            1, 0).astype('float32')
-        mandatory_attributes = generate_mandatory_attributes(
-            [self.falling_level_cube])
+            self.comparator(self.orography_cube.data, processed_falling_level.data),
+            1,
+            0,
+        ).astype("float32")
+        mandatory_attributes = generate_mandatory_attributes([self.falling_level_cube])
 
         cube = create_new_diagnostic_cube(
-            f'probability_of_{self.param}_at_surface',
-            Unit('1'),
+            f"probability_of_{self.param}_at_surface",
+            Unit("1"),
             self.falling_level_cube,
             mandatory_attributes,
-            data=result_data)
+            data=result_data,
+        )
         return cube

@@ -49,8 +49,7 @@ class PercentileConverter(BasePlugin):
 
     """
 
-    def __init__(self, collapse_coord, percentiles=None,
-                 fast_percentile_method=True):
+    def __init__(self, collapse_coord, percentiles=None, fast_percentile_method=True):
         """
         Create a PDF plugin with a given source plugin.
 
@@ -70,16 +69,16 @@ class PercentileConverter(BasePlugin):
         """
         if not isinstance(collapse_coord, list):
             collapse_coord = [collapse_coord]
-        if not all([isinstance(test_coord, str)
-                    for test_coord in collapse_coord]):
-            raise TypeError('collapse_coord is {!r}, which is not a string '
-                            'as is expected.'.format(collapse_coord))
+        if not all([isinstance(test_coord, str) for test_coord in collapse_coord]):
+            raise TypeError(
+                "collapse_coord is {!r}, which is not a string "
+                "as is expected.".format(collapse_coord)
+            )
 
         if percentiles is not None:
             self.percentiles = [np.float32(value) for value in percentiles]
         else:
-            self.percentiles = [
-                np.float32(value) for value in DEFAULT_PERCENTILES]
+            self.percentiles = [np.float32(value) for value in DEFAULT_PERCENTILES]
 
         # Collapsing multiple coordinates results in a new percentile
         # coordinate, its name suffixed by the original coordinate names. Such
@@ -92,8 +91,9 @@ class PercentileConverter(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = ('<PercentileConverter: collapse_coord={}, percentiles={}'
-                .format(self.collapse_coord, self.percentiles))
+        desc = "<PercentileConverter: collapse_coord={}, percentiles={}".format(
+            self.collapse_coord, self.percentiles
+        )
         return desc
 
     def process(self, cube):
@@ -119,26 +119,34 @@ class PercentileConverter(BasePlugin):
         data_type = cube.dtype
         # Test that collapse coords are present in cube before proceeding.
         n_collapse_coords = len(self.collapse_coord)
-        n_valid_coords = sum([test_coord == coord.name()
-                              for coord in cube.coords()
-                              for test_coord in self.collapse_coord])
+        n_valid_coords = sum(
+            [
+                test_coord == coord.name()
+                for coord in cube.coords()
+                for test_coord in self.collapse_coord
+            ]
+        )
         # Rename the percentile coordinate to "percentile" and also
         # makes sure that the associated unit is %.
         if n_valid_coords == n_collapse_coords:
             result = collapsed(
-                cube, self.collapse_coord,
+                cube,
+                self.collapse_coord,
                 iris.analysis.PERCENTILE,
                 percent=self.percentiles,
-                fast_percentile_method=self.fast_percentile_method)
+                fast_percentile_method=self.fast_percentile_method,
+            )
 
             result.data = result.data.astype(data_type)
             for coord in self.collapse_coord:
                 result.remove_coord(coord)
             percentile_coord = find_percentile_coordinate(result)
-            result.coord(percentile_coord).rename('percentile')
-            result.coord(percentile_coord).units = '%'
+            result.coord(percentile_coord).rename("percentile")
+            result.coord(percentile_coord).units = "%"
             return result
 
         raise CoordinateNotFoundError(
             "Coordinate '{}' not found in cube passed to {}.".format(
-                self.collapse_coord, self.__class__.__name__))
+                self.collapse_coord, self.__class__.__name__
+            )
+        )

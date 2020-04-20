@@ -71,7 +71,7 @@ def _check_metadata(cube):
     """
     check_mandatory_standards(cube)
     if cf_units.Unit(cube.units).is_unknown():
-        raise ValueError('{} has unknown units'.format(cube.name()))
+        raise ValueError("{} has unknown units".format(cube.name()))
 
 
 def save_netcdf(cubelist, filename):
@@ -109,22 +109,36 @@ def save_netcdf(cubelist, filename):
             xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
             chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
     else:
-        msg = ("Chunksize not set as cubelist "
-               "contains cubes of varying dimensions")
+        msg = "Chunksize not set as cubelist " "contains cubes of varying dimensions"
         warnings.warn(msg)
 
-    global_keys = ['title', 'um_version', 'grid_id', 'source', 'Conventions',
-                   'institution', 'history']
-    global_keys.extend([key for key in cube.attributes.keys()
-                        if 'mosg__' in key])
+    global_keys = [
+        "title",
+        "um_version",
+        "grid_id",
+        "source",
+        "Conventions",
+        "institution",
+        "history",
+    ]
+    global_keys.extend([key for key in cube.attributes.keys() if "mosg__" in key])
 
-    local_keys = {key for cube in cubelist
-                  for key in cube.attributes.keys()
-                  if key not in global_keys}
+    local_keys = {
+        key
+        for cube in cubelist
+        for key in cube.attributes.keys()
+        if key not in global_keys
+    }
 
     # save atomically by writing to a temporary file and then renaming
-    ftmp = str(filename) + '.tmp'
-    iris.fileformats.netcdf.save(cubelist, ftmp, local_keys=local_keys,
-                                 complevel=1, shuffle=True, zlib=True,
-                                 chunksizes=chunksizes)
+    ftmp = str(filename) + ".tmp"
+    iris.fileformats.netcdf.save(
+        cubelist,
+        ftmp,
+        local_keys=local_keys,
+        complevel=1,
+        shuffle=True,
+        zlib=True,
+        chunksizes=chunksizes,
+    )
     os.rename(ftmp, filename)

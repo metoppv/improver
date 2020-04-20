@@ -37,10 +37,12 @@ from improver.constants import DEFAULT_TOLERANCE
 
 
 @cli.clizefy
-def process(actual: cli.inputpath,
-            desired: cli.inputpath,
-            rtol: float = DEFAULT_TOLERANCE,
-            atol: float = DEFAULT_TOLERANCE) -> None:
+def process(
+    actual: cli.inputpath,
+    desired: cli.inputpath,
+    rtol: float = DEFAULT_TOLERANCE,
+    atol: float = DEFAULT_TOLERANCE,
+) -> None:
     """
     Compare two netcdf files
 
@@ -54,5 +56,5 @@ def process(actual: cli.inputpath,
         None
     """
     from improver.utilities import compare
-    compare.compare_netcdfs(actual, desired, rtol=rtol, atol=atol,
-                            reporter=print)
+
+    compare.compare_netcdfs(actual, desired, rtol=rtol, atol=atol, reporter=print)

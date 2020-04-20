@@ -48,9 +48,7 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "input.nc"
     smoothing_coefficients_path = kgo_dir / "smoothing_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            smoothing_coefficients_path,
-            "--output", output_path]
+    args = [input_path, smoothing_coefficients_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -64,11 +62,14 @@ def test_external_mask_with_remask(tmp_path):
     smoothing_coefficients_path = kgo_dir / "smoothing_coefficients.nc"
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            smoothing_coefficients_path,
-            mask_path,
-            "--remask",
-            "--output", output_path]
+    args = [
+        input_path,
+        smoothing_coefficients_path,
+        mask_path,
+        "--remask",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -82,10 +83,7 @@ def test_external_mask_with_no_remask(tmp_path):
     smoothing_coefficients_path = kgo_dir / "smoothing_coefficients.nc"
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            smoothing_coefficients_path,
-            mask_path,
-            "--output", output_path]
+    args = [input_path, smoothing_coefficients_path, mask_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -97,10 +95,13 @@ def test_internal_mask_with_remask(tmp_path):
     input_path = kgo_dir / "input_masked.nc"
     smoothing_coefficients_path = kgo_dir / "smoothing_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            smoothing_coefficients_path,
-            "--remask",
-            "--output", output_path]
+    args = [
+        input_path,
+        smoothing_coefficients_path,
+        "--remask",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -112,8 +113,6 @@ def test_internal_mask_with_no_remask(tmp_path):
     input_path = kgo_dir / "input_masked.nc"
     smoothing_coefficients_path = kgo_dir / "smoothing_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            smoothing_coefficients_path,
-            "--output", output_path]
+    args = [input_path, smoothing_coefficients_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
