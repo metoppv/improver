@@ -60,6 +60,7 @@ class PystepsExtrapolate(BasePlugin):
         https://pysteps.readthedocs.io/en/latest/generated/
         pysteps.extrapolation.semilagrangian.extrapolate.html
     """
+
     def __init__(self, interval, max_lead_time):
         """
         Initialise the plugin
@@ -82,9 +83,10 @@ class PystepsExtrapolate(BasePlugin):
             np.ndarray:
                 2D precipitation rate array in mm h-1
         """
-        self.analysis_cube, = ApplyOrographicEnhancement(
-            "subtract").process(self.analysis_cube, self.orogenh)
-        self.analysis_cube.convert_units('mm h-1')
+        (self.analysis_cube,) = ApplyOrographicEnhancement("subtract").process(
+            self.analysis_cube, self.orogenh
+        )
+        self.analysis_cube.convert_units("mm h-1")
         return np.ma.filled(self.analysis_cube.data, np.nan)
 
     def _generate_displacement_array(self, ucube, vcube):
@@ -104,6 +106,7 @@ class PystepsExtrapolate(BasePlugin):
                 of the m*n displacement field (format required for pysteps
                 extrapolation algorithm)
         """
+
         def _calculate_displacement(cube, interval, gridlength):
             """
             Calculate displacement for each time step using velocity cube and
@@ -122,11 +125,11 @@ class PystepsExtrapolate(BasePlugin):
                     Array of displacements in grid squares per time step
             """
             cube_ms = cube.copy()
-            cube_ms.convert_units('m s-1')
-            displacement = cube_ms.data*interval*60. / gridlength
+            cube_ms.convert_units("m s-1")
+            displacement = cube_ms.data * interval * 60.0 / gridlength
             return np.ma.filled(displacement, np.nan)
 
-        gridlength = calculate_grid_spacing(self.analysis_cube, 'metres')
+        gridlength = calculate_grid_spacing(self.analysis_cube, "metres")
         udisp = _calculate_displacement(ucube, self.interval, gridlength)
         vdisp = _calculate_displacement(vcube, self.interval, gridlength)
         displacement = np.array([udisp, vdisp])
@@ -139,19 +142,21 @@ class PystepsExtrapolate(BasePlugin):
         """
         coords = [coord.name() for coord in self.analysis_cube.coords()]
         if "forecast_reference_time" not in coords:
-            frt_coord = self.analysis_cube.coord('time').copy()
-            frt_coord.rename('forecast_reference_time')
+            frt_coord = self.analysis_cube.coord("time").copy()
+            frt_coord.rename("forecast_reference_time")
             self.analysis_cube.add_aux_coord(frt_coord)
         if "forecast_period" not in coords:
             self.analysis_cube.add_aux_coord(
-                AuxCoord(np.array([0], dtype=np.int32),
-                         'forecast_period', 'seconds'))
+                AuxCoord(np.array([0], dtype=np.int32), "forecast_period", "seconds")
+            )
 
         self.analysis_cube.attributes = generate_mandatory_attributes(
-            [self.analysis_cube])
-        self.analysis_cube.attributes['source'] = 'MONOW'
-        self.analysis_cube.attributes['title'] = (
-            'MONOW Extrapolation Nowcast on UK 2 km Standard Grid')
+            [self.analysis_cube]
+        )
+        self.analysis_cube.attributes["source"] = "MONOW"
+        self.analysis_cube.attributes[
+            "title"
+        ] = "MONOW Extrapolation Nowcast on UK 2 km Standard Grid"
         set_history_attribute(self.analysis_cube, "Nowcast")
         if attribute_changes is not None:
             amend_attributes(self.analysis_cube, attribute_changes)
@@ -169,20 +174,20 @@ class PystepsExtrapolate(BasePlugin):
             forecast_cubes (iris.cube.CubeList):
                 List of extrapolated cubes with correct time coordinates
         """
-        current_datetime = iris_time_to_datetime(
-            self.analysis_cube.coord('time'))[0]
+        current_datetime = iris_time_to_datetime(self.analysis_cube.coord("time"))[0]
         forecast_cubes = [self.analysis_cube.copy()]
         for i in range(len(all_forecasts)):
             # copy forecast data into template cube
             new_cube = self.analysis_cube.copy(
-                data=all_forecasts[i, :, :].astype(np.float32))
+                data=all_forecasts[i, :, :].astype(np.float32)
+            )
             # update time and forecast period coordinates
-            current_datetime += timedelta(seconds=self.interval*60)
+            current_datetime += timedelta(seconds=self.interval * 60)
             current_time = datetime_to_iris_time(current_datetime)
-            new_cube.coord('time').points = np.array(
-                [current_time], dtype=np.int64)
-            new_cube.coord('forecast_period').points = np.array(
-                [(i+1)*self.interval*60], dtype=np.int32)
+            new_cube.coord("time").points = np.array([current_time], dtype=np.int64)
+            new_cube.coord("forecast_period").points = np.array(
+                [(i + 1) * self.interval * 60], dtype=np.int32
+            )
             forecast_cubes.append(new_cube)
         return forecast_cubes
 
@@ -216,13 +221,13 @@ class PystepsExtrapolate(BasePlugin):
         for cube in timestamped_cubes:
             cube.convert_units(self.required_units)
             if self.orogenh:
-                cube, = ApplyOrographicEnhancement("add").process(
-                    cube, self.orogenh)
+                (cube,) = ApplyOrographicEnhancement("add").process(cube, self.orogenh)
             forecast_cubes.append(cube)
         return forecast_cubes
 
-    def process(self, initial_cube, ucube, vcube, orographic_enhancement,
-                attributes_dict=None):
+    def process(
+        self, initial_cube, ucube, vcube, orographic_enhancement, attributes_dict=None
+    ):
         """
         Extrapolate the initial precipitation field using the velocities
         provided to the required forecast lead times
@@ -247,8 +252,8 @@ class PystepsExtrapolate(BasePlugin):
                 lead times (including T+0 / analysis time)
         """
         # ensure input cube is suitable for advection
-        if 'rate' not in initial_cube.name():
-            msg = '{} is not a precipitation rate cube'
+        if "rate" not in initial_cube.name():
+            msg = "{} is not a precipitation rate cube"
             raise ValueError(msg.format(initial_cube.name()))
         check_if_grid_is_equal_area(initial_cube)
 
@@ -265,11 +270,10 @@ class PystepsExtrapolate(BasePlugin):
 
         # call pysteps extrapolation method
         all_forecasts = extrapolate(
-            precip_rate, displacement, self.num_timesteps,
-            allow_nonfinite_values=True)
+            precip_rate, displacement, self.num_timesteps, allow_nonfinite_values=True
+        )
 
         # repackage data as IMPROVER masked cubes
-        forecast_cubes = self._generate_forecast_cubes(
-            all_forecasts, attributes_dict)
+        forecast_cubes = self._generate_forecast_cubes(all_forecasts, attributes_dict)
 
         return forecast_cubes

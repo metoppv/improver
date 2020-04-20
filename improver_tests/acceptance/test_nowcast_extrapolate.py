@@ -62,7 +62,7 @@ def test_optical_flow_inputs(tmp_path):
         "--max-lead-time",
         "90",
         "--output",
-        output_path
+        output_path,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -86,7 +86,7 @@ def test_wind_inputs(tmp_path):
         "--max-lead-time",
         "90",
         "--output",
-        output_path
+        output_path,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

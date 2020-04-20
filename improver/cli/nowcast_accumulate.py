@@ -106,8 +106,7 @@ def process(
     # extrapolate input data to the maximum required lead time
     forecast_plugin = PystepsExtrapolate(ACCUMULATION_FIDELITY, max_lead_time)
     forecast_cubes = forecast_plugin(
-        cube, u_cube, v_cube, orographic_enhancement,
-        attributes_dict=attributes_config
+        cube, u_cube, v_cube, orographic_enhancement, attributes_dict=attributes_config
     )
     lead_times = np.arange(lead_time_interval, max_lead_time + 1, lead_time_interval)
 

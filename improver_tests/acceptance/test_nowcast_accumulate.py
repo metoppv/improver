@@ -46,8 +46,7 @@ def test_optical_flow_inputs(tmp_path):
     kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-accumulate"
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-accumulate/basic"
-    input_path = (input_dir /
-                  "201811031600_radar_rainrate_composite_UK_regridded.nc")
+    input_path = input_dir / "201811031600_radar_rainrate_composite_UK_regridded.nc"
     uv_path = input_dir / "optical_flow_uv.nc"
     oe_path = input_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
     output_path = tmp_path / "output.nc"
@@ -72,8 +71,7 @@ def test_wind_inputs(tmp_path):
     kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-accumulate"
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-accumulate/basic"
-    input_path = (input_dir /
-                  "201811031600_radar_rainrate_composite_UK_regridded.nc")
+    input_path = input_dir / "201811031600_radar_rainrate_composite_UK_regridded.nc"
     uv_path = input_dir / "wind_uv.nc"
     oe_path = input_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
     output_path = tmp_path / "output.nc"

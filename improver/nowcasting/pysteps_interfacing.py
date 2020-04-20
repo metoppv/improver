@@ -55,35 +55,38 @@ class PystepsImporter(object):
         https://pysteps.readthedocs.io/en/latest/pysteps_reference/
         io.html#pysteps-io-importers
     """
+
     def __init__(self):
         """
         Set up some universally required metadata
         """
         self.metadata = {}
-        self.metadata['unit'] = 'mm/h'     # pysteps-acceptable units
-        self.metadata['accutime'] = 0      # accumulation period (0 for rates)
-        self.metadata['transform'] = None  # data transform
+        self.metadata["unit"] = "mm/h"  # pysteps-acceptable units
+        self.metadata["accutime"] = 0  # accumulation period (0 for rates)
+        self.metadata["transform"] = None  # data transform
 
     @staticmethod
     def _extract_coord_limits(coord):
         """Get coordinate extremes in metres"""
         n_coord = coord.copy()
-        n_coord.convert_units('m')
+        n_coord.convert_units("m")
         return min(n_coord.points), max(n_coord.points)
 
     def _set_coord_metadata(self):
         """Extract metadata from x- and y-coordinates and set in dict"""
-        min_x, max_x = self._extract_coord_limits(self.cube.coord(axis='x'))
-        self.metadata['xpixelsize'] = calculate_grid_spacing(
-            self.cube, 'metres', axis='x')
-        self.metadata['x1'] = min_x
-        self.metadata['x2'] = max_x
-        min_y, max_y = self._extract_coord_limits(self.cube.coord(axis='y'))
-        self.metadata['ypixelsize'] = calculate_grid_spacing(
-            self.cube, 'metres', axis='y')
-        self.metadata['y1'] = min_y
-        self.metadata['y2'] = max_y
-        self.metadata['yorigin'] = 'lower'
+        min_x, max_x = self._extract_coord_limits(self.cube.coord(axis="x"))
+        self.metadata["xpixelsize"] = calculate_grid_spacing(
+            self.cube, "metres", axis="x"
+        )
+        self.metadata["x1"] = min_x
+        self.metadata["x2"] = max_x
+        min_y, max_y = self._extract_coord_limits(self.cube.coord(axis="y"))
+        self.metadata["ypixelsize"] = calculate_grid_spacing(
+            self.cube, "metres", axis="y"
+        )
+        self.metadata["y1"] = min_y
+        self.metadata["y2"] = max_y
+        self.metadata["yorigin"] = "lower"
 
     def _set_geodata(self):
         """
@@ -119,21 +122,21 @@ class PystepsImporter(object):
             ValueError: if input cube does not contain some variety of
                 precipitation rates
         """
-        if 'rate' not in precip_cube.name():
-            msg = '{} is not a precipitation rate cube'
+        if "rate" not in precip_cube.name():
+            msg = "{} is not a precipitation rate cube"
             raise ValueError(msg.format(precip_cube.name()))
         check_if_grid_is_equal_area(precip_cube)
 
         # extract unmasked data in required units
         self.cube = precip_cube.copy()
-        self.cube.convert_units(self.metadata['unit'])
+        self.cube.convert_units(self.metadata["unit"])
         precip_rate = np.ma.filled(self.cube.data, np.nan)
 
         # populate metadata dictionary
         try:
-            self.metadata['institution'] = self.cube.attributes['institution']
+            self.metadata["institution"] = self.cube.attributes["institution"]
         except KeyError:
-            self.metadata['institution'] = 'unknown'
+            self.metadata["institution"] = "unknown"
         self._set_geodata()
         return precip_rate, self.metadata
 

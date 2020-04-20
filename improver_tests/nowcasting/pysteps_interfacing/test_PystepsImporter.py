@@ -46,9 +46,9 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test initialisation behaves as expected"""
         plugin = PystepsImporter()
-        self.assertEqual(plugin.metadata['unit'], 'mm/h')
-        self.assertEqual(plugin.metadata['accutime'], 0)
-        self.assertIsNone(plugin.metadata['transform'])
+        self.assertEqual(plugin.metadata["unit"], "mm/h")
+        self.assertEqual(plugin.metadata["accutime"], 0)
+        self.assertIsNone(plugin.metadata["transform"])
 
 
 class Test_process_cube(IrisTest):
@@ -56,11 +56,15 @@ class Test_process_cube(IrisTest):
 
     def setUp(self):
         """Set up test cube to import"""
-        precip_data_ms = 1e-7*np.ones((5, 5), dtype=np.float32)
+        precip_data_ms = 1e-7 * np.ones((5, 5), dtype=np.float32)
         self.cube = set_up_variable_cube(
-            precip_data_ms, name='rainfall_rate', units='m s-1',
-            spatial_grid='equalarea', attributes={'institution': 'Met Office'})
-        self.precip_data_mmh = 0.36*np.ones((5, 5), dtype=np.float32)
+            precip_data_ms,
+            name="rainfall_rate",
+            units="m s-1",
+            spatial_grid="equalarea",
+            attributes={"institution": "Met Office"},
+        )
+        self.precip_data_mmh = 0.36 * np.ones((5, 5), dtype=np.float32)
 
     def test_basic(self):
         """Test outputs are of correct types"""
@@ -86,39 +90,41 @@ class Test_process_cube(IrisTest):
 
     def test_dict_values(self):
         """Test dictionary contains expected metadata"""
-        projection = ('+a=6378137.000 +b=6356752.314 +proj=laea +lon_0=-2.500'
-                      ' +lat_0=54.900 +x_0=0.000 +y_0=0.000 +ellps=WGS84')
+        projection = (
+            "+a=6378137.000 +b=6356752.314 +proj=laea +lon_0=-2.500"
+            " +lat_0=54.900 +x_0=0.000 +y_0=0.000 +ellps=WGS84"
+        )
         expected_metadata = {
-            'unit': 'mm/h',
-            'accutime': 0,
-            'transform': None,
-            'institution': 'Met Office',
-            'projection': projection,
-            'xpixelsize': 200000.0,
-            'x1': -400000.0,
-            'x2': 400000.0,
-            'ypixelsize': 200000.0,
-            'y1': -100000.0,
-            'y2': 700000.0,
-            'yorigin': 'lower'}
+            "unit": "mm/h",
+            "accutime": 0,
+            "transform": None,
+            "institution": "Met Office",
+            "projection": projection,
+            "xpixelsize": 200000.0,
+            "x1": -400000.0,
+            "x2": 400000.0,
+            "ypixelsize": 200000.0,
+            "y1": -100000.0,
+            "y2": 700000.0,
+            "yorigin": "lower",
+        }
 
         (_, metadata) = PystepsImporter().process_cube(self.cube)
         self.assertDictEqual(metadata, expected_metadata)
 
     def test_no_institution(self):
         """Test plugin deals correctly with missing attribute"""
-        self.cube.attributes.pop('institution')
+        self.cube.attributes.pop("institution")
         (_, metadata) = PystepsImporter().process_cube(self.cube)
-        self.assertEqual(metadata['institution'], 'unknown')
+        self.assertEqual(metadata["institution"], "unknown")
 
     def test_error_non_rate_cube(self):
         """Test plugin rejects cube of non-rate data"""
-        invalid_cube = set_up_variable_cube(
-            275*np.ones((5, 5), dtype=np.float32))
-        msg = 'air_temperature is not a precipitation rate cube'
+        invalid_cube = set_up_variable_cube(275 * np.ones((5, 5), dtype=np.float32))
+        msg = "air_temperature is not a precipitation rate cube"
         with self.assertRaisesRegex(ValueError, msg):
             PystepsImporter().process_cube(invalid_cube)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
