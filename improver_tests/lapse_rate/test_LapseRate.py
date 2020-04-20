@@ -63,27 +63,31 @@ class Test__calc_lapse_rate(IrisTest):
     def setUp(self):
         """Sets up arrays."""
 
-        self.temperature = np.array([280.06, 279.97, 279.90, 280.15, 280.03,
-                                     279.96, 280.25, 280.33, 280.27])
-        self.orography = np.array([174.67, 179.87, 188.46, 155.84, 169.58,
-                                   185.05, 134.90, 144.00, 157.89])
+        self.temperature = np.array([[280.06, 279.97, 279.90],
+                                     [280.15, 280.03, 279.96],
+                                     [280.25, 280.33, 280.27]])
+        self.orography = np.array([[174.67, 179.87, 188.46],
+                                   [155.84, 169.58, 185.05],
+                                   [134.90, 144.00, 157.89]])
 
     def test_returns_expected_values(self):
         """Test that the function returns expected lapse rate. """
 
         expected_out = -0.00765005774676
-        result = LapseRate(nbhood_radius=1)._calc_lapse_rate(self.temperature,
-                                                             self.orography)
+        result = LapseRate(nbhood_radius=1).alinfit(self.orography,
+                                                    self.temperature,
+                                                    axis=(-2, -1))
         self.assertArrayAlmostEqual(result, expected_out)
 
     def test_handles_nan(self):
         """Test that the function returns DALR value when central point
            is NaN."""
 
-        self.temperature[4] = np.nan
+        self.temperature[..., 1, 1] = np.nan
         expected_out = DALR
-        result = LapseRate(nbhood_radius=1)._calc_lapse_rate(self.temperature,
-                                                             self.orography)
+        result = LapseRate(nbhood_radius=1).alinfit(self.orography,
+                                                    self.temperature,
+                                                    axis=(-2, -1))
         self.assertArrayAlmostEqual(result, expected_out)
 
 
@@ -93,74 +97,48 @@ class Test__create_heightdiff_mask(IrisTest):
     def setUp(self):
         """Sets up arrays."""
 
-        self.orography = np.array([[35, 40, 20, 10, 0, 10, 20, -30, -40],
-                                   [35, 40, 20, 10, 0, 10, 20, -30, -40]])
+        self.orography = np.array(
+            [[[35, 40, 20],
+              [10, 0, 10],
+              [20, -30, -40]],
+             [[35, 40, 20],
+              [10, 0, 10],
+              [20, -30, -40]]])
+
+    def height_diff_tests(self, expected_out, max_height_diff=35):
+        """ """
+        result = LapseRate(max_height_diff=max_height_diff,
+                           nbhood_radius=1)._create_height_diff_mask(
+            self.orography)
+        self.assertArrayAlmostEqual(result, expected_out)
 
     def test_returns_expected_values(self):
         """Test that the function returns True at points where the height
            difference to the central pixel is greater than 35m."""
 
         expected_out = np.array(
-            [[True, True, False, False, False, False, False, False, True],
-             [True, True, False, False, False, False, False, False, True]])
+            [[[False, False, True],
+              [True, True, True],
+              [True, True, False]],
+             [[False, False, True],
+              [True, True, True],
+              [True, True, False]]])
 
-        result = LapseRate(nbhood_radius=1)._create_heightdiff_mask(
-            self.orography)
-        self.assertArrayAlmostEqual(result, expected_out)
-
-    def generators_test(self, expected_out, max_height_diff=35):
-        """Tests that involve the generator function
-        _generate_heightdiff_mask can use this function by providing
-        the expected output.
-
-        Args:
-            expected_out:
-                numpy.ndarray with dtype(bool) representing the
-                example output.
-            max_height_diff (optional):
-                set the maximum height difference, defaults to 35."""
-        result = np.zeros_like(expected_out, dtype=bool)
-        gen = LapseRate(max_height_diff=max_height_diff,
-                        nbhood_radius=1)._generate_heightdiff_mask(
-            self.orography)
-
-        for count, val in enumerate(gen):
-            result[count] = val
-
-        self.assertArrayAlmostEqual(result, expected_out)
-
-    def test_returns_expected_values_generator(self):
-        """Test that the function returns True at points where the height
-           difference to the central pixel is greater than 35m."""
-
-        expected_out = np.array(
-            [[True, True, False, False, False, False, False, False, True],
-             [True, True, False, False, False, False, False, False, True]])
-
-        self.generators_test(expected_out)
+        self.height_diff_tests(expected_out)
 
     def test_change_height_thresh(self):
         """Test that the function performs as expected when the height
            difference threshold has been changed."""
 
         expected_out = np.array(
-            [[False, True, False, False, False, False, False, False, True],
-             [False, True, False, False, False, False, False, False, True]])
+            [[[True, False, True],
+              [True, True, True],
+              [True, True, False]],
+             [[True, False, True],
+              [True, True, True],
+              [True, True, False]]])
 
-        result = LapseRate(max_height_diff=40,
-                           nbhood_radius=1)._create_heightdiff_mask(
-            self.orography)
-        self.assertArrayAlmostEqual(result, expected_out)
-
-    def test_change_height_thresh_generator(self):
-        """Test that the function performs as expected when the height
-           difference threshold has been changed."""
-
-        expected_out = np.array(
-            [[False, True, False, False, False, False, False, False, True],
-             [False, True, False, False, False, False, False, False, True]])
-
-        self.generators_test(expected_out, max_height_diff=40)
+        self.height_diff_tests(expected_out, max_height_diff=40)
 
 
 class Test_process(IrisTest):
@@ -512,9 +490,9 @@ class Test_process(IrisTest):
         # West data points should be -3*DALR and East should be DALR.
         self.temperature.data[:, :, 0] = -0.2
         self.temperature.data[:, :, 1] = -0.1
-        self.temperature.data[:, :, 2] =  0.0
-        self.temperature.data[:, :, 3] =  0.1
-        self.temperature.data[:, :, 4] =  0.2
+        self.temperature.data[:, :, 2] = 0.0
+        self.temperature.data[:, :, 3] = 0.1
+        self.temperature.data[:, :, 4] = 0.2
         self.temperature.data[:, 2, 2] = np.nan
         self.orography.data[:, 0:2] = 0
         self.orography.data[:, 2] = 10
