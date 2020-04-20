@@ -95,7 +95,7 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
             CubeList that has been created from the input filepath given the
             constraints provided.
     """
-    # Remove metadata prefix cube if present
+    # Remove legacy metadata prefix cube if present
     constraints = (
         iris.Constraint(cube_func=lambda cube: cube.long_name != "prefixes")
         & constraints
@@ -121,9 +121,8 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
 
     for cube in cubes:
 
-        # Remove metadata prefix cube attributes
-        if 'bald__isPrefixedBy' in cube.attributes.keys():
-            cube.attributes.pop('bald__isPrefixedBy')
+        # Remove metadata attributes pointing to legacy prefix cube
+        cube.attributes.pop('bald__isPrefixedBy', None)
 
         # Ensure the probabilistic coordinates are the first coordinates within
         # a cube and are in the specified order.
