@@ -32,8 +32,8 @@
 
 import os
 import unittest
-from tempfile import mkdtemp
 from datetime import datetime
+from tempfile import mkdtemp
 
 import iris
 import numpy as np
