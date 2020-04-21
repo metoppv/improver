@@ -360,10 +360,16 @@ class WeatherSymbols(BasePlugin):
             loop += 1
 
             if isinstance(diagnostic, list):
+                # We have a list which could contain variable names, operators and
+                # numbers. The variable names need converting into Iris Constraint
+                # syntax while operators and numbers remain unchanged.
+                # We expect an entry in p_threshold for each variable name, so
+                # d_threshold_index is used to track these.
                 d_threshold_index = -1
                 extract_constraint = []
                 for item in diagnostic:
                     if is_variable(item):
+                        # Add a constraint from the variable name and threshold value
                         d_threshold_index += 1
                         extract_constraint.append(
                             self.construct_extract_constraint(
@@ -373,8 +379,10 @@ class WeatherSymbols(BasePlugin):
                             )
                         )
                     else:
+                        # Add this operator or variable as-is
                         extract_constraint.append(item)
             else:
+                # Non-lists are assumed to be strings containing one variable name.
                 extract_constraint = self.construct_extract_constraint(
                     diagnostic, d_threshold, self.coord_named_threshold
                 )
@@ -558,7 +566,7 @@ class WeatherSymbols(BasePlugin):
             template_cube,
             attributes,
             optional_attributes=weather_code_attributes(),
-            data=np.ones_like(template_cube.data, dtype=np.int32) * -1,
+            data=np.full_like(template_cube.data, dtype=np.int32, fill_value=-1),
         )
         return symbols
 
