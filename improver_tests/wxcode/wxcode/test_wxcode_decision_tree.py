@@ -32,7 +32,7 @@
 
 import pytest
 
-from improver.wxcode.utilities import WX_DICT
+from improver.wxcode.utilities import WX_DICT, get_parameter_names
 from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_decision_tree import START_NODE, wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
@@ -170,6 +170,4 @@ def test_probability_len_match(tree_name):
     for _, query in tree.items():
         check_list = query["probability_thresholds"]
         assert all([isinstance(x, (int, float)) for x in check_list])
-        assert len(check_list) == len(
-            WeatherSymbols().get_parameter_names(query["diagnostic_fields"])
-        )
+        assert len(check_list) == len(get_parameter_names(query["diagnostic_fields"]))

@@ -517,7 +517,6 @@ class Test_get_parameter_names(IrisTest):
 
     def test_basic(self):
         """Test that the get_parameter_names method does what it says."""
-        plugin = WeatherSymbols()
         condition = ["parameter_name_one", "*", "4.0", "+", "parameter_name_two"]
         expected = ["parameter_name_one", "parameter_name_two"]
         result = get_parameter_names(condition)
@@ -525,7 +524,6 @@ class Test_get_parameter_names(IrisTest):
 
     def test_nested(self):
         """Test getting parameter names from nested lists."""
-        plugin = WeatherSymbols()
         condition = [
             ["parameter_name_one", "*", "4.0", "+", "parameter_name_two"],
             ["parameter_name_three", "parameter_name_four"],
