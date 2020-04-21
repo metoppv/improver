@@ -47,6 +47,8 @@ from improver.metadata.utilities import (
 )
 from improver.wxcode.utilities import (
     expand_nested_lists,
+    get_parameter_names,
+    is_variable,
     update_daynight,
     weather_code_attributes,
 )
@@ -116,29 +118,6 @@ class WeatherSymbols(BasePlugin):
             self.wxtree, self.start_node
         )
 
-    @staticmethod
-    def _is_variable(thing):
-        """
-        Identify whether given string is likely to be a variable name by
-        identifying the exceptions.
-
-        Args:
-            thing: str
-                The string to operate on
-
-        Returns:
-            bool:
-                False if thing is one of ["+", "-", "*", "/"] or if float(
-                thing) does not raise a ValueError, else True.
-
-        """
-        valid_operators = ["+", "-", "*", "/"]
-        try:
-            float(thing)
-            return False
-        except ValueError:
-            return thing not in valid_operators
-
     def check_input_cubes(self, cubes):
         """
         Check that the input cubes contain all the diagnostics and thresholds
@@ -165,7 +144,7 @@ class WeatherSymbols(BasePlugin):
         optional_node_data_missing = {}
         missing_data = []
         for key, query in self.queries.items():
-            diagnostics = self.get_parameter_names(
+            diagnostics = get_parameter_names(
                 expand_nested_lists(query, "diagnostic_fields")
             )
             thresholds = expand_nested_lists(query, "diagnostic_thresholds")
@@ -247,26 +226,6 @@ class WeatherSymbols(BasePlugin):
             optional_node_data_missing = None
         return optional_node_data_missing
 
-    def get_parameter_names(self, diagnostic_fields):
-        """
-        For diagnostic fields that can contain operators and values, strips out
-        just the parameter names.
-
-        Args:
-            diagnostic_fields (list of lists of str):
-
-        Returns:
-            list of lists of str
-
-        """
-        parameter_names = []
-        for condition in diagnostic_fields:
-            if isinstance(condition, list):
-                parameter_names.append(self.get_parameter_names(condition))
-            elif self._is_variable(condition):
-                parameter_names.append(condition)
-        return parameter_names
-
     @staticmethod
     def invert_condition(test_conditions):
         """
@@ -332,7 +291,7 @@ class WeatherSymbols(BasePlugin):
             formatted_str = ""
 
             for item in extract_constraint:
-                if self._is_variable(item):
+                if is_variable(item):
                     formatted_str += f" cubes.extract({item})[0].data"
                 else:
                     formatted_str += " " + item
@@ -403,7 +362,7 @@ class WeatherSymbols(BasePlugin):
                 d_threshold_index = -1
                 extract_constraint = []
                 for item in diagnostic:
-                    if self._is_variable(item):
+                    if is_variable(item):
                         d_threshold_index += 1
                         extract_constraint.append(
                             self.construct_extract_constraint(
