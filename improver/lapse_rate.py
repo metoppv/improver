@@ -133,7 +133,7 @@ class LapseRate(BasePlugin):
        masks.
     2) Creates "views" of both datasets, where each view represents a
        neighbourhood of points. To do this, each array is padded with
-       nan values to a width of half the neighbourhood size.
+       NaN values to a width of half the neighbourhood size.
     3) For all the stored orography neighbourhoods - take the neighbours around
        the central point and create a mask where the height difference from
        the central point is greater than 35m.
@@ -297,10 +297,21 @@ class LapseRate(BasePlugin):
             N = np.nansum(mask, axis=axis)
             orog = np.where(mask, orog, np.nan)
             temp = np.where(mask, temp, np.nan)
-        X_sum = np.nansum(orog, axis=axis)
-        Y_sum = np.nansum(temp, axis=axis)
-        XY_cov = np.nansum(orog*temp, axis=axis) - X_sum * Y_sum / N
-        X_var = np.nansum(orog*orog, axis=axis) - X_sum * X_sum / N
+
+        orog = np.where(np.isnan(temp), np.nan, orog)
+
+        # Finds a compatible shape for the means to be reshaped into
+        assert orog.shape == temp.shape
+        shape = list(orog.shape)
+        for ax in axis:
+            shape[ax] = 1
+        
+        X_diff = orog - np.nanmean(orog, axis=axis).reshape(shape)
+        Y_diff = temp - np.nanmean(temp, axis=axis).reshape(shape)
+
+        XY_cov = np.nansum(X_diff * Y_diff, axis=axis)
+        X_var = np.nansum(X_diff * X_diff, axis=axis)
+
         grad = XY_cov / X_var
 
         ycheck = np.isclose(np.nanstd(temp, axis=axis), 0)

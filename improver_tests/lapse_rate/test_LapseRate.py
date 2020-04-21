@@ -482,9 +482,9 @@ class Test_process(IrisTest):
            it with DALR.
         """
         expected_out = np.array([[[DALR, 0.015, 0.01, 0.006428571, 0.005],
-                                  [DALR, 0.015, 0.01, 0.006428571, 0.005],
-                                  [DALR, 0.015, DALR, 0.006428571, 0.005],
-                                  [DALR, 0.015, 0.01, 0.006428571, 0.005],
+                                  [DALR, 0.015, 0.01, 0.00625, 0.005],
+                                  [DALR, 0.015, DALR, 0.00625, 0.005],
+                                  [DALR, 0.015, 0.01, 0.00625, 0.005],
                                   [DALR, 0.015, 0.01, 0.006428571, 0.005]]])
 
         # West data points should be -3*DALR and East should be DALR.
