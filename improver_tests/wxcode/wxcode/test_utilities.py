@@ -51,6 +51,7 @@ from improver.utilities.save import save_netcdf
 from improver.wxcode.utilities import (
     WX_DICT,
     expand_nested_lists,
+    get_parameter_names,
     interrogate_decision_tree,
     update_daynight,
     weather_code_attributes,
@@ -540,6 +541,30 @@ def test_interrogate_decision_tree(tree_name, expected):
     """Test that the function returns the right strings."""
     result = interrogate_decision_tree(tree_name)
     assert result == expected
+
+
+class Test_get_parameter_names(IrisTest):
+    """Test the get_parameter_names method."""
+
+    def test_basic(self):
+        """Test that the get_parameter_names method does what it says."""
+        condition = ["parameter_name_one", "*", "4.0", "+", "parameter_name_two"]
+        expected = ["parameter_name_one", "parameter_name_two"]
+        result = get_parameter_names(condition)
+        self.assertEqual(result, expected)
+
+    def test_nested(self):
+        """Test getting parameter names from nested lists."""
+        condition = [
+            ["parameter_name_one", "*", "4.0", "+", "parameter_name_two"],
+            ["parameter_name_three", "parameter_name_four"],
+        ]
+        expected = [
+            ["parameter_name_one", "parameter_name_two"],
+            ["parameter_name_three", "parameter_name_four"],
+        ]
+        result = get_parameter_names(condition)
+        self.assertEqual(result, expected)
 
 
 if __name__ == "__main__":
