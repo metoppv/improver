@@ -32,6 +32,7 @@
 
 import os
 import unittest
+from datetime import datetime
 from tempfile import mkdtemp
 
 import iris
@@ -58,8 +59,18 @@ class Test_load_cube(IrisTest):
         """Set up variables for use in testing."""
         self.directory = mkdtemp()
         self.filepath = os.path.join(self.directory, "temp.nc")
-        self.cube = set_up_variable_cube(np.ones((3, 3, 3), dtype=np.float32))
+        self.filepath2 = os.path.join(self.directory, "temp2.nc")
+        time = datetime(2017, 11, 10, 4, 0)
+        time2 = datetime(2017, 11, 10, 5, 0)
+        frt = datetime(2017, 11, 10, 0, 0)
+        self.cube = set_up_variable_cube(
+            np.ones((3, 3, 3), dtype=np.float32), time=time, frt=frt
+        )
+        self.cube2 = set_up_variable_cube(
+            np.zeros((3, 3, 3), dtype=np.float32), time=time2, frt=frt
+        )
         save_netcdf(self.cube, self.filepath)
+        save_netcdf(self.cube2, self.filepath2)
         self.realization_points = self.cube.coord("realization").points
         self.time_points = self.cube.coord("time").points
         self.latitude_points = self.cube.coord("latitude").points
@@ -68,6 +79,7 @@ class Test_load_cube(IrisTest):
     def tearDown(self):
         """Remove temporary directories created for testing."""
         os.remove(self.filepath)
+        os.remove(self.filepath2)
         os.rmdir(self.directory)
 
     def test_a_cube_is_loaded(self):
@@ -228,16 +240,6 @@ class Test_load_cube(IrisTest):
         result = load_cube(self.filepath)
         self.assertTrue(result.has_lazy_data())
 
-    def test_none_file_with_allow_none(self):
-        """Test that with None as filepath and allow_none, it returns None."""
-        self.assertIsNone(load_cube(None, allow_none=True))
-
-    def test_none_file_without_allow_none(self):
-        """Test that with None as filepath and without allow_none,
-         it raises a TypeError."""
-        with self.assertRaises(TypeError):
-            load_cube(None)
-
     def test_var_names_removed(self):
         """Test a cube with an unnecessary coordinate var name does not have
         this on load"""
@@ -257,6 +259,11 @@ class Test_load_cube(IrisTest):
         save_netcdf(cube, self.filepath)
         result = load_cube(self.filepath)
         self.assertEqual(result.coord("air_temperature").var_name, "threshold")
+
+    def test_merge_multiple(self):
+        """Test that multiple cubes are merged on load."""
+        result = load_cube([self.filepath, self.filepath2])
+        self.assertEqual(len(result.coord("time").points), 2)
 
 
 class Test_load_cubelist(IrisTest):

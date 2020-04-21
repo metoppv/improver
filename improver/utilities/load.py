@@ -31,7 +31,6 @@
 """Module for loading cubes."""
 
 import contextlib
-import glob
 
 import iris
 
@@ -72,15 +71,14 @@ def iris_nimrod_patcher():
                 yield
 
 
-def load_cube(filepath, constraints=None, no_lazy_load=False, allow_none=False):
-    """Load the filepath provided using Iris into a cube.  Strips off all
+def load_cubelist(filepath, constraints=None, no_lazy_load=False):
+    """Load cubes from filepath(s) into a cubelist. Strips off all
     var names except for "threshold"-type coordinates, where this is different
     from the standard or long name.
 
     Args:
         filepath (str or list):
-            Filepath that will be loaded or list of filepaths that can be
-            merged into a single cube upon loading.
+            Filepath(s) that will be loaded.
         constraints (iris.Constraint, str or None):
             Constraint to be applied when loading from the input filepath.
             This can be in the form of an iris.Constraint or could be a string
@@ -90,19 +88,13 @@ def load_cube(filepath, constraints=None, no_lazy_load=False, allow_none=False):
             If True, bypass cube deferred (lazy) loading and load the whole
             cube into memory. This can increase performance at the cost of
             memory. If False (default) then lazy load.
-        allow_none (bool):
-            If True, when the filepath is None, returns None.
-            If False, normal error handling applies.
-            Default is False.
 
     Returns:
-        iris.cube.Cube:
-            Cube that has been loaded from the input filepath given the
+        iris.cube.CubeList:
+            CubeList that has been created from the input filepath given the
             constraints provided.
     """
-    if filepath is None and allow_none:
-        return None
-    # Remove metadata prefix cube if present
+    # Remove legacy metadata prefix cube if present
     constraints = (
         iris.Constraint(cube_func=lambda cube: cube.long_name != "prefixes")
         & constraints
@@ -126,74 +118,54 @@ def load_cube(filepath, constraints=None, no_lazy_load=False, allow_none=False):
     # describe probabilistic data)
     cubes = strip_var_names(cubes)
 
-    # Merge loaded cubes
-    if len(cubes) == 1:
-        cube = cubes[0]
-    else:
-        cube = MergeCubes()(cubes)
+    for cube in cubes:
 
-    # Remove metadata prefix cube attributes
-    if "bald__isPrefixedBy" in cube.attributes.keys():
-        cube.attributes.pop("bald__isPrefixedBy")
+        # Remove metadata attributes pointing to legacy prefix cube
+        cube.attributes.pop("bald__isPrefixedBy", None)
 
-    # Ensure the probabilistic coordinates are the first coordinates within a
-    # cube and are in the specified order.
-    enforce_coordinate_ordering(cube, ["realization", "percentile", "threshold"])
-    # Ensure the y and x dimensions are the last dimensions within the cube.
-    y_name = cube.coord(axis="y").name()
-    x_name = cube.coord(axis="x").name()
-    enforce_coordinate_ordering(cube, [y_name, x_name], anchor_start=False)
-    if no_lazy_load:
-        # Force the cube's data into memory by touching the .data attribute.
-        # pylint: disable=pointless-statement
-        cube.data
-    return cube
+        # Ensure the probabilistic coordinates are the first coordinates within
+        # a cube and are in the specified order.
+        enforce_coordinate_ordering(cube, ["realization", "percentile", "threshold"])
+        # Ensure the y and x dimensions are the last within the cube.
+        y_name = cube.coord(axis="y").name()
+        x_name = cube.coord(axis="x").name()
+        enforce_coordinate_ordering(cube, [y_name, x_name], anchor_start=False)
+        if no_lazy_load:
+            # Force cube's data into memory by touching the .data attribute.
+            # pylint: disable=pointless-statement
+            cube.data
+
+    return cubes
 
 
-def load_cubelist(filepath, constraints=None, no_lazy_load=False):
-    """Load one cube from each of the filepath(s) provided using Iris into
-    a cubelist.
+def load_cube(filepath, constraints=None, no_lazy_load=False):
+    """Load the filepath provided using Iris into a cube. Strips off all
+    var names except for "threshold"-type coordinates, where this is different
+    from the standard or long name.
 
     Args:
         filepath (str or list):
-            Filepath(s) that will be loaded, each containing a single cube.  If
-            wildcarded, this will be expanded into a list of file names so that
-            only one cube is loaded per file.
+            Filepath that will be loaded or list of filepaths that can be
+            merged into a single cube.
         constraints (iris.Constraint, str or None):
             Constraint to be applied when loading from the input filepath.
             This can be in the form of an iris.Constraint or could be a string
             that is intended to match the name of the cube.
             The default is None.
-        no_lazy_load (bool)
+        no_lazy_load (bool):
             If True, bypass cube deferred (lazy) loading and load the whole
             cube into memory. This can increase performance at the cost of
             memory. If False (default) then lazy load.
 
     Returns:
-        iris.cube.CubeList:
-            CubeList that has been created from the input filepath given the
+        iris.cube.Cube:
+            Cube that has been loaded from the input filepath given the
             constraints provided.
     """
-    if isinstance(filepath, list) and len(filepath) == 1:
-        filepath = filepath[0]
-
-    # If the filepath is a string, then use glob, in case the str contains
-    # wildcards.
-    if isinstance(filepath, str):
-        filepaths = glob.glob(filepath)
+    cubes = load_cubelist(filepath, constraints, no_lazy_load)
+    # Merge loaded cubes
+    if len(cubes) == 1:
+        cube = cubes[0]
     else:
-        filepaths = filepath
-
-    # Construct a cubelist using the load_cube function.
-    cubelist = iris.cube.CubeList([])
-    for filepath in filepaths:
-        try:
-            cube = load_cube(filepath, constraints=constraints)
-        except ValueError:
-            continue
-        if no_lazy_load:
-            # Force the cube's data into memory by touching the .data.
-            # pylint: disable=pointless-statement
-            cube.data
-        cubelist.append(cube)
-    return cubelist
+        cube = MergeCubes()(cubes)
+    return cube
