@@ -32,8 +32,8 @@
 
 from collections import OrderedDict
 
-from improver.utilities.cube_manipulation import MergeCubes
 from improver.metadata.probabilistic import extract_diagnostic_name
+from improver.utilities.cube_manipulation import MergeCubes
 
 
 def split_forecasts_and_truth(cubes, truth_attribute):
@@ -82,31 +82,32 @@ def split_forecasts_and_truth(cubes, truth_attribute):
         # Two groups - the one with exactly one cube matching a name should
         # be the land_sea_mask, since we require more than 2 cubes in
         # the forecast/truth group
-        grouped_cubes = OrderedDict(sorted(grouped_cubes.items(),
-                                           key=lambda kv: len(kv[1])))
+        grouped_cubes = OrderedDict(
+            sorted(grouped_cubes.items(), key=lambda kv: len(kv[1]))
+        )
         # landsea name should be the key with the lowest number of cubes (1)
         landsea_name, diag_name = list(grouped_cubes.keys())
         land_sea_mask = grouped_cubes[landsea_name][0]
         if len(grouped_cubes[landsea_name]) != 1:
-            raise IOError('Expected one cube for land-sea mask.')
+            raise IOError("Expected one cube for land-sea mask.")
     else:
-        raise ValueError('Must have cubes with 1 or 2 distinct names.')
+        raise ValueError("Must have cubes with 1 or 2 distinct names.")
 
     # split non-land_sea_mask cubes on forecast vs truth
-    truth_key, truth_value = truth_attribute.split('=')
+    truth_key, truth_value = truth_attribute.split("=")
     input_cubes = grouped_cubes[diag_name]
-    grouped_cubes = {'truth': [], 'historical forecast': []}
+    grouped_cubes = {"truth": [], "historical forecast": []}
     for cube in input_cubes:
         if cube.attributes.get(truth_key) == truth_value:
-            grouped_cubes['truth'].append(cube)
+            grouped_cubes["truth"].append(cube)
         else:
-            grouped_cubes['historical forecast'].append(cube)
+            grouped_cubes["historical forecast"].append(cube)
 
-    missing_inputs = ' and '.join(k for k, v in grouped_cubes.items() if not v)
+    missing_inputs = " and ".join(k for k, v in grouped_cubes.items() if not v)
     if missing_inputs:
-        raise IOError('Missing ' + missing_inputs + ' input.')
+        raise IOError("Missing " + missing_inputs + " input.")
 
-    truth = MergeCubes()(grouped_cubes['truth'])
-    forecast = MergeCubes()(grouped_cubes['historical forecast'])
+    truth = MergeCubes()(grouped_cubes["truth"])
+    forecast = MergeCubes()(grouped_cubes["historical forecast"])
 
     return forecast, truth, land_sea_mask

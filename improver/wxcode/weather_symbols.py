@@ -38,15 +38,23 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name, find_threshold_coordinate)
+    extract_diagnostic_name,
+    find_threshold_coordinate,
+)
 from improver.metadata.utilities import (
-    create_new_diagnostic_cube, generate_mandatory_attributes)
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 from improver.wxcode.utilities import (
-    weather_code_attributes, expand_nested_lists, update_daynight)
-from improver.wxcode.wxcode_decision_tree import (
-    START_NODE, wxcode_decision_tree)
+    expand_nested_lists,
+    update_daynight,
+    weather_code_attributes,
+)
+from improver.wxcode.wxcode_decision_tree import START_NODE, wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
-    START_NODE_GLOBAL, wxcode_decision_tree_global)
+    START_NODE_GLOBAL,
+    wxcode_decision_tree_global,
+)
 
 
 class WeatherSymbols(BasePlugin):
@@ -57,7 +65,7 @@ class WeatherSymbols(BasePlugin):
     defined in the input cubes.
     """
 
-    def __init__(self, wxtree='high_resolution'):
+    def __init__(self, wxtree="high_resolution"):
         """
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather
@@ -75,6 +83,7 @@ class WeatherSymbols(BasePlugin):
         is zero. It has to be sufficiently small that a valid rainfall rate
         or snowfall rate could not trigger it.
         """
+
         def make_thresholds_with_units(items):
             if isinstance(items, list):
                 return [make_thresholds_with_units(item) for item in items]
@@ -82,15 +91,16 @@ class WeatherSymbols(BasePlugin):
             return iris.coords.AuxCoord(values, units=units)
 
         self.wxtree = wxtree
-        if wxtree == 'global':
+        if wxtree == "global":
             self.queries = wxcode_decision_tree_global()
             self.start_node = START_NODE_GLOBAL
         else:
             self.queries = wxcode_decision_tree()
             self.start_node = START_NODE
         for query in self.queries.values():
-            query['diagnostic_thresholds'] = make_thresholds_with_units(
-                query['diagnostic_thresholds'])
+            query["diagnostic_thresholds"] = make_thresholds_with_units(
+                query["diagnostic_thresholds"]
+            )
         self.float_tolerance = 0.01
         self.float_abs_tolerance = 1e-12
         # flag to indicate whether to expect "threshold" as a coordinate name
@@ -102,8 +112,9 @@ class WeatherSymbols(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return '<WeatherSymbols tree={} start_node={}>'.format(self.wxtree,
-                                                               self.start_node)
+        return "<WeatherSymbols tree={} start_node={}>".format(
+            self.wxtree, self.start_node
+        )
 
     def check_input_cubes(self, cubes):
         """
@@ -131,74 +142,78 @@ class WeatherSymbols(BasePlugin):
         optional_node_data_missing = {}
         missing_data = []
         for key, query in self.queries.items():
-            diagnostics = expand_nested_lists(query, 'diagnostic_fields')
-            thresholds = expand_nested_lists(query, 'diagnostic_thresholds')
-            conditions = expand_nested_lists(query, 'diagnostic_conditions')
+            diagnostics = expand_nested_lists(query, "diagnostic_fields")
+            thresholds = expand_nested_lists(query, "diagnostic_thresholds")
+            conditions = expand_nested_lists(query, "diagnostic_conditions")
             for diagnostic, threshold, condition in zip(
-                    diagnostics, thresholds, conditions):
+                diagnostics, thresholds, conditions
+            ):
 
                 # First we check the diagnostic name and units, performing
                 # a conversion is required and possible.
-                test_condition = (iris.Constraint(name=diagnostic))
+                test_condition = iris.Constraint(name=diagnostic)
                 matched_cube = cubes.extract(test_condition)
                 if not matched_cube:
-                    if 'diagnostic_missing_action' in query:
+                    if "diagnostic_missing_action" in query:
                         optional_node_data_missing.update(
-                            {key: query[query['diagnostic_missing_action']]})
+                            {key: query[query["diagnostic_missing_action"]]}
+                        )
                     else:
                         missing_data.append([diagnostic, threshold, condition])
                     continue
 
-                cube_threshold_units = (
-                    find_threshold_coordinate(matched_cube[0]).units)
+                cube_threshold_units = find_threshold_coordinate(matched_cube[0]).units
                 threshold.convert_units(cube_threshold_units)
 
                 # Then we check if the required threshold is present in the
                 # cube, and that the thresholding is relative to it correctly.
                 threshold = threshold.points.item()
-                threshold_name = find_threshold_coordinate(
-                    matched_cube[0]).name()
+                threshold_name = find_threshold_coordinate(matched_cube[0]).name()
 
                 # Check cube and threshold coordinate names match according to
                 # expected convention.  If not, add to exception dictionary.
                 if extract_diagnostic_name(diagnostic) != threshold_name:
-                    self.threshold_coord_names[diagnostic] = (
-                        threshold_name)
+                    self.threshold_coord_names[diagnostic] = threshold_name
 
                 # Set flag to check for old threshold coordinate names
-                if (threshold_name == "threshold" and
-                        not self.coord_named_threshold):
+                if threshold_name == "threshold" and not self.coord_named_threshold:
                     self.coord_named_threshold = True
 
                 # Check threshold == 0.0
                 if abs(threshold) < self.float_abs_tolerance:
-                    coord_constraint = {threshold_name: lambda cell: (
-                        - self.float_abs_tolerance <
-                        cell <
-                        self.float_abs_tolerance)}
+                    coord_constraint = {
+                        threshold_name: lambda cell: (
+                            -self.float_abs_tolerance < cell < self.float_abs_tolerance
+                        )
+                    }
                 else:
-                    coord_constraint = {threshold_name: lambda cell: (
-                        threshold * (1. - self.float_tolerance) <
-                        cell <
-                        threshold * (1. + self.float_tolerance))}
-                test_condition = (
-                    iris.Constraint(
-                        coord_values=coord_constraint,
-                        cube_func=lambda cube: (
-                            find_threshold_coordinate(
-                                cube
-                            ).attributes['spp__relative_to_threshold'] ==
-                            condition)))
+                    coord_constraint = {
+                        threshold_name: lambda cell: (
+                            threshold * (1.0 - self.float_tolerance)
+                            < cell
+                            < threshold * (1.0 + self.float_tolerance)
+                        )
+                    }
+                test_condition = iris.Constraint(
+                    coord_values=coord_constraint,
+                    cube_func=lambda cube: (
+                        find_threshold_coordinate(cube).attributes[
+                            "spp__relative_to_threshold"
+                        ]
+                        == condition
+                    ),
+                )
                 matched_threshold = matched_cube.extract(test_condition)
                 if not matched_threshold:
                     missing_data.append([diagnostic, threshold, condition])
 
         if missing_data:
-            msg = ('Weather Symbols input cubes are missing'
-                   ' the following required'
-                   ' input fields:\n')
-            dyn_msg = ('name: {}, threshold: {}, '
-                       'spp__relative_to_threshold: {}\n')
+            msg = (
+                "Weather Symbols input cubes are missing"
+                " the following required"
+                " input fields:\n"
+            )
+            dyn_msg = "name: {}, threshold: {}, " "spp__relative_to_threshold: {}\n"
             for item in missing_data:
                 msg = msg + dyn_msg.format(*item)
             raise IOError(msg)
@@ -222,28 +237,29 @@ class WeatherSymbols(BasePlugin):
                 **inverted_combination** (str):
                     A string representing the inverted combination
         """
-        threshold = test_conditions['threshold_condition']
+        threshold = test_conditions["threshold_condition"]
         inverted_threshold = threshold
-        if threshold == '>=':
-            inverted_threshold = '<'
-        elif threshold == '<=':
-            inverted_threshold = '>'
-        elif threshold == '<':
-            inverted_threshold = '>='
-        elif threshold == '>':
-            inverted_threshold = '<='
-        combination = test_conditions['condition_combination']
+        if threshold == ">=":
+            inverted_threshold = "<"
+        elif threshold == "<=":
+            inverted_threshold = ">"
+        elif threshold == "<":
+            inverted_threshold = ">="
+        elif threshold == ">":
+            inverted_threshold = "<="
+        combination = test_conditions["condition_combination"]
         inverted_combination = combination
-        if combination == 'OR':
-            inverted_combination = 'AND'
-        elif combination == 'AND':
-            inverted_combination = 'OR'
+        if combination == "OR":
+            inverted_combination = "AND"
+        elif combination == "AND":
+            inverted_combination = "OR"
 
         return inverted_threshold, inverted_combination
 
     @staticmethod
-    def construct_condition(extract_constraint, condition,
-                            probability_threshold, gamma):
+    def construct_condition(
+        extract_constraint, condition, probability_threshold, gamma
+    ):
         """
         Create a string representing a comparison condition.
 
@@ -272,15 +288,22 @@ class WeatherSymbols(BasePlugin):
                                 )[0].data < 0.5)
         """
         if isinstance(extract_constraint, list):
-            return ('(cubes.extract({})[0].data - cubes.extract({})[0].data * '
-                    '{}) {} {}'.format(
-                        extract_constraint[0], extract_constraint[1], gamma,
-                        condition, probability_threshold))
-        return 'cubes.extract({})[0].data {} {}'.format(
-            extract_constraint, condition, probability_threshold)
+            return (
+                "(cubes.extract({})[0].data - cubes.extract({})[0].data * "
+                "{}) {} {}".format(
+                    extract_constraint[0],
+                    extract_constraint[1],
+                    gamma,
+                    condition,
+                    probability_threshold,
+                )
+            )
+        return "cubes.extract({})[0].data {} {}".format(
+            extract_constraint, condition, probability_threshold
+        )
 
     @staticmethod
-    def format_condition_chain(conditions, condition_combination='AND'):
+    def format_condition_chain(conditions, condition_combination="AND"):
         """
         Chain individual condition statements together in a format that
         numpy.where can use to make a series of comparisons.
@@ -298,8 +321,8 @@ class WeatherSymbols(BasePlugin):
                 a numpy.where statement.
                 e.g. (condition 1) & (condition 2)
         """
-        combinator = ' | ' if condition_combination == 'OR' else ' & '
-        return combinator.join(map('({})'.format, conditions))
+        combinator = " | " if condition_combination == "OR" else " & "
+        return combinator.join(map("({})".format, conditions))
 
     def create_condition_chain(self, test_conditions):
         """
@@ -330,28 +353,35 @@ class WeatherSymbols(BasePlugin):
         conditions = []
         loop = 0
         for diagnostic, p_threshold, d_threshold in zip(
-                test_conditions['diagnostic_fields'],
-                test_conditions['probability_thresholds'],
-                test_conditions['diagnostic_thresholds']):
+            test_conditions["diagnostic_fields"],
+            test_conditions["probability_thresholds"],
+            test_conditions["diagnostic_thresholds"],
+        ):
 
-            gamma = test_conditions.get('diagnostic_gamma')
+            gamma = test_conditions.get("diagnostic_gamma")
             if gamma is not None:
                 gamma = gamma[loop]
             loop += 1
 
             extract_constraint = self.construct_extract_constraint(
-                diagnostic, d_threshold, self.coord_named_threshold)
+                diagnostic, d_threshold, self.coord_named_threshold
+            )
             conditions.append(
                 self.construct_condition(
-                    extract_constraint, test_conditions['threshold_condition'],
-                    p_threshold, gamma))
+                    extract_constraint,
+                    test_conditions["threshold_condition"],
+                    p_threshold,
+                    gamma,
+                )
+            )
         condition_chain = WeatherSymbols.format_condition_chain(
-            conditions,
-            condition_combination=test_conditions['condition_combination'])
+            conditions, condition_combination=test_conditions["condition_combination"]
+        )
         return [condition_chain]
 
     def construct_extract_constraint(
-            self, diagnostics, thresholds, coord_named_threshold):
+        self, diagnostics, thresholds, coord_named_threshold
+    ):
         """
         Construct an iris constraint.
 
@@ -371,6 +401,7 @@ class WeatherSymbols(BasePlugin):
             str or list of str:
                 String, or list of strings, encoding iris cube constraints.
         """
+
         def _constraint_string(diagnostic, threshold_name, threshold_val):
             """
             Return iris constraint as a string for deferred creation of the
@@ -388,19 +419,26 @@ class WeatherSymbols(BasePlugin):
                 cell_constraint_str = (
                     " -{float_abs_tol} < cell < "
                     "{float_abs_tol}".format(
-                        float_abs_tol=WeatherSymbols().float_abs_tolerance))
+                        float_abs_tol=WeatherSymbols().float_abs_tolerance
+                    )
+                )
             else:
                 cell_constraint_str = (
                     "{threshold_val} * {float_min} < cell < "
                     "{threshold_val} * {float_max}".format(
                         threshold_val=threshold_val,
-                        float_min=(1. - WeatherSymbols().float_tolerance),
-                        float_max=(1. + WeatherSymbols().float_tolerance)))
+                        float_min=(1.0 - WeatherSymbols().float_tolerance),
+                        float_max=(1.0 + WeatherSymbols().float_tolerance),
+                    )
+                )
             constraint_str = (
-                    "iris.Constraint(name='{diagnostic}', {threshold_name}="
-                    "lambda cell: {cell_constraint})".format(
-                        diagnostic=diagnostic, threshold_name=threshold_name,
-                        cell_constraint=cell_constraint_str))
+                "iris.Constraint(name='{diagnostic}', {threshold_name}="
+                "lambda cell: {cell_constraint})".format(
+                    diagnostic=diagnostic,
+                    threshold_name=threshold_name,
+                    cell_constraint=cell_constraint_str,
+                )
+            )
             return constraint_str
 
         # if input is list, loop over and return a list of strings
@@ -412,14 +450,13 @@ class WeatherSymbols(BasePlugin):
             if coord_named_threshold:
                 threshold_coord_name = "threshold"
             elif diagnostic in self.threshold_coord_names:
-                threshold_coord_name = (
-                    self.threshold_coord_names[diagnostic])
+                threshold_coord_name = self.threshold_coord_names[diagnostic]
             else:
                 threshold_coord_name = extract_diagnostic_name(diagnostic)
             threshold_val = threshold.points.item()
             constraints.append(
-                _constraint_string(
-                    diagnostic, threshold_coord_name, threshold_val))
+                _constraint_string(diagnostic, threshold_coord_name, threshold_val)
+            )
         if len(constraints) > 1:
             return constraints
 
@@ -476,9 +513,8 @@ class WeatherSymbols(BasePlugin):
         for node in graph[start]:
             if node not in route:
                 newroutes = WeatherSymbols.find_all_routes(
-                    graph, node, end,
-                    omit_nodes=omit_nodes,
-                    route=route)
+                    graph, node, end, omit_nodes=omit_nodes, route=route
+                )
                 routes.extend(newroutes)
         return routes
 
@@ -500,13 +536,18 @@ class WeatherSymbols(BasePlugin):
         # remove coordinates and bounds that do not apply to weather symbols
         template_cube.remove_coord(threshold_coord)
         for coord in template_cube.coords():
-            if coord.name() in ['forecast_period', 'time']:
+            if coord.name() in ["forecast_period", "time"]:
                 coord.bounds = None
 
         attributes = generate_mandatory_attributes(cubes)
         symbols = create_new_diagnostic_cube(
-            "weather_code", "1", template_cube, attributes,
-            optional_attributes=weather_code_attributes(), dtype=np.int32)
+            "weather_code",
+            "1",
+            template_cube,
+            attributes,
+            optional_attributes=weather_code_attributes(),
+            dtype=np.int32,
+        )
         return symbols
 
     def process(self, cubes):
@@ -526,8 +567,10 @@ class WeatherSymbols(BasePlugin):
         optional_node_data_missing = self.check_input_cubes(cubes)
 
         # Construct graph nodes dictionary
-        graph = {key: [self.queries[key]['succeed'], self.queries[key]['fail']]
-                 for key in self.queries}
+        graph = {
+            key: [self.queries[key]["succeed"], self.queries[key]["fail"]]
+            for key in self.queries
+        }
 
         # Search through tree for all leaves (weather code end points)
         defined_symbols = []
@@ -545,25 +588,28 @@ class WeatherSymbols(BasePlugin):
             # In current decision tree
             # start node is heavy_precipitation
             routes = self.find_all_routes(
-                graph, self.start_node,
+                graph,
+                self.start_node,
                 symbol_code,
-                omit_nodes=optional_node_data_missing)
+                omit_nodes=optional_node_data_missing,
+            )
             # Loop over possible routes from root to leaf
 
             for route in routes:
                 conditions = []
-                for i_node in range(len(route)-1):
+                for i_node in range(len(route) - 1):
                     current_node = route[i_node]
                     current = copy.copy(self.queries[current_node])
                     try:
-                        next_node = route[i_node+1]
+                        next_node = route[i_node + 1]
                     except KeyError:
                         next_node = symbol_code
 
-                    if current['fail'] == next_node:
-                        (current['threshold_condition'],
-                         current['condition_combination']) = (
-                             self.invert_condition(current))
+                    if current["fail"] == next_node:
+                        (
+                            current["threshold_condition"],
+                            current["condition_combination"],
+                        ) = self.invert_condition(current)
 
                     conditions.extend(self.create_condition_chain(current))
 

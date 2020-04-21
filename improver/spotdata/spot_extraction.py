@@ -49,7 +49,7 @@ class SpotExtraction(BasePlugin):
     data.
     """
 
-    def __init__(self, neighbour_selection_method='nearest'):
+    def __init__(self, neighbour_selection_method="nearest"):
         """
         Args:
             neighbour_selection_method (str):
@@ -62,8 +62,9 @@ class SpotExtraction(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return ('<SpotExtraction: neighbour_selection_method: {}>'.format(
-                    self.neighbour_selection_method))
+        return "<SpotExtraction: neighbour_selection_method: {}>".format(
+            self.neighbour_selection_method
+        )
 
     def extract_coordinates(self, neighbour_cube):
         """
@@ -86,20 +87,23 @@ class SpotExtraction(BasePlugin):
             in the neighbour cube.
         """
         method = iris.Constraint(
-            neighbour_selection_method_name=self.neighbour_selection_method)
-        index_constraint = iris.Constraint(
-            grid_attributes_key=['x_index', 'y_index'])
+            neighbour_selection_method_name=self.neighbour_selection_method
+        )
+        index_constraint = iris.Constraint(grid_attributes_key=["x_index", "y_index"])
         coordinate_cube = neighbour_cube.extract(method & index_constraint)
         if coordinate_cube:
             coordinate_cube.data = np.rint(coordinate_cube.data).astype(int)
             return coordinate_cube
 
-        available_methods = (
-            neighbour_cube.coord('neighbour_selection_method_name').points)
+        available_methods = neighbour_cube.coord(
+            "neighbour_selection_method_name"
+        ).points
         raise ValueError(
             'The requested neighbour_selection_method "{}" is not available in'
-            ' this neighbour_cube. Available methods are: {}.'.format(
-                self.neighbour_selection_method, available_methods))
+            " this neighbour_cube. Available methods are: {}.".format(
+                self.neighbour_selection_method, available_methods
+            )
+        )
 
     @staticmethod
     def extract_diagnostic_data(coordinate_cube, diagnostic_cube):
@@ -121,14 +125,17 @@ class SpotExtraction(BasePlugin):
                 within the coordinate cube.
         """
         enforce_coordinate_ordering(
-            diagnostic_cube, [diagnostic_cube.coord(axis='x').name(),
-                              diagnostic_cube.coord(axis='y').name()])
+            diagnostic_cube,
+            [
+                diagnostic_cube.coord(axis="x").name(),
+                diagnostic_cube.coord(axis="y").name(),
+            ],
+        )
         spot_values = diagnostic_cube.data[tuple(coordinate_cube.data.T)]
         return spot_values
 
     @staticmethod
-    def build_diagnostic_cube(neighbour_cube, diagnostic_cube,
-                              spot_values):
+    def build_diagnostic_cube(neighbour_cube, diagnostic_cube, spot_values):
         """
         Builds a spot data cube containing the extracted diagnostic values.
 
@@ -148,11 +155,14 @@ class SpotExtraction(BasePlugin):
         """
 
         neighbour_cube = build_spotdata_cube(
-            spot_values, diagnostic_cube.name(), diagnostic_cube.units,
-            neighbour_cube.coord('altitude').points,
-            neighbour_cube.coord(axis='y').points,
-            neighbour_cube.coord(axis='x').points,
-            neighbour_cube.coord('wmo_id').points)
+            spot_values,
+            diagnostic_cube.name(),
+            diagnostic_cube.units,
+            neighbour_cube.coord("altitude").points,
+            neighbour_cube.coord(axis="y").points,
+            neighbour_cube.coord(axis="x").points,
+            neighbour_cube.coord("wmo_id").points,
+        )
         return neighbour_cube
 
     def process(self, neighbour_cube, diagnostic_cube, new_title=None):
@@ -188,12 +198,16 @@ class SpotExtraction(BasePlugin):
         # Deal with leading dimensions such as thresholds, realizations, etc.
         data_cubes = iris.cube.CubeList()
         for cube in diagnostic_cube.slices(
-                [diagnostic_cube.coord(axis='x').name(),
-                 diagnostic_cube.coord(axis='y').name()]):
+            [
+                diagnostic_cube.coord(axis="x").name(),
+                diagnostic_cube.coord(axis="y").name(),
+            ]
+        ):
 
             spot_values = self.extract_diagnostic_data(coordinate_cube, cube)
-            spotdata_cube = self.build_diagnostic_cube(neighbour_cube, cube,
-                                                       spot_values)
+            spotdata_cube = self.build_diagnostic_cube(
+                neighbour_cube, cube, spot_values
+            )
 
             # Add scalar coordinates onto the spot cube which can be promoted
             # to reform and leading dimensions.
@@ -206,15 +220,16 @@ class SpotExtraction(BasePlugin):
         # Copy attributes from the diagnostic cube that describe the data's
         # provenance
         spotdata_cube.attributes = diagnostic_cube.attributes
-        spotdata_cube.attributes['model_grid_hash'] = (
-            neighbour_cube.attributes['model_grid_hash'])
+        spotdata_cube.attributes["model_grid_hash"] = neighbour_cube.attributes[
+            "model_grid_hash"
+        ]
 
         # Remove grid attributes and update title
         for attr in MOSG_GRID_ATTRIBUTES:
             spotdata_cube.attributes.pop(attr, None)
         spotdata_cube.attributes["title"] = (
-            MANDATORY_ATTRIBUTE_DEFAULTS["title"]
-            if new_title is None else new_title)
+            MANDATORY_ATTRIBUTE_DEFAULTS["title"] if new_title is None else new_title
+        )
 
         return spotdata_cube
 
@@ -235,9 +250,10 @@ def check_grid_match(cubes):
         ValueError: Raised if the cubes are not on matching grids as
                     identified by the model_grid_hash.
     """
+
     def _get_grid_hash(cube):
         try:
-            cube_hash = cube.attributes['model_grid_hash']
+            cube_hash = cube.attributes["model_grid_hash"]
         except KeyError:
             cube_hash = create_coordinate_hash(cube)
         return cube_hash
@@ -248,5 +264,7 @@ def check_grid_match(cubes):
     for cube in cubes:
         cube_hash = _get_grid_hash(cube)
         if cube_hash != reference_hash:
-            raise ValueError('Cubes do not share or originate from the same '
-                             'grid, so cannot be used together.')
+            raise ValueError(
+                "Cubes do not share or originate from the same "
+                "grid, so cannot be used together."
+            )

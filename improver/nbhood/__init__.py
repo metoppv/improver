@@ -56,13 +56,16 @@ def radius_by_lead_time(radii, lead_times):
     """
     if lead_times is None:
         if not len(radii) == 1:
-            raise ValueError("Multiple radii have been supplied but no "
-                             "associated lead times.")
+            raise ValueError(
+                "Multiple radii have been supplied but no " "associated lead times."
+            )
         radius_or_radii = float(radii[0])
     else:
         if not len(radii) == len(lead_times):
-            raise ValueError("If leadtimes are supplied, it must be a list"
-                             " of equal length to a list of radii.")
+            raise ValueError(
+                "If leadtimes are supplied, it must be a list"
+                " of equal length to a list of radii."
+            )
         radius_or_radii = [float(x) for x in radii]
         lead_times = [int(x) for x in lead_times]
 

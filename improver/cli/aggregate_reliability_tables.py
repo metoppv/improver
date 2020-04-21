@@ -36,8 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube,
-            coordinates: cli.comma_separated_list = None):
+def process(*cubes: cli.inputcube, coordinates: cli.comma_separated_list = None):
     """Aggregate reliability tables.
 
     Aggregate multiple reliability calibration tables and/or aggregate over
@@ -58,7 +57,7 @@ def process(*cubes: cli.inputcube,
             Aggregated reliability table.
     """
     from improver.calibration.reliability_calibration import (
-        AggregateReliabilityCalibrationTables)
+        AggregateReliabilityCalibrationTables,
+    )
 
-    return AggregateReliabilityCalibrationTables().process(
-        cubes, coordinates=coordinates)
+    return AggregateReliabilityCalibrationTables()(cubes, coordinates=coordinates)

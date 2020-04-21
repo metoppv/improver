@@ -36,7 +36,9 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
-    _svp_from_lookup, calculate_svp_in_air)
+    _svp_from_lookup,
+    calculate_svp_in_air,
+)
 
 
 class Test_calculate_svp_in_air(IrisTest):
@@ -44,9 +46,8 @@ class Test_calculate_svp_in_air(IrisTest):
 
     def setUp(self):
         """Set up test data"""
-        self.temperature = np.array(
-            [[185.0, 260.65, 338.15]], dtype=np.float32)
-        self.pressure = np.array([[1.E5, 9.9E4, 9.8E4]], dtype=np.float32)
+        self.temperature = np.array([[185.0, 260.65, 338.15]], dtype=np.float32)
+        self.pressure = np.array([[1.0e5, 9.9e4, 9.8e4]], dtype=np.float32)
 
     def test_calculate_svp_in_air(self):
         """Test pressure-corrected SVP values"""
@@ -57,19 +58,19 @@ class Test_calculate_svp_in_air(IrisTest):
     def test_values(self):
         """Basic extraction of SVP values from lookup table"""
         self.temperature[0, 1] = 260.56833
-        expected = [[1.350531e-02, 2.06000274e+02, 2.501530e+04]]
+        expected = [[1.350531e-02, 2.06000274e02, 2.501530e04]]
         result = _svp_from_lookup(self.temperature)
         self.assertArrayAlmostEqual(result, expected)
 
     def test_beyond_table_bounds(self):
         """Extracting SVP values from the table with temperatures beyond
         its valid range. Should return the nearest end of the table."""
-        self.temperature[0, 0] = 150.
-        self.temperature[0, 2] = 400.
-        expected = [[9.664590e-03, 2.075279e+02, 2.501530e+04]]
+        self.temperature[0, 0] = 150.0
+        self.temperature[0, 2] = 400.0
+        expected = [[9.664590e-03, 2.075279e02, 2.501530e04]]
         result = _svp_from_lookup(self.temperature)
         self.assertArrayAlmostEqual(result, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

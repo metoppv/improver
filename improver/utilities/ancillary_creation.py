@@ -31,9 +31,9 @@
 """A module for creating ancillary data"""
 
 import warnings
-import numpy as np
 
 import iris
+import numpy as np
 
 from improver import BasePlugin
 from improver.constants import TRIPLE_PT_WATER
@@ -68,8 +68,13 @@ class OrographicSmoothingCoefficients(BasePlugin):
     orography gradient is shallowest.
     """
 
-    def __init__(self, min_smoothing_coefficient=0.,
-                 max_smoothing_coefficient=1., coefficient=1, power=1):
+    def __init__(
+        self,
+        min_smoothing_coefficient=0.0,
+        max_smoothing_coefficient=1.0,
+        coefficient=1,
+        power=1,
+    ):
         """
         Initialise class.
 
@@ -92,13 +97,17 @@ class OrographicSmoothingCoefficients(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<OrographicSmoothingCoefficients: '
-                  'min_smoothing_coefficient: {}; '
-                  'max_smoothing_coefficient: {}; coefficient: {}; power: {}'
-                  '>'.format(
-                      self.min_smoothing_coefficient,
-                      self.max_smoothing_coefficient,
-                      self.coefficient, self.power))
+        result = (
+            "<OrographicSmoothingCoefficients: "
+            "min_smoothing_coefficient: {}; "
+            "max_smoothing_coefficient: {}; coefficient: {}; power: {}"
+            ">".format(
+                self.min_smoothing_coefficient,
+                self.max_smoothing_coefficient,
+                self.coefficient,
+                self.power,
+            )
+        )
 
         return result
 
@@ -130,7 +139,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
             scaled_data = (abs(cube.data) - cube_min) / (cube_max - cube_min)
             scaled_data = scaled_data * (max_output - min_output) + min_output
             scaled_cube = cube.copy(data=scaled_data)
-            scaled_cube.units = '1'
+            scaled_cube.units = "1"
             scaled_cubes.append(scaled_cube)
         return scaled_cubes
 
@@ -150,12 +159,12 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 The cube of initial unscaled smoothing_coefficients
         """
         smoothing_coefficients_cube = gradient_cube.copy(
-            data=self.coefficient * gradient_cube.data**self.power)
+            data=self.coefficient * gradient_cube.data ** self.power
+        )
         return smoothing_coefficients_cube
 
     @staticmethod
-    def update_smoothing_coefficients_metadata(smoothing_coefficients_cube,
-                                               cube_name):
+    def update_smoothing_coefficients_metadata(smoothing_coefficients_cube, cube_name):
         """
         Update metadata in smoothing_coefficients cube. Remove any time
         coordinates and rename.
@@ -172,7 +181,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
         """
         smoothing_coefficients_cube.rename(cube_name)
         for coord in smoothing_coefficients_cube.coords(dim_coords=False):
-            if 'time' in coord.name() or 'period' in coord.name():
+            if "time" in coord.name() or "period" in coord.name():
                 smoothing_coefficients_cube.remove_coord(coord)
         return smoothing_coefficients_cube
 
@@ -197,20 +206,23 @@ class OrographicSmoothingCoefficients(BasePlugin):
                     orography-dependent smoothing_coefficients calculated in
                     the y direction.
         """
-        smoothing_coefficient_x = self.unnormalised_smoothing_coefficients(
-            gradient_x)
-        smoothing_coefficient_y = self.unnormalised_smoothing_coefficients(
-            gradient_y)
+        smoothing_coefficient_x = self.unnormalised_smoothing_coefficients(gradient_x)
+        smoothing_coefficient_y = self.unnormalised_smoothing_coefficients(gradient_y)
 
-        smoothing_coefficient_x, smoothing_coefficient_y = (
-            self.scale_smoothing_coefficients(
-                [smoothing_coefficient_x, smoothing_coefficient_y],
-                min_output=self.min_smoothing_coefficient,
-                max_output=self.max_smoothing_coefficient))
+        (
+            smoothing_coefficient_x,
+            smoothing_coefficient_y,
+        ) = self.scale_smoothing_coefficients(
+            [smoothing_coefficient_x, smoothing_coefficient_y],
+            min_output=self.min_smoothing_coefficient,
+            max_output=self.max_smoothing_coefficient,
+        )
         smoothing_coefficient_x = self.update_smoothing_coefficients_metadata(
-            smoothing_coefficient_x, 'smoothing_coefficient_x')
+            smoothing_coefficient_x, "smoothing_coefficient_x"
+        )
         smoothing_coefficient_y = self.update_smoothing_coefficients_metadata(
-            smoothing_coefficient_y, 'smoothing_coefficient_y')
+            smoothing_coefficient_y, "smoothing_coefficient_y"
+        )
 
         return smoothing_coefficient_x, smoothing_coefficient_y
 
@@ -238,20 +250,27 @@ class OrographicSmoothingCoefficients(BasePlugin):
                     the y direction.
         """
         if not isinstance(cube, iris.cube.Cube):
-            raise ValueError('OrographicSmoothingCoefficients() expects cube '
-                             'input, got {}'.format(type(cube)))
+            raise ValueError(
+                "OrographicSmoothingCoefficients() expects cube "
+                "input, got {}".format(type(cube))
+            )
 
         if len(cube.data.shape) != 2:
-            raise ValueError('Expected orography on 2D grid, got {} dims'
-                             .format(len(cube.data.shape)))
+            raise ValueError(
+                "Expected orography on 2D grid, got {} dims".format(
+                    len(cube.data.shape)
+                )
+            )
 
-        gradient_x, gradient_y = \
-            DifferenceBetweenAdjacentGridSquares(gradient=True).process(cube)
-        smoothing_coefficient_x, smoothing_coefficient_y = (
-            self.gradient_to_smoothing_coefficient(gradient_x, gradient_y))
+        gradient_x, gradient_y = DifferenceBetweenAdjacentGridSquares(gradient=True)(
+            cube
+        )
+        (
+            smoothing_coefficient_x,
+            smoothing_coefficient_y,
+        ) = self.gradient_to_smoothing_coefficient(gradient_x, gradient_y)
 
-        return iris.cube.CubeList([smoothing_coefficient_x,
-                                   smoothing_coefficient_y])
+        return iris.cube.CubeList([smoothing_coefficient_x, smoothing_coefficient_y])
 
 
 class SaturatedVapourPressureTable(BasePlugin):
@@ -259,8 +278,9 @@ class SaturatedVapourPressureTable(BasePlugin):
     """
     Plugin to create a saturated vapour pressure lookup table.
     """
-    MAX_VALID_TEMPERATURE = 373.
-    MIN_VALID_TEMPERATURE = 173.
+
+    MAX_VALID_TEMPERATURE = 373.0
+    MIN_VALID_TEMPERATURE = 173.0
 
     def __init__(self, t_min=183.15, t_max=338.25, t_increment=0.1):
         """
@@ -288,9 +308,10 @@ class SaturatedVapourPressureTable(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<SaturatedVapourPressureTable: t_min: {}; t_max: {}; '
-                  't_increment: {}>'.format(self.t_min, self.t_max,
-                                            self.t_increment))
+        result = (
+            "<SaturatedVapourPressureTable: t_min: {}; t_max: {}; "
+            "t_increment: {}>".format(self.t_min, self.t_max, self.t_increment)
+        )
         return result
 
     def saturation_vapour_pressure_goff_gratch(self, temperature):
@@ -312,46 +333,49 @@ class SaturatedVapourPressureTable(BasePlugin):
             technology. New series. Group V. Volume 4. Meteorology.
             Subvolume b. Physical and chemical properties of the air, P35.
         """
-        constants = {1: 10.79574,
-                     2: 5.028,
-                     3: 1.50475E-4,
-                     4: -8.2969,
-                     5: 0.42873E-3,
-                     6: 4.76955,
-                     7: 0.78614,
-                     8: -9.09685,
-                     9: 3.56654,
-                     10: 0.87682,
-                     11: 0.78614}
+        constants = {
+            1: 10.79574,
+            2: 5.028,
+            3: 1.50475e-4,
+            4: -8.2969,
+            5: 0.42873e-3,
+            6: 4.76955,
+            7: 0.78614,
+            8: -9.09685,
+            9: 3.56654,
+            10: 0.87682,
+            11: 0.78614,
+        }
         triple_pt = TRIPLE_PT_WATER
 
         # Values for which method is considered valid (see reference).
         # WetBulbTemperature.check_range(temperature.data, 173., 373.)
-        if (temperature.max() > self.MAX_VALID_TEMPERATURE or
-                temperature.min() < self.MIN_VALID_TEMPERATURE):
+        if (
+            temperature.max() > self.MAX_VALID_TEMPERATURE
+            or temperature.min() < self.MIN_VALID_TEMPERATURE
+        ):
             msg = "Temperatures out of SVP table range: min {}, max {}"
-            warnings.warn(msg.format(temperature.min(),
-                                     temperature.max()))
+            warnings.warn(msg.format(temperature.min(), temperature.max()))
 
         svp = temperature.copy()
-        for cell in np.nditer(svp, op_flags=['readwrite']):
+        for cell in np.nditer(svp, op_flags=["readwrite"]):
             if cell > triple_pt:
-                n0 = constants[1] * (1. - triple_pt / cell)
+                n0 = constants[1] * (1.0 - triple_pt / cell)
                 n1 = constants[2] * np.log10(cell / triple_pt)
-                n2 = constants[3] * (1. - np.power(10.,
-                                                   (constants[4] *
-                                                    (cell / triple_pt - 1.))))
-                n3 = constants[5] * (np.power(10., (constants[6] *
-                                                    (1. - triple_pt / cell))) -
-                                     1.)
+                n2 = constants[3] * (
+                    1.0 - np.power(10.0, (constants[4] * (cell / triple_pt - 1.0)))
+                )
+                n3 = constants[5] * (
+                    np.power(10.0, (constants[6] * (1.0 - triple_pt / cell))) - 1.0
+                )
                 log_es = n0 - n1 + n2 + n3 + constants[7]
-                cell[...] = (np.power(10., log_es))
+                cell[...] = np.power(10.0, log_es)
             else:
-                n0 = constants[8] * ((triple_pt / cell) - 1.)
+                n0 = constants[8] * ((triple_pt / cell) - 1.0)
                 n1 = constants[9] * np.log10(triple_pt / cell)
-                n2 = constants[10] * (1. - (cell / triple_pt))
+                n2 = constants[10] * (1.0 - (cell / triple_pt))
                 log_es = n0 - n1 + n2 + constants[11]
-                cell[...] = (np.power(10., log_es))
+                cell[...] = np.power(10.0, log_es)
 
         return svp
 
@@ -365,20 +389,25 @@ class SaturatedVapourPressureTable(BasePlugin):
                A cube of saturated vapour pressure values at temperature
                points defined by t_min, t_max, and t_increment (defined above).
         """
-        temperatures = np.arange(self.t_min, self.t_max + 0.5*self.t_increment,
-                                 self.t_increment)
+        temperatures = np.arange(
+            self.t_min, self.t_max + 0.5 * self.t_increment, self.t_increment
+        )
         svp_data = self.saturation_vapour_pressure_goff_gratch(temperatures)
 
         temperature_coord = iris.coords.DimCoord(
-            temperatures, 'air_temperature', units='K')
+            temperatures, "air_temperature", units="K"
+        )
 
         # Output of the Goff-Gratch is in hPa, but we want to return in Pa.
         svp = iris.cube.Cube(
-            svp_data, long_name='saturated_vapour_pressure', units='hPa',
-            dim_coords_and_dims=[(temperature_coord, 0)])
-        svp.convert_units('Pa')
-        svp.attributes['minimum_temperature'] = self.t_min
-        svp.attributes['maximum_temperature'] = self.t_max
-        svp.attributes['temperature_increment'] = self.t_increment
+            svp_data,
+            long_name="saturated_vapour_pressure",
+            units="hPa",
+            dim_coords_and_dims=[(temperature_coord, 0)],
+        )
+        svp.convert_units("Pa")
+        svp.attributes["minimum_temperature"] = self.t_min
+        svp.attributes["maximum_temperature"] = self.t_max
+        svp.attributes["temperature_increment"] = self.t_increment
 
         return svp

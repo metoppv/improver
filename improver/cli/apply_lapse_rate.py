@@ -36,10 +36,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(temperature: cli.inputcube,
-            lapse_rate: cli.inputcube,
-            source_orography: cli.inputcube,
-            target_orography: cli.inputcube):
+def process(
+    temperature: cli.inputcube,
+    lapse_rate: cli.inputcube,
+    source_orography: cli.inputcube,
+    target_orography: cli.inputcube,
+):
     """Apply downscaling temperature adjustment using calculated lapse rate.
 
     Args:
@@ -56,9 +58,10 @@ def process(temperature: cli.inputcube,
         iris.cube.Cube:
             Temperature cube after lapse rate adjustment has been applied.
     """
-    from improver.lapse_rate import apply_gridded_lapse_rate
+    from improver.lapse_rate import ApplyGriddedLapseRate
 
     # apply lapse rate to temperature data
-    result = apply_gridded_lapse_rate(
-        temperature, lapse_rate, source_orography, target_orography)
+    result = ApplyGriddedLapseRate()(
+        temperature, lapse_rate, source_orography, target_orography
+    )
     return result

@@ -36,12 +36,14 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            *,
-            coordinates: cli.comma_separated_list = None,
-            ignore_ecc_bounds=False,
-            percentiles: cli.comma_separated_list = None,
-            percentiles_count: int = None):
+def process(
+    cube: cli.inputcube,
+    *,
+    coordinates: cli.comma_separated_list = None,
+    ignore_ecc_bounds=False,
+    percentiles: cli.comma_separated_list = None,
+    percentiles_count: int = None,
+):
     r"""Collapses cube coordinates and calculate percentiled data.
 
     Calculate percentiled data over a given coordinate by collapsing that
@@ -93,32 +95,35 @@ def process(cube: cli.inputcube,
 
     import numpy as np
 
-    from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
-        ConvertProbabilitiesToPercentiles
-    from improver.ensemble_copula_coupling.utilities \
-        import choose_set_of_percentiles
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        ConvertProbabilitiesToPercentiles,
+    )
+    from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
     from improver.percentile import PercentileConverter
 
     if percentiles is not None:
         percentiles = [float(p) for p in percentiles]
 
     if percentiles_count is not None:
-        percentiles = choose_set_of_percentiles(percentiles_count,
-                                                sampling="quantile")
+        percentiles = choose_set_of_percentiles(percentiles_count, sampling="quantile")
     # TODO: Correct when formal cf-standards exists
-    if 'probability_of_' in cube.name():
+    if "probability_of_" in cube.name():
         result = ConvertProbabilitiesToPercentiles(
-            ecc_bounds_warning=ignore_ecc_bounds).process(
-            cube, percentiles=percentiles)
+            ecc_bounds_warning=ignore_ecc_bounds
+        )(cube, percentiles=percentiles)
         if coordinates:
-            warnings.warn("Converting probabilities to percentiles. The "
-                          "provided COORDINATES_TO_COLLAPSE variable will "
-                          "not be used.")
+            warnings.warn(
+                "Converting probabilities to percentiles. The "
+                "provided COORDINATES_TO_COLLAPSE variable will "
+                "not be used."
+            )
     else:
         if not coordinates:
-            raise ValueError("To collapse a coordinate to calculate "
-                             "percentiles, a coordinate or list of "
-                             "coordinates must be provided.")
+            raise ValueError(
+                "To collapse a coordinate to calculate "
+                "percentiles, a coordinate or list of "
+                "coordinates must be provided."
+            )
 
         # Switch back to use the slow scipy method if the cube contains masked
         # data which the numpy method cannot handle.
@@ -133,6 +138,8 @@ def process(cube: cli.inputcube,
             cube.data = cube.data.data
 
         result = PercentileConverter(
-            coordinates, percentiles=percentiles,
-            fast_percentile_method=fast_percentile_method).process(cube)
+            coordinates,
+            percentiles=percentiles,
+            fast_percentile_method=fast_percentile_method,
+        )(cube)
     return result

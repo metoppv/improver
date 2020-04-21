@@ -63,11 +63,16 @@ class NeighbourSelection(BasePlugin):
        is chosen.
     """
 
-    def __init__(self, land_constraint=False, minimum_dz=False,
-                 search_radius=1.0E4,
-                 site_coordinate_system=ccrs.PlateCarree(),
-                 site_x_coordinate='longitude', site_y_coordinate='latitude',
-                 node_limit=36):
+    def __init__(
+        self,
+        land_constraint=False,
+        minimum_dz=False,
+        search_radius=1.0e4,
+        site_coordinate_system=ccrs.PlateCarree(),
+        site_x_coordinate="longitude",
+        site_y_coordinate="latitude",
+        node_limit=36,
+    ):
         """
         Args:
             land_constraint (bool):
@@ -101,20 +106,26 @@ class NeighbourSelection(BasePlugin):
         self.site_coordinate_system = site_coordinate_system
         self.site_x_coordinate = site_x_coordinate
         self.site_y_coordinate = site_y_coordinate
-        self.site_altitude = 'altitude'
+        self.site_altitude = "altitude"
         self.node_limit = node_limit
         self.global_coordinate_system = False
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return ('<NeighbourSelection: land_constraint: {}, ' +
-                'minimum_dz: {}, search_radius: {}, site_coordinate_system'
-                ': {}, site_x_coordinate:{}, site_y_coordinate: {}, '
-                'node_limit: {}>').format(
-                    self.land_constraint, self.minimum_dz, self.search_radius,
-                    self.site_coordinate_system.__class__,
-                    self.site_x_coordinate, self.site_y_coordinate,
-                    self.node_limit)
+        return (
+            "<NeighbourSelection: land_constraint: {}, "
+            + "minimum_dz: {}, search_radius: {}, site_coordinate_system"
+            ": {}, site_x_coordinate:{}, site_y_coordinate: {}, "
+            "node_limit: {}>"
+        ).format(
+            self.land_constraint,
+            self.minimum_dz,
+            self.search_radius,
+            self.site_coordinate_system.__class__,
+            self.site_x_coordinate,
+            self.site_y_coordinate,
+            self.node_limit,
+        )
 
     def neighbour_finding_method_name(self):
         """
@@ -126,13 +137,14 @@ class NeighbourSelection(BasePlugin):
                 A string that describes the neighbour finding method employed.
                 This is essentially a concatenation of the options.
         """
-        method_name = '{}{}{}'.format('nearest',
-                                      '_land' if self.land_constraint else '',
-                                      '_minimum_dz' if self.minimum_dz else '')
+        method_name = "{}{}{}".format(
+            "nearest",
+            "_land" if self.land_constraint else "",
+            "_minimum_dz" if self.minimum_dz else "",
+        )
         return method_name
 
-    def _transform_sites_coordinate_system(self, x_points, y_points,
-                                           target_crs):
+    def _transform_sites_coordinate_system(self, x_points, y_points, target_crs):
         """
         Function to convert coordinate pairs that specify spot sites into the
         coordinate system of the model from which data will be extracted. Note
@@ -157,10 +169,12 @@ class NeighbourSelection(BasePlugin):
                 z coordinate column is excluded from the return.
         """
         return target_crs.transform_points(
-            self.site_coordinate_system, x_points, y_points)[:, 0:2]
+            self.site_coordinate_system, x_points, y_points
+        )[:, 0:2]
 
-    def check_sites_are_within_domain(self, sites, site_coords, site_x_coords,
-                                      site_y_coords, cube):
+    def check_sites_are_within_domain(
+        self, sites, site_coords, site_x_coords, site_y_coords, cube
+    ):
         """
         A function to remove sites from consideration if they fall outside the
         domain of the provided model cube. A warning is raised and the details
@@ -203,31 +217,41 @@ class NeighbourSelection(BasePlugin):
                     outside the grid domain of the cube.
         """
         # Get the grid domain limits
-        x_min = cube.coord(axis='x').bounds.min()
-        x_max = cube.coord(axis='x').bounds.max()
-        y_min = cube.coord(axis='y').bounds.min()
-        y_max = cube.coord(axis='y').bounds.max()
+        x_min = cube.coord(axis="x").bounds.min()
+        x_max = cube.coord(axis="x").bounds.max()
+        y_min = cube.coord(axis="y").bounds.min()
+        y_max = cube.coord(axis="y").bounds.max()
 
         if self.global_coordinate_system:
             domain_valid = np.where(
-                (site_coords[:, 1] >= y_min) & (site_coords[:, 1] <= y_max))
+                (site_coords[:, 1] >= y_min) & (site_coords[:, 1] <= y_max)
+            )
 
             domain_invalid = np.where(
-                (site_coords[:, 1] < y_min) | (site_coords[:, 1] > y_max))
+                (site_coords[:, 1] < y_min) | (site_coords[:, 1] > y_max)
+            )
         else:
             domain_valid = np.where(
-                (site_coords[:, 0] >= x_min) & (site_coords[:, 0] <= x_max) &
-                (site_coords[:, 1] >= y_min) & (site_coords[:, 1] <= y_max))
+                (site_coords[:, 0] >= x_min)
+                & (site_coords[:, 0] <= x_max)
+                & (site_coords[:, 1] >= y_min)
+                & (site_coords[:, 1] <= y_max)
+            )
 
             domain_invalid = np.where(
-                (site_coords[:, 0] < x_min) | (site_coords[:, 0] > x_max) |
-                (site_coords[:, 1] < y_min) | (site_coords[:, 1] > y_max))
+                (site_coords[:, 0] < x_min)
+                | (site_coords[:, 0] > x_max)
+                | (site_coords[:, 1] < y_min)
+                | (site_coords[:, 1] > y_max)
+            )
 
         num_invalid = len(domain_invalid[0])
         if num_invalid > 0:
-            msg = ("{} spot sites fall outside the grid domain and will not be"
-                   " processed. These sites are:\n".format(num_invalid))
-            dyn_msg = '{}\n'
+            msg = (
+                "{} spot sites fall outside the grid domain and will not be"
+                " processed. These sites are:\n".format(num_invalid)
+            )
+            dyn_msg = "{}\n"
             for site in np.array(sites)[domain_invalid]:
                 msg += dyn_msg.format(site)
             warnings.warn(msg)
@@ -257,10 +281,12 @@ class NeighbourSelection(BasePlugin):
         """
         nearest_indices = np.zeros((len(site_coords), 2)).astype(np.int)
         for index, (x_point, y_point) in enumerate(site_coords):
-            nearest_indices[index, 0] = (
-                cube.coord(axis='x').nearest_neighbour_index(x_point))
-            nearest_indices[index, 1] = (
-                cube.coord(axis='y').nearest_neighbour_index(y_point))
+            nearest_indices[index, 0] = cube.coord(axis="x").nearest_neighbour_index(
+                x_point
+            )
+            nearest_indices[index, 1] = cube.coord(axis="y").nearest_neighbour_index(
+                y_point
+            )
         return nearest_indices
 
     @staticmethod
@@ -292,7 +318,8 @@ class NeighbourSelection(BasePlugin):
         cartesian_calculator = coordinate_system.as_geocentric()
         z_coords = np.zeros_like(x_coords)
         cartesian_nodes = cartesian_calculator.transform_points(
-            coordinate_system, x_coords, y_coords, z_coords)
+            coordinate_system, x_coords, y_coords, z_coords
+        )
         return cartesian_nodes
 
     def build_KDTree(self, land_mask):
@@ -323,8 +350,8 @@ class NeighbourSelection(BasePlugin):
 
         x_indices = included_points[0]
         y_indices = included_points[1]
-        x_coords = land_mask.coord(axis='x').points[x_indices]
-        y_coords = land_mask.coord(axis='y').points[y_indices]
+        x_coords = land_mask.coord(axis="x").points[x_indices]
+        y_coords = land_mask.coord(axis="y").points[y_indices]
 
         if self.global_coordinate_system:
             nodes = self.geocentric_cartesian(land_mask, x_coords, y_coords)
@@ -335,8 +362,9 @@ class NeighbourSelection(BasePlugin):
 
         return cKDTree(nodes), index_nodes
 
-    def select_minimum_dz(self, orography, site_altitude, index_nodes,
-                          distance, indices):
+    def select_minimum_dz(
+        self, orography, site_altitude, index_nodes, distance, indices
+    ):
         """
         Given a selection of nearest neighbours to a given site, this function
         calculates the absolute vertical displacement between the site and the
@@ -379,9 +407,12 @@ class NeighbourSelection(BasePlugin):
         # If the last distance is finite the number of tree nodes may not be
         # sufficient to fill the search radius, raise a warning.
         if np.isfinite(distance[-1]):
-            msg = ('Limit on number of nearest neighbours to return, {}, may '
-                   'not be sufficiently large to fill search_radius {}'.format(
-                       self.node_limit, self.search_radius))
+            msg = (
+                "Limit on number of nearest neighbours to return, {}, may "
+                "not be sufficiently large to fill search_radius {}".format(
+                    self.node_limit, self.search_radius
+                )
+            )
             warnings.warn(msg)
 
         indices = indices[valid_indices]
@@ -395,9 +426,9 @@ class NeighbourSelection(BasePlugin):
         # being the closest. We search the array for the first
         # element that matches the minimum vertical displacement
         # found, giving us the nearest such point.
-        index_of_minimum = (
-            np.argmax(vertical_displacements ==
-                      vertical_displacements.min()))
+        index_of_minimum = np.argmax(
+            vertical_displacements == vertical_displacements.min()
+        )
         grid_point = index_nodes[indices][index_of_minimum]
 
         return grid_point
@@ -431,55 +462,63 @@ class NeighbourSelection(BasePlugin):
                 imposed constraints.
         """
         # Check if we are dealing with a global grid.
-        self.global_coordinate_system = orography.coord(axis='x').circular
+        self.global_coordinate_system = orography.coord(axis="x").circular
 
         # Exclude regional grids with spatial dimensions other than metres.
         if not self.global_coordinate_system:
-            if not orography.coord(axis='x').units == 'metres':
-                msg = ('Cube spatial coordinates for regional grids must be'
-                       'in metres to match the defined search_radius.')
+            if not orography.coord(axis="x").units == "metres":
+                msg = (
+                    "Cube spatial coordinates for regional grids must be"
+                    "in metres to match the defined search_radius."
+                )
                 raise ValueError(msg)
 
         # Ensure land_mask and orography are on the same grid.
         if not orography.dim_coords == land_mask.dim_coords:
-            msg = ('Orography and land_mask cubes are not on the same '
-                   'grid.')
+            msg = "Orography and land_mask cubes are not on the same " "grid."
             raise ValueError(msg)
 
         # Enforce x-y coordinate order for input cubes.
         enforce_coordinate_ordering(
-            orography, [orography.coord(axis='x').name(),
-                        orography.coord(axis='y').name()])
+            orography,
+            [orography.coord(axis="x").name(), orography.coord(axis="y").name()],
+        )
         enforce_coordinate_ordering(
-            land_mask, [land_mask.coord(axis='x').name(),
-                        land_mask.coord(axis='y').name()])
+            land_mask,
+            [land_mask.coord(axis="x").name(), land_mask.coord(axis="y").name()],
+        )
 
         # Remap site coordinates on to coordinate system of the model grid.
-        site_x_coords = np.array([site[self.site_x_coordinate]
-                                  for site in sites])
-        site_y_coords = np.array([site[self.site_y_coordinate]
-                                  for site in sites])
+        site_x_coords = np.array([site[self.site_x_coordinate] for site in sites])
+        site_y_coords = np.array([site[self.site_y_coordinate] for site in sites])
         site_coords = self._transform_sites_coordinate_system(
-            site_x_coords, site_y_coords,
-            orography.coord_system().as_cartopy_crs())
+            site_x_coords, site_y_coords, orography.coord_system().as_cartopy_crs()
+        )
 
         # Exclude any sites falling outside the domain given by the cube and
         # notify the user.
-        sites, site_coords, site_x_coords, site_y_coords = (
-            self.check_sites_are_within_domain(
-                sites, site_coords, site_x_coords, site_y_coords,
-                orography))
+        (
+            sites,
+            site_coords,
+            site_x_coords,
+            site_y_coords,
+        ) = self.check_sites_are_within_domain(
+            sites, site_coords, site_x_coords, site_y_coords, orography
+        )
 
         # Find nearest neighbour point using quick iris method.
         nearest_indices = self.get_nearest_indices(site_coords, orography)
 
         # Create an array containing site altitudes, using the nearest point
         # orography height for any that are unset.
-        site_altitudes = np.array([site.get(self.site_altitude, None)
-                                   for site in sites])
-        site_altitudes = np.where(np.isnan(site_altitudes.astype(float)),
-                                  orography.data[tuple(nearest_indices.T)],
-                                  site_altitudes)
+        site_altitudes = np.array(
+            [site.get(self.site_altitude, None) for site in sites]
+        )
+        site_altitudes = np.where(
+            np.isnan(site_altitudes.astype(float)),
+            orography.data[tuple(nearest_indices.T)],
+            site_altitudes,
+        )
 
         # If further constraints are being applied, build a KD Tree which
         # includes points filtered by constraint.
@@ -491,32 +530,38 @@ class NeighbourSelection(BasePlugin):
             # Site coordinates made cartesian for global coordinate system
             if self.global_coordinate_system:
                 site_coords = self.geocentric_cartesian(
-                    orography, site_coords[:, 0], site_coords[:, 1])
+                    orography, site_coords[:, 0], site_coords[:, 1]
+                )
 
             if not self.minimum_dz:
                 # Query the tree for the nearest neighbour, in this case a land
                 # neighbour is returned along with the distance to it.
                 distances, node_indices = tree.query([site_coords])
                 # Look up the grid coordinates that correspond to the tree node
-                land_neighbour_indices, = index_nodes[node_indices]
+                (land_neighbour_indices,) = index_nodes[node_indices]
                 # Use the found land neighbour if it is within the
                 # search_radius, otherwise use the nearest neighbour.
                 distances = np.array([distances[0], distances[0]]).T
-                nearest_indices = np.where(distances < self.search_radius,
-                                           land_neighbour_indices,
-                                           nearest_indices)
+                nearest_indices = np.where(
+                    distances < self.search_radius,
+                    land_neighbour_indices,
+                    nearest_indices,
+                )
             else:
                 # Query the tree for self.node_limit nearby neighbours.
                 distances, node_indices = tree.query(
-                    [site_coords], distance_upper_bound=self.search_radius,
-                    k=self.node_limit)
+                    [site_coords],
+                    distance_upper_bound=self.search_radius,
+                    k=self.node_limit,
+                )
                 # Loop over the sites and for each choose the returned
                 # neighbour with the minimum vertical displacement.
-                for index, (distance, indices) in enumerate(zip(
-                        distances[0], node_indices[0])):
+                for index, (distance, indices) in enumerate(
+                    zip(distances[0], node_indices[0])
+                ):
                     grid_point = self.select_minimum_dz(
-                        orography, site_altitudes[index], index_nodes,
-                        distance, indices)
+                        orography, site_altitudes[index], index_nodes, distance, indices
+                    )
                     # None is returned if the tree query returned no neighbours
                     # within the search radius.
                     if grid_point is not None:
@@ -524,26 +569,30 @@ class NeighbourSelection(BasePlugin):
 
         # Calculate the vertical displacements between the chosen grid point
         # and the spot site.
-        vertical_displacements = (site_altitudes -
-                                  orography.data[tuple(nearest_indices.T)])
+        vertical_displacements = (
+            site_altitudes - orography.data[tuple(nearest_indices.T)]
+        )
 
         # Create a list of WMO IDs if available. These are stored as strings
         # to accommodate the use of 'None' for unset IDs.
-        wmo_ids = [str(site.get('wmo_id', None)) for site in sites]
+        wmo_ids = [str(site.get("wmo_id", None)) for site in sites]
 
         # Construct a name to describe the neighbour finding method employed
         method_name = self.neighbour_finding_method_name()
 
         # Create an array of indices and displacements to return
-        data = np.stack((nearest_indices[:, 0], nearest_indices[:, 1],
-                         vertical_displacements), axis=1)
+        data = np.stack(
+            (nearest_indices[:, 0], nearest_indices[:, 1], vertical_displacements),
+            axis=1,
+        )
         data = np.expand_dims(data, 1).astype(np.float32)
 
         # Regardless of input sitelist coordinate system, the site coordinates
         # are stored as latitudes and longitudes in the neighbour cube.
         if self.site_coordinate_system != ccrs.PlateCarree():
             lon_lats = self._transform_sites_coordinate_system(
-                site_x_coords, site_y_coords, ccrs.PlateCarree())
+                site_x_coords, site_y_coords, ccrs.PlateCarree()
+            )
             longitudes = lon_lats[:, 0]
             latitudes = lon_lats[:, 1]
         else:
@@ -552,14 +601,20 @@ class NeighbourSelection(BasePlugin):
 
         # Create a cube of neighbours
         neighbour_cube = build_spotdata_cube(
-            data, 'grid_neighbours', 1, site_altitudes.astype(np.float32),
-            latitudes.astype(np.float32), longitudes.astype(np.float32),
-            wmo_ids, neighbour_methods=[method_name],
-            grid_attributes=['x_index', 'y_index', 'vertical_displacement'])
+            data,
+            "grid_neighbours",
+            1,
+            site_altitudes.astype(np.float32),
+            latitudes.astype(np.float32),
+            longitudes.astype(np.float32),
+            wmo_ids,
+            neighbour_methods=[method_name],
+            grid_attributes=["x_index", "y_index", "vertical_displacement"],
+        )
 
         # Add a hash attribute based on the model grid to ensure the neighbour
         # cube is only used with a compatible grid.
         grid_hash = create_coordinate_hash(orography)
-        neighbour_cube.attributes['model_grid_hash'] = grid_hash
+        neighbour_cube.attributes["model_grid_hash"] = grid_hash
 
         return neighbour_cube

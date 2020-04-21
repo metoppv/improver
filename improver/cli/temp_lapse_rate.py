@@ -38,16 +38,18 @@ from improver.constants import DALR, U_DALR
 
 @cli.clizefy
 @cli.with_output
-def process(temperature: cli.inputcube,
-            orography: cli.inputcube = None,
-            land_sea_mask: cli.inputcube = None,
-            *,
-            max_height_diff: float = 35,
-            nbhood_radius: int = 7,
-            max_lapse_rate: float = -3*DALR,
-            min_lapse_rate: float = DALR,
-            dry_adiabatic=False,
-            model_id_attr: str = None):
+def process(
+    temperature: cli.inputcube,
+    orography: cli.inputcube = None,
+    land_sea_mask: cli.inputcube = None,
+    *,
+    max_height_diff: float = 35,
+    nbhood_radius: int = 7,
+    max_lapse_rate: float = -3 * DALR,
+    min_lapse_rate: float = DALR,
+    dry_adiabatic=False,
+    model_id_attr: str = None,
+):
     """Calculate temperature lapse rates in units of K m-1 over orography grid.
 
     Args:
@@ -92,36 +94,43 @@ def process(temperature: cli.inputcube,
     import numpy as np
     from improver.lapse_rate import LapseRate
     from improver.metadata.utilities import (
-        generate_mandatory_attributes, create_new_diagnostic_cube)
+        generate_mandatory_attributes,
+        create_new_diagnostic_cube,
+    )
 
     if dry_adiabatic:
         attributes = generate_mandatory_attributes(
-            [temperature], model_id_attr=model_id_attr)
+            [temperature], model_id_attr=model_id_attr
+        )
         result = create_new_diagnostic_cube(
-            'air_temperature_lapse_rate', U_DALR, temperature, attributes,
-            data=np.full_like(temperature.data, DALR).astype(np.float32))
+            "air_temperature_lapse_rate",
+            U_DALR,
+            temperature,
+            attributes,
+            data=np.full_like(temperature.data, DALR).astype(np.float32),
+        )
         return result
 
     if min_lapse_rate > max_lapse_rate:
-        msg = 'Minimum lapse rate specified is greater than the maximum.'
+        msg = "Minimum lapse rate specified is greater than the maximum."
         raise ValueError(msg)
 
     if max_height_diff < 0:
-        msg = 'Maximum height difference specified is less than zero.'
+        msg = "Maximum height difference specified is less than zero."
         raise ValueError(msg)
 
     if nbhood_radius < 0:
-        msg = 'Neighbourhood radius specified is less than zero.'
+        msg = "Neighbourhood radius specified is less than zero."
         raise ValueError(msg)
 
     if orography is None or land_sea_mask is None:
-        msg = 'Missing orography and/or land mask arguments.'
+        msg = "Missing orography and/or land mask arguments."
         raise RuntimeError(msg)
 
     result = LapseRate(
         max_height_diff=max_height_diff,
         nbhood_radius=nbhood_radius,
         max_lapse_rate=max_lapse_rate,
-        min_lapse_rate=min_lapse_rate).process(
-            temperature, orography, land_sea_mask, model_id_attr=model_id_attr)
+        min_lapse_rate=min_lapse_rate,
+    )(temperature, orography, land_sea_mask, model_id_attr=model_id_attr)
     return result

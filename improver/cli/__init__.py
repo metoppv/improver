@@ -68,16 +68,17 @@ def docutilize(obj):
     """
     from inspect import cleandoc, getdoc
     from sphinx.ext.napoleon.docstring import GoogleDocstring, NumpyDocstring
+
     if isinstance(obj, str):
         doc = cleandoc(obj)
     else:
         doc = getdoc(obj)
     doc = str(NumpyDocstring(doc))
     doc = str(GoogleDocstring(doc))
-    doc = doc.replace(':exc:', '')
-    doc = doc.replace(':data:', '')
-    doc = doc.replace(':keyword', ':param')
-    doc = doc.replace(':kwtype', ':type')
+    doc = doc.replace(":exc:", "")
+    doc = doc.replace(":data:", "")
+    doc = doc.replace(":keyword", ":param")
+    doc = doc.replace(":kwtype", ":type")
 
     if isinstance(obj, str):
         return doc
@@ -87,6 +88,7 @@ def docutilize(obj):
 
 class HelpForNapoleonDocstring(HelpForAutodetectedDocstring):
     """Subclass to add support for google style docstrings"""
+
     def add_docstring(self, docstring, *args, **kwargs):
         """Adds the updated docstring."""
         docstring = docutilize(docstring)
@@ -95,8 +97,8 @@ class HelpForNapoleonDocstring(HelpForAutodetectedDocstring):
 
 class DocutilizeClizeHelp(ClizeHelp):
     """Subclass to build Napoleon docstring from subject."""
-    def __init__(self, subject, owner,
-                 builder=HelpForNapoleonDocstring.from_subject):
+
+    def __init__(self, subject, owner, builder=HelpForNapoleonDocstring.from_subject):
         super().__init__(subject, owner, builder)
 
 
@@ -105,7 +107,8 @@ class DocutilizeClizeHelp(ClizeHelp):
 
 class ObjectAsStr(str):
     """Hide object under a string to pass it through Clize parser."""
-    __slots__ = ('original_object',)
+
+    __slots__ = ("original_object",)
 
     def __new__(cls, obj, name=None):
         if isinstance(obj, cls):  # pass object through if already wrapped
@@ -125,12 +128,12 @@ class ObjectAsStr(str):
             obj_id = hash(obj)
         except TypeError:
             obj_id = id(obj)
-        return '<%s.%s@%i>' % (cls.__module__, cls.__name__, obj_id)
+        return "<%s.%s@%i>" % (cls.__module__, cls.__name__, obj_id)
 
 
 def maybe_coerce_with(converter, obj, **kwargs):
     """Apply converter if str, pass through otherwise."""
-    obj = getattr(obj, 'original_object', obj)
+    obj = getattr(obj, "original_object", obj)
     return converter(obj, **kwargs) if isinstance(obj, str) else obj
 
 
@@ -147,6 +150,7 @@ def inputcube(to_convert):
 
     """
     from improver.utilities.load import load_cube
+
     return maybe_coerce_with(load_cube, to_convert)
 
 
@@ -163,6 +167,7 @@ def inputjson(to_convert):
 
     """
     from improver.utilities.cli_utilities import load_json_or_none
+
     return maybe_coerce_with(load_json_or_none, to_convert)
 
 
@@ -177,7 +182,7 @@ def comma_separated_list(to_convert):
     Returns:
        list
     """
-    return maybe_coerce_with(lambda s: s.split(','), to_convert)
+    return maybe_coerce_with(lambda s: s.split(","), to_convert)
 
 
 @value_converter
@@ -220,6 +225,7 @@ def create_constrained_inputcubelist_converter(*constraints):
             A function with the constraints used for a list comprehension.
 
     """
+
     @value_converter
     def constrained_inputcubelist_converter(to_convert):
         """Passes the cube and constraints onto maybe_coerce_with.
@@ -247,21 +253,27 @@ def create_constrained_inputcubelist_converter(*constraints):
             found_cubes = []
             for constr_item in constr_list:
                 try:
-                    found_cubes.append(maybe_coerce_with(
-                        load_cube, to_convert, constraints=constr_item))
+                    found_cubes.append(
+                        maybe_coerce_with(
+                            load_cube, to_convert, constraints=constr_item
+                        )
+                    )
                 except ValueError:
                     pass
             if len(found_cubes) != 1:
-                msg = (f"Incorrect number of valid inputs available for the "
-                       "{constr} constraint. "
-                       f"Number of valid inputs: {len(found_cubes)} "
-                       f"The valid inputs found are: {found_cubes}")
+                msg = (
+                    f"Incorrect number of valid inputs available for the "
+                    "{constr} constraint. "
+                    f"Number of valid inputs: {len(found_cubes)} "
+                    f"The valid inputs found are: {found_cubes}"
+                )
                 raise ValueError(msg)
             cubelist.extend(found_cubes)
 
         return cubelist
 
     return constrained_inputcubelist_converter
+
 
 # output handling
 
@@ -285,6 +297,7 @@ def with_output(wrapped, *args, output=None, **kwargs):
         Result of calling `wrapped` or None if `output` is given.
     """
     from improver.utilities.save import save_netcdf
+
     result = wrapped(*args, **kwargs)
     if output:
         save_netcdf(result, output)
@@ -293,8 +306,7 @@ def with_output(wrapped, *args, output=None, **kwargs):
 
 
 @decorator
-def with_intermediate_output(wrapped, *args, intermediate_output=None,
-                             **kwargs):
+def with_intermediate_output(wrapped, *args, intermediate_output=None, **kwargs):
     """Add `intermediate_output` keyword only argument.
 
     Args:
@@ -305,6 +317,7 @@ def with_intermediate_output(wrapped, *args, intermediate_output=None,
     """
 
     from improver.utilities.save import save_netcdf
+
     result, intermediate_result = wrapped(*args, **kwargs)
     if intermediate_output:
         save_netcdf(intermediate_result, intermediate_output)
@@ -319,7 +332,7 @@ def clizefy(obj=None, helper_class=DocutilizeClizeHelp, **kwargs):
     """
     if obj is None:
         return partial(clizefy, helper_class=helper_class, **kwargs)
-    if hasattr(obj, 'cli'):
+    if hasattr(obj, "cli"):
         return obj
     if not callable(obj):
         return Clize.get_cli(obj, **kwargs)
@@ -330,15 +343,17 @@ def clizefy(obj=None, helper_class=DocutilizeClizeHelp, **kwargs):
 
 
 @clizefy(help_names=())
-def improver_help(prog_name: parameters.pass_name,
-                  command=None, *, usage=False):
+def improver_help(prog_name: parameters.pass_name, command=None, *, usage=False):
     """Show command help."""
     prog_name = prog_name.split()[0]
-    args = filter(None, [command, '--help', usage and '--usage'])
+    args = filter(None, [command, "--help", usage and "--usage"])
     result = execute_command(SUBCOMMANDS_DISPATCHER, prog_name, *args)
     if not command and usage:
-        result = '\n'.join(line for line in result.splitlines()
-                           if not line.endswith('--help [--usage]'))
+        result = "\n".join(
+            line
+            for line in result.splitlines()
+            if not line.endswith("--help [--usage]")
+        )
     return result
 
 
@@ -347,11 +362,12 @@ def _cli_items():
     import importlib
     import pkgutil
     from improver.cli import __path__ as improver_cli_pkg_path
-    yield ('help', improver_help)
+
+    yield ("help", improver_help)
     for minfo in pkgutil.iter_modules(improver_cli_pkg_path):
         mod_name = minfo.name
-        if mod_name != '__main__':
-            mcli = importlib.import_module('improver.cli.' + mod_name)
+        if mod_name != "__main__":
+            mcli = importlib.import_module("improver.cli." + mod_name)
             yield (mod_name, clizefy(mcli.process))
 
 
@@ -364,7 +380,8 @@ SUBCOMMANDS_TABLE = OrderedDict(sorted(_cli_items()))
 SUBCOMMANDS_DISPATCHER = clizefy(
     SUBCOMMANDS_TABLE,
     description="""IMPROVER NWP post-processing toolbox""",
-    footnotes="""See also improver --help for more information.""")
+    footnotes="""See also improver --help for more information.""",
+)
 
 
 # IMPROVER top level main
@@ -379,12 +396,12 @@ def unbracket(args):
     """
     outargs = []
     stack = []
-    mismatch_msg = 'Mismatched bracket at position %i.'
+    mismatch_msg = "Mismatched bracket at position %i."
     for i, arg in enumerate(args):
-        if arg == '[':
+        if arg == "[":
             stack.append(outargs)
             outargs = []
-        elif arg == ']':
+        elif arg == "]":
             if not stack:
                 raise ValueError(mismatch_msg % i)
             stack[-1].append(outargs)
@@ -396,15 +413,15 @@ def unbracket(args):
     return outargs
 
 
-def execute_command(dispatcher, prog_name, *args,
-                    verbose=False, dry_run=False):
+def execute_command(dispatcher, prog_name, *args, verbose=False, dry_run=False):
     """Common entry point for command execution."""
     args = list(args)
     for i, arg in enumerate(args):
         if isinstance(arg, (list, tuple)):
             # process nested commands recursively
-            arg = execute_command(dispatcher, prog_name, *arg,
-                                  verbose=verbose, dry_run=dry_run)
+            arg = execute_command(
+                dispatcher, prog_name, *arg, verbose=verbose, dry_run=dry_run
+            )
         if isinstance(arg, pathlib.PurePath):
             arg = str(arg)
         elif not isinstance(arg, str):
@@ -424,13 +441,15 @@ def execute_command(dispatcher, prog_name, *args,
 
 
 @clizefy()
-def main(prog_name: parameters.pass_name,
-         command: LAST_OPTION,
-         *args,
-         profile: value_converter(lambda _: _, name='FILENAME') = None,
-         memprofile: value_converter(lambda _: _, name='FILENAME') = None,
-         verbose=False,
-         dry_run=False):
+def main(
+    prog_name: parameters.pass_name,
+    command: LAST_OPTION,
+    *args,
+    profile: value_converter(lambda _: _, name="FILENAME") = None,
+    memprofile: value_converter(lambda _: _, name="FILENAME") = None,
+    verbose=False,
+    dry_run=False,
+):
     """IMPROVER NWP post-processing toolbox
 
     Results from commands can be passed into file-like arguments
@@ -451,10 +470,11 @@ def main(prog_name: parameters.pass_name,
             If given, will write profiling to the file given.
             To write to stdout, use a hyphen (-)
         memprofile (str):
-            Creates 2 files, a tracemalloc snapsot at the point of
-            highest memory consumption of your program (*_SNAPSHOT)
+            Creates 2 files by adding a suffix to the provided arguemnt -
+            a tracemalloc snapsot at the point of highest memory consumption
+            of your program (suffixed with _SNAPSHOT)
             and a track of the maximum memory used by your program
-            over time (*_MAX_TRACKER).
+            over time (suffixed with _MAX_TRACKER).
         verbose (bool):
             Print executed commands
         dry_run (bool):
@@ -467,12 +487,20 @@ def main(prog_name: parameters.pass_name,
     exec_cmd = execute_command
     if profile is not None:
         from improver.profile import profile_hook_enable
-        profile_hook_enable(dump_filename=None if profile == '-' else profile)
+
+        profile_hook_enable(dump_filename=None if profile == "-" else profile)
     if memprofile is not None:
         from improver.memprofile import memory_profile_decorator
+
         exec_cmd = memory_profile_decorator(exec_cmd, memprofile)
-    result = exec_cmd(SUBCOMMANDS_DISPATCHER, prog_name, command,
-                      *args, verbose=verbose, dry_run=dry_run)
+    result = exec_cmd(
+        SUBCOMMANDS_DISPATCHER,
+        prog_name,
+        command,
+        *args,
+        verbose=verbose,
+        dry_run=dry_run,
+    )
     return result
 
 
@@ -486,10 +514,11 @@ def run_main(argv=None):
     """
     from clize import run
     import sys
+
     # clize help shows module execution as `python -m improver.cli`
     # override argv[0] and pass it explicitly in order to avoid this
     # so that the help command reflects the way that we call improver.
     if argv is None:
         argv = sys.argv[:]
-        argv[0] = 'improver'
+        argv[0] = "improver"
     run(main, args=argv)  # pylint: disable=E1124

@@ -60,19 +60,24 @@ class Test_process(IrisTest):
         # Mask for land/sea - True for land-points, false for sea.
         self.mask = np.full([n_y, n_x], False, dtype=bool)
         # Mask has 'land' in centre bounded by sea points.
-        self.mask[1:n_y-1, 1:n_x-1] = True
+        self.mask[1 : n_y - 1, 1 : n_x - 1] = True
 
     def test_returns_expected_values(self):
         """Test that the function returns correct 2D array of floats. """
 
         # Equation is (K=0.4): ustar = K * (u_href / ln(h_ref / z_0))
-        expected_out = np.array([[RMDI, RMDI, RMDI, RMDI],
-                                 [RMDI, 1.08434, 1.08434, RMDI],
-                                 [RMDI, 1.08434, 1.08434, RMDI],
-                                 [RMDI, RMDI, RMDI, RMDI]])
+        expected_out = np.array(
+            [
+                [RMDI, RMDI, RMDI, RMDI],
+                [RMDI, 1.08434, 1.08434, RMDI],
+                [RMDI, 1.08434, 1.08434, RMDI],
+                [RMDI, RMDI, RMDI, RMDI],
+            ]
+        )
 
-        result = FrictionVelocity(self.u_href, self.h_ref,
-                                  self.z_0, self.mask).process()
+        result = FrictionVelocity(
+            self.u_href, self.h_ref, self.z_0, self.mask
+        ).process()
 
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
@@ -82,19 +87,26 @@ class Test_process(IrisTest):
 
         self.u_href[1, 1] = np.nan  # Adds NaN value
 
-        expected_out = np.array([[RMDI, RMDI, RMDI, RMDI],
-                                 [RMDI, np.nan, 1.08434, RMDI],
-                                 [RMDI, 1.08434, 1.08434, RMDI],
-                                 [RMDI, RMDI, RMDI, RMDI]])
+        expected_out = np.array(
+            [
+                [RMDI, RMDI, RMDI, RMDI],
+                [RMDI, np.nan, 1.08434, RMDI],
+                [RMDI, 1.08434, 1.08434, RMDI],
+                [RMDI, RMDI, RMDI, RMDI],
+            ]
+        )
 
-        result = FrictionVelocity(self.u_href, self.h_ref,
-                                  self.z_0, self.mask).process()
+        result = FrictionVelocity(
+            self.u_href, self.h_ref, self.z_0, self.mask
+        ).process()
 
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
 
-    @ManageWarnings(ignored_messages=["invalid value encountered in divide"],
-                    warning_types=[RuntimeWarning])
+    @ManageWarnings(
+        ignored_messages=["invalid value encountered in divide"],
+        warning_types=[RuntimeWarning],
+    )
     def test_handles_zero_values(self):
         """Function calculates log(href/z_0) - test that the function accepts
            zero values in h_ref and z_0 and returns np.nan without crashing."""
@@ -102,13 +114,18 @@ class Test_process(IrisTest):
         h_ref_zeros = np.full_like(self.h_ref, 0)
         z_0_zeros = np.full_like(self.z_0, 0)
 
-        expected_out = np.array([[RMDI, RMDI, RMDI, RMDI],
-                                 [RMDI, np.nan, np.nan, RMDI],
-                                 [RMDI, np.nan, np.nan, RMDI],
-                                 [RMDI, RMDI, RMDI, RMDI]])
+        expected_out = np.array(
+            [
+                [RMDI, RMDI, RMDI, RMDI],
+                [RMDI, np.nan, np.nan, RMDI],
+                [RMDI, np.nan, np.nan, RMDI],
+                [RMDI, RMDI, RMDI, RMDI],
+            ]
+        )
 
-        result = FrictionVelocity(self.u_href, h_ref_zeros,
-                                  z_0_zeros, self.mask).process()
+        result = FrictionVelocity(
+            self.u_href, h_ref_zeros, z_0_zeros, self.mask
+        ).process()
 
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
@@ -116,20 +133,20 @@ class Test_process(IrisTest):
     def test_handles_different_sized_arrays(self):
         """Test when if different size arrays have been input"""
         u_href = np.full([3, 3], 10, dtype=float)
-        msg = 'Different size input arrays u_href, h_ref, z_0, mask'
+        msg = "Different size input arrays u_href, h_ref, z_0, mask"
         with self.assertRaisesRegex(ValueError, msg):
-            FrictionVelocity(u_href, self.h_ref,
-                             self.z_0, self.mask).process()
+            FrictionVelocity(u_href, self.h_ref, self.z_0, self.mask).process()
 
     def test_output_is_float32(self):
         """Test that the plugin returns an array of float 32 type
            even when the input arrays are double precision."""
 
-        result = FrictionVelocity(self.u_href, self.h_ref,
-                                  self.z_0, self.mask).process()
+        result = FrictionVelocity(
+            self.u_href, self.h_ref, self.z_0, self.mask
+        ).process()
 
         self.assertEqual(result.dtype, np.float32)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

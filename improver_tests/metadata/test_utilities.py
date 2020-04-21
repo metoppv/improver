@@ -37,8 +37,11 @@ import numpy as np
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.utilities import (
-    create_coordinate_hash, create_new_diagnostic_cube, generate_hash,
-    generate_mandatory_attributes)
+    create_coordinate_hash,
+    create_new_diagnostic_cube,
+    generate_hash,
+    generate_mandatory_attributes,
+)
 
 from ..set_up_test_cubes import set_up_variable_cube
 
@@ -50,9 +53,9 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         """Set up template with data, coordinates, attributes and cell
         methods"""
         self.template_cube = set_up_variable_cube(
-            280*np.ones((3, 5, 5), dtype=np.float32),
-            standard_grid_metadata='uk_det')
-        self.template_cube.add_cell_method('time (max): 1 hour')
+            280 * np.ones((3, 5, 5), dtype=np.float32), standard_grid_metadata="uk_det"
+        )
+        self.template_cube.add_cell_method("time (max): 1 hour")
         self.name = "lwe_precipitation_rate"
         self.units = "mm h-1"
         self.mandatory_attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
@@ -60,15 +63,17 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
     def test_basic(self):
         """Test result is a cube that inherits coordinates only"""
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube,
-            self.mandatory_attributes)
+            self.name, self.units, self.template_cube, self.mandatory_attributes
+        )
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.standard_name, "lwe_precipitation_rate")
         self.assertEqual(result.units, "mm h-1")
-        self.assertSequenceEqual(result.coords(dim_coords=True),
-                                 self.template_cube.coords(dim_coords=True))
-        self.assertSequenceEqual(result.coords(dim_coords=False),
-                                 self.template_cube.coords(dim_coords=False))
+        self.assertSequenceEqual(
+            result.coords(dim_coords=True), self.template_cube.coords(dim_coords=True)
+        )
+        self.assertSequenceEqual(
+            result.coords(dim_coords=False), self.template_cube.coords(dim_coords=False)
+        )
         self.assertFalse(np.allclose(result.data, self.template_cube.data))
         self.assertDictEqual(result.attributes, self.mandatory_attributes)
         self.assertFalse(result.cell_methods)
@@ -81,8 +86,12 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         expected_attributes = self.mandatory_attributes
         expected_attributes.update(attributes)
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube,
-            self.mandatory_attributes, optional_attributes=attributes)
+            self.name,
+            self.units,
+            self.template_cube,
+            self.mandatory_attributes,
+            optional_attributes=attributes,
+        )
         self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_missing_mandatory_attribute(self):
@@ -91,29 +100,40 @@ class Test_create_new_diagnostic_cube(unittest.TestCase):
         msg = "source attribute is required"
         with self.assertRaisesRegex(ValueError, msg):
             create_new_diagnostic_cube(
-                self.name, self.units, self.template_cube,
-                self.mandatory_attributes)
+                self.name, self.units, self.template_cube, self.mandatory_attributes
+            )
 
     def test_data(self):
         """Test data can be set on the output cube"""
-        data = np.arange(3*5*5).reshape((3, 5, 5)).astype(np.float32)
+        data = np.arange(3 * 5 * 5).reshape((3, 5, 5)).astype(np.float32)
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube,
-            self.mandatory_attributes, data=data)
+            self.name,
+            self.units,
+            self.template_cube,
+            self.mandatory_attributes,
+            data=data,
+        )
         self.assertTrue(np.allclose(result.data, data))
 
     def test_dtype(self):
         """Test dummy data of a different type can be set"""
         result = create_new_diagnostic_cube(
-            self.name, self.units, self.template_cube,
-            self.mandatory_attributes, dtype=np.int32)
+            self.name,
+            self.units,
+            self.template_cube,
+            self.mandatory_attributes,
+            dtype=np.int32,
+        )
         self.assertEqual(result.data.dtype, np.int32)
 
     def test_non_standard_name(self):
         """Test cube can be created with a non-CF-standard name"""
         result = create_new_diagnostic_cube(
-            "RainRate Composite", self.units, self.template_cube,
-            self.mandatory_attributes)
+            "RainRate Composite",
+            self.units,
+            self.template_cube,
+            self.mandatory_attributes,
+        )
         self.assertEqual(result.long_name, "RainRate Composite")
         self.assertIsNone(result.standard_name)
 
@@ -126,23 +146,35 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
         self.attributes = {
             "source": "Met Office Unified Model",
             "institution": "Met Office",
-            "title": "UKV Model Forecast on UK 2 km Standard Grid"}
+            "title": "UKV Model Forecast on UK 2 km Standard Grid",
+        }
         base_data = np.ones((5, 5), dtype=np.float32)
         self.t_cube = set_up_variable_cube(
-            285*base_data, spatial_grid="equalarea",
-            standard_grid_metadata="uk_det", attributes=self.attributes)
+            285 * base_data,
+            spatial_grid="equalarea",
+            standard_grid_metadata="uk_det",
+            attributes=self.attributes,
+        )
         self.p_cube = set_up_variable_cube(
-            987*base_data, name="PMSL", units="hPa", spatial_grid="equalarea",
-            standard_grid_metadata="uk_det", attributes=self.attributes)
+            987 * base_data,
+            name="PMSL",
+            units="hPa",
+            spatial_grid="equalarea",
+            standard_grid_metadata="uk_det",
+            attributes=self.attributes,
+        )
         self.rh_cube = set_up_variable_cube(
-            0.8*base_data, name="relative_humidity", units="1",
-            spatial_grid="equalarea", standard_grid_metadata="uk_det",
-            attributes=self.attributes)
+            0.8 * base_data,
+            name="relative_humidity",
+            units="1",
+            spatial_grid="equalarea",
+            standard_grid_metadata="uk_det",
+            attributes=self.attributes,
+        )
 
     def test_consensus(self):
         """Test attributes are inherited if all input fields agree"""
-        result = generate_mandatory_attributes(
-            [self.t_cube, self.p_cube, self.rh_cube])
+        result = generate_mandatory_attributes([self.t_cube, self.p_cube, self.rh_cube])
         self.assertDictEqual(result, self.attributes)
 
     def test_no_consensus(self):
@@ -150,9 +182,9 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
         self.t_cube.attributes = {
             "source": "Met Office Unified Model Version 1000",
             "institution": "BOM",
-            "title": "UKV Model Forecast on 20 km Global Grid"}
-        result = generate_mandatory_attributes(
-            [self.t_cube, self.p_cube, self.rh_cube])
+            "title": "UKV Model Forecast on 20 km Global Grid",
+        }
+        result = generate_mandatory_attributes([self.t_cube, self.p_cube, self.rh_cube])
         self.assertDictEqual(result, MANDATORY_ATTRIBUTE_DEFAULTS)
 
     def test_missing_attribute(self):
@@ -161,8 +193,7 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
         expected_attributes = self.attributes
         expected_attributes["title"] = MANDATORY_ATTRIBUTE_DEFAULTS["title"]
         self.t_cube.attributes.pop("title")
-        result = generate_mandatory_attributes(
-            [self.t_cube, self.p_cube, self.rh_cube])
+        result = generate_mandatory_attributes([self.t_cube, self.p_cube, self.rh_cube])
         self.assertDictEqual(result, expected_attributes)
 
     def test_model_id_consensus(self):
@@ -171,7 +202,8 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
         expected_attributes["mosg__model_configuration"] = "uk_det"
         result = generate_mandatory_attributes(
             [self.t_cube, self.p_cube, self.rh_cube],
-            model_id_attr="mosg__model_configuration")
+            model_id_attr="mosg__model_configuration",
+        )
         self.assertDictEqual(result, expected_attributes)
 
     def test_model_id_no_consensus(self):
@@ -181,7 +213,8 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, msg):
             generate_mandatory_attributes(
                 [self.t_cube, self.p_cube, self.rh_cube],
-                model_id_attr="mosg__model_configuration")
+                model_id_attr="mosg__model_configuration",
+            )
 
     def test_model_id_missing(self):
         """Test error raised when model ID attribute is not present on
@@ -191,7 +224,8 @@ class Test_generate_mandatory_attributes(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, msg):
             generate_mandatory_attributes(
                 [self.t_cube, self.p_cube, self.rh_cube],
-                model_id_attr="mosg__model_configuration")
+                model_id_attr="mosg__model_configuration",
+            )
 
 
 class Test_generate_hash(unittest.TestCase):
@@ -200,11 +234,9 @@ class Test_generate_hash(unittest.TestCase):
     def test_string_input(self):
         """Test the expected hash is returned when input is a string type."""
 
-        hash_input = 'this is a test string'
+        hash_input = "this is a test string"
         result = generate_hash(hash_input)
-        expected = (
-            "7a5a4f1716b08d290d5782da904cc076315376889e9bf641ae527889704fd314"
-        )
+        expected = "7a5a4f1716b08d290d5782da904cc076315376889e9bf641ae527889704fd314"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -213,28 +245,24 @@ class Test_generate_hash(unittest.TestCase):
 
         hash_input = 1000
         result = generate_hash(hash_input)
-        expected = (
-            "40510175845988f13f6162ed8526f0b09f73384467fa855e1e79b44a56562a58"
-        )
+        expected = "40510175845988f13f6162ed8526f0b09f73384467fa855e1e79b44a56562a58"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
     def test_dictionary_input(self):
         """Test the expected hash is returned when input is a dictionary."""
 
-        hash_input = {'one': 1, 'two': 2}
+        hash_input = {"one": 1, "two": 2}
         result = generate_hash(hash_input)
-        expected = (
-            "c261139b6339f880f4f75a3bf5a08f7c2d6f208e2720760f362e4464735e3845"
-        )
+        expected = "c261139b6339f880f4f75a3bf5a08f7c2d6f208e2720760f362e4464735e3845"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
     def test_dictionary_order_invariant(self):
         """Test the expected hash is the same for different dict ordering."""
 
-        hash_input1 = {'one': 1, 'two': 2}
-        hash_input2 = {'two': 2, 'one': 1}
+        hash_input1 = {"one": 1, "two": 2}
+        hash_input2 = {"two": 2, "one": 1}
         result1 = generate_hash(hash_input1)
         result2 = generate_hash(hash_input2)
         self.assertEqual(result1, result2)
@@ -244,9 +272,7 @@ class Test_generate_hash(unittest.TestCase):
 
         hash_input = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
         result = generate_hash(hash_input)
-        expected = (
-            "4d82994200559c90234b0186bccc59b9b9d6436284f29bab9a15dc97172d1fb8"
-        )
+        expected = "4d82994200559c90234b0186bccc59b9b9d6436284f29bab9a15dc97172d1fb8"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -255,11 +281,9 @@ class Test_generate_hash(unittest.TestCase):
         coordinate."""
 
         cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
-        hash_input = cube.coord('latitude')
+        hash_input = cube.coord("latitude")
         result = generate_hash(hash_input)
-        expected = (
-            "62267c5827656790244ef2f26b708a1be5dcb491e4ae36b9db9b47c2aaaadf7e"
-        )
+        expected = "62267c5827656790244ef2f26b708a1be5dcb491e4ae36b9db9b47c2aaaadf7e"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -267,8 +291,8 @@ class Test_generate_hash(unittest.TestCase):
         """Test the expected hash is different if the numpy array type is
         different."""
 
-        hash_input32 = np.array([np.sqrt(2.)], dtype=np.float32)
-        hash_input64 = np.array([np.sqrt(2.)], dtype=np.float64)
+        hash_input32 = np.array([np.sqrt(2.0)], dtype=np.float32)
+        hash_input64 = np.array([np.sqrt(2.0)], dtype=np.float64)
         result32 = generate_hash(hash_input32)
         result64 = generate_hash(hash_input64)
         self.assertNotEqual(result32, result64)
@@ -278,7 +302,7 @@ class Test_generate_hash(unittest.TestCase):
         same hash being generated."""
 
         cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
-        hash_input = cube.coord('latitude')
+        hash_input = cube.coord("latitude")
         result1 = generate_hash(hash_input)
         result2 = generate_hash(hash_input)
         self.assertEqual(result1, result2)
@@ -293,9 +317,7 @@ class Test_create_coordinate_hash(unittest.TestCase):
 
         hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
         result = create_coordinate_hash(hash_input)
-        expected = (
-            "b26ca16d28f6e06ea4573fd745f55750c6dd93a06891f1b4ff0c6cd50585ac08"
-        )
+        expected = "b26ca16d28f6e06ea4573fd745f55750c6dd93a06891f1b4ff0c6cd50585ac08"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -305,7 +327,7 @@ class Test_create_coordinate_hash(unittest.TestCase):
 
         hash_input1 = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
         hash_input2 = hash_input1.copy()
-        latitude = hash_input2.coord('latitude')
+        latitude = hash_input2.coord("latitude")
         latitude_values = latitude.points * 1.001
         latitude = latitude.copy(points=latitude_values)
         hash_input2.remove_coord("latitude")
@@ -316,5 +338,5 @@ class Test_create_coordinate_hash(unittest.TestCase):
         self.assertNotEqual(result1, result2)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

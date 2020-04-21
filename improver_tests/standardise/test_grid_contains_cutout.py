@@ -53,7 +53,8 @@ class Test_grid_contains_cutout(unittest.TestCase):
         """Test success for an equal area cube created by subsetting another
         cube"""
         grid = set_up_variable_cube(
-            np.ones((10, 10), dtype=np.float32), spatial_grid='equalarea')
+            np.ones((10, 10), dtype=np.float32), spatial_grid="equalarea"
+        )
         cutout = grid[2:5, 3:7]
         self.assertTrue(grid_contains_cutout(grid, cutout))
 
@@ -61,47 +62,50 @@ class Test_grid_contains_cutout(unittest.TestCase):
         """Test success for a lat/lon cube created by subsetting another
         cube"""
         grid = set_up_variable_cube(
-            np.ones((10, 10), dtype=np.float32), spatial_grid='latlon')
+            np.ones((10, 10), dtype=np.float32), spatial_grid="latlon"
+        )
         cutout = grid[2:5, 3:7]
         self.assertTrue(grid_contains_cutout(grid, cutout))
 
     def test_failure_different_grids(self):
         """Test failure comparing an equal area with a lat/lon grid"""
         grid = set_up_variable_cube(np.ones((10, 10), dtype=np.float32))
-        cutout = set_up_variable_cube(np.ones((10, 10), dtype=np.float32),
-                                      spatial_grid='equalarea')
+        cutout = set_up_variable_cube(
+            np.ones((10, 10), dtype=np.float32), spatial_grid="equalarea"
+        )
         self.assertFalse(grid_contains_cutout(grid, cutout))
 
     def test_failure_different_units(self):
         """Test failure comparing grids in different units"""
         grid = set_up_variable_cube(
-            np.ones((10, 10), dtype=np.float32), spatial_grid='equalarea')
+            np.ones((10, 10), dtype=np.float32), spatial_grid="equalarea"
+        )
         cutout = grid.copy()
-        for axis in ['x', 'y']:
-            cutout.coord(axis=axis).convert_units('feet')
+        for axis in ["x", "y"]:
+            cutout.coord(axis=axis).convert_units("feet")
         self.assertFalse(grid_contains_cutout(grid, cutout))
 
     def test_failure_outside_domain(self):
         """Test failure if the cutout begins outside the grid domain"""
         grid = set_up_variable_cube(
-            np.ones((10, 10), dtype=np.float32), spatial_grid='equalarea')
+            np.ones((10, 10), dtype=np.float32), spatial_grid="equalarea"
+        )
         cutout = grid.copy()
-        grid_spacing = calculate_grid_spacing(
-            cutout, cutout.coord(axis='x').units)
-        cutout.coord(axis='x').points = (
-            cutout.coord(axis='x').points - 10*grid_spacing)
+        grid_spacing = calculate_grid_spacing(cutout, cutout.coord(axis="x").units)
+        cutout.coord(axis="x").points = (
+            cutout.coord(axis="x").points - 10 * grid_spacing
+        )
         self.assertFalse(grid_contains_cutout(grid, cutout))
 
     def test_failure_partial_overlap(self):
         """Test failure if the cutout is only partially included in the
         grid"""
         grid = set_up_variable_cube(
-            np.ones((10, 10), dtype=np.float32), spatial_grid='equalarea')
+            np.ones((10, 10), dtype=np.float32), spatial_grid="equalarea"
+        )
         cutout = grid.copy()
-        grid_spacing = calculate_grid_spacing(
-            cutout, cutout.coord(axis='x').units)
-        cutout.coord(axis='x').points = (
-            cutout.coord(axis='x').points + 2*grid_spacing)
+        grid_spacing = calculate_grid_spacing(cutout, cutout.coord(axis="x").units)
+        cutout.coord(axis="x").points = cutout.coord(axis="x").points + 2 * grid_spacing
         self.assertFalse(grid_contains_cutout(grid, cutout))
 
     def test_failure_mismatched_grid_points(self):
@@ -111,5 +115,5 @@ class Test_grid_contains_cutout(unittest.TestCase):
         self.assertFalse(grid_contains_cutout(grid, cutout))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

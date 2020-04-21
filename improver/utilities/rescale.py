@@ -33,8 +33,7 @@
 import numpy as np
 
 
-def rescale(data, data_range=None, scale_range=(0., 1.),
-            clip=False):
+def rescale(data, data_range=None, scale_range=(0.0, 1.0), clip=False):
     """
     Rescale data array so that data_min => scale_min
     and data_max => scale max.
@@ -67,23 +66,28 @@ def rescale(data, data_range=None, scale_range=(0., 1.),
     scale_max = scale_range[1]
     # Range check
     if data_min == data_max:
-        raise ValueError("Cannot rescale a zero input range " +
-                         "({} -> {})".format(data_min, data_max))
+        raise ValueError(
+            "Cannot rescale a zero input range "
+            + "({} -> {})".format(data_min, data_max)
+        )
 
     if scale_min == scale_max:
-        raise ValueError("Cannot rescale a zero output range " +
-                         "({} -> {})".format(scale_min, scale_max))
+        raise ValueError(
+            "Cannot rescale a zero output range "
+            + "({} -> {})".format(scale_min, scale_max)
+        )
 
-    result = ((data - data_min) * (scale_max - scale_min) /
-              (data_max - data_min)) + scale_min
+    result = (
+        (data - data_min) * (scale_max - scale_min) / (data_max - data_min)
+    ) + scale_min
     if clip:
         result = np.clip(result, scale_min, scale_max)
     return result
 
 
-def apply_double_scaling(data_cube, scaled_cube,
-                         data_vals, scaling_vals,
-                         combine_function=np.minimum):
+def apply_double_scaling(
+    data_cube, scaled_cube, data_vals, scaling_vals, combine_function=np.minimum
+):
     """
     From data_cube, an array of limiting values is created based on a linear
     rescaling from three data_vals to three scaling_vals.
@@ -119,13 +123,18 @@ def apply_double_scaling(data_cube, scaled_cube,
     #  Set rescaled_data to be a rescaled value between the mid- and last point
     rescaled_data = np.where(
         data_cube.data < data_vals[1],
-        rescale(data_cube.data,
-                data_range=(data_vals[0], data_vals[1]),
-                scale_range=(scaling_vals[0], scaling_vals[1]),
-                clip=True),
-        rescale(data_cube.data,
-                data_range=(data_vals[1], data_vals[2]),
-                scale_range=(scaling_vals[1], scaling_vals[2]),
-                clip=True))
+        rescale(
+            data_cube.data,
+            data_range=(data_vals[0], data_vals[1]),
+            scale_range=(scaling_vals[0], scaling_vals[1]),
+            clip=True,
+        ),
+        rescale(
+            data_cube.data,
+            data_range=(data_vals[1], data_vals[2]),
+            scale_range=(scaling_vals[1], scaling_vals[2]),
+            clip=True,
+        ),
+    )
     # Ensure scaled_cube is no larger or smaller than the rescaled_data:
     return combine_function(scaled_cube.data, rescaled_data)

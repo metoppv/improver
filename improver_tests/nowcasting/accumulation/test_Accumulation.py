@@ -71,8 +71,8 @@ class rate_cube_set_up(IrisTest):
         ncells = 10
         # Rates equivalent to 5.4 and 1.8 mm/hr
         rates = np.ones((ncells)) * 5.4
-        rates[0:ncells//2] = 1.8
-        rates = rates / 3600.
+        rates[0 : ncells // 2] = 1.8
+        rates = rates / 3600.0
 
         datalist = []
         for i in range(ncells):
@@ -80,26 +80,32 @@ class rate_cube_set_up(IrisTest):
             data = np.roll(data, i, axis=1)
             try:
                 data[0:2, :i] = 0
-                data[2:, :i+ncells//2] = 0
+                data[2:, : i + ncells // 2] = 0
             except IndexError:
                 pass
             mask = np.zeros((4, ncells))
-            mask[1:3, ncells//2+i:ncells//2 + i + 1] = 1
+            mask[1:3, ncells // 2 + i : ncells // 2 + i + 1] = 1
             data = np.ma.MaskedArray(data, mask=mask, dtype=np.float32)
             datalist.append(data)
 
-        datalist.append(np.ma.MaskedArray(np.zeros((4, ncells)),
-                                          mask=np.zeros((4, ncells)),
-                                          dtype=np.float32))
+        datalist.append(
+            np.ma.MaskedArray(
+                np.zeros((4, ncells)), mask=np.zeros((4, ncells)), dtype=np.float32
+            )
+        )
 
         name = "lwe_precipitation_rate"
         units = "mm s-1"
         self.cubes = iris.cube.CubeList()
         for index, data in enumerate(datalist):
             cube = set_up_variable_cube(
-                data, name=name, units=units, spatial_grid="equalarea",
+                data,
+                name=name,
+                units=units,
+                spatial_grid="equalarea",
                 time=datetime.datetime(2017, 11, 10, 4, index),
-                frt=datetime.datetime(2017, 11, 10, 4, 0))
+                frt=datetime.datetime(2017, 11, 10, 4, 0),
+            )
             self.cubes.append(cube)
         return self.cubes
 
@@ -134,12 +140,18 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test string representation"""
-        result = str(Accumulation(accumulation_units="cm",
-                                  accumulation_period=60,
-                                  forecast_periods=[60, 120]))
-        expected_result = ("<Accumulation: accumulation_units=cm, "
-                           "accumulation_period=60s, "
-                           "forecast_periods=[60, 120]s>")
+        result = str(
+            Accumulation(
+                accumulation_units="cm",
+                accumulation_period=60,
+                forecast_periods=[60, 120],
+            )
+        )
+        expected_result = (
+            "<Accumulation: accumulation_units=cm, "
+            "accumulation_period=60s, "
+            "forecast_periods=[60, 120]s>"
+        )
         self.assertEqual(result, expected_result)
 
 
@@ -155,12 +167,12 @@ class Test_sort_cubes_by_time(rate_cube_set_up):
     def test_reorders(self):
         """Test function reorders a cubelist that is not time ordered."""
 
-        expected = [cube.coord('time').points[0] for cube in self.cubes]
+        expected = [cube.coord("time").points[0] for cube in self.cubes]
         self.cubes = self.cubes[::-1]
-        reordered = [cube.coord('time').points[0] for cube in self.cubes]
+        reordered = [cube.coord("time").points[0] for cube in self.cubes]
 
         result, _ = Accumulation.sort_cubes_by_time(self.cubes)
-        result_times = [cube.coord('time').points[0] for cube in result]
+        result_times = [cube.coord("time").points[0] for cube in result]
 
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(result_times, expected)
@@ -169,9 +181,19 @@ class Test_sort_cubes_by_time(rate_cube_set_up):
     def test_times(self):
         """Test function returns the correct times for the sorted cubes."""
 
-        expected = [1510286400, 1510286460, 1510286520, 1510286580,
-                    1510286640, 1510286700, 1510286760, 1510286820,
-                    1510286880, 1510286940, 1510287000]
+        expected = [
+            1510286400,
+            1510286460,
+            1510286520,
+            1510286580,
+            1510286640,
+            1510286700,
+            1510286760,
+            1510286820,
+            1510286880,
+            1510286940,
+            1510287000,
+        ]
         _, times = Accumulation.sort_cubes_by_time(self.cubes)
 
         self.assertArrayEqual(times, expected)
@@ -200,7 +222,7 @@ class Test__check_inputs(rate_cube_set_up):
         expected_cubes = self.cubes.copy()
         for cube in expected_cubes:
             cube.convert_units("m/s")
-        accumulation_period = 60*60
+        accumulation_period = 60 * 60
         plugin = Accumulation(accumulation_period=accumulation_period)
         cubes, time_interval = plugin._check_inputs(self.cubes)
         self.assertEqual(cubes, expected_cubes)
@@ -230,10 +252,11 @@ class Test__check_inputs(rate_cube_set_up):
         expected_cubes = self.cubes.copy()
         for cube in expected_cubes:
             cube.convert_units("m/s")
-        accumulation_period = 20*60
-        forecast_periods = np.array([15])*60
-        plugin = Accumulation(accumulation_period=accumulation_period,
-                              forecast_periods=forecast_periods)
+        accumulation_period = 20 * 60
+        forecast_periods = np.array([15]) * 60
+        plugin = Accumulation(
+            accumulation_period=accumulation_period, forecast_periods=forecast_periods
+        )
         cubes, time_interval = plugin._check_inputs(self.cubes)
         self.assertEqual(cubes, expected_cubes)
         self.assertEqual(time_interval, expected_time_interval)
@@ -242,11 +265,13 @@ class Test__check_inputs(rate_cube_set_up):
         """Test function raises an exception if the input cubes are not
         spaced equally in time."""
 
-        last_time = self.cubes[-1].coord('time').points
-        self.cubes[-1].coord('time').points = last_time + 60
+        last_time = self.cubes[-1].coord("time").points
+        self.cubes[-1].coord("time").points = last_time + 60
 
-        msg = ("Accumulation is designed to work with rates "
-               "cubes at regular time intervals.")
+        msg = (
+            "Accumulation is designed to work with rates "
+            "cubes at regular time intervals."
+        )
         plugin = Accumulation(accumulation_period=120)
 
         with self.assertRaisesRegex(ValueError, msg):
@@ -260,11 +285,12 @@ class Test__check_inputs(rate_cube_set_up):
             "The accumulation_period is less than the time interval "
             "between the rates cubes. The rates cubes provided are "
             "therefore insufficient for computing the accumulation period "
-            "requested.")
+            "requested."
+        )
         reduced_cubelist = iris.cube.CubeList([self.cubes[0], self.cubes[-1]])
         plugin = Accumulation(
-            accumulation_period=5*60,
-            forecast_periods=np.array([5])*60)
+            accumulation_period=5 * 60, forecast_periods=np.array([5]) * 60
+        )
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(reduced_cubelist)
 
@@ -288,10 +314,10 @@ class Test__get_cube_subsets(rate_cube_set_up):
         period are correctly identified. In this case, the subset of cubes
         used for each accumulation period is expected to consist of 6 cubes."""
         expected_cube_subset = self.cubes[:6]
-        upper_bound_fp, = self.cubes[5].coord("forecast_period").points
+        (upper_bound_fp,) = self.cubes[5].coord("forecast_period").points
         plugin = Accumulation(
-            accumulation_period=5*60,
-            forecast_periods=np.array([5])*60)
+            accumulation_period=5 * 60, forecast_periods=np.array([5]) * 60
+        )
         result = plugin._get_cube_subsets(self.cubes, upper_bound_fp)
         self.assertEqual(expected_cube_subset, result)
 
@@ -308,20 +334,25 @@ class Test__calculate_accumulation(rate_cube_set_up):
         as the cube_subset only contains a pair of cubes, then the
         accumulation from this pair will be the same as the total accumulation.
         """
-        expected_t0 = np.array([
-            [0.015, 0.03, 0.03, 0.03, 0.03, 0.06, 0.09, 0.09, 0.09, 0.09],
-            [0.015, 0.03, 0.03, 0.03, 0.03, np.nan, np.nan, 0.09, 0.09, 0.09],
-            [0., 0., 0., 0., 0., np.nan, np.nan, 0.09, 0.09, 0.09],
-            [0., 0., 0., 0., 0., 0.045, 0.09, 0.09, 0.09, 0.09]])
+        expected_t0 = np.array(
+            [
+                [0.015, 0.03, 0.03, 0.03, 0.03, 0.06, 0.09, 0.09, 0.09, 0.09],
+                [0.015, 0.03, 0.03, 0.03, 0.03, np.nan, np.nan, 0.09, 0.09, 0.09],
+                [0.0, 0.0, 0.0, 0.0, 0.0, np.nan, np.nan, 0.09, 0.09, 0.09],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.045, 0.09, 0.09, 0.09, 0.09],
+            ]
+        )
 
-        expected_mask_t0 = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+        expected_mask_t0 = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        )
         time_interval = 60
-        result = Accumulation()._calculate_accumulation(
-            self.cubes[:2], time_interval)
+        result = Accumulation()._calculate_accumulation(self.cubes[:2], time_interval)
         self.assertArrayAlmostEqual(result, expected_t0)
         self.assertArrayAlmostEqual(result.mask, expected_mask_t0)
 
@@ -335,11 +366,15 @@ class Test__set_metadata(rate_cube_set_up):
         expected_name = "lwe_thickness_of_precipitation_amount"
         expected_units = Unit("m")
         expected_time_point = [datetime.datetime(2017, 11, 10, 4, 10)]
-        expected_time_bounds = [(datetime.datetime(2017, 11, 10, 4, 0),
-                                 datetime.datetime(2017, 11, 10, 4, 10))]
+        expected_time_bounds = [
+            (
+                datetime.datetime(2017, 11, 10, 4, 0),
+                datetime.datetime(2017, 11, 10, 4, 10),
+            )
+        ]
         expected_fp_point = 600
         expected_fp_bounds = [[0, 600]]
-        expected_cell_method = iris.coords.CellMethod('sum', coords='time')
+        expected_cell_method = iris.coords.CellMethod("sum", coords="time")
 
         result = Accumulation()._set_metadata(self.cubes)
         self.assertEqual(result.name(), expected_name)
@@ -348,10 +383,12 @@ class Test__set_metadata(rate_cube_set_up):
         bounds = [value.bound for value in result.coord("time").cells()]
         self.assertEqual(points, expected_time_point)
         self.assertArrayAlmostEqual(
-            result.coord("forecast_period").points, expected_fp_point)
+            result.coord("forecast_period").points, expected_fp_point
+        )
         self.assertEqual(bounds, expected_time_bounds)
         self.assertArrayAlmostEqual(
-            result.coord("forecast_period").bounds, expected_fp_bounds)
+            result.coord("forecast_period").bounds, expected_fp_bounds
+        )
         self.assertEqual(result.cell_methods[0], expected_cell_method)
 
 
@@ -362,13 +399,15 @@ class Test_process(rate_cube_set_up):
         """Set up forecast periods used for testing."""
         super().setUp()
         self.forecast_periods = [
-            cube.coord("forecast_period").points for cube in self.cubes[1:]]
+            cube.coord("forecast_period").points for cube in self.cubes[1:]
+        ]
 
     def test_returns_cubelist(self):
         """Test function returns a cubelist."""
 
         plugin = Accumulation(
-            accumulation_period=60, forecast_periods=self.forecast_periods)
+            accumulation_period=60, forecast_periods=self.forecast_periods
+        )
         result = plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.CubeList)
 
@@ -380,18 +419,19 @@ class Test_process(rate_cube_set_up):
         accumulation_length = 120
         plugin = Accumulation(
             accumulation_period=accumulation_length,
-            forecast_periods=self.forecast_periods)
+            forecast_periods=self.forecast_periods,
+        )
         result = plugin.process(self.cubes)
         for cube in result:
-            self.assertEqual(np.diff(cube.coord("forecast_period").bounds),
-                             accumulation_length)
+            self.assertEqual(
+                np.diff(cube.coord("forecast_period").bounds), accumulation_length
+            )
 
     def test_returns_masked_cubes(self):
         """Test function returns a list of masked cubes for masked input
         data."""
 
-        result = Accumulation(
-            forecast_periods=[600]).process(self.cubes)
+        result = Accumulation(forecast_periods=[600]).process(self.cubes)
         self.assertIsInstance(result[0].data, np.ma.MaskedArray)
 
     def test_default_output_units(self):
@@ -401,13 +441,15 @@ class Test_process(rate_cube_set_up):
         # Multiply the rates in mm/s by 60 to get accumulation over 1 minute
         # and divide by 1000 to get into metres.
         expected = self.cubes[0].copy(
-            data=(0.5 * (self.cubes[0].data + self.cubes[1].data) * 60 / 1000))
+            data=(0.5 * (self.cubes[0].data + self.cubes[1].data) * 60 / 1000)
+        )
 
         plugin = Accumulation(
-            accumulation_period=60, forecast_periods=self.forecast_periods)
+            accumulation_period=60, forecast_periods=self.forecast_periods
+        )
         result = plugin.process(self.cubes)
 
-        self.assertEqual(result[0].units, 'm')
+        self.assertEqual(result[0].units, "m")
         self.assertArrayAlmostEqual(result[0].data, expected.data)
 
     def test_default_altered_output_units(self):
@@ -416,16 +458,21 @@ class Test_process(rate_cube_set_up):
 
         # Multiply the rates in mm/s by 60 to get accumulation over 1 minute
         expected = self.cubes[0].copy(
-            data=(0.5 * (self.cubes[0].data + self.cubes[1].data) * 60))
+            data=(0.5 * (self.cubes[0].data + self.cubes[1].data) * 60)
+        )
 
-        plugin = Accumulation(accumulation_units='mm', accumulation_period=60,
-                              forecast_periods=self.forecast_periods)
+        plugin = Accumulation(
+            accumulation_units="mm",
+            accumulation_period=60,
+            forecast_periods=self.forecast_periods,
+        )
         result = plugin.process(self.cubes)
-        self.assertEqual(result[0].units, 'mm')
+        self.assertEqual(result[0].units, "mm")
         self.assertArrayAlmostEqual(result[0].data, expected.data)
 
-    @ManageWarnings(ignored_messages=["The provided cubes result in a"],
-                    warning_types=[UserWarning])
+    @ManageWarnings(
+        ignored_messages=["The provided cubes result in a"], warning_types=[UserWarning]
+    )
     def test_does_not_use_incomplete_period_data(self):
         """Test function returns only 2 accumulation periods when a 4 minute
         aggregation period is used with 10 minutes of input data. The trailing
@@ -434,8 +481,7 @@ class Test_process(rate_cube_set_up):
         so is ignored here.
         """
 
-        plugin = Accumulation(accumulation_period=240,
-                              forecast_periods=[240, 480])
+        plugin = Accumulation(accumulation_period=240, forecast_periods=[240, 480])
         result = plugin.process(self.cubes)
         self.assertEqual(len(result), 2)
 
@@ -445,33 +491,58 @@ class Test_process(rate_cube_set_up):
         comparison easy. Check that the number of accumulation cubes returned
         is the expected number."""
 
-        expected_t0 = np.array([
-            [0.015, 0.045, 0.075, 0.105, 0.135, 0.18, 0.24, 0.3, 0.36, 0.42],
-            [0.015, 0.045, 0.075, 0.105, 0.135,
-             np.nan, np.nan, np.nan, np.nan, np.nan],
-            [0., 0., 0., 0., 0., np.nan, np.nan, np.nan, np.nan, np.nan],
-            [0., 0., 0., 0., 0., 0.045, 0.135, 0.225, 0.315, 0.405]])
+        expected_t0 = np.array(
+            [
+                [0.015, 0.045, 0.075, 0.105, 0.135, 0.18, 0.24, 0.3, 0.36, 0.42],
+                [
+                    0.015,
+                    0.045,
+                    0.075,
+                    0.105,
+                    0.135,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                ],
+                [0.0, 0.0, 0.0, 0.0, 0.0, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.045, 0.135, 0.225, 0.315, 0.405],
+            ]
+        )
 
-        expected_t1 = np.array([
-            [0., 0., 0., 0., 0., 0.015, 0.045, 0.075, 0.105, 0.135],
-            [0., 0., 0., 0., 0., 0.015, 0.045, 0.075, 0.105, 0.135],
-            [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
-            [0., 0., 0., 0., 0., 0., 0., 0., 0., 0.]])
+        expected_t1 = np.array(
+            [
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.015, 0.045, 0.075, 0.105, 0.135],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.015, 0.045, 0.075, 0.105, 0.135],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            ]
+        )
 
-        expected_mask_t0 = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+        expected_mask_t0 = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        )
 
-        expected_mask_t1 = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+        expected_mask_t1 = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        )
 
-        plugin = Accumulation(accumulation_period=300, accumulation_units='mm',
-                              forecast_periods=[300, 600])
+        plugin = Accumulation(
+            accumulation_period=300,
+            accumulation_units="mm",
+            forecast_periods=[300, 600],
+        )
         result = plugin.process(self.cubes)
 
         self.assertArrayAlmostEqual(result[0].data, expected_t0)
@@ -489,32 +560,47 @@ class Test_process(rate_cube_set_up):
         for the 5 minute test above. Check that the number of accumulation
         cubes returned is the expected number."""
 
-        expected_t0 = np.array([
-            [0.015, 0.045, 0.075, 0.105, 0.135,
-             0.195, 0.285, 0.375, 0.465, 0.555],
-            [0.015, 0.045, 0.075, 0.105, 0.135,
-             np.nan, np.nan, np.nan, np.nan, np.nan],
-            [0., 0., 0., 0., 0.,
-             np.nan, np.nan, np.nan, np.nan, np.nan],
-            [0., 0., 0., 0., 0.,
-             0.045, 0.135, 0.225, 0.315, 0.405]])
+        expected_t0 = np.array(
+            [
+                [0.015, 0.045, 0.075, 0.105, 0.135, 0.195, 0.285, 0.375, 0.465, 0.555],
+                [
+                    0.015,
+                    0.045,
+                    0.075,
+                    0.105,
+                    0.135,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                ],
+                [0.0, 0.0, 0.0, 0.0, 0.0, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.045, 0.135, 0.225, 0.315, 0.405],
+            ]
+        )
 
-        expected_mask_t0 = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+        expected_mask_t0 = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        )
 
-        plugin = Accumulation(accumulation_period=600, accumulation_units='mm',
-                              forecast_periods=[600])
+        plugin = Accumulation(
+            accumulation_period=600, accumulation_units="mm", forecast_periods=[600]
+        )
         result = plugin.process(self.cubes)
 
         self.assertArrayAlmostEqual(result[0].data, expected_t0)
         self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
         self.assertEqual(len(result), 1)
 
-    @ManageWarnings(ignored_messages=["The provided cubes result in a"],
-                    warning_types=[UserWarning])
+    @ManageWarnings(
+        ignored_messages=["The provided cubes result in a"], warning_types=[UserWarning]
+    )
     def test_returns_total_accumulation_if_no_period_specified(self):
         """Test function returns a list containing a single accumulation cube
         that is the accumulation over the whole period specified by the rates
@@ -522,23 +608,36 @@ class Test_process(rate_cube_set_up):
         the total span of the input rates cubes. Check that the number of
         accumulation cubes returned is the expected number."""
 
-        expected_t0 = np.array([
-            [0.015, 0.045, 0.075, 0.105, 0.135,
-             0.195, 0.285, 0.375, 0.465, 0.555],
-            [0.015, 0.045, 0.075, 0.105, 0.135,
-             np.nan, np.nan, np.nan, np.nan, np.nan],
-            [0., 0., 0., 0., 0.,
-             np.nan, np.nan, np.nan, np.nan, np.nan],
-            [0., 0., 0., 0., 0.,
-             0.045, 0.135, 0.225, 0.315, 0.405]])
+        expected_t0 = np.array(
+            [
+                [0.015, 0.045, 0.075, 0.105, 0.135, 0.195, 0.285, 0.375, 0.465, 0.555],
+                [
+                    0.015,
+                    0.045,
+                    0.075,
+                    0.105,
+                    0.135,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                    np.nan,
+                ],
+                [0.0, 0.0, 0.0, 0.0, 0.0, np.nan, np.nan, np.nan, np.nan, np.nan],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.045, 0.135, 0.225, 0.315, 0.405],
+            ]
+        )
 
-        expected_mask_t0 = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+        expected_mask_t0 = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        )
 
-        plugin = Accumulation(accumulation_units='mm')
+        plugin = Accumulation(accumulation_units="mm")
         result = plugin.process(self.cubes)
 
         self.assertArrayAlmostEqual(result[0].data, expected_t0)
@@ -550,32 +649,47 @@ class Test_process(rate_cube_set_up):
         aggregation period. Check that the number of accumulation cubes
         returned is the expected number."""
 
-        expected_t0 = np.array([
-            [0.015, 0.03, 0.03, 0.03, 0.03, 0.06, 0.09, 0.09, 0.09, 0.09],
-            [0.015, 0.03, 0.03, 0.03, 0.03, np.nan, np.nan, 0.09, 0.09, 0.09],
-            [0., 0., 0., 0., 0., np.nan, np.nan, 0.09, 0.09, 0.09],
-            [0., 0., 0., 0., 0., 0.045, 0.09, 0.09, 0.09, 0.09]])
+        expected_t0 = np.array(
+            [
+                [0.015, 0.03, 0.03, 0.03, 0.03, 0.06, 0.09, 0.09, 0.09, 0.09],
+                [0.015, 0.03, 0.03, 0.03, 0.03, np.nan, np.nan, 0.09, 0.09, 0.09],
+                [0.0, 0.0, 0.0, 0.0, 0.0, np.nan, np.nan, 0.09, 0.09, 0.09],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.045, 0.09, 0.09, 0.09, 0.09],
+            ]
+        )
 
-        expected_t7 = np.array([
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.015, 0.03, 0.03],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.015, 0.03, 0.03],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]])
+        expected_t7 = np.array(
+            [
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.015, 0.03, 0.03],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.015, 0.03, 0.03],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            ]
+        )
 
-        expected_mask_t0 = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+        expected_mask_t0 = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        )
 
-        expected_mask_t7 = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+        expected_mask_t7 = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ]
+        )
 
-        plugin = Accumulation(accumulation_period=60, accumulation_units='mm',
-                              forecast_periods=self.forecast_periods)
+        plugin = Accumulation(
+            accumulation_period=60,
+            accumulation_units="mm",
+            forecast_periods=self.forecast_periods,
+        )
         result = plugin.process(self.cubes)
 
         self.assertArrayAlmostEqual(result[0].data, expected_t0)
@@ -585,5 +699,5 @@ class Test_process(rate_cube_set_up):
         self.assertEqual(len(result), 10)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

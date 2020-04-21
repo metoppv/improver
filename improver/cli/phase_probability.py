@@ -35,8 +35,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube,
-            radius: float = 10000.):
+def process(*cubes: cli.inputcube, radius: float = 10000.0):
     """
     Converts a phase-change-level cube into the
     probability of a specific precipitation phase being found at the surface.
@@ -54,6 +53,8 @@ def process(*cubes: cli.inputcube,
 
     """
     from improver.psychrometric_calculations.precip_phase_probability import (
-        PrecipPhaseProbability)
+        PrecipPhaseProbability,
+    )
     from iris.cube import CubeList
-    return PrecipPhaseProbability(radius=radius).process(CubeList(cubes))
+
+    return PrecipPhaseProbability(radius=radius)(CubeList(cubes))

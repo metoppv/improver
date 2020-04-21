@@ -49,13 +49,13 @@ class Test_svp_table(IrisTest):
     def check_svp_table(t_min, t_max, t_increment, expected):
         """Recreate part of table and compare with expected values."""
         result = SaturatedVapourPressureTable(
-            t_min=t_min, t_max=t_max, t_increment=t_increment).process()
-        np.testing.assert_allclose(result.data, expected, rtol=1.e-5)
+            t_min=t_min, t_max=t_max, t_increment=t_increment
+        ).process()
+        np.testing.assert_allclose(result.data, expected, rtol=1.0e-5)
 
     def test_cube_values_bottom(self):
         """Test the lower end of the SVP table"""
-        t_min, t_max, t_increment = (svp_table.T_MIN, 185.15,
-                                     svp_table.T_INCREMENT)
+        t_min, t_max, t_increment = (svp_table.T_MIN, 185.15, svp_table.T_INCREMENT)
         expected = svp_table.DATA[0:21]
         self.check_svp_table(t_min, t_max, t_increment, expected)
 
@@ -67,11 +67,10 @@ class Test_svp_table(IrisTest):
 
     def test_cube_values_top(self):
         """Test the upper end of the SVP table"""
-        t_min, t_max, t_increment = (336.15, svp_table.T_MAX,
-                                     svp_table.T_INCREMENT)
+        t_min, t_max, t_increment = (336.15, svp_table.T_MAX, svp_table.T_INCREMENT)
         expected = svp_table.DATA[1530:]
         self.check_svp_table(t_min, t_max, t_increment, expected)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

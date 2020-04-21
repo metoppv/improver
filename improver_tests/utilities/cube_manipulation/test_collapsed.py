@@ -38,6 +38,7 @@ import iris
 import numpy as np
 
 from improver.utilities.cube_manipulation import collapsed
+
 from ...set_up_test_cubes import set_up_variable_cube
 
 
@@ -47,28 +48,35 @@ class Test_collapsed(unittest.TestCase):
 
     def setUp(self):
         """Use temperature cube to test with."""
-        data = 281*np.ones((3, 3, 3), dtype=np.float32)
+        data = 281 * np.ones((3, 3, 3), dtype=np.float32)
         self.cube = set_up_variable_cube(data, realizations=[0, 1, 2])
 
     def test_single_method(self):
         """Test that a collapsed cube is returned with no cell method added"""
-        result = collapsed(self.cube, 'realization', iris.analysis.MEAN)
+        result = collapsed(self.cube, "realization", iris.analysis.MEAN)
         self.assertTupleEqual(result.cell_methods, ())
-        self.assertTrue((result.data == self.cube.collapsed(
-            'realization', iris.analysis.MEAN).data).all())
+        self.assertTrue(
+            (
+                result.data
+                == self.cube.collapsed("realization", iris.analysis.MEAN).data
+            ).all()
+        )
 
     def test_two_methods(self):
         """Test that a cube keeps its original cell method but another
         isn't added.
         """
         cube = self.cube
-        method = iris.coords.CellMethod('test')
+        method = iris.coords.CellMethod("test")
         cube.add_cell_method(method)
-        result = collapsed(cube, 'realization', iris.analysis.MEAN)
+        result = collapsed(cube, "realization", iris.analysis.MEAN)
         self.assertTupleEqual(result.cell_methods, (method,))
-        self.assertTrue((result.data == cube.collapsed(
-            'realization', iris.analysis.MEAN).data).all())
+        self.assertTrue(
+            (
+                result.data == cube.collapsed("realization", iris.analysis.MEAN).data
+            ).all()
+        )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

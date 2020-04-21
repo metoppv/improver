@@ -49,18 +49,21 @@ Bounds = namedtuple("bounds", "value units")
 # Tellus Series A, Dynamic Meteorology and Oceanography, 66, 22662.
 
 BOUNDS_FOR_ECDF = {
-    "air_temperature": (
-        Bounds((-100-ABSOLUTE_ZERO, 60-ABSOLUTE_ZERO), "Kelvin")),
+    "air_temperature": (Bounds((-100 - ABSOLUTE_ZERO, 60 - ABSOLUTE_ZERO), "Kelvin")),
     "feels_like_temperature": (
-        Bounds((-100-ABSOLUTE_ZERO, 60-ABSOLUTE_ZERO), "Kelvin")),
+        Bounds((-100 - ABSOLUTE_ZERO, 60 - ABSOLUTE_ZERO), "Kelvin")
+    ),
     "wind_speed": Bounds((0, 50), "m s^-1"),
     "wind_speed_of_gust": Bounds((0, 200), "m s^-1"),
     "air_pressure_at_sea_level": Bounds((86000, 108000), "Pa"),
-    ("cloud_base_altitude_assuming_only_consider_cloud_area" +
-     "_fraction_greater_than_2p5_oktas"): Bounds((-300, 20000), "m"),
+    (
+        "cloud_base_altitude_assuming_only_consider_cloud_area"
+        + "_fraction_greater_than_2p5_oktas"
+    ): Bounds((-300, 20000), "m"),
     "cloud_area_fraction": Bounds((0, 1.0), "1"),
-    ("cloud_area_fraction_assuming_only_consider_surface_to_1000_" +
-     "feet_asl"): Bounds((0, 1.0), "1"),
+    (
+        "cloud_area_fraction_assuming_only_consider_surface_to_1000_" + "feet_asl"
+    ): Bounds((0, 1.0), "1"),
     "low_type_cloud_area_fraction": Bounds((0, 1.0), "1"),
     "lwe_precipitation_rate": Bounds((0, 128.0), "mm h-1"),
     "lwe_precipitation_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
@@ -75,8 +78,10 @@ BOUNDS_FOR_ECDF = {
     "lwe_snowfall_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
     "visibility_in_air": Bounds((0, 100000), "m"),
     "temperature_at_screen_level_nighttime_min": (
-        Bounds((-100-ABSOLUTE_ZERO, 60-ABSOLUTE_ZERO), "Kelvin")),
+        Bounds((-100 - ABSOLUTE_ZERO, 60 - ABSOLUTE_ZERO), "Kelvin")
+    ),
     "temperature_at_screen_level_daytime_max": (
-        Bounds((-100-ABSOLUTE_ZERO, 60-ABSOLUTE_ZERO), "Kelvin")),
-    "ultraviolet_index": Bounds((0, 25.0), "1")
+        Bounds((-100 - ABSOLUTE_ZERO, 60 - ABSOLUTE_ZERO), "Kelvin")
+    ),
+    "ultraviolet_index": Bounds((0, 25.0), "1"),
 }

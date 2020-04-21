@@ -1,0 +1,4 @@
+# codecov options
+
+ignore:
+  - "improver/cli"  # ignore folders and all its contents

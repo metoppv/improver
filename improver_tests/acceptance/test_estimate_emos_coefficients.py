@@ -70,15 +70,24 @@ def test_gaussian(tmp_path):
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = [history_path, truth_path,
-            "--distribution", "gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--tolerance", EST_EMOS_TOL,
-            "--output", output_path]
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "gaussian",
+        "--cycletime",
+        "20170605T0300Z",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
 
 
 @pytest.mark.slow
@@ -92,15 +101,24 @@ def test_trunc_gaussian(tmp_path):
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = [history_path, truth_path,
-            "--distribution", "truncated_gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--tolerance", EST_EMOS_TOL,
-            "--output", output_path]
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "truncated_gaussian",
+        "--cycletime",
+        "20170605T0300Z",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
 
 
 @pytest.mark.slow
@@ -111,16 +129,26 @@ def test_units(tmp_path):
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = [history_path, truth_path,
-            "--distribution", "gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--units", "K",
-            "--max-iterations", "600",
-            "--output", output_path]
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "gaussian",
+        "--cycletime",
+        "20170605T0300Z",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--units",
+        "K",
+        "--max-iterations",
+        "600",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
 
 
 @pytest.mark.slow
@@ -132,17 +160,28 @@ def test_using_realizations_as_predictor_no_sm(tmp_path):
     history_path = kgo_dir / "gaussian/history/*.nc"
     truth_path = kgo_dir / "gaussian/truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = [history_path, truth_path,
-            "--distribution", "gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--predictor", "realizations",
-            "--max-iterations", "150",
-            "--tolerance", EST_EMOS_TOL,
-            "--output", output_path]
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "gaussian",
+        "--cycletime",
+        "20170605T0300Z",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--predictor",
+        "realizations",
+        "--max-iterations",
+        "150",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
 
 
 @acc.skip_if_no_statsmodels
@@ -153,17 +192,28 @@ def test_using_realizations_as_predictor_sm(tmp_path):
     history_path = kgo_dir / "gaussian/history/*.nc"
     truth_path = kgo_dir / "gaussian/truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = [history_path, truth_path,
-            "--distribution", "gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--predictor", "realizations",
-            "--max-iterations", "150",
-            "--tolerance", EST_EMOS_TOL,
-            "--output", output_path]
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "gaussian",
+        "--cycletime",
+        "20170605T0300Z",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--predictor",
+        "realizations",
+        "--max-iterations",
+        "150",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
 
 
 @pytest.mark.slow
@@ -175,12 +225,22 @@ def test_land_points_only(tmp_path):
     history_path = kgo_dir / "gaussian/history/*.nc"
     truth_path = kgo_dir / "gaussian/truth/*.nc"
     output_path = tmp_path / "output.nc"
-    args = [history_path, truth_path, lsmask_path,
-            "--distribution", "gaussian",
-            "--cycletime", "20170605T0300Z",
-            "--truth-attribute", "mosg__model_configuration=uk_det",
-            "--tolerance", EST_EMOS_TOL,
-            "--output", output_path]
+    args = [
+        history_path,
+        truth_path,
+        lsmask_path,
+        "--distribution",
+        "gaussian",
+        "--cycletime",
+        "20170605T0300Z",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
-    acc.compare(output_path, kgo_path,
-                atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )

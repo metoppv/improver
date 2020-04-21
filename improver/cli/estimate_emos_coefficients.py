@@ -38,14 +38,16 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube,
-            distribution,
-            truth_attribute,
-            cycletime,
-            units=None,
-            predictor='mean',
-            tolerance: float = 0.01,
-            max_iterations: int = 1000):
+def process(
+    *cubes: cli.inputcube,
+    distribution,
+    truth_attribute,
+    cycletime,
+    units=None,
+    predictor="mean",
+    tolerance: float = 0.01,
+    max_iterations: int = 1000,
+):
     """Estimate coefficients for Ensemble Model Output Statistics.
 
     Loads in arguments for estimating coefficients for Ensemble Model
@@ -104,13 +106,18 @@ def process(*cubes: cli.inputcube,
 
     from improver.calibration import split_forecasts_and_truth
     from improver.calibration.ensemble_calibration import (
-        EstimateCoefficientsForEnsembleCalibration)
+        EstimateCoefficientsForEnsembleCalibration,
+    )
 
-    forecast, truth, land_sea_mask = split_forecasts_and_truth(
-        cubes, truth_attribute)
+    forecast, truth, land_sea_mask = split_forecasts_and_truth(cubes, truth_attribute)
 
-    return EstimateCoefficientsForEnsembleCalibration(
-        distribution, cycletime, desired_units=units,
-        predictor=predictor, tolerance=tolerance,
-        max_iterations=max_iterations).process(
-            forecast, truth, landsea_mask=land_sea_mask)
+    plugin = EstimateCoefficientsForEnsembleCalibration(
+        distribution,
+        cycletime,
+        desired_units=units,
+        predictor=predictor,
+        tolerance=tolerance,
+        max_iterations=max_iterations,
+    )
+
+    return plugin(forecast, truth, landsea_mask=land_sea_mask)

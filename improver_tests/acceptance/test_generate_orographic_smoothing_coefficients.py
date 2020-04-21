@@ -47,9 +47,14 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "orography.nc"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--max-smoothing-coefficient", "0.",
-            "--min-smoothing-coefficient", "0.5",
-            "--output", output_path]
+    args = [
+        input_path,
+        "--max-smoothing-coefficient",
+        "0.",
+        "--min-smoothing-coefficient",
+        "0.5",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

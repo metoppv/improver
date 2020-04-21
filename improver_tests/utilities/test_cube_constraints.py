@@ -43,6 +43,7 @@ from ..utilities.test_cube_extraction import set_up_precip_probability_cube
 
 class Test_create_sorted_lambda_constraint(IrisTest):
     """Test that a lambda constraint is created."""
+
     def setUp(self):
         """Set up cube with testing lambda constraint."""
         self.precip_cube = set_up_precip_probability_cube()
@@ -77,13 +78,12 @@ class Test_create_sorted_lambda_constraint(IrisTest):
         available thresholds using two bounds; this is testing an extreme
         not a desirable use case."""
         values = [0.03, 0.6]
-        result = create_sorted_lambda_constraint(
-            self.coord_name, values, tolerance=0.9)
+        result = create_sorted_lambda_constraint(self.coord_name, values, tolerance=0.9)
         self.assertIsInstance(result, iris.Constraint)
         self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
         result_cube = self.precip_cube.extract(result)
         self.assertArrayAlmostEqual(result_cube.data, self.precip_cube.data)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

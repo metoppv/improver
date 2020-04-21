@@ -46,11 +46,16 @@ def test_basic(tmp_path):
     low_cloud_path = kgo_dir / "low_cloud.nc"
     medium_cloud_path = kgo_dir / "medium_cloud.nc"
     output_path = tmp_path / "output.nc"
-    args = ["--operation", "max",
-            "--new-name", "cloud_area_fraction",
-            low_cloud_path,
-            medium_cloud_path,
-            "--output", f"{output_path}"]
+    args = [
+        "--operation",
+        "max",
+        "--new-name",
+        "cloud_area_fraction",
+        low_cloud_path,
+        medium_cloud_path,
+        "--output",
+        f"{output_path}",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -60,12 +65,9 @@ def test_minmax_temperatures(tmp_path, minmax):
     """Test combining minimum and maximum temperatures"""
     kgo_dir = acc.kgo_root() / "combine/bounds"
     kgo_path = kgo_dir / f"kgo_{minmax}.nc"
-    temperatures = sorted(
-        kgo_dir.glob(f"*temperature_at_screen_level_{minmax}.nc"))
+    temperatures = sorted(kgo_dir.glob(f"*temperature_at_screen_level_{minmax}.nc"))
     output_path = tmp_path / "output.nc"
-    args = ["--operation", f"{minmax}",
-            *temperatures,
-            "--output", f"{output_path}"]
+    args = ["--operation", f"{minmax}", *temperatures, "--output", f"{output_path}"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -76,8 +78,7 @@ def test_combine_accumulation(tmp_path):
     kgo_path = kgo_dir / "kgo_accum.nc"
     rains = sorted(kgo_dir.glob("*rainfall_accumulation.nc"))
     output_path = tmp_path / "output.nc"
-    args = [*rains,
-            "--output", f"{output_path}"]
+    args = [*rains, "--output", f"{output_path}"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -88,9 +89,7 @@ def test_mean_temperature(tmp_path):
     kgo_path = kgo_dir / "kgo_mean.nc"
     temperatures = sorted(kgo_dir.glob("*temperature_at_screen_level.nc"))
     output_path = tmp_path / "output.nc"
-    args = ["--operation", "mean",
-            *temperatures,
-            "--output", f"{output_path}"]
+    args = ["--operation", "mean", *temperatures, "--output", f"{output_path}"]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -101,9 +100,13 @@ def test_midpoint(tmp_path):
     kgo_path = kgo_dir / "kgo_midpoint.nc"
     temperatures = sorted(kgo_dir.glob("*temperature_at_screen_level.nc"))
     output_path = tmp_path / "output.nc"
-    args = ["--operation", "mean",
-            *temperatures,
-            "--use-midpoint",
-            "--output", f"{output_path}"]
+    args = [
+        "--operation",
+        "mean",
+        *temperatures,
+        "--use-midpoint",
+        "--output",
+        f"{output_path}",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

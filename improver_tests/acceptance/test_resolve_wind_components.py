@@ -52,7 +52,6 @@ def test_basic(tmp_path):
     wspd_path = input_dir / f"20181103T1600Z-PT0001H00M-{WSPD}.nc"
     wdir_path = input_dir / f"20181103T1600Z-PT0001H00M-{WDIR}.nc"
     output_path = tmp_path / "output.nc"
-    args = [wspd_path, wdir_path,
-            "--output", output_path]
+    args = [wspd_path, wdir_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path, rtol=0.0)

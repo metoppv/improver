@@ -35,9 +35,9 @@ import copy
 import cartopy.crs as ccrs
 import iris
 import numpy as np
-from scipy.ndimage.filters import maximum_filter
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
+from scipy.ndimage.filters import maximum_filter
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.utilities.cube_checker import check_cube_coordinates
@@ -62,14 +62,13 @@ def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
             axis (from calculate_grid_spacing)
         ValueError: If point spacing is not equal for the two spatial axes
     """
-    x_diff = calculate_grid_spacing(cube, 'metres', axis='x')
-    y_diff = calculate_grid_spacing(cube, 'metres', axis='y')
+    x_diff = calculate_grid_spacing(cube, "metres", axis="x")
+    y_diff = calculate_grid_spacing(cube, "metres", axis="y")
     if require_equal_xy_spacing and not np.isclose(x_diff, y_diff):
-        raise ValueError(
-            "Grid does not have equal spacing in x and y dimensions")
+        raise ValueError("Grid does not have equal spacing in x and y dimensions")
 
 
-def calculate_grid_spacing(cube, units, axis='x'):
+def calculate_grid_spacing(cube, units, axis="x"):
     """
     Returns the grid spacing of a given spatial axis
 
@@ -93,12 +92,12 @@ def calculate_grid_spacing(cube, units, axis='x'):
     diffs = np.unique(np.diff(coord.points))
     if len(diffs) > 1:
         raise ValueError(
-            'Coordinate {} points are not equally spaced'.format(coord.name()))
+            "Coordinate {} points are not equally spaced".format(coord.name())
+        )
     return diffs[0]
 
 
-def distance_to_number_of_grid_cells(cube, distance, axis='x',
-                                     return_int=True):
+def distance_to_number_of_grid_cells(cube, distance, axis="x", return_int=True):
     """
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.  Requires an equal-area grid on which the spacing
@@ -127,11 +126,10 @@ def distance_to_number_of_grid_cells(cube, distance, axis='x',
     """
     d_error = f"Distance of {distance}m"
     if distance <= 0:
-        raise ValueError(
-            f"Please specify a positive distance in metres. {d_error}")
+        raise ValueError(f"Please specify a positive distance in metres. {d_error}")
 
     # calculate grid spacing along chosen axis
-    grid_spacing_metres = calculate_grid_spacing(cube, 'metres', axis=axis)
+    grid_spacing_metres = calculate_grid_spacing(cube, "metres", axis=axis)
     grid_cells = distance / abs(grid_spacing_metres)
 
     if return_int:
@@ -158,7 +156,7 @@ def number_of_grid_cells_to_distance(cube, grid_points):
             The radius in metres.
     """
     check_if_grid_is_equal_area(cube)
-    spacing = calculate_grid_spacing(cube, 'metres')
+    spacing = calculate_grid_spacing(cube, "metres")
     radius_in_metres = spacing * grid_points
     return radius_in_metres
 
@@ -221,12 +219,12 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         # TODO: update metadata for difference and add metadata for gradient
         #       when proper conventions have been agreed upon.
         if not self.is_gradient:
-            cell_method = CellMethod("difference", coords=[coord_name],
-                                     intervals='1 grid length')
+            cell_method = CellMethod(
+                "difference", coords=[coord_name], intervals="1 grid length"
+            )
             diff_cube.add_cell_method(cell_method)
-            diff_cube.attributes["form_of_difference"] = (
-                "forward_difference")
-        diff_cube.rename('difference_of_' + cube.name())
+            diff_cube.attributes["form_of_difference"] = "forward_difference"
+        diff_cube.rename("difference_of_" + cube.name())
         return diff_cube
 
     def calculate_difference(self, cube, coord_axis):
@@ -249,8 +247,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         coord_name = cube.coord(axis=coord_axis).name()
         diff_axis = cube.coord_dims(coord_name)[0]
         diff_along_axis = np.diff(cube.data, axis=diff_axis)
-        diff_cube = self.create_difference_cube(
-            cube, coord_name, diff_along_axis)
+        diff_cube = self.create_difference_cube(cube, coord_name, diff_along_axis)
         return diff_cube
 
     @staticmethod
@@ -276,7 +273,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         grid_spacing = np.diff(diff_cube.coord(axis=coord_axis).points)[0]
         gradient = diff_cube.copy(data=diff_cube.data / grid_spacing)
         gradient = gradient.regrid(ref_cube, iris.analysis.Linear())
-        gradient.rename(diff_cube.name().replace('difference_', 'gradient_'))
+        gradient.rename(diff_cube.name().replace("difference_", "gradient_"))
         return gradient
 
     def process(self, cube):
@@ -299,11 +296,13 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                     x axis.
 
         """
-        xy = ['x', 'y']
+        xy = ["x", "y"]
         diffs = [self.calculate_difference(cube, axis) for axis in xy]
         if self.is_gradient:
-            diffs = [self.gradient_from_diff(diff, cube, axis)
-                     for diff, axis in zip(diffs, xy)]
+            diffs = [
+                self.gradient_from_diff(diff, cube, axis)
+                for diff, axis in zip(diffs, xy)
+            ]
 
         return diffs[0], diffs[1]
 
@@ -326,7 +325,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = '<OccurrenceWithinVicinity: distance: {}>'
+        result = "<OccurrenceWithinVicinity: distance: {}>"
         return result.format(self.distance)
 
     def maximum_within_vicinity(self, cube):
@@ -388,8 +387,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         """
 
         max_cubes = CubeList([])
-        for cube_slice in cube.slices([cube.coord(axis='y'),
-                                       cube.coord(axis='x')]):
+        for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
             max_cubes.append(self.maximum_within_vicinity(cube_slice))
         result_cube = max_cubes.merge_cube()
 
@@ -415,8 +413,10 @@ def lat_lon_determine(cube):
 
     """
     trg_crs = None
-    if (not cube.coord(axis='x').name() == 'longitude' or
-            not cube.coord(axis='y').name() == 'latitude'):
+    if (
+        not cube.coord(axis="x").name() == "longitude"
+        or not cube.coord(axis="y").name() == "latitude"
+    ):
         trg_crs = cube.coord_system().as_cartopy_crs()
     return trg_crs
 
@@ -439,8 +439,8 @@ def transform_grid_to_lat_lon(cube):
     """
     trg_latlon = ccrs.PlateCarree()
     trg_crs = cube.coord_system().as_cartopy_crs()
-    x_points = cube.coord(axis='x').points
-    y_points = cube.coord(axis='y').points
+    x_points = cube.coord(axis="x").points
+    y_points = cube.coord(axis="y").points
     x_zeros = np.zeros_like(x_points)
     y_zeros = np.zeros_like(y_points)
 
@@ -449,9 +449,7 @@ def transform_grid_to_lat_lon(cube):
     all_y_points = y_points.reshape(len(y_points), 1) + x_zeros
 
     # Transform points
-    points = trg_latlon.transform_points(trg_crs,
-                                         all_x_points,
-                                         all_y_points)
+    points = trg_latlon.transform_points(trg_crs, all_x_points, all_y_points)
     lons = points[..., 0]
     lats = points[..., 1]
 

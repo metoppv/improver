@@ -56,42 +56,62 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up some input cubes"""
-        rainrate_data = np.array([
-            [0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 0.4, 0.3, 0.0],
-            [0.0, 0.2, 0.6, 0.7, 0.6],
-            [0.0, 0.0, 0.4, 0.5, 0.4],
-            [0.0, 0.0, 0.1, 0.2, 0.3]], dtype=np.float32)
+        rainrate_data = np.array(
+            [
+                [0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.4, 0.3, 0.0],
+                [0.0, 0.2, 0.6, 0.7, 0.6],
+                [0.0, 0.0, 0.4, 0.5, 0.4],
+                [0.0, 0.0, 0.1, 0.2, 0.3],
+            ],
+            dtype=np.float32,
+        )
 
-        rainrate_mask = np.array([
-            [True, True, True, True, True],
-            [True, False, False, False, False],
-            [True, False, False, False, False],
-            [True, False, False, False, False],
-            [True, False, False, False, False]], dtype=bool)
+        rainrate_mask = np.array(
+            [
+                [True, True, True, True, True],
+                [True, False, False, False, False],
+                [True, False, False, False, False],
+                [True, False, False, False, False],
+                [True, False, False, False, False],
+            ],
+            dtype=bool,
+        )
 
         rainrate_data = np.ma.MaskedArray(rainrate_data, mask=rainrate_mask)
 
         self.rainrate = set_up_variable_cube(
-            rainrate_data, name='lwe_precipitation_rate', units='mm h-1',
-            spatial_grid='equalarea')
+            rainrate_data,
+            name="lwe_precipitation_rate",
+            units="mm h-1",
+            spatial_grid="equalarea",
+        )
 
-        coverage_data = np.array([[0, 0, 0, 0, 0],
-                                  [0, 2, 1, 1, 3],
-                                  [0, 1, 1, 1, 1],
-                                  [0, 2, 1, 1, 1],
-                                  [0, 3, 1, 1, 1]], dtype=np.int32)
+        coverage_data = np.array(
+            [
+                [0, 0, 0, 0, 0],
+                [0, 2, 1, 1, 3],
+                [0, 1, 1, 1, 1],
+                [0, 2, 1, 1, 1],
+                [0, 3, 1, 1, 1],
+            ],
+            dtype=np.int32,
+        )
 
         self.coverage = set_up_variable_cube(
-            coverage_data, name='radar_coverage', units='1',
-            spatial_grid='equalarea')
+            coverage_data, name="radar_coverage", units="1", spatial_grid="equalarea"
+        )
 
-        self.expected_mask = np.array([
-            [True, True, True, True, True],
-            [True, False, False, False, True],
-            [True, False, False, False, False],
-            [True, False, False, False, False],
-            [True, True, False, False, False]], dtype=bool)
+        self.expected_mask = np.array(
+            [
+                [True, True, True, True, True],
+                [True, False, False, False, True],
+                [True, False, False, False, False],
+                [True, False, False, False, False],
+                [True, True, False, False, False],
+            ],
+            dtype=bool,
+        )
 
     def test_basic(self):
         """Test processing outputs a cube of precipitation rates"""
@@ -114,12 +134,12 @@ class Test_process(IrisTest):
 
     def test_coords_unmatched_error(self):
         """Test error is raised if coordinates do not match"""
-        x_points = self.rainrate.coord(axis='x').points
-        self.rainrate.coord(axis='x').points = x_points + 100.
-        msg = 'Rain rate and coverage composites unmatched'
+        x_points = self.rainrate.coord(axis="x").points
+        self.rainrate.coord(axis="x").points = x_points + 100.0
+        msg = "Rain rate and coverage composites unmatched"
         with self.assertRaisesRegex(ValueError, msg):
             _ = ExtendRadarMask().process(self.rainrate, self.coverage)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

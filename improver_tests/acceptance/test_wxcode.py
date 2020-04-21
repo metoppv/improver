@@ -38,15 +38,17 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
-ALL_PARAMS = ["cloud_area_fraction_above",
-              "lightning_flashes_per_unit_area_in_vicinity_above",
-              "low_type_cloud_area_fraction_above",
-              "lwe_precipitation_rate_above",
-              "lwe_precipitation_rate_in_vicinity_above",
-              "lwe_sleetfall_rate_above",
-              "lwe_snowfall_rate_above",
-              "rainfall_rate_above",
-              "visibility_in_air_below"]
+ALL_PARAMS = [
+    "cloud_area_fraction_above",
+    "lightning_flashes_per_unit_area_in_vicinity_above",
+    "low_type_cloud_area_fraction_above",
+    "lwe_precipitation_rate_above",
+    "lwe_precipitation_rate_in_vicinity_above",
+    "lwe_sleetfall_rate_above",
+    "lwe_snowfall_rate_above",
+    "rainfall_rate_above",
+    "visibility_in_air_below",
+]
 
 
 @pytest.mark.slow
@@ -54,11 +56,9 @@ def test_basic(tmp_path):
     """Test basic wxcode processing"""
     kgo_dir = acc.kgo_root() / "wxcode/basic"
     kgo_path = kgo_dir / "kgo.nc"
-    param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
-                   for p in ALL_PARAMS]
+    param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc" for p in ALL_PARAMS]
     output_path = tmp_path / "output.nc"
-    args = [*param_paths,
-            "--output", output_path]
+    args = [*param_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -73,11 +73,9 @@ def test_native_units(tmp_path):
     input_dir = acc.kgo_root() / "wxcode/native_units"
     kgo_path = kgo_dir / "kgo.nc"
 
-    param_paths = [input_dir / f"probability_of_{p}_threshold.nc"
-                   for p in ALL_PARAMS]
+    param_paths = [input_dir / f"probability_of_{p}_threshold.nc" for p in ALL_PARAMS]
     output_path = tmp_path / "output.nc"
-    args = [*param_paths,
-            "--output", output_path]
+    args = [*param_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -86,17 +84,16 @@ def test_global(tmp_path):
     """Test global wxcode processing"""
     kgo_dir = acc.kgo_root() / "wxcode/global"
     kgo_path = kgo_dir / "kgo.nc"
-    params = ["rainfall_rate_above",
-              "snowfall_rate_above",
-              "visibility_at_screen_level_below",
-              "cloud_area_fraction_above",
-              "low_type_cloud_area_fraction_above"]
-    param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
-                   for p in params]
+    params = [
+        "rainfall_rate_above",
+        "snowfall_rate_above",
+        "visibility_at_screen_level_below",
+        "cloud_area_fraction_above",
+        "low_type_cloud_area_fraction_above",
+    ]
+    param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc" for p in params]
     output_path = tmp_path / "output.nc"
-    args = [*param_paths,
-            "--wxtree", "global",
-            "--output", output_path]
+    args = [*param_paths, "--wxtree", "global", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -104,16 +101,15 @@ def test_global(tmp_path):
 def test_insufficent_files(tmp_path):
     """Test wxcode processing with insufficent files"""
     kgo_dir = acc.kgo_root() / "wxcode/global"
-    params = ["rainfall_rate_above",
-              "lwe_snowfall_rate_above",
-              "cloud_area_fraction_above",
-              "low_type_cloud_area_fraction_above"]
-    param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
-                   for p in params]
+    params = [
+        "rainfall_rate_above",
+        "lwe_snowfall_rate_above",
+        "cloud_area_fraction_above",
+        "low_type_cloud_area_fraction_above",
+    ]
+    param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc" for p in params]
     output_path = tmp_path / "output.nc"
-    args = [*param_paths,
-            "--wxtree", "global",
-            "--output", output_path]
+    args = [*param_paths, "--wxtree", "global", "--output", output_path]
     with pytest.raises(OSError):
         run_cli(args)
 
@@ -123,10 +119,12 @@ def test_no_lightning(tmp_path):
     """Test wxcode processing with no lightning"""
     kgo_dir = acc.kgo_root() / "wxcode/basic"
     kgo_path = kgo_dir / "kgo_no_lightning.nc"
-    param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc"
-                   for p in ALL_PARAMS if 'lightning' not in p]
+    param_paths = [
+        kgo_dir / f"probability_of_{p}_threshold.nc"
+        for p in ALL_PARAMS
+        if "lightning" not in p
+    ]
     output_path = tmp_path / "output.nc"
-    args = [*param_paths,
-            "--output", output_path]
+    args = [*param_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

@@ -31,15 +31,16 @@
 """Unit tests for the ConstructReliabilityCalibrationTables plugin."""
 
 import unittest
-
 from datetime import datetime
+
 import iris
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
-from improver.utilities.cube_manipulation import merge_cubes
 from improver.calibration.reliability_calibration import (
-    ConstructReliabilityCalibrationTables as Plugin)
+    ConstructReliabilityCalibrationTables as Plugin,
+)
+from improver.utilities.cube_manipulation import MergeCubes
 from improver_tests.set_up_test_cubes import set_up_probability_cube
 
 
@@ -65,7 +66,7 @@ class Test_Setup(unittest.TestCase):
         comparisons) to be the sum of two of these identical tables."""
 
         thresholds = [283, 288]
-        forecast_data = np.arange(9, dtype=np.float32).reshape(3, 3) / 8.
+        forecast_data = np.arange(9, dtype=np.float32).reshape(3, 3) / 8.0
         forecast_data = np.stack([forecast_data, forecast_data])
         truth_data = np.linspace(281, 285, 9, dtype=np.float32).reshape(3, 3)
         # Threshold the truths, giving fields of zeroes and ones.
@@ -75,70 +76,58 @@ class Test_Setup(unittest.TestCase):
 
         self.forecast_1 = set_up_probability_cube(forecast_data, thresholds)
         self.forecast_2 = set_up_probability_cube(
-            forecast_data, thresholds, time=datetime(2017, 11, 11, 4, 0),
-            frt=datetime(2017, 11, 11, 0, 0))
-        self.forecasts = merge_cubes([self.forecast_1, self.forecast_2])
+            forecast_data,
+            thresholds,
+            time=datetime(2017, 11, 11, 4, 0),
+            frt=datetime(2017, 11, 11, 0, 0),
+        )
+        self.forecasts = MergeCubes()([self.forecast_1, self.forecast_2])
         self.truth_1 = set_up_probability_cube(
-            truth_data, thresholds, frt=datetime(2017, 11, 10, 4, 0))
+            truth_data, thresholds, frt=datetime(2017, 11, 10, 4, 0)
+        )
         self.truth_2 = set_up_probability_cube(
-            truth_data, thresholds, time=datetime(2017, 11, 11, 4, 0),
-            frt=datetime(2017, 11, 11, 4, 0))
-        self.truths = merge_cubes([self.truth_1, self.truth_2])
-        self.expected_threshold_coord = self.forecasts.coord(
-            var_name='threshold')
+            truth_data,
+            thresholds,
+            time=datetime(2017, 11, 11, 4, 0),
+            frt=datetime(2017, 11, 11, 4, 0),
+        )
+        self.truths = MergeCubes()([self.truth_1, self.truth_2])
+        self.expected_threshold_coord = self.forecasts.coord(var_name="threshold")
         self.expected_table_shape = (3, 5, 3, 3)
-        self.expected_attributes = (
-            {'title': 'Reliability calibration data table',
-             'source': 'IMPROVER',
-             'institution': 'unknown'})
+        self.expected_attributes = {
+            "title": "Reliability calibration data table",
+            "source": "IMPROVER",
+            "institution": "unknown",
+        }
 
         # Note the structure of the expected_table is non-trivial to interpret
         # due to the dimension ordering.
-        self.expected_table = np.array([[[[0., 0., 0.],
-                                          [0., 0., 0.],
-                                          [0., 0., 0.]],
-                                         [[0., 0., 0.],
-                                          [0., 0., 0.],
-                                          [0., 0., 0.]],
-                                         [[0., 0., 0.],
-                                          [0., 0., 1.],
-                                          [0., 0., 0.]],
-                                         [[0., 0., 0.],
-                                          [0., 0., 0.],
-                                          [1., 1., 0.]],
-                                         [[0., 0., 0.],
-                                          [0., 0., 0.],
-                                          [0., 0., 1.]]],
-                                        [[[0., 0., 0.],
-                                          [0., 0., 0.],
-                                          [0., 0., 0.]],
-                                         [[0., 0.125, 0.25],
-                                          [0., 0., 0.],
-                                          [0., 0., 0.]],
-                                         [[0., 0., 0.],
-                                          [0.375, 0.5, 0.625],
-                                          [0., 0., 0.]],
-                                         [[0., 0., 0.],
-                                          [0., 0., 0.],
-                                          [0.75, 0.875, 0.]],
-                                         [[0., 0., 0.],
-                                          [0., 0., 0.],
-                                          [0., 0., 1.]]],
-                                        [[[1., 0., 0.],
-                                          [0., 0., 0.],
-                                          [0., 0., 0.]],
-                                         [[0., 1., 1.],
-                                          [0., 0., 0.],
-                                          [0., 0., 0.]],
-                                         [[0., 0., 0.],
-                                          [1., 1., 1.],
-                                          [0., 0., 0.]],
-                                         [[0., 0., 0.],
-                                          [0., 0., 0.],
-                                          [1., 1., 0.]],
-                                         [[0., 0., 0.],
-                                          [0., 0., 0.],
-                                          [0., 0., 1.]]]], dtype=np.float32)
+        self.expected_table = np.array(
+            [
+                [
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                ],
+                [
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.125, 0.25], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.375, 0.5, 0.625], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.75, 0.875, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                ],
+                [
+                    [[1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 1.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                ],
+            ],
+            dtype=np.float32,
+        )
 
 
 class Test__init__(unittest.TestCase):
@@ -167,8 +156,9 @@ class Test__repr__(unittest.TestCase):
         plugin = Plugin(n_probability_bins=2, single_value_limits=False)
         self.assertEqual(
             str(plugin),
-            '<ConstructReliabilityCalibrationTables: probability_bins: '
-            '[0.00 --> 0.50], [0.50 --> 1.00]>')
+            "<ConstructReliabilityCalibrationTables: probability_bins: "
+            "[0.00 --> 0.50], [0.50 --> 1.00]>",
+        )
 
 
 class Test__define_probability_bins(unittest.TestCase):
@@ -180,12 +170,11 @@ class Test__define_probability_bins(unittest.TestCase):
         """Test the generation of probability bins without single value end
         bins. The range 0 to 1 will be divided into 4 equally sized bins."""
         expected = np.array(
-            [[0., 0.24999999],
-             [0.25, 0.49999997],
-             [0.5, 0.74999994],
-             [0.75, 1.]])
-        result = Plugin()._define_probability_bins(n_probability_bins=4,
-                                                   single_value_limits=False)
+            [[0.0, 0.24999999], [0.25, 0.49999997], [0.5, 0.74999994], [0.75, 1.0]]
+        )
+        result = Plugin()._define_probability_bins(
+            n_probability_bins=4, single_value_limits=False
+        )
         assert_allclose(result, expected)
 
     @staticmethod
@@ -194,12 +183,16 @@ class Test__define_probability_bins(unittest.TestCase):
         bins. The range 0 to 1 will be divided into 2 equally sized bins,
         with 2 end bins holding values approximately equal to 0 and 1."""
         expected = np.array(
-            [[0.0000000e+00, 1.0000000e-06],
-             [1.0000001e-06, 4.9999997e-01],
-             [5.0000000e-01, 9.9999893e-01],
-             [9.9999899e-01, 1.0000000e+00]])
-        result = Plugin()._define_probability_bins(n_probability_bins=4,
-                                                   single_value_limits=True)
+            [
+                [0.0000000e00, 1.0000000e-06],
+                [1.0000001e-06, 4.9999997e-01],
+                [5.0000000e-01, 9.9999893e-01],
+                [9.9999899e-01, 1.0000000e00],
+            ]
+        )
+        result = Plugin()._define_probability_bins(
+            n_probability_bins=4, single_value_limits=True
+        )
         assert_allclose(result, expected)
 
     def test_with_single_value_limits_too_few_bins(self):
@@ -207,10 +200,11 @@ class Test__define_probability_bins(unittest.TestCase):
         trying to use 2 bins. This would leave no bins to cover the range 0 to
         1, so an error is raised."""
 
-        msg = 'Cannot use single_value_limits with 2 or fewer probability bins'
+        msg = "Cannot use single_value_limits with 2 or fewer probability bins"
         with self.assertRaisesRegex(ValueError, msg):
-            Plugin()._define_probability_bins(n_probability_bins=2,
-                                              single_value_limits=True)
+            Plugin()._define_probability_bins(
+                n_probability_bins=2, single_value_limits=True
+            )
 
 
 class Test__create_probability_bins_coord(unittest.TestCase):
@@ -239,8 +233,8 @@ class Test__create_reliability_table_coords(unittest.TestCase):
         type."""
         expected_indices = np.array([0, 1, 2], dtype=np.int32)
         expected_names = np.array(
-            ['observation_count', 'sum_of_forecast_probabilities',
-             'forecast_count'])
+            ["observation_count", "sum_of_forecast_probabilities", "forecast_count"]
+        )
         index_coord, name_coord = Plugin()._create_reliability_table_coords()
 
         self.assertIsInstance(index_coord, iris.coords.DimCoord)
@@ -256,16 +250,16 @@ class Test__get_cycle_hours(Test_Setup):
     def test_single_value(self):
         """Test that the expected cycle hour value is returned in a set."""
 
-        frt = self.forecast_1.coord('forecast_reference_time')
+        frt = self.forecast_1.coord("forecast_reference_time")
         result = Plugin()._get_cycle_hours(frt)
         self.assertEqual(result, set([0]))
 
     def test_multiple_values(self):
         """Test that the expected cycle hour values are returned in a set."""
 
-        frt = self.forecast_1.coord('forecast_reference_time')
+        frt = self.forecast_1.coord("forecast_reference_time")
         expected = np.array([0, 1, 4])
-        frt = frt.copy(points=3600*expected + frt.points[0])
+        frt = frt.copy(points=3600 * expected + frt.points[0])
         result = Plugin()._get_cycle_hours(frt)
         self.assertEqual(result, set(expected))
 
@@ -284,13 +278,15 @@ class Test__check_forecast_consistency(Test_Setup):
     def test_unmatching_cycle_hours(self):
         """Test case in which forecasts do not share consistent cycle hours."""
 
-        self.forecasts.coord('forecast_reference_time').points = [3600, 7200]
+        self.forecasts.coord("forecast_reference_time").points = [3600, 7200]
 
-        msg = ('Forecasts have been provided from differing cycle hours '
-               'or forecast periods, or without these coordinates. These '
-               'coordinates should be present and consistent between '
-               'forecasts. Number of cycle hours found: 2, number of '
-               'forecast periods found: 1.')
+        msg = (
+            "Forecasts have been provided from differing cycle hours "
+            "or forecast periods, or without these coordinates. These "
+            "coordinates should be present and consistent between "
+            "forecasts. Number of cycle hours found: 2, number of "
+            "forecast periods found: 1."
+        )
 
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._check_forecast_consistency(self.forecasts)
@@ -301,16 +297,18 @@ class Test__check_forecast_consistency(Test_Setup):
 
         forecasts = iris.cube.CubeList()
         forecast = self.forecasts[0].copy()
-        forecast.coord('forecast_period').points = [3600]
+        forecast.coord("forecast_period").points = [3600]
         forecasts.append(forecast)
         forecasts.append(self.forecasts[1])
-        forecasts = merge_cubes(forecasts)
+        forecasts = MergeCubes()(forecasts)
 
-        msg = ('Forecasts have been provided from differing cycle hours '
-               'or forecast periods, or without these coordinates. These '
-               'coordinates should be present and consistent between '
-               'forecasts. Number of cycle hours found: 1, number of '
-               'forecast periods found: 2.')
+        msg = (
+            "Forecasts have been provided from differing cycle hours "
+            "or forecast periods, or without these coordinates. These "
+            "coordinates should be present and consistent between "
+            "forecasts. Number of cycle hours found: 1, number of "
+            "forecast periods found: 2."
+        )
 
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._check_forecast_consistency(forecasts)
@@ -319,13 +317,15 @@ class Test__check_forecast_consistency(Test_Setup):
         """Test case in which forecasts do not have a forecast period
         coordinate."""
 
-        self.forecasts.remove_coord('forecast_period')
+        self.forecasts.remove_coord("forecast_period")
 
-        msg = ('Forecasts have been provided from differing cycle hours '
-               'or forecast periods, or without these coordinates. These '
-               'coordinates should be present and consistent between '
-               'forecasts. Number of cycle hours found: 1, number of '
-               'forecast periods found: 0.')
+        msg = (
+            "Forecasts have been provided from differing cycle hours "
+            "or forecast periods, or without these coordinates. These "
+            "coordinates should be present and consistent between "
+            "forecasts. Number of cycle hours found: 1, number of "
+            "forecast periods found: 0."
+        )
 
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._check_forecast_consistency(self.forecasts)
@@ -339,8 +339,8 @@ class Test__define_metadata(Test_Setup):
         """Test the metadata returned is complete and as expected when the
         forecast cube contains the required metadata to copy."""
 
-        self.forecast_1.attributes['institution'] = 'Kitten Inc'
-        self.expected_attributes['institution'] = 'Kitten Inc'
+        self.forecast_1.attributes["institution"] = "Kitten Inc"
+        self.expected_attributes["institution"] = "Kitten Inc"
 
         result = Plugin._define_metadata(self.forecast_1)
 
@@ -364,9 +364,10 @@ class Test__create_reliability_table_cube(Test_Setup):
     def test_valid_inputs(self):
         """Test the cube returned has the structure expected."""
 
-        forecast_slice = next(self.forecast_1.slices_over('air_temperature'))
+        forecast_slice = next(self.forecast_1.slices_over("air_temperature"))
         result = Plugin()._create_reliability_table_cube(
-            forecast_slice, forecast_slice.coord(var_name='threshold'))
+            forecast_slice, forecast_slice.coord(var_name="threshold")
+        )
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertSequenceEqual(result.shape, self.expected_table_shape)
         self.assertEqual(result.name(), "reliability_calibration_table")
@@ -381,10 +382,11 @@ class Test__populate_reliability_bins(Test_Setup):
         """Test the reliability table returned has the expected values for the
         given inputs."""
 
-        forecast_slice = next(self.forecast_1.slices_over('air_temperature'))
-        truth_slice = next(self.truth_1.slices_over('air_temperature'))
+        forecast_slice = next(self.forecast_1.slices_over("air_temperature"))
+        truth_slice = next(self.truth_1.slices_over("air_temperature"))
         result = Plugin()._populate_reliability_bins(
-            forecast_slice.data, truth_slice.data)
+            forecast_slice.data, truth_slice.data
+        )
 
         self.assertSequenceEqual(result.shape, self.expected_table_shape)
         assert_array_equal(result, self.expected_table)
@@ -401,9 +403,8 @@ class Test_process(Test_Setup):
 
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "reliability_calibration_table")
-        self.assertEqual(
-            result.coord('air_temperature'), self.expected_threshold_coord)
-        self.assertEqual(result.coord_dims('air_temperature')[0], 0)
+        self.assertEqual(result.coord("air_temperature"), self.expected_threshold_coord)
+        self.assertEqual(result.coord_dims("air_temperature")[0], 0)
 
     def test_table_values(self):
         """Test that cube values are as expected when process has sliced the
@@ -427,5 +428,5 @@ class Test_process(Test_Setup):
             Plugin().process(self.forecasts, self.truths)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
