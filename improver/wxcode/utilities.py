@@ -191,7 +191,9 @@ def interrogate_decision_tree(wxtree):
     # Diagnostic names and threshold values.
     requirements = {}
     for query in queries.values():
-        diagnostics = expand_nested_lists(query, "diagnostic_fields")
+        diagnostics = get_parameter_names(
+            expand_nested_lists(query, "diagnostic_fields")
+        )
         thresholds = expand_nested_lists(query, "diagnostic_thresholds")
         for diagnostic, threshold in zip(diagnostics, thresholds):
             requirements.setdefault(diagnostic, set()).add(threshold)
@@ -209,3 +211,47 @@ def interrogate_decision_tree(wxtree):
     formatted_output = formatted_string.format(*output)
 
     return formatted_output
+
+
+def is_variable(thing):
+    """
+    Identify whether given string is likely to be a variable name by
+    identifying the exceptions.
+
+    Args:
+        thing: str
+            The string to operate on
+
+    Returns:
+        bool:
+            False if thing is one of ["+", "-", "*", "/"] or if float(
+            thing) does not raise a ValueError, else True.
+
+    """
+    valid_operators = ["+", "-", "*", "/"]
+    try:
+        float(thing)
+        return False
+    except ValueError:
+        return thing not in valid_operators
+
+
+def get_parameter_names(diagnostic_fields):
+    """
+    For diagnostic fields that can contain operators and values, strips out
+    just the parameter names.
+
+    Args:
+        diagnostic_fields (list of lists of str):
+
+    Returns:
+        list of lists of str
+
+    """
+    parameter_names = []
+    for condition in diagnostic_fields:
+        if isinstance(condition, list):
+            parameter_names.append(get_parameter_names(condition))
+        elif is_variable(condition):
+            parameter_names.append(condition)
+    return parameter_names
