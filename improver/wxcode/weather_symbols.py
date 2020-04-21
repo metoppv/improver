@@ -260,7 +260,8 @@ class WeatherSymbols(BasePlugin):
 
         return inverted_threshold, inverted_combination
 
-    def construct_condition(self, extract_constraint, condition, probability_threshold):
+    @staticmethod
+    def construct_condition(extract_constraint, condition, probability_threshold):
         """
         Create a string representing a comparison condition.
 

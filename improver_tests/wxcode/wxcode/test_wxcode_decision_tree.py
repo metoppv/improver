@@ -33,7 +33,6 @@
 import pytest
 
 from improver.wxcode.utilities import WX_DICT, get_parameter_names
-from improver.wxcode.weather_symbols import WeatherSymbols
 from improver.wxcode.wxcode_decision_tree import START_NODE, wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
     START_NODE_GLOBAL,
