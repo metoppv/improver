@@ -116,7 +116,14 @@ class Test__create_heightdiff_mask(IrisTest):
         )
 
     def height_diff_tests(self, expected_out, max_height_diff=35):
-        """ """
+        """Tests the _create_height_diff_mask function.
+
+        Args:
+            expected_out:
+                3d numpy array containing booleans, this needs to be the same shape as the orography data.
+            max_height_diff:
+                maximum height difference allowed in the orography data
+         """
         result = LapseRate(
             max_height_diff=max_height_diff, nbhood_radius=1
         )._create_height_diff_mask(self.orography)

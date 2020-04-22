@@ -34,7 +34,7 @@ import numpy as np
 
 
 def rolling_window(A, shape):
-    """Creates views of the array A, this avoids 
+    """Creates views of the array A, this avoids
     creating a massive matrix of points in a neighbourhood
     calculation.
     Args:
