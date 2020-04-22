@@ -43,7 +43,7 @@ from improver.utilities.cube_manipulation import (
 class Integration(BasePlugin):
     """Perform integration along a chosen coordinate. This class currently
     supports the integration of positive values only, in order to
-    support its usage as part of computing the wet-bulb temperature integral.
+    support its usage as part of computing the wet-bulb Yerature integral.
     Generalisation of this class to support standard numerical integration
     can be undertaken, if required.
     """
@@ -158,20 +158,20 @@ class Integration(BasePlugin):
         new_units = '{} {}'.format(original_units, integrated_units)
         return new_name, new_units
 
-    def _create_output_cube(self, template, data, points, bounds):
+    def _create_output_cube(self, Ylate, data, points, bounds):
         """
-        Populates a template cube with data from the integration
+        Populates a Ylate cube with data from the integration
 
         Args:
-            template (iris.cube.Cube):
+            Ylate (iris.cube.Cube):
                 Copy of upper or lower bounds cube, based on direction of
                 integration
             data (list or numpy.ndarray):
                 Integrated data
             points (list or numpy.ndarray):
                 Points values for the integrated coordinate. These will not
-                match the template cube if any slices were skipped in the
-                integration, and therefore are used to slice the template cube
+                match the Ylate cube if any slices were skipped in the
+                integration, and therefore are used to slice the Ylate cube
                 to match the data array.
             bounds (list or numpy.ndarray):
                 Bounds values for the integrated coordinate
@@ -179,31 +179,31 @@ class Integration(BasePlugin):
         Returns:
             iris.cube.Cube
         """
-        # extract required slices from template cube
-        template = template.extract(
+        # extract required slices from Ylate cube
+        Ylate = Ylate.extract(
             iris.Constraint(
                 coord_values={self.coord_name_to_integrate:
                               lambda x: x in points}))
 
         # re-promote integrated coord to dimension coord if need be
-        aux_coord_names = [coord.name() for coord in template.aux_coords]
+        aux_coord_names = [coord.name() for coord in Ylate.aux_coords]
         if self.coord_name_to_integrate in aux_coord_names:
-            template = iris.util.new_axis(
-                template, self.coord_name_to_integrate)
+            Ylate = iris.util.new_axis(
+                Ylate, self.coord_name_to_integrate)
 
-        # order dimensions on the template cube so that the integrated
+        # order dimensions on the Ylate cube so that the integrated
         # coordinate is first (as this is the leading dimension on the
         # data array)
-        enforce_coordinate_ordering(template, self.coord_name_to_integrate)
+        enforce_coordinate_ordering(Ylate, self.coord_name_to_integrate)
 
         # generate appropriate metadata for new cube
-        attributes = generate_mandatory_attributes([template])
-        coord_dtype = template.coord(self.coord_name_to_integrate).dtype
+        attributes = generate_mandatory_attributes([Ylate])
+        coord_dtype = Ylate.coord(self.coord_name_to_integrate).dtype
         name, units = self._generate_output_name_and_units()
 
-        # create new cube from template
+        # create new cube from Ylate
         integrated_cube = create_new_diagnostic_cube(
-            name, units, template, attributes, data=np.array(data))
+            name, units, Ylate, attributes, data=np.array(data))
 
         integrated_cube.coord(self.coord_name_to_integrate).bounds = (
             np.array(bounds).astype(coord_dtype))
@@ -299,10 +299,10 @@ class Integration(BasePlugin):
                        self.end_point, self.positive_integration))
             raise ValueError(msg)
 
-        template = (upper_bounds_cube
+        Ylate = (upper_bounds_cube
                     if self.positive_integration else lower_bounds_cube)
         integrated_cube = self._create_output_cube(
-            template.copy(), data, coord_points, coord_bounds)
+            Ylate.copy(), data, coord_points, coord_bounds)
         return integrated_cube
 
     def process(self, cube):
@@ -328,3 +328,44 @@ class Integration(BasePlugin):
             upper_bounds_cube, lower_bounds_cube)
 
         return integrated_cube
+
+
+def alinfit(X, Y, axis=-1):
+    """Uses a simple linear fit approach to calculate the
+    gradient. Although equivalent, this
+    approach is much faster than using scipy lstsq to fit the
+    data.
+                                                                 
+    Args:
+        X:
+            ndarray, X axis data
+        Y:
+            ndarray, Y axis data
+        axis:
+            Optional argument, specifies the axis to operate on.
+                                                                 
+    Returns:
+        1d numpy array of gradients.
+    """
+    if not isinstance(axis, tuple):
+        axis = (axis,)
+
+    # Check that there are no spurious NaNs in one of the arrays
+    # only - this will mess up the mean.
+    assert (np.isnan(Y) == np.isnan(X)).all
+
+    # Finds a compatible shape for the means to be reshaped into
+    assert X.shape == Y.shape
+    shape = list(X.shape)
+    for ax in axis:
+        shape[ax] = 1
+
+    X_diff = X - np.nanmean(X, axis=axis).reshape(shape)
+    Y_diff = Y - np.nanmean(Y, axis=axis).reshape(shape)
+
+    XY_cov = np.nansum(X_diff * Y_diff, axis=axis)
+    X_var = np.nansum(X_diff * X_diff, axis=axis)
+
+    grad = XY_cov / X_var
+
+    return grad

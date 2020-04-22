@@ -69,14 +69,15 @@ class Test__calc_lapse_rate(IrisTest):
         self.orography = np.array([[174.67, 179.87, 188.46],
                                    [155.84, 169.58, 185.05],
                                    [134.90, 144.00, 157.89]])
+        self.land_sea_mask = ~np.zeros_like(self.temperature, dtype=bool)
 
     def test_returns_expected_values(self):
         """Test that the function returns expected lapse rate. """
 
         expected_out = -0.00765005774676
-        result = LapseRate(nbhood_radius=1).alinfit(self.orography,
-                                                    self.temperature,
-                                                    axis=(-2, -1))
+        result = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+                   self.temperature, self.orography,
+                   self.land_sea_mask)[1,1]
         self.assertArrayAlmostEqual(result, expected_out)
 
     def test_handles_nan(self):
@@ -85,9 +86,9 @@ class Test__calc_lapse_rate(IrisTest):
 
         self.temperature[..., 1, 1] = np.nan
         expected_out = DALR
-        result = LapseRate(nbhood_radius=1).alinfit(self.orography,
-                                                    self.temperature,
-                                                    axis=(-2, -1))
+        result = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+                   self.temperature, self.orography,
+                   self.land_sea_mask)[1,1]
         self.assertArrayAlmostEqual(result, expected_out)
 
 
