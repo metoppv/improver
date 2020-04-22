@@ -498,9 +498,9 @@ class Test_alinfit(IrisTest):
     """Test the alinfit method"""
 
     def setUp(self):
-        """Creates X and Y data (Y is random)."""
+        """Creates some random data to represent X and Y."""
         array_size = 25
-        self.X = np.array(range(array_size))
+        self.X = np.random.random(array_size)
         self.Y = np.random.random(array_size)
 
     def use_lstsq(self):

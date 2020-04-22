@@ -33,7 +33,6 @@
 import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
-from numpy.linalg import lstsq
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR
