@@ -43,8 +43,8 @@ from improver.utilities.cube_manipulation import expand_bounds
 
 from ...set_up_test_cubes import set_up_variable_cube
 
-TIME_UNIT = 'seconds since 1970-01-01 00:00:00'
-CALENDAR = 'gregorian'
+TIME_UNIT = "seconds since 1970-01-01 00:00:00"
+CALENDAR = "gregorian"
 
 
 class Test_expand_bounds(IrisTest):
@@ -54,42 +54,46 @@ class Test_expand_bounds(IrisTest):
     def setUp(self):
         """Set up a cubelist for testing"""
 
-        data = 275.5*np.ones((3, 3), dtype=np.float32)
+        data = 275.5 * np.ones((3, 3), dtype=np.float32)
         frt = dt(2015, 11, 19, 0)
         time_points = [dt(2015, 11, 19, 1), dt(2015, 11, 19, 3)]
-        time_bounds = [[dt(2015, 11, 19, 0), dt(2015, 11, 19, 2)],
-                       [dt(2015, 11, 19, 1), dt(2015, 11, 19, 3)]]
+        time_bounds = [
+            [dt(2015, 11, 19, 0), dt(2015, 11, 19, 2)],
+            [dt(2015, 11, 19, 1), dt(2015, 11, 19, 3)],
+        ]
 
         self.cubelist = iris.cube.CubeList([])
         for tpoint, tbounds in zip(time_points, time_bounds):
-            cube = set_up_variable_cube(
-                data, frt=frt, time=tpoint, time_bounds=tbounds)
+            cube = set_up_variable_cube(data, frt=frt, time=tpoint, time_bounds=tbounds)
             self.cubelist.append(cube)
 
         self.expected_bounds_seconds = [
-            date2num(dt(2015, 11, 19, 0), TIME_UNIT,
-                     CALENDAR).astype(np.int64),
-            date2num(dt(2015, 11, 19, 3), TIME_UNIT,
-                     CALENDAR).astype(np.int64)]
+            date2num(dt(2015, 11, 19, 0), TIME_UNIT, CALENDAR).astype(np.int64),
+            date2num(dt(2015, 11, 19, 3), TIME_UNIT, CALENDAR).astype(np.int64),
+        ]
 
         self.expected_bounds_hours = [
-            date2num(dt(2015, 11, 19, 0), 'hours since 1970-01-01 00:00:00',
-                     CALENDAR),
-            date2num(dt(2015, 11, 19, 3), 'hours since 1970-01-01 00:00:00',
-                     CALENDAR)]
+            date2num(dt(2015, 11, 19, 0), "hours since 1970-01-01 00:00:00", CALENDAR),
+            date2num(dt(2015, 11, 19, 3), "hours since 1970-01-01 00:00:00", CALENDAR),
+        ]
 
     def test_basic_time_mid(self):
         """Test that expand_bound produces sensible bounds
         when given arg 'mid' for times in seconds"""
-        time_point = np.around(date2num(dt(2015, 11, 19, 1, 30), TIME_UNIT,
-                                        CALENDAR)).astype(np.int64)
+        time_point = np.around(
+            date2num(dt(2015, 11, 19, 1, 30), TIME_UNIT, CALENDAR)
+        ).astype(np.int64)
         expected_result = iris.coords.DimCoord(
-            [time_point], bounds=self.expected_bounds_seconds,
-            standard_name='time', units=TIME_UNIT)
+            [time_point],
+            bounds=self.expected_bounds_seconds,
+            standard_name="time",
+            units=TIME_UNIT,
+        )
         result = expand_bounds(
-            self.cubelist[0], self.cubelist, ['time'], use_midpoint=True)
-        self.assertEqual(result.coord('time'), expected_result)
-        self.assertEqual(result.coord('time').dtype, np.int64)
+            self.cubelist[0], self.cubelist, ["time"], use_midpoint=True
+        )
+        self.assertEqual(result.coord("time"), expected_result)
+        self.assertEqual(result.coord("time").dtype, np.int64)
 
     def test_time_mid_data_precision(self):
         """Test that expand_bound does not escalate precision when input is
@@ -97,87 +101,115 @@ class Test_expand_bounds(IrisTest):
         expected_result = iris.coords.DimCoord(
             np.array([5400], dtype=np.int32),
             bounds=np.array([0, 10800], dtype=np.int32),
-            standard_name='forecast_period', units='seconds')
+            standard_name="forecast_period",
+            units="seconds",
+        )
         result = expand_bounds(
-            self.cubelist[0], self.cubelist, ['forecast_period'],
-            use_midpoint=True)
-        self.assertEqual(result.coord('forecast_period'), expected_result)
-        self.assertEqual(result.coord('forecast_period').dtype, np.int32)
+            self.cubelist[0], self.cubelist, ["forecast_period"], use_midpoint=True
+        )
+        self.assertEqual(result.coord("forecast_period"), expected_result)
+        self.assertEqual(result.coord("forecast_period").dtype, np.int32)
 
     def test_float_time_mid(self):
         """Test that expand_bound produces sensible bounds
         when given arg 'mid' for times in hours"""
-        time_unit = 'hours since 1970-01-01 00:00:00'
+        time_unit = "hours since 1970-01-01 00:00:00"
         for cube in self.cubelist:
             cube.coord("time").convert_units(time_unit)
         time_point = date2num(dt(2015, 11, 19, 1, 30), time_unit, CALENDAR)
         expected_result = iris.coords.DimCoord(
-            [time_point], bounds=self.expected_bounds_hours,
-            standard_name='time', units=time_unit)
+            [time_point],
+            bounds=self.expected_bounds_hours,
+            standard_name="time",
+            units=time_unit,
+        )
         result = expand_bounds(
-            self.cubelist[0], self.cubelist, ['time'], use_midpoint=True)
-        self.assertEqual(result.coord('time'), expected_result)
-        self.assertEqual(result.coord('time').dtype, np.float32)
+            self.cubelist[0], self.cubelist, ["time"], use_midpoint=True
+        )
+        self.assertEqual(result.coord("time"), expected_result)
+        self.assertEqual(result.coord("time").dtype, np.float32)
 
     def test_basic_time_upper(self):
         """Test that expand_bound produces sensible bounds
         when given arg 'upper'"""
-        time_point = np.around(date2num(dt(2015, 11, 19, 3), TIME_UNIT,
-                                        CALENDAR)).astype(np.int64)
+        time_point = np.around(
+            date2num(dt(2015, 11, 19, 3), TIME_UNIT, CALENDAR)
+        ).astype(np.int64)
         expected_result = iris.coords.DimCoord(
-            [time_point], bounds=self.expected_bounds_seconds,
-            standard_name='time', units=TIME_UNIT)
-        result = expand_bounds(self.cubelist[0], self.cubelist, ['time'])
-        self.assertEqual(result.coord('time'), expected_result)
+            [time_point],
+            bounds=self.expected_bounds_seconds,
+            standard_name="time",
+            units=TIME_UNIT,
+        )
+        result = expand_bounds(self.cubelist[0], self.cubelist, ["time"])
+        self.assertEqual(result.coord("time"), expected_result)
 
     def test_multiple_coordinate_expanded(self):
         """Test that expand_bound produces sensible bounds when more than one
         coordinate is operated on, in this case expanding both the time and
         forecast period coordinates."""
-        time_point = np.around(date2num(dt(2015, 11, 19, 3), TIME_UNIT,
-                                        CALENDAR)).astype(np.int64)
+        time_point = np.around(
+            date2num(dt(2015, 11, 19, 3), TIME_UNIT, CALENDAR)
+        ).astype(np.int64)
         expected_result_time = iris.coords.DimCoord(
-            [time_point], bounds=self.expected_bounds_seconds,
-            standard_name='time', units=TIME_UNIT)
+            [time_point],
+            bounds=self.expected_bounds_seconds,
+            standard_name="time",
+            units=TIME_UNIT,
+        )
         expected_result_fp = iris.coords.DimCoord(
-            [10800], bounds=[0, 10800],
-            standard_name='forecast_period', units='seconds')
+            [10800], bounds=[0, 10800], standard_name="forecast_period", units="seconds"
+        )
 
-        result = expand_bounds(self.cubelist[0], self.cubelist,
-                               ['time', 'forecast_period'])
-        self.assertEqual(result.coord('time'), expected_result_time)
-        self.assertEqual(result.coord('forecast_period'), expected_result_fp)
-        self.assertEqual(result.coord('time').dtype, np.int64)
+        result = expand_bounds(
+            self.cubelist[0], self.cubelist, ["time", "forecast_period"]
+        )
+        self.assertEqual(result.coord("time"), expected_result_time)
+        self.assertEqual(result.coord("forecast_period"), expected_result_fp)
+        self.assertEqual(result.coord("time").dtype, np.int64)
 
     def test_basic_no_time_bounds(self):
         """Test that it creates appropriate bounds if there are no time bounds
         """
         for cube in self.cubelist:
-            cube.coord('time').bounds = None
+            cube.coord("time").bounds = None
 
-        time_point = np.around(date2num(dt(2015, 11, 19, 2), TIME_UNIT,
-                                        CALENDAR)).astype(np.int64)
+        time_point = np.around(
+            date2num(dt(2015, 11, 19, 2), TIME_UNIT, CALENDAR)
+        ).astype(np.int64)
         time_bounds = [
-            np.around(date2num(dt(2015, 11, 19, 1), TIME_UNIT,
-                               CALENDAR)).astype(np.int64),
-            np.around(date2num(dt(2015, 11, 19, 3), TIME_UNIT,
-                               CALENDAR)).astype(np.int64)]
+            np.around(date2num(dt(2015, 11, 19, 1), TIME_UNIT, CALENDAR)).astype(
+                np.int64
+            ),
+            np.around(date2num(dt(2015, 11, 19, 3), TIME_UNIT, CALENDAR)).astype(
+                np.int64
+            ),
+        ]
         expected_result = iris.coords.DimCoord(
-            time_point, bounds=time_bounds,
-            standard_name='time', units=TIME_UNIT)
+            time_point, bounds=time_bounds, standard_name="time", units=TIME_UNIT
+        )
 
-        result = expand_bounds(self.cubelist[0], self.cubelist, ['time'],
-                               use_midpoint=True)
-        self.assertEqual(result.coord('time'), expected_result)
+        result = expand_bounds(
+            self.cubelist[0], self.cubelist, ["time"], use_midpoint=True
+        )
+        self.assertEqual(result.coord("time"), expected_result)
 
     def test_fails_with_multi_point_coord(self):
         """Test that if an error is raised if a coordinate with more than
         one point is given"""
-        emsg = 'the expand bounds function should only be used on a'
+        emsg = "the expand bounds function should only be used on a"
         with self.assertRaisesRegex(ValueError, emsg):
-            expand_bounds(
-                self.cubelist[0], self.cubelist, ['latitude'])
+            expand_bounds(self.cubelist[0], self.cubelist, ["latitude"])
+
+    def test_error_remove_bounds(self):
+        """Test the expand_bounds function fails if its effect would be
+        to remove bounds from a bounded coordinate, ie if a mixture of
+        bounded and unbounded coordinates are input"""
+        self.cubelist[1].coord("time").bounds = None
+        msg = "cannot expand bounds for a mixture of bounded / unbounded"
+        with self.assertRaisesRegex(ValueError, msg):
+            expand_bounds(self.cubelist[0], self.cubelist, ["time"])
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

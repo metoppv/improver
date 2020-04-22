@@ -45,7 +45,7 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
     orography.
     """
 
-    def __init__(self, neighbour_selection_method='nearest'):
+    def __init__(self, neighbour_selection_method="nearest"):
         """
         Args:
             neighbour_selection_method (str):
@@ -68,9 +68,9 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return ('<SpotLapseRateAdjust: neighbour_selection_method: {}'
-                '>'.format(
-                    self.neighbour_selection_method))
+        return "<SpotLapseRateAdjust: neighbour_selection_method: {}" ">".format(
+            self.neighbour_selection_method
+        )
 
     def process(self, spot_data_cube, neighbour_cube, gridded_lapse_rate_cube):
         """
@@ -105,27 +105,25 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
                 temperatures.
         """
         # Check the cubes are compatible.
-        check_grid_match([neighbour_cube, spot_data_cube,
-                          gridded_lapse_rate_cube])
+        check_grid_match([neighbour_cube, spot_data_cube, gridded_lapse_rate_cube])
 
         # Extract the lapse rates that correspond to the spot sites.
-        extraction_plugin = SpotExtraction(
-            neighbour_selection_method=self.neighbour_selection_method)
-        spot_lapse_rate = extraction_plugin.process(neighbour_cube,
-                                                    gridded_lapse_rate_cube)
+        spot_lapse_rate = SpotExtraction(
+            neighbour_selection_method=self.neighbour_selection_method
+        )(neighbour_cube, gridded_lapse_rate_cube)
 
         # Extract vertical displacements between the model orography and sites.
         method_constraint = iris.Constraint(
-            neighbour_selection_method_name=self.neighbour_selection_method)
-        data_constraint = iris.Constraint(
-            grid_attributes_key='vertical_displacement')
-        vertical_displacement = neighbour_cube.extract(method_constraint &
-                                                       data_constraint)
+            neighbour_selection_method_name=self.neighbour_selection_method
+        )
+        data_constraint = iris.Constraint(grid_attributes_key="vertical_displacement")
+        vertical_displacement = neighbour_cube.extract(
+            method_constraint & data_constraint
+        )
 
         # Apply lapse rate adjustment to the temperature at each site.
         new_temperatures = (
-            spot_data_cube.data + (
-                spot_lapse_rate.data * vertical_displacement.data)
-            ).astype(np.float32)
+            spot_data_cube.data + (spot_lapse_rate.data * vertical_displacement.data)
+        ).astype(np.float32)
         new_spot_cube = spot_data_cube.copy(data=new_temperatures)
         return new_spot_cube

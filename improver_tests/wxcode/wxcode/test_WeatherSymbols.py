@@ -32,9 +32,10 @@
 
 import unittest
 from datetime import datetime as dt
+
+import iris
 import numpy as np
 from cf_units import Unit
-import iris
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
@@ -55,75 +56,117 @@ class Test_WXCode(IrisTest):
         time = dt(2017, 10, 10, 12, 0)
         frt = dt(2017, 10, 10, 12, 0)
 
-        thresholds = np.array([8.33333333e-09, 2.77777778e-08, 2.77777778e-07],
-                              dtype=np.float32)
+        thresholds = np.array(
+            [8.33333333e-09, 2.77777778e-08, 2.77777778e-07], dtype=np.float32
+        )
         data_snow = np.zeros((3, 3, 3), dtype=np.float32)
         snowfall_rate = set_up_probability_cube(
-            data_snow, thresholds, variable_name='lwe_snowfall_rate',
-            threshold_units='m s-1',
-            time=time, frt=frt)
+            data_snow,
+            thresholds,
+            variable_name="lwe_snowfall_rate",
+            threshold_units="m s-1",
+            time=time,
+            frt=frt,
+        )
 
         data_sleet = np.zeros((3, 3, 3), dtype=np.float32)
 
         sleetfall_rate = set_up_probability_cube(
-            data_sleet, thresholds, variable_name='lwe_sleetfall_rate',
-            threshold_units='m s-1',
-            time=time, frt=frt)
+            data_sleet,
+            thresholds,
+            variable_name="lwe_sleetfall_rate",
+            threshold_units="m s-1",
+            time=time,
+            frt=frt,
+        )
 
-        data_rain = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
-                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
-                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0], dtype=np.float32).reshape(
-                                  (3, 3, 3))
+        data_rain = np.array(
+            [
+                [[0.01, 0.01, 0.01], [0.01, 0.01, 0.01], [1.00, 1.00, 1.00]],
+                [[0.01, 0.01, 0.01], [0.01, 0.01, 0.01], [1.00, 0.01, 1.00]],
+                [[0.01, 0.01, 0.01], [0.01, 0.01, 0.01], [0.01, 0.01, 0.01]],
+            ],
+            dtype=np.float32,
+        )
 
         rainfall_rate = set_up_probability_cube(
-            data_rain, thresholds, variable_name='rainfall_rate',
-            threshold_units='m s-1',
-            time=time, frt=frt)
+            data_rain,
+            thresholds,
+            variable_name="rainfall_rate",
+            threshold_units="m s-1",
+            time=time,
+            frt=frt,
+        )
 
         # pylint: disable=no-member
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
 
         precip_rate = set_up_probability_cube(
-            data_precip, thresholds, variable_name='lwe_precipitation_rate',
-            threshold_units='m s-1',
-            time=time, frt=frt)
+            data_precip,
+            thresholds,
+            variable_name="lwe_precipitation_rate",
+            threshold_units="m s-1",
+            time=time,
+            frt=frt,
+        )
 
         precip_vicinity = set_up_probability_cube(
-            data_rain, thresholds,
-            variable_name='lwe_precipitation_rate_in_vicinity',
-            threshold_units='m s-1',
-            time=time, frt=frt)
+            data_precip,
+            thresholds,
+            variable_name="lwe_precipitation_rate_in_vicinity",
+            threshold_units="m s-1",
+            time=time,
+            frt=frt,
+        )
 
         thresholds = np.array([0.1875, 0.8125], dtype=np.float32)
-        data_cloud = np.array([0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
-                               0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
-                               0.0, 0.0, 1.0], dtype=np.float32).reshape(
-                                   (2, 3, 3))
+        data_cloud = np.array(
+            [
+                [[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]],
+                [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]],
+            ],
+            dtype=np.float32,
+        )
 
         cloud = set_up_probability_cube(
-            data_cloud, thresholds, variable_name='cloud_area_fraction',
-            threshold_units='1',
-            time=time, frt=frt)
+            data_cloud,
+            thresholds,
+            variable_name="cloud_area_fraction",
+            threshold_units="1",
+            time=time,
+            frt=frt,
+        )
 
         thresholds = np.array([0.85], dtype=np.float32)
-        data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0,
-                                 0.0, 0.0, 0.0], dtype=np.float32).reshape(
-                                     (1, 3, 3))
+        data_cld_low = np.array(
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]], dtype=np.float32
+        ).reshape((1, 3, 3))
         cloud_low = set_up_probability_cube(
-            data_cld_low, thresholds,
-            variable_name='low_type_cloud_area_fraction', threshold_units='1',
-            time=time, frt=frt)
+            data_cld_low,
+            thresholds,
+            variable_name="low_type_cloud_area_fraction",
+            threshold_units="1",
+            time=time,
+            frt=frt,
+        )
 
         thresholds = np.array([1000.0, 5000.0], dtype=np.float32)
-        data_vis = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
-                             0.0, 1.0, 0.0], dtype=np.float32).reshape(
-                                 (2, 3, 3))
+        data_vis = np.array(
+            [
+                [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+            ],
+            dtype=np.float32,
+        )
         visibility = set_up_probability_cube(
-            data_vis, thresholds, variable_name='visibility_in_air',
-            threshold_units='m', spp__relative_to_threshold='below',
-            time=time, frt=frt)
+            data_vis,
+            thresholds,
+            variable_name="visibility_in_air",
+            threshold_units="m",
+            spp__relative_to_threshold="below",
+            time=time,
+            frt=frt,
+        )
 
         thresholds = np.array([0.0], dtype=np.float32)
         data_lightning = np.zeros((1, 3, 3), dtype=np.float32)
@@ -131,20 +174,34 @@ class Test_WXCode(IrisTest):
         data_lightning[0, 0, 1] = 0.30
 
         lightning = set_up_probability_cube(
-            data_lightning, thresholds,
-            variable_name=('number_of_lightning_flashes_per_unit_area_in_'
-                           'vicinity'),
-            threshold_units='m-2',
-            time=time, frt=frt)
+            data_lightning,
+            thresholds,
+            variable_name=("number_of_lightning_flashes_per_unit_area_in_" "vicinity"),
+            threshold_units="m-2",
+            time=time,
+            frt=frt,
+        )
 
-        self.cubes = iris.cube.CubeList([
-            snowfall_rate, sleetfall_rate, rainfall_rate, precip_vicinity,
-            cloud, cloud_low, visibility, lightning, precip_rate])
+        self.cubes = iris.cube.CubeList(
+            [
+                snowfall_rate,
+                sleetfall_rate,
+                rainfall_rate,
+                precip_vicinity,
+                cloud,
+                cloud_low,
+                visibility,
+                lightning,
+                precip_rate,
+            ]
+        )
         names = [cube.name() for cube in self.cubes]
-        self.uk_no_lightning = [name for name in names
-                                if 'lightning' not in name]
-        self.gbl = [name for name in self.uk_no_lightning[:-1]
-                    if 'vicinity' not in name and 'sleet' not in name]
+        self.uk_no_lightning = [name for name in names if "lightning" not in name]
+        self.gbl = [
+            name
+            for name in self.uk_no_lightning[:-1]
+            if "vicinity" not in name and "sleet" not in name
+        ]
 
 
 class Test__repr__(IrisTest):
@@ -154,13 +211,13 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WeatherSymbols())
-        msg = '<WeatherSymbols tree=high_resolution start_node=lightning>'
+        msg = "<WeatherSymbols tree=high_resolution start_node=lightning>"
         self.assertEqual(result, msg)
 
     def test_global(self):
         """Test that the __repr__ returns right string for global tree."""
-        result = str(WeatherSymbols(wxtree='global'))
-        msg = '<WeatherSymbols tree=global start_node=heavy_precipitation>'
+        result = str(WeatherSymbols(wxtree="global"))
+        msg = "<WeatherSymbols tree=global start_node=heavy_precipitation>"
         self.assertEqual(result, msg)
 
 
@@ -180,13 +237,13 @@ class Test_check_input_cubes(Test_WXCode):
         result = plugin.check_input_cubes(cubes)
         self.assertIsInstance(result, dict)
         self.assertEqual(len(result), 1)
-        self.assertTrue('lightning' in result)
+        self.assertTrue("lightning" in result)
 
     def test_raises_error_missing_cubes(self):
         """Test check_input_cubes method raises error if data is missing"""
         plugin = WeatherSymbols()
         cubes = self.cubes.pop()
-        msg = 'Weather Symbols input cubes are missing'
+        msg = "Weather Symbols input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
             plugin.check_input_cubes(cubes)
 
@@ -195,7 +252,7 @@ class Test_check_input_cubes(Test_WXCode):
         plugin = WeatherSymbols()
         cubes = self.cubes
         cubes[0] = cubes[0][0]
-        msg = 'Weather Symbols input cubes are missing'
+        msg = "Weather Symbols input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
             plugin.check_input_cubes(cubes)
 
@@ -206,21 +263,21 @@ class Test_check_input_cubes(Test_WXCode):
 
         msg = "Unable to convert from"
         threshold_coord = find_threshold_coordinate(self.cubes[0])
-        self.cubes[0].coord(threshold_coord).units = Unit('mm kg-1')
+        self.cubes[0].coord(threshold_coord).units = Unit("mm kg-1")
         with self.assertRaisesRegex(ValueError, msg):
             plugin.check_input_cubes(self.cubes)
 
     def test_basic_global(self):
         """Test check_input_cubes method has no error if global data is OK"""
-        plugin = WeatherSymbols(wxtree='global')
+        plugin = WeatherSymbols(wxtree="global")
         cubes = self.cubes.extract(self.gbl)
         self.assertEqual(plugin.check_input_cubes(cubes), None)
 
     def test_raises_error_missing_cubes_global(self):
         """Test check_input_cubes method raises error if data is missing"""
-        plugin = WeatherSymbols(wxtree='global')
+        plugin = WeatherSymbols(wxtree="global")
         cubes = self.cubes.extract(self.gbl)[0:3]
-        msg = 'Weather Symbols input cubes are missing'
+        msg = "Weather Symbols input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
             plugin.check_input_cubes(cubes)
 
@@ -242,22 +299,22 @@ class Test_invert_condition(IrisTest):
     def test_invert_thresholds_correctly(self):
         """Test invert_condition inverts thresholds correctly."""
         plugin = WeatherSymbols()
-        node = {'threshold_condition': '>=', 'condition_combination': ''}
-        possible_inputs = ['>=', '<=', '<', '>']
-        inverse_outputs = ['<', '>', '>=', '<=']
+        node = {"threshold_condition": ">=", "condition_combination": ""}
+        possible_inputs = [">=", "<=", "<", ">"]
+        inverse_outputs = ["<", ">", ">=", "<="]
         for i, val in enumerate(possible_inputs):
-            node['threshold_condition'] = val
+            node["threshold_condition"] = val
             result = plugin.invert_condition(node)
             self.assertEqual(result[0], inverse_outputs[i])
 
     def test_invert_combination_correctly(self):
         """Test invert_condition inverts combination correctly."""
         plugin = WeatherSymbols()
-        node = {'threshold_condition': '>=', 'condition_combination': ''}
-        possible_inputs = ['AND', 'OR', '']
-        inverse_outputs = ['OR', 'AND', '']
+        node = {"threshold_condition": ">=", "condition_combination": ""}
+        possible_inputs = ["AND", "OR", ""]
+        inverse_outputs = ["OR", "AND", ""]
         for i, val in enumerate(possible_inputs):
-            node['condition_combination'] = val
+            node["condition_combination"] = val
             result = plugin.invert_condition(node)
             self.assertEqual(result[1], inverse_outputs[i])
 
@@ -270,19 +327,18 @@ class Test_construct_condition(IrisTest):
         """Test that the construct_condition method returns a string."""
         plugin = WeatherSymbols()
         constraint_value = iris.Constraint(
-            name='probability_of_rainfall_rate_above_threshold',
-            coord_values={'threshold': 0.03})
-        condition = '<'
+            name="probability_of_rainfall_rate_above_threshold",
+            coord_values={"threshold": 0.03},
+        )
+        condition = "<"
         prob_threshold = 0.5
-        gamma = None
-        expected = ("cubes.extract(Constraint(name="
-                    "'probability_of_rainfall_rate_above_threshold',"
-                    " coord_values={'threshold': 0.03})"
-                    ")[0].data < 0.5")
-        result = plugin.construct_condition(constraint_value,
-                                            condition,
-                                            prob_threshold,
-                                            gamma)
+        expected = (
+            "cubes.extract(Constraint(name="
+            "'probability_of_rainfall_rate_above_threshold',"
+            " coord_values={'threshold': 0.03})"
+            ")[0].data < 0.5"
+        )
+        result = plugin.construct_condition(constraint_value, condition, prob_threshold)
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -291,25 +347,33 @@ class Test_construct_condition(IrisTest):
         of Constraints. """
         plugin = WeatherSymbols()
         constraint_list = [
-            iris.Constraint(
-                name='probability_of_lwe_snowfall_rate_above_threshold',
-                coord_values={'threshold': 0.03}),
-            iris.Constraint(
-                name='probability_of_rainfall_rate_above_threshold',
-                coord_values={'threshold': 0.03})]
-        condition = '<'
+            str(
+                iris.Constraint(
+                    name="probability_of_lwe_snowfall_rate_above_threshold",
+                    coord_values={"threshold": 0.03},
+                )
+            ),
+            "-",
+            str(
+                iris.Constraint(
+                    name="probability_of_rainfall_rate_above_threshold",
+                    coord_values={"threshold": 0.03},
+                )
+            ),
+            "*",
+            "0.7",
+        ]
+        condition = "<"
         prob_threshold = 0.5
-        gamma = 0.7
-        expected = ("(cubes.extract(Constraint(name="
-                    "'probability_of_lwe_snowfall_rate_above_threshold', "
-                    "coord_values={'threshold': 0.03}))[0].data - "
-                    "cubes.extract(Constraint(name="
-                    "'probability_of_rainfall_rate_above_threshold', "
-                    "coord_values={'threshold': 0.03}))[0].data * 0.7) < 0.5")
-        result = plugin.construct_condition(constraint_list,
-                                            condition,
-                                            prob_threshold,
-                                            gamma)
+        expected = (
+            "( cubes.extract(Constraint(name="
+            "'probability_of_lwe_snowfall_rate_above_threshold', "
+            "coord_values={'threshold': 0.03}))[0].data - "
+            "cubes.extract(Constraint(name="
+            "'probability_of_rainfall_rate_above_threshold', "
+            "coord_values={'threshold': 0.03}))[0].data * 0.7) < 0.5"
+        )
+        result = plugin.construct_condition(constraint_list, condition, prob_threshold)
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -321,8 +385,8 @@ class Test_format_condition_chain(IrisTest):
     def test_basic(self):
         """Test that the format_condition_chain method returns a string."""
         plugin = WeatherSymbols()
-        conditions = ['condition1', 'condition2']
-        expected = '(condition1) & (condition2)'
+        conditions = ["condition1", "condition2"]
+        expected = "(condition1) & (condition2)"
         result = plugin.format_condition_chain(conditions)
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
@@ -330,10 +394,9 @@ class Test_format_condition_chain(IrisTest):
     def test_works_with_or(self):
         """Test that the format_condition_chain method works with OR."""
         plugin = WeatherSymbols()
-        conditions = ['condition1', 'condition2']
-        expected = '(condition1) | (condition2)'
-        result = plugin.format_condition_chain(conditions,
-                                               condition_combination='OR')
+        conditions = ["condition1", "condition2"]
+        expected = "(condition1) | (condition2)"
+        result = plugin.format_condition_chain(conditions, condition_combination="OR")
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -344,37 +407,45 @@ class Test_create_condition_chain(IrisTest):
     def setUp(self):
         """ Set up queries for testing"""
         self.dummy_queries = {
-            'significant_precipitation': {
-                'succeed': 'heavy_precipitation',
-                'fail': 'any_precipitation',
-                'probability_thresholds': [0.5, 0.5],
-                'threshold_condition': '>=',
-                'condition_combination': 'OR',
-                'diagnostic_fields':
-                    ['probability_of_rainfall_rate_above_threshold',
-                     'probability_of_lwe_snowfall_rate_above_threshold'],
-                'diagnostic_thresholds': [AuxCoord(0.03, units='mm hr-1'),
-                                          AuxCoord(0.03, units='mm hr-1')],
-                'diagnostic_conditions': ['above', 'above']}
+            "significant_precipitation": {
+                "succeed": "heavy_precipitation",
+                "fail": "any_precipitation",
+                "probability_thresholds": [0.5, 0.5],
+                "threshold_condition": ">=",
+                "condition_combination": "OR",
+                "diagnostic_fields": [
+                    "probability_of_rainfall_rate_above_threshold",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                ],
+                "diagnostic_thresholds": [
+                    AuxCoord(0.03, units="mm hr-1"),
+                    AuxCoord(0.03, units="mm hr-1"),
+                ],
+                "diagnostic_conditions": ["above", "above"],
+            }
         }
 
     def test_basic(self):
         """Test create_condition_chain returns a list of strings."""
         plugin = WeatherSymbols()
-        test_condition = self.dummy_queries['significant_precipitation']
+        test_condition = self.dummy_queries["significant_precipitation"]
         result = plugin.create_condition_chain(test_condition)
-        expected = ("(cubes.extract(iris.Constraint(name='probability_of_"
-                    "rainfall_rate_above_threshold', rainfall_rate=lambda "
-                    "cell: 0.03 * {t_min} < "
-                    "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
-                    "(iris.Constraint("
-                    "name='probability_of_lwe_snowfall_rate_above_threshold',"
-                    " lwe_snowfall_rate=lambda cell: 0.03 * {t_min} < cell < "
-                    "0.03 * {t_max}))[0].data >= 0.5)".format(
-                        t_min=(1. - WeatherSymbols().float_tolerance),
-                        t_max=(1. + WeatherSymbols().float_tolerance)))
+        expected = (
+            "(cubes.extract(iris.Constraint(name='probability_of_"
+            "rainfall_rate_above_threshold', rainfall_rate=lambda "
+            "cell: 0.03 * {t_min} < "
+            "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
+            "(iris.Constraint("
+            "name='probability_of_lwe_snowfall_rate_above_threshold',"
+            " lwe_snowfall_rate=lambda cell: 0.03 * {t_min} < cell < "
+            "0.03 * {t_max}))[0].data >= 0.5)".format(
+                t_min=(1.0 - WeatherSymbols().float_tolerance),
+                t_max=(1.0 + WeatherSymbols().float_tolerance),
+            )
+        )
         self.assertIsInstance(result, list)
-        self.assertIsInstance(result[0], str)
+        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertEqual(len(result), 1)
         self.assertEqual(result[0], expected)
 
     def test_old_naming_convention(self):
@@ -382,20 +453,77 @@ class Test_create_condition_chain(IrisTest):
         threshold coordinate name"""
         plugin = WeatherSymbols()
         plugin.coord_named_threshold = True
-        test_condition = self.dummy_queries['significant_precipitation']
+        test_condition = self.dummy_queries["significant_precipitation"]
         result = plugin.create_condition_chain(test_condition)
-        expected = ("(cubes.extract(iris.Constraint(name='probability_of_"
-                    "rainfall_rate_above_threshold', threshold=lambda "
-                    "cell: 0.03 * {t_min} < "
-                    "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
-                    "(iris.Constraint("
-                    "name='probability_of_lwe_snowfall_rate_above_threshold',"
-                    " threshold=lambda cell: 0.03 * {t_min} < cell < "
-                    "0.03 * {t_max}))[0].data >= 0.5)".format(
-                        t_min=(1. - WeatherSymbols().float_tolerance),
-                        t_max=(1. + WeatherSymbols().float_tolerance)))
+        expected = (
+            "(cubes.extract(iris.Constraint(name='probability_of_"
+            "rainfall_rate_above_threshold', threshold=lambda "
+            "cell: 0.03 * {t_min} < "
+            "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
+            "(iris.Constraint("
+            "name='probability_of_lwe_snowfall_rate_above_threshold',"
+            " threshold=lambda cell: 0.03 * {t_min} < cell < "
+            "0.03 * {t_max}))[0].data >= 0.5)".format(
+                t_min=(1.0 - WeatherSymbols().float_tolerance),
+                t_max=(1.0 + WeatherSymbols().float_tolerance),
+            )
+        )
         self.assertIsInstance(result, list)
-        self.assertIsInstance(result[0], str)
+        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], expected)
+
+    def test_complex_condition(self):
+        """Test with a condition that uses an operator"""
+        query = {
+            "rain_or_snow": self.dummy_queries["significant_precipitation"],
+        }
+        query["rain_or_snow"]["diagnostic_fields"] = [
+            [
+                "probability_of_lwe_sleetfall_rate_above_threshold",
+                "-",
+                "probability_of_rainfall_rate_above_threshold",
+            ],
+            [
+                "probability_of_lwe_sleetfall_rate_above_threshold",
+                "-",
+                "probability_of_lwe_snowfall_rate_above_threshold",
+            ],
+        ]
+        query["rain_or_snow"]["diagnostic_thresholds"] = [
+            [AuxCoord(0.1, units="mm hr-1"), AuxCoord(0.1, units="mm hr-1")],
+            [AuxCoord(0.1, units="mm hr-1"), AuxCoord(0.1, units="mm hr-1")],
+        ]
+        query["rain_or_snow"]["diagnostic_conditions"] = [
+            ["above", "above"],
+            ["above", "above"],
+        ]
+        plugin = WeatherSymbols()
+        test_condition = query["rain_or_snow"]
+        result = plugin.create_condition_chain(test_condition)
+        expected = (
+            "(( cubes.extract(iris.Constraint(name='probability_of_"
+            "lwe_sleetfall_rate_above_threshold', lwe_sleetfall_rate="
+            "lambda cell: 0.1 * {t_min} < cell < 0.1 * {t_max})"
+            ")[0].data - cubes.extract(iris.Constraint("
+            "name='probability_of_rainfall_rate_above_threshold', "
+            "rainfall_rate=lambda cell: 0.1 * {t_min} < cell < "
+            "0.1 * {t_max}))[0].data) >= 0.5) | "
+            "(( cubes.extract(iris.Constraint(name="
+            "'probability_of_lwe_sleetfall_rate_above_threshold', "
+            "lwe_sleetfall_rate=lambda cell: 0.1 * {t_min} < cell "
+            "< 0.1 * {t_max}))[0].data - "
+            "cubes.extract(iris.Constraint(name="
+            "'probability_of_lwe_snowfall_rate_above_threshold', "
+            "lwe_snowfall_rate=lambda cell: 0.1 * {t_min} < cell "
+            "< 0.1 * {t_max}))[0].data) >= 0.5)".format(
+                t_min=(1.0 - WeatherSymbols().float_tolerance),
+                t_max=(1.0 + WeatherSymbols().float_tolerance),
+            )
+        )
+        self.assertIsInstance(result, list)
+        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertEqual(len(result), 1)
         self.assertEqual(result[0], expected)
 
 
@@ -406,16 +534,18 @@ class Test_construct_extract_constraint(IrisTest):
     def test_basic(self):
         """Test construct_extract_constraint returns a iris.Constraint."""
         plugin = WeatherSymbols()
-        diagnostic = 'probability_of_rainfall_rate_above_threshold'
-        threshold = AuxCoord(0.03, units='mm hr-1')
-        result = plugin.construct_extract_constraint(diagnostic,
-                                                     threshold, False)
-        expected = ("iris.Constraint("
-                    "name='probability_of_rainfall_rate_above_threshold', "
-                    "rainfall_rate=lambda cell: 0.03 * {t_min} < cell < "
-                    "0.03 * {t_max})".format(
-                        t_min=(1. - WeatherSymbols().float_tolerance),
-                        t_max=(1. + WeatherSymbols().float_tolerance)))
+        diagnostic = "probability_of_rainfall_rate_above_threshold"
+        threshold = AuxCoord(0.03, units="mm hr-1")
+        result = plugin.construct_extract_constraint(diagnostic, threshold, False)
+        expected = (
+            "iris.Constraint("
+            "name='probability_of_rainfall_rate_above_threshold', "
+            "rainfall_rate=lambda cell: 0.03 * {t_min} < cell < "
+            "0.03 * {t_max})".format(
+                t_min=(1.0 - WeatherSymbols().float_tolerance),
+                t_max=(1.0 + WeatherSymbols().float_tolerance),
+            )
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -423,29 +553,32 @@ class Test_construct_extract_constraint(IrisTest):
         """Test construct_extract_constraint can return a constraint with a
         "threshold" coordinate"""
         plugin = WeatherSymbols()
-        diagnostic = 'probability_of_rainfall_rate_above_threshold'
-        threshold = AuxCoord(0.03, units='mm hr-1')
-        result = plugin.construct_extract_constraint(diagnostic,
-                                                     threshold, True)
-        expected = ("iris.Constraint("
-                    "name='probability_of_rainfall_rate_above_threshold', "
-                    "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
-                    "{t_max})".format(
-                        t_min=(1. - WeatherSymbols().float_tolerance),
-                        t_max=(1. + WeatherSymbols().float_tolerance)))
+        diagnostic = "probability_of_rainfall_rate_above_threshold"
+        threshold = AuxCoord(0.03, units="mm hr-1")
+        result = plugin.construct_extract_constraint(diagnostic, threshold, True)
+        expected = (
+            "iris.Constraint("
+            "name='probability_of_rainfall_rate_above_threshold', "
+            "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
+            "{t_max})".format(
+                t_min=(1.0 - WeatherSymbols().float_tolerance),
+                t_max=(1.0 + WeatherSymbols().float_tolerance),
+            )
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
     def test_zero_threshold(self):
         """Test construct_extract_constraint when threshold is zero."""
         plugin = WeatherSymbols()
-        diagnostic = 'probability_of_rainfall_rate_above_threshold'
-        threshold = AuxCoord(0.0, units='mm hr-1')
-        result = plugin.construct_extract_constraint(diagnostic,
-                                                     threshold, False)
-        expected = ("iris.Constraint("
-                    "name='probability_of_rainfall_rate_above_threshold', "
-                    "rainfall_rate=lambda cell:  -1e-12 < cell < 1e-12)")
+        diagnostic = "probability_of_rainfall_rate_above_threshold"
+        threshold = AuxCoord(0.0, units="mm hr-1")
+        result = plugin.construct_extract_constraint(diagnostic, threshold, False)
+        expected = (
+            "iris.Constraint("
+            "name='probability_of_rainfall_rate_above_threshold', "
+            "rainfall_rate=lambda cell:  -1e-12 < cell < 1e-12)"
+        )
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -453,19 +586,22 @@ class Test_construct_extract_constraint(IrisTest):
         """Test construct_extract_constraint returns a list
            of iris.Constraint."""
         plugin = WeatherSymbols()
-        diagnostics = ['probability_of_rainfall_rate_above_threshold',
-                       'probability_of_lwe_snowfall_rate_above_threshold']
-        thresholds = [AuxCoord(0.03, units='mm hr-1'),
-                      AuxCoord(0.03, units='mm hr-1')]
-        result = plugin.construct_extract_constraint(diagnostics,
-                                                     thresholds, False)
+        diagnostics = [
+            "probability_of_rainfall_rate_above_threshold",
+            "probability_of_lwe_snowfall_rate_above_threshold",
+        ]
+        thresholds = [AuxCoord(0.03, units="mm hr-1"), AuxCoord(0.03, units="mm hr-1")]
+        result = plugin.construct_extract_constraint(diagnostics, thresholds, False)
 
-        expected = ("iris.Constraint("
-                    "name='probability_of_lwe_snowfall_rate_above_threshold', "
-                    "lwe_snowfall_rate=lambda cell: 0.03 * {t_min} < cell "
-                    "< 0.03 * {t_max})".format(
-                        t_min=(1. - WeatherSymbols().float_tolerance),
-                        t_max=(1. + WeatherSymbols().float_tolerance)))
+        expected = (
+            "iris.Constraint("
+            "name='probability_of_lwe_snowfall_rate_above_threshold', "
+            "lwe_snowfall_rate=lambda cell: 0.03 * {t_min} < cell "
+            "< 0.03 * {t_max})".format(
+                t_min=(1.0 - WeatherSymbols().float_tolerance),
+                t_max=(1.0 + WeatherSymbols().float_tolerance),
+            )
+        )
         self.assertIsInstance(result, list)
         self.assertIsInstance(result[1], str)
         self.assertEqual(len(result), 2)
@@ -478,97 +614,78 @@ class Test_find_all_routes(IrisTest):
 
     def setUp(self):
         """ Setup testing graph """
-        self.test_graph = {'start_node': ['success_1', 'fail_0'],
-                           'success_1': ['success_1_1', 'fail_1_0'],
-                           'fail_0': ['success_0_1', 3],
-                           'success_1_1': [1, 2],
-                           'fail_1_0': [2, 4],
-                           'success_0_1': [5, 1]}
+        self.test_graph = {
+            "start_node": ["success_1", "fail_0"],
+            "success_1": ["success_1_1", "fail_1_0"],
+            "fail_0": ["success_0_1", 3],
+            "success_1_1": [1, 2],
+            "fail_1_0": [2, 4],
+            "success_0_1": [5, 1],
+        }
 
     def test_basic(self):
         """Test find_all_routes returns a list of expected nodes."""
         plugin = WeatherSymbols()
-        result = plugin.find_all_routes(self.test_graph,
-                                        'start_node',
-                                        3)
-        expected_nodes = [['start_node',
-                           'fail_0',
-                           3]]
+        result = plugin.find_all_routes(self.test_graph, "start_node", 3)
+        expected_nodes = [["start_node", "fail_0", 3]]
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
     def test_multiple_routes(self):
         """Test finds multiple routes."""
         plugin = WeatherSymbols()
-        result = plugin.find_all_routes(self.test_graph,
-                                        'start_node',
-                                        1)
-        expected_nodes = [['start_node',
-                           'success_1',
-                           'success_1_1',
-                           1],
-                          ['start_node',
-                           'fail_0',
-                           'success_0_1',
-                           1]]
+        result = plugin.find_all_routes(self.test_graph, "start_node", 1)
+        expected_nodes = [
+            ["start_node", "success_1", "success_1_1", 1],
+            ["start_node", "fail_0", "success_0_1", 1],
+        ]
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
     def test_omit_nodes_top_node(self):
         """Test find_all_routes where omit node is top node."""
-        omit_nodes = {'start_node': 'success_1'}
+        omit_nodes = {"start_node": "success_1"}
         plugin = WeatherSymbols()
-        result = plugin.find_all_routes(self.test_graph,
-                                        'start_node',
-                                        1,
-                                        omit_nodes=omit_nodes,)
-        expected_nodes = [['success_1',
-                           'success_1_1',
-                           1]]
+        result = plugin.find_all_routes(
+            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
+        )
+        expected_nodes = [["success_1", "success_1_1", 1]]
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
     def test_omit_nodes_midtree(self):
         """Test find_all_routes where omit node is mid tree."""
-        omit_nodes = {'success_1': 'success_1_1'}
+        omit_nodes = {"success_1": "success_1_1"}
         plugin = WeatherSymbols()
-        result = plugin.find_all_routes(self.test_graph,
-                                        'start_node',
-                                        1,
-                                        omit_nodes=omit_nodes,)
-        expected_nodes = [['start_node',
-                           'success_1_1',
-                           1],
-                          ['start_node',
-                           'fail_0',
-                           'success_0_1',
-                           1]]
+        result = plugin.find_all_routes(
+            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
+        )
+        expected_nodes = [
+            ["start_node", "success_1_1", 1],
+            ["start_node", "fail_0", "success_0_1", 1],
+        ]
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
     def test_omit_nodes_blocked(self):
         """Test find_all_routes where omitted node is no longer accessible."""
-        omit_nodes = {'fail_0': 3}
+        omit_nodes = {"fail_0": 3}
         plugin = WeatherSymbols()
-        result = plugin.find_all_routes(self.test_graph,
-                                        'start_node',
-                                        5,
-                                        omit_nodes=omit_nodes,)
+        result = plugin.find_all_routes(
+            self.test_graph, "start_node", 5, omit_nodes=omit_nodes,
+        )
         expected_nodes = []
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
     def test_omit_nodes_multi(self):
         """Test find_all_routes where multiple omitted nodes."""
-        omit_nodes = {'fail_0': 3, 'success_1': 'success_1_1'}
+        omit_nodes = {"fail_0": 3, "success_1": "success_1_1"}
         plugin = WeatherSymbols()
-        result = plugin.find_all_routes(self.test_graph,
-                                        'start_node',
-                                        1,
-                                        omit_nodes=omit_nodes,)
-        expected_nodes = [['start_node',
-                           'success_1_1',
-                           1]]
+        result = plugin.find_all_routes(
+            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
+        )
+        expected_nodes = [["start_node", "success_1_1", 1]]
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
@@ -579,12 +696,17 @@ class Test_create_symbol_cube(IrisTest):
 
     def setUp(self):
         """Set up cube """
-        data = np.array([0.1, 0.3, 0.4, 0.2, 0.6, 0.7, 0.4, 0.2, 0.1,
-                         0.2, 0.2, 0.5, 0.1, 0.3, 0.9, 0.8, 0.5, 0.3,
-                         0.6, 0.3, 0.5, 0.6, 0.8, 0.2,
-                         0.8, 0.1, 0.2], dtype=np.float32).reshape((3, 3, 3))
+        data = np.array(
+            [
+                [[0.1, 0.3, 0.4], [0.2, 0.6, 0.7], [0.4, 0.2, 0.1]],
+                [[0.2, 0.2, 0.5], [0.1, 0.3, 0.9], [0.8, 0.5, 0.3]],
+                [[0.6, 0.3, 0.5], [0.6, 0.8, 0.2], [0.8, 0.1, 0.2]],
+            ],
+            dtype=np.float32,
+        )
         self.cube = set_up_probability_cube(
-            data, np.array([288, 290, 292], dtype=np.float32))
+            data, np.array([288, 290, 292], dtype=np.float32)
+        )
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
 
@@ -592,18 +714,26 @@ class Test_create_symbol_cube(IrisTest):
         """Test cube is constructed with appropriate metadata"""
         result = WeatherSymbols().create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
-        self.assertEqual(result.attributes['weather_code_meaning'],
-                         self.wxmeaning)
+        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
+        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
+        self.assertTrue((result.data == -1).all())
 
     def test_removes_bounds(self):
         """Test bounds are removed from time and forecast period coordinate"""
-        self.cube.coord("time").bounds = np.array([
-            self.cube.coord("time").points[0] - 3600,
-            self.cube.coord("time").points[0]], dtype=np.int64)
-        self.cube.coord("forecast_period").bounds = np.array([
-            self.cube.coord("forecast_period").points[0] - 3600,
-            self.cube.coord("forecast_period").points[0]], dtype=np.int32)
+        self.cube.coord("time").bounds = np.array(
+            [
+                self.cube.coord("time").points[0] - 3600,
+                self.cube.coord("time").points[0],
+            ],
+            dtype=np.int64,
+        )
+        self.cube.coord("forecast_period").bounds = np.array(
+            [
+                self.cube.coord("forecast_period").points[0] - 3600,
+                self.cube.coord("forecast_period").points[0],
+            ],
+            dtype=np.int32,
+        )
         result = WeatherSymbols().create_symbol_cube([self.cube])
         self.assertIsNone(result.coord("time").bounds)
         self.assertIsNone(result.coord("forecast_period").bounds)
@@ -618,14 +748,14 @@ class Test_process(Test_WXCode):
         super().setUp()
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
-        self.expected_wxcode = np.array(
-            [[1, 29, 5], [6, 7, 8], [10, 11, 12]])
-        self.expected_wxcode_night = np.array(
-            [[0, 28, 5], [6, 7, 8], [9, 11, 12]])
+        self.expected_wxcode = np.array([[1, 29, 5], [6, 7, 8], [10, 11, 12]])
+        self.expected_wxcode_night = np.array([[0, 28, 5], [6, 7, 8], [9, 11, 12]])
         self.expected_wxcode_no_lightning = np.array(
-            [[1, 3, 5], [6, 7, 8], [10, 11, 12]])
+            [[1, 3, 5], [6, 7, 8], [10, 11, 12]]
+        )
         self.expected_wxcode_alternate = np.array(
-            [[14, 15, 17], [18, 23, 24], [26, 27, 27]])
+            [[14, 15, 17], [18, 23, 24], [26, 27, 27]]
+        )
 
     def test_basic(self):
         """Test process returns a weather code cube with right values and type.
@@ -633,9 +763,8 @@ class Test_process(Test_WXCode):
         plugin = WeatherSymbols()
         result = plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
-        self.assertEqual(result.attributes['weather_code_meaning'],
-                         self.wxmeaning)
+        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
+        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
         self.assertArrayEqual(result.data, self.expected_wxcode)
         self.assertEqual(result.dtype, np.int32)
 
@@ -643,8 +772,7 @@ class Test_process(Test_WXCode):
         """Test process returns the right values for night. """
         plugin = WeatherSymbols()
         for i, cube in enumerate(self.cubes):
-            self.cubes[i].coord('time').points = (cube.coord('time').points +
-                                                  3600*12)
+            self.cubes[i].coord("time").points = cube.coord("time").points + 3600 * 12
         result = plugin.process(self.cubes)
         self.assertArrayEqual(result.data, self.expected_wxcode_night)
 
@@ -671,47 +799,49 @@ class Test_process(Test_WXCode):
         """Test process returns the right weather values with a different
         set of data to walk the tree differently."""
         plugin = WeatherSymbols()
-        data_snow = np.array([[[0.0, 0.0, 1.0],
-                               [1.0, 1.0, 1.0],
-                               [1.0, 1.0, 0.1]],
-                              [[0.0, 0.0, 0.0],
-                               [0.0, 1.0, 1.0],
-                               [1.0, 1.0, 0.0]],
-                              [[0.0, 0.0, 0.0],
-                               [0.0, 0.0, 0.0],
-                               [1.0, 1.0, 0.0]]])
-        data_sleet = np.array([[[0.0, 0.0, 1.0],
-                                [1.0, 0.0, 0.0],
-                                [0.0, 0.0, 0.0]],
-                               [[0.0, 0.0, 1.0],
-                                [1.0, 0.0, 0.0],
-                                [0.0, 0.0, 0.0]],
-                               [[0.0, 0.0, 1.0],
-                                [1.0, 0.0, 0.0],
-                                [0.0, 0.0, 0.0]]])
-        data_rain = np.array([[[1.0, 1.0, 1.0],
-                               [1.0, 0.0, 0.0],
-                               [0.0, 0.0, 0.0]],
-                              [[1.0, 1.0, 0.0],
-                               [0.0, 0.0, 0.0],
-                               [0.0, 0.0, 0.0]],
-                              [[1.0, 1.0, 0.0],
-                               [0.0, 0.0, 0.0],
-                               [0.0, 0.0, 0.0]]])
+        data_snow = np.array(
+            [
+                [[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.1]],
+                [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [1.0, 1.0, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
+            ],
+            dtype=np.float32,
+        )
+        data_sleet = np.array(
+            [
+                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            ],
+            dtype=np.float32,
+        )
+        data_rain = np.array(
+            [
+                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            ],
+            dtype=np.float32,
+        )
         # pylint: disable=no-member
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
-        data_precipv = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
-                                 1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-                                 0.0, 0.0, 1.0]).reshape((3, 3, 3))
-        data_cloud = np.array([0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0,
-                               0.0, 1.0, 0.0, 1.0, 0.0, 1.0,
-                               0.0, 1.0, 1.0]).reshape((2, 3, 3))
-        data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                 0.0, 0.0, 0.0]).reshape((1, 3, 3))
-        data_vis = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0.0, 0.0]).reshape((2, 3, 3))
+        data_precipv = np.array(
+            [
+                [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]],
+                [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]],
+                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+            ],
+            dtype=np.float32,
+        )
+        data_cloud = np.array(
+            [
+                [[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
+                [[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
+            ],
+            dtype=np.float32,
+        )
+        data_cld_low = np.zeros((1, 3, 3))
+        data_vis = np.zeros((2, 3, 3))
         data_lightning = np.zeros((1, 3, 3))
 
         cubes = self.cubes
@@ -757,31 +887,40 @@ class Test_process(Test_WXCode):
 
     def test_basic_global(self):
         """Test process returns a wxcode cube with right values for global. """
-        plugin = WeatherSymbols(wxtree='global')
+        plugin = WeatherSymbols(wxtree="global")
         cubes = self.cubes.extract(self.gbl)
         result = plugin.process(cubes)
         self.assertArrayEqual(result.data, self.expected_wxcode_no_lightning)
 
     def test_weather_data_global(self):
         """Test process returns the right weather values global part2 """
-        plugin = WeatherSymbols(wxtree='global')
+        plugin = WeatherSymbols(wxtree="global")
 
-        data_snow = np.array([0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.1,
-                              0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0,
-                              0.0, 0.0, 1.0, 1.0, 0.0, 0.0,
-                              1.0, 1.0, 1.0]).reshape((3, 3, 3))
-        data_rain = np.array([1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                              1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                              1.0, 1.0, 1.0, 1.0, 0.0, 0.0,
-                              0.0, 0.0, 0.0]).reshape((3, 3, 3))
-        data_cloud = np.array([0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 1.0,
-                               0.0, 1.0, 0.0, 1.0, 0.0, 1.0,
-                               0.0, 1.0, 1.0]).reshape((2, 3, 3))
-        data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                                 0.0, 0.0, 0.0]).reshape((1, 3, 3))
-        data_vis = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
-                             0.0, 0.0, 0.0]).reshape((2, 3, 3))
+        data_snow = np.array(
+            [
+                [[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.1]],
+                [[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.0]],
+                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [1.0, 1.0, 1.0]],
+            ],
+            dtype=np.float32,
+        )
+        data_rain = np.array(
+            [
+                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            ],
+            dtype=np.float32,
+        )
+        data_cloud = np.array(
+            [
+                [[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
+                [[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
+            ],
+            dtype=np.float32,
+        )
+        data_cld_low = np.zeros((1, 3, 3), dtype=np.float32)
+        data_vis = np.zeros((2, 3, 3), dtype=np.float32)
         cubes = self.cubes.extract(self.gbl)
         cubes[0].data = data_snow
         cubes[1].data = data_rain
@@ -792,5 +931,5 @@ class Test_process(Test_WXCode):
         self.assertArrayEqual(result.data, self.expected_wxcode_alternate)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -49,8 +49,10 @@ class Accumulation(BasePlugin):
     used to construct the accumulation period requested when possible, and
     cubes of this desired period are then returned.
     """
-    def __init__(self, accumulation_units='m', accumulation_period=None,
-                 forecast_periods=None):
+
+    def __init__(
+        self, accumulation_units="m", accumulation_period=None, forecast_periods=None
+    ):
         """
         Initialise the plugin.
 
@@ -75,11 +77,14 @@ class Accumulation(BasePlugin):
 
     def __repr__(self):
         """Represent the plugin instance as a string."""
-        result = ('<Accumulation: accumulation_units={}, '
-                  'accumulation_period={}s, '
-                  'forecast_periods={}s>')
-        return result.format(self.accumulation_units, self.accumulation_period,
-                             self.forecast_periods)
+        result = (
+            "<Accumulation: accumulation_units={}, "
+            "accumulation_period={}s, "
+            "forecast_periods={}s>"
+        )
+        return result.format(
+            self.accumulation_units, self.accumulation_period, self.forecast_periods
+        )
 
     @staticmethod
     def sort_cubes_by_time(cubes):
@@ -97,7 +102,7 @@ class Accumulation(BasePlugin):
                     A list of the validity times of the precipitation rate
                     cubes in integer seconds since 1970-01-01 00:00:00.
         """
-        times = np.array([cube.coord('time').points[0] for cube in cubes])
+        times = np.array([cube.coord("time").points[0] for cube in cubes])
         time_sorted = np.argsort(times)
         times = times[time_sorted]
         cubes = iris.cube.CubeList(np.array(cubes)[time_sorted])
@@ -138,7 +143,7 @@ class Accumulation(BasePlugin):
         for cube in cubes:
             check_mandatory_standards(cube)
             new_cube = cube.copy()
-            new_cube.convert_units('m s-1')
+            new_cube.convert_units("m s-1")
             standardised_cubes.append(new_cube)
         cubes = standardised_cubes
 
@@ -146,20 +151,20 @@ class Accumulation(BasePlugin):
         cubes, times = self.sort_cubes_by_time(cubes)
 
         try:
-            time_interval, = np.unique(np.diff(times, axis=0)).astype(
-                np.int32)
+            (time_interval,) = np.unique(np.diff(times, axis=0)).astype(np.int32)
         except ValueError:
-            msg = ("Accumulation is designed to work with "
-                   "rates cubes at regular time intervals. Cubes "
-                   "provided are unevenly spaced in time; time intervals are "
-                   "{}.".format(np.diff(times, axis=0)))
+            msg = (
+                "Accumulation is designed to work with "
+                "rates cubes at regular time intervals. Cubes "
+                "provided are unevenly spaced in time; time intervals are "
+                "{}.".format(np.diff(times, axis=0))
+            )
             raise ValueError(msg)
 
         if self.accumulation_period is None:
             # If no accumulation period is specified, assume that the input
             # cubes will be used to construct a single accumulation period.
-            self.accumulation_period, = (
-                cubes[-1].coord("forecast_period").points)
+            (self.accumulation_period,) = cubes[-1].coord("forecast_period").points
 
         # Ensure that the accumulation period is int32.
         self.accumulation_period = np.int32(self.accumulation_period)
@@ -176,17 +181,22 @@ class Accumulation(BasePlugin):
                 "therefore insufficient for computing the accumulation period "
                 "requested. accumulation period specified: {}, "
                 "time interval specified: {}".format(
-                    self.accumulation_period, time_interval))
+                    self.accumulation_period, time_interval
+                )
+            )
             raise ValueError(msg)
 
         # Ensure the accumulation period is cleanly divisible by the time
         # interval.
         if fraction != 0:
-            msg = ("The specified accumulation period ({}) is not divisible "
-                   "by the time intervals between rates cubes ({}). As "
-                   "a result it is not possible to calculate the desired "
-                   "total accumulation period.".format(
-                       self.accumulation_period, time_interval))
+            msg = (
+                "The specified accumulation period ({}) is not divisible "
+                "by the time intervals between rates cubes ({}). As "
+                "a result it is not possible to calculate the desired "
+                "total accumulation period.".format(
+                    self.accumulation_period, time_interval
+                )
+            )
             raise ValueError(msg)
 
         if self.forecast_periods is None:
@@ -194,8 +204,10 @@ class Accumulation(BasePlugin):
             # periods calculated will end at the forecast period from
             # each of the input cubes.
             self.forecast_periods = [
-                cube.coord("forecast_period").points for cube in cubes
-                if cube.coord("forecast_period").points >= time_interval]
+                cube.coord("forecast_period").points
+                for cube in cubes
+                if cube.coord("forecast_period").points >= time_interval
+            ]
 
         # Check whether any forecast periods are less than the accumulation
         # period. This is expected if the accumulation period is e.g. 1 hour,
@@ -203,8 +215,9 @@ class Accumulation(BasePlugin):
         # In this case, the forecast periods are filtered, so that only
         # complete accumulation periods will be calculated.
         if any(self.forecast_periods < self.accumulation_period):
-            forecast_periods = [fp for fp in self.forecast_periods
-                                if fp >= self.accumulation_period]
+            forecast_periods = [
+                fp for fp in self.forecast_periods if fp >= self.accumulation_period
+            ]
             self.forecast_periods = forecast_periods
 
         return cubes, time_interval
@@ -232,11 +245,12 @@ class Accumulation(BasePlugin):
         # If the input is a numpy array, get the integer value from the array
         # for use in the constraint.
         if isinstance(forecast_period, np.ndarray):
-            forecast_period, = forecast_period
+            (forecast_period,) = forecast_period
         start_point = forecast_period - self.accumulation_period
 
         constr = iris.Constraint(
-            forecast_period=lambda fp: start_point <= fp <= forecast_period)
+            forecast_period=lambda fp: start_point <= fp <= forecast_period
+        )
 
         return cubes.extract(constr)
 
@@ -267,13 +281,12 @@ class Accumulation(BasePlugin):
                 numpy array is returned.
 
         """
-        accumulation = 0.
+        accumulation = 0.0
         # Accumulations are calculated using the mean precipitation rate
         # calculated from the rates cubes that bookend the desired period.
         iterator = zip(cube_subset[0:-1], cube_subset[1:])
         for start_cube, end_cube in iterator:
-            accumulation += ((start_cube.data + end_cube.data) *
-                             time_interval * 0.5)
+            accumulation += (start_cube.data + end_cube.data) * time_interval * 0.5
         return accumulation
 
     @staticmethod
@@ -294,15 +307,17 @@ class Accumulation(BasePlugin):
                 Accumulation cube with the desired metadata.
 
         """
-        cube_name = 'lwe_thickness_of_precipitation_amount'
+        cube_name = "lwe_thickness_of_precipitation_amount"
         accumulation_cube = expand_bounds(
             cube_subset[0].copy(),
             iris.cube.CubeList(cube_subset),
-            ["time", "forecast_period"])
+            ["time", "forecast_period"],
+        )
         accumulation_cube.rename(cube_name)
-        accumulation_cube.units = 'm'
+        accumulation_cube.units = "m"
         accumulation_cell_method = iris.coords.CellMethod(
-            'sum', coords=accumulation_cube.coord('time'))
+            "sum", coords=accumulation_cube.coord("time")
+        )
         accumulation_cube.add_cell_method(accumulation_cell_method)
         return accumulation_cube
 
@@ -329,8 +344,7 @@ class Accumulation(BasePlugin):
 
         for forecast_period in self.forecast_periods:
             cube_subset = self._get_cube_subsets(cubes, forecast_period)
-            accumulation = self._calculate_accumulation(
-                cube_subset, time_interval)
+            accumulation = self._calculate_accumulation(cube_subset, time_interval)
             accumulation_cube = self._set_metadata(cube_subset)
 
             # Calculate new data and insert into cube.

@@ -36,19 +36,21 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(orography: cli.inputcube,
-            land_sea_mask: cli.inputcube,
-            site_list: cli.inputjson,
-            *,
-            all_methods=False,
-            land_constraint=False,
-            similar_altitude=False,
-            search_radius: float = None,
-            node_limit: int = None,
-            site_coordinate_system=None,
-            site_coordinate_options=None,
-            site_x_coordinate=None,
-            site_y_coordinate=None):
+def process(
+    orography: cli.inputcube,
+    land_sea_mask: cli.inputcube,
+    site_list: cli.inputjson,
+    *,
+    all_methods=False,
+    land_constraint=False,
+    similar_altitude=False,
+    search_radius: float = None,
+    node_limit: int = None,
+    site_coordinate_system=None,
+    site_coordinate_options=None,
+    site_x_coordinate=None,
+    site_y_coordinate=None,
+):
     """Create neighbour cubes for extracting spot data.
 
     Determine grid point coordinates within the provided cubes that neighbour
@@ -129,76 +131,98 @@ def process(orography: cli.inputcube,
 
     from improver.spotdata.neighbour_finding import NeighbourSelection
     from improver.utilities.cube_manipulation import (
-        merge_cubes, enforce_coordinate_ordering)
+        MergeCubes,
+        enforce_coordinate_ordering,
+    )
 
     PROJECTION_LIST = [
-        'AlbersEqualArea', 'AzimuthalEquidistant', 'EuroPP', 'Geocentric',
-        'Geodetic', 'Geostationary', 'Globe', 'Gnomonic',
-        'LambertAzimuthalEqualArea', 'LambertConformal', 'LambertCylindrical',
-        'Mercator', 'Miller', 'Mollweide', 'NearsidePerspective',
-        'NorthPolarStereo', 'OSGB', 'OSNI', 'Orthographic', 'PlateCarree',
-        'Projection', 'Robinson', 'RotatedGeodetic', 'RotatedPole',
-        'Sinusoidal', 'SouthPolarStereo', 'Stereographic',
-        'TransverseMercator', 'UTM']
+        "AlbersEqualArea",
+        "AzimuthalEquidistant",
+        "EuroPP",
+        "Geocentric",
+        "Geodetic",
+        "Geostationary",
+        "Globe",
+        "Gnomonic",
+        "LambertAzimuthalEqualArea",
+        "LambertConformal",
+        "LambertCylindrical",
+        "Mercator",
+        "Miller",
+        "Mollweide",
+        "NearsidePerspective",
+        "NorthPolarStereo",
+        "OSGB",
+        "OSNI",
+        "Orthographic",
+        "PlateCarree",
+        "Projection",
+        "Robinson",
+        "RotatedGeodetic",
+        "RotatedPole",
+        "Sinusoidal",
+        "SouthPolarStereo",
+        "Stereographic",
+        "TransverseMercator",
+        "UTM",
+    ]
 
     # Check valid options have been selected.
     if all_methods is True and (land_constraint or similar_altitude):
-        raise ValueError(
-            'Cannot use all_methods option with other constraints.')
+        raise ValueError("Cannot use all_methods option with other constraints.")
 
     # Filter kwargs for those expected by plugin and which are set.
     # This preserves the plugin defaults for unset options.
     args = {
-        'land_constraint': land_constraint,
-        'minimum_dz': similar_altitude,
-        'search_radius': search_radius,
-        'site_coordinate_system': site_coordinate_system,
-        'site_coordinate_options': site_coordinate_options,
-        'site_x_coordinate': site_x_coordinate,
-        'node_limit': node_limit,
-        'site_y_coordinate': site_y_coordinate
+        "land_constraint": land_constraint,
+        "minimum_dz": similar_altitude,
+        "search_radius": search_radius,
+        "site_coordinate_system": site_coordinate_system,
+        "site_coordinate_options": site_coordinate_options,
+        "site_x_coordinate": site_x_coordinate,
+        "node_limit": node_limit,
+        "site_y_coordinate": site_y_coordinate,
     }
     fargs = (site_list, orography, land_sea_mask)
     kwargs = {k: v for (k, v) in args.items() if v is not None}
 
     # Deal with coordinate systems for sites other than PlateCarree.
-    if 'site_coordinate_system' in kwargs.keys():
-        scrs = kwargs['site_coordinate_system']
+    if "site_coordinate_system" in kwargs.keys():
+        scrs = kwargs["site_coordinate_system"]
         if scrs not in PROJECTION_LIST:
-            raise ValueError('invalid projection {}'.format(scrs))
+            raise ValueError("invalid projection {}".format(scrs))
         site_crs = getattr(ccrs, scrs)
-        scrs_opts = json.loads(kwargs.pop('site_coordinate_options', '{}'))
-        if 'globe' in scrs_opts:
-            crs_globe = ccrs.Globe(**scrs_opts['globe'])
-            del scrs_opts['globe']
+        scrs_opts = json.loads(kwargs.pop("site_coordinate_options", "{}"))
+        if "globe" in scrs_opts:
+            crs_globe = ccrs.Globe(**scrs_opts["globe"])
+            del scrs_opts["globe"]
         else:
             crs_globe = ccrs.Globe()
-        kwargs['site_coordinate_system'] = site_crs(
-            globe=crs_globe, **scrs_opts)
+        kwargs["site_coordinate_system"] = site_crs(globe=crs_globe, **scrs_opts)
     # Call plugin to generate neighbour cubes
     if all_methods:
         methods = [
-            {**kwargs, 'land_constraint': False, 'minimum_dz': False},
-            {**kwargs, 'land_constraint': True, 'minimum_dz': False},
-            {**kwargs, 'land_constraint': False, 'minimum_dz': True},
-            {**kwargs, 'land_constraint': True, 'minimum_dz': True}
+            {**kwargs, "land_constraint": False, "minimum_dz": False},
+            {**kwargs, "land_constraint": True, "minimum_dz": False},
+            {**kwargs, "land_constraint": False, "minimum_dz": True},
+            {**kwargs, "land_constraint": True, "minimum_dz": True},
         ]
 
         all_methods = iris.cube.CubeList([])
         for method in methods:
-            all_methods.append(NeighbourSelection(**method).process(*fargs))
+            all_methods.append(NeighbourSelection(**method)(*fargs))
 
         squeezed_cubes = iris.cube.CubeList([])
         for index, cube in enumerate(all_methods):
-            cube.coord('neighbour_selection_method').points = np.int32(index)
+            cube.coord("neighbour_selection_method").points = np.int32(index)
             squeezed_cubes.append(iris.util.squeeze(cube))
 
-        result = merge_cubes(squeezed_cubes)
+        result = MergeCubes()(squeezed_cubes)
     else:
-        result = NeighbourSelection(**kwargs).process(*fargs)
+        result = NeighbourSelection(**kwargs)(*fargs)
 
     enforce_coordinate_ordering(
-        result,
-        ['spot_index', 'neighbour_selection_method', 'grid_attributes'])
+        result, ["spot_index", "neighbour_selection_method", "grid_attributes"]
+    )
 
     return result

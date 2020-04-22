@@ -47,8 +47,9 @@ def test_basic(tmp_path):
     """Test basic time lagging"""
     kgo_dir = acc.kgo_root() / "time-lagged-ens/same_validity"
     kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / f"20180924T1300Z-PT{l:04}H00M-{T2M}.nc"
-                   for l in range(5, 11)]
+    input_paths = [
+        kgo_dir / f"20180924T1300Z-PT{l:04}H00M-{T2M}.nc" for l in range(5, 11)
+    ]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "--output", output_path]
     run_cli(args)
@@ -58,8 +59,10 @@ def test_basic(tmp_path):
 def test_validity_error(tmp_path):
     """Test validity times mismatched"""
     kgo_dir = acc.kgo_root() / "time-lagged-ens/mixed_validity"
-    input_paths = [kgo_dir / f"20180924T1300Z-PT0001H00M-{T2M}.nc",
-                   kgo_dir / f"20180924T1900Z-PT0006H00M-{T2M}.nc"]
+    input_paths = [
+        kgo_dir / f"20180924T1300Z-PT0001H00M-{T2M}.nc",
+        kgo_dir / f"20180924T1900Z-PT0006H00M-{T2M}.nc",
+    ]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "--output", output_path]
     with pytest.raises(ValueError, match=".*validity times.*"):
@@ -82,8 +85,10 @@ def test_renumbered_realizations(tmp_path):
     kgo_dir = acc.kgo_root() / "time-lagged-ens/renumbered_realizations"
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = kgo_dir / "../same_validity"
-    input_paths = [input_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc",
-                   input_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc"]
+    input_paths = [
+        input_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc",
+        input_dir / f"20180924T1300Z-PT0005H00M-{T2M}.nc",
+    ]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "--output", output_path]
     run_cli(args)

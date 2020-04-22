@@ -31,5 +31,5 @@
 """Main to run clize on the cli"""
 from improver import cli
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli.run_main()

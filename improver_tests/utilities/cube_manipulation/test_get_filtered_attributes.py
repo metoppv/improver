@@ -50,15 +50,16 @@ class Test_get_filtered_attributes(IrisTest):
         """Use temperature cube to test with."""
 
         self.attributes = {
-            'mosg__grid_domain': 'uk',
-            'mosg__grid_type': 'standard',
-            'mosg__grid_version': '1.2.0',
-            'mosg__model_configuration': 'uk_det'}
+            "mosg__grid_domain": "uk",
+            "mosg__grid_type": "standard",
+            "mosg__grid_version": "1.2.0",
+            "mosg__model_configuration": "uk_det",
+        }
 
         data = np.arange(25).reshape(5, 5).astype(np.float32)
-        self.cube = set_up_variable_cube(data,
-                                         attributes=self.attributes,
-                                         spatial_grid="equalarea")
+        self.cube = set_up_variable_cube(
+            data, attributes=self.attributes, spatial_grid="equalarea"
+        )
 
     def test_no_filter(self):
         """Test a case in which all the attributes of the cube passed in are
@@ -69,30 +70,27 @@ class Test_get_filtered_attributes(IrisTest):
     def test_all_matches(self):
         """Test a case in which the cube passed in contains attributes that
         all partially match the attribute_filter string."""
-        attribute_filter = 'mosg'
-        result = get_filtered_attributes(self.cube,
-                                         attribute_filter=attribute_filter)
+        attribute_filter = "mosg"
+        result = get_filtered_attributes(self.cube, attribute_filter=attribute_filter)
         self.assertEqual(result, self.attributes)
 
     def test_subset_of_matches(self):
         """Test a case in which the cube passed in contains some attributes
         that partially match the attribute_filter string, and some that do
         not."""
-        attribute_filter = 'mosg__grid'
+        attribute_filter = "mosg__grid"
         expected = self.attributes
-        expected.pop('mosg__model_configuration')
-        result = get_filtered_attributes(self.cube,
-                                         attribute_filter=attribute_filter)
+        expected.pop("mosg__model_configuration")
+        result = get_filtered_attributes(self.cube, attribute_filter=attribute_filter)
         self.assertEqual(result, expected)
 
     def test_without_matches(self):
         """Test a case in which the cube passed in does not contain any
         attributes that partially match the expected string."""
-        attribute_filter = 'test'
-        result = get_filtered_attributes(self.cube,
-                                         attribute_filter=attribute_filter)
+        attribute_filter = "test"
+        result = get_filtered_attributes(self.cube, attribute_filter=attribute_filter)
         self.assertFalse(result)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

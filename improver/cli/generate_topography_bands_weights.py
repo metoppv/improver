@@ -36,10 +36,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(orography: cli.inputcube,
-            land_sea_mask: cli.inputcube = None,
-            *,
-            bands_config: cli.inputjson = None):
+def process(
+    orography: cli.inputcube,
+    land_sea_mask: cli.inputcube = None,
+    *,
+    bands_config: cli.inputjson = None,
+):
     """Runs topographic weights generation.
 
     Reads the orography and land_sea_mask fields of a cube. Creates a series of
@@ -76,21 +78,26 @@ def process(orography: cli.inputcube,
             Cube containing the weights depending upon where the orography
             point is within the topographical zones.
     """
-    from improver.generate_ancillaries.generate_topographic_zone_weights \
-        import GenerateTopographicZoneWeights
-    from improver.generate_ancillaries.generate_ancillary import (
-        THRESHOLDS_DICT)
+    from improver.generate_ancillaries.generate_topographic_zone_weights import (
+        GenerateTopographicZoneWeights,
+    )
+    from improver.generate_ancillaries.generate_ancillary import THRESHOLDS_DICT
 
     if bands_config is None:
         bands_config = THRESHOLDS_DICT
 
     if land_sea_mask:
-        land_sea_mask = next(land_sea_mask.slices(
-            [land_sea_mask.coord(axis='y'), land_sea_mask.coord(axis='x')]))
+        land_sea_mask = next(
+            land_sea_mask.slices(
+                [land_sea_mask.coord(axis="y"), land_sea_mask.coord(axis="x")]
+            )
+        )
 
-    orography = next(orography.slices(
-        [orography.coord(axis='y'), orography.coord(axis='x')]))
+    orography = next(
+        orography.slices([orography.coord(axis="y"), orography.coord(axis="x")])
+    )
 
-    result = GenerateTopographicZoneWeights().process(
-        orography, bands_config, landmask=land_sea_mask)
+    result = GenerateTopographicZoneWeights()(
+        orography, bands_config, landmask=land_sea_mask
+    )
     return result

@@ -37,16 +37,18 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            mask: cli.inputcube,
-            weights: cli.inputcube = None,
-            *,
-            coord_for_masking,
-            radii: cli.comma_separated_list,
-            lead_times: cli.comma_separated_list = None,
-            area_sum=False,
-            remask=False,
-            collapse_dimension=False):
+def process(
+    cube: cli.inputcube,
+    mask: cli.inputcube,
+    weights: cli.inputcube = None,
+    *,
+    coord_for_masking,
+    radii: cli.comma_separated_list,
+    lead_times: cli.comma_separated_list = None,
+    area_sum=False,
+    remask=False,
+    collapse_dimension=False,
+):
     """Runs neighbourhooding processing iterating over a coordinate by mask.
 
     Apply the requested neighbourhood method via the
@@ -109,17 +111,21 @@ def process(cube: cli.inputcube,
         CollapseMaskedNeighbourhoodCoordinate,
     )
 
-    sum_or_fraction = 'sum' if area_sum else 'fraction'
+    sum_or_fraction = "sum" if area_sum else "fraction"
 
     radius_or_radii, lead_times = radius_by_lead_time(radii, lead_times)
 
     result = ApplyNeighbourhoodProcessingWithAMask(
-        coord_for_masking, radius_or_radii, lead_times=lead_times,
+        coord_for_masking,
+        radius_or_radii,
+        lead_times=lead_times,
         sum_or_fraction=sum_or_fraction,
-        re_mask=remask)(cube, mask)
+        re_mask=remask,
+    )(cube, mask)
 
     # Collapse with the masking dimension.
     if collapse_dimension:
-        result = CollapseMaskedNeighbourhoodCoordinate(
-            coord_for_masking, weights).process(result)
+        result = CollapseMaskedNeighbourhoodCoordinate(coord_for_masking, weights)(
+            result
+        )
     return result

@@ -49,10 +49,16 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "mask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path,
-            "--coord-for-masking", "topographic_zone",
-            "--radii", "20000",
-            "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        "--coord-for-masking",
+        "topographic_zone",
+        "--radii",
+        "20000",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -66,10 +72,17 @@ def test_collapse_bands(tmp_path):
     mask_path = kgo_dir / "orographic_bands_mask.nc"
     weights_path = kgo_dir / "orographic_bands_weights.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, weights_path,
-            "--coord-for-masking", "topographic_zone",
-            "--radii", "10000",
-            "--collapse-dimension",
-            "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        weights_path,
+        "--coord-for-masking",
+        "topographic_zone",
+        "--radii",
+        "10000",
+        "--collapse-dimension",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

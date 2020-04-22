@@ -48,53 +48,45 @@ class Test_uv_index(IrisTest):
     def setUp(self):
         """Set up the cubes for upward and downward uv fluxes,
         and also one with different units."""
-        data_up = np.array([[0.2, 0.2, 0.2], [0.2, 0.2, 0.2]],
-                           dtype=np.float32)
-        uv_up_name = 'surface_upwelling_ultraviolet_flux_in_air'
-        self.cube_uv_up = set_up_variable_cube(data_up,
-                                               name=uv_up_name,
-                                               units='W m-2')
-        self.cube_up_badname = set_up_variable_cube(data_up,
-                                                    name='Wrong name',
-                                                    units='W m-2')
-        data_down = np.array([[0.1, 0.1, 0.1], [0.1, 0.1, 0.1]],
-                             dtype=np.float32)
-        uv_down_name = 'surface_downwelling_ultraviolet_flux_in_air'
-        self.cube_uv_down = set_up_variable_cube(data_down,
-                                                 name=uv_down_name,
-                                                 units='W m-2')
-        self.cube_diff_units = set_up_variable_cube(data_down,
-                                                    name=uv_down_name,
-                                                    units='m')
-        self.cube_down_badname = set_up_variable_cube(data_down,
-                                                      name='Wrong name',
-                                                      units='W m-2')
+        data_up = np.array([[0.2, 0.2, 0.2], [0.2, 0.2, 0.2]], dtype=np.float32)
+        uv_up_name = "surface_upwelling_ultraviolet_flux_in_air"
+        self.cube_uv_up = set_up_variable_cube(data_up, name=uv_up_name, units="W m-2")
+        self.cube_up_badname = set_up_variable_cube(
+            data_up, name="Wrong name", units="W m-2"
+        )
+        data_down = np.array([[0.1, 0.1, 0.1], [0.1, 0.1, 0.1]], dtype=np.float32)
+        uv_down_name = "surface_downwelling_ultraviolet_flux_in_air"
+        self.cube_uv_down = set_up_variable_cube(
+            data_down, name=uv_down_name, units="W m-2"
+        )
+        self.cube_diff_units = set_up_variable_cube(
+            data_down, name=uv_down_name, units="m"
+        )
+        self.cube_down_badname = set_up_variable_cube(
+            data_down, name="Wrong name", units="W m-2"
+        )
 
     def test_basic(self):
         """ Test that the a basic uv calculation works, using the
         default scaling factor. Make sure the output is a cube
         with the expected data."""
         scale_factor = 1.0
-        expected = np.array([[0.3, 0.3, 0.3], [0.3, 0.3, 0.3]],
-                            dtype=np.float32)
-        result = calculate_uv_index(self.cube_uv_up, self.cube_uv_down,
-                                    scale_factor)
+        expected = np.array([[0.3, 0.3, 0.3], [0.3, 0.3, 0.3]], dtype=np.float32)
+        result = calculate_uv_index(self.cube_uv_up, self.cube_uv_down, scale_factor)
         self.assertArrayEqual(result.data, expected)
 
     def test_scale_factor(self):
         """ Test the uv calculation works when changing the scale factor. Make
         sure the output is a cube with the expected data."""
-        expected = np.array([[3.0, 3.0, 3.0], [3.0, 3.0, 3.0]],
-                            dtype=np.float32)
-        result = calculate_uv_index(self.cube_uv_up, self.cube_uv_down,
-                                    scale_factor=10)
+        expected = np.array([[3.0, 3.0, 3.0], [3.0, 3.0, 3.0]], dtype=np.float32)
+        result = calculate_uv_index(self.cube_uv_up, self.cube_uv_down, scale_factor=10)
         self.assertArrayEqual(result.data, expected)
 
     def test_metadata(self):
         """ Tests that the uv index output has the correct metadata (no units,
         and name = ultraviolet index)."""
         result = calculate_uv_index(self.cube_uv_up, self.cube_uv_down)
-        self.assertEqual(str(result.standard_name), 'ultraviolet_index')
+        self.assertEqual(str(result.standard_name), "ultraviolet_index")
         self.assertIsNone(result.var_name)
         self.assertIsNone(result.long_name)
         self.assertEqual((result.units), Unit("1"))
@@ -102,27 +94,24 @@ class Test_uv_index(IrisTest):
     def test_diff_units(self):
         """Tests that a ValueError is raised if the input uv files have
         different units. """
-        msg = 'The input uv files do not have the same units.'
+        msg = "The input uv files do not have the same units."
         with self.assertRaisesRegex(ValueError, msg):
-            calculate_uv_index(self.cube_uv_up, self.cube_diff_units,
-                               scale_factor=1.0)
+            calculate_uv_index(self.cube_uv_up, self.cube_diff_units, scale_factor=1.0)
 
     def test_badname_down(self):
         """Tests that a ValueError is raised if the input uv down
         file has the wrong name. """
-        msg = 'The radiation flux in UV downward'
+        msg = "The radiation flux in UV downward"
         with self.assertRaisesRegex(ValueError, msg):
-            calculate_uv_index(self.cube_uv_up,
-                               self.cube_down_badname)
+            calculate_uv_index(self.cube_uv_up, self.cube_down_badname)
 
     def test_badname_up(self):
         """Tests that a ValueError is raised if the input uv up
         file has the wrong name. """
-        msg = 'The radiation flux in UV upward'
+        msg = "The radiation flux in UV upward"
         with self.assertRaisesRegex(ValueError, msg):
-            calculate_uv_index(self.cube_up_badname,
-                               self.cube_uv_down)
+            calculate_uv_index(self.cube_up_badname, self.cube_uv_down)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

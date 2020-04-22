@@ -30,13 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing maximum memory profiling utilities."""
 
-import tracemalloc
-from queue import Queue
-from threading import Thread
-from resource import getrusage, RUSAGE_SELF
-from datetime import datetime
 import sys
 import time
+from datetime import datetime
+from resource import RUSAGE_SELF, getrusage
+from threading import Thread
+
+import tracemalloc
+from queue import Queue
 
 
 def memory_profile_start(outfile_prefix):
@@ -52,8 +53,7 @@ def memory_profile_start(outfile_prefix):
         Active Queue for communication to the thread.
     """
     queue = Queue()
-    thread = Thread(target=memory_monitor, args=(queue,
-                                                 outfile_prefix))
+    thread = Thread(target=memory_monitor, args=(queue, outfile_prefix))
     thread.start()
     return thread, queue
 
@@ -67,7 +67,7 @@ def memory_profile_end(queue, thread):
         thread (thread.Thread):
             Active thread instance running memory tracking.
     """
-    queue.put('Stop')
+    queue.put("Stop")
     thread.join()
 
 
@@ -91,9 +91,9 @@ def memory_monitor(queue, outfile_prefix):
     snapshot = None
     wait_time = 0.1
 
-    fout = open("{}_MAX_TRACKER".format(outfile_prefix), 'w')
+    fout = open("{}_MAX_TRACKER".format(outfile_prefix), "w")
     b2mb = 1 / 1048576
-    if sys.platform == 'linux':
+    if sys.platform == "linux":
         # linux outputs max_rss in KB not B
         b2mb = 1 / 1024
 
@@ -103,8 +103,7 @@ def memory_monitor(queue, outfile_prefix):
             max_rss = getrusage(RUSAGE_SELF).ru_maxrss
             if max_rss > old_max:
                 snapshot = tracemalloc.take_snapshot()
-                line = "{} max RSS {:.2f} MiB".format(datetime.now(),
-                                                      max_rss * b2mb)
+                line = "{} max RSS {:.2f} MiB".format(datetime.now(), max_rss * b2mb)
                 print(line, file=fout)
                 old_max = max_rss
         else:
@@ -124,9 +123,11 @@ def memory_profile_decorator(func, outfile_prefix):
             Prefix for the generated output. 2 files will
             be generated: *_SNAPSHOT and *_MAX_TRACKER.
     """
+
     def wrapper(*args, **kwargs):
         thread, queue = memory_profile_start(outfile_prefix)
         results = func(*args, **kwargs)
         memory_profile_end(queue, thread)
         return results
+
     return wrapper

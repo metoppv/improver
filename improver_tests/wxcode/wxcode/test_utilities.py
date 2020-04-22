@@ -38,6 +38,7 @@ from tempfile import mkdtemp
 
 import iris
 import numpy as np
+import pytest
 from cf_units import Unit, date2num
 from iris.coords import DimCoord
 from iris.cube import Cube
@@ -48,8 +49,13 @@ from improver.grids import ELLIPSOID, STANDARD_GRID_CCRS
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.wxcode.utilities import (
-    WX_DICT, weather_code_attributes, expand_nested_lists,
-    interrogate_decision_tree, update_daynight)
+    WX_DICT,
+    expand_nested_lists,
+    get_parameter_names,
+    interrogate_decision_tree,
+    update_daynight,
+    weather_code_attributes,
+)
 
 from ...calibration.ensemble_calibration.helper_functions import set_up_cube
 
@@ -102,19 +108,17 @@ def _core_wxcube(time_points, num_grid_points):
     if time_points is None:
         time_points = np.array([datetime_to_numdateval()])
 
-    data = np.ones((len(time_points),
-                    num_grid_points,
-                    num_grid_points))
+    data = np.ones((len(time_points), num_grid_points, num_grid_points))
 
-    cube = Cube(data, long_name="weather_code",
-                units="1", attributes=weather_code_attributes())
+    cube = Cube(
+        data, long_name="weather_code", units="1", attributes=weather_code_attributes()
+    )
 
     time_origin = "hours since 1970-01-01 00:00:00"
     calendar = "gregorian"
     tunit = Unit(time_origin, calendar)
 
-    cube.add_dim_coord(DimCoord(time_points,
-                                standard_name="time", units=tunit), 0)
+    cube.add_dim_coord(DimCoord(time_points, standard_name="time", units=tunit), 0)
     return cube
 
 
@@ -137,26 +141,26 @@ def set_up_wxcube(time_points=None):
     cube = _core_wxcube(time_points, num_grid_points)
 
     step_size = 2000
-    y_points = np.arange(0, step_size*num_grid_points, step_size)
+    y_points = np.arange(0, step_size * num_grid_points, step_size)
     cube.add_dim_coord(
         DimCoord(
             y_points,
-            'projection_y_coordinate',
-            units='m',
-            coord_system=STANDARD_GRID_CCRS
+            "projection_y_coordinate",
+            units="m",
+            coord_system=STANDARD_GRID_CCRS,
         ),
-        1
+        1,
     )
 
     x_points = np.linspace(-30000, 0, num_grid_points)
     cube.add_dim_coord(
         DimCoord(
             x_points,
-            'projection_x_coordinate',
-            units='m',
-            coord_system=STANDARD_GRID_CCRS
+            "projection_x_coordinate",
+            units="m",
+            coord_system=STANDARD_GRID_CCRS,
         ),
-        2
+        2,
     )
 
     return cube
@@ -184,18 +188,10 @@ def set_up_wxcube_lat_lon(time_points=None):
     lat_points = np.linspace(49, 64, num_grid_points)
 
     cube.add_dim_coord(
-        DimCoord(lat_points,
-                 'latitude',
-                 units='degrees',
-                 coord_system=ELLIPSOID),
-        1
+        DimCoord(lat_points, "latitude", units="degrees", coord_system=ELLIPSOID), 1
     )
     cube.add_dim_coord(
-        DimCoord(lon_points,
-                 'longitude',
-                 units='degrees',
-                 coord_system=ELLIPSOID),
-        2
+        DimCoord(lon_points, "longitude", units="degrees", coord_system=ELLIPSOID), 2
     )
     return cube
 
@@ -205,37 +201,37 @@ class Test_wx_dict(IrisTest):
 
     def test_wxcode_values(self):
         """Check wxcode values are set correctly."""
-        self.assertEqual(WX_DICT[0], 'Clear_Night')
-        self.assertEqual(WX_DICT[1], 'Sunny_Day')
-        self.assertEqual(WX_DICT[2], 'Partly_Cloudy_Night')
-        self.assertEqual(WX_DICT[3], 'Partly_Cloudy_Day')
-        self.assertEqual(WX_DICT[4], 'Dust')
-        self.assertEqual(WX_DICT[5], 'Mist')
-        self.assertEqual(WX_DICT[6], 'Fog')
-        self.assertEqual(WX_DICT[7], 'Cloudy')
-        self.assertEqual(WX_DICT[8], 'Overcast')
-        self.assertEqual(WX_DICT[9], 'Light_Shower_Night')
-        self.assertEqual(WX_DICT[10], 'Light_Shower_Day')
-        self.assertEqual(WX_DICT[11], 'Drizzle')
-        self.assertEqual(WX_DICT[12], 'Light_Rain')
-        self.assertEqual(WX_DICT[13], 'Heavy_Shower_Night')
-        self.assertEqual(WX_DICT[14], 'Heavy_Shower_Day')
-        self.assertEqual(WX_DICT[15], 'Heavy_Rain')
-        self.assertEqual(WX_DICT[16], 'Sleet_Shower_Night')
-        self.assertEqual(WX_DICT[17], 'Sleet_Shower_Day')
-        self.assertEqual(WX_DICT[18], 'Sleet')
-        self.assertEqual(WX_DICT[19], 'Hail_Shower_Night')
-        self.assertEqual(WX_DICT[20], 'Hail_Shower_Day')
-        self.assertEqual(WX_DICT[21], 'Hail')
-        self.assertEqual(WX_DICT[22], 'Light_Snow_Shower_Night')
-        self.assertEqual(WX_DICT[23], 'Light_Snow_Shower_Day')
-        self.assertEqual(WX_DICT[24], 'Light_Snow')
-        self.assertEqual(WX_DICT[25], 'Heavy_Snow_Shower_Night')
-        self.assertEqual(WX_DICT[26], 'Heavy_Snow_Shower_Day')
-        self.assertEqual(WX_DICT[27], 'Heavy_Snow')
-        self.assertEqual(WX_DICT[28], 'Thunder_Shower_Night')
-        self.assertEqual(WX_DICT[29], 'Thunder_Shower_Day')
-        self.assertEqual(WX_DICT[30], 'Thunder')
+        self.assertEqual(WX_DICT[0], "Clear_Night")
+        self.assertEqual(WX_DICT[1], "Sunny_Day")
+        self.assertEqual(WX_DICT[2], "Partly_Cloudy_Night")
+        self.assertEqual(WX_DICT[3], "Partly_Cloudy_Day")
+        self.assertEqual(WX_DICT[4], "Dust")
+        self.assertEqual(WX_DICT[5], "Mist")
+        self.assertEqual(WX_DICT[6], "Fog")
+        self.assertEqual(WX_DICT[7], "Cloudy")
+        self.assertEqual(WX_DICT[8], "Overcast")
+        self.assertEqual(WX_DICT[9], "Light_Shower_Night")
+        self.assertEqual(WX_DICT[10], "Light_Shower_Day")
+        self.assertEqual(WX_DICT[11], "Drizzle")
+        self.assertEqual(WX_DICT[12], "Light_Rain")
+        self.assertEqual(WX_DICT[13], "Heavy_Shower_Night")
+        self.assertEqual(WX_DICT[14], "Heavy_Shower_Day")
+        self.assertEqual(WX_DICT[15], "Heavy_Rain")
+        self.assertEqual(WX_DICT[16], "Sleet_Shower_Night")
+        self.assertEqual(WX_DICT[17], "Sleet_Shower_Day")
+        self.assertEqual(WX_DICT[18], "Sleet")
+        self.assertEqual(WX_DICT[19], "Hail_Shower_Night")
+        self.assertEqual(WX_DICT[20], "Hail_Shower_Day")
+        self.assertEqual(WX_DICT[21], "Hail")
+        self.assertEqual(WX_DICT[22], "Light_Snow_Shower_Night")
+        self.assertEqual(WX_DICT[23], "Light_Snow_Shower_Day")
+        self.assertEqual(WX_DICT[24], "Light_Snow")
+        self.assertEqual(WX_DICT[25], "Heavy_Snow_Shower_Night")
+        self.assertEqual(WX_DICT[26], "Heavy_Snow_Shower_Day")
+        self.assertEqual(WX_DICT[27], "Heavy_Snow")
+        self.assertEqual(WX_DICT[28], "Thunder_Shower_Night")
+        self.assertEqual(WX_DICT[29], "Thunder_Shower_Day")
+        self.assertEqual(WX_DICT[30], "Thunder")
 
 
 class Test_weather_code_attributes(IrisTest):
@@ -244,15 +240,15 @@ class Test_weather_code_attributes(IrisTest):
     def setUp(self):
         """Set up cube """
         data = np.array(
-            [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6],
-            dtype=np.int32
+            [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6], dtype=np.int32
         ).reshape((2, 1, 3, 3))
-        self.cube = set_up_cube(data, 'weather_code', '1',
-                                realizations=np.array([0, 1], dtype=np.int32))
+        self.cube = set_up_cube(
+            data, "weather_code", "1", realizations=np.array([0, 1], dtype=np.int32)
+        )
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.data_directory = mkdtemp()
-        self.nc_file = self.data_directory + '/wxcode.nc'
+        self.nc_file = self.data_directory + "/wxcode.nc"
         pathlib.Path(self.nc_file).touch(exist_ok=True)
 
     def tearDown(self):
@@ -263,17 +259,16 @@ class Test_weather_code_attributes(IrisTest):
     def test_values(self):
         """Test attribute values are correctly set."""
         result = weather_code_attributes()
-        self.assertArrayEqual(result['weather_code'], self.wxcode)
-        self.assertEqual(result['weather_code_meaning'], self.wxmeaning)
+        self.assertArrayEqual(result["weather_code"], self.wxcode)
+        self.assertEqual(result["weather_code_meaning"], self.wxmeaning)
 
     def test_metadata_saves(self):
         """Test that the metadata saves as NetCDF correctly."""
         self.cube.attributes.update(weather_code_attributes())
         save_netcdf(self.cube, self.nc_file)
         result = load_cube(self.nc_file)
-        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
-        self.assertEqual(result.attributes['weather_code_meaning'],
-                         self.wxmeaning)
+        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
+        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
 
 
 class Test_expand_nested_lists(IrisTest):
@@ -281,25 +276,27 @@ class Test_expand_nested_lists(IrisTest):
 
     def setUp(self):
         """ Set up dictionary for testing """
-        self.dictionary = {'list': ['a', 'a'],
-                           'list_of_lists': [['a', 'a'], ['a', 'a']]}
+        self.dictionary = {
+            "list": ["a", "a"],
+            "list_of_lists": [["a", "a"], ["a", "a"]],
+        }
 
     def test_basic(self):
         """Test that the expand_nested_lists returns a list."""
-        result = expand_nested_lists(self.dictionary, 'list')
+        result = expand_nested_lists(self.dictionary, "list")
         self.assertIsInstance(result, list)
 
     def test_simple_list(self):
         """Testexpand_nested_lists returns a expanded list if given a list."""
-        result = expand_nested_lists(self.dictionary, 'list')
+        result = expand_nested_lists(self.dictionary, "list")
         for val in result:
-            self.assertEqual(val, 'a')
+            self.assertEqual(val, "a")
 
     def test_list_of_lists(self):
         """Returns a expanded list if given a list of lists."""
-        result = expand_nested_lists(self.dictionary, 'list_of_lists')
+        result = expand_nested_lists(self.dictionary, "list_of_lists")
         for val in result:
-            self.assertEqual(val, 'a')
+            self.assertEqual(val, "a")
 
 
 class Test_update_daynight(IrisTest):
@@ -309,39 +306,43 @@ class Test_update_daynight(IrisTest):
         """Set up for update_daynight class"""
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
-        self.cube_data = np.array([[
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
-            [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-            [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
-            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
-            [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
-            [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
-            [14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14],
-            [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
-            [17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17],
-            [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
-            [20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20],
-            [23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23],
-            [26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26],
-            [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
-            [29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29]]])
+        self.cube_data = np.array(
+            [
+                [
+                    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+                    [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+                    [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+                    [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+                    [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+                    [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+                    [14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14],
+                    [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+                    [17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17],
+                    [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+                    [20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20],
+                    [23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23],
+                    [26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26],
+                    [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
+                    [29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29],
+                ]
+            ]
+        )
 
     def test_basic(self):
         """Test that the function returns a weather code cube."""
         cube = set_up_wxcube()
         result = update_daynight(cube)
         self.assertIsInstance(result, Cube)
-        self.assertEqual(result.name(), 'weather_code')
+        self.assertEqual(result.name(), "weather_code")
         self.assertEqual(result.units, Unit("1"))
-        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
-        self.assertEqual(result.attributes['weather_code_meaning'],
-                         self.wxmeaning)
+        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
+        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
 
     def test_raise_error_no_time_coordinate(self):
         """Test that the function raises an error if no time coordinate."""
         cube = set_up_wxcube()
-        cube.coord('time').rename('nottime')
+        cube.coord("time").rename("nottime")
         msg = "cube must have time coordinate"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             update_daynight(cube)
@@ -351,23 +352,28 @@ class Test_update_daynight(IrisTest):
         cube = set_up_wxcube()
         cube.data = self.cube_data
         # Only 1,3,10, 14, 17, 20, 23, 26 and 29 change from day to night
-        expected_result = np.array([[
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
-            [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-            [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
-            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
-            [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10],
-            [13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14],
-            [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
-            [16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17],
-            [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
-            [19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20],
-            [22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23],
-            [25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26],
-            [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
-            [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29]]])
+        expected_result = np.array(
+            [
+                [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+                    [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
+                    [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+                    [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+                    [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+                    [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+                    [9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10],
+                    [13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14],
+                    [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+                    [16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17],
+                    [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+                    [19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20],
+                    [22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23],
+                    [25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26],
+                    [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
+                    [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29],
+                ]
+            ]
+        )
         result = update_daynight(cube)
         self.assertArrayEqual(result.data, expected_result)
 
@@ -376,23 +382,26 @@ class Test_update_daynight(IrisTest):
         cube = set_up_wxcube()
         cube.data = self.cube_data
         cube = iris.util.squeeze(cube)
-        expected_result = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
-            [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-            [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
-            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
-            [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10],
-            [13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14],
-            [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
-            [16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17],
-            [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
-            [19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20],
-            [22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23],
-            [25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26],
-            [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
-            [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29]])
+        expected_result = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+                [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
+                [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+                [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+                [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+                [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+                [9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10],
+                [13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14],
+                [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+                [16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17],
+                [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+                [19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20],
+                [22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23],
+                [25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26],
+                [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
+                [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29],
+            ]
+        )
         result = update_daynight(cube)
 
         self.assertArrayEqual(result.data, expected_result)
@@ -411,23 +420,26 @@ class Test_update_daynight(IrisTest):
         cube = set_up_wxcube(time_points=time_points)
         cube.data = self.cube_data
         cube = iris.util.squeeze(cube)
-        expected_result = np.array([
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-            [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
-            [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-            [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
-            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
-            [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
-            [9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10],
-            [13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14],
-            [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
-            [16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17],
-            [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
-            [19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20],
-            [22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23],
-            [25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26],
-            [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
-            [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29]])
+        expected_result = np.array(
+            [
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+                [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
+                [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+                [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+                [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+                [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+                [9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10],
+                [13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14],
+                [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+                [16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17],
+                [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+                [19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20],
+                [22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23],
+                [25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26],
+                [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
+                [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29],
+            ]
+        )
         result = update_daynight(cube)
 
         self.assertArrayEqual(result.data, expected_result)
@@ -435,12 +447,9 @@ class Test_update_daynight(IrisTest):
 
     def test_wxcode_time_as_array(self):
         """ Test code works if time is an array of dimension > 1 """
-        num1 = datetime_to_numdateval(year=2018, month=9, day=12, hour=5,
-                                      minutes=0)
-        num2 = datetime_to_numdateval(year=2018, month=9, day=12, hour=6,
-                                      minutes=0)
-        num3 = datetime_to_numdateval(year=2018, month=9, day=12, hour=7,
-                                      minutes=0)
+        num1 = datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=0)
+        num2 = datetime_to_numdateval(year=2018, month=9, day=12, hour=6, minutes=0)
+        num3 = datetime_to_numdateval(year=2018, month=9, day=12, hour=7, minutes=0)
         cube = set_up_wxcube(time_points=[num1, num2, num3])
         expected_result = np.ones((3, 16, 16))
         expected_result[0, :, :] = 0
@@ -452,34 +461,38 @@ class Test_update_daynight(IrisTest):
         cube = set_up_wxcube_lat_lon()
         result = update_daynight(cube)
         self.assertIsInstance(result, Cube)
-        self.assertEqual(result.name(), 'weather_code')
+        self.assertEqual(result.name(), "weather_code")
         self.assertEqual(result.units, Unit("1"))
-        self.assertArrayEqual(result.attributes['weather_code'], self.wxcode)
-        self.assertEqual(result.attributes['weather_code_meaning'],
-                         self.wxmeaning)
+        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
+        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
 
     def test_wxcode_updated_on_latlon(self):
         """Test Correct wxcodes returned for lat lon cube."""
         cube = set_up_wxcube_lat_lon()
         cube.data = self.cube_data
 
-        expected_result = np.array([[
-            [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3],
-            [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-            [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
-            [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
-            [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
-            [9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
-            [13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14],
-            [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
-            [16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17],
-            [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
-            [19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20],
-            [22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23],
-            [25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26],
-            [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
-            [28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29]]])
+        expected_result = np.array(
+            [
+                [
+                    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    [2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+                    [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+                    [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
+                    [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+                    [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
+                    [9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+                    [13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14, 14, 14, 14],
+                    [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
+                    [16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17, 17],
+                    [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
+                    [19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20],
+                    [22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23],
+                    [25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26, 26],
+                    [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
+                    [28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29],
+                ]
+            ]
+        )
         result = update_daynight(cube)
         self.assertArrayEqual(result.data, expected_result)
 
@@ -487,18 +500,72 @@ class Test_update_daynight(IrisTest):
 class Test_interrogate_decision_tree(IrisTest):
     """Test the function for generating extended help."""
 
-    def test_return_type(self):
-        """Test that the function returns a string."""
-        result = interrogate_decision_tree('global')
-        self.assertIsInstance(result, str)
-
     def test_raises_exception(self):
         """Test the function raises an exception for an unknown weather symbol
         tree name."""
         msg = "Unknown decision tree name provided."
         with self.assertRaisesRegex(ValueError, msg):
-            interrogate_decision_tree('kittens')
+            interrogate_decision_tree("kittens")
 
 
-if __name__ == '__main__':
+@pytest.mark.parametrize(
+    "tree_name,expected",
+    [
+        (
+            "global",
+            (
+                "probability_of_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"
+                "probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+                "probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.1, 1.0\n"
+                "probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
+                "probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
+            ),
+        ),
+        (
+            "high_resolution",
+            (
+                "probability_of_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"
+                "probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+                "probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 1.0\n"
+                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"
+                "probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+                "probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+                "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"
+                "probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+                "probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
+            ),
+        ),
+    ],
+)
+def test_interrogate_decision_tree(tree_name, expected):
+    """Test that the function returns the right strings."""
+    result = interrogate_decision_tree(tree_name)
+    assert result == expected
+
+
+class Test_get_parameter_names(IrisTest):
+    """Test the get_parameter_names method."""
+
+    def test_basic(self):
+        """Test that the get_parameter_names method does what it says."""
+        condition = ["parameter_name_one", "*", "4.0", "+", "parameter_name_two"]
+        expected = ["parameter_name_one", "parameter_name_two"]
+        result = get_parameter_names(condition)
+        self.assertEqual(result, expected)
+
+    def test_nested(self):
+        """Test getting parameter names from nested lists."""
+        condition = [
+            ["parameter_name_one", "*", "4.0", "+", "parameter_name_two"],
+            ["parameter_name_three", "parameter_name_four"],
+        ]
+        expected = [
+            ["parameter_name_one", "parameter_name_two"],
+            ["parameter_name_three", "parameter_name_four"],
+        ]
+        result = get_parameter_names(condition)
+        self.assertEqual(result, expected)
+
+
+if __name__ == "__main__":
     unittest.main()

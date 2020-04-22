@@ -37,10 +37,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(orographic_enhancement: cli.inputcube,
-            *cubes: cli.inputcube,
-            ofc_box_size: int = 30,
-            smart_smoothing_iterations: int = 100):
+def process(
+    orographic_enhancement: cli.inputcube,
+    *cubes: cli.inputcube,
+    ofc_box_size: int = 30,
+    smart_smoothing_iterations: int = 100,
+):
     """Calculate optical flow components from input fields.
 
     Args:
@@ -63,8 +65,7 @@ def process(orographic_enhancement: cli.inputcube,
     """
     from iris.cube import CubeList
 
-    from improver.nowcasting.optical_flow import \
-        generate_optical_flow_components
+    from improver.nowcasting.optical_flow import generate_optical_flow_components
     from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
     original_cube_list = CubeList(cubes)
@@ -72,12 +73,14 @@ def process(orographic_enhancement: cli.inputcube,
     original_cube_list.sort(key=lambda x: x.coord("time").points[0])
 
     # subtract orographic enhancement
-    cube_list = ApplyOrographicEnhancement("subtract").process(
-            original_cube_list, orographic_enhancement)
+    cube_list = ApplyOrographicEnhancement("subtract")(
+        original_cube_list, orographic_enhancement
+    )
 
     # calculate optical flow velocities from T-1 to T and T-2 to T-1, and
     # average to produce the velocities for use in advection
     u_mean, v_mean = generate_optical_flow_components(
-        cube_list, ofc_box_size, smart_smoothing_iterations)
+        cube_list, ofc_box_size, smart_smoothing_iterations
+    )
 
     return CubeList([u_mean, v_mean])

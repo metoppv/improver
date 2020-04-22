@@ -39,8 +39,7 @@ LOOSE_TOLERANCE = 1e-3
 RMDI = -32767.0
 
 # Default percentile boundaries to calculate at for IMPROVER.
-DEFAULT_PERCENTILES = (0, 5, 10, 20, 25, 30, 40, 50,
-                       60, 70, 75, 80, 90, 95, 100)
+DEFAULT_PERCENTILES = (0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100)
 
 # 0 Kelvin in degrees C
 ABSOLUTE_ZERO = -273.15
@@ -71,14 +70,14 @@ TRIPLE_PT_WATER = 273.16
 U_TRIPLE_PT_WATER = "K"
 
 # Latent heat of condensation of water at 0C (J kg-1)
-LH_CONDENSATION_WATER = 2.501E6
+LH_CONDENSATION_WATER = 2.501e6
 U_LH_CONDENSATION_WATER = "J kg-1"
 # Molar mass of water vapour (kg mol-1)
 WATER_VAPOUR_MOLAR_MASS = 0.01801
 U_WATER_VAPOUR_MOLAR_MASS = "kg mol-1"
 # Latent heat temperature dependence (J K-1 kg-1); from Met Office UM.
 # Applied to temperatures in Celsius: LH = 2501 - 2.34E3 * T(celsius)
-LATENT_HEAT_T_DEPENDENCE = 2.34E3
+LATENT_HEAT_T_DEPENDENCE = 2.34e3
 U_LATENT_HEAT_T_DEPENDENCE = "J K-1 kg-1"
 
 # Repsilon, ratio of molecular weights of water and dry air (Earth)

@@ -48,9 +48,7 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path,
-            "--radii", "20000",
-            "--output", output_path]
+    args = [input_path, mask_path, "--radii", "20000", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -63,10 +61,16 @@ def test_radii_with_lead_times(tmp_path):
     input_path = imp_dir / "input.nc"
     mask_path = imp_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path,
-            "--radii", "18000,54000,90000,162000",
-            "--lead-times", "0,36,72,144",
-            "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        "--radii",
+        "18000,54000,90000,162000",
+        "--lead-times",
+        "0,36,72,144",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -84,14 +88,19 @@ def test_topographic_bands(tmp_path, intermediate):
     output_path = tmp_path / "output.nc"
     land_output_path = tmp_path / "output_land.nc"
     if intermediate:
-        im_args = ["--intermediate-output", land_output_path,
-                   "--return-intermediate"]
+        im_args = ["--intermediate-output", land_output_path, "--return-intermediate"]
     else:
         im_args = []
-    args = [input_path, bands_path, weights_path,
-            "--radii", "20000",
-            *im_args,
-            "--output", output_path]
+    args = [
+        input_path,
+        bands_path,
+        weights_path,
+        "--radii",
+        "20000",
+        *im_args,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
     if intermediate:
@@ -105,9 +114,15 @@ def test_unnecessary_weights(tmp_path):
     mask_path = kgo_dir / "ukvx_landmask.nc"
     weights_path = kgo_dir / "../topographic_bands/weights_land.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, weights_path,
-            "--radii", "20000",
-            "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        weights_path,
+        "--radii",
+        "20000",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(TypeError, match=".*weights cube.*"):
         run_cli(args)
 
@@ -118,9 +133,7 @@ def test_missing_weights(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "topographic_bands_land.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path,
-            "--radii", "20000",
-            "--output", output_path]
+    args = [input_path, mask_path, "--radii", "20000", "--output", output_path]
     with pytest.raises(TypeError, match=".*weights cube.*"):
         run_cli(args)
 
@@ -132,9 +145,15 @@ def test_incorrect_weights(tmp_path):
     mask_path = kgo_dir / "topographic_bands_land.nc"
     weights_path = kgo_dir / "weights_any_surface.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, weights_path,
-            "--radii", "20000",
-            "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        weights_path,
+        "--radii",
+        "20000",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(ValueError, match=".*weights cube.*"):
         run_cli(args)
 
@@ -146,9 +165,15 @@ def test_topographic_sea(tmp_path):
     mask_path = kgo_dir / "topographic_bands_any_surface.nc"
     weights_path = kgo_dir / "weights_land.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, weights_path,
-            "--radii", "20000",
-            "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        weights_path,
+        "--radii",
+        "20000",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(ValueError, match=".*mask cube.*"):
         run_cli(args)
 
@@ -156,15 +181,14 @@ def test_topographic_sea(tmp_path):
 @pytest.mark.parametrize("landsea", ["land", "sea"])
 def test_landsea_only(tmp_path, landsea):
     """Test with land-only and sea-only masks"""
-    kgo_dir = acc.kgo_root() / \
-        f"nbhood-land-and-sea/no_topographic_bands/{landsea}_only"
+    kgo_dir = (
+        acc.kgo_root() / f"nbhood-land-and-sea/no_topographic_bands/{landsea}_only"
+    )
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path,
-            "--radii", "20000",
-            "--output", output_path]
+    args = [input_path, mask_path, "--radii", "20000", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -178,9 +202,15 @@ def test_topographic_bands_probabilities(tmp_path):
     mask_path = kgo_dir / "../topographic_bands/topographic_bands_land.nc"
     weights_path = kgo_dir / "../topographic_bands/weights_land.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, weights_path,
-            "--radii", "20000",
-            "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        weights_path,
+        "--radii",
+        "20000",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -191,9 +221,15 @@ def test_lead_time_radii_mismatch(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path,
-            "--radii", "20000,20001",
-            "--lead-times", "1",
-            "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        "--radii",
+        "20000,20001",
+        "--lead-times",
+        "1",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(RuntimeError, match=".*list of radii.*"):
         run_cli(args)

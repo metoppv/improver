@@ -36,8 +36,7 @@ import unittest
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.nbhood.nbhood import \
-    GeneratePercentilesFromANeighbourhood as NBHood
+from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood as NBHood
 
 from .test_BaseNeighbourhoodProcessing import set_up_cube
 
@@ -51,11 +50,13 @@ class Test__init__(IrisTest):
         Test that no exception is raised if the requested neighbourhood method
         exists.
         """
-        neighbourhood_method = 'circular'
+        neighbourhood_method = "circular"
         radii = 10000
         result = NBHood(neighbourhood_method, radii)
-        msg = ('<GeneratePercentilesFromACircularNeighbourhood: percentiles: '
-               '(0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100)>')
+        msg = (
+            "<GeneratePercentilesFromACircularNeighbourhood: percentiles: "
+            "(0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100)>"
+        )
         self.assertEqual(str(result.neighbourhood_method), msg)
 
     def test_neighbourhood_method_does_not_exist(self):
@@ -63,9 +64,9 @@ class Test__init__(IrisTest):
         Test that desired error message is raised, if the neighbourhood method
         does not exist.
         """
-        neighbourhood_method = 'nonsense'
+        neighbourhood_method = "nonsense"
         radii = 10000
-        msg = 'The neighbourhood_method requested: '
+        msg = "The neighbourhood_method requested: "
         with self.assertRaisesRegex(KeyError, msg):
             NBHood(neighbourhood_method, radii)
 
@@ -77,10 +78,12 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(NBHood("circular", 10000))
-        msg = ('<BaseNeighbourhoodProcessing: neighbourhood_method: '
-               '<GeneratePercentilesFromACircularNeighbourhood: percentiles: '
-               '(0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100)>; '
-               'radii: 10000.0; lead_times: None>')
+        msg = (
+            "<BaseNeighbourhoodProcessing: neighbourhood_method: "
+            "<GeneratePercentilesFromACircularNeighbourhood: percentiles: "
+            "(0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100)>; "
+            "radii: 10000.0; lead_times: None>"
+        )
         self.assertEqual(result, msg)
 
 
@@ -90,13 +93,12 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up a cube."""
-        self.cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
+        self.cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
 
     def test_default_percentiles(self):
         """Test that the circular neighbourhood processing is successful, if
         the default percentiles are used."""
-        neighbourhood_method = 'circular'
+        neighbourhood_method = "circular"
         radii = 4000
         result = NBHood(neighbourhood_method, radii)(self.cube)
         self.assertIsInstance(result, Cube)
@@ -104,13 +106,12 @@ class Test_process(IrisTest):
     def test_define_percentiles(self):
         """Test that the circular neighbourhood processing is successful, if
         the percentiles are passed in as a keyword argument."""
-        neighbourhood_method = 'circular'
+        neighbourhood_method = "circular"
         radii = 4000
         percentiles = (0, 25, 50, 75, 100)
-        result = NBHood(neighbourhood_method, radii,
-                        percentiles=percentiles)(self.cube)
+        result = NBHood(neighbourhood_method, radii, percentiles=percentiles)(self.cube)
         self.assertIsInstance(result, Cube)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

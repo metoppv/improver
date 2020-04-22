@@ -38,16 +38,28 @@ from improver import BasePlugin
 
 # The following dictionary defines the default orography altitude bands in
 # metres above/below sea level for which masks are required.
-THRESHOLDS_DICT = {'bounds': [[-500., 50.], [50., 100.], [100., 150.],
-                              [150., 200.], [200., 250.], [250., 300.],
-                              [300., 400.], [400., 500.], [500., 650.],
-                              [650., 800.], [800., 950.], [950., 6000.]],
-                   'units': 'm'}
+THRESHOLDS_DICT = {
+    "bounds": [
+        [-500.0, 50.0],
+        [50.0, 100.0],
+        [100.0, 150.0],
+        [150.0, 200.0],
+        [200.0, 250.0],
+        [250.0, 300.0],
+        [300.0, 400.0],
+        [400.0, 500.0],
+        [500.0, 650.0],
+        [650.0, 800.0],
+        [800.0, 950.0],
+        [950.0, 6000.0],
+    ],
+    "units": "m",
+}
 
 
 def _make_mask_cube(
-        mask_data, coords, topographic_bounds, topographic_units,
-        sea_points_included=False):
+    mask_data, coords, topographic_bounds, topographic_units, sea_points_included=False
+):
     """
     Makes cube from numpy masked array generated from orography fields.
 
@@ -72,33 +84,40 @@ def _make_mask_cube(
             and attribute information.
     """
     mask_data = mask_data.astype(np.int32)
-    mask_cube = iris.cube.Cube(mask_data, long_name='topography_mask')
+    mask_cube = iris.cube.Cube(mask_data, long_name="topography_mask")
     if any([item is None for item in topographic_bounds]):
-        msg = ("The topographic bounds variable should have both an "
-               "upper and lower limit: "
-               "Your topographic_bounds are {}")
+        msg = (
+            "The topographic bounds variable should have both an "
+            "upper and lower limit: "
+            "Your topographic_bounds are {}"
+        )
         raise TypeError(msg.format(topographic_bounds))
 
     if len(topographic_bounds) != 2:
-        msg = ("The topographic bounds variable should have only an "
-               "upper and lower limit: "
-               "Your topographic_bounds variable has length {}")
+        msg = (
+            "The topographic bounds variable should have only an "
+            "upper and lower limit: "
+            "Your topographic_bounds variable has length {}"
+        )
         raise TypeError(msg.format(len(topographic_bounds)))
 
-    coord_name = 'topographic_zone'
+    coord_name = "topographic_zone"
     central_point = np.mean(topographic_bounds)
-    threshold_coord = iris.coords.AuxCoord(central_point,
-                                           bounds=topographic_bounds,
-                                           long_name=coord_name,
-                                           units=Unit(topographic_units))
+    threshold_coord = iris.coords.AuxCoord(
+        central_point,
+        bounds=topographic_bounds,
+        long_name=coord_name,
+        units=Unit(topographic_units),
+    )
     mask_cube.add_aux_coord(threshold_coord)
     # We can't save attributes with boolean values so convert to string.
     mask_cube.attributes.update(
-        {'topographic_zones_include_seapoints': str(sea_points_included)})
+        {"topographic_zones_include_seapoints": str(sea_points_included)}
+    )
     for coord in coords:
-        if coord.name() in ['projection_y_coordinate', 'latitude']:
+        if coord.name() in ["projection_y_coordinate", "latitude"]:
             mask_cube.add_dim_coord(coord, 0)
-        elif coord.name() in ['projection_x_coordinate', 'longitude']:
+        elif coord.name() in ["projection_x_coordinate", "longitude"]:
             mask_cube.add_dim_coord(coord, 1)
         else:
             mask_cube.add_aux_coord(coord)
@@ -113,12 +132,13 @@ class CorrectLandSeaMask(BasePlugin):
     Corrects interpolated land sea masks to boolean values of
     False [sea] and True [land].
     """
+
     def __init__(self):
         pass
 
     def __repr__(self):
         """Represent the configured plugin instance as a string"""
-        result = ('<CorrectLandSeaMask>')
+        result = "<CorrectLandSeaMask>"
         return result
 
     @staticmethod
@@ -136,10 +156,10 @@ class CorrectLandSeaMask(BasePlugin):
         """
         mask_sea = standard_landmask.data < 0.5
         standard_landmask.data[mask_sea] = False
-        mask_land = standard_landmask.data > 0.
+        mask_land = standard_landmask.data > 0.0
         standard_landmask.data[mask_land] = True
         standard_landmask.data = standard_landmask.data.astype(np.int32)
-        standard_landmask.rename('land_binary_mask')
+        standard_landmask.rename("land_binary_mask")
         return standard_landmask
 
 
@@ -150,12 +170,13 @@ class GenerateOrographyBandAncils(BasePlugin):
     Reads orography files, then generates binary mask
     of land points within the orography band specified.
     """
+
     def __init__(self):
         pass
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        result = ('<GenerateOrographyBandAncils>')
+        result = "<GenerateOrographyBandAncils>"
         return result
 
     @staticmethod
@@ -193,8 +214,8 @@ class GenerateOrographyBandAncils(BasePlugin):
         return mask_data
 
     def gen_orography_masks(
-            self, standard_orography, standard_landmask, thresholds,
-            units='m'):
+        self, standard_orography, standard_landmask, thresholds, units="m"
+    ):
         """
         Function to generate topographical band masks.
 
@@ -239,15 +260,15 @@ class GenerateOrographyBandAncils(BasePlugin):
             KeyError: if the key does not match any in THRESHOLD_DICT.
         """
         thresholds = np.array(thresholds, dtype=np.float32)
-        thresholds = Unit(units).convert(
-            thresholds, standard_orography.units)
+        thresholds = Unit(units).convert(thresholds, standard_orography.units)
         coords = standard_orography.coords()
 
         lower_threshold, upper_threshold = thresholds
 
         orog_band = (
-            (standard_orography.data > lower_threshold) &
-            (standard_orography.data <= upper_threshold)).astype(int)
+            (standard_orography.data > lower_threshold)
+            & (standard_orography.data <= upper_threshold)
+        ).astype(int)
 
         # If we didn't find any points to mask, set all points to zero i.e
         # masked.
@@ -255,18 +276,25 @@ class GenerateOrographyBandAncils(BasePlugin):
             orog_band = np.zeros(standard_orography.data.shape).astype(int)
 
         if standard_landmask is not None:
-            mask_data = self.sea_mask(standard_landmask.data, orog_band,
-                                      sea_fill_value=0)
+            mask_data = self.sea_mask(
+                standard_landmask.data, orog_band, sea_fill_value=0
+            )
             mask_cube = _make_mask_cube(
-                mask_data, coords, topographic_bounds=thresholds,
-                topographic_units=standard_orography.units)
+                mask_data,
+                coords,
+                topographic_bounds=thresholds,
+                topographic_units=standard_orography.units,
+            )
         else:
             mask_cube = _make_mask_cube(
-                orog_band, coords, topographic_bounds=thresholds,
+                orog_band,
+                coords,
+                topographic_bounds=thresholds,
                 topographic_units=standard_orography.units,
-                sea_points_included=True)
+                sea_points_included=True,
+            )
 
-        mask_cube.units = Unit('1')
+        mask_cube.units = Unit("1")
         return mask_cube
 
     def process(self, orography, thresholds_dict, landmask=None):
@@ -294,12 +322,12 @@ class GenerateOrographyBandAncils(BasePlugin):
         """
         cubelist = iris.cube.CubeList()
         if len(thresholds_dict) == 0:
-            msg = 'No threshold(s) found for topographic bands.'
+            msg = "No threshold(s) found for topographic bands."
             raise ValueError(msg)
 
-        for limits in thresholds_dict['bounds']:
+        for limits in thresholds_dict["bounds"]:
             oro_band = self.gen_orography_masks(
-                orography, landmask,
-                limits, thresholds_dict['units'])
+                orography, landmask, limits, thresholds_dict["units"]
+            )
             cubelist.append(oro_band)
         return cubelist

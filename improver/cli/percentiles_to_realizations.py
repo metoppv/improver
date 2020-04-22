@@ -37,15 +37,17 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            raw_cube: cli.inputcube = None,
-            *,
-            realizations_count: int = None,
-            sampling_method='quantile',
-            ignore_ecc_bounds=False,
-            randomise=False,
-            random_seed: int = None,
-            realizations: cli.comma_separated_list = None):
+def process(
+    cube: cli.inputcube,
+    raw_cube: cli.inputcube = None,
+    *,
+    realizations_count: int = None,
+    sampling_method="quantile",
+    ignore_ecc_bounds=False,
+    randomise=False,
+    random_seed: int = None,
+    realizations: cli.comma_separated_list = None,
+):
     """Convert percentiles to ensemble realizations using Ensemble Coupla
     Coupling.
 
@@ -95,23 +97,25 @@ def process(cube: cli.inputcube,
             The processed Cube.
     """
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        RebadgePercentilesAsRealizations, ResamplePercentiles,
-        EnsembleReordering)
+        RebadgePercentilesAsRealizations,
+        ResamplePercentiles,
+        EnsembleReordering,
+    )
 
     if realizations:
         realizations = [int(x) for x in realizations]
 
-    result = ResamplePercentiles(
-        ecc_bounds_warning=ignore_ecc_bounds).process(
-        cube, no_of_percentiles=realizations_count,
-        sampling=sampling_method)
+    result = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
+        cube, no_of_percentiles=realizations_count, sampling=sampling_method
+    )
 
     if raw_cube:
-        result = EnsembleReordering().process(
-            result, raw_cube, random_ordering=randomise,
-            random_seed=random_seed)
+        result = EnsembleReordering()(
+            result, raw_cube, random_ordering=randomise, random_seed=random_seed
+        )
     else:
-        result = RebadgePercentilesAsRealizations().process(
-            result, ensemble_realization_numbers=realizations)
+        result = RebadgePercentilesAsRealizations()(
+            result, ensemble_realization_numbers=realizations
+        )
 
     return result

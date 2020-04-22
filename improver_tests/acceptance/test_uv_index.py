@@ -45,12 +45,18 @@ def test_basic(tmp_path):
     """Test basic UV index calculation"""
     kgo_dir = acc.kgo_root() / "uv-index/basic"
     kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [kgo_dir / ("20181210T0600Z-PT0000H00M-" +
-                              f"radiation_flux_in_uv_{x}ward_at_surface.nc")
-                   for x in ("up", "down")]
+    input_paths = [
+        kgo_dir
+        / ("20181210T0600Z-PT0000H00M-" + f"radiation_flux_in_uv_{x}ward_at_surface.nc")
+        for x in ("up", "down")
+    ]
     output_path = tmp_path / "output.nc"
-    args = [*input_paths,
-            "--output", output_path,
-            "--model-id-attr", "mosg__model_configuration"]
+    args = [
+        *input_paths,
+        "--output",
+        output_path,
+        "--model-id-attr",
+        "mosg__model_configuration",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

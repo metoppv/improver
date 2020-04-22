@@ -51,6 +51,6 @@ def process(land_sea_mask: cli.inputcube):
         iris.cube.Cube:
             A land_sea_mask of boolean values.
     """
-    from improver.generate_ancillaries.generate_ancillary import (
-        CorrectLandSeaMask)
-    return CorrectLandSeaMask().process(land_sea_mask)
+    from improver.generate_ancillaries.generate_ancillary import CorrectLandSeaMask
+
+    return CorrectLandSeaMask()(land_sea_mask)

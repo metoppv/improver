@@ -36,17 +36,19 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(neighbour_cube: cli.inputcube,
-            cube: cli.inputcube,
-            lapse_rate: cli.inputcube = None,
-            *,
-            apply_lapse_rate_correction=False,
-            land_constraint=False,
-            similar_altitude=False,
-            extract_percentiles: cli.comma_separated_list = None,
-            ignore_ecc_bounds=False,
-            new_title: str = None,
-            suppress_warnings=False):
+def process(
+    neighbour_cube: cli.inputcube,
+    cube: cli.inputcube,
+    lapse_rate: cli.inputcube = None,
+    *,
+    apply_lapse_rate_correction=False,
+    land_constraint=False,
+    similar_altitude=False,
+    extract_percentiles: cli.comma_separated_list = None,
+    ignore_ecc_bounds=False,
+    new_title: str = None,
+    suppress_warnings=False,
+):
     """Module to run spot data extraction.
 
     Extract diagnostic data from gridded fields for spot data sites. It is
@@ -137,8 +139,9 @@ def process(neighbour_cube: cli.inputcube,
     import numpy as np
     from iris.exceptions import CoordinateNotFoundError
 
-    from improver.ensemble_copula_coupling.ensemble_copula_coupling import \
-        ConvertProbabilitiesToPercentiles
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        ConvertProbabilitiesToPercentiles,
+    )
     from improver.metadata.probabilistic import find_percentile_coordinate
     from improver.percentile import PercentileConverter
     from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
@@ -147,12 +150,11 @@ def process(neighbour_cube: cli.inputcube,
     from improver.utilities.cube_extraction import extract_subcube
 
     neighbour_selection_method = NeighbourSelection(
-        land_constraint=land_constraint,
-        minimum_dz=similar_altitude).neighbour_finding_method_name()
-    plugin = SpotExtraction(
-        neighbour_selection_method=neighbour_selection_method)
-    result = plugin.process(neighbour_cube, cube,
-                            new_title=new_title)
+        land_constraint=land_constraint, minimum_dz=similar_altitude
+    ).neighbour_finding_method_name()
+    result = SpotExtraction(neighbour_selection_method=neighbour_selection_method)(
+        neighbour_cube, cube, new_title=new_title
+    )
 
     # If a probability or percentile diagnostic cube is provided, extract
     # the given percentile if available. This is done after the spot-extraction
@@ -163,56 +165,65 @@ def process(neighbour_cube: cli.inputcube,
         try:
             perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:
-            if 'probability_of_' in result.name():
+            if "probability_of_" in result.name():
                 result = ConvertProbabilitiesToPercentiles(
-                    ecc_bounds_warning=ignore_ecc_bounds).process(
-                    result, percentiles=extract_percentiles)
+                    ecc_bounds_warning=ignore_ecc_bounds
+                )(result, percentiles=extract_percentiles)
                 result = iris.util.squeeze(result)
-            elif result.coords('realization', dim_coords=True):
+            elif result.coords("realization", dim_coords=True):
                 fast_percentile_method = not np.ma.isMaskedArray(result.data)
                 result = PercentileConverter(
-                    'realization', percentiles=extract_percentiles,
-                    fast_percentile_method=fast_percentile_method).process(
-                    result)
+                    "realization",
+                    percentiles=extract_percentiles,
+                    fast_percentile_method=fast_percentile_method,
+                )(result)
             else:
-                msg = ('Diagnostic cube is not a known probabilistic type. '
-                       'The {} percentile could not be extracted. Extracting '
-                       'data from the cube including any leading '
-                       'dimensions.'.format(extract_percentiles))
+                msg = (
+                    "Diagnostic cube is not a known probabilistic type. "
+                    "The {} percentile could not be extracted. Extracting "
+                    "data from the cube including any leading "
+                    "dimensions.".format(extract_percentiles)
+                )
                 if not suppress_warnings:
                     warnings.warn(msg)
         else:
-            constraint = ['{}={}'.format(perc_coordinate.name(),
-                                         extract_percentiles)]
+            constraint = ["{}={}".format(perc_coordinate.name(), extract_percentiles)]
             perc_result = extract_subcube(result, constraint)
             if perc_result is not None:
                 result = perc_result
             else:
-                msg = ('The percentile diagnostic cube does not contain the '
-                       'requested percentile value. Requested {}, available '
-                       '{}'.format(extract_percentiles,
-                                   perc_coordinate.points))
+                msg = (
+                    "The percentile diagnostic cube does not contain the "
+                    "requested percentile value. Requested {}, available "
+                    "{}".format(extract_percentiles, perc_coordinate.points)
+                )
                 raise ValueError(msg)
     # Check whether a lapse rate cube has been provided and we are dealing with
     # temperature data and the lapse-rate option is enabled.
     if apply_lapse_rate_correction and lapse_rate:
         if not result.name() == "air_temperature":
-            msg = ("A lapse rate cube was provided, but the diagnostic being "
-                   "processed is not air temperature and cannot be adjusted.")
+            msg = (
+                "A lapse rate cube was provided, but the diagnostic being "
+                "processed is not air temperature and cannot be adjusted."
+            )
             raise ValueError(msg)
 
-        if not lapse_rate.name() == 'air_temperature_lapse_rate':
-            msg = ("A cube has been provided as a lapse rate cube but does "
-                   "not have the expected name air_temperature_lapse_rate: "
-                   "{}".format(lapse_rate.name()))
+        if not lapse_rate.name() == "air_temperature_lapse_rate":
+            msg = (
+                "A cube has been provided as a lapse rate cube but does "
+                "not have the expected name air_temperature_lapse_rate: "
+                "{}".format(lapse_rate.name())
+            )
             raise ValueError(msg)
 
         try:
             lapse_rate_height_coord = lapse_rate.coord("height")
         except (ValueError, CoordinateNotFoundError):
-            msg = ("Lapse rate cube does not contain a single valued height "
-                   "coordinate. This is required to ensure it is applied to "
-                   "equivalent temperature data.")
+            msg = (
+                "Lapse rate cube does not contain a single valued height "
+                "coordinate. This is required to ensure it is applied to "
+                "equivalent temperature data."
+            )
             raise ValueError(msg)
 
         # Check the height of the temperature data matches that used to
@@ -220,22 +231,25 @@ def process(neighbour_cube: cli.inputcube,
         # rate values.
         if cube.coord("height") == lapse_rate_height_coord:
             plugin = SpotLapseRateAdjust(
-                neighbour_selection_method=neighbour_selection_method)
+                neighbour_selection_method=neighbour_selection_method
+            )
             result = plugin(result, neighbour_cube, lapse_rate)
         elif not suppress_warnings:
             warnings.warn(
                 "A lapse rate cube was provided, but the height of the "
                 "temperature data does not match that of the data used "
                 "to calculate the lapse rates. As such the temperatures "
-                "were not adjusted with the lapse rates.")
+                "were not adjusted with the lapse rates."
+            )
 
     elif apply_lapse_rate_correction and not lapse_rate:
         if not suppress_warnings:
             warnings.warn(
                 "A lapse rate cube was not provided, but the option to "
                 "apply the lapse rate correction was enabled. No lapse rate "
-                "correction could be applied.")
+                "correction could be applied."
+            )
 
     # Remove the internal model_grid_hash attribute if present.
-    result.attributes.pop('model_grid_hash', None)
+    result.attributes.pop("model_grid_hash", None)
     return result

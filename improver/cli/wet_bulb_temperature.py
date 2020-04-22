@@ -37,8 +37,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube,
-            convergence_condition=0.05):
+def process(*cubes: cli.inputcube, convergence_condition=0.05):
     """Module to generate wet-bulb temperatures.
 
     Call the calculate_wet_bulb_temperature function to calculate wet-bulb
@@ -66,9 +65,8 @@ def process(*cubes: cli.inputcube,
             Cube of wet-bulb temperature (K).
 
     """
-    from improver.psychrometric_calculations.psychrometric_calculations \
-        import WetBulbTemperature
+    from improver.psychrometric_calculations.psychrometric_calculations import (
+        WetBulbTemperature,
+    )
 
-    result = WetBulbTemperature(precision=convergence_condition).process(
-        cubes)
-    return result
+    return WetBulbTemperature(precision=convergence_condition)(cubes)

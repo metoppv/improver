@@ -36,18 +36,22 @@ from improver import cli
 
 # Creates the value_converter that clize needs.
 inputadvection = cli.create_constrained_inputcubelist_converter(
-    ['precipitation_advection_x_velocity', 'grid_eastward_wind'],
-    ['precipitation_advection_y_velocity', 'grid_northward_wind'])
+    ["precipitation_advection_x_velocity", "grid_eastward_wind"],
+    ["precipitation_advection_y_velocity", "grid_northward_wind"],
+)
 
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube,
-            advection_velocity: inputadvection,
-            orographic_enhancement: cli.inputcube = None,
-            *,
-            attributes_config: cli.inputjson = None,
-            max_lead_time: int = 360, lead_time_interval: int = 15):
+def process(
+    cube: cli.inputcube,
+    advection_velocity: inputadvection,
+    orographic_enhancement: cli.inputcube = None,
+    *,
+    attributes_config: cli.inputjson = None,
+    max_lead_time: int = 360,
+    lead_time_interval: int = 15,
+):
     """Module to extrapolate input cubes given advection velocity fields.
 
     Args:
@@ -73,14 +77,14 @@ def process(cube: cli.inputcube,
             New cubes with updated time and extrapolated data.
     """
     from improver.nowcasting.forecasting import CreateExtrapolationForecast
-    from improver.utilities.cube_manipulation import merge_cubes
+    from improver.utilities.cube_manipulation import MergeCubes
 
     u_cube, v_cube = advection_velocity
 
     # extrapolate input data to required lead times
-    forecast_plugin = CreateExtrapolationForecast(
-        cube, u_cube, v_cube, orographic_enhancement,
-        attributes_dict=attributes_config)
-    forecast_cubes = forecast_plugin.process(lead_time_interval, max_lead_time)
+    plugin = CreateExtrapolationForecast(
+        cube, u_cube, v_cube, orographic_enhancement, attributes_dict=attributes_config
+    )
+    forecast_cubes = plugin(lead_time_interval, max_lead_time)
 
-    return merge_cubes(forecast_cubes)
+    return MergeCubes()(forecast_cubes)

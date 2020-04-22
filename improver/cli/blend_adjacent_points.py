@@ -37,13 +37,15 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube,
-            coordinate,
-            central_point: float,
-            units=None,
-            width: float = None,
-            calendar='gregorian',
-            blend_time_using_forecast_period=False):
+def process(
+    *cubes: cli.inputcube,
+    coordinate,
+    central_point: float,
+    units=None,
+    width: float = None,
+    calendar="gregorian",
+    blend_time_using_forecast_period=False,
+):
     """Runs weighted blending across adjacent points.
 
     Uses the TriangularWeightedBlendAcrossAdjacentPoints to blend across
@@ -89,34 +91,40 @@ def process(*cubes: cli.inputcube,
     from cf_units import Unit
     from iris.cube import CubeList
 
-    from improver.blending.blend_across_adjacent_points import \
-        TriangularWeightedBlendAcrossAdjacentPoints
+    from improver.blending.blend_across_adjacent_points import (
+        TriangularWeightedBlendAcrossAdjacentPoints,
+    )
     from improver.utilities.cube_manipulation import MergeCubes
 
     # TriangularWeightedBlendAcrossAdjacentPoints can't currently handle
     # blending over times where iris reads the coordinate points as datetime
     # objects. Fail here to avoid unhelpful errors downstream.
     if "time" in coordinate:
-        msg = ("Cannot blend over {} coordinate (points encoded as datetime "
-               "objects)".format(coordinate))
+        msg = (
+            "Cannot blend over {} coordinate (points encoded as datetime "
+            "objects)".format(coordinate)
+        )
         raise ValueError(msg)
 
     # This is left as a placeholder for when we have this capability
-    if coordinate == 'time':
+    if coordinate == "time":
         units = Unit(units, calendar)
 
     cubes = CubeList(cubes)
 
-    if blend_time_using_forecast_period and coordinate == 'forecast_period':
-        cube = MergeCubes().process(cubes, check_time_bounds_ranges=True)
+    if blend_time_using_forecast_period and coordinate == "forecast_period":
+        cube = MergeCubes()(cubes, check_time_bounds_ranges=True)
     elif blend_time_using_forecast_period:
-        msg = ('"--blend-time-using-forecast-period" can only be used with '
-               '"forecast_period" coordinate')
+        msg = (
+            '"--blend-time-using-forecast-period" can only be used with '
+            '"forecast_period" coordinate'
+        )
         raise ValueError(msg)
     else:
-        cube = MergeCubes().process(cubes)
+        cube = MergeCubes()(cubes)
 
     blending_plugin = TriangularWeightedBlendAcrossAdjacentPoints(
-        coordinate, central_point, units, width)
+        coordinate, central_point, units, width
+    )
     result = blending_plugin(cube)
     return result

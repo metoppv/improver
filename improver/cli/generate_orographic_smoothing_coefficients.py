@@ -36,12 +36,14 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(orography: cli.inputcube,
-            *,
-            min_smoothing_coefficient: float = 0.0,
-            max_smoothing_coefficient: float = 1.0,
-            coefficient: float = 1.0,
-            power: float = 1.0):
+def process(
+    orography: cli.inputcube,
+    *,
+    min_smoothing_coefficient: float = 0.0,
+    max_smoothing_coefficient: float = 1.0,
+    coefficient: float = 1.0,
+    power: float = 1.0,
+):
     """Generate smoothing coefficients for recursive filtering based on
     orography gradients.
 
@@ -82,8 +84,10 @@ def process(orography: cli.inputcube,
             Processed CubeList containing smoothing_coefficients_x and
             smoothing_coefficients_y cubes.
     """
-    from improver.utilities.ancillary_creation import (
-        OrographicSmoothingCoefficients)
-    return OrographicSmoothingCoefficients(
-        min_smoothing_coefficient, max_smoothing_coefficient, coefficient,
-        power).process(orography)
+    from improver.utilities.ancillary_creation import OrographicSmoothingCoefficients
+
+    plugin = OrographicSmoothingCoefficients(
+        min_smoothing_coefficient, max_smoothing_coefficient, coefficient, power
+    )
+
+    return plugin(orography)

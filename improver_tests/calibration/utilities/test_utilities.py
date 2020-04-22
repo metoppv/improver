@@ -37,21 +37,24 @@ import unittest
 
 import iris
 import numpy as np
-from numpy.testing import assert_array_equal
 from iris.tests import IrisTest
 from iris.util import squeeze
+from numpy.testing import assert_array_equal
 
 from improver.calibration.utilities import (
-    check_predictor, convert_cube_data_to_2d,
-    flatten_ignoring_masked_data, filter_non_matching_cubes,
-    create_unified_frt_coord, merge_land_and_sea)
-
-from ..reliability_calibration.test_AggregateReliabilityCalibrationTables \
-    import Test_Aggregation
-from ..ensemble_calibration.helper_functions import (set_up_temperature_cube,
-                                                     SetupCubes)
+    check_predictor,
+    convert_cube_data_to_2d,
+    create_unified_frt_coord,
+    filter_non_matching_cubes,
+    flatten_ignoring_masked_data,
+    merge_land_and_sea,
+)
 
 from ...set_up_test_cubes import set_up_percentile_cube
+from ..ensemble_calibration.helper_functions import SetupCubes, set_up_temperature_cube
+from ..reliability_calibration.test_AggregateReliabilityCalibrationTables import (
+    Test_Aggregation,
+)
 
 
 class Test_convert_cube_data_to_2d(IrisTest):
@@ -61,16 +64,20 @@ class Test_convert_cube_data_to_2d(IrisTest):
     def setUp(self):
         """Use temperature cube to test with."""
         self.cube = set_up_temperature_cube()
-        self.data = np.array([[226.15, 230.15, 232.15],
-                              [237.4, 241.4, 243.4],
-                              [248.65, 252.65, 254.65],
-                              [259.9, 263.9, 265.9],
-                              [271.15, 275.15, 277.15],
-                              [282.4, 286.4, 288.4],
-                              [293.65, 297.65, 299.65],
-                              [304.9, 308.9, 310.9],
-                              [316.15, 320.15, 322.15]],
-                             dtype=np.float32)
+        self.data = np.array(
+            [
+                [226.15, 230.15, 232.15],
+                [237.4, 241.4, 243.4],
+                [248.65, 252.65, 254.65],
+                [259.9, 263.9, 265.9],
+                [271.15, 275.15, 277.15],
+                [282.4, 286.4, 288.4],
+                [293.65, 297.65, 299.65],
+                [304.9, 308.9, 310.9],
+                [316.15, 320.15, 322.15],
+            ],
+            dtype=np.float32,
+        )
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
@@ -89,8 +96,7 @@ class Test_convert_cube_data_to_2d(IrisTest):
         """
         data = self.data.flatten().reshape(9, 3).T.reshape(9, 3)
 
-        result = convert_cube_data_to_2d(
-            self.cube, coord="longitude")
+        result = convert_cube_data_to_2d(self.cube, coord="longitude")
         self.assertArrayAlmostEqual(result, data)
 
     def test_no_transpose(self):
@@ -110,8 +116,9 @@ class Test_convert_cube_data_to_2d(IrisTest):
         """
         cube = set_up_temperature_cube()
         cube = cube[0]
-        data = np.array([[226.15, 237.4, 248.65, 259.9, 271.15,
-                          282.4, 293.65, 304.9, 316.15]]).T
+        data = np.array(
+            [[226.15, 237.4, 248.65, 259.9, 271.15, 282.4, 293.65, 304.9, 316.15]]
+        ).T
 
         result = convert_cube_data_to_2d(cube)
         self.assertArrayAlmostEqual(result, data, decimal=5)
@@ -123,8 +130,9 @@ class Test_convert_cube_data_to_2d(IrisTest):
         """
         cube = set_up_temperature_cube()
         cube = cube[0, 0, :, :]
-        data = np.array([[226.15, 237.4, 248.65, 259.9, 271.15,
-                          282.4, 293.65, 304.9, 316.15]]).T
+        data = np.array(
+            [[226.15, 237.4, 248.65, 259.9, 271.15, 282.4, 293.65, 304.9, 316.15]]
+        ).T
 
         result = convert_cube_data_to_2d(cube)
         self.assertArrayAlmostEqual(result, data, decimal=5)
@@ -157,24 +165,28 @@ class Test_convert_cube_data_to_2d(IrisTest):
         cubes = iris.cube.CubeList([cube1, cube2])
         cube = cubes.merge_cube()
 
-        data = np.array([[226.15, 230.15, 232.15],
-                         [237.4, 241.4, 243.4],
-                         [248.65, 252.65, 254.65],
-                         [259.9, 263.9, 265.9],
-                         [271.15, 275.15, 277.15],
-                         [282.4, 286.4, 288.4],
-                         [293.65, 297.65, 299.65],
-                         [304.9, 308.9, 310.9],
-                         [316.15, 320.15, 322.15],
-                         [226.15, 230.15, 232.15],
-                         [237.4, 241.4, 243.4],
-                         [248.65, 252.65, 254.65],
-                         [259.9, 263.9, 265.9],
-                         [271.15, 275.15, 277.15],
-                         [282.4, 286.4, 288.4],
-                         [293.65, 297.65, 299.65],
-                         [304.9, 308.9, 310.9],
-                         [316.15, 320.15, 322.15]])
+        data = np.array(
+            [
+                [226.15, 230.15, 232.15],
+                [237.4, 241.4, 243.4],
+                [248.65, 252.65, 254.65],
+                [259.9, 263.9, 265.9],
+                [271.15, 275.15, 277.15],
+                [282.4, 286.4, 288.4],
+                [293.65, 297.65, 299.65],
+                [304.9, 308.9, 310.9],
+                [316.15, 320.15, 322.15],
+                [226.15, 230.15, 232.15],
+                [237.4, 241.4, 243.4],
+                [248.65, 252.65, 254.65],
+                [259.9, 263.9, 265.9],
+                [271.15, 275.15, 277.15],
+                [282.4, 286.4, 288.4],
+                [293.65, 297.65, 299.65],
+                [304.9, 308.9, 310.9],
+                [316.15, 320.15, 322.15],
+            ]
+        )
 
         result = convert_cube_data_to_2d(cube)
         self.assertArrayAlmostEqual(result, data, decimal=5)
@@ -183,25 +195,32 @@ class Test_convert_cube_data_to_2d(IrisTest):
 class Test_flatten_ignoring_masked_data(IrisTest):
 
     """Test the flatten_ignoring_masked_data utility."""
+
     def setUp(self):
         """Set up a basic 3D data array to use in the tests."""
-        self.data_array = np.array([[[0., 1., 2., 3.],
-                                     [4., 5., 6., 7.]],
-                                    [[8., 9., 10., 11.],
-                                     [12., 13., 14., 15.]],
-                                    [[16., 17., 18., 19.],
-                                     [20., 21., 22., 23.]]], dtype=np.float32)
-        self.mask = np.array([[[True, False, True, True],
-                               [True, False, True, True]],
-                              [[True, False, True, True],
-                               [True, False, True, True]],
-                              [[True, False, True, True],
-                               [True, False, True, True]]])
+        self.data_array = np.array(
+            [
+                [[0.0, 1.0, 2.0, 3.0], [4.0, 5.0, 6.0, 7.0]],
+                [[8.0, 9.0, 10.0, 11.0], [12.0, 13.0, 14.0, 15.0]],
+                [[16.0, 17.0, 18.0, 19.0], [20.0, 21.0, 22.0, 23.0]],
+            ],
+            dtype=np.float32,
+        )
+        self.mask = np.array(
+            [
+                [[True, False, True, True], [True, False, True, True]],
+                [[True, False, True, True], [True, False, True, True]],
+                [[True, False, True, True], [True, False, True, True]],
+            ]
+        )
         self.expected_result_preserve_leading_dim = np.array(
-            [[0., 1., 2., 3., 4., 5., 6., 7.],
-             [8., 9., 10., 11., 12., 13., 14., 15.],
-             [16., 17., 18., 19., 20., 21., 22., 23.]],
-            dtype=np.float32)
+            [
+                [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+                [8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
+                [16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0],
+            ],
+            dtype=np.float32,
+        )
 
     def test_basic_not_masked(self):
         """Test a basic unmasked array"""
@@ -213,8 +232,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
     def test_basic_masked(self):
         """Test a basic masked array"""
         masked_data_array = np.ma.MaskedArray(self.data_array, self.mask)
-        expected_result = np.array([1., 5., 9., 13., 17., 21.],
-                                   dtype=np.float32)
+        expected_result = np.array([1.0, 5.0, 9.0, 13.0, 17.0, 21.0], dtype=np.float32)
         result = flatten_ignoring_masked_data(masked_data_array)
         self.assertArrayAlmostEqual(result, expected_result)
         self.assertEqual(result.dtype, np.float32)
@@ -222,21 +240,21 @@ class Test_flatten_ignoring_masked_data(IrisTest):
     def test_basic_not_masked_preserver_leading_dim(self):
         """Test a basic unmasked array, with preserve_leading_dimension"""
         result = flatten_ignoring_masked_data(
-            self.data_array, preserve_leading_dimension=True)
-        self.assertArrayAlmostEqual(
-            result, self.expected_result_preserve_leading_dim)
+            self.data_array, preserve_leading_dimension=True
+        )
+        self.assertArrayAlmostEqual(result, self.expected_result_preserve_leading_dim)
         self.assertEqual(result.dtype, np.float32)
 
     def test_basic_masked_preserver_leading_dim(self):
         """Test a basic masked array, with preserve_leading_dimension"""
 
         masked_data_array = np.ma.MaskedArray(self.data_array, self.mask)
-        expected_result = np.array([[1., 5.],
-                                    [9., 13.],
-                                    [17., 21.]],
-                                   dtype=np.float32)
+        expected_result = np.array(
+            [[1.0, 5.0], [9.0, 13.0], [17.0, 21.0]], dtype=np.float32
+        )
         result = flatten_ignoring_masked_data(
-            masked_data_array, preserve_leading_dimension=True)
+            masked_data_array, preserve_leading_dimension=True
+        )
         self.assertArrayAlmostEqual(result, expected_result)
         self.assertEqual(result.dtype, np.float32)
 
@@ -262,24 +280,26 @@ class Test_flatten_ignoring_masked_data(IrisTest):
            This should give the same answer as the corresponding 3D array."""
         data_array = self.data_array.reshape((3, 2, 2, 2))
         result = flatten_ignoring_masked_data(
-            data_array, preserve_leading_dimension=True)
-        self.assertArrayAlmostEqual(
-            result, self.expected_result_preserve_leading_dim)
+            data_array, preserve_leading_dimension=True
+        )
+        self.assertArrayAlmostEqual(result, self.expected_result_preserve_leading_dim)
         self.assertEqual(result.dtype, np.float32)
 
     def test_inconsistent_mask_along_leading_dim(self):
         """Test an inconsistently masked array raises an error."""
-        mask = np.array([[[True, False, False, True],
-                          [True, False, True, True]],
-                         [[True, False, True, True],
-                          [True, False, True, True]],
-                         [[True, False, True, True],
-                          [True, False, True, False]]])
+        mask = np.array(
+            [
+                [[True, False, False, True], [True, False, True, True]],
+                [[True, False, True, True], [True, False, True, True]],
+                [[True, False, True, True], [True, False, True, False]],
+            ]
+        )
         masked_data_array = np.ma.MaskedArray(self.data_array, mask)
         expected_message = "The mask on the input array is not the same"
         with self.assertRaisesRegex(ValueError, expected_message):
             flatten_ignoring_masked_data(
-                masked_data_array, preserve_leading_dimension=True)
+                masked_data_array, preserve_leading_dimension=True
+            )
 
 
 class Test_check_predictor(IrisTest):
@@ -323,15 +343,15 @@ class Test__filter_non_matching_cubes(SetupCubes):
         # Create historical forecasts and truth cubes where some items
         # are missing.
         self.partial_historic_forecasts = (
-            self.historic_forecasts[:2] +
-            self.historic_forecasts[3:]).merge_cube()
+            self.historic_forecasts[:2] + self.historic_forecasts[3:]
+        ).merge_cube()
         self.partial_truth = (self.truth[:2] + self.truth[3:]).merge_cube()
 
     def test_all_matching(self):
         """Test for when the historic forecast and truth cubes all match."""
         hf_result, truth_result = filter_non_matching_cubes(
-            self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube)
+            self.historic_temperature_forecast_cube, self.temperature_truth_cube
+        )
         self.assertEqual(hf_result, self.historic_temperature_forecast_cube)
         self.assertEqual(truth_result, self.temperature_truth_cube)
 
@@ -343,14 +363,14 @@ class Test__filter_non_matching_cubes(SetupCubes):
         points = self.historic_temperature_forecast_cube.coord("time").points
         bounds = []
         for point in points:
-            bounds.append([point - 1*60*60, point])
+            bounds.append([point - 1 * 60 * 60, point])
 
         self.historic_temperature_forecast_cube.coord("time").bounds = bounds
         self.temperature_truth_cube.coord("time").bounds = bounds
 
         hf_result, truth_result = filter_non_matching_cubes(
-            self.historic_temperature_forecast_cube,
-            self.temperature_truth_cube)
+            self.historic_temperature_forecast_cube, self.temperature_truth_cube
+        )
         self.assertEqual(hf_result, self.historic_temperature_forecast_cube)
         self.assertEqual(truth_result, self.temperature_truth_cube)
 
@@ -358,7 +378,8 @@ class Test__filter_non_matching_cubes(SetupCubes):
         """Test for when there are fewer historic forecasts than truths,
         for example, if there is a missing forecast cycle."""
         hf_result, truth_result = filter_non_matching_cubes(
-            self.partial_historic_forecasts, self.temperature_truth_cube)
+            self.partial_historic_forecasts, self.temperature_truth_cube
+        )
         self.assertEqual(hf_result, self.partial_historic_forecasts)
         self.assertEqual(truth_result, self.partial_truth)
 
@@ -366,7 +387,8 @@ class Test__filter_non_matching_cubes(SetupCubes):
         """Test for when there are fewer truths than historic forecasts,
         for example, if there is a missing analysis."""
         hf_result, truth_result = filter_non_matching_cubes(
-            self.historic_temperature_forecast_cube, self.partial_truth)
+            self.historic_temperature_forecast_cube, self.partial_truth
+        )
         self.assertEqual(hf_result, self.partial_historic_forecasts)
         self.assertEqual(truth_result, self.partial_truth)
 
@@ -377,12 +399,14 @@ class Test__filter_non_matching_cubes(SetupCubes):
         at three matching validity times."""
         partial_truth = self.truth[1:].merge_cube()
         expected_historical_forecasts = iris.cube.CubeList(
-            [self.historic_forecasts[index]
-             for index in (1, 3, 4)]).merge_cube()
+            [self.historic_forecasts[index] for index in (1, 3, 4)]
+        ).merge_cube()
         expected_truth = iris.cube.CubeList(
-            [self.truth[index] for index in (1, 3, 4)]).merge_cube()
+            [self.truth[index] for index in (1, 3, 4)]
+        ).merge_cube()
         hf_result, truth_result = filter_non_matching_cubes(
-            self.partial_historic_forecasts, partial_truth)
+            self.partial_historic_forecasts, partial_truth
+        )
         self.assertEqual(hf_result, expected_historical_forecasts)
         self.assertEqual(truth_result, expected_truth)
 
@@ -393,8 +417,7 @@ class Test__filter_non_matching_cubes(SetupCubes):
         partial_truth = self.truth[2]
         msg = "The filtering has found no matches in validity time "
         with self.assertRaisesRegex(ValueError, msg):
-            filter_non_matching_cubes(
-                self.partial_historic_forecasts, partial_truth)
+            filter_non_matching_cubes(self.partial_historic_forecasts, partial_truth)
 
 
 class Test_create_unified_frt_coord(Test_Aggregation):
@@ -406,12 +429,11 @@ class Test_create_unified_frt_coord(Test_Aggregation):
         bounds, and type for an input with multiple forecast reference time
         points."""
 
-        frt = 'forecast_reference_time'
+        frt = "forecast_reference_time"
         frt_coord = self.forecasts.coord(frt)
 
         expected_points = self.forecast_2.coord(frt).points[0]
-        expected_bounds = [[self.forecast_1.coord(frt).points[0],
-                            expected_points]]
+        expected_bounds = [[self.forecast_1.coord(frt).points[0], expected_points]]
         result = create_unified_frt_coord(frt_coord)
 
         self.assertIsInstance(result, iris.coords.DimCoord)
@@ -425,12 +447,11 @@ class Test_create_unified_frt_coord(Test_Aggregation):
         bounds, and type for an input with a single forecast reference time
         point."""
 
-        frt = 'forecast_reference_time'
+        frt = "forecast_reference_time"
         frt_coord = self.forecast_1.coord(frt)
 
         expected_points = self.forecast_1.coord(frt).points[0]
-        expected_bounds = [[self.forecast_1.coord(frt).points[0],
-                            expected_points]]
+        expected_bounds = [[self.forecast_1.coord(frt).points[0], expected_points]]
         result = create_unified_frt_coord(frt_coord)
 
         self.assertIsInstance(result, iris.coords.DimCoord)
@@ -444,14 +465,19 @@ class Test_create_unified_frt_coord(Test_Aggregation):
         bounds, and type for an input multiple forecast reference times, each
         with bounds."""
 
-        frt = 'forecast_reference_time'
-        cube = iris.cube.CubeList([self.reliability_cube,
-                                   self.different_frt]).merge_cube()
+        frt = "forecast_reference_time"
+        cube = iris.cube.CubeList(
+            [self.reliability_cube, self.different_frt]
+        ).merge_cube()
         frt_coord = cube.coord(frt)
 
         expected_points = self.different_frt.coord(frt).points[0]
-        expected_bounds = [[self.reliability_cube.coord(frt).bounds[0][0],
-                            self.different_frt.coord(frt).bounds[0][-1]]]
+        expected_bounds = [
+            [
+                self.reliability_cube.coord(frt).bounds[0][0],
+                self.different_frt.coord(frt).bounds[0][-1],
+            ]
+        ]
         result = create_unified_frt_coord(frt_coord)
 
         self.assertIsInstance(result, iris.coords.DimCoord)
@@ -469,13 +495,21 @@ class Test_merge_land_and_sea(IrisTest):
         """Set up a percentile cube"""
         # Create a percentile cube
         land_data = np.ones((2, 3, 4), dtype=np.float32)
-        sea_data = np.ones((2, 3, 4), dtype=np.float32)*3.0
-        mask = np.array([[[True, False, False, False],
-                          [True, False, False, False],
-                          [False, False, False, True]],
-                         [[True, False, False, False],
-                          [True, False, False, False],
-                          [False, False, False, True]]])
+        sea_data = np.ones((2, 3, 4), dtype=np.float32) * 3.0
+        mask = np.array(
+            [
+                [
+                    [True, False, False, False],
+                    [True, False, False, False],
+                    [False, False, False, True],
+                ],
+                [
+                    [True, False, False, False],
+                    [True, False, False, False],
+                    [False, False, False, True],
+                ],
+            ]
+        )
         land_data = np.ma.MaskedArray(land_data, mask)
         self.percentiles_land = set_up_percentile_cube(land_data, [30, 60])
         self.percentiles_sea = set_up_percentile_cube(sea_data, [30, 60])
@@ -497,20 +531,19 @@ class Test_merge_land_and_sea(IrisTest):
     def test_merge(self):
         """Test merged data."""
         expected_merged_data = np.array(
-            [[[3.0, 1.0, 1.0, 1.0],
-              [3.0, 1.0, 1.0, 1.0],
-              [1.0, 1.0, 1.0, 3.0]],
-             [[3.0, 1.0, 1.0, 1.0],
-              [3.0, 1.0, 1.0, 1.0],
-              [1.0, 1.0, 1.0, 3.0]]], dtype=np.float32)
+            [
+                [[3.0, 1.0, 1.0, 1.0], [3.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 3.0]],
+                [[3.0, 1.0, 1.0, 1.0], [3.0, 1.0, 1.0, 1.0], [1.0, 1.0, 1.0, 3.0]],
+            ],
+            dtype=np.float32,
+        )
         expected_cube = self.percentiles_land.copy()
         expected_cube.data = expected_merged_data
         merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
-        self.assertArrayEqual(
-            self.percentiles_land.data, expected_merged_data)
+        self.assertArrayEqual(self.percentiles_land.data, expected_merged_data)
         self.assertEqual(
-            expected_cube.xml(checksum=True),
-            self.percentiles_land.xml(checksum=True))
+            expected_cube.xml(checksum=True), self.percentiles_land.xml(checksum=True)
+        )
         self.assertFalse(np.ma.is_masked(self.percentiles_land.data))
         self.assertEqual(self.percentiles_land.data.dtype, np.float32)
 
@@ -520,11 +553,10 @@ class Test_merge_land_and_sea(IrisTest):
         self.percentiles_land.data.mask = input_mask
         expected_cube = self.percentiles_land.copy()
         merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
-        self.assertArrayEqual(
-            self.percentiles_land.data, expected_cube.data)
+        self.assertArrayEqual(self.percentiles_land.data, expected_cube.data)
         self.assertEqual(
-            expected_cube.xml(checksum=True),
-            self.percentiles_land.xml(checksum=True))
+            expected_cube.xml(checksum=True), self.percentiles_land.xml(checksum=True)
+        )
         self.assertFalse(np.ma.is_masked(self.percentiles_land.data))
         self.assertEqual(self.percentiles_land.data.dtype, np.float32)
 
@@ -533,13 +565,12 @@ class Test_merge_land_and_sea(IrisTest):
         self.percentiles_land.data = np.ones((2, 3, 4), dtype=np.float32)
         expected_cube = self.percentiles_land.copy()
         merge_land_and_sea(self.percentiles_land, self.percentiles_sea)
-        self.assertArrayEqual(
-            self.percentiles_land.data, expected_cube.data)
+        self.assertArrayEqual(self.percentiles_land.data, expected_cube.data)
         self.assertEqual(
-            expected_cube.xml(checksum=True),
-            self.percentiles_land.xml(checksum=True))
+            expected_cube.xml(checksum=True), self.percentiles_land.xml(checksum=True)
+        )
         self.assertEqual(self.percentiles_land.data.dtype, np.float32)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

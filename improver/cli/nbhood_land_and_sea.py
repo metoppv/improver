@@ -38,14 +38,16 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 @cli.with_intermediate_output
-def process(cube: cli.inputcube,
-            mask: cli.inputcube,
-            weights: cli.inputcube = None,
-            *,
-            radii: cli.comma_separated_list,
-            lead_times: cli.comma_separated_list = None,
-            area_sum=False,
-            return_intermediate=False):
+def process(
+    cube: cli.inputcube,
+    mask: cli.inputcube,
+    weights: cli.inputcube = None,
+    *,
+    radii: cli.comma_separated_list,
+    lead_times: cli.comma_separated_list = None,
+    area_sum=False,
+    return_intermediate=False,
+):
     """ Module to process land and sea separately before combining them.
 
     Neighbourhood the input dataset over two distinct regions of land and sea.
@@ -116,89 +118,112 @@ def process(cube: cli.inputcube,
     from improver.nbhood.nbhood import NeighbourhoodProcessing
     from improver.nbhood.use_nbhood import (
         ApplyNeighbourhoodProcessingWithAMask,
-        CollapseMaskedNeighbourhoodCoordinate)
+        CollapseMaskedNeighbourhoodCoordinate,
+    )
 
-    sum_or_fraction = 'sum' if area_sum else 'fraction'
+    sum_or_fraction = "sum" if area_sum else "fraction"
 
     masking_coordinate = intermediate_cube = None
-    if any(['topographic_zone' in coord.name()
-            for coord in mask.coords(dim_coords=True)]):
+    if any(
+        ["topographic_zone" in coord.name() for coord in mask.coords(dim_coords=True)]
+    ):
 
-        if mask.attributes['topographic_zones_include_seapoints'] == 'True':
-            raise ValueError('The topographic zones mask cube must have been '
-                             'masked to exclude sea points, but '
-                             'topographic_zones_include_seapoints = True')
+        if mask.attributes["topographic_zones_include_seapoints"] == "True":
+            raise ValueError(
+                "The topographic zones mask cube must have been "
+                "masked to exclude sea points, but "
+                "topographic_zones_include_seapoints = True"
+            )
 
         if not weights:
-            raise TypeError('A weights cube must be provided if using a mask '
-                            'of topographic zones to collapse the resulting '
-                            'vertical dimension.')
+            raise TypeError(
+                "A weights cube must be provided if using a mask "
+                "of topographic zones to collapse the resulting "
+                "vertical dimension."
+            )
 
-        if weights.attributes['topographic_zones_include_seapoints'] == 'True':
-            raise ValueError('The weights cube must be masked to exclude sea '
-                             'points, but topographic_zones_include_seapoints '
-                             '= True')
+        if weights.attributes["topographic_zones_include_seapoints"] == "True":
+            raise ValueError(
+                "The weights cube must be masked to exclude sea "
+                "points, but topographic_zones_include_seapoints "
+                "= True"
+            )
 
-        masking_coordinate = 'topographic_zone'
+        masking_coordinate = "topographic_zone"
         land_sea_mask = weights[0].copy(data=weights[0].data.mask)
-        land_sea_mask.rename('land_binary_mask')
+        land_sea_mask.rename("land_binary_mask")
         land_sea_mask.remove_coord(masking_coordinate)
         # Create land and sea masks in IMPROVER format (inverse of
         # numpy standard) 1 - include this region, 0 - exclude this region.
         land_only = land_sea_mask.copy(
-            data=np.logical_not(land_sea_mask.data).astype(int))
+            data=np.logical_not(land_sea_mask.data).astype(int)
+        )
         sea_only = land_sea_mask.copy(data=land_sea_mask.data.astype(int))
 
     else:
         if weights is not None:
-            raise TypeError('A weights cube has been provided but will not be '
-                            'used')
+            raise TypeError("A weights cube has been provided but will not be " "used")
         land_sea_mask = mask
         # In this case the land is set to 1 and the sea is set to 0 in the
         # input mask.
         sea_only = land_sea_mask.copy(
-            data=np.logical_not(land_sea_mask.data).astype(int))
+            data=np.logical_not(land_sea_mask.data).astype(int)
+        )
         land_only = land_sea_mask.copy(data=land_sea_mask.data.astype(int))
 
     if lead_times is None:
         radius_or_radii = float(radii[0])
     else:
         if len(radii) != len(lead_times):
-            raise RuntimeError("If leadtimes are supplied, it must be a list"
-                               " of equal length to a list of radii.")
+            raise RuntimeError(
+                "If leadtimes are supplied, it must be a list"
+                " of equal length to a list of radii."
+            )
         radius_or_radii = [float(x) for x in radii]
         lead_times = [int(x) for x in lead_times]
 
     if return_intermediate is not None and masking_coordinate is None:
-        warnings.warn('No topographic_zone coordinate found, so no '
-                      'intermediate file will be saved.')
+        warnings.warn(
+            "No topographic_zone coordinate found, so no "
+            "intermediate file will be saved."
+        )
 
     # Section for neighbourhood processing land points.
     if land_only.data.max() > 0.0:
         if masking_coordinate is None:
             result_land = NeighbourhoodProcessing(
-                'square', radius_or_radii, lead_times=lead_times,
+                "square",
+                radius_or_radii,
+                lead_times=lead_times,
                 sum_or_fraction=sum_or_fraction,
-                re_mask=True)(cube, land_only)
+                re_mask=True,
+            )(cube, land_only)
         else:
             result_land = ApplyNeighbourhoodProcessingWithAMask(
-                masking_coordinate, radius_or_radii, lead_times=lead_times,
+                masking_coordinate,
+                radius_or_radii,
+                lead_times=lead_times,
                 sum_or_fraction=sum_or_fraction,
-                re_mask=False)(cube, mask)
+                re_mask=False,
+            )(cube, mask)
 
             if return_intermediate:
                 intermediate_cube = result_land.copy()
             # Collapse the masking coordinate.
             result_land = CollapseMaskedNeighbourhoodCoordinate(
-                masking_coordinate, weights=weights).process(result_land)
+                masking_coordinate, weights=weights
+            )(result_land)
         result = result_land
 
     # Section for neighbourhood processing sea points.
     if sea_only.data.max() > 0.0:
         result_sea = NeighbourhoodProcessing(
-            'square', radius_or_radii, lead_times=lead_times,
+            "square",
+            radius_or_radii,
+            lead_times=lead_times,
             sum_or_fraction=sum_or_fraction,
-            re_mask=True)(cube, sea_only)
+            re_mask=True,
+        )(cube, sea_only)
         result = result_sea
 
     # Section for combining land and sea points following land and sea points

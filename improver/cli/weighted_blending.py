@@ -37,19 +37,21 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube,
-            coordinate,
-            weighting_method='linear',
-            weighting_coord='forecast_period',
-            weighting_config: cli.inputjson = None,
-            attributes_config: cli.inputjson = None,
-            cycletime: str = None,
-            y0val: float = None,
-            ynval: float = None,
-            cval: float = None,
-            model_id_attr: str = None,
-            spatial_weights_from_mask=False,
-            fuzzy_length=20000.0):
+def process(
+    *cubes: cli.inputcube,
+    coordinate,
+    weighting_method="linear",
+    weighting_coord="forecast_period",
+    weighting_config: cli.inputjson = None,
+    attributes_config: cli.inputjson = None,
+    cycletime: str = None,
+    y0val: float = None,
+    ynval: float = None,
+    cval: float = None,
+    model_id_attr: str = None,
+    spatial_weights_from_mask=False,
+    fuzzy_length=20000.0,
+):
     """Runs weighted blending.
 
     Check for inconsistent arguments, then calculate a weighted blend
@@ -131,22 +133,31 @@ def process(*cubes: cli.inputcube,
     from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
     if (weighting_method == "linear") and cval:
-        raise RuntimeError('Method: linear does not accept arguments: cval')
+        raise RuntimeError("Method: linear does not accept arguments: cval")
     if (weighting_method == "nonlinear") and any([y0val, ynval]):
-        raise RuntimeError('Method: non-linear does not accept arguments:'
-                           ' y0val, ynval')
+        raise RuntimeError(
+            "Method: non-linear does not accept arguments:" " y0val, ynval"
+        )
     if (weighting_method == "dict") and weighting_config is None:
         raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
     if "model" in coordinate and model_id_attr is None:
-        raise RuntimeError('model_id_attr must be specified for '
-                           'model blending')
+        raise RuntimeError("model_id_attr must be specified for " "model blending")
 
     plugin = WeightAndBlend(
-        coordinate, weighting_method,
-        weighting_coord=weighting_coord, wts_dict=weighting_config,
-        y0val=y0val, ynval=ynval, cval=cval)
-    result = plugin.process(
-        cubes, cycletime=cycletime, model_id_attr=model_id_attr,
-        spatial_weights=spatial_weights_from_mask, fuzzy_length=fuzzy_length,
-        attributes_dict=attributes_config)
-    return result
+        coordinate,
+        weighting_method,
+        weighting_coord=weighting_coord,
+        wts_dict=weighting_config,
+        y0val=y0val,
+        ynval=ynval,
+        cval=cval,
+    )
+
+    return plugin(
+        cubes,
+        cycletime=cycletime,
+        model_id_attr=model_id_attr,
+        spatial_weights=spatial_weights_from_mask,
+        fuzzy_length=fuzzy_length,
+        attributes_dict=attributes_config,
+    )

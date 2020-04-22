@@ -36,8 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(snow: cli.inputcube,
-            rain: cli.inputcube):
+def process(snow: cli.inputcube, rain: cli.inputcube):
     """Calculate sleet probability.
 
     Calculates the sleet probability using the
