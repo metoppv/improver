@@ -43,10 +43,10 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import (
-    EstimateCoefficientsForEnsembleCalibration as Plugin,
+    ContinuousRankedProbabilityScoreMinimisers,
 )
 from improver.calibration.ensemble_calibration import (
-    ContinuousRankedProbabilityScoreMinimisers,
+    EstimateCoefficientsForEnsembleCalibration as Plugin,
 )
 from improver.utilities.warnings_handler import ManageWarnings
 

@@ -32,12 +32,11 @@
 
 import sys
 import time
+import tracemalloc
 from datetime import datetime
+from queue import Queue
 from resource import RUSAGE_SELF, getrusage
 from threading import Thread
-
-import tracemalloc
-from queue import Queue
 
 
 def memory_profile_start(outfile_prefix):
