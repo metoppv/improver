@@ -261,69 +261,6 @@ class LapseRate(BasePlugin):
         )
         return temp_windows, orog_windows
 
-    # def alinfit(self, orog, temp, axis=-1, default_value=np.nan):
-    #    """Uses a simple linear fit approach to calculate the
-    #    gradient (i.e. lapse rate)  between the orography height
-    #    and the surface temperature. Although equivalent, this
-    #    approach is much faster than using scipy lstsq to fit the
-    #    data. Checks the data to make sure that the standard
-    #    deviation isn't 0 for either arrays and that the central
-    #    point in the neighbourhood isn't nan, if either of these
-    #    are true, the dry adiabatic lapse rate is used (DALR).
-
-    #    Args:
-    #        orog:
-    #            Views of the orography data (3D array). The final 2
-    #            dimensions represent each point surrounded by its
-    #            neighbourhood.
-    #        temp:
-    #            Views of the temperature data (similar to the
-    #            orography above).
-    #        mask:
-    #            Optional argument, must match the shape of orog and
-    #            temp (3D array), specifies which points to exclude
-    #            from the linear fit by using a boolean to represent
-    #            each point, True is used to include the data, False
-    #            ise used to exclude it.
-    #        axis:
-    #            Optional argument, specifies the axis to operate on.
-
-    #    Returns:
-    #        1d numpy array of gradients.
-    #    """
-    #    if not isinstance(axis, tuple):
-    #        axis = (axis,)
-
-    #    # Check that there are no spurious NaNs in one of the arrays
-    #    # only - this will mess up the mean.
-    #    assert (np.isnan(temp) == np.isnan(orog)).all
-
-    #    # Finds a compatible shape for the means to be reshaped into
-    #    assert orog.shape == temp.shape
-    #    shape = list(orog.shape)
-    #    for ax in axis:
-    #        shape[ax] = 1
-    #
-    #    X_diff = orog - np.nanmean(orog, axis=axis).reshape(shape)
-    #    Y_diff = temp - np.nanmean(temp, axis=axis).reshape(shape)
-
-    #    XY_cov = np.nansum(X_diff * Y_diff, axis=axis)
-    #    X_var = np.nansum(X_diff * X_diff, axis=axis)
-
-    #    grad = XY_cov / X_var
-
-    #    #ycheck = np.isclose(np.nanstd(temp, axis=axis), 0)
-    #    #xcheck = np.isclose(np.nanstd(orog, axis=axis), 0)
-    #    #grad = np.where(ycheck | xcheck, DALR, grad)
-
-    #
-    #    #y_nan_check = np.isnan(temp[..., self.ind_central_point,
-    #    #                            self.ind_central_point])
-    #    #grad = np.where(y_nan_check, DALR, grad)
-    #    #print(grad)
-
-    #    return grad
-
     def _create_height_diff_mask(self, orog_subsections):
         """Create a mask for any neighbouring points where the
         height difference from the central point is greater than
