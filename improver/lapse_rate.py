@@ -328,7 +328,9 @@ class LapseRate(BasePlugin):
             # Places NaNs in orog to match temp.
             orog = np.where(np.isnan(temp), np.nan, orog)
 
-            grad = mathematical_operations.alinfit(orog, temp, axis=axis)
+            grad = mathematical_operations.alinfit(
+                orog, temp, axis=axis, gradient_only=True
+            )
 
             # Checks that the standard deviations are not 0
             # i.e. there is some variance to fit a gradient to.

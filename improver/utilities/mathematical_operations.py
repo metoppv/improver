@@ -358,7 +358,7 @@ class Integration(BasePlugin):
         return integrated_cube
 
 
-def alinfit(X, Y, axis=-1):
+def alinfit(X, Y, axis=-1, gradient_only=False):
     """Uses a simple linear fit approach to calculate the
     gradient. Although equivalent, this
     approach is much faster than using scipy lstsq to fit the
@@ -371,9 +371,11 @@ def alinfit(X, Y, axis=-1):
             ndarray, Y axis data
         axis:
             Optional argument, specifies the axis to operate on.
+        gradient_only:
+            Boolean, if true only returns the gradient.
 
     Returns:
-        1d numpy array of gradients.
+        The gradient and the y-intercept in 2 1d numpy arrays.
     """
     if not isinstance(axis, tuple):
         axis = (axis,)
@@ -388,12 +390,18 @@ def alinfit(X, Y, axis=-1):
     for ax in axis:
         shape[ax] = 1
 
-    X_diff = X - np.nanmean(X, axis=axis).reshape(shape)
-    Y_diff = Y - np.nanmean(Y, axis=axis).reshape(shape)
+    X_mean = np.nanmean(X, axis=axis).reshape(shape)
+    Y_mean = np.nanmean(Y, axis=axis).reshape(shape)
+
+    X_diff = X - X_mean
+    Y_diff = Y - Y_mean
 
     XY_cov = np.nansum(X_diff * Y_diff, axis=axis)
     X_var = np.nansum(X_diff * X_diff, axis=axis)
 
     grad = XY_cov / X_var
+    if gradient_only:
+        return grad
 
-    return grad
+    intercept = np.squeeze(Y_mean - grad.reshape(shape) * X_mean)
+    return grad, intercept
