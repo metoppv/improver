@@ -36,7 +36,6 @@ import numpy as np
 from cf_units import Unit
 
 from improver import BasePlugin
-from improver.utilities.spatial import distance_to_number_of_grid_cells
 from improver.utilities.temporal import (
     extract_nearest_time_point,
     iris_time_to_datetime,
@@ -169,7 +168,7 @@ class FillRadarHoles(BasePlugin):
                             x - r_interp : x + r_interp + 1,
                         ]
                         interpolated_points[y, x] = np.mean(
-                            surroundings[np.where(surroundings.mask == False)]
+                            surroundings[np.where(~surroundings.mask)]
                         )
                         interpolated_points.mask[y, x] = False
 
