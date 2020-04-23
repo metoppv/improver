@@ -134,52 +134,54 @@ class FillRadarHoles(BasePlugin):
         return np.ma.MaskedArray(result, mask=data.mask)
 
     @staticmethod
-    def _find_speckle(mask):
-        """Flag pixels that are masked but a certain proportion of their
-        neighbours contain valid data.  The constants "pmasked" and "radius"
+    def _find_and_interpolate_speckle(log_rr):
+        """Identify and interpolate "speckle" points.
+
+        The constants for speckle identification ("p_masked" and "r_speckle")
         have been empirically tuned for UK radar data.  With the constants
         as set, this method will flag "holes" of up to 24 pixels in size.
+        The neighbourhood size for interpolation has been chosen to match these
+        constants, ensuring that there will always be valid data in the
+        neighbourhood over which averaging is performed.
 
         Args:
-            mask (np.ndarray):
-                Mask array in which masked points evaluate as "True".  Array
-                may be boolean (True / False) or integer (1 / 0).
+            log_rr (np.ma.MaskedArray):
+                Masked array of rainrates in log10(mm/h)
 
         Returns:
-            np.ndarray:
-                Array in which isolated masked points ("speckle") have a value
-                of 1
+            np.ma.MaskedArray:
+                Masked array of interpolated rainrates in log10(mm/h)
         """
         # minimum proportion of masked neighbours, below which a pixel is
         # "speckle"
-        pmasked = 0.3
+        p_masked = 0.3
         # radius of neighbourhood over which to search for masked neighbours
-        r = 4
-        # populate "speckle" array
-        speckle = np.full_like(mask, 0, dtype=np.int32)
-        for y in range(r, mask.shape[0] - r - 1, 1):
-            for x in range(r, mask.shape[1] - r - 1, 1):
+        r_speckle = 4
+        # radius of neighbourhood from which to calculate interpolated values
+        r_interp = 2
+    
+        interpolated_points = np.ma.MaskedArray(
+            np.full_like(log_rr, 0), mask=np.full_like(log_rr, True))
+        mask = log_rr.mask.copy()
+    
+        for y in range(r_speckle, mask.shape[0] - r_speckle - 1, 1):
+            for x in range(r_speckle, mask.shape[1] - r_speckle - 1, 1):
                 if mask[y, x]:
-                    nbhood = np.mean(mask[y - r : y + r + 1, x - r : x + r + 1])
-                    if nbhood < pmasked:
-                        speckle[y, x] = 1
-        return speckle
+                    nbhood = np.mean(mask[y - r_speckle: y + r_speckle + 1,
+                                          x - r_speckle: x + r_speckle + 1])
+                    if nbhood < p_masked:
+                        surroundings = log_rr[y - r_interp: y + r_interp + 1,
+                                              x - r_interp: x + r_interp + 1]
+                        interpolated_points.data[y, x] = np.mean(
+                            surroundings[np.where(surroundings.mask == False)]
+                        )
+                        interpolated_points.mask[y, x] = False
 
-    @staticmethod
-    def _interpolate_points(data, speckle):
-        """Interpolate data to "speckle" points from a 5x5 neighbourhood.  This
-        neighbourhood size has been tuned to match the constants used in
-        identifying "speckle"."""
-        new_data = data.copy()
-        r = 2
-        for y in range(r, data.shape[0] - r - 1, 1):
-            for x in range(r, data.shape[1] - r - 1, 1):
-                if speckle[y, x]:
-                    surroundings = data[y - r : y + r + 1, x - r : x + r + 1]
-                    valid_surroundings = surroundings[np.where(~surroundings.mask)]
-                    new_data[y, x] = np.mean(valid_surroundings)
-                    new_data.mask[y, x] = False
-        return new_data
+        output_data = np.where(
+            interpolated_points.mask, log_rr, interpolated_points
+        )
+        output_mask = np.where(interpolated_points.mask, log_rr.mask, False)
+        return np.ma.MaskedArray(output_data, mask=output_mask)
 
     def _fill_radar_holes(self, masked_radar):
         """Interpolate holes near individual radars.  Modifies array in place.
@@ -188,9 +190,8 @@ class FillRadarHoles(BasePlugin):
             masked_radar (numpy.ndarray):
                 Precipitation rate data in mm/h to be interpolated
         """
-        speckle = self._find_speckle(masked_radar.mask)
         log_rr = self._rr_to_log_rr(masked_radar)
-        interpolated_log_rr = self._interpolate_points(log_rr, speckle)
+        interpolated_log_rr = self._find_and_interpolate_speckle(log_rr)
         return self._log_rr_to_rr(interpolated_log_rr)
 
     def process(self, masked_radar):
