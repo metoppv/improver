@@ -141,7 +141,7 @@ def process(
         new_name=new_name,
         new_units=new_units,
         coords_to_remove=coords_to_remove,
-        attributes_dict=attributes_config
+        attributes_dict=attributes_config,
     )
 
     if target_grid:
@@ -149,7 +149,7 @@ def process(
             regrid_mode=regrid_mode,
             extrapolation_mode=extrapolation_mode,
             landmask=land_sea_mask,
-            landmask_vicinity=land_sea_mask_vicinity
+            landmask_vicinity=land_sea_mask_vicinity,
         )(cube, target_grid, regridded_title=regridded_title)
 
     return cube

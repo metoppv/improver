@@ -186,9 +186,7 @@ class Test_process(IrisTest):
         expected_attributes["title"] = new_title
         for attr in ["mosg__grid_domain", "mosg__grid_type", "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
-        result = RegridLandSea()(
-            self.cube, self.target_grid, regridded_title=new_title
-        )
+        result = RegridLandSea()(self.cube, self.target_grid, regridded_title=new_title)
         self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_incorrect_grid_attributes_removed(self):
