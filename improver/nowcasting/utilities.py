@@ -159,27 +159,32 @@ class FillRadarHoles(BasePlugin):
         r_speckle = 4
         # radius of neighbourhood from which to calculate interpolated values
         r_interp = 2
-    
+
         interpolated_points = np.ma.MaskedArray(
-            np.full_like(log_rr, 0), mask=np.full_like(log_rr, True))
+            np.full_like(log_rr, 0), mask=np.full_like(log_rr, True)
+        )
         mask = log_rr.mask.copy()
-    
+
         for y in range(r_speckle, mask.shape[0] - r_speckle - 1, 1):
             for x in range(r_speckle, mask.shape[1] - r_speckle - 1, 1):
                 if mask[y, x]:
-                    nbhood = np.mean(mask[y - r_speckle: y + r_speckle + 1,
-                                          x - r_speckle: x + r_speckle + 1])
+                    nbhood = np.mean(
+                        mask[
+                            y - r_speckle : y + r_speckle + 1,
+                            x - r_speckle : x + r_speckle + 1,
+                        ]
+                    )
                     if nbhood < p_masked:
-                        surroundings = log_rr[y - r_interp: y + r_interp + 1,
-                                              x - r_interp: x + r_interp + 1]
+                        surroundings = log_rr[
+                            y - r_interp : y + r_interp + 1,
+                            x - r_interp : x + r_interp + 1,
+                        ]
                         interpolated_points.data[y, x] = np.mean(
                             surroundings[np.where(surroundings.mask == False)]
                         )
                         interpolated_points.mask[y, x] = False
 
-        output_data = np.where(
-            interpolated_points.mask, log_rr, interpolated_points
-        )
+        output_data = np.where(interpolated_points.mask, log_rr, interpolated_points)
         output_mask = np.where(interpolated_points.mask, log_rr.mask, False)
         return np.ma.MaskedArray(output_data, mask=output_mask)
 
