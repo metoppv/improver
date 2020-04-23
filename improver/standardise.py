@@ -106,125 +106,7 @@ def grid_contains_cutout(grid, cutout):
 
 
 class StandardiseGridAndMetadata(BasePlugin):
-
-    """Plugin to regrid cube data and standardise metadata"""
-
-    REGRID_REQUIRES_LANDMASK = {
-        "bilinear": False,
-        "nearest": False,
-        "nearest-with-mask": True,
-    }
-
-    def __init__(
-        self,
-        regrid_mode="bilinear",
-        extrapolation_mode="nanmask",
-        landmask=None,
-        landmask_vicinity=25000,
-    ):
-        """
-        Initialise regridding parameters
-
-        Args:
-            regrid_mode (str):
-                Mode of interpolation in regridding.
-            extrapolation_mode (str):
-                Mode to fill regions outside the domain in regridding.
-            landmask (iris.cube.Cube or None):
-                Land-sea mask ("land_binary_mask") on the input cube grid.
-                Required for "nearest-with-mask" regridding option,
-                with land points set to one and sea points set to zero.
-            landmask_vicinity (float):
-                Radius of vicinity to search for a coastline, in metres
-
-        Raises:
-            ValueError: If a landmask is required but not passed in
-        """
-        if landmask is None and "nearest-with-mask" in regrid_mode:
-            msg = "Regrid mode {} requires an input landmask cube"
-            raise ValueError(msg.format(regrid_mode))
-        self.regrid_mode = regrid_mode
-        self.extrapolation_mode = extrapolation_mode
-        self.landmask_source_grid = landmask
-        self.landmask_vicinity = None if landmask is None else landmask_vicinity
-        self.landmask_name = "land_binary_mask"
-
-    def _adjust_landsea(self, cube, target_grid):
-        """
-        Adjust regridded data using differences between the target landmask
-        and that obtained by regridding the source grid landmask, to ensure
-        that the "land" or "sea" nature of the points in the regridded cube
-        matches that of the target grid.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube after initial regridding
-            target_grid (iris.cube.Cube):
-                Cube containing landmask data on the target grid
-
-        Returns:
-            iris.cube.Cube: Adjusted cube
-        """
-        if self.landmask_name not in self.landmask_source_grid.name():
-            msg = "Expected {} in input_landmask cube but found {}".format(
-                self.landmask_name, repr(self.landmask_source_grid)
-            )
-            warnings.warn(msg)
-
-        if self.landmask_name not in target_grid.name():
-            msg = "Expected {} in target_grid cube but found {}".format(
-                self.landmask_name, repr(target_grid)
-            )
-            warnings.warn(msg)
-
-        return AdjustLandSeaPoints(vicinity_radius=self.landmask_vicinity)(
-            cube, self.landmask_source_grid, target_grid
-        )
-
-    def _regrid_to_target(self, cube, target_grid, regridded_title):
-        """
-        Regrid cube to target_grid, inherit grid attributes and update title
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube to be regridded
-            target_grid (iris.cube.Cube):
-                Data on the target grid. If regridding with mask, this cube
-                should contain land-sea mask data to be used in adjusting land
-                and sea points after regridding.
-            regridded_title (str or None):
-                New value for the "title" attribute to be used after
-                regridding. If not set, a default value is used.
-
-        Returns:
-            iris.cube.Cube: Regridded cube with updated attributes
-        """
-        regridder = Linear(extrapolation_mode=self.extrapolation_mode)
-        if "nearest" in self.regrid_mode:
-            regridder = Nearest(extrapolation_mode=self.extrapolation_mode)
-        cube = cube.regrid(target_grid, regridder)
-
-        if self.REGRID_REQUIRES_LANDMASK[self.regrid_mode]:
-            cube = self._adjust_landsea(cube, target_grid)
-
-        # identify grid-describing attributes on source cube that need updating
-        required_grid_attributes = [
-            attr for attr in cube.attributes if attr in MOSG_GRID_ATTRIBUTES
-        ]
-        # update attributes if available on target grid, otherwise remove
-        for key in required_grid_attributes:
-            if key in target_grid.attributes:
-                cube.attributes[key] = target_grid.attributes[key]
-            else:
-                cube.attributes.pop(key)
-
-        cube.attributes["title"] = (
-            MANDATORY_ATTRIBUTE_DEFAULTS["title"]
-            if regridded_title is None
-            else regridded_title
-        )
-
-        return cube
+    """Plugin to standardise cube metadata"""
 
     @staticmethod
     def _collapse_scalar_dimensions(cube):
@@ -298,32 +180,21 @@ class StandardiseGridAndMetadata(BasePlugin):
     def process(
         self,
         cube,
-        target_grid=None,
         new_name=None,
         new_units=None,
-        regridded_title=None,
         coords_to_remove=None,
         attributes_dict=None,
     ):
         """
-        Perform regridding and metadata adjustments
+        Perform standard and user-configurable metadata adjustments
 
         Args:
             cube (iris.cube.Cube):
                 Input cube to be standardised
-            target_grid (iris.cube.Cube or None):
-                Cube on the required grid. For "nearest-with-mask" regridding,
-                this cube should contain a binary land-sea mask
-                ("land_binary_mask"). If target_grid is None, no regridding is
-                performed.
             new_name (str or None):
                 Optional rename for output cube
             new_units (str or None):
                 Optional unit conversion for output cube
-            regridded_title (str or None):
-                New title attribute to be applied after regridding. If not set,
-                the title attribute is set to a default value if the field is
-                regridded, as "title" may contain grid information.
             coords_to_remove (list of str or None):
                 Optional list of scalar coordinates to remove from output cube
             attributes_dict (dict or None):
@@ -333,17 +204,9 @@ class StandardiseGridAndMetadata(BasePlugin):
         Returns:
             iris.cube.Cube
         """
-        # regridding
-        if target_grid:
-            # if regridding using a land-sea mask, check this covers the source
-            # grid in the required coordinates
-            if self.REGRID_REQUIRES_LANDMASK[self.regrid_mode]:
-                if not grid_contains_cutout(self.landmask_source_grid, cube):
-                    raise ValueError("Source landmask does not match input grid")
-            cube = self._regrid_to_target(cube, target_grid, regridded_title)
-
         # standard metadata updates
         cube = self._collapse_scalar_dimensions(cube)
+        self._standardise_dtypes_and_units(cube)
 
         # optional metadata updates
         if new_name:
@@ -356,7 +219,7 @@ class StandardiseGridAndMetadata(BasePlugin):
             amend_attributes(cube, attributes_dict)
 
         # ensure dtypes follow IMPROVER conventions
-        self._standardise_dtypes_and_units(cube)
+        #self._standardise_dtypes_and_units(cube)
 
         return cube
 
