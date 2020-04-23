@@ -51,3 +51,15 @@ def test_calibration(tmp_path):
     args = [forecast_path, table_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_no_calibration(tmp_path):
+    """
+    Test applying reliability calibration without a reliability table.
+    """
+    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
+    forecast_path = kgo_dir / "forecast.nc"
+    output_path = tmp_path / "output.nc"
+    args = [forecast_path, "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, forecast_path)
