@@ -123,7 +123,7 @@ def process(
             is provided (from plugin).
     """
     from improver.metadata.amend import update_stage_v110_metadata
-    from improver.standardise import StandardiseGridAndMetadata, RegridLandSea
+    from improver.standardise import StandardiseMetadata, RegridLandSea
 
     if land_sea_mask and "nearest-with-mask" not in regrid_mode:
         msg = (
@@ -136,7 +136,7 @@ def process(
     # StaGE version 1.2.0 compatible.
     update_stage_v110_metadata(cube)
 
-    cube = StandardiseGridAndMetadata()(
+    cube = StandardiseMetadata()(
         cube,
         new_name=new_name,
         new_units=new_units,

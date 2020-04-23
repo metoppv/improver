@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the standardise.StandardiseGridAndMetadata plugin."""
+"""Unit tests for the standardise.StandardiseMetadata plugin."""
 
 import unittest
 from datetime import datetime
@@ -39,7 +39,7 @@ from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.standardise import StandardiseGridAndMetadata
+from improver.standardise import StandardiseMetadata
 
 from ..set_up_test_cubes import set_up_variable_cube
 
@@ -57,7 +57,7 @@ class Test_process(IrisTest):
             time_bounds=[datetime(2019, 10, 10, 23), datetime(2019, 10, 11)],
             frt=datetime(2019, 10, 10, 18),
         )
-        self.plugin = StandardiseGridAndMetadata()
+        self.plugin = StandardiseMetadata()
 
     def test_null(self):
         """Test process method with default arguments returns an unchanged

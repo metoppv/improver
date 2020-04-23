@@ -105,7 +105,7 @@ def grid_contains_cutout(grid, cutout):
     return True
 
 
-class StandardiseGridAndMetadata(BasePlugin):
+class StandardiseMetadata(BasePlugin):
     """Plugin to standardise cube metadata"""
 
     @staticmethod
@@ -186,7 +186,7 @@ class StandardiseGridAndMetadata(BasePlugin):
         attributes_dict=None,
     ):
         """
-        Perform standard and user-configurable metadata adjustments
+        Perform compulsory and user-configurable metadata adjustments
 
         Args:
             cube (iris.cube.Cube):
@@ -217,9 +217,6 @@ class StandardiseGridAndMetadata(BasePlugin):
             self._remove_scalar_coords(cube, coords_to_remove)
         if attributes_dict:
             amend_attributes(cube, attributes_dict)
-
-        # ensure dtypes follow IMPROVER conventions
-        #self._standardise_dtypes_and_units(cube)
 
         return cube
 
