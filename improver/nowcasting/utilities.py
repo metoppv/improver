@@ -108,16 +108,10 @@ class FillRadarHoles(BasePlugin):
 
     @staticmethod
     def _rr_to_log_rr(data):
-        """Convert rainrates in mm/h into log space.  This does not preserve
-        values below 0.001; however, since the radar encodes trace rain rates
-        with a value of 0.03 mm/h, this should not have any effect on "real"
-        data.
-
-        Args:
-            data (np.ma.MaskedArray)
-
-        Returns:
-            np.ma.MaskedArray
+        """Convert a masked array of rainrates in mm/h into log space.  This
+        does not preserve values below 0.001; however, since the radar encodes
+        trace rain rates with a value of 0.03 mm/h, this should not have any
+        effect on "real" data.
         """
         min_rr_mmh = 0.001
         result = np.where(data > min_rr_mmh, np.log10(data), np.nan)
@@ -125,11 +119,7 @@ class FillRadarHoles(BasePlugin):
 
     @staticmethod
     def _log_rr_to_rr(data):
-        """Convert log rainrate into mm/h
-
-        Args:
-            data (np.ma.MaskedArray)
-        """
+        """Convert a masked array of log rainrates into mm/h"""
         result = np.where(np.isfinite(data), np.power(10, data), 0.0)
         return np.ma.MaskedArray(result, mask=data.mask)
 
@@ -145,11 +135,11 @@ class FillRadarHoles(BasePlugin):
         neighbourhood over which averaging is performed.
 
         Args:
-            log_rr (np.ma.MaskedArray):
+            log_rr (numpy.ma.MaskedArray):
                 Masked array of rainrates in log10(mm/h)
 
         Returns:
-            np.ma.MaskedArray:
+            numpy.ma.MaskedArray:
                 Masked array of interpolated rainrates in log10(mm/h)
         """
         # minimum proportion of masked neighbours, below which a pixel is
@@ -188,11 +178,15 @@ class FillRadarHoles(BasePlugin):
         return np.ma.MaskedArray(output_data, mask=output_mask)
 
     def _fill_radar_holes(self, masked_radar):
-        """Interpolate holes near individual radars.  Modifies array in place.
+        """Interpolate small holes in precipitation rate data.
 
         Args:
-            masked_radar (numpy.ndarray):
+            masked_radar (numpy.ma.MaskedArray):
                 Precipitation rate data in mm/h to be interpolated
+
+        Returns:
+            numpy.ma.MaskedArray:
+                Interpolated precipitation rate data in mm/h
         """
         log_rr = self._rr_to_log_rr(masked_radar)
         interpolated_log_rr = self._find_and_interpolate_speckle(log_rr)
