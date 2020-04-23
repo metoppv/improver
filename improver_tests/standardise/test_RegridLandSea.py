@@ -31,11 +31,8 @@
 """Unit tests for the standardise.RegridLandSea plugin."""
 
 import unittest
-from datetime import datetime
 
-import iris
 import numpy as np
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
