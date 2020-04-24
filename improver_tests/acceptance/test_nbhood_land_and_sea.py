@@ -75,38 +75,6 @@ def test_radii_with_lead_times(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
-@pytest.mark.parametrize("intermediate", (True, False))
-def test_topographic_bands(tmp_path, intermediate):
-    """Test land-sea with topographic bands"""
-    kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/topographic_bands"
-    kgo_path = kgo_dir / "kgo.nc"
-    land_kgo_path = kgo_dir / "kgo_land.nc"
-    input_path = kgo_dir / "input.nc"
-    bands_path = kgo_dir / "topographic_bands_land.nc"
-    weights_path = kgo_dir / "weights_land.nc"
-    output_path = tmp_path / "output.nc"
-    land_output_path = tmp_path / "output_land.nc"
-    if intermediate:
-        im_args = ["--intermediate-output", land_output_path, "--return-intermediate"]
-    else:
-        im_args = []
-    args = [
-        input_path,
-        bands_path,
-        weights_path,
-        "--radii",
-        "20000",
-        *im_args,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-    if intermediate:
-        acc.compare(land_output_path, land_kgo_path)
-
-
 def test_unnecessary_weights(tmp_path):
     """Test land-sea with additional unnecessary weights argument"""
     kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/no_topographic_bands"

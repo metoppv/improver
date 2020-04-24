@@ -93,6 +93,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         coord_for_masking,
         radii,
         lead_times=None,
+        collapse_weights=None,
         weighted_mode=True,
         sum_or_fraction="fraction",
         re_mask=False,
@@ -109,6 +110,11 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
+            collapse_weights (iris.cube.Cube):
+                A cube from an ancillary file containing the weights for each
+                point in the 'coord_for_masking' at each grid point. If given,
+                `CollapseMaskedNeighbourhoodCoordinate` will be used to
+                collapse over 'coord_for_masking'.
             lead_times (list):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
@@ -136,6 +142,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         self.neighbourhood_method = "square"
         self.radii = radii
         self.lead_times = lead_times
+        self.collapse_weights = collapse_weights
         self.weighted_mode = weighted_mode
         self.sum_or_fraction = sum_or_fraction
         self.re_mask = re_mask
@@ -145,14 +152,15 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         result = (
             "<ApplyNeighbourhoodProcessingWithAMask: "
             "coord_for_masking: {}, neighbourhood_method: {}, "
-            "radii: {}, lead_times: {}, weighted_mode: {}, "
-            "sum_or_fraction: {}, re_mask: {}>"
+            "radii: {}, lead_times: {}, collapse_weights: {}, "
+            "weighted_mode: {}, sum_or_fraction: {}, re_mask: {}>"
         )
         return result.format(
             self.coord_for_masking,
             self.neighbourhood_method,
             self.radii,
             self.lead_times,
+            self.collapse_weights,
             self.weighted_mode,
             self.sum_or_fraction,
             self.re_mask,
@@ -185,6 +193,12 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
         result_slices = iris.cube.CubeList([])
+        if self.collapse_weights is None:
+            collape_plugin = None
+        else:
+            collape_plugin = CollapseMaskedNeighbourhoodCoordinate(
+                self.coord_for_masking, self.collapse_weights
+            )
         # Take 2D slices of the input cube for memory issues.
         prev_x_y_slice = None
         for x_y_slice in cube.slices([yname, xname]):
@@ -216,6 +230,8 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 coord_object = cube_slice.coord(self.coord_for_masking).copy()
                 output_cube.add_aux_coord(coord_object)
                 output_cube = iris.util.new_axis(output_cube, self.coord_for_masking)
+                if collape_plugin:
+                    output_cube = collape_plugin(output_cube)
                 cube_slices.append(output_cube)
             concatenated_cube = cube_slices.concatenate_cube()
             exception_coordinates = find_dimension_coordinate_mismatch(

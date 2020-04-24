@@ -37,7 +37,6 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-@cli.with_intermediate_output
 def process(
     cube: cli.inputcube,
     mask: cli.inputcube,
@@ -46,7 +45,6 @@ def process(
     radii: cli.comma_separated_list,
     lead_times: cli.comma_separated_list = None,
     area_sum=False,
-    return_intermediate=False,
 ):
     """ Module to process land and sea separately before combining them.
 
@@ -82,19 +80,11 @@ def process(
             lead_times. Lead times must be given as integer values.
         area_sum (bool):
             Return sum rather than fraction over the neighbourhood area.
-        return_intermediate (bool):
-            Include this option to return a cube with results following
-            topographic masked neighbourhood processing of land points and
-            prior to collapsing the topographic_zone coordinate. If no
-            topographic masked neighbourhooding occurs, there will be no
-            intermediate cube and a warning.
 
     Returns:
         (tuple): tuple containing:
             **result** (iris.cube.Cube):
                 A cube of the processed data.
-            **intermediate_cube** (iris.cube.Cube):
-                A cube of the intermediate data, before collapsing.
 
     Raises:
         ValueError:
@@ -116,14 +106,11 @@ def process(
     import numpy as np
 
     from improver.nbhood.nbhood import NeighbourhoodProcessing
-    from improver.nbhood.use_nbhood import (
-        ApplyNeighbourhoodProcessingWithAMask,
-        CollapseMaskedNeighbourhoodCoordinate,
-    )
+    from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
 
     sum_or_fraction = "sum" if area_sum else "fraction"
 
-    masking_coordinate = intermediate_cube = None
+    masking_coordinate = None
     if any(
         ["topographic_zone" in coord.name() for coord in mask.coords(dim_coords=True)]
     ):
@@ -182,12 +169,6 @@ def process(
         radius_or_radii = [float(x) for x in radii]
         lead_times = [int(x) for x in lead_times]
 
-    if return_intermediate is not None and masking_coordinate is None:
-        warnings.warn(
-            "No topographic_zone coordinate found, so no "
-            "intermediate file will be saved."
-        )
-
     # Section for neighbourhood processing land points.
     if land_only.data.max() > 0.0:
         if masking_coordinate is None:
@@ -203,16 +184,10 @@ def process(
                 masking_coordinate,
                 radius_or_radii,
                 lead_times=lead_times,
+                collapse_weights=weights,
                 sum_or_fraction=sum_or_fraction,
                 re_mask=False,
             )(cube, mask)
-
-            if return_intermediate:
-                intermediate_cube = result_land.copy()
-            # Collapse the masking coordinate.
-            result_land = CollapseMaskedNeighbourhoodCoordinate(
-                masking_coordinate, weights=weights
-            )(result_land)
         result = result_land
 
     # Section for neighbourhood processing sea points.
@@ -233,4 +208,4 @@ def process(
         combined_data = result_land.data.filled(0) + result_sea.data.filled(0)
         result = result_land.copy(data=combined_data)
 
-    return result, intermediate_cube
+    return result
