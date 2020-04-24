@@ -194,9 +194,9 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         xname = cube.coord(axis="x").name()
         result_slices = iris.cube.CubeList([])
         if self.collapse_weights is None:
-            collape_plugin = None
+            collapse_plugin = None
         else:
-            collape_plugin = CollapseMaskedNeighbourhoodCoordinate(
+            collapse_plugin = CollapseMaskedNeighbourhoodCoordinate(
                 self.coord_for_masking, self.collapse_weights
             )
         # Take 2D slices of the input cube for memory issues.
@@ -230,8 +230,6 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 coord_object = cube_slice.coord(self.coord_for_masking).copy()
                 output_cube.add_aux_coord(coord_object)
                 output_cube = iris.util.new_axis(output_cube, self.coord_for_masking)
-                if collape_plugin:
-                    output_cube = collape_plugin(output_cube)
                 cube_slices.append(output_cube)
             concatenated_cube = cube_slices.concatenate_cube()
             exception_coordinates = find_dimension_coordinate_mismatch(
@@ -242,6 +240,8 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 concatenated_cube,
                 exception_coordinates=exception_coordinates,
             )
+            if collapse_plugin:
+                concatenated_cube= collapse_plugin(concatenated_cube)
             result_slices.append(concatenated_cube)
         result = result_slices.merge_cube()
         exception_coordinates = find_dimension_coordinate_mismatch(
@@ -377,7 +377,7 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         condition = np.isnan(nbhood_cube.data)
         if ma.is_masked(self.weights.data):
             condition = condition & ~self.weights.data.mask
-
+            
         self.weights.data[condition] = 0.0
         axis = nbhood_cube.coord_dims(self.coord_masked)
         self.weights.data = WeightsUtilities.normalise_weights(
