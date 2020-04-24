@@ -276,7 +276,7 @@ class LapseRate(BasePlugin):
             lower than max_height_diff, False if not.
         """
         cnpt = self.ind_central_point
-        central_points = orog_subsections[..., cnpt:cnpt+1, cnpt:cnpt+1]
+        central_points = orog_subsections[..., cnpt : cnpt + 1, cnpt : cnpt + 1]
 
         height_diff = np.abs(orog_subsections - central_points)
         return height_diff < self.max_height_diff
