@@ -275,10 +275,8 @@ class LapseRate(BasePlugin):
             as the orog_subsections. True is the orography height is
             lower than max_height_diff, False if not.
         """
-        central_points = orog_subsections[
-            ..., self.ind_central_point, self.ind_central_point
-        ]
-        central_points = central_points[np.newaxis, np.newaxis].T
+        cnpt = self.ind_central_point
+        central_points = orog_subsections[..., cnpt:cnpt+1, cnpt:cnpt+1]
 
         height_diff = np.absolute(np.subtract(orog_subsections, central_points))
         return np.where(height_diff < self.max_height_diff, True, False)
