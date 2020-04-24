@@ -319,7 +319,6 @@ class LapseRate(BasePlugin):
             # difference between the central points and its
             # neighbours is < max_height_diff.
             height_diff_mask = self._create_height_diff_mask(orog)
-            orog = np.where(height_diff_mask, orog, np.nan)
             temp = np.where(height_diff_mask, temp, np.nan)
 
             # Places NaNs in orog to match temp.
