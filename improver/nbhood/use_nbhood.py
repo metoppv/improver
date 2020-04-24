@@ -378,11 +378,10 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         if ma.is_masked(self.weights.data):
             condition = condition & ~self.weights.data.mask
 
-        self.weights.data[condition] = 0.0
+        weights_data = self.weights.data.copy()
+        weights_data[condition] = 0.0
         axis = nbhood_cube.coord_dims(self.coord_masked)
-        self.weights.data = WeightsUtilities.normalise_weights(
-            self.weights.data, axis=axis
-        )
+        return WeightsUtilities.normalise_weights(weights_data, axis=axis)
 
     def process(self, cube):
         """
@@ -409,19 +408,17 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
 
-        if self.weights.shape != cube.shape:
-            # The input cube may have leading dimensions.
-            first_slice = next(
-                cube.slices([self.coord_masked, yname, xname], ordered=False)
-            )
-            self.renormalize_weights(first_slice)
-        else:
-            self.renormalize_weights(cube)
-        weights = self.weights.data
+        renormalize = True
+        if self.weights.shape == cube.shape:
+            weights = self.renormalize_weights(cube)
+            renormalize = False
 
         # Loop over any extra dimensions
         cubelist = iris.cube.CubeList([])
         for slice_3d in cube.slices([self.coord_masked, yname, xname]):
+            if renormalize:
+                weights = self.renormalize_weights(slice_3d)
+                renormalize = False
             collapsed_slice = collapsed(
                 slice_3d, self.coord_masked, iris.analysis.MEAN, weights=weights
             )
