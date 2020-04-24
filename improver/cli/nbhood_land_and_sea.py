@@ -101,8 +101,6 @@ def process(
             A weights cube has been provided but no topographic zone.
 
     """
-    import warnings
-
     import numpy as np
 
     from improver.nbhood.nbhood import NeighbourhoodProcessing
