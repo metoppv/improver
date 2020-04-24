@@ -278,8 +278,8 @@ class LapseRate(BasePlugin):
         cnpt = self.ind_central_point
         central_points = orog_subsections[..., cnpt:cnpt+1, cnpt:cnpt+1]
 
-        height_diff = np.absolute(np.subtract(orog_subsections, central_points))
-        return np.where(height_diff < self.max_height_diff, True, False)
+        height_diff = np.abs(orog_subsections - central_points)
+        return height_diff < self.max_height_diff
 
     def _generate_lapse_rate_array(
         self, temperature_data, orography_data, land_sea_mask_data
