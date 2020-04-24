@@ -102,8 +102,8 @@ class ExtendRadarMask(BasePlugin):
 
 
 class FillRadarHoles(BasePlugin):
-    """Interpolate small "no data" regions in the radar composite domain
-    """
+    """Fill in small "no data" regions in the radar composite by interpolating
+    in log rainrate space."""
 
     @staticmethod
     def _rr_to_log_rr(data):
@@ -124,14 +124,21 @@ class FillRadarHoles(BasePlugin):
 
     @staticmethod
     def _find_and_interpolate_speckle(log_rr):
-        """Identify and interpolate "speckle" points.
+        """Identify and interpolate "speckle" points, where "speckle" is defined
+        as areas of "no data" that are small enough to fill by interpolation
+        without affecting data integrity.  We would not wish to interpolate large
+        areas as this may gives false confidence in "no precipitation", where in
+        fact precipitation exists in the "no data" region.
 
         The constants for speckle identification ("p_masked" and "r_speckle")
         have been empirically tuned for UK radar data.  With the constants
         as set, this method will flag "holes" of up to 24 pixels in size.
-        The neighbourhood size for interpolation has been chosen to match these
-        constants, ensuring that there will always be valid data in the
-        neighbourhood over which averaging is performed.
+        The interpolation radius has been chosen to match these constants,
+        as the smallest radius that ensures there will always be valid data in
+        the neighbourhood (25 pixels) over which averaging is performed.
+
+        Masked pixels near the border of the input data array will not be
+        interpolated.
 
         Args:
             log_rr (numpy.ma.MaskedArray):
@@ -141,8 +148,8 @@ class FillRadarHoles(BasePlugin):
             numpy.ma.MaskedArray:
                 Masked array of interpolated rainrates in log10(mm/h)
         """
-        # minimum proportion of masked neighbours, below which a pixel is
-        # "speckle"
+        # proportion of masked neighbours below which a pixel is considered to
+        # be isolated "speckle", which can be filled in by interpolation
         p_masked = 0.3
         # radius of neighbourhood over which to search for masked neighbours
         r_speckle = 4
@@ -168,7 +175,7 @@ class FillRadarHoles(BasePlugin):
                             x - r_interp : x + r_interp + 1,
                         ]
                         interpolated_points[y, x] = np.mean(
-                            surroundings[np.where(~surroundings.mask)]
+                            surroundings[~surroundings.mask]
                         )
                         interpolated_points.mask[y, x] = False
 
@@ -177,7 +184,8 @@ class FillRadarHoles(BasePlugin):
         return np.ma.MaskedArray(output_data, mask=output_mask)
 
     def _fill_radar_holes(self, masked_radar):
-        """Interpolate small holes in precipitation rate data.
+        """Fill in small "no data" regions in precipitation rates by
+        interpolation
 
         Args:
             masked_radar (numpy.ma.MaskedArray):
@@ -193,8 +201,8 @@ class FillRadarHoles(BasePlugin):
 
     def process(self, masked_radar):
         """
-        Interpolates "holes" due to missing data near radars, and unmasks these
-        small regions, so that they can be used in extrapolation nowcasting.
+        Fills in and unmasks small "no data" regions within the radar composite,
+        to minimise gaps in the extrapolation nowcast.
 
         Args:
             masked_radar (iris.cube.Cube):
