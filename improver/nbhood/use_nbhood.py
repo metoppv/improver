@@ -241,7 +241,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 exception_coordinates=exception_coordinates,
             )
             if collapse_plugin:
-                concatenated_cube= collapse_plugin(concatenated_cube)
+                concatenated_cube = collapse_plugin(concatenated_cube)
             result_slices.append(concatenated_cube)
         result = result_slices.merge_cube()
         exception_coordinates = find_dimension_coordinate_mismatch(
@@ -377,7 +377,7 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         condition = np.isnan(nbhood_cube.data)
         if ma.is_masked(self.weights.data):
             condition = condition & ~self.weights.data.mask
-            
+
         self.weights.data[condition] = 0.0
         axis = nbhood_cube.coord_dims(self.coord_masked)
         self.weights.data = WeightsUtilities.normalise_weights(
