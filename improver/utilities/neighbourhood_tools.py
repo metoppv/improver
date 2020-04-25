@@ -33,10 +33,11 @@
 import numpy as np
 
 
-def rolling_window(A, shape):
-    """Creates views of the array A, this avoids
-    creating a massive matrix of points in a neighbourhood
-    calculation.
+def rolling_window(A, shape, writeable=False):
+    """Creates a rolling window neighbourhoods of the given `shape` from the
+    last `len(shape)` axes of the input array. Avoids creating large output
+    array by constructing a non-continuous view mapped onto the input array.
+
     Args:
         A:
             The input array padded with nans for half the
@@ -45,6 +46,9 @@ def rolling_window(A, shape):
             The neighbourhood shape e.g. is the neighbourhood
             size is 3, the shape would be (3, 3) to create a
             3x3 array.
+        writeable:
+            If True the returned view will be writeable. This will modify
+            the input array, so use with caution.
 
     Returns:
         ndarray of "views" into the data, each view represents
@@ -61,26 +65,29 @@ def rolling_window(A, shape):
     assert all(ad > 0 for ad in adjshp)
     strides = A.strides + A.strides[-nwd:]
     return np.lib.stride_tricks.as_strided(
-        A, shape=adjshp, strides=strides, writeable=False
+        A, shape=adjshp, strides=strides, writeable=writeable
     )
 
 
-def pad_and_roll(A, shape, pad_value=np.nan):
-    """Pads the input arrays and passes them to _rolling_window
-    to create windows of the data.
+def pad_and_roll(A, shape, **kwargs):
+    """Pads the last `len(shape)` axes of the input array for `rolling_window`
+    to create 'neighbourhood' views of the data of a given `shape` as the last
+    axes in the returned array. Collapsing over the last `len(shape)` axes
+    results in a shape of the original input array.
+
     Args:
         A:
             The dataset to pad and create rolling windows for.
         shape:
             Desired shape of the neighbourhood.
-        pad_values:
-            (Optional) the fill value for the padded array.
-            Defaults to np.nan
+        kwargs:
+            Additional keyword arguments passed to `numpy.pad` function.
 
     Returns:
         ndarray, containing views of the dataset A.
     """
+    writeable = kwargs.pop("writeable", False)
     pad_extent = [(0, 0)] * (len(A.shape) - len(shape))
     pad_extent.extend((d // 2, d // 2) for d in shape)
-    A = np.pad(A, pad_extent, mode="constant", constant_values=pad_value)
-    return rolling_window(A, shape)
+    A = np.pad(A, pad_extent, **kwargs)
+    return rolling_window(A, shape, writeable=writeable)
