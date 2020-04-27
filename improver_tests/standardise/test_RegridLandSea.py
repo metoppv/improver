@@ -46,6 +46,22 @@ IGNORED_MESSAGES = ["Using a non-tuple sequence for multidimensional indexing"]
 WARNING_TYPES = [FutureWarning]
 
 
+class Test__init__(IrisTest):
+    """Test initialisation"""
+
+    def test_error_unrecognised_regrid_mode(self):
+        """Test error is thrown if regrid mode is not in expected values list"""
+        msg = "Unrecognised regrid mode"
+        with self.assertRaisesRegex(ValueError, msg):
+            RegridLandSea(regrid_mode="kludge")
+
+    def test_error_missing_landmask(self):
+        """Test an error is thrown if no landmask is provided where required"""
+        msg = "requires an input landmask cube"
+        with self.assertRaisesRegex(ValueError, msg):
+            RegridLandSea(regrid_mode="nearest-with-mask")
+
+
 class Test_process(IrisTest):
     """Test the process method for the RegridLandSea plugin. Regridded values
     are not tested here as this is covered by unit tests for the regridding

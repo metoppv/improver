@@ -257,7 +257,10 @@ class RegridLandSea(BasePlugin):
         Raises:
             ValueError: If a landmask is required but not passed in
         """
-        if landmask is None and "nearest-with-mask" in regrid_mode:
+        if regrid_mode not in self.REGRID_REQUIRES_LANDMASK:
+            msg = "Unrecognised regrid mode {}"
+            raise ValueError(msg.format(regrid_mode))
+        if landmask is None and self.REGRID_REQUIRES_LANDMASK[regrid_mode]:
             msg = "Regrid mode {} requires an input landmask cube"
             raise ValueError(msg.format(regrid_mode))
         self.regrid_mode = regrid_mode
