@@ -358,17 +358,17 @@ class Integration(BasePlugin):
         return integrated_cube
 
 
-def alinfit(X, Y, axis=-1, gradient_only=False):
+def alinfit(x, y, axis=-1, gradient_only=False):
     """Uses a simple linear fit approach to calculate the
     gradient. Although equivalent, this
     approach is much faster than using scipy lstsq to fit the
     data.
 
     Args:
-        X:
-            ndarray, X axis data
-        Y:
-            ndarray, Y axis data
+        x:
+            ndarray, x axis data
+        y:
+            ndarray, y axis data
         axis:
             Optional argument, specifies the axis to operate on.
         gradient_only:
@@ -382,26 +382,28 @@ def alinfit(X, Y, axis=-1, gradient_only=False):
 
     # Check that there are no spurious NaNs in one of the arrays
     # only - this will mess up the mean.
-    assert (np.isnan(Y) == np.isnan(X)).all
+    if not (np.isnan(y) == np.isnan(x)).all:
+        raise ValueError("Positions of NaNs do not match in x and y")
 
     # Finds a compatible shape for the means to be reshaped into
-    assert X.shape == Y.shape
-    shape = list(X.shape)
+    if not x.shape == y.shape:
+        raise ValueError("Shape of x and y do not match")
+    shape = list(x.shape)
     for ax in axis:
         shape[ax] = 1
 
-    X_mean = np.nanmean(X, axis=axis).reshape(shape)
-    Y_mean = np.nanmean(Y, axis=axis).reshape(shape)
+    x_mean = np.nanmean(x, axis=axis).reshape(shape)
+    y_mean = np.nanmean(y, axis=axis).reshape(shape)
 
-    X_diff = X - X_mean
-    Y_diff = Y - Y_mean
+    x_diff = x - x_mean
+    y_diff = y - y_mean
 
-    XY_cov = np.nansum(X_diff * Y_diff, axis=axis)
-    X_var = np.nansum(X_diff * X_diff, axis=axis)
+    xy_cov = np.nansum(x_diff * y_diff, axis=axis)
+    x_var = np.nansum(x_diff * x_diff, axis=axis)
 
-    grad = XY_cov / X_var
+    grad = xy_cov / x_var
     if gradient_only:
         return grad
 
-    intercept = np.squeeze(Y_mean - grad.reshape(shape) * X_mean)
+    intercept = np.squeeze(y_mean - grad.reshape(shape) * x_mean)
     return grad, intercept

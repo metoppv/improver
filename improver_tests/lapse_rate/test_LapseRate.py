@@ -336,17 +336,7 @@ class Test_process(IrisTest):
         """Test that the function returns expected DALR values where the
            orography fields are constant values.
         """
-        expected_out = np.array(
-            [
-                [
-                    [DALR, DALR, DALR, DALR, DALR],
-                    [DALR, DALR, DALR, DALR, DALR],
-                    [DALR, DALR, DALR, DALR, DALR],
-                    [DALR, DALR, DALR, DALR, DALR],
-                    [DALR, DALR, DALR, DALR, DALR],
-                ]
-            ]
-        )
+        expected_out = np.full((1, 5, 5), DALR)
 
         self.temperature.data[:, :, :] = 0.08
         self.temperature.data[:, 1, 1] = 0.09

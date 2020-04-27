@@ -346,15 +346,8 @@ class LapseRate(BasePlugin):
         lapse_rate_array = np.array(lapse_rate_array, dtype=np.float32)
 
         # Enforce upper and lower limits on lapse rate values.
-        lapse_rate_array = np.where(
-            lapse_rate_array < self.min_lapse_rate,
-            self.min_lapse_rate,
-            lapse_rate_array,
-        )
-        lapse_rate_array = np.where(
-            lapse_rate_array > self.max_lapse_rate,
-            self.max_lapse_rate,
-            lapse_rate_array,
+        lapse_rate_array = lapse_rate_array.clip(
+            self.min_lapse_rate, self.max_lapse_rate
         )
         return lapse_rate_array
 
