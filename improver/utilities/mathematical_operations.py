@@ -380,14 +380,15 @@ def alinfit(x, y, axis=-1, gradient_only=False):
     if not isinstance(axis, tuple):
         axis = (axis,)
 
-    # Check that there are no spurious NaNs in one of the arrays
-    # only - this will mess up the mean.
-    if not (np.isnan(y) == np.isnan(x)).all:
-        raise ValueError("Positions of NaNs do not match in x and y")
-
     # Finds a compatible shape for the means to be reshaped into
     if not x.shape == y.shape:
         raise ValueError("Shape of x and y do not match")
+
+    # Check that there are no spurious NaNs in one of the arrays
+    # only - this will mess up the mean.
+    if not (np.isnan(y) == np.isnan(x)).all():
+        raise ValueError("Positions of NaNs do not match in x and y")
+
     shape = list(x.shape)
     for axis_index in axis:
         shape[axis_index] = 1

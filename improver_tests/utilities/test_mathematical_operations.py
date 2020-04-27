@@ -524,6 +524,18 @@ class Test_alinfit(IrisTest):
         """Tests alinfit with 2D data."""
         self.linear_fit(shape=(5, 5), axis=(-2, -1))
 
+    def test_mismatching_shape(self):
+        """Tests alinfit with mismatching shapes."""
+        x = self.x.reshape(5, 5)
+        with self.assertRaises(ValueError):
+            alinfit(x, self.y)
+
+    def test_mismatch_nans(self):
+        """Tests alinfit with mismatching nans."""
+        self.x[12] = np.nan
+        with self.assertRaises(ValueError):
+            alinfit(self.x, self.y)
+
 
 if __name__ == "__main__":
     unittest.main()
