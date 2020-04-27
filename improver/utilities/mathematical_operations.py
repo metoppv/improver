@@ -389,8 +389,8 @@ def alinfit(x, y, axis=-1, gradient_only=False):
     if not x.shape == y.shape:
         raise ValueError("Shape of x and y do not match")
     shape = list(x.shape)
-    for ax in axis:
-        shape[ax] = 1
+    for axis_index in axis:
+        shape[axis_index] = 1
 
     x_mean = np.nanmean(x, axis=axis).reshape(shape)
     y_mean = np.nanmean(y, axis=axis).reshape(shape)

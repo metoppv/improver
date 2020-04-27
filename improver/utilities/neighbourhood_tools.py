@@ -33,13 +33,13 @@
 import numpy as np
 
 
-def rolling_window(a, shape, writeable=False):
+def rolling_window(input_array, shape, writeable=False):
     """Creates a rolling window neighbourhoods of the given `shape` from the
     last `len(shape)` axes of the input array. avoids creating large output
     array by constructing a non-continuous view mapped onto the input array.
 
     args:
-        a:
+        input_array:
             The input array padded with nans for half the
             neighbourhood size (2D).
         shape:
@@ -55,28 +55,28 @@ def rolling_window(a, shape, writeable=False):
         a neighbourhood of points.
     """
     nwd = len(shape)
-    nad = len(a.shape)
+    nad = len(input_array.shape)
     assert nad >= nwd
     adjshp = (
-        *a.shape[:-nwd],
-        *(ad - wd + 1 for ad, wd in zip(a.shape[-nwd:], shape)),
+        *input_array.shape[:-nwd],
+        *(ad - wd + 1 for ad, wd in zip(input_array.shape[-nwd:], shape)),
         *shape,
     )
     assert all(ad > 0 for ad in adjshp)
-    strides = a.strides + a.strides[-nwd:]
+    strides = input_array.strides + input_array.strides[-nwd:]
     return np.lib.stride_tricks.as_strided(
-        a, shape=adjshp, strides=strides, writeable=writeable
+        input_array, shape=adjshp, strides=strides, writeable=writeable
     )
 
 
-def pad_and_roll(a, shape, **kwargs):
+def pad_and_roll(input_array, shape, **kwargs):
     """Pads the last `len(shape)` axes of the input array for `rolling_window`
     to create 'neighbourhood' views of the data of a given `shape` as the last
     axes in the returned array. Collapsing over the last `len(shape)` axes
     results in a shape of the original input array.
 
     args:
-        a:
+        input_array:
             The dataset to pad and create rolling windows for.
         shape:
             Desired shape of the neighbourhood.
@@ -87,7 +87,7 @@ def pad_and_roll(a, shape, **kwargs):
         ndarray, containing views of the dataset a.
     """
     writeable = kwargs.pop("writeable", False)
-    pad_extent = [(0, 0)] * (len(a.shape) - len(shape))
+    pad_extent = [(0, 0)] * (len(input_array.shape) - len(shape))
     pad_extent.extend((d // 2, d // 2) for d in shape)
-    a = np.pad(a, pad_extent, **kwargs)
-    return rolling_window(a, shape, writeable=writeable)
+    input_array = np.pad(input_array, pad_extent, **kwargs)
+    return rolling_window(input_array, shape, writeable=writeable)

@@ -498,22 +498,22 @@ class Test_alinfit(IrisTest):
     """Test the alinfit method"""
 
     def setUp(self):
-        """Creates some random data to represent X and Y."""
+        """Creates some random data to represent x and y."""
         array_size = 25
-        self.X = np.random.random(array_size)
-        self.Y = np.random.random(array_size)
+        self.x = np.random.random(array_size)
+        self.y = np.random.random(array_size)
 
     def use_lstsq(self):
         """Uses numpy's leastsquare algorithm to fit the data as a comparison"""
-        X = np.stack([self.X, np.ones(len(self.X))]).T
-        return np.linalg.lstsq(X, self.Y, rcond=-1)[0]
+        x = np.stack([self.x, np.ones(len(self.x))]).T
+        return np.linalg.lstsq(x, self.y, rcond=-1)[0]
 
     def linear_fit(self, shape=(25,), axis=-1):
         """Compares the output of alinfit with numpy's leastsquare algorithm."""
         expected_out = self.use_lstsq()
-        X = self.X.reshape(shape)
-        Y = self.Y.reshape(shape)
-        result = np.array(alinfit(X, Y, axis=axis))
+        x = self.x.reshape(shape)
+        y = self.y.reshape(shape)
+        result = np.array(alinfit(x, y, axis=axis))
         self.assertArrayAlmostEqual(expected_out, result)
 
     def test_basic_linear_fit(self):
