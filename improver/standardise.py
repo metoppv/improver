@@ -253,9 +253,6 @@ class RegridLandSea(BasePlugin):
                 with land points set to one and sea points set to zero.
             landmask_vicinity (float):
                 Radius of vicinity to search for a coastline, in metres
-
-        Raises:
-            ValueError: If a landmask is required but not passed in
         """
         if regrid_mode not in self.REGRID_REQUIRES_LANDMASK:
             msg = "Unrecognised regrid mode {}"
