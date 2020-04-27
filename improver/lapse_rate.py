@@ -252,11 +252,12 @@ class LapseRate(BasePlugin):
             datasets, return order: temp, orog.
 
         """
+        window_shape = (self.nbhood_size, self.nbhood_size)
         orog_windows = neighbourhood_tools.pad_and_roll(
-            orog, (self.nbhood_size, self.nbhood_size)
+            orog, window_shape, mode="constant", constant_values=np.nan
         )
         temp_windows = neighbourhood_tools.pad_and_roll(
-            temp, (self.nbhood_size, self.nbhood_size)
+            temp, window_shape, mode="constant", constant_values=np.nan
         )
         return temp_windows, orog_windows
 
