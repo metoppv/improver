@@ -137,7 +137,7 @@ class Test_extract_diagnostic_name(unittest.TestCase):
             extract_diagnostic_name("lwe_precipitation_rate")
 
 
-def Test_is_probability(IrisTest):
+class Test_is_probability(IrisTest):
     """Test the is_probability function"""
 
     def setUp(self):
