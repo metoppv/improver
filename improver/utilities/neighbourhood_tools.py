@@ -84,12 +84,7 @@ def pad_and_roll(input_array, shape, **kwargs):
             The dataset of points to pad and create rolling windows for.
         shape (tuple(int)):
             Desired shape of the neighbourhood. E.g. if a neighbourhood
-            width of 1 around the point is desired, this shape should be (3, 3):
-                  X X X
-                  X O X
-                  X X X
-            where O is our central neighbourhood point and X represent any point
-            surrounding our central point.
+            width of 1 around the point is desired, this shape should be (3, 3).
         kwargs:
             additional keyword arguments passed to `numpy.pad` function.
 
