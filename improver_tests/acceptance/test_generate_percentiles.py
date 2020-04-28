@@ -28,19 +28,19 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the percentile CLI"""
+"""Tests for the generate-percentiles CLI"""
 
 import pytest
 
 from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-run_cli = acc.run_cli("percentile")
+run_cli = acc.run_cli("generate-percentiles")
 
 
 def test_basic(tmp_path):
     """Test basic percentile processing"""
-    kgo_dir = acc.kgo_root() / "percentile/basic"
+    kgo_dir = acc.kgo_root() / "generate-percentiles/basic"
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
@@ -61,7 +61,7 @@ def test_basic(tmp_path):
 @pytest.mark.parametrize("count", ("single", "multi"))
 def test_probconvert(tmp_path, count):
     """Test probability conversion"""
-    kgo_dir = acc.kgo_root() / "percentile/probability_convert"
+    kgo_dir = acc.kgo_root() / "generate-percentiles/probability_convert"
     kgo_path = kgo_dir / f"{count}_realization_kgo.nc"
     prob_input = kgo_dir / f"{count}_realization.nc"
     output_path = tmp_path / "output.nc"
@@ -80,7 +80,7 @@ def test_probconvert(tmp_path, count):
 
 def test_num_percentiles(tmp_path):
     """Test setting number of percentiles"""
-    kgo_dir = acc.kgo_root() / "percentile/basic"
+    kgo_dir = acc.kgo_root() / "generate-percentiles/basic"
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
@@ -99,7 +99,7 @@ def test_num_percentiles(tmp_path):
 
 def test_masked(tmp_path):
     """Test use of a mask"""
-    kgo_dir = acc.kgo_root() / "percentile/basic"
+    kgo_dir = acc.kgo_root() / "generate-percentiles/basic"
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
@@ -119,7 +119,7 @@ def test_masked(tmp_path):
 @pytest.mark.slow
 def test_eccbounds(tmp_path):
     """Test ECC bounds warning option"""
-    kgo_dir = acc.kgo_root() / "percentile/ecc_bounds_warning"
+    kgo_dir = acc.kgo_root() / "generate-percentiles/ecc_bounds_warning"
     kgo_path = kgo_dir / "kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
