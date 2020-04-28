@@ -203,7 +203,7 @@ def inputpath(to_convert):
 def create_constrained_inputcubelist_converter(*constraints):
     """Makes function that the input constraints are used in a loop.
 
-    The function is value_converter, this means it is used by clize to convert
+    The function is a @value_converter, this means it is used by clize to convert
     strings into objects.
     This is a way of not using the IMPROVER load_cube which will try to merge
     cubes. Iris load on the other hand won't deal with meta data properly.
@@ -212,7 +212,7 @@ def create_constrained_inputcubelist_converter(*constraints):
     These cubes get loaded and returned as a CubeList.
 
     Args:
-        *constraints (tuple of str or list):
+        *constraints (callable):
             Constraints to be used in the loading of cubes into a CubeList.
             If the tuple contains a string or multiple strings, then each
             string is expected to return exactly one match. If the tuple
@@ -231,46 +231,26 @@ def create_constrained_inputcubelist_converter(*constraints):
         """Passes the cube and constraints onto maybe_coerce_with.
 
         Args:
-            to_convert (string):
-                The filename to be loaded.
+            to_convert (str or iris.cube.CubeList):
+                The filename to be loaded into a CubeList or a CubeList
 
         Returns:
             iris.cube.CubeList:
                 The loaded cubelist of constrained cubes.
 
-        Raises:
-            ValueError:
-                Each constraint (either a string or a list) is expected to
-                return a single match. An error is raised if no match or more
-                than one match is found.
         """
-        from improver.utilities.load import load_cube
+        from improver.utilities.load import load_cubelist
+        from iris import Constraint
         from iris.cube import CubeList
 
-        cubelist = CubeList()
-        for constr in constraints:
-            constr_list = [constr] if isinstance(constr, str) else constr
-            found_cubes = []
-            for constr_item in constr_list:
-                try:
-                    found_cubes.append(
-                        maybe_coerce_with(
-                            load_cube, to_convert, constraints=constr_item
-                        )
-                    )
-                except ValueError:
-                    pass
-            if len(found_cubes) != 1:
-                msg = (
-                    f"Incorrect number of valid inputs available for the "
-                    "{constr} constraint. "
-                    f"Number of valid inputs: {len(found_cubes)} "
-                    f"The valid inputs found are: {found_cubes}"
-                )
-                raise ValueError(msg)
-            cubelist.extend(found_cubes)
-
-        return cubelist
+        cubelist = maybe_coerce_with(load_cubelist, to_convert)
+        return CubeList(
+            cubelist.extract(
+                Constraint(cube_func=constr) if callable(constr) else constr,
+                strict=True,
+            )
+            for constr in constraints
+        )
 
     return constrained_inputcubelist_converter
 
