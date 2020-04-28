@@ -42,10 +42,10 @@ from improver.metadata.probabilistic import (
     find_percentile_coordinate,
     find_threshold_coordinate,
     in_vicinity_name_format,
+    is_probability,
 )
 
-from ..metadata.test_amend import create_cube_with_threshold
-from ..set_up_test_cubes import set_up_probability_cube
+from ..set_up_test_cubes import set_up_probability_cube, set_up_variable_cube
 from ..wind_calculations.wind_gust_diagnostic.test_WindGustDiagnostic import (
     create_cube_with_percentile_coord,
 )
@@ -57,13 +57,15 @@ class Test_in_vicinity_name_format(unittest.TestCase):
 
     def setUp(self):
         """Set up test cube"""
-        self.cube = create_cube_with_threshold()
-        self.cube.long_name = "probability_of_X_rate_above_threshold"
+        data = np.ones((3, 3, 3), dtype=np.float32)
+        threshold_points = np.array([276, 277, 278], dtype=np.float32)
+        self.cube = set_up_probability_cube(data, threshold_points)
+        self.cube.rename("probability_of_X_above_threshold")
 
     def test_in_vicinity_name_format(self):
         """Test that 'in_vicinity' is added correctly to the name for both
         above and below threshold cases"""
-        correct_name_above = "probability_of_X_rate_in_vicinity_above_threshold"
+        correct_name_above = "probability_of_X_in_vicinity_above_threshold"
         new_name_above = in_vicinity_name_format(self.cube.name())
         self.cube.rename("probability_of_X_below_threshold")
         correct_name_below = "probability_of_X_in_vicinity_below_threshold"
@@ -133,6 +135,30 @@ class Test_extract_diagnostic_name(unittest.TestCase):
         """Test exception if input is not a probability cube name"""
         with self.assertRaises(ValueError):
             extract_diagnostic_name("lwe_precipitation_rate")
+
+
+def Test_is_probability(IrisTest):
+    """Test the is_probability function"""
+
+    def setUp(self):
+        """Set up test data"""
+        self.data = np.ones((3, 3, 3), dtype=np.float32)
+        self.threshold_points = np.array([276, 277, 278], dtype=np.float32)
+
+    def test_true(self):
+        """Test a probability cube evaluates as true"""
+        cube = set_up_probability_cube(self.data, self.threshold_points)
+        result = is_probability(cube)
+        self.assertTrue(result)
+
+    def test_false(self):
+        """Test cube that does not contain thresholded probabilities
+        evaluates as false"""
+        cube = set_up_variable_cube(
+            self.data, name="probability_of_rain_at_surface", units="1"
+        )
+        result = is_probability(cube)
+        self.assertFalse(result)
 
 
 class Test_find_threshold_coordinate(IrisTest):

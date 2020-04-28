@@ -82,7 +82,8 @@ def process(
         if realizations_count is None:
             try:
                 realizations_count = len(raw_cube.coord("realization").points)
-            except:  # TODO error if raw_cube is not defined
+            except AttributeError:
+                # raised if raw_cube is None, hence has no attribute "coord"
                 msg = "Either realizations_count or raw_cube must be provided"
                 raise ValueError(msg)
 
