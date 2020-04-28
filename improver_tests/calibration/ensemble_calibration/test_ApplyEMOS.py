@@ -89,7 +89,8 @@ class Test_process(IrisTest):
         )
 
         self.coefficients = build_coefficients_cubelist(
-            self.realizations, ["gamma", "delta", "alpha", "beta"], [0, 1, 0, 1])
+            self.realizations, ["gamma", "delta", "alpha", "beta"], [0, 1, 0, 1]
+        )
 
     def test_null_percentiles(self):
         """Test effect of "neutral" emos coefficients in percentile space

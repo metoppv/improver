@@ -150,8 +150,9 @@ def process(
         warnings.warn(msg)
         return cube
 
-    if (isinstance(coefficients, iris.cube.CubeList) and
-            not [c.name().startswith("emos_coefficients") for c in coefficients]):
+    if isinstance(coefficients, iris.cube.CubeList) and not [
+        c.name().startswith("emos_coefficients") for c in coefficients
+    ]:
         msg = "Invalid coefficients cube provided (name '{}')"
         raise ValueError(msg.format(coefficients.name()))
 

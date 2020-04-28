@@ -54,8 +54,8 @@ from ...set_up_test_cubes import set_up_variable_cube
 from .helper_functions import (
     EnsembleCalibrationAssertions,
     SetupCubes,
-    build_coefficients_cubelist,
     _create_historic_forecasts,
+    build_coefficients_cubelist,
 )
 
 STATSMODELS_FOUND = False
@@ -310,10 +310,6 @@ class Test_create_coefficients_cubelist(IrisTest):
         result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
-        print("result = ", result)
-        print("result = ", result[0])
-        print("expected = ", self.expected)
-        print("expected = ", self.expected[0])
         self.assertEqual(result, self.expected)
         self.assertEqual([cube.name() for cube in result], expected_coeff_names)
 
