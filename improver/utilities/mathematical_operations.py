@@ -377,8 +377,11 @@ def fast_linear_fit(x, y, axis=None, keepdims=False, gradient_only=False):
             will broadcast correctly against the input array.
         gradient_only (bool):
             If true only returns the gradient.
-    Returns:
-        The gradient and the y-intercept arrays.
+    Returns (tuple): tuple containing:
+        **gradient** (numpy.ndarray):
+            The gradient between x and y.
+        **y-intercept** (numpy.ndarray):
+            The calculated y-intercepts.
     """
     if not isinstance(axis, tuple):
         axis = (axis,)
