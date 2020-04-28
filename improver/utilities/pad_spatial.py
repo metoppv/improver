@@ -186,7 +186,7 @@ def _create_cube_with_padded_data(source_cube, data, coord_x, coord_y):
     return new_cube
 
 
-def pad_cube_with_halo(cube, width_x, width_y, halo_mean_data=True):
+def pad_cube_with_halo(cube, width_x, width_y, pad_method="constant"):
     """
     Method to pad a halo around the data in an iris cube.  If halo_with_data
     is False, the halo is filled with zeros.  Otherwise the padding calculates
@@ -205,10 +205,10 @@ def pad_cube_with_halo(cube, width_x, width_y, halo_mean_data=True):
             The width in y directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.
-        halo_mean_data (bool):
-            Flag whether to populate the halo region with 0.0 or to fill
-            with mean values derived from the existing data matrix. By default
-            the mean data is used.
+        pad_method (str):
+            The numpy.pad method with which to populate the halo. The default
+            is 'constant' which will populate the region with zeros. All other
+            np.pad methods are accepted, though they are not fully configurable.
 
     Returns:
         iris.cube.Cube:
@@ -219,23 +219,17 @@ def pad_cube_with_halo(cube, width_x, width_y, halo_mean_data=True):
 
     # Pad a halo around the original data with the extent of the halo
     # given by width_y and width_x.
-    if halo_mean_data:
-        padded_data = np.pad(
-            cube.data,
-            ((width_y, width_y), (width_x, width_x)),
-            "mean",
-            stat_length=(
-                (0.5 * width_y, 0.5 * width_y),
-                (0.5 * width_x, 0.5 * width_x),
-            ),
-        )
-    else:
-        padded_data = np.pad(
-            cube.data,
-            ((width_y, width_y), (width_x, width_x)),
-            "constant",
-            constant_values=(0.0, 0.0),
-        )
+    kwargs = {
+        "stat_length": ((width_y // 2, width_y // 2), (width_x // 2, width_x // 2))
+    }
+    if pad_method == "constant":
+        kwargs = {"constant_values": (0.0, 0.0)}
+    if pad_method == "symmetric":
+        kwargs = {}
+
+    padded_data = np.pad(
+        cube.data, ((width_y, width_y), (width_x, width_x)), pad_method, **kwargs
+    )
 
     coord_x = cube.coord(axis="x")
     padded_x_coord = pad_coord(coord_x, width_x, "add")
