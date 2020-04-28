@@ -83,9 +83,7 @@ def test_probabilities(tmp_path):
     kgo_dir = acc.kgo_root() / "convert-to-realizations/probabilities_12_realizations"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
-
     output_path = tmp_path / "output.nc"
-
     args = [input_path, "--realizations-count", "12", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -115,8 +113,18 @@ def test_realizations(tmp_path):
     acc.compare(output_path, input_path)
 
 
+def test_error_no_realizations_count(tmp_path):
+    """Test a helpful error is raised if wrong args are set"""
+    kgo_dir = acc.kgo_root() / "convert-to-realizations/probabilities_12_realizations"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, "--output", output_path]
+    with pytest.raises(ValueError, match=".*realizations_count or raw_cube.*"):
+        run_cli(args)
+
+
 def test_invalid_dataset(tmp_path):
-    """Test unhandlable conversion failure."""
+    """Test unhandlable conversion failure"""
     input_dir = acc.kgo_root() / "convert-to-realizations/invalid/"
     input_path = input_dir / "input.nc"
     output_path = tmp_path / "output.nc"
