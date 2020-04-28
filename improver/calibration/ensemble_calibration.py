@@ -522,7 +522,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         if statsmodels_spec:
             statsmodels_found = True
             import statsmodels.api as sm
-
             self.sm = sm
         else:
             statsmodels_found = False
