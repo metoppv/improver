@@ -65,26 +65,44 @@ def process(
         iris.cube.Cube:
             The processed cube.
     """
-    from improver.cli import percentiles_to_realizations, probabilities_to_realizations
+    from improver.metadata.probabilistic import is_probability
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        ConvertProbabilitiesToPercentiles,
+        RebadgePercentilesAsRealizations,
+        ResamplePercentiles,
+        EnsembleReordering,
+    )
 
-    if cube.coords("percentile"):
-        output_cube = percentiles_to_realizations.process(
-            cube,
-            raw_cube=raw_cube,
-            realizations_count=realizations_count,
-            random_seed=random_seed,
-            ignore_ecc_bounds=False,
-        )
-    elif cube.coords(var_name="threshold"):
-        output_cube = probabilities_to_realizations.process(
-            cube,
-            raw_cube=raw_cube,
-            realizations_count=realizations_count,
-            random_seed=random_seed,
-            ignore_ecc_bounds=False,
-        )
-    elif cube.coords("realization"):
-        output_cube = cube
+
+    if cube.coords("realization"):
+        result = cube
+
+    elif cube.coords("percentile") or is_probability(cube):
+
+        if realizations_count is None:
+            try:
+                realizations_count = len(raw_cube.coord("realization").points)
+            except:  # TODO error if raw_cube is not defined
+                msg = "Either realizations_count or raw_cube must be provided"
+                raise ValueError(msg)
+
+        if cube.coords("percentile"):
+            percentiles = ResamplePercentiles(ecc_bounds_warning=False)(
+                cube, no_of_percentiles=realizations_count, sampling="quantile"
+            )
+        else:
+            percentiles = ConvertProbabilitiesToPercentiles(ecc_bounds_warning=False)(
+                cube, no_of_percentiles=realizations_count
+            )
+
+        if raw_cube:
+            result = EnsembleReordering()(
+                percentiles, raw_cube, random_ordering=False, random_seed=random_seed
+            )
+        else:
+            result = RebadgePercentilesAsRealizations()(percentiles)
+
     else:
         raise ValueError("Unable to convert to realizations:\n" + str(cube))
-    return output_cube
+
+    return result
