@@ -219,8 +219,8 @@ def build_coefficients_cubelist(template, coeff_names, coeff_values):
             forecast_reference_time, forecast_period, x coordinate and
             y coordinate that will be used within the EMOS coefficient cube.
         coeff_names (list):
-            The names of the EMOS coefficients. These names will be used to
-            construct the coefficient_name coordinate.
+            The names of the EMOS coefficients. Each coefficient will be in a
+            separate cube within the resulting cubelist.
         coeff_values (numpy.ndarray or list):
             The values of the coefficients. These values will be used as the
             cube data.

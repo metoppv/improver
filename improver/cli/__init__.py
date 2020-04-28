@@ -143,7 +143,7 @@ def inputcubelist(to_convert):
 
     Args:
         to_convert (string or iris.cube.CubeList):
-            File name or Cube object.
+            File name or CubeList object.
 
     Returns:
         Loaded cubelist or passed object.

@@ -518,12 +518,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         import importlib
 
-        statsmodels_spec = importlib.util.find_spec("statsmodels")
-        if statsmodels_spec:
-            statsmodels_found = True
-            import statsmodels.api as sm
-            self.sm = sm
-        else:
+        try:
+            importlib.import_module("statsmodels")
+        except (ModuleNotFoundError, ImportError):
             statsmodels_found = False
             if predictor.lower() == "realizations":
                 msg = (
@@ -534,6 +531,11 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     "estimating coefficients from a linear model."
                 )
                 warnings.warn(msg, ImportWarning)
+        else:
+            import statsmodels.api as sm
+
+            statsmodels_found = True
+            self.sm = sm
 
         self.statsmodels_found = statsmodels_found
 

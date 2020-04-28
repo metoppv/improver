@@ -323,39 +323,9 @@ class Test_create_coefficients_cubelist(IrisTest):
         optimised_coeffs = [0, 1, 2, 3, 4, 5]
 
         # Set up an expected cube.
-        time_point = np.min(self.historic_forecast.coord("time").points)
-        time_coord = self.historic_forecast.coord("time").copy(time_point)
-
-        frt_orig_coord = self.historic_forecast.coord("forecast_reference_time")
-        frt_point = np.min(frt_orig_coord.points)
-        frt_coord = frt_orig_coord.copy(frt_point)
-
-        aux_coords_and_dims = [
-            (time_coord, None),
-            (frt_coord, None),
-            (self.historic_forecast[-1].coord("forecast_period"), None),
-            (self.expected[0].coord(axis="x"), None),
-            (self.expected[0].coord(axis="y"), None),
-        ]
-
-        attributes = {
-            "mosg__model_configuration": "uk_det",
-            "diagnostic_standard_name": "air_temperature",
-        }
-
-        expected = iris.cube.CubeList([])
-        for optimised_coeff, coeff_name in zip(optimised_coeffs, coeff_names):
-            coeff_units = "1"
-            if coeff_name in ["gamma", "alpha"]:
-                coeff_units = self.historic_forecast.units
-            cube = iris.cube.Cube(
-                optimised_coeff,
-                long_name=f"emos_coefficient_{coeff_name}",
-                units=coeff_units,
-                aux_coords_and_dims=aux_coords_and_dims,
-                attributes=attributes,
-            )
-            expected.append(cube)
+        expected = build_coefficients_cubelist(
+            self.historic_forecast[0], coeff_names, optimised_coeffs
+        )
 
         plugin = Plugin(
             distribution=self.distribution,

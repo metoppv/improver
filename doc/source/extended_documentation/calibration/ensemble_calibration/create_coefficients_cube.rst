@@ -1,27 +1,23 @@
 **Examples**
 
-For a cube containing coefficients calculated using Ensemble
+For a cubelist containing coefficients calculated using Ensemble
 Model Output Statistics::
 
- emos_coefficients / (1)             (coefficient_index: 4)
-     Dimension coordinates:
-          coefficient_index                           x
-     Auxiliary coordinates:
-          coefficient_name                            x
-     Scalar coordinates:
-          forecast_period: 14400 seconds
-          forecast_reference_time: 2017-11-10 00:00:00
-          time: 2017-11-10 04:00:00
-     Attributes:
-          diagnostic_standard_name: air_temperature
-          mosg__model_configuration: uk_det
+ 0: emos_coefficient_gamma / (K)        (scalar cube)
+ 1: emos_coefficient_beta / (1)         (scalar cube)
+ 2: emos_coefficient_alpha / (K)        (scalar cube)
+ 3: emos_coefficient_delta / (1)        (scalar cube)
 
+An example cube is therefore::
 
-An example of the coefficient_index coordinate is::
-
- DimCoord(array([0, 1, 2, 3]), standard_name=None, units=Unit('1'), long_name='coefficient_index')
-
-An example of the coefficient_name coordinate is::
-
- AuxCoord(array(['gamma', 'delta', 'alpha', 'beta'], dtype='<U5'), standard_name=None, units=Unit('no_unit'), long_name='coefficient_name')
-
+ emos_coefficient_gamma / (K)        (scalar cube)
+      Scalar coordinates:
+           forecast_period: 43200 seconds
+           forecast_reference_time: 2017-06-05 03:00:00
+           projection_x_coordinate: -159000.0 m, bound=(-358000.0, 40000.0) m
+           projection_y_coordinate: -437000.0 m, bound=(-636000.0, -238000.0) m
+           time: 2017-06-05 15:00:00
+      Attributes:
+           Conventions: CF-1.5
+           diagnostic_standard_name: air_temperature
+           mosg__model_configuration: uk_ens
