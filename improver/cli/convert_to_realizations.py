@@ -41,7 +41,6 @@ def process(
     *,
     realizations_count: int = None,
     random_seed: int = None,
-    ignore_ecc_bounds=False,
 ):
     """Converts an incoming cube into one containing realizations.
 
@@ -57,15 +56,10 @@ def process(
         realizations_count (int):
             The number of ensemble realizations in the output.
         random_seed (int):
-            Option to specify a value for the random seed for testing
-            purposes, otherwise the default random seed behaviours is
-            utilised. The random seed is used in the generation of the
-            random numbers used for splitting tied values within the raw
-            ensemble, so that the values from the input percentiles can
-            be ordered to match the raw ensemble.
-        ignore_ecc_bounds (bool):
-            If True, where percentiles exceed the ECC bounds range, raises a
-            warning rather than an exception.
+            Option to specify a value for the random seed when reordering percentiles.
+            This value is for testing purposes only, to ensure reproduceable outputs.
+            It should not be used in real time operations as it may introduce a bias
+            into the reordered forecasts.
 
     Returns:
         iris.cube.Cube:
@@ -79,7 +73,7 @@ def process(
             raw_cube=raw_cube,
             realizations_count=realizations_count,
             random_seed=random_seed,
-            ignore_ecc_bounds=ignore_ecc_bounds,
+            ignore_ecc_bounds=False,
         )
     elif cube.coords(var_name="threshold"):
         output_cube = probabilities_to_realizations.process(
@@ -87,7 +81,7 @@ def process(
             raw_cube=raw_cube,
             realizations_count=realizations_count,
             random_seed=random_seed,
-            ignore_ecc_bounds=ignore_ecc_bounds,
+            ignore_ecc_bounds=False,
         )
     elif cube.coords("realization"):
         output_cube = cube
