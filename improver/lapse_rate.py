@@ -271,7 +271,7 @@ class LapseRate(BasePlugin):
             orog_subsections (numpy.ndarray):
                 A 3-D numpy array where the leading axis represents the
                 number of central points in a row of the original
-                dataset (e.g. in a 5x5 array of data with a neighbourhood 
+                dataset (e.g. in a 5x5 array of data with a neighbourhood
                 of 3, the shape would be (5, 3, 3)). The final 2 axes
                 represent the orography neighbourhood data.
 
