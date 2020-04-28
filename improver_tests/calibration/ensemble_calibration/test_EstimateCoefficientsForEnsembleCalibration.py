@@ -54,6 +54,7 @@ from ...set_up_test_cubes import set_up_variable_cube
 from .helper_functions import (
     EnsembleCalibrationAssertions,
     SetupCubes,
+    build_coefficients_cubelist,
     _create_historic_forecasts,
 )
 
@@ -81,84 +82,6 @@ WARNING_TYPES = [
     UserWarning,
     RuntimeWarning,
 ]
-
-
-def create_coefficients_cubelist(template_cube, coeff_names, coeff_values):
-    """Create a cube containing EMOS coefficients.
-
-    Args:
-        template_cube (iris.cube.Cube):
-            Cube containing information about the time,
-            forecast_reference_time, forecast_period, x coordinate and
-            y coordinate that will be used within the EMOS coefficient cube.
-        coeff_names (list):
-            The names of the EMOS coefficients. These names will be used to
-            construct the coefficient_name coordinate.
-        coeff_values (numpy.ndarray):
-            The values of the coefficients. These values will be used as the
-            cube data.
-
-    Returns:
-        (tuple): tuple containing:
-            **result** (iris.cube.CubeList) - The resulting EMOS
-                coefficients cubelist.
-            **x_coord** (iris.coords.DimCoord): The x coordinate
-                appropriate for describing the domain that the EMOS
-                coefficients cube is valid for.
-            **y_coord** (iris.coords.DimCoord): The y coordinate
-                appropriate for describing the domain that the EMOS
-                coefficients cube is valid for.
-
-    """
-    time_point = np.min(template_cube.coord("time").points)
-    time_coord = template_cube.coord("time").copy(time_point)
-
-    frt_orig_coord = template_cube.coord("forecast_reference_time")
-    frt_point = np.min(frt_orig_coord.points)
-    frt_coord = frt_orig_coord.copy(frt_point)
-
-    x_point = np.median(template_cube.coord(axis="x").points)
-    x_bounds = [
-        template_cube.coord(axis="x").points[0],
-        template_cube.coord(axis="x").points[-1],
-    ]
-    x_coord = template_cube.coord(axis="x").copy(points=x_point, bounds=x_bounds)
-
-    y_point = np.median(template_cube.coord(axis="y").points)
-    y_bounds = [
-        template_cube.coord(axis="y").points[0],
-        template_cube.coord(axis="y").points[-1],
-    ]
-    y_coord = template_cube.coord(axis="y").copy(points=y_point, bounds=y_bounds)
-
-    aux_coords_and_dims = [
-        (time_coord, None),
-        (frt_coord, None),
-        (template_cube[-1].coord("forecast_period"), None),
-        (x_coord, None),
-        (y_coord, None),
-    ]
-
-    attributes = {
-        "mosg__model_configuration": "uk_det",
-        "diagnostic_standard_name": "air_temperature",
-    }
-
-    result = iris.cube.CubeList([])
-    for coeff_value, coeff_name in zip(coeff_values, coeff_names):
-        coeff_units = "1"
-        if coeff_name in ["gamma", "alpha"]:
-            coeff_units = template_cube.units
-        result.append(
-            iris.cube.Cube(
-                coeff_value,
-                long_name=f"emos_coefficient_{coeff_name}",
-                units=coeff_units,
-                aux_coords_and_dims=aux_coords_and_dims,
-                attributes=attributes,
-            )
-        )
-    return result, x_coord, y_coord
 
 
 class SetupExpectedCoefficients(IrisTest):
@@ -363,8 +286,8 @@ class Test_create_coefficients_cubelist(IrisTest):
         self.optimised_coeffs = np.array([0, 1, 2, 3], np.int32)
 
         coeff_names = ["gamma", "delta", "alpha", "beta"]
-        self.expected, self.x_coord, self.y_coord = create_coefficients_cubelist(
-            self.historic_forecast, coeff_names, self.optimised_coeffs
+        self.expected = build_coefficients_cubelist(
+            self.historic_forecast[0], coeff_names, self.optimised_coeffs
         )
 
         self.distribution = "gaussian"
@@ -387,6 +310,10 @@ class Test_create_coefficients_cubelist(IrisTest):
         result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
+        print("result = ", result)
+        print("result = ", result[0])
+        print("expected = ", self.expected)
+        print("expected = ", self.expected[0])
         self.assertEqual(result, self.expected)
         self.assertEqual([cube.name() for cube in result], expected_coeff_names)
 
@@ -411,8 +338,8 @@ class Test_create_coefficients_cubelist(IrisTest):
             (time_coord, None),
             (frt_coord, None),
             (self.historic_forecast[-1].coord("forecast_period"), None),
-            (self.x_coord, None),
-            (self.y_coord, None),
+            (self.expected[0].coord(axis="x"), None),
+            (self.expected[0].coord(axis="y"), None),
         ]
 
         attributes = {

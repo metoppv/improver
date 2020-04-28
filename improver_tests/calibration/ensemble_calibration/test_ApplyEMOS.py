@@ -44,40 +44,7 @@ from ...set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
-
-
-def build_coefficients_cubelist(data, template):
-    """Make a cubelist of coefficients with expected metadata"""
-    aux_coord_and_dims = []
-
-    # add spatial and temporal coords from forecast to be calibrated
-    for coord in ["time", "forecast_period", "forecast_reference_time"]:
-        aux_coord_and_dims.append((template.coord(coord).copy(), None))
-
-    for coord in [template.coord(axis="x"), template.coord(axis="y")]:
-        bounds = [min(coord.points), max(coord.points)]
-        point = np.median(bounds)
-        new_coord = coord.copy(points=[point], bounds=[bounds])
-        aux_coord_and_dims.append((new_coord, None))
-
-    attributes = {"diagnostic_standard_name": "air_temperature"}
-
-    coefficients = iris.cube.CubeList([])
-    for coeff, coeff_name in zip(data, ["gamma", "delta", "alpha", "beta"]):
-        coeff_units = "1"
-        if coeff_name in ["gamma", "alpha"]:
-            coeff_units = template.units
-        coefficients.append(
-            iris.cube.Cube(
-                coeff,
-                long_name=f"emos_coefficient_{coeff_name}",
-                units=coeff_units,
-                aux_coords_and_dims=aux_coord_and_dims,
-                attributes=attributes,
-            )
-        )
-
-    return coefficients
+from .helper_functions import build_coefficients_cubelist
 
 
 class Test_process(IrisTest):
@@ -121,7 +88,8 @@ class Test_process(IrisTest):
             attributes=attributes,
         )
 
-        self.coefficients = build_coefficients_cubelist([0, 1, 0, 1], self.realizations)
+        self.coefficients = build_coefficients_cubelist(
+            self.realizations, ["gamma", "delta", "alpha", "beta"], [0, 1, 0, 1])
 
     def test_null_percentiles(self):
         """Test effect of "neutral" emos coefficients in percentile space

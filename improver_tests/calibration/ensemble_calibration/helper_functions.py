@@ -210,6 +210,61 @@ class SetupCubes(IrisTest):
         ).merge_cube()
 
 
+def build_coefficients_cubelist(template, coeff_names, coeff_values):
+    """Make a cubelist of coefficients with expected metadata
+
+    Args:
+        template (iris.cube.Cube):
+            Cube containing information about the time,
+            forecast_reference_time, forecast_period, x coordinate and
+            y coordinate that will be used within the EMOS coefficient cube.
+        coeff_names (list):
+            The names of the EMOS coefficients. These names will be used to
+            construct the coefficient_name coordinate.
+        coeff_values (numpy.ndarray or list):
+            The values of the coefficients. These values will be used as the
+            cube data.
+
+    Returns:
+        coefficients (iris.cube.CubeList) - The resulting EMOS
+            coefficients cubelist.
+
+    """
+    aux_coord_and_dims = []
+
+    # add spatial and temporal coords from forecast to be calibrated
+    for coord in ["time", "forecast_period", "forecast_reference_time"]:
+        aux_coord_and_dims.append((template.coord(coord).copy(), None))
+
+    for coord in [template.coord(axis="x"), template.coord(axis="y")]:
+        bounds = [min(coord.points), max(coord.points)]
+        point = np.median(bounds)
+        new_coord = coord.copy(points=[point], bounds=[bounds])
+        aux_coord_and_dims.append((new_coord, None))
+
+    attributes = {
+        "mosg__model_configuration": "uk_det",
+        "diagnostic_standard_name": "air_temperature",
+    }
+
+    coefficients = iris.cube.CubeList([])
+    for coeff_value, coeff_name in zip(coeff_values, coeff_names):
+        coeff_units = "1"
+        if coeff_name in ["gamma", "alpha"]:
+            coeff_units = template.units
+        coefficients.append(
+            iris.cube.Cube(
+                coeff_value,
+                long_name=f"emos_coefficient_{coeff_name}",
+                units=coeff_units,
+                aux_coords_and_dims=aux_coord_and_dims,
+                attributes=attributes,
+            )
+        )
+
+    return coefficients
+
+
 def set_up_probability_threshold_cube(
     data,
     phenomenon_standard_name,
