@@ -228,7 +228,7 @@ def pad_cube_with_halo(cube, width_x, width_y, pad_method="constant"):
         kwargs = {}
 
     padded_data = np.pad(
-        cube.data, ((width_y, width_y), (width_x, width_x)), pad_method, **kwargs
+        cube.data, ((width_y, width_y), (width_x, width_x)), mode=pad_method, **kwargs
     )
 
     coord_x = cube.coord(axis="x")
