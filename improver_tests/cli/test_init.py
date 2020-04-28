@@ -33,7 +33,6 @@
 import unittest
 from unittest.mock import patch
 
-import iris
 import numpy as np
 from iris.cube import CubeList
 from iris.exceptions import ConstraintMismatchError
@@ -209,7 +208,7 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         self.assertEqual(2, len(result))
 
     @patch("improver.cli.maybe_coerce_with", return_value=setup_for_mock())
-    def test_basic_given_str(self, m):
+    def test_basic_given_str(self, mocked_maybe_coerce):
         """Tests that a str is given to maybe_coerce_with which would return a CubeList."""
         func = create_constrained_inputcubelist_converter(
             lambda cube: cube.name() in ["wind_speed"],
@@ -219,7 +218,7 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         self.assertIn(self.wind_speed_cube, result)
         self.assertIn(self.wind_dir_cube, result)
         self.assertEqual(2, len(result))
-        m.assert_called_once()
+        mocked_maybe_coerce.assert_called_once()
 
     def test_list_two_valid(self):
         """Tests that one cube is loaded from each list."""
