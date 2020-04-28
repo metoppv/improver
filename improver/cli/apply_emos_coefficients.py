@@ -40,7 +40,7 @@ from improver import cli
 @cli.with_output
 def process(
     cube: cli.inputcube,
-    coefficients: cli.inputcube = None,
+    coefficients: cli.inputcubelist = None,
     land_sea_mask: cli.inputcube = None,
     *,
     distribution,
@@ -64,8 +64,8 @@ def process(
         cube (iris.cube.Cube):
             A Cube containing the forecast to be calibrated. The input format
             could be either realizations, probabilities or percentiles.
-        coefficients (iris.cube.Cube):
-            A cube containing the coefficients used for calibration or None.
+        coefficients (iris.cube.CubeList):
+            A cubelist containing the coefficients used for calibration or None.
             If none then then input is returned unchanged.
         land_sea_mask (iris.cube.Cube):
             A cube containing the land-sea mask on the same domain as the
@@ -137,7 +137,7 @@ def process(
 
     from improver.calibration.ensemble_calibration import ApplyEMOS
 
-    if cube.name() in ["emos_coefficients", "land_binary_mask"]:
+    if cube.name().startswith("emos_coefficients") or cube.name() == "land_binary_mask":
         msg = "Invalid forecast cube provided (name '{}')"
         raise ValueError(msg.format(cube.name()))
 
@@ -149,7 +149,7 @@ def process(
         warnings.warn(msg)
         return cube
 
-    if coefficients.name() != "emos_coefficients":
+    if not coefficients.name().startswith("emos_coefficients"):
         msg = "Invalid coefficients cube provided (name '{}')"
         raise ValueError(msg.format(coefficients.name()))
 

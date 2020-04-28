@@ -98,10 +98,9 @@ def process(
             coefficients to solve.
 
     Returns:
-        iris.cube.Cube:
-            Cube containing the coefficients estimated using EMOS. The cube
-            contains a coefficient_index dimension coordinate and a
-            coefficient_name auxiliary coordinate.
+        iris.cube.CubeList:
+            CubeList containing the coefficients estimated using EMOS. Each
+            coefficient is stored in a separate cube.
     """
 
     from improver.calibration import split_forecasts_and_truth

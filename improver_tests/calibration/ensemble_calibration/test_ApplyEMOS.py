@@ -46,30 +46,36 @@ from ...set_up_test_cubes import (
 )
 
 
-def build_coefficients_cube(data, template):
-    """Make a cube of coefficients with expected metadata"""
-    index = iris.coords.Coord(np.arange(4), long_name="coefficient_index")
-    name = iris.coords.Coord(
-        ["gamma", "delta", "alpha", "beta"], long_name="coefficient_name"
-    )
-    coefficients = iris.cube.Cube(
-        data,
-        long_name="emos_coefficients",
-        dim_coords_and_dims=[(index, 0)],
-        aux_coords_and_dims=[(name, 0)],
-    )
+def build_coefficients_cubelist(data, template):
+    """Make a cubelist of coefficients with expected metadata"""
+    aux_coord_and_dims = []
 
     # add spatial and temporal coords from forecast to be calibrated
     for coord in ["time", "forecast_period", "forecast_reference_time"]:
-        coefficients.add_aux_coord(template.coord(coord).copy())
+        aux_coord_and_dims.append((template.coord(coord).copy(), None))
 
     for coord in [template.coord(axis="x"), template.coord(axis="y")]:
         bounds = [min(coord.points), max(coord.points)]
         point = np.median(bounds)
         new_coord = coord.copy(points=[point], bounds=[bounds])
-        coefficients.add_aux_coord(new_coord)
+        aux_coord_and_dims.append((new_coord, None))
 
-    coefficients.attributes["diagnostic_standard_name"] = "air_temperature"
+    attributes = {"diagnostic_standard_name": "air_temperature"}
+
+    coefficients = iris.cube.CubeList([])
+    for coeff, coeff_name in zip(data, ["gamma", "delta", "alpha", "beta"]):
+        coeff_units = "1"
+        if coeff_name in ["gamma", "alpha"]:
+            coeff_units = template.units
+        coefficients.append(
+            iris.cube.Cube(
+                coeff,
+                long_name=f"emos_coefficient_{coeff_name}",
+                units=coeff_units,
+                aux_coords_and_dims=aux_coord_and_dims,
+                attributes=attributes,
+            )
+        )
 
     return coefficients
 
@@ -115,7 +121,7 @@ class Test_process(IrisTest):
             attributes=attributes,
         )
 
-        self.coefficients = build_coefficients_cube([0, 1, 0, 1], self.realizations)
+        self.coefficients = build_coefficients_cubelist([0, 1, 0, 1], self.realizations)
 
     def test_null_percentiles(self):
         """Test effect of "neutral" emos coefficients in percentile space
@@ -167,7 +173,8 @@ class Test_process(IrisTest):
 
     def test_bias(self):
         """Test emos coefficients that correct a bias"""
-        self.coefficients.data = [0, 1, 1, 1]
+        for coeff, cube in zip([0, 1, 1, 1], self.coefficients):
+            cube.data = coeff
         expected_mean = np.mean(self.percentiles.data + 1.0)
         expected_data = np.array(
             [
@@ -182,7 +189,8 @@ class Test_process(IrisTest):
 
     def test_spread(self):
         """Test emos coefficients that correct underspread"""
-        self.coefficients.data = [1, 1, 0, 1]
+        for coeff, cube in zip([1, 1, 0, 1], self.coefficients):
+            cube.data = coeff
         expected_mean = np.mean(self.percentiles.data)
         expected_data = np.array(
             [
@@ -208,7 +216,8 @@ class Test_process(IrisTest):
         land_sea_mask = set_up_variable_cube(
             land_sea_data, name="land_binary_mask", units="1"
         )
-        self.coefficients.data = [1, 1, 0, 1]
+        for coeff, cube in zip([1, 1, 0, 1], self.coefficients):
+            cube.data = coeff
         expected_data_slice = np.array(
             [
                 [9.7121525, 9.7121525, 10.2],

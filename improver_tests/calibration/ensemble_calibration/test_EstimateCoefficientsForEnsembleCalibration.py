@@ -35,7 +35,7 @@ class.
 
 """
 import datetime
-import imp
+import importlib
 import unittest
 
 import iris
@@ -57,11 +57,10 @@ from .helper_functions import (
     _create_historic_forecasts,
 )
 
-try:
-    imp.find_module("statsmodels")
+STATSMODELS_FOUND = False
+statsmodels_spec = importlib.util.find_spec("statsmodels")
+if statsmodels_spec:
     STATSMODELS_FOUND = True
-except ImportError:
-    STATSMODELS_FOUND = False
 
 IGNORED_MESSAGES = [
     "Collapsing a non-contiguous coordinate",  # Originating from Iris
@@ -84,7 +83,7 @@ WARNING_TYPES = [
 ]
 
 
-def create_coefficients_cube(template_cube, coeff_names, coeff_values):
+def create_coefficients_cubelist(template_cube, coeff_names, coeff_values):
     """Create a cube containing EMOS coefficients.
 
     Args:
@@ -95,14 +94,14 @@ def create_coefficients_cube(template_cube, coeff_names, coeff_values):
         coeff_names (list):
             The names of the EMOS coefficients. These names will be used to
             construct the coefficient_name coordinate.
-        coeff_values (list):
+        coeff_values (numpy.ndarray):
             The values of the coefficients. These values will be used as the
             cube data.
 
     Returns:
         (tuple): tuple containing:
-            **result** (iris.cube.Cube) - The resulting EMOS
-                coefficients cube.
+            **result** (iris.cube.CubeList) - The resulting EMOS
+                coefficients cubelist.
             **x_coord** (iris.coords.DimCoord): The x coordinate
                 appropriate for describing the domain that the EMOS
                 coefficients cube is valid for.
@@ -111,15 +110,6 @@ def create_coefficients_cube(template_cube, coeff_names, coeff_values):
                 coefficients cube is valid for.
 
     """
-    coefficient_index = iris.coords.DimCoord(
-        np.arange(len(coeff_names)), long_name="coefficient_index", units="1"
-    )
-    dim_coords_and_dims = [(coefficient_index, 0)]
-
-    coefficient_name = iris.coords.AuxCoord(
-        coeff_names, long_name="coefficient_name", units="no_unit"
-    )
-
     time_point = np.min(template_cube.coord("time").points)
     time_coord = template_cube.coord("time").copy(time_point)
 
@@ -142,7 +132,6 @@ def create_coefficients_cube(template_cube, coeff_names, coeff_values):
     y_coord = template_cube.coord(axis="y").copy(points=y_point, bounds=y_bounds)
 
     aux_coords_and_dims = [
-        (coefficient_name, 0),
         (time_coord, None),
         (frt_coord, None),
         (template_cube[-1].coord("forecast_period"), None),
@@ -155,14 +144,20 @@ def create_coefficients_cube(template_cube, coeff_names, coeff_values):
         "diagnostic_standard_name": "air_temperature",
     }
 
-    result = iris.cube.Cube(
-        coeff_values,
-        long_name="emos_coefficients",
-        units="1",
-        dim_coords_and_dims=dim_coords_and_dims,
-        aux_coords_and_dims=aux_coords_and_dims,
-        attributes=attributes,
-    )
+    result = iris.cube.CubeList([])
+    for coeff_value, coeff_name in zip(coeff_values, coeff_names):
+        coeff_units = "1"
+        if coeff_name in ["gamma", "alpha"]:
+            coeff_units = template_cube.units
+        result.append(
+            iris.cube.Cube(
+                coeff_value,
+                long_name=f"emos_coefficient_{coeff_name}",
+                units=coeff_units,
+                aux_coords_and_dims=aux_coords_and_dims,
+                attributes=attributes,
+            )
+        )
     return result, x_coord, y_coord
 
 
@@ -344,9 +339,9 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_create_coefficients_cube(IrisTest):
+class Test_create_coefficients_cubelist(IrisTest):
 
-    """Test the create_coefficients_cube method."""
+    """Test the create_coefficients_cubelist method."""
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
@@ -368,7 +363,7 @@ class Test_create_coefficients_cube(IrisTest):
         self.optimised_coeffs = np.array([0, 1, 2, 3], np.int32)
 
         coeff_names = ["gamma", "delta", "alpha", "beta"]
-        self.expected, self.x_coord, self.y_coord = create_coefficients_cube(
+        self.expected, self.x_coord, self.y_coord = create_coefficients_cubelist(
             self.historic_forecast, coeff_names, self.optimised_coeffs
         )
 
@@ -387,31 +382,24 @@ class Test_create_coefficients_cube(IrisTest):
     def test_coefficients_from_mean(self):
         """Test that the expected coefficient cube is returned when the
         ensemble mean is used as the predictor."""
-        expected_coeff_names = ["gamma", "delta", "alpha", "beta"]
-        result = self.plugin.create_coefficients_cube(
+        coeff_names = ["gamma", "delta", "alpha", "beta"]
+        expected_coeff_names = [f"emos_coefficient_{s}" for s in coeff_names]
+        result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
         self.assertEqual(result, self.expected)
-        self.assertEqual(self.plugin.coeff_names, expected_coeff_names)
+        self.assertEqual([cube.name() for cube in result], expected_coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_realizations(self):
         """Test that the expected coefficient cube is returned when the
         ensemble realizations are used as the predictor."""
-        expected_coeff_names = ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"]
+        coeff_names = ["gamma", "delta", "alpha", "beta0", "beta1", "beta2"]
+        expected_coeff_names = [f"emos_coefficient_{s}" for s in coeff_names]
         predictor = "realizations"
         optimised_coeffs = [0, 1, 2, 3, 4, 5]
 
         # Set up an expected cube.
-        coefficient_index = iris.coords.DimCoord(
-            optimised_coeffs, long_name="coefficient_index", units="1"
-        )
-        dim_coords_and_dims = [(coefficient_index, 0)]
-
-        coefficient_name = iris.coords.AuxCoord(
-            expected_coeff_names, long_name="coefficient_name", units="no_unit"
-        )
-
         time_point = np.min(self.historic_forecast.coord("time").points)
         time_coord = self.historic_forecast.coord("time").copy(time_point)
 
@@ -420,7 +408,6 @@ class Test_create_coefficients_cube(IrisTest):
         frt_coord = frt_orig_coord.copy(frt_point)
 
         aux_coords_and_dims = [
-            (coefficient_name, 0),
             (time_coord, None),
             (frt_coord, None),
             (self.historic_forecast[-1].coord("forecast_period"), None),
@@ -433,14 +420,19 @@ class Test_create_coefficients_cube(IrisTest):
             "diagnostic_standard_name": "air_temperature",
         }
 
-        expected = iris.cube.Cube(
-            optimised_coeffs,
-            long_name="emos_coefficients",
-            units="1",
-            dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims,
-            attributes=attributes,
-        )
+        expected = iris.cube.CubeList([])
+        for optimised_coeff, coeff_name in zip(optimised_coeffs, coeff_names):
+            coeff_units = "1"
+            if coeff_name in ["gamma", "alpha"]:
+                coeff_units = self.historic_forecast.units
+            cube = iris.cube.Cube(
+                optimised_coeff,
+                long_name=f"emos_coefficient_{coeff_name}",
+                units=coeff_units,
+                aux_coords_and_dims=aux_coords_and_dims,
+                attributes=attributes,
+            )
+            expected.append(cube)
 
         plugin = Plugin(
             distribution=self.distribution,
@@ -448,35 +440,36 @@ class Test_create_coefficients_cube(IrisTest):
             desired_units=self.desired_units,
             predictor=predictor,
         )
-        result = plugin.create_coefficients_cube(
+        result = plugin.create_coefficients_cubelist(
             optimised_coeffs, self.historic_forecast_with_realizations
         )
         self.assertEqual(result, expected)
-        self.assertArrayEqual(
-            result.coord("coefficient_name").points, expected_coeff_names
-        )
+        self.assertArrayEqual([cube.name() for cube in result], expected_coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_mean_non_standard_units(self):
         """Test that the expected coefficient cube is returned when the
         historic forecast units are non-standard."""
-        expected_coeff_names = ["gamma", "delta", "alpha", "beta"]
+        coeff_names = ["gamma", "delta", "alpha", "beta"]
+        expected_coeff_names = [f"emos_coefficient_{s}" for s in coeff_names]
         self.historic_forecast.coord("forecast_period").convert_units("hours")
-        self.expected.coord("forecast_period").convert_units("hours")
-        result = self.plugin.create_coefficients_cube(
+        for cube in self.expected:
+            cube.coord("forecast_period").convert_units("hours")
+        result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
         self.assertEqual(result, self.expected)
-        self.assertEqual(self.plugin.coeff_names, expected_coeff_names)
+        self.assertEqual([cube.name() for cube in result], expected_coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_forecast_period_coordinate_not_present(self):
         """Test that the coefficients cube is created correctly when the
         forecast_period coordinate is not present within the input cube."""
-        self.expected.remove_coord("forecast_period")
-        self.expected.remove_coord("time")
+        for cube in self.expected:
+            cube.remove_coord("forecast_period")
+            cube.remove_coord("time")
         self.historic_forecast.remove_coord("forecast_period")
-        result = self.plugin.create_coefficients_cube(
+        result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
         self.assertEqual(result, self.expected)
@@ -485,9 +478,10 @@ class Test_create_coefficients_cube(IrisTest):
     def test_model_configuration_not_present(self):
         """Test that the coefficients cube is created correctly when a
         model_configuration coordinate is not present within the input cube."""
-        self.expected.attributes.pop("mosg__model_configuration")
+        for cube in self.expected:
+            cube.attributes.pop("mosg__model_configuration")
         self.historic_forecast.attributes.pop("mosg__model_configuration")
-        result = self.plugin.create_coefficients_cube(
+        result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
         self.assertEqual(result, self.expected)
@@ -509,7 +503,7 @@ class Test_create_coefficients_cube(IrisTest):
         )
         msg = "The number of coefficients in"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.create_coefficients_cube(
+            plugin.create_coefficients_cubelist(
                 optimised_coeffs, self.historic_forecast_with_realizations
             )
 
@@ -892,14 +886,18 @@ class Test_process(
         self.current_cycle = "20171110T0000Z"
         self.distribution = "gaussian"
 
-        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
-        self.coeff_names_realizations = [
+        coeff_names = ["gamma", "delta", "alpha", "beta"]
+        self.coeff_names = [f"emos_coefficient_{s}" for s in coeff_names]
+        coeff_names_realizations = [
             "gamma",
             "delta",
             "alpha",
             "beta0",
             "beta1",
             "beta2",
+        ]
+        self.coeff_names_realizations = [
+            f"emos_coefficient_{s}" for s in coeff_names_realizations
         ]
 
         landsea_data = np.array(
@@ -924,8 +922,8 @@ class Test_process(
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(len(result.data), len(self.coeff_names))
+        self.assertIsInstance(result, iris.cube.CubeList)
+        self.assertEqual(len(result), len(self.coeff_names))
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_gaussian_distribution(self):
@@ -940,9 +938,10 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian
+            np.array([cube.data for cube in result]),
+            self.expected_mean_predictor_gaussian,
         )
-        self.assertArrayEqual(result.coord("coefficient_name").points, self.coeff_names)
+        self.assertArrayEqual([cube.name() for cube in result], self.coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_gaussian_distribution_landsea_mask(self):
@@ -961,9 +960,10 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian
+            np.array([cube.data for cube in result]),
+            self.expected_mean_predictor_gaussian,
         )
-        self.assertArrayEqual(result.coord("coefficient_name").points, self.coeff_names)
+        self.assertArrayEqual([cube.name() for cube in result], self.coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_gaussian_distribution_mismatching_inputs(self):
@@ -980,8 +980,10 @@ class Test_process(
         plugin = Plugin(self.distribution, self.current_cycle)
         result = plugin.process(partial_historic_forecasts, partial_truth)
 
-        self.assertEMOSCoefficientsAlmostEqual(result.data, expected)
-        self.assertArrayEqual(result.coord("coefficient_name").points, self.coeff_names)
+        self.assertEMOSCoefficientsAlmostEqual(
+            np.array([cube.data for cube in result]), expected
+        )
+        self.assertArrayEqual([cube.name() for cube in result], self.coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_gaussian_distribution_default_initial_guess(self):
@@ -1000,8 +1002,10 @@ class Test_process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
 
-        self.assertEMOSCoefficientsAlmostEqual(result.data, expected)
-        self.assertArrayEqual(result.coord("coefficient_name").points, self.coeff_names)
+        self.assertEMOSCoefficientsAlmostEqual(
+            np.array([cube.data for cube in result]), expected
+        )
+        self.assertArrayEqual([cube.name() for cube in result], self.coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_gaussian_distribution_max_iterations(self):
@@ -1019,9 +1023,10 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian
+            np.array([cube.data for cube in result]),
+            self.expected_mean_predictor_gaussian,
         )
-        self.assertArrayEqual(result.coord("coefficient_name").points, self.coeff_names)
+        self.assertArrayEqual([cube.name() for cube in result], self.coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_truncated_gaussian_distribution(self):
@@ -1038,9 +1043,10 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_mean_predictor_truncated_gaussian
+            np.array([cube.data for cube in result]),
+            self.expected_mean_predictor_truncated_gaussian,
         )
-        self.assertArrayEqual(result.coord("coefficient_name").points, self.coeff_names)
+        self.assertArrayEqual([cube.name() for cube in result], self.coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_truncated_gaussian_distribution_mask(self):
@@ -1061,9 +1067,10 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_mean_predictor_truncated_gaussian
+            np.array([cube.data for cube in result]),
+            self.expected_mean_predictor_truncated_gaussian,
         )
-        self.assertArrayEqual(result.coord("coefficient_name").points, self.coeff_names)
+        self.assertArrayEqual([cube.name() for cube in result], self.coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_truncated_gaussian_default_initial_guess(self):
@@ -1084,8 +1091,10 @@ class Test_process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
         )
 
-        self.assertEMOSCoefficientsAlmostEqual(result.data, expected)
-        self.assertArrayEqual(result.coord("coefficient_name").points, self.coeff_names)
+        self.assertEMOSCoefficientsAlmostEqual(
+            np.array([cube.data for cube in result]), expected
+        )
+        self.assertArrayEqual([cube.name() for cube in result], self.coeff_names)
 
     @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1102,10 +1111,11 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_realizations_gaussian_statsmodels
+            np.array([cube.data for cube in result]),
+            self.expected_realizations_gaussian_statsmodels,
         )
         self.assertArrayEqual(
-            result.coord("coefficient_name").points, self.coeff_names_realizations
+            [cube.name() for cube in result], self.coeff_names_realizations
         )
 
     @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
@@ -1124,10 +1134,11 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_realizations_gaussian_no_statsmodels
+            np.array([cube.data for cube in result]),
+            self.expected_realizations_gaussian_no_statsmodels,
         )
         self.assertArrayEqual(
-            result.coord("coefficient_name").points, self.coeff_names_realizations
+            [cube.name() for cube in result], self.coeff_names_realizations
         )
 
     @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
@@ -1145,10 +1156,11 @@ class Test_process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
         )
         self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_realizations_truncated_gaussian_statsmodels
+            np.array([cube.data for cube in result]),
+            self.expected_realizations_truncated_gaussian_statsmodels,
         )
         self.assertArrayEqual(
-            result.coord("coefficient_name").points, self.coeff_names_realizations
+            [cube.name() for cube in result], self.coeff_names_realizations
         )
 
     @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
@@ -1167,10 +1179,11 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_realizations_truncated_gaussian_no_statsmodels
+            np.array([cube.data for cube in result]),
+            self.expected_realizations_truncated_gaussian_no_statsmodels,
         )
         self.assertArrayEqual(
-            result.coord("coefficient_name").points, self.coeff_names_realizations
+            [cube.name() for cube in result], self.coeff_names_realizations
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1188,7 +1201,8 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian
+            np.array([cube.data for cube in result]),
+            self.expected_mean_predictor_gaussian,
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1206,7 +1220,8 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            result.data, self.expected_mean_predictor_gaussian
+            np.array([cube.data for cube in result]),
+            self.expected_mean_predictor_gaussian,
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)

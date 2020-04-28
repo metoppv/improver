@@ -138,6 +138,23 @@ def maybe_coerce_with(converter, obj, **kwargs):
 
 
 @value_converter
+def inputcubelist(to_convert):
+    """Loads a cubelist from file or returns passed object.
+
+    Args:
+        to_convert (string or iris.cube.CubeList):
+            File name or Cube object.
+
+    Returns:
+        Loaded cubelist or passed object.
+
+    """
+    from improver.utilities.load import load_cubelist
+
+    return maybe_coerce_with(load_cubelist, to_convert)
+
+
+@value_converter
 def inputcube(to_convert):
     """Loads cube from file or returns passed object.
 

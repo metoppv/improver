@@ -84,7 +84,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "gaussian", current_cycle, desired_units="Celsius"
         )
-        self.coeffs_from_mean = estimator.create_coefficients_cube(
+        self.coeffs_from_mean = estimator.create_coefficients_cubelist(
             self.expected_mean_predictor_gaussian,
             self.current_temperature_forecast_cube,
         )
@@ -94,7 +94,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "gaussian", current_cycle, desired_units="Celsius", predictor="realizations"
         )
-        self.coeffs_from_statsmodels_realizations = estimator.create_coefficients_cube(
+        self.coeffs_from_statsmodels_realizations = estimator.create_coefficients_cubelist(
             self.expected_realizations_gaussian_statsmodels,
             self.current_temperature_forecast_cube,
         )
@@ -105,7 +105,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "gaussian", current_cycle, desired_units="Celsius", predictor="realizations"
         )
-        self.coeffs_from_no_statsmodels_realizations = estimator.create_coefficients_cube(
+        self.coeffs_from_no_statsmodels_realizations = estimator.create_coefficients_cubelist(
             self.expected_realizations_gaussian_no_statsmodels,
             self.current_temperature_forecast_cube,
         )
@@ -202,7 +202,7 @@ class Test__spatial_domain_match(SetupCoefficientsCubes):
     def test_matching(self):
         """Test case in which spatial domains match."""
         self.plugin.current_forecast = self.current_temperature_forecast_cube
-        self.plugin.coefficients_cube = self.coeffs_from_mean
+        self.plugin.coefficients_cubelist = self.coeffs_from_mean
         self.plugin._spatial_domain_match()
 
     def test_unmatching_x_axis(self):
@@ -211,7 +211,7 @@ class Test__spatial_domain_match(SetupCoefficientsCubes):
             self.current_temperature_forecast_cube.coord(axis="x").points * 2.0
         )
         self.plugin.current_forecast = self.current_temperature_forecast_cube
-        self.plugin.coefficients_cube = self.coeffs_from_mean
+        self.plugin.coefficients_cubelist = self.coeffs_from_mean
         msg = "The domain along the x axis given by the current forecast"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._spatial_domain_match()
@@ -222,7 +222,7 @@ class Test__spatial_domain_match(SetupCoefficientsCubes):
             self.current_temperature_forecast_cube.coord(axis="y").points * 2.0
         )
         self.plugin.current_forecast = self.current_temperature_forecast_cube
-        self.plugin.coefficients_cube = self.coeffs_from_mean
+        self.plugin.coefficients_cubelist = self.coeffs_from_mean
         msg = "The domain along the y axis given by the current forecast"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._spatial_domain_match()
@@ -238,14 +238,9 @@ class Test__calculate_location_parameter_from_mean(
         """Set-up coefficients and plugin for testing."""
         super().setUp()
 
-        self.optimised_coeffs = dict(
-            zip(
-                self.coeffs_from_mean.coord("coefficient_name").points,
-                self.coeffs_from_mean.data,
-            )
-        )
         self.plugin = Plugin()
         self.plugin.current_forecast = self.current_temperature_forecast_cube
+        self.plugin.coefficients_cubelist = self.coeffs_from_mean
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):
@@ -253,9 +248,7 @@ class Test__calculate_location_parameter_from_mean(
         calculated when using the ensemble mean. These expected values are
         compared to the results when using the ensemble realizations to ensure
         that the results are similar."""
-        location_parameter = self.plugin._calculate_location_parameter_from_mean(
-            self.optimised_coeffs
-        )
+        location_parameter = self.plugin._calculate_location_parameter_from_mean()
         self.assertCalibratedVariablesAlmostEqual(
             location_parameter, self.expected_loc_param_mean
         )
@@ -292,16 +285,9 @@ class Test__calculate_location_parameter_from_realizations(
         These expected values are compared to the results when using the
         ensemble mean and when statsmodels is not used to ensure that the
         results are similar."""
-        optimised_coeffs = dict(
-            zip(
-                self.coeffs_from_statsmodels_realizations.coord(
-                    "coefficient_name"
-                ).points,
-                self.coeffs_from_statsmodels_realizations.data,
-            )
-        )
-        location_parameter = self.plugin._calculate_location_parameter_from_realizations(
-            optimised_coeffs
+        self.plugin.coefficients_cubelist = self.coeffs_from_statsmodels_realizations
+        location_parameter = (
+            self.plugin._calculate_location_parameter_from_realizations()
         )
         self.assertCalibratedVariablesAlmostEqual(
             location_parameter, self.expected_loc_param_statsmodels_realizations
@@ -322,16 +308,9 @@ class Test__calculate_location_parameter_from_realizations(
         These expected values are compared to the results when using the
         ensemble mean and when statsmodels is used to ensure that the results
         are similar."""
-        optimised_coeffs = dict(
-            zip(
-                self.coeffs_from_no_statsmodels_realizations.coord(
-                    "coefficient_name"
-                ).points,
-                self.coeffs_from_no_statsmodels_realizations.data,
-            )
-        )
-        location_parameter = self.plugin._calculate_location_parameter_from_realizations(
-            optimised_coeffs
+        self.plugin.coefficients_cubelist = self.coeffs_from_no_statsmodels_realizations
+        location_parameter = (
+            self.plugin._calculate_location_parameter_from_realizations()
         )
         self.assertCalibratedVariablesAlmostEqual(
             location_parameter, self.expected_loc_param_no_statsmodels_realizations
@@ -361,13 +340,8 @@ class Test__calculate_scale_parameter(
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):
         """Test the scale parameter is calculated correctly."""
-        optimised_coeffs = dict(
-            zip(
-                self.coeffs_from_mean.coord("coefficient_name").points,
-                self.coeffs_from_mean.data,
-            )
-        )
-        scale_parameter = self.plugin._calculate_scale_parameter(optimised_coeffs)
+        self.plugin.coefficients_cubelist = self.coeffs_from_mean
+        scale_parameter = self.plugin._calculate_scale_parameter()
         self.assertCalibratedVariablesAlmostEqual(
             scale_parameter, self.expected_scale_param_mean
         )
@@ -418,7 +392,7 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         self.assertEqual(
             self.current_temperature_forecast_cube, self.plugin.current_forecast
         )
-        self.assertEqual(self.coeffs_from_mean, self.plugin.coefficients_cube)
+        self.assertEqual(self.coeffs_from_mean, self.plugin.coefficients_cubelist)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end(self):
