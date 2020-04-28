@@ -358,24 +358,27 @@ class Integration(BasePlugin):
         return integrated_cube
 
 
-def alinfit(x, y, axis=-1, gradient_only=False):
+def fast_linear_fit(x, y, axis=None, keepdims=False, gradient_only=False):
     """Uses a simple linear fit approach to calculate the
-    gradient. Although equivalent, this
-    approach is much faster than using scipy lstsq to fit the
-    data.
-
+    gradient along specified axis (default is to fit all points).
+    Uses vectorized operations, so it's much faster than using scipy lstsq
+    in a loop.
     Args:
-        x:
-            ndarray, x axis data
-        y:
-            ndarray, y axis data
-        axis:
+        x (numpy.ndarray):
+            x axis data.
+        y (numpy.ndarray):
+            y axis data.
+        axis (int or tuple of int):
             Optional argument, specifies the axis to operate on.
-        gradient_only:
-            Boolean, if true only returns the gradient.
-
+            Default is to flatten arrays and fit all points.
+        keepdims (bool):
+            If this is set to True, the axes which are reduced are left in the
+            result as dimensions with size one. With this option, the result
+            will broadcast correctly against the input array.
+        gradient_only (bool):
+            If true only returns the gradient.
     Returns:
-        The gradient and the y-intercept in 2 1d numpy arrays.
+        The gradient and the y-intercept arrays.
     """
     if not isinstance(axis, tuple):
         axis = (axis,)
@@ -389,22 +392,20 @@ def alinfit(x, y, axis=-1, gradient_only=False):
     if not (np.isnan(y) == np.isnan(x)).all():
         raise ValueError("Positions of NaNs do not match in x and y")
 
-    shape = list(x.shape)
-    for axis_index in axis:
-        shape[axis_index] = 1
-
-    x_mean = np.nanmean(x, axis=axis).reshape(shape)
-    y_mean = np.nanmean(y, axis=axis).reshape(shape)
+    x_mean = np.nanmean(x, axis=axis, keepdims=True)
+    y_mean = np.nanmean(y, axis=axis, keepdims=True)
 
     x_diff = x - x_mean
     y_diff = y - y_mean
 
-    xy_cov = np.nansum(x_diff * y_diff, axis=axis)
-    x_var = np.nansum(x_diff * x_diff, axis=axis)
+    xy_cov = np.nansum(x_diff * y_diff, axis=axis, keepdims=keepdims)
+    x_var = np.nansum(x_diff * x_diff, axis=axis, keepdims=keepdims)
 
     grad = xy_cov / x_var
     if gradient_only:
         return grad
+    if not keepdims:
+        x_mean.shape = y_mean.shape = grad.shape
 
-    intercept = np.squeeze(y_mean - grad.reshape(shape) * x_mean)
+    intercept = y_mean - grad * x_mean
     return grad, intercept

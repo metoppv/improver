@@ -39,31 +39,35 @@ def rolling_window(input_array, shape, writeable=False):
     array by constructing a non-continuous view mapped onto the input array.
 
     args:
-        input_array:
-            The input array padded with nans for half the
-            neighbourhood size (2D).
-        shape:
+        input_array (numpy.ndarray):
+            A 2-D array padded with nans for half the
+            neighbourhood size.
+        shape (tuple(int)):
             The neighbourhood shape e.g. is the neighbourhood
             size is 3, the shape would be (3, 3) to create a
-            3x3 array.
-        writeable:
+            3x3 array around each point in the input_array.
+        writeable (bool):
             If True the returned view will be writeable. This will modify
             the input array, so use with caution.
 
     Returns:
-        ndarray of "views" into the data, each view represents
-        a neighbourhood of points.
+        numpy.ndarray:
+            "views" into the data, each view represents
+            a neighbourhood of points.
     """
-    nwd = len(shape)
-    nad = len(input_array.shape)
-    assert nad >= nwd
+    num_window_dims = len(shape)
+    num_arr_dims = len(input_array.shape)
+    assert num_arr_dims >= num_window_dims
     adjshp = (
-        *input_array.shape[:-nwd],
-        *(ad - wd + 1 for ad, wd in zip(input_array.shape[-nwd:], shape)),
+        *input_array.shape[:-num_window_dims],
+        *(
+            arr_dims - win_dims + 1
+            for arr_dims, win_dims in zip(input_array.shape[-num_window_dims:], shape)
+        ),
         *shape,
     )
-    assert all(ad > 0 for ad in adjshp)
-    strides = input_array.strides + input_array.strides[-nwd:]
+    assert all(arr_dims > 0 for arr_dims in adjshp)
+    strides = input_array.strides + input_array.strides[-num_window_dims:]
     return np.lib.stride_tricks.as_strided(
         input_array, shape=adjshp, strides=strides, writeable=writeable
     )
@@ -76,15 +80,24 @@ def pad_and_roll(input_array, shape, **kwargs):
     results in a shape of the original input array.
 
     args:
-        input_array:
-            The dataset to pad and create rolling windows for.
-        shape:
-            Desired shape of the neighbourhood.
+        input_array (numpy.ndarray):
+            The dataset of points to pad and create rolling windows for.
+        shape (tuple(int)):
+            Desired shape of the neighbourhood. E.g. if a neighbourhood
+            width of 1 around the point is desired, this shape should be (3, 3):
+                  X X X
+                  X O X
+                  X X X
+            where O is our central neighbourhood point and X represent any point
+            surrounding our central point.
         kwargs:
             additional keyword arguments passed to `numpy.pad` function.
 
     Returns:
-        ndarray, containing views of the dataset a.
+        numpy.ndarray:
+            Contains the views of the input_array, the final dimension of
+            the array will be the specified shape in the input arguments,
+            the leading dimensions will depend on the shape of the input array.
     """
     writeable = kwargs.pop("writeable", False)
     pad_extent = [(0, 0)] * (len(input_array.shape) - len(shape))

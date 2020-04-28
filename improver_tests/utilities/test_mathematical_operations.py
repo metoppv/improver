@@ -39,7 +39,7 @@ from iris.tests import IrisTest
 
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-from improver.utilities.mathematical_operations import Integration, alinfit
+from improver.utilities.mathematical_operations import Integration, fast_linear_fit
 
 from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
@@ -494,8 +494,8 @@ class Test_process(IrisTest):
         self.assertListEqual(result_coord_order, expected_coord_order)
 
 
-class Test_alinfit(IrisTest):
-    """Test the alinfit method"""
+class Test_fast_linear_fit(IrisTest):
+    """Test the fast_linear_fit method"""
 
     def setUp(self):
         """Creates some random data to represent x and y."""
@@ -509,32 +509,32 @@ class Test_alinfit(IrisTest):
         return np.linalg.lstsq(x, self.y, rcond=-1)[0]
 
     def linear_fit(self, shape=(25,), axis=-1):
-        """Compares the output of alinfit with numpy's leastsquare algorithm."""
+        """Compares the output of fast_linear_fit with numpy's leastsquare algorithm."""
         expected_out = self.use_lstsq()
         x = self.x.reshape(shape)
         y = self.y.reshape(shape)
-        result = np.array(alinfit(x, y, axis=axis))
+        result = np.array(fast_linear_fit(x, y, axis=axis))
         self.assertArrayAlmostEqual(expected_out, result)
 
     def test_basic_linear_fit(self):
-        """Tests alinfit with 1D data."""
+        """Tests fast_linear_fit with 1D data."""
         self.linear_fit()
 
     def test_linear_fit_with_2D(self):
-        """Tests alinfit with 2D data."""
+        """Tests fast_linear_fit with 2D data."""
         self.linear_fit(shape=(5, 5), axis=(-2, -1))
 
     def test_mismatching_shape(self):
-        """Tests alinfit with mismatching shapes."""
+        """Tests fast_linear_fit with mismatching shapes."""
         x = self.x.reshape(5, 5)
         with self.assertRaises(ValueError):
-            alinfit(x, self.y)
+            fast_linear_fit(x, self.y)
 
     def test_mismatch_nans(self):
-        """Tests alinfit with mismatching nans."""
+        """Tests fast_linear_fit with mismatching nans."""
         self.x[12] = np.nan
         with self.assertRaises(ValueError):
-            alinfit(self.x, self.y)
+            fast_linear_fit(self.x, self.y)
 
 
 if __name__ == "__main__":

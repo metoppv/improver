@@ -242,14 +242,15 @@ class LapseRate(BasePlugin):
         of the temp and orog datasets.
 
         Args:
-            temp:
-                The temperature dataset.
-            orog:
-                The orography dataset.
+            temp (numpy.ndarray):
+                2D array (single realization) of temperature data, in Kelvin
+            orog (numpy.ndarray):
+                2D array of orographies, in metres
 
         Returns:
-            2 ndarrays, each containing rolling windows of the padded
-            datasets, return order: temp, orog.
+            2 numpy.ndarrays:
+                each containing rolling windows of the padded
+                datasets, return order: temp, orog.
 
         """
         window_shape = (self.nbhood_size, self.nbhood_size)
@@ -267,14 +268,18 @@ class LapseRate(BasePlugin):
         max_height_diff.
 
         Args:
-            orog_subsections:
-                3D numpy array where the final 2 axes represent the
-                orography neighbourhood data.
+            orog_subsections (numpy.ndarray):
+                A 3-D numpy array where the leading axis represents the
+                number of central points in a row of the original
+                dataset (e.g. in a 5x5 array of data with a neighbourhood 
+                of 3, the shape would be (5, 3, 3)). The final 2 axes
+                represent the orography neighbourhood data.
 
         Returns:
-            3D numpy array containing boolean values the same shape
-            as the orog_subsections. True is the orography height is
-            lower than max_height_diff, False if not.
+            numpy.ndarray:
+                A 3-D numpy array containing boolean values the same
+                shape as the orog_subsections. True if the orography
+                height is lower than max_height_diff, False if not.
         """
         cnpt = self.ind_central_point
         central_points = orog_subsections[..., cnpt : cnpt + 1, cnpt : cnpt + 1]
@@ -289,15 +294,15 @@ class LapseRate(BasePlugin):
         Calculate lapse rates and apply filters
 
         Args:
-            temperature_data (numpy.ndarray)
+            temperature_data (numpy.ndarray):
                 2D array (single realization) of temperature data, in Kelvin
-            orography_data (numpy.ndarray)
+            orography_data (numpy.ndarray):
                 2D array of orographies, in metres
-            land_sea_mask_data (numpy.ndarray)
+            land_sea_mask_data (numpy.ndarray):
                 2D land-sea mask
 
         Returns:
-            numpy.ndarray
+            numpy.ndarray:
                 Lapse rate values
         """
         # Fill sea points with NaN values.
@@ -325,7 +330,7 @@ class LapseRate(BasePlugin):
             # Places NaNs in orog to match temp.
             orog = np.where(np.isnan(temp), np.nan, orog)
 
-            grad = mathematical_operations.alinfit(
+            grad = mathematical_operations.fast_linear_fit(
                 orog, temp, axis=axis, gradient_only=True
             )
 
