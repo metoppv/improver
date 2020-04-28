@@ -57,13 +57,12 @@ BOUNDS_FOR_ECDF = {
     "wind_speed_of_gust": Bounds((0, 200), "m s^-1"),
     "air_pressure_at_sea_level": Bounds((86000, 108000), "Pa"),
     (
-        "cloud_base_altitude_assuming_only_consider_cloud_area"
-        + "_fraction_greater_than_2p5_oktas"
+        "cloud_base_altitude_assuming_only_consider_cloud_area_fraction_greater_than_2p5_oktas"
     ): Bounds((-300, 20000), "m"),
     "cloud_area_fraction": Bounds((0, 1.0), "1"),
-    (
-        "cloud_area_fraction_assuming_only_consider_surface_to_1000_" + "feet_asl"
-    ): Bounds((0, 1.0), "1"),
+    ("cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl"): Bounds(
+        (0, 1.0), "1"
+    ),
     "low_type_cloud_area_fraction": Bounds((0, 1.0), "1"),
     "lwe_precipitation_rate": Bounds((0, 128.0), "mm h-1"),
     "lwe_precipitation_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),

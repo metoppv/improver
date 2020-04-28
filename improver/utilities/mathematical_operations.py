@@ -167,7 +167,7 @@ class Integration(BasePlugin):
 
     def _generate_output_name_and_units(self):
         """Gets suitable output name and units from input cube metadata"""
-        new_name = self.input_cube.name() + "_integral"
+        new_name = f"{self.input_cube.name()}_integral"
         original_units = self.input_cube.units
         integrated_units = self.input_cube.coord(self.coord_name_to_integrate).units
         new_units = "{} {}".format(original_units, integrated_units)

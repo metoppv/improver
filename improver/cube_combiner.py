@@ -78,7 +78,7 @@ class CubeCombiner(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = "<CubeCombiner: operation=" + "{}, warnings_on = {}>".format(
+        desc = "<CubeCombiner: operation={}, warnings_on = {}>".format(
             self.operation, self.warnings_on
         )
         return desc
