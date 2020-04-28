@@ -74,35 +74,29 @@ def process(
     )
 
     if cube.coords("realization"):
-        result = cube
+        return cube
 
-    elif cube.coords("percentile") or is_probability(cube):
-
-        if realizations_count is None:
-            try:
-                realizations_count = len(raw_cube.coord("realization").points)
-            except AttributeError:
-                # raised if raw_cube is None, hence has no attribute "coord"
-                msg = "Either realizations_count or raw_cube must be provided"
-                raise ValueError(msg)
-
-        if cube.coords("percentile"):
-            percentiles = ResamplePercentiles()(
-                cube, no_of_percentiles=realizations_count, sampling="quantile"
-            )
-        else:
-            percentiles = ConvertProbabilitiesToPercentiles()(
-                cube, no_of_percentiles=realizations_count
-            )
-
-        if raw_cube:
-            result = EnsembleReordering()(
-                percentiles, raw_cube, random_ordering=False, random_seed=random_seed
-            )
-        else:
-            result = RebadgePercentilesAsRealizations()(percentiles)
-
-    else:
+    if not cube.coords("percentile") and not is_probability(cube):
         raise ValueError("Unable to convert to realizations:\n" + str(cube))
+
+    if realizations_count is None:
+        try:
+            realizations_count = len(raw_cube.coord("realization").points)
+        except AttributeError:
+            # raised if raw_cube is None, hence has no attribute "coord"
+            msg = "Either realizations_count or raw_cube must be provided"
+            raise ValueError(msg)
+
+    if cube.coords("percentile"):
+        percentiles = ResamplePercentiles()(cube, no_of_percentiles=realizations_count)
+    else:
+        percentiles = ConvertProbabilitiesToPercentiles()(
+            cube, no_of_percentiles=realizations_count
+        )
+
+    if raw_cube:
+        result = EnsembleReordering()(percentiles, raw_cube, random_seed=random_seed)
+    else:
+        result = RebadgePercentilesAsRealizations()(percentiles)
 
     return result
