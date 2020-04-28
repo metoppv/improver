@@ -43,7 +43,7 @@ def rolling_window(input_array, shape, writeable=False):
             A 2-D array padded with nans for half the
             neighbourhood size.
         shape (tuple(int)):
-            The neighbourhood shape e.g. is the neighbourhood
+            The neighbourhood shape e.g. if the neighbourhood
             size is 3, the shape would be (3, 3) to create a
             3x3 array around each point in the input_array.
         writeable (bool):
@@ -84,7 +84,13 @@ def pad_and_roll(input_array, shape, **kwargs):
             The dataset of points to pad and create rolling windows for.
         shape (tuple(int)):
             Desired shape of the neighbourhood. E.g. if a neighbourhood
-            width of 1 around the point is desired, this shape should be (3, 3).
+            width of 1 around the point is desired, this shape should be (3, 3)::
+
+                X X X
+                X O X
+                X X X
+
+            Where O is our central point and X represent the neighbour points.
         kwargs:
             additional keyword arguments passed to `numpy.pad` function.
 
