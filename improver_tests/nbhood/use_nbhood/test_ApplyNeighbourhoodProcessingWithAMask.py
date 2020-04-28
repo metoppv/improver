@@ -38,7 +38,10 @@ import numpy as np
 from iris.coords import DimCoord
 from iris.tests import IrisTest
 
-from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
+from improver.nbhood.use_nbhood import (
+    ApplyNeighbourhoodProcessingWithAMask,
+    CollapseMaskedNeighbourhoodCoordinate,
+)
 
 from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 
@@ -113,7 +116,7 @@ class Test__init__(IrisTest):
         msg = (
             "<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
             "topographic_zone, neighbourhood_method: square, radii: 2000, "
-            "lead_times: None, weighted_mode: True, "
+            "lead_times: None, collapse_weights: None, weighted_mode: True, "
             "sum_or_fraction: fraction, re_mask: False>"
         )
         self.assertEqual(str(result), msg)
@@ -131,7 +134,7 @@ class Test__repr__(IrisTest):
         msg = (
             "<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
             "topographic_zone, neighbourhood_method: square, radii: 2000, "
-            "lead_times: None, weighted_mode: True, "
+            "lead_times: None, collapse_weights: None, weighted_mode: True, "
             "sum_or_fraction: fraction, re_mask: False>"
         )
         self.assertEqual(result, msg)
@@ -175,17 +178,45 @@ class Test_process(IrisTest):
                 ],
             ]
         )
+        weights_data = np.array(
+            [
+                [
+                    [0.8, 0.7, 0.0, 0.0, 0.0],
+                    [0.7, 0.3, 0.0, 0.0, 0.0],
+                    [0.3, 0.1, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                ],
+                [
+                    [0.2, 0.3, 1.0, 1.0, 1.0],
+                    [0.3, 0.7, 1.0, 1.0, 1.0],
+                    [0.7, 0.9, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.9, 0.5],
+                    [1.0, 1.0, 1.0, 0.6, 0.2],
+                ],
+                [
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.1, 0.5],
+                    [0.0, 0.0, 0.0, 0.4, 0.8],
+                ],
+            ]
+        )
         topographic_zone_points = [50, 150, 250]
         topographic_zone_bounds = [[0, 100], [100, 200], [200, 300]]
 
         mask_cubes = iris.cube.CubeList([])
-        for data, point, bounds in zip(
-            mask_data, topographic_zone_points, topographic_zone_bounds
+        weights_cubes = iris.cube.CubeList([])
+        for mdata, wdata, pnt, bnd in zip(
+            mask_data, weights_data, topographic_zone_points, topographic_zone_bounds
         ):
-            mask_cubes.append(
-                set_up_topographic_zone_cube(data, point, bounds, num_grid_points=5)
-            )
+            for data, cubes in [(mdata, mask_cubes), (wdata, weights_cubes)]:
+                cubes.append(
+                    set_up_topographic_zone_cube(data, pnt, bnd, num_grid_points=5)
+                )
         self.mask_cube = mask_cubes.merge_cube()
+        self.weights_cube = weights_cubes.merge_cube()
 
     def test_basic(self):
         """Test that the expected result is returned, when the
@@ -225,7 +256,7 @@ class Test_process(IrisTest):
         self.assertEqual(result.data.shape, expected_shape)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_preserve_dimensions_input(self):
+    def test_collapse_preserve_dimensions_input(self):
         """Test that the dimensions on the output cube are the same as the
            input cube, apart from the additional topographic zone coordinate.
         """
@@ -235,17 +266,58 @@ class Test_process(IrisTest):
         )
         coord_for_masking = "topographic_zone"
         radii = 2000
-        result = ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii)(
-            cube, self.mask_cube
+        uncollapsed_result = None
+        mask_data = np.array(
+            [
+                [
+                    [1, 1, 1, 1, 1],
+                    [1, 1, 0, 0, 0],
+                    [1, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0, 1],
+                    [0, 0, 1, 1, 1],
+                    [0, 0, 1, 1, 1],
+                    [1, 1, 0, 1, 0],
+                    [1, 1, 0, 0, 0],
+                ],
+                [
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0],
+                    [0, 0, 0, 1, 1],
+                    [0, 0, 1, 1, 1],
+                    [0, 0, 1, 1, 1],
+                ],
+            ]
         )
-        expected_dims = list(cube.dim_coords)
-        expected_dims.insert(2, self.mask_cube.coord("topographic_zone"))
-        self.assertEqual(result.dim_coords, tuple(expected_dims))
-        self.assertEqual(result.coord_dims("realization"), (0,))
-        self.assertEqual(result.coord_dims("threshold"), (1,))
-        self.assertEqual(result.coord_dims("topographic_zone"), (2,))
-        self.assertEqual(result.coord_dims("projection_y_coordinate"), (3,))
-        self.assertEqual(result.coord_dims("projection_x_coordinate"), (4,))
+        mask_cube = self.mask_cube.copy(mask_data)
+
+        for collapse_weights in [None, self.weights_cube]:
+            coords_order = [
+                "realization",
+                "threshold",
+                "topographic_zone",
+                "projection_y_coordinate",
+                "projection_x_coordinate",
+            ]
+            result = ApplyNeighbourhoodProcessingWithAMask(
+                coord_for_masking, radii, collapse_weights=collapse_weights,
+            )(cube, mask_cube)
+            expected_dims = list(cube.dim_coords)
+            if collapse_weights is None:
+                uncollapsed_result = result
+                expected_dims.insert(2, self.mask_cube.coord("topographic_zone"))
+            else:
+                coords_order.remove("topographic_zone")
+                collapsed_result = CollapseMaskedNeighbourhoodCoordinate(
+                    coord_for_masking, collapse_weights
+                )(uncollapsed_result)
+                self.assertArrayAlmostEqual(result.data, collapsed_result.data)
+            self.assertEqual(result.dim_coords, tuple(expected_dims))
+            for dim, coord in enumerate(coords_order):
+                self.assertEqual(result.coord_dims(coord), (dim,))
 
     def test_preserve_dimensions_with_single_point(self):
         """Test that the dimensions on the output cube are the same as the

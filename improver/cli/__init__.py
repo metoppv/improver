@@ -305,25 +305,6 @@ def with_output(wrapped, *args, output=None, **kwargs):
     return result
 
 
-@decorator
-def with_intermediate_output(wrapped, *args, intermediate_output=None, **kwargs):
-    """Add `intermediate_output` keyword only argument.
-
-    Args:
-        wrapped (obj):
-            The function to be wrapped.
-        intermediate_output (str, optional):
-            Output file name for intermediate result.
-    """
-
-    from improver.utilities.save import save_netcdf
-
-    result, intermediate_result = wrapped(*args, **kwargs)
-    if intermediate_output:
-        save_netcdf(intermediate_result, intermediate_output)
-    return result
-
-
 # cli object creation
 
 

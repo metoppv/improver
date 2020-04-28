@@ -38,14 +38,16 @@ from improver import cli
 @cli.with_output
 def process(
     forecast: cli.inputcube,
-    reliability_table: cli.inputcube,
+    reliability_table: cli.inputcube = None,
     *,
     minimum_forecast_count=200,
 ):
     """
     Calibrate a probability forecast using the provided reliability calibration
     table. This calibration is designed to improve the reliability of
-    probability forecasts without significantly degrading their resolution.
+    probability forecasts without significantly degrading their resolution. If
+    a reliability table is not provided, the input forecast is returned
+    unchanged.
 
     The method implemented here is described in Flowerdew J. 2014. Calibrating
     ensemble reliability whilst preserving spatial structure. Tellus, Ser. A
@@ -68,6 +70,9 @@ def process(
             Calibrated forecast.
     """
     from improver.calibration.reliability_calibration import ApplyReliabilityCalibration
+
+    if reliability_table is None:
+        return forecast
 
     plugin = ApplyReliabilityCalibration(minimum_forecast_count=minimum_forecast_count)
     return plugin(forecast, reliability_table)

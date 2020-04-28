@@ -45,7 +45,6 @@ from improver.cli import (
     inputjson,
     maybe_coerce_with,
     unbracket,
-    with_intermediate_output,
     with_output,
 )
 from improver.utilities.load import load_cube
@@ -76,12 +75,6 @@ def dummy_function(first, second=0, third=2):
 def wrapped_with_output(first):
     """dummy function for testing with_output wrapper"""
     return dummy_function(first)
-
-
-@with_intermediate_output
-def wrapped_with_intermediate_output(first):
-    """dummy function for testing with_intermediate_output wrapper"""
-    return dummy_function(first), True
 
 
 class Test_docutilize(unittest.TestCase):
@@ -170,31 +163,6 @@ class Test_with_output(unittest.TestCase):
         result = wrapped_with_output(2, output="foo")
         m.assert_called_with(4, "foo")
         self.assertEqual(result, None)
-
-
-class Test_with_intermediate_output(unittest.TestCase):
-    """Tests the intermediate output wrapper"""
-
-    @patch("improver.utilities.save.save_netcdf")
-    def test_without_output(self, m):
-        """Tests that the wrapped function is called and result is returned"""
-        result = wrapped_with_intermediate_output(2)
-        m.assert_not_called()
-        self.assertEqual(result, 4)
-
-    @patch("improver.utilities.save.save_netcdf")
-    def test_with_output(self, m):
-        """Tests with an intermediate_output
-
-        Tests that save_netcdf is called with object and string, and
-        wrapped function returns the result.
-
-        """
-        # pylint disable is needed as it can't see the wrappers output kwarg.
-        # pylint: disable=unexpected-keyword-arg
-        result = wrapped_with_intermediate_output(2, intermediate_output="foo")
-        m.assert_called_with(True, "foo")
-        self.assertEqual(result, 4)
 
 
 def replace_load_with_extract(func, cube, constraints=None):
