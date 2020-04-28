@@ -186,7 +186,11 @@ class StandardiseMetadata(BasePlugin):
         attributes_dict=None,
     ):
         """
-        Perform compulsory and user-configurable metadata adjustments
+        Perform compulsory and user-configurable metadata adjustments.  The
+        compulsory adjustments are to collapse any scalar dimensions apart from
+        realization (which is expected always to be a dimension); to cast the cube
+        data and coordinates into suitable datatypes; and to convert time-related
+        metadata into the required units.
 
         Args:
             cube (iris.cube.Cube):
@@ -222,9 +226,9 @@ class StandardiseMetadata(BasePlugin):
 
 
 class RegridLandSea(BasePlugin):
-    """Regrid a field and adjust the output so that regridded land points
-    always take values from a land point on the source grid, and vice
-    versa for sea points"""
+    """Regrid a field with the option to adjust the output so that regridded land
+    points always take values from a land point on the source grid, and vice versa
+    for sea points"""
 
     REGRID_REQUIRES_LANDMASK = {
         "bilinear": False,
@@ -244,13 +248,16 @@ class RegridLandSea(BasePlugin):
 
         Args:
             regrid_mode (str):
-                Mode of interpolation in regridding.
+                Mode of interpolation in regridding.  Valid options are "bilinear",
+                "nearest" or "nearest-with-mask".  The "nearest-with-mask" option
+                triggers adjustment of regridded points to match source points in
+                terms of land / sea type.
             extrapolation_mode (str):
                 Mode to fill regions outside the domain in regridding.
             landmask (iris.cube.Cube or None):
-                Land-sea mask ("land_binary_mask") on the input cube grid.
-                Required for "nearest-with-mask" regridding option,
-                with land points set to one and sea points set to zero.
+                Land-sea mask ("land_binary_mask") on the input cube grid, with
+                land points set to one and sea points set to zero.  Required for
+                "nearest-with-mask" regridding option.
             landmask_vicinity (float):
                 Radius of vicinity to search for a coastline, in metres
         """
