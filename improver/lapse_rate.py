@@ -333,13 +333,13 @@ class LapseRate(BasePlugin):
             # i.e. there is some variance to fit a gradient to.
             tempcheck = np.isclose(np.nanstd(temp, axis=axis), 0)
             orogcheck = np.isclose(np.nanstd(orog, axis=axis), 0)
-            grad = np.where(tempcheck | orogcheck, DALR, grad)
             # checks that our central point in the neighbourhood
             # is not NaN.
             temp_nan_check = np.isnan(
                 temp[..., self.ind_central_point, self.ind_central_point]
             )
-            grad = np.where(temp_nan_check, DALR, grad)
+            dalr_mask = tempcheck | orogcheck | temp_nan_check | np.isnan(grad)
+            grad[dalr_mask] = DALR
 
             lapse_rate_array.append(grad)
 
