@@ -96,9 +96,9 @@ def process(
         percentiles = [float(p) for p in percentiles]
 
     if is_probability(cube):
-        result = ConvertProbabilitiesToPercentiles(
-            ecc_bounds_warning=False
-        )(cube, percentiles=percentiles)
+        result = ConvertProbabilitiesToPercentiles(ecc_bounds_warning=False)(
+            cube, percentiles=percentiles
+        )
         if coordinates:
             warnings.warn(
                 "Converting probabilities to percentiles. The "
