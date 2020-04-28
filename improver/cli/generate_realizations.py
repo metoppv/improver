@@ -87,11 +87,11 @@ def process(
                 raise ValueError(msg)
 
         if cube.coords("percentile"):
-            percentiles = ResamplePercentiles(ecc_bounds_warning=False)(
+            percentiles = ResamplePercentiles()(
                 cube, no_of_percentiles=realizations_count, sampling="quantile"
             )
         else:
-            percentiles = ConvertProbabilitiesToPercentiles(ecc_bounds_warning=False)(
+            percentiles = ConvertProbabilitiesToPercentiles()(
                 cube, no_of_percentiles=realizations_count
             )
 
