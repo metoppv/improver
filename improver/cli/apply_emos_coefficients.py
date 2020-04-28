@@ -133,11 +133,12 @@ def process(
     """
     import warnings
 
+    import iris
     import numpy as np
 
     from improver.calibration.ensemble_calibration import ApplyEMOS
 
-    if cube.name().startswith("emos_coefficients") or cube.name() == "land_binary_mask":
+    if not isinstance(cube, iris.cube.Cube) or cube.name() == "land_binary_mask":
         msg = "Invalid forecast cube provided (name '{}')"
         raise ValueError(msg.format(cube.name()))
 
@@ -149,7 +150,8 @@ def process(
         warnings.warn(msg)
         return cube
 
-    if not coefficients.name().startswith("emos_coefficients"):
+    if (isinstance(coefficients, iris.cube.CubeList) and
+            not [c.name().startswith("emos_coefficients") for c in coefficients]):
         msg = "Invalid coefficients cube provided (name '{}')"
         raise ValueError(msg.format(coefficients.name()))
 

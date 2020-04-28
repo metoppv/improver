@@ -338,7 +338,7 @@ def test_wrong_land_sea_mask(tmp_path):
     args = [
         input_path,
         emos_est_path,
-        emos_est_path,
+        input_path,
         "--distribution",
         "norm",
         "--random-seed",
@@ -347,24 +347,6 @@ def test_wrong_land_sea_mask(tmp_path):
         output_path,
     ]
     with pytest.raises(ValueError, match=".*land_sea_mask.*"):
-        run_cli(args)
-
-
-def test_wrong_forecast_coefficients(tmp_path):
-    """Test forecast cube being a coefficients cube"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
-    emos_est_path = kgo_dir / "gaussian_coefficients.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        emos_est_path,
-        "--distribution",
-        "norm",
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(ValueError, match=".*Invalid forecast"):
         run_cli(args)
 
 
