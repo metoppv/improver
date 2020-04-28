@@ -73,7 +73,6 @@ def process(
         EnsembleReordering,
     )
 
-
     if cube.coords("realization"):
         result = cube
 
