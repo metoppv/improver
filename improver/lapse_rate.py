@@ -309,7 +309,7 @@ class LapseRate(BasePlugin):
         # Fill sea points with NaN values.
         temperature_data = np.where(land_sea_mask_data, temperature_data, np.nan)
 
-        lapse_rate_array = []
+        lapse_rate_array = np.empty_like(temperature_data, dtype=np.float32)
         # Pads the data with nans and generates windows representing
         # a neighbourhood for each point.
 
@@ -321,7 +321,7 @@ class LapseRate(BasePlugin):
         # then finds the gradient of the surface temperature with
         # orography height - i.e. lapse rate.
         axis = (-2, -1)
-        for temp, orog in zip(temp_nbhood_window, orog_nbhood_window):
+        for counter, (temp, orog) in enumerate(zip(temp_nbhood_window, orog_nbhood_window)):
             # height_diff is True for points where the height
             # difference between the central points and its
             # neighbours is < max_height_diff.
@@ -347,9 +347,7 @@ class LapseRate(BasePlugin):
             dalr_mask = tempcheck | orogcheck | temp_nan_check | np.isnan(grad)
             grad[dalr_mask] = DALR
 
-            lapse_rate_array.append(grad)
-
-        lapse_rate_array = np.array(lapse_rate_array, dtype=np.float32)
+            lapse_rate_array[counter] = grad
 
         # Enforce upper and lower limits on lapse rate values.
         lapse_rate_array = lapse_rate_array.clip(

@@ -33,6 +33,7 @@ opposed to collapsing the whole dimension."""
 
 import iris
 from cf_units import Unit
+import numpy as np
 
 from improver import PostProcessingPlugin
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
@@ -155,11 +156,25 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
 
         # Calculate weights and produce blended output.
         weights = self.WeightsPlugin(cube, self.coord, self.central_point)
-        blended_cube = self.BlendingPlugin(cube, weights)
+
+        blended_cube = central_point_cube.copy()
+        dim_of_interest = weights.dim_coords[0].name()
+        dim = np.where(np.array([coord.name() for coord in cube.coords()])==dim_of_interest)[0][0]
+
+        req_dim = [slice(None)]*len(cube.shape)
+
+        req_dim[dim] = 0
+        blended_cube.data = cube[tuple(req_dim)].data * weights[0].data
+        for i in range(1, cube.shape[dim]):
+            req_dim[dim] = i
+            blended_cube.data += cube[tuple(req_dim)].data * weights[i].data
+
+        #blended_cube = self.BlendingPlugin(cube, weights)
 
         # With one threshold dimension (such as for low cloud), the threshold
         # axis is demoted to a scalar co-ordinate by BlendingPlugin. This line
         # promotes threshold to match the dimensions of central_point_cube.
-        blended_cube = check_cube_coordinates(central_point_cube, blended_cube)
-        blended_cube = central_point_cube.copy(blended_cube.data)
+        #blended_cube = check_cube_coordinates(central_point_cube, blended_cube)
+        #blended_cube = central_point_cube.copy(blended_cube.data)
+
         return blended_cube
