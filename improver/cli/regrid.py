@@ -104,8 +104,8 @@ def process(
         raise ValueError(msg)
 
     return RegridLandSea(
-            regrid_mode=regrid_mode,
-            extrapolation_mode=extrapolation_mode,
-            landmask=land_sea_mask,
-            landmask_vicinity=land_sea_mask_vicinity,
+        regrid_mode=regrid_mode,
+        extrapolation_mode=extrapolation_mode,
+        landmask=land_sea_mask,
+        landmask_vicinity=land_sea_mask_vicinity,
     )(cube, target_grid, regridded_title=regridded_title)
