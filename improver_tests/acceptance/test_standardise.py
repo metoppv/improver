@@ -41,12 +41,10 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-# TODO remove acc.kgo_root() / "standardise/metadata/kgo.nc"
-# TODO rename kgo, having removed the inappropriate one above
 def test_change_metadata(tmp_path):
     """Test applying a JSON metadata file"""
     kgo_dir = acc.kgo_root() / "standardise/metadata"
-    kgo_path = kgo_dir / "kgo_no_regrid.nc"
+    kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     metadata_path = kgo_dir / "radar_metadata.json"
     output_path = tmp_path / "output.nc"
@@ -78,15 +76,13 @@ def test_fix_float64(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-# TODO regenerate this KGO
 def test_stage_v110_basic(tmp_path):
     """Test updating a file with StaGE version 1.1.0 metadata"""
     kgo_dir = acc.kgo_root() / "standardise/stage-v110"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
-    target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, target_path, "--output", output_path]
+    args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
