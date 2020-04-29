@@ -123,7 +123,7 @@ def process(
             is provided (from plugin).
     """
     from improver.metadata.amend import update_stage_v110_metadata
-    from improver.standardise import StandardiseGridAndMetadata
+    from improver.standardise import StandardiseMetadata, RegridLandSea
 
     if land_sea_mask and "nearest-with-mask" not in regrid_mode:
         msg = (
@@ -136,19 +136,20 @@ def process(
     # StaGE version 1.2.0 compatible.
     update_stage_v110_metadata(cube)
 
-    plugin = StandardiseGridAndMetadata(
-        regrid_mode=regrid_mode,
-        extrapolation_mode=extrapolation_mode,
-        landmask=land_sea_mask,
-        landmask_vicinity=land_sea_mask_vicinity,
-    )
-
-    return plugin(
+    cube = StandardiseMetadata()(
         cube,
-        target_grid,
         new_name=new_name,
         new_units=new_units,
-        regridded_title=regridded_title,
         coords_to_remove=coords_to_remove,
         attributes_dict=attributes_config,
     )
+
+    if target_grid:
+        cube = RegridLandSea(
+            regrid_mode=regrid_mode,
+            extrapolation_mode=extrapolation_mode,
+            landmask=land_sea_mask,
+            landmask_vicinity=land_sea_mask_vicinity,
+        )(cube, target_grid, regridded_title=regridded_title)
+
+    return cube

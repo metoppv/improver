@@ -105,9 +105,130 @@ def grid_contains_cutout(grid, cutout):
     return True
 
 
-class StandardiseGridAndMetadata(BasePlugin):
+class StandardiseMetadata(BasePlugin):
+    """Plugin to standardise cube metadata"""
 
-    """Plugin to regrid cube data and standardise metadata"""
+    @staticmethod
+    def _collapse_scalar_dimensions(cube):
+        """
+        Demote any scalar dimensions (excluding "realization") on the input
+        cube to auxiliary coordinates.
+
+        Returns:
+            iris.cube.Cube
+        """
+        coords_to_collapse = []
+        for coord in cube.coords(dim_coords=True):
+            if len(coord.points) == 1 and "realization" not in coord.name():
+                coords_to_collapse.append(coord)
+        for coord in coords_to_collapse:
+            cube = next(cube.slices_over(coord))
+        return cube
+
+    @staticmethod
+    def _remove_scalar_coords(cube, coords_to_remove):
+        """Removes named coordinates from the input cube."""
+        for coord in coords_to_remove:
+            try:
+                cube.remove_coord(coord)
+            except CoordinateNotFoundError:
+                continue
+
+    @staticmethod
+    def _standardise_dtypes_and_units(cube):
+        """
+        Modify input cube in place to conform to mandatory dtype and unit
+        standards.
+
+        Args:
+            cube (iris.cube.Cube:
+                Cube to be updated in place
+
+        """
+
+        def as_correct_dtype(obj, required_dtype):
+            """
+            Returns an object updated if necessary to the required dtype
+
+            Args:
+                obj (np.ndarray):
+                    The object to be updated
+                required_dtype (np.dtype):
+                    The dtype required
+
+            Returns:
+                np.ndarray
+            """
+            if obj.dtype != required_dtype:
+                return obj.astype(required_dtype)
+            return obj
+
+        cube.data = as_correct_dtype(cube.data, get_required_dtype(cube))
+        for coord in cube.coords():
+            if coord.name() in TIME_COORDS and not check_units(coord):
+                coord.convert_units(get_required_units(coord))
+            req_dtype = get_required_dtype(coord)
+            # ensure points and bounds have the same dtype
+            if np.issubdtype(req_dtype, np.integer):
+                coord.points = np.around(coord.points)
+            coord.points = as_correct_dtype(coord.points, req_dtype)
+            if coord.has_bounds():
+                if np.issubdtype(req_dtype, np.integer):
+                    coord.bounds = np.around(coord.bounds)
+                coord.bounds = as_correct_dtype(coord.bounds, req_dtype)
+
+    def process(
+        self,
+        cube,
+        new_name=None,
+        new_units=None,
+        coords_to_remove=None,
+        attributes_dict=None,
+    ):
+        """
+        Perform compulsory and user-configurable metadata adjustments.  The
+        compulsory adjustments are to collapse any scalar dimensions apart from
+        realization (which is expected always to be a dimension); to cast the cube
+        data and coordinates into suitable datatypes; and to convert time-related
+        metadata into the required units.
+
+        Args:
+            cube (iris.cube.Cube):
+                Input cube to be standardised
+            new_name (str or None):
+                Optional rename for output cube
+            new_units (str or None):
+                Optional unit conversion for output cube
+            coords_to_remove (list of str or None):
+                Optional list of scalar coordinates to remove from output cube
+            attributes_dict (dict or None):
+                Optional dictionary of required attribute updates. Keys are
+                attribute names, and values are the required value or "remove".
+
+        Returns:
+            iris.cube.Cube
+        """
+        # standard metadata updates
+        cube = self._collapse_scalar_dimensions(cube)
+        self._standardise_dtypes_and_units(cube)
+
+        # optional metadata updates
+        if new_name:
+            cube.rename(new_name)
+        if new_units:
+            cube.convert_units(new_units)
+        if coords_to_remove:
+            self._remove_scalar_coords(cube, coords_to_remove)
+        if attributes_dict:
+            amend_attributes(cube, attributes_dict)
+
+        return cube
+
+
+class RegridLandSea(BasePlugin):
+    """Regrid a field with the option to adjust the output so that regridded land
+    points always take values from a land point on the source grid, and vice versa
+    for sea points"""
 
     REGRID_REQUIRES_LANDMASK = {
         "bilinear": False,
@@ -127,20 +248,23 @@ class StandardiseGridAndMetadata(BasePlugin):
 
         Args:
             regrid_mode (str):
-                Mode of interpolation in regridding.
+                Mode of interpolation in regridding.  Valid options are "bilinear",
+                "nearest" or "nearest-with-mask".  The "nearest-with-mask" option
+                triggers adjustment of regridded points to match source points in
+                terms of land / sea type.
             extrapolation_mode (str):
                 Mode to fill regions outside the domain in regridding.
             landmask (iris.cube.Cube or None):
-                Land-sea mask ("land_binary_mask") on the input cube grid.
-                Required for "nearest-with-mask" regridding option,
-                with land points set to one and sea points set to zero.
+                Land-sea mask ("land_binary_mask") on the input cube grid, with
+                land points set to one and sea points set to zero.  Required for
+                "nearest-with-mask" regridding option.
             landmask_vicinity (float):
                 Radius of vicinity to search for a coastline, in metres
-
-        Raises:
-            ValueError: If a landmask is required but not passed in
         """
-        if landmask is None and "nearest-with-mask" in regrid_mode:
+        if regrid_mode not in self.REGRID_REQUIRES_LANDMASK:
+            msg = "Unrecognised regrid mode {}"
+            raise ValueError(msg.format(regrid_mode))
+        if landmask is None and self.REGRID_REQUIRES_LANDMASK[regrid_mode]:
             msg = "Regrid mode {} requires an input landmask cube"
             raise ValueError(msg.format(regrid_mode))
         self.regrid_mode = regrid_mode
@@ -226,139 +350,30 @@ class StandardiseGridAndMetadata(BasePlugin):
 
         return cube
 
-    @staticmethod
-    def _collapse_scalar_dimensions(cube):
+    def process(self, cube, target_grid, regridded_title=None):
         """
-        Demote any scalar dimensions (excluding "realization") on the input
-        cube to auxiliary coordinates.
-
-        Returns:
-            iris.cube.Cube
-        """
-        coords_to_collapse = []
-        for coord in cube.coords(dim_coords=True):
-            if len(coord.points) == 1 and "realization" not in coord.name():
-                coords_to_collapse.append(coord)
-        for coord in coords_to_collapse:
-            cube = next(cube.slices_over(coord))
-        return cube
-
-    @staticmethod
-    def _remove_scalar_coords(cube, coords_to_remove):
-        """Removes named coordinates from the input cube."""
-        for coord in coords_to_remove:
-            try:
-                cube.remove_coord(coord)
-            except CoordinateNotFoundError:
-                continue
-
-    @staticmethod
-    def _standardise_dtypes_and_units(cube):
-        """
-        Modify input cube in place to conform to mandatory dtype and unit
-        standards.
-
-        Args:
-            cube (iris.cube.Cube:
-                Cube to be updated in place
-
-        """
-
-        def as_correct_dtype(obj, required_dtype):
-            """
-            Returns an object updated if necessary to the required dtype
-
-            Args:
-                obj (np.ndarray):
-                    The object to be updated
-                required_dtype (np.dtype):
-                    The dtype required
-
-            Returns:
-                np.ndarray
-            """
-            if obj.dtype != required_dtype:
-                return obj.astype(required_dtype)
-            return obj
-
-        cube.data = as_correct_dtype(cube.data, get_required_dtype(cube))
-        for coord in cube.coords():
-            if coord.name() in TIME_COORDS and not check_units(coord):
-                coord.convert_units(get_required_units(coord))
-            req_dtype = get_required_dtype(coord)
-            # ensure points and bounds have the same dtype
-            if np.issubdtype(req_dtype, np.integer):
-                coord.points = np.around(coord.points)
-            coord.points = as_correct_dtype(coord.points, req_dtype)
-            if coord.has_bounds():
-                if np.issubdtype(req_dtype, np.integer):
-                    coord.bounds = np.around(coord.bounds)
-                coord.bounds = as_correct_dtype(coord.bounds, req_dtype)
-
-    def process(
-        self,
-        cube,
-        target_grid=None,
-        new_name=None,
-        new_units=None,
-        regridded_title=None,
-        coords_to_remove=None,
-        attributes_dict=None,
-    ):
-        """
-        Perform regridding and metadata adjustments
+        Regrids cube onto spatial grid provided by target_grid
 
         Args:
             cube (iris.cube.Cube):
-                Input cube to be standardised
-            target_grid (iris.cube.Cube or None):
-                Cube on the required grid. For "nearest-with-mask" regridding,
-                this cube should contain a binary land-sea mask
-                ("land_binary_mask"). If target_grid is None, no regridding is
-                performed.
-            new_name (str or None):
-                Optional rename for output cube
-            new_units (str or None):
-                Optional unit conversion for output cube
+                Cube to be regridded
+            target_grid (iris.cube.Cube):
+                Data on the target grid. If regridding with mask, this cube
+                should contain land-sea mask data to be used in adjusting land
+                and sea points after regridding.
             regridded_title (str or None):
-                New title attribute to be applied after regridding. If not set,
-                the title attribute is set to a default value if the field is
-                regridded, as "title" may contain grid information.
-            coords_to_remove (list of str or None):
-                Optional list of scalar coordinates to remove from output cube
-            attributes_dict (dict or None):
-                Optional dictionary of required attribute updates. Keys are
-                attribute names, and values are the required value or "remove".
+                New value for the "title" attribute to be used after
+                regridding. If not set, a default value is used.
 
         Returns:
-            iris.cube.Cube
+            iris.cube.Cube: Regridded cube with updated attributes
         """
-        # regridding
-        if target_grid:
-            # if regridding using a land-sea mask, check this covers the source
-            # grid in the required coordinates
-            if self.REGRID_REQUIRES_LANDMASK[self.regrid_mode]:
-                if not grid_contains_cutout(self.landmask_source_grid, cube):
-                    raise ValueError("Source landmask does not match input grid")
-            cube = self._regrid_to_target(cube, target_grid, regridded_title)
-
-        # standard metadata updates
-        cube = self._collapse_scalar_dimensions(cube)
-
-        # optional metadata updates
-        if new_name:
-            cube.rename(new_name)
-        if new_units:
-            cube.convert_units(new_units)
-        if coords_to_remove:
-            self._remove_scalar_coords(cube, coords_to_remove)
-        if attributes_dict:
-            amend_attributes(cube, attributes_dict)
-
-        # ensure dtypes follow IMPROVER conventions
-        self._standardise_dtypes_and_units(cube)
-
-        return cube
+        # if regridding using a land-sea mask, check this covers the source
+        # grid in the required coordinates
+        if self.REGRID_REQUIRES_LANDMASK[self.regrid_mode]:
+            if not grid_contains_cutout(self.landmask_source_grid, cube):
+                raise ValueError("Source landmask does not match input grid")
+        return self._regrid_to_target(cube, target_grid, regridded_title)
 
 
 class AdjustLandSeaPoints(BasePlugin):
