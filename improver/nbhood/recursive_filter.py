@@ -51,7 +51,7 @@ class RecursiveFilter(PostProcessingPlugin):
         smoothing_coefficient_x=None,
         smoothing_coefficient_y=None,
         iterations=None,
-        edge_width=1,
+        edge_width=15,
         re_mask=False,
     ):
         """
@@ -353,7 +353,10 @@ class RecursiveFilter(PostProcessingPlugin):
                 )
 
         smoothing_coefficients_cube = pad_cube_with_halo(
-            smoothing_coefficients_cube, 2 * self.edge_width, 2 * self.edge_width
+            smoothing_coefficients_cube,
+            2 * self.edge_width,
+            2 * self.edge_width,
+            pad_method="symmetric",
         )
         return smoothing_coefficients_cube
 
@@ -443,7 +446,7 @@ class RecursiveFilter(PostProcessingPlugin):
             mask = mask.data.squeeze()
 
             padded_cube = pad_cube_with_halo(
-                output, 2 * self.edge_width, 2 * self.edge_width
+                output, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric"
             )
 
             new_cube = self._run_recursion(
