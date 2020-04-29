@@ -114,7 +114,7 @@ class NeighbourSelection(BasePlugin):
         """Represent the configured plugin instance as a string."""
         return (
             "<NeighbourSelection: land_constraint: {}, "
-            + "minimum_dz: {}, search_radius: {}, site_coordinate_system"
+            "minimum_dz: {}, search_radius: {}, site_coordinate_system"
             ": {}, site_x_coordinate:{}, site_y_coordinate: {}, "
             "node_limit: {}>"
         ).format(

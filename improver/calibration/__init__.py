@@ -105,7 +105,7 @@ def split_forecasts_and_truth(cubes, truth_attribute):
 
     missing_inputs = " and ".join(k for k, v in grouped_cubes.items() if not v)
     if missing_inputs:
-        raise IOError("Missing " + missing_inputs + " input.")
+        raise IOError(f"Missing {missing_inputs} input.")
 
     truth = MergeCubes()(grouped_cubes["truth"])
     forecast = MergeCubes()(grouped_cubes["historical forecast"])
