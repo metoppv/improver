@@ -58,10 +58,14 @@ from .helper_functions import (
     build_coefficients_cubelist,
 )
 
-STATSMODELS_FOUND = False
-statsmodels_spec = importlib.util.find_spec("statsmodels")
-if statsmodels_spec:
+
+try:
+    importlib.find_module("statsmodels")
+except (ModuleNotFoundError, ImportError):
+    STATSMODELS_FOUND = False
+else:
     STATSMODELS_FOUND = True
+
 
 IGNORED_MESSAGES = [
     "Collapsing a non-contiguous coordinate",  # Originating from Iris

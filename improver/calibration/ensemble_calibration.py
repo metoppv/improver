@@ -588,6 +588,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             ValueError: If the number of coefficients in the optimised_coeffs
                 does not match the expected number.
         """
+        coeff_names = self.coeff_names
         if self.predictor.lower() == "realizations":
             realization_coeffs = []
             for realization in historic_forecast.coord("realization").points:
@@ -595,8 +596,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     "{}{}".format(self.coeff_names[-1], np.int32(realization))
                 )
             coeff_names = self.coeff_names[:-1] + realization_coeffs
-        else:
-            coeff_names = self.coeff_names
 
         if len(optimised_coeffs) != len(coeff_names):
             msg = (
