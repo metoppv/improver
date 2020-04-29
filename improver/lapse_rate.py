@@ -321,7 +321,7 @@ class LapseRate(BasePlugin):
         # then finds the gradient of the surface temperature with
         # orography height - i.e. lapse rate.
         axis = (-2, -1)
-        for counter, (temp, orog) in enumerate(zip(temp_nbhood_window, orog_nbhood_window)):
+        for lapse, temp, orog in zip(lapse_rate_array, temp_nbhood_window, orog_nbhood_window):
             # height_diff is True for points where the height
             # difference between the central points and its
             # neighbours is < max_height_diff.
@@ -347,7 +347,7 @@ class LapseRate(BasePlugin):
             dalr_mask = tempcheck | orogcheck | temp_nan_check | np.isnan(grad)
             grad[dalr_mask] = DALR
 
-            lapse_rate_array[counter] = grad
+            lapse[...] = grad
 
         # Enforce upper and lower limits on lapse rate values.
         lapse_rate_array = lapse_rate_array.clip(
