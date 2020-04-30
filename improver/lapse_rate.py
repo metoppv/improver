@@ -32,6 +32,7 @@
 
 import iris
 import numpy as np
+import numpy.ma as ma
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin, PostProcessingPlugin
@@ -307,7 +308,7 @@ class LapseRate(BasePlugin):
                 Lapse rate values
         """
         # Fill sea points with NaN values.
-        temperature_data = np.where(land_sea_mask_data, temperature_data, np.nan)
+        temperature_data = ma.masked_array(temperature_data, mask=land_sea_mask_data)
 
         lapse_rate_array = np.empty_like(temperature_data, dtype=np.float32)
         # Pads the data with nans and generates windows representing
@@ -328,10 +329,12 @@ class LapseRate(BasePlugin):
             # difference between the central points and its
             # neighbours is < max_height_diff.
             height_diff_mask = self._create_height_diff_mask(orog)
-            temp = np.where(height_diff_mask, temp, np.nan)
+            # temp = np.where(height_diff_mask, temp, np.nan)
+            temp = ma.masked_array(temp, mask=height_diff_mask)
 
             # Places NaNs in orog to match temp.
-            orog = np.where(np.isnan(temp), np.nan, orog)
+            # orog = np.where(np.isnan(temp), np.nan, orog)
+            orog = ma.masked_array(orog, mask=temp.mask)
 
             grad = mathematical_operations.fast_linear_fit(
                 orog, temp, axis=axis, gradient_only=True
@@ -339,13 +342,13 @@ class LapseRate(BasePlugin):
 
             # Checks that the standard deviations are not 0
             # i.e. there is some variance to fit a gradient to.
-            tempcheck = np.isclose(np.nanstd(temp, axis=axis), 0)
-            orogcheck = np.isclose(np.nanstd(orog, axis=axis), 0)
+            tempcheck = np.isclose(np.std(temp, axis=axis), 0)
+            orogcheck = np.isclose(np.std(orog, axis=axis), 0)
             # checks that our central point in the neighbourhood
             # is not NaN.
-            temp_nan_check = np.isnan(
-                temp[..., self.ind_central_point, self.ind_central_point]
-            )
+            temp_nan_check = temp.mask[
+                ..., self.ind_central_point, self.ind_central_point
+            ]
             dalr_mask = tempcheck | orogcheck | temp_nan_check | np.isnan(grad)
             grad[dalr_mask] = DALR
 

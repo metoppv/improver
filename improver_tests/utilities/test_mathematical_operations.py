@@ -35,6 +35,7 @@ import unittest
 
 import iris
 import numpy as np
+import numpy.ma as ma
 from iris.tests import IrisTest
 
 from improver.metadata.utilities import generate_mandatory_attributes
@@ -500,15 +501,16 @@ class Test_fast_linear_fit(IrisTest):
     def setUp(self):
         """Creates some random data to represent x and y."""
         array_size = 25
-        self.x_data = np.random.random(array_size)
-        self.y_data = np.random.random(array_size)
+        self.mask = np.zeros(array_size, dtype=bool)
+        self.x_data = ma.masked_array(np.random.random(array_size), mask=self.mask)
+        self.y_data = ma.masked_array(np.random.random(array_size), mask=self.mask)
 
     def use_lstsq(self):
         """Uses numpy's leastsquare algorithm to fit the data as a comparison"""
         x_data = np.stack([self.x_data, np.ones(len(self.x_data))]).T
         return np.linalg.lstsq(x_data, self.y_data, rcond=-1)[0]
 
-    def linear_fit(self, shape=(25,), axis=-1):
+    def linear_fit(self, shape=(25,), axis=-1, keep_dims=False):
         """Compares the output of fast_linear_fit with numpy's leastsquare algorithm."""
         expected_out = self.use_lstsq()
         x_data = self.x_data.reshape(shape)
@@ -522,7 +524,7 @@ class Test_fast_linear_fit(IrisTest):
 
     def test_linear_fit_with_2d(self):
         """Tests fast_linear_fit with 2D data."""
-        self.linear_fit(shape=(5, 5), axis=(-2, -1))
+        self.linear_fit(shape=(5, 5), axis=(-2, -1), keep_dims=True)
 
     def test_mismatching_shape(self):
         """Tests fast_linear_fit with mismatching shapes."""
@@ -530,9 +532,11 @@ class Test_fast_linear_fit(IrisTest):
         with self.assertRaises(ValueError):
             fast_linear_fit(x_data, self.y_data)
 
-    def test_mismatch_nans(self):
-        """Tests fast_linear_fit with mismatching nans."""
-        self.x_data[12] = np.nan
+    def test_mismatch_masks(self):
+        """Tests fast_linear_fit with mismatching masks."""
+        mask = self.mask.copy()
+        mask[12] = True
+        self.x_data = ma.masked_array(self.x_data, mask=mask)
         with self.assertRaises(ValueError):
             fast_linear_fit(self.x_data, self.y_data)
 

@@ -362,7 +362,7 @@ def fast_linear_fit(x_data, y_data, axis=None, keepdims=False, gradient_only=Fal
     """Uses a simple linear fit approach to calculate the
     gradient along specified axis (default is to fit all points).
     Uses vectorized operations, so it's much faster than using scipy lstsq
-    in a loop.
+    in a loop. This function does not handle NaNs, but will work with masked arrays.
     Args:
         x_data (numpy.ndarray):
             x axis data.
@@ -384,26 +384,23 @@ def fast_linear_fit(x_data, y_data, axis=None, keepdims=False, gradient_only=Fal
             **y-intercept** (numpy.ndarray):
                 The calculated y-intercepts.
     """
-    if not isinstance(axis, tuple):
-        axis = (axis,)
-
     # Finds a compatible shape for the means to be reshaped into
     if not x_data.shape == y_data.shape:
         raise ValueError("Shape of x and y do not match")
 
     # Check that there are no spurious NaNs in one of the arrays
     # only - this will mess up the mean.
-    if not (np.isnan(y_data) == np.isnan(x_data)).all():
+    if not (y_data.mask == x_data.mask).all():
         raise ValueError("Positions of NaNs do not match in x and y")
 
-    x_mean = np.nanmean(x_data, axis=axis, keepdims=True)
-    y_mean = np.nanmean(y_data, axis=axis, keepdims=True)
+    x_mean = np.mean(x_data, axis=axis, keepdims=True)
+    y_mean = np.mean(y_data, axis=axis, keepdims=True)
 
     x_diff = x_data - x_mean
     y_diff = y_data - y_mean
 
-    xy_cov = np.nansum(x_diff * y_diff, axis=axis, keepdims=keepdims)
-    x_var = np.nansum(x_diff * x_diff, axis=axis, keepdims=keepdims)
+    xy_cov = np.sum(x_diff * y_diff, axis=axis, keepdims=keepdims)
+    x_var = np.sum(x_diff * x_diff, axis=axis, keepdims=keepdims)
 
     grad = xy_cov / x_var
     if gradient_only:
