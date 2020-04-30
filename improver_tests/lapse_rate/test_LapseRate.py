@@ -102,60 +102,6 @@ class Test__calc_lapse_rate(IrisTest):
         self.assertArrayAlmostEqual(result, expected_out)
 
 
-class Test__create_heightdiff_mask(IrisTest):
-    """Test the _create_heightdiff_mask function."""
-
-    def setUp(self):
-        """Sets up arrays."""
-
-        self.orography = np.array(
-            [
-                [[35, 40, 20], [10, 0, 10], [20, -30, -40]],
-                [[35, 40, 20], [10, 0, 10], [20, -30, -40]],
-            ]
-        )
-
-    def height_diff_tests(self, expected_out, max_height_diff=35):
-        """Tests the _create_height_diff_mask function.
-
-        Args:
-            expected_out:
-                3d numpy array containing booleans, this needs to be the same shape as the orography data.
-            max_height_diff:
-                maximum height difference allowed in the orography data
-         """
-        result = LapseRate(
-            max_height_diff=max_height_diff, nbhood_radius=1
-        )._create_height_diff_mask(self.orography)
-        self.assertArrayAlmostEqual(result, expected_out)
-
-    def test_returns_expected_values(self):
-        """Test that the function returns True at points where the height
-           difference to the central pixel is greater than 35m."""
-
-        expected_out = np.array(
-            [
-                [[False, False, True], [True, True, True], [True, True, False]],
-                [[False, False, True], [True, True, True], [True, True, False]],
-            ]
-        )
-
-        self.height_diff_tests(expected_out)
-
-    def test_change_height_thresh(self):
-        """Test that the function performs as expected when the height
-           difference threshold has been changed."""
-
-        expected_out = np.array(
-            [
-                [[True, False, True], [True, True, True], [True, True, False]],
-                [[True, False, True], [True, True, True], [True, True, False]],
-            ]
-        )
-
-        self.height_diff_tests(expected_out, max_height_diff=40)
-
-
 class Test_process(IrisTest):
     """Test the LapseRate processing works"""
 

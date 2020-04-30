@@ -238,7 +238,7 @@ class LapseRate(BasePlugin):
         )
         return desc
 
-    def _create_windows(self, temp, orog):
+    def _create_windows(self, temp, orog, mask):
         """Uses neighbourhood tools to pad and generate rolling windows
         of the temp and orog datasets.
 
@@ -247,6 +247,8 @@ class LapseRate(BasePlugin):
                 2D array (single realization) of temperature data, in Kelvin
             orog (numpy.ndarray):
                 2D array of orographies, in metres
+            mask (numpy.ndarray):
+                2D array with land-sea mask
 
         Returns:
             (tuple): tuple_containing:
@@ -256,38 +258,21 @@ class LapseRate(BasePlugin):
                     Rolling windows of the padded orography dataset.
         """
         window_shape = (self.nbhood_size, self.nbhood_size)
+        mask = ~mask.astype(np.bool) | np.isnan(temp)
+        # Note: neither 'pad' nor 'as_strided' support masked arrays, so
+        #       'pad_and_roll' mask and data separately as a workaround
+        mask_windows = neighbourhood_tools.pad_and_roll(
+            mask, window_shape, mode="constant", constant_values=True
+        )
         orog_windows = neighbourhood_tools.pad_and_roll(
             orog, window_shape, mode="constant", constant_values=np.nan
         )
         temp_windows = neighbourhood_tools.pad_and_roll(
             temp, window_shape, mode="constant", constant_values=np.nan
         )
+        orog_windows = ma.masked_array(orog_windows, mask=mask_windows, copy=False)
+        temp_windows = ma.masked_array(temp_windows, mask=mask_windows, copy=False)
         return temp_windows, orog_windows
-
-    def _create_height_diff_mask(self, orog_subsections):
-        """Create a mask for any neighbouring points where the
-        height difference from the central point is greater than
-        max_height_diff.
-
-        Args:
-            orog_subsections (numpy.ndarray):
-                A 3-D numpy array where the leading axis represents the
-                number of central points in a row of the original
-                dataset (e.g. in a 5x5 array of data with a neighbourhood
-                of 3, the shape would be (5, 3, 3)). The final 2 axes
-                represent the orography neighbourhood data.
-
-        Returns:
-            numpy.ndarray:
-                A 3-D numpy array containing boolean values the same
-                shape as the orog_subsections. True if the orography
-                height is lower than max_height_diff, False if not.
-        """
-        cnpt = self.ind_central_point
-        central_points = orog_subsections[..., cnpt : cnpt + 1, cnpt : cnpt + 1]
-
-        height_diff = np.abs(orog_subsections - central_points)
-        return height_diff < self.max_height_diff
 
     def _generate_lapse_rate_array(
         self, temperature_data, orography_data, land_sea_mask_data
@@ -307,31 +292,30 @@ class LapseRate(BasePlugin):
             numpy.ndarray:
                 Lapse rate values
         """
-        # Fill sea points with NaN values.
-        temperature_data = np.where(land_sea_mask_data, temperature_data, np.nan)
-
+        # Preallocate output array
         lapse_rate_array = np.empty_like(temperature_data, dtype=np.float32)
 
-        # Pads the data with nans and generates windows representing
+        # Pads the data with nans and generates masked windows representing
         # a neighbourhood for each point.
         temp_nbhood_window, orog_nbhood_window = self._create_windows(
-            temperature_data, orography_data
+            temperature_data, orography_data, land_sea_mask_data
         )
 
         # Zips together the windows for temperature and orography
         # then finds the gradient of the surface temperature with
         # orography height - i.e. lapse rate.
+        cnpt = self.ind_central_point
         axis = (-2, -1)
         for lapse, temp, orog in zip(
             lapse_rate_array, temp_nbhood_window, orog_nbhood_window
         ):
-            # height_diff is True for points where the height
+            # height_diff_mask is True for points where the height
             # difference between the central points and its
-            # neighbours is < max_height_diff.
-            height_diff_mask = ~self._create_height_diff_mask(orog)
+            # neighbours is greater then max_height_diff.
+            orog_centre = orog[..., cnpt : cnpt + 1, cnpt : cnpt + 1]
+            height_diff_mask = np.abs(orog - orog_centre) > self.max_height_diff
+
             temp = ma.masked_array(temp, mask=height_diff_mask)
-            # masks out NaNs
-            temp = ma.masked_array(temp, mask=np.isnan(temp))
 
             # Masks orog to match temp
             orog = ma.masked_array(orog, mask=temp.mask)
@@ -346,11 +330,13 @@ class LapseRate(BasePlugin):
             orogcheck = np.isclose(np.std(orog, axis=axis), 0)
             # checks that our central point in the neighbourhood
             # is not masked.
-            temp_nan_check = temp.mask[
-                ..., self.ind_central_point, self.ind_central_point
-            ]
-            dalr_mask = tempcheck | orogcheck | temp_nan_check | np.isnan(grad)
-            grad[dalr_mask] = DALR
+            temp_mask_check = temp.mask[..., cnpt, cnpt]
+
+            # Mask out combined checks
+            grad[tempcheck | orogcheck | temp_mask_check] = ma.masked
+
+            # Fill out the mask with DALR.
+            grad = grad.filled(DALR)
 
             lapse[...] = grad
 
