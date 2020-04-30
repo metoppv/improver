@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain Psychrometric Calculations."""
 
+import functools
+
 import iris
 import numpy as np
 from cf_units import Unit
@@ -42,7 +44,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.psychrometric_calculations import svp_table
+from improver.utilities.ancillary_creation import SaturatedVapourPressureTable
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.interpolation import interpolate_missing_data
@@ -51,6 +53,31 @@ from improver.utilities.spatial import (
     OccurrenceWithinVicinity,
     number_of_grid_cells_to_distance,
 )
+
+SVP_T_MIN = 183.15
+SVP_T_MAX = 338.25
+SVP_T_INCREMENT = 0.1
+
+
+@functools.lru_cache()
+def _svp_table():
+    """
+    Calculate a saturated vapour pressure (SVP) lookup table.
+    The lru_cache decorator caches this table on first call to this function,
+    so that the table does not need to be re-calculated if used multiple times.
+
+    A value of SVP for any temperature between T_MIN and T_MAX (inclusive) can be
+    obtained by interpolating through the table, as is done in the _svp_from_lookup
+    function.
+
+    Returns:
+        numpy.ndarray:
+            Array of saturated vapour pressures (Pa).
+    """
+    svp_data = SaturatedVapourPressureTable(
+        t_min=SVP_T_MIN, t_max=SVP_T_MAX, t_increment=SVP_T_INCREMENT
+    ).process()
+    return svp_data.data
 
 
 def _svp_from_lookup(temperature):
@@ -68,17 +95,16 @@ def _svp_from_lookup(temperature):
     """
     # where temperatures are outside the SVP table range, clip data to
     # within the available range
-    T_clipped = np.clip(
-        temperature, svp_table.T_MIN, svp_table.T_MAX - svp_table.T_INCREMENT
-    )
+    t_clipped = np.clip(temperature, SVP_T_MIN, SVP_T_MAX - SVP_T_INCREMENT)
 
     # interpolate between bracketing values
-    table_position = (T_clipped - svp_table.T_MIN) / svp_table.T_INCREMENT
+    table_position = (t_clipped - SVP_T_MIN) / SVP_T_INCREMENT
     table_index = table_position.astype(int)
     interpolation_factor = table_position - table_index
-    return (1.0 - interpolation_factor) * svp_table.DATA[
+    svp_table_data = _svp_table()
+    return (1.0 - interpolation_factor) * svp_table_data[
         table_index
-    ] + interpolation_factor * svp_table.DATA[table_index + 1]
+    ] + interpolation_factor * svp_table_data[table_index + 1]
 
 
 def calculate_svp_in_air(temperature, pressure):
