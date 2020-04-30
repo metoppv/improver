@@ -32,6 +32,7 @@
 
 import iris
 import numpy as np
+import numpy.ma as ma
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -389,7 +390,7 @@ def fast_linear_fit(x_data, y_data, axis=None, keepdims=False, gradient_only=Fal
         raise ValueError("Shape of x and y do not match")
 
     # Check that there are no mismatched masks (this will mess up the mean).
-    if not (ma.getmask(y_data) == ma.getmask(x_data.mask)).all():
+    if not (ma.getmask(y_data) == ma.getmask(x_data)).all():
         raise ValueError("Mask of x and y do not match.")
 
     x_mean = np.mean(x_data, axis=axis, keepdims=True)
