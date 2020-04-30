@@ -212,16 +212,15 @@ def create_constrained_inputcubelist_converter(*constraints):
     These cubes get loaded and returned as a CubeList.
 
     Args:
-        *constraints (callable):
-            Constraints to be used in the loading of cubes into a CubeList.
-            If the tuple contains a string or multiple strings, then each
-            string is expected to return exactly one match. If the tuple
-            contains a list or multiple lists, then each list is treated as a
-            group that is expected to return a single match. The tuple
-            can contain a mixture of strings and lists as required.
+        *constraints (tuple of str or iris.Constraint):
+            Constraints to be used in extracting the required cubes.
+            Each constraint must match exactly one cube and extracted cubes
+            will be sorted to match their order.
+            A constraint can be an iris.Constraint object or a callable
+            or cube name that can be used to construct one.
 
     Returns:
-        function:
+        callable:
             A function with the constraints used for a list comprehension.
 
     """

@@ -34,8 +34,7 @@
 from improver import cli
 
 input_smoothing_coefficients = cli.create_constrained_inputcubelist_converter(
-    lambda cube: cube.name() in ["smoothing_coefficient_x"],
-    lambda cube: cube.name() in ["smoothing_coefficient_y"],
+    ["smoothing_coefficient_x"], ["smoothing_coefficient_y"],
 )
 
 
