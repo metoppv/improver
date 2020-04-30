@@ -256,7 +256,12 @@ def compare_attributes(name, actual_ds, desired_ds, reporter):
     for key in check_attrs:
         actual_attr = actual_ds.getncattr(key)
         desired_attr = desired_ds.getncattr(key)
-        assert isinstance(desired_attr, type(actual_attr))
+        if not isinstance(desired_attr, type(actual_attr)):
+            msg = (
+                f"different attribute type {name}/{key} - "
+                f"{type(actual_attr)} {type(desired_attr)}"
+            )
+            reporter(msg)
         if isinstance(desired_attr, np.ndarray):
             if not np.array_equal(actual_attr, desired_attr):
                 msg = (
