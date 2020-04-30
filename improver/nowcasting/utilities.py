@@ -127,8 +127,8 @@ class FillRadarHoles(BasePlugin):
         """Identify and interpolate "speckle" points, where "speckle" is defined
         as areas of "no data" that are small enough to fill by interpolation
         without affecting data integrity.  We would not wish to interpolate large
-        areas as this may gives false confidence in "no precipitation", where in
-        fact precipitation exists in the "no data" region.
+        areas as this may give false confidence in "no precipitation", where in
+        fact precipitation exists in a "no data" region.
 
         The constants for speckle identification ("p_masked" and "r_speckle")
         have been empirically tuned for UK radar data.  With the constants
@@ -217,7 +217,7 @@ class FillRadarHoles(BasePlugin):
         masked_radar_mmh = masked_radar.copy()
         masked_radar_mmh.convert_units("mm h-1")
 
-        # interpolate "holes" in data
+        # fill "holes" in data by interpolation
         masked_radar_mmh.data = self._fill_radar_holes(masked_radar_mmh.data)
 
         # return new cube in original units
