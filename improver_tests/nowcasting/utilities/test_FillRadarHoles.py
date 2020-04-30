@@ -116,5 +116,5 @@ def test_log_transform_reversability(rainrate):
     plugin = FillRadarHoles()
     log_rr = plugin._rr_to_log_rr(rainrate.data)
     np.testing.assert_array_equal(log_rr[np.where(rainrate.data == 0)], np.nan)
-    rr = plugin._log_rr_to_rr(log_rr)
-    np.testing.assert_allclose(rr, rainrate.data)
+    lin_rr = plugin._log_rr_to_rr(log_rr)
+    np.testing.assert_allclose(lin_rr, rainrate.data)
