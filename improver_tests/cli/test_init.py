@@ -188,7 +188,7 @@ def setup_for_mock():
 
 
 class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
-    """Tests the create constraint_inputcubelist_converter"""
+    """Tests the create_constraint_inputcubelist_converter"""
 
     def setUp(self):
         data = np.zeros((2, 2), dtype=np.float32)
@@ -197,6 +197,15 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         self.wind_cubes = CubeList([self.wind_speed_cube, self.wind_dir_cube])
 
     def test_basic(self):
+        """Tests that providing no valid constraints raises a ConstraintMismatchError."""
+        func = create_constrained_inputcubelist_converter(
+            lambda cube: cube.name() in ["wind_speed", "grid_eastward_wind"]
+        )
+        result = func(self.wind_cubes)
+        self.assertIn(self.wind_speed_cube, result)
+        self.assertEqual(1, len(result))
+
+    def test_two_lists(self):
         """Tests a basic creation of create_constrained_inputcubelist_converter"""
         func = create_constrained_inputcubelist_converter(
             lambda cube: cube.name() in ["wind_speed"],
@@ -223,8 +232,9 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     def test_list_two_valid(self):
         """Tests that one cube is loaded from each list."""
         func = create_constrained_inputcubelist_converter(
-            lambda cube: cube.name() in ["speed", "wind_speed"],
-            lambda cube: cube.name() in ["dir", "wind_from_direction"],
+            lambda cube: cube.name()
+            in ["airspeed_velocity_of_unladen_swallow", "wind_speed"],
+            lambda cube: cube.name() in ["direction_of_swallow", "wind_from_direction"],
         )
         result = func(self.wind_cubes)
         self.assertIn(self.wind_speed_cube, result)
@@ -237,7 +247,7 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         """
         func = create_constrained_inputcubelist_converter(
             lambda cube: cube.name() in ["wind_speed"],
-            lambda cube: cube.name() in ["dir", "wind_from_direction"],
+            lambda cube: cube.name() in ["direction_of_swallow", "wind_from_direction"],
         )
         result = func(self.wind_cubes)
         self.assertIn(self.wind_speed_cube, result)
@@ -247,12 +257,17 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     def test_list_no_match(self):
         """Tests that providing no valid constraints raises a ConstraintMismatchError."""
         func = create_constrained_inputcubelist_converter(
-            lambda cube: cube.name()
-            in ["precipitation_advection_x_velocity", "grid_eastward_wind"],
-            lambda cube: cube.name()
-            in ["precipitation_advection_y_velocity", "grid_northward_wind"],
+            lambda cube: cube.name() in ["airspeed_velocity_of_unladen_swallow"],
         )
-        with self.assertRaisesRegex(ConstraintMismatchError, "Got 0 cubes"):
+        with self.assertRaisesRegex(ConstraintMismatchError, "^Got 0 cubes"):
+            func(self.wind_cubes)
+
+    def test_two_valid_cubes(self):
+        """Tests that providing 2 valid constraints raises a ConstraintMismatchError."""
+        func = create_constrained_inputcubelist_converter(
+            lambda cube: cube.name() in ["wind_speed", "wind_from_direction"],
+        )
+        with self.assertRaisesRegex(ConstraintMismatchError, "^Got 2 cubes"):
             func(self.wind_cubes)
 
 

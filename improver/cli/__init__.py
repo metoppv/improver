@@ -207,7 +207,7 @@ def create_constrained_inputcubelist_converter(*constraints):
     strings into objects.
     This is a way of not using the IMPROVER load_cube which will try to merge
     cubes. Iris load on the other hand won't deal with meta data properly.
-    So an example if you wanted to load an X cube and a Y cube from a cubelist
+    So an example is if you wanted to load an X cube and a Y cube from a cubelist
     of 2. You call this function with a list of constraints.
     These cubes get loaded and returned as a CubeList.
 
@@ -232,7 +232,7 @@ def create_constrained_inputcubelist_converter(*constraints):
 
         Args:
             to_convert (str or iris.cube.CubeList):
-                The filename to be loaded into a CubeList or a CubeList
+                A CubeList or a filename to be loaded into a CubeList.
 
         Returns:
             iris.cube.CubeList:
@@ -244,6 +244,7 @@ def create_constrained_inputcubelist_converter(*constraints):
         from iris.cube import CubeList
 
         cubelist = maybe_coerce_with(load_cubelist, to_convert)
+
         return CubeList(
             cubelist.extract(
                 Constraint(cube_func=constr) if callable(constr) else constr,
