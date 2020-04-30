@@ -35,7 +35,7 @@ import unittest
 
 import iris
 import numpy as np
-import numpy.ma as ma
+import numpy.ma
 from iris.tests import IrisTest
 
 from improver.metadata.utilities import generate_mandatory_attributes
@@ -502,8 +502,8 @@ class Test_fast_linear_fit(IrisTest):
         """Creates some random data to represent x and y."""
         array_size = 25
         self.mask = np.zeros(array_size, dtype=bool)
-        self.x_data = ma.masked_array(np.random.random(array_size), mask=self.mask)
-        self.y_data = ma.masked_array(np.random.random(array_size), mask=self.mask)
+        self.x_data = numpy.ma.masked_array(np.random.random(array_size), mask=self.mask)
+        self.y_data = numpy.ma.masked_array(np.random.random(array_size), mask=self.mask)
 
     def use_lstsq(self):
         """Uses numpy's leastsquare algorithm to fit the data as a comparison"""
@@ -536,7 +536,7 @@ class Test_fast_linear_fit(IrisTest):
         """Tests fast_linear_fit with mismatching masks."""
         mask = self.mask.copy()
         mask[12] = True
-        self.x_data = ma.masked_array(self.x_data, mask=mask)
+        self.x_data = numpy.ma.masked_array(self.x_data, mask=mask)
         with self.assertRaises(ValueError):
             fast_linear_fit(self.x_data, self.y_data)
 
