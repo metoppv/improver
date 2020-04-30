@@ -502,8 +502,12 @@ class Test_fast_linear_fit(IrisTest):
         """Creates some random data to represent x and y."""
         array_size = 25
         self.mask = np.zeros(array_size, dtype=bool)
-        self.x_data = numpy.ma.masked_array(np.random.random(array_size), mask=self.mask)
-        self.y_data = numpy.ma.masked_array(np.random.random(array_size), mask=self.mask)
+        self.x_data = numpy.ma.masked_array(
+            np.random.random(array_size), mask=self.mask
+        )
+        self.y_data = numpy.ma.masked_array(
+            np.random.random(array_size), mask=self.mask
+        )
 
     def use_lstsq(self):
         """Uses numpy's leastsquare algorithm to fit the data as a comparison"""
