@@ -500,41 +500,41 @@ class Test_fast_linear_fit(IrisTest):
     def setUp(self):
         """Creates some random data to represent x and y."""
         array_size = 25
-        self.x = np.random.random(array_size)
-        self.y = np.random.random(array_size)
+        self.x_data = np.random.random(array_size)
+        self.y_data = np.random.random(array_size)
 
     def use_lstsq(self):
         """Uses numpy's leastsquare algorithm to fit the data as a comparison"""
-        x = np.stack([self.x, np.ones(len(self.x))]).T
-        return np.linalg.lstsq(x, self.y, rcond=-1)[0]
+        x_data = np.stack([self.x_data, np.ones(len(self.x_data))]).T
+        return np.linalg.lstsq(x_data, self.y_data, rcond=-1)[0]
 
     def linear_fit(self, shape=(25,), axis=-1):
         """Compares the output of fast_linear_fit with numpy's leastsquare algorithm."""
         expected_out = self.use_lstsq()
-        x = self.x.reshape(shape)
-        y = self.y.reshape(shape)
-        result = np.array(fast_linear_fit(x, y, axis=axis))
+        x_data = self.x_data.reshape(shape)
+        y_data = self.y_data.reshape(shape)
+        result = np.array(fast_linear_fit(x_data, y_data, axis=axis))
         self.assertArrayAlmostEqual(expected_out, result)
 
     def test_basic_linear_fit(self):
         """Tests fast_linear_fit with 1D data."""
         self.linear_fit()
 
-    def test_linear_fit_with_2D(self):
+    def test_linear_fit_with_2d(self):
         """Tests fast_linear_fit with 2D data."""
         self.linear_fit(shape=(5, 5), axis=(-2, -1))
 
     def test_mismatching_shape(self):
         """Tests fast_linear_fit with mismatching shapes."""
-        x = self.x.reshape(5, 5)
+        x_data = self.x_data.reshape(5, 5)
         with self.assertRaises(ValueError):
-            fast_linear_fit(x, self.y)
+            fast_linear_fit(x_data, self.y_data)
 
     def test_mismatch_nans(self):
         """Tests fast_linear_fit with mismatching nans."""
-        self.x[12] = np.nan
+        self.x_data[12] = np.nan
         with self.assertRaises(ValueError):
-            fast_linear_fit(self.x, self.y)
+            fast_linear_fit(self.x_data, self.y_data)
 
 
 if __name__ == "__main__":
