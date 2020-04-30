@@ -358,15 +358,15 @@ class Integration(BasePlugin):
         return integrated_cube
 
 
-def fast_linear_fit(x, y, axis=None, keepdims=False, gradient_only=False):
+def fast_linear_fit(x_data, y_data, axis=None, keepdims=False, gradient_only=False):
     """Uses a simple linear fit approach to calculate the
     gradient along specified axis (default is to fit all points).
     Uses vectorized operations, so it's much faster than using scipy lstsq
     in a loop.
     Args:
-        x (numpy.ndarray):
+        x_data (numpy.ndarray):
             x axis data.
-        y (numpy.ndarray):
+        y_data (numpy.ndarray):
             y axis data.
         axis (int or tuple of int):
             Optional argument, specifies the axis to operate on.
@@ -388,19 +388,19 @@ def fast_linear_fit(x, y, axis=None, keepdims=False, gradient_only=False):
         axis = (axis,)
 
     # Finds a compatible shape for the means to be reshaped into
-    if not x.shape == y.shape:
+    if not x_data.shape == y_data.shape:
         raise ValueError("Shape of x and y do not match")
 
     # Check that there are no spurious NaNs in one of the arrays
     # only - this will mess up the mean.
-    if not (np.isnan(y) == np.isnan(x)).all():
+    if not (np.isnan(y_data) == np.isnan(x_data)).all():
         raise ValueError("Positions of NaNs do not match in x and y")
 
-    x_mean = np.nanmean(x, axis=axis, keepdims=True)
-    y_mean = np.nanmean(y, axis=axis, keepdims=True)
+    x_mean = np.nanmean(x_data, axis=axis, keepdims=True)
+    y_mean = np.nanmean(y_data, axis=axis, keepdims=True)
 
-    x_diff = x - x_mean
-    y_diff = y - y_mean
+    x_diff = x_data - x_mean
+    y_diff = y_data - y_mean
 
     xy_cov = np.nansum(x_diff * y_diff, axis=axis, keepdims=keepdims)
     x_var = np.nansum(x_diff * x_diff, axis=axis, keepdims=keepdims)
