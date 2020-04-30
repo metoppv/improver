@@ -388,10 +388,9 @@ def fast_linear_fit(x_data, y_data, axis=None, keepdims=False, gradient_only=Fal
     if not x_data.shape == y_data.shape:
         raise ValueError("Shape of x and y do not match")
 
-    # Check that there are no spurious NaNs in one of the arrays
-    # only - this will mess up the mean.
-    if not (y_data.mask == x_data.mask).all():
-        raise ValueError("Positions of NaNs do not match in x and y")
+    # Check that there are no mismatched masks (this will mess up the mean).
+    if not (ma.getmask(y_data) == ma.getmask(x_data.mask)).all():
+        raise ValueError("Mask of x and y do not match.")
 
     x_mean = np.mean(x_data, axis=axis, keepdims=True)
     y_mean = np.mean(y_data, axis=axis, keepdims=True)
