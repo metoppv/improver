@@ -510,7 +510,7 @@ class Test_fast_linear_fit(IrisTest):
         x_data = np.stack([self.x_data, np.ones(len(self.x_data))]).T
         return np.linalg.lstsq(x_data, self.y_data, rcond=-1)[0]
 
-    def linear_fit(self, shape=(25,), axis=-1, keep_dims=False):
+    def linear_fit(self, shape=(25,), axis=-1):
         """Compares the output of fast_linear_fit with numpy's leastsquare algorithm."""
         expected_out = self.use_lstsq()
         x_data = self.x_data.reshape(shape)
@@ -524,7 +524,7 @@ class Test_fast_linear_fit(IrisTest):
 
     def test_linear_fit_with_2d(self):
         """Tests fast_linear_fit with 2D data."""
-        self.linear_fit(shape=(5, 5), axis=(-2, -1), keep_dims=True)
+        self.linear_fit(shape=(5, 5), axis=(-2, -1))
 
     def test_mismatching_shape(self):
         """Tests fast_linear_fit with mismatching shapes."""
