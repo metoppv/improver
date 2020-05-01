@@ -310,25 +310,6 @@ def test_no_coefficients(tmp_path):
     )
 
 
-def test_wrong_coefficients(tmp_path):
-    """Test wrong coefficients provided"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        input_path,
-        "--distribution",
-        "norm",
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(ValueError, match=".*coefficients cube.*"):
-        run_cli(args)
-
-
 def test_wrong_land_sea_mask(tmp_path):
     """Test wrong land_sea_mask provided"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"

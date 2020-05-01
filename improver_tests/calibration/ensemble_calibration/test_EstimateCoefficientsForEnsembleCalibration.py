@@ -60,7 +60,7 @@ from .helper_functions import (
 
 
 try:
-    importlib.find_module("statsmodels")
+    importlib.import_module("statsmodels")
 except (ModuleNotFoundError, ImportError):
     STATSMODELS_FOUND = False
 else:

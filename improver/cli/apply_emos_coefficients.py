@@ -36,11 +36,21 @@ Regression (NGR)."""
 from improver import cli
 
 
+# Creates the value_converter that clize needs.
+inputcoeffs = cli.create_constrained_inputcubelist_converter(
+    "emos_coefficient_alpha",
+    lambda cube: cube.name().startswith("emos_coefficient_beta"),
+    "emos_coefficient_gamma",
+    "emos_coefficient_delta",
+    strict=False,
+)
+
+
 @cli.clizefy
 @cli.with_output
 def process(
     cube: cli.inputcube,
-    coefficients: cli.inputcubelist = None,
+    coefficients: inputcoeffs = None,
     land_sea_mask: cli.inputcube = None,
     *,
     distribution,
@@ -150,14 +160,8 @@ def process(
         warnings.warn(msg)
         return cube
 
-    if isinstance(coefficients, iris.cube.CubeList) and not [
-        c.name().startswith("emos_coefficients") for c in coefficients
-    ]:
-        msg = "Invalid coefficients cube provided (name '{}')"
-        raise ValueError(msg.format(coefficients.name()))
-
     if land_sea_mask and land_sea_mask.name() != "land_binary_mask":
-        msg = "The land_sea_mask cube does not have the " "name 'land_binary_mask'"
+        msg = "The land_sea_mask cube does not have the name 'land_binary_mask'"
         raise ValueError(msg)
 
     if shape_parameters:

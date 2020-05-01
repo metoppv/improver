@@ -138,23 +138,6 @@ def maybe_coerce_with(converter, obj, **kwargs):
 
 
 @value_converter
-def inputcubelist(to_convert):
-    """Loads a cubelist from file or returns passed object.
-
-    Args:
-        to_convert (string or iris.cube.CubeList):
-            File name or CubeList object.
-
-    Returns:
-        Loaded cubelist or passed object.
-
-    """
-    from improver.utilities.load import load_cubelist
-
-    return maybe_coerce_with(load_cubelist, to_convert)
-
-
-@value_converter
 def inputcube(to_convert):
     """Loads cube from file or returns passed object.
 
@@ -217,7 +200,7 @@ def inputpath(to_convert):
     return maybe_coerce_with(pathlib.Path, to_convert)
 
 
-def create_constrained_inputcubelist_converter(*constraints):
+def create_constrained_inputcubelist_converter(*constraints, strict=True):
     """Makes function that the input constraints are used in a loop.
 
     The function is a @value_converter, this means it is used by clize to convert
@@ -235,6 +218,8 @@ def create_constrained_inputcubelist_converter(*constraints):
             will be sorted to match their order.
             A constraint can be an iris.Constraint object or a callable
             or cube name that can be used to construct one.
+        strict (boolean):
+            If strict is True, then there must be exactly one cube per constraint.
 
     Returns:
         callable:
@@ -261,13 +246,14 @@ def create_constrained_inputcubelist_converter(*constraints):
 
         cubelist = maybe_coerce_with(load_cubelist, to_convert)
 
-        return CubeList(
-            cubelist.extract(
+        result = CubeList([])
+        for constr in constraints:
+            item = cubelist.extract(
                 Constraint(cube_func=constr) if callable(constr) else constr,
-                strict=True,
+                strict=strict,
             )
-            for constr in constraints
-        )
+            result.append(item) if strict else result.extend(item)
+        return result
 
     return constrained_inputcubelist_converter
 
