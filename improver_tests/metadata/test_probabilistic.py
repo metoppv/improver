@@ -144,10 +144,16 @@ class Test_is_probability(IrisTest):
         """Set up test data"""
         self.data = np.ones((3, 3, 3), dtype=np.float32)
         self.threshold_points = np.array([276, 277, 278], dtype=np.float32)
+        self.prob_cube = set_up_probability_cube(self.data, self.threshold_points)
 
     def test_true(self):
         """Test a probability cube evaluates as true"""
-        cube = set_up_probability_cube(self.data, self.threshold_points)
+        result = is_probability(self.prob_cube)
+        self.assertTrue(result)
+
+    def test_scalar_threshold_coord(self):
+        """Test a probability cube with a single threshold evaluates as true"""
+        cube = iris.util.squeeze(self.prob_cube[0])
         result = is_probability(cube)
         self.assertTrue(result)
 
