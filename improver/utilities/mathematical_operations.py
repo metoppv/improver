@@ -398,21 +398,18 @@ def fast_linear_fit(
         raise ValueError("Mask of x and y do not match.")
 
     if with_nan:
-        x_mean = np.nanmean(x_data, axis=axis, keepdims=True)
-        y_mean = np.nanmean(y_data, axis=axis, keepdims=True)
+        mean, sum = np.nanmean, np.nansum
     else:
-        x_mean = np.mean(x_data, axis=axis, keepdims=True)
-        y_mean = np.mean(y_data, axis=axis, keepdims=True)
+        mean, sum = np.mean, np.sum
+
+    x_mean = mean(x_data, axis=axis, keepdims=True)
+    y_mean = mean(y_data, axis=axis, keepdims=True)
 
     x_diff = x_data - x_mean
     y_diff = y_data - y_mean
 
-    if with_nan:
-        xy_cov = np.nansum(x_diff * y_diff, axis=axis, keepdims=keepdims)
-        x_var = np.nansum(x_diff * x_diff, axis=axis, keepdims=keepdims)
-    else:
-        xy_cov = np.sum(x_diff * y_diff, axis=axis, keepdims=keepdims)
-        x_var = np.sum(x_diff * x_diff, axis=axis, keepdims=keepdims)
+    xy_cov = sum(x_diff * y_diff, axis=axis, keepdims=keepdims)
+    x_var = sum(x_diff * x_diff, axis=axis, keepdims=keepdims)
 
     grad = xy_cov / x_var
 
