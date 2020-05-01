@@ -507,15 +507,17 @@ class Test_fast_linear_fit(IrisTest):
 
     def use_lstsq(self):
         """Uses numpy's leastsquare algorithm to fit the data as a comparison"""
-        x_data = np.stack([self.x_data, np.ones(len(self.x_data))]).T
-        return np.linalg.lstsq(x_data, self.y_data, rcond=-1)[0]
+        x_data = self.x_data[~np.isnan(self.x_data)]
+        y_data = self.y_data[~np.isnan(self.y_data)]
+        x_data = np.stack([x_data, np.ones(len(x_data))]).T
+        return np.linalg.lstsq(x_data, y_data, rcond=-1)[0]
 
-    def linear_fit(self, shape=(25,), axis=-1):
+    def linear_fit(self, shape=(25,), axis=-1, with_nan=False):
         """Compares the output of fast_linear_fit with numpy's leastsquare algorithm."""
         expected_out = self.use_lstsq()
         x_data = self.x_data.reshape(shape)
         y_data = self.y_data.reshape(shape)
-        result = np.array(fast_linear_fit(x_data, y_data, axis=axis))
+        result = np.array(fast_linear_fit(x_data, y_data, axis=axis, with_nan=with_nan))
         self.assertArrayAlmostEqual(expected_out, result)
 
     def test_basic_linear_fit(self):
@@ -526,12 +528,6 @@ class Test_fast_linear_fit(IrisTest):
         """Tests fast_linear_fit with 2D data."""
         self.linear_fit(shape=(5, 5), axis=(-2, -1))
 
-    def test_mismatching_shape(self):
-        """Tests fast_linear_fit with mismatching shapes."""
-        x_data = self.x_data.reshape(5, 5)
-        with self.assertRaises(ValueError):
-            fast_linear_fit(x_data, self.y_data)
-
     def test_mismatch_masks(self):
         """Tests fast_linear_fit with mismatching masks."""
         mask = self.mask.copy()
@@ -539,6 +535,17 @@ class Test_fast_linear_fit(IrisTest):
         self.x_data = ma.masked_array(self.x_data, mask=mask)
         with self.assertRaises(ValueError):
             fast_linear_fit(self.x_data, self.y_data)
+
+    def test_mismatch_nans_with_nan(self):
+        """Tests fast_linear_fit with mismatching nans when with_nan is True"""
+        self.x_data[12] = np.nan
+        with self.assertRaises(ValueError):
+            fast_linear_fit(self.x_data, self.y_data, with_nan=True)
+
+    def test_with_nan(self):
+        """Tests fast_linear_fit when with_nans is True and nans match in x and y data"""
+        self.x_data[12] = self.y_data[12] = np.nan
+        self.linear_fit(with_nan=True)
 
 
 if __name__ == "__main__":

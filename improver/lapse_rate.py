@@ -238,7 +238,7 @@ class LapseRate(BasePlugin):
         )
         return desc
 
-    def _create_windows(self, temp, orog, mask):
+    def _create_windows(self, temp, orog):
         """Uses neighbourhood tools to pad and generate rolling windows
         of the temp and orog datasets.
 
@@ -247,8 +247,6 @@ class LapseRate(BasePlugin):
                 2D array (single realization) of temperature data, in Kelvin
             orog (numpy.ndarray):
                 2D array of orographies, in metres
-            mask (numpy.ndarray):
-                2D array with land-sea mask
 
         Returns:
             (tuple): tuple_containing:
@@ -258,20 +256,12 @@ class LapseRate(BasePlugin):
                     Rolling windows of the padded orography dataset.
         """
         window_shape = (self.nbhood_size, self.nbhood_size)
-        mask = ~mask.astype(np.bool) | np.isnan(temp)
-        # Note: neither 'pad' nor 'as_strided' support masked arrays, so
-        #       'pad_and_roll' mask and data separately as a workaround
-        mask_windows = neighbourhood_tools.pad_and_roll(
-            mask, window_shape, mode="constant", constant_values=True
-        )
         orog_windows = neighbourhood_tools.pad_and_roll(
             orog, window_shape, mode="constant", constant_values=np.nan
         )
         temp_windows = neighbourhood_tools.pad_and_roll(
             temp, window_shape, mode="constant", constant_values=np.nan
         )
-        orog_windows = ma.masked_array(orog_windows, mask=mask_windows, copy=False)
-        temp_windows = ma.masked_array(temp_windows, mask=mask_windows, copy=False)
         return temp_windows, orog_windows
 
     def _generate_lapse_rate_array(
@@ -292,13 +282,16 @@ class LapseRate(BasePlugin):
             numpy.ndarray:
                 Lapse rate values
         """
+        # Fill sea points with NaN values.
+        temperature_data = np.where(land_sea_mask_data, temperature_data, np.nan)
+
         # Preallocate output array
         lapse_rate_array = np.empty_like(temperature_data, dtype=np.float32)
 
         # Pads the data with nans and generates masked windows representing
         # a neighbourhood for each point.
         temp_nbhood_window, orog_nbhood_window = self._create_windows(
-            temperature_data, orography_data, land_sea_mask_data
+            temperature_data, orography_data
         )
 
         # Zips together the windows for temperature and orography
@@ -315,28 +308,25 @@ class LapseRate(BasePlugin):
             orog_centre = orog[..., cnpt : cnpt + 1, cnpt : cnpt + 1]
             height_diff_mask = np.abs(orog - orog_centre) > self.max_height_diff
 
-            temp = ma.masked_array(temp, mask=height_diff_mask, copy=False)
+            temp = np.where(height_diff_mask, np.nan, temp)
 
-            # Masks orog to match temp
-            orog = ma.masked_array(orog, mask=temp.mask, copy=False)
+            # Places NaNs in orog to match temp
+            orog = np.where(np.isnan(temp), np.nan, orog)
 
             grad = mathematical_operations.fast_linear_fit(
-                orog, temp, axis=axis, gradient_only=True
+                orog, temp, axis=axis, gradient_only=True, with_nan=True
             )
 
             # Checks that the standard deviations are not 0
             # i.e. there is some variance to fit a gradient to.
-            tempcheck = np.isclose(np.std(temp, axis=axis), 0)
-            orogcheck = np.isclose(np.std(orog, axis=axis), 0)
+            tempcheck = np.isclose(np.nanstd(temp, axis=axis), 0)
+            orogcheck = np.isclose(np.nanstd(orog, axis=axis), 0)
             # checks that our central point in the neighbourhood
-            # is not masked.
-            temp_mask_check = temp.mask[..., cnpt, cnpt]
+            # is not nan
+            temp_nan_check = np.isnan(temp[..., cnpt, cnpt])
 
-            # Mask out combined checks
-            grad[tempcheck | orogcheck | temp_mask_check] = ma.masked
-
-            # Fill out the mask with DALR.
-            grad = grad.filled(DALR)
+            dalr_mask = tempcheck | orogcheck | temp_nan_check | np.isnan(grad)
+            grad[dalr_mask] = DALR
 
             lapse[...] = grad
 

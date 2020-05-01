@@ -359,7 +359,9 @@ class Integration(BasePlugin):
         return integrated_cube
 
 
-def fast_linear_fit(x_data, y_data, axis=None, keepdims=False, gradient_only=False):
+def fast_linear_fit(
+    x_data, y_data, axis=None, keepdims=False, gradient_only=False, with_nan=False
+):
     """Uses a simple linear fit approach to calculate the
     gradient along specified axis (default is to fit all points).
     Uses vectorized operations, so it's much faster than using scipy lstsq
@@ -378,6 +380,8 @@ def fast_linear_fit(x_data, y_data, axis=None, keepdims=False, gradient_only=Fal
             will broadcast correctly against the input array.
         gradient_only (bool):
             If true only returns the gradient.
+        with_nan (bool):
+            If true, there are NaNs in your data (that you know about).
     Returns:
         (tuple): tuple containing:
             **gradient** (numpy.ndarray):
@@ -385,28 +389,39 @@ def fast_linear_fit(x_data, y_data, axis=None, keepdims=False, gradient_only=Fal
             **y-intercept** (numpy.ndarray):
                 The calculated y-intercepts.
     """
-    # Finds a compatible shape for the means to be reshaped into
-    if not x_data.shape == y_data.shape:
-        raise ValueError("Shape of x and y do not match")
+    # Check that the positions of nans match in x and y
+    if with_nan and not (np.isnan(x_data) == np.isnan(y_data)).all():
+        raise ValueError("Positions of NaNs in x and y do not match")
 
     # Check that there are no mismatched masks (this will mess up the mean).
-    if not (ma.getmask(y_data) == ma.getmask(x_data)).all():
+    if not with_nan and not (ma.getmask(y_data) == ma.getmask(x_data)).all():
         raise ValueError("Mask of x and y do not match.")
 
-    x_mean = np.mean(x_data, axis=axis, keepdims=True)
-    y_mean = np.mean(y_data, axis=axis, keepdims=True)
+    if with_nan:
+        x_mean = np.nanmean(x_data, axis=axis, keepdims=True)
+        y_mean = np.nanmean(y_data, axis=axis, keepdims=True)
+    else:
+        x_mean = np.mean(x_data, axis=axis, keepdims=True)
+        y_mean = np.mean(y_data, axis=axis, keepdims=True)
 
     x_diff = x_data - x_mean
     y_diff = y_data - y_mean
 
-    xy_cov = np.sum(x_diff * y_diff, axis=axis, keepdims=keepdims)
-    x_var = np.sum(x_diff * x_diff, axis=axis, keepdims=keepdims)
+    if with_nan:
+        xy_cov = np.nansum(x_diff * y_diff, axis=axis, keepdims=keepdims)
+        x_var = np.nansum(x_diff * x_diff, axis=axis, keepdims=keepdims)
+    else:
+        xy_cov = np.sum(x_diff * y_diff, axis=axis, keepdims=keepdims)
+        x_var = np.sum(x_diff * x_diff, axis=axis, keepdims=keepdims)
 
     grad = xy_cov / x_var
+
     if gradient_only:
         return grad
+
     if not keepdims:
-        x_mean.shape = y_mean.shape = grad.shape
+        x_mean = x_mean.squeeze(axis=axis)
+        y_mean = y_mean.squeeze(axis=axis)
 
     intercept = y_mean - grad * x_mean
     return grad, intercept
