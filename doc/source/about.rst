@@ -84,6 +84,11 @@ The current list of CLIs can be `found here`_.
 
 .. _found here: improver.cli.html
 
+Sample data for testing CLIs
+============================
+We use standardised Met Office data for IMPROVER, which is available for all our main models with a delay on Amazon web services (https://registry.opendata.aws/uk-met-office/). There are some examples on how to use the data here: https://github.com/MetOffice/aws-earth-examples. The example notebook also gives you a good idea of what our standard model data looks like: https://github.com/MetOffice/aws-earth-examples/blob/master/examples/1.%20Getting%20Started.ipynb.
+
+This standard data should work with the IMPROVER CLIs and is a good place to start if you want to test a CLI on some compatible data.
 
 Publications & Presentations
 ----------------------------
