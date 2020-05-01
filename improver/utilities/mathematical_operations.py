@@ -32,6 +32,7 @@
 
 import iris
 import numpy as np
+import numpy.ma as ma
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -356,3 +357,68 @@ class Integration(BasePlugin):
         integrated_cube = self.perform_integration(upper_bounds_cube, lower_bounds_cube)
 
         return integrated_cube
+
+
+def fast_linear_fit(
+    x_data, y_data, axis=None, keepdims=False, gradient_only=False, with_nan=False
+):
+    """Uses a simple linear fit approach to calculate the
+    gradient along specified axis (default is to fit all points).
+    Uses vectorized operations, so it's much faster than using scipy lstsq
+    in a loop. This function does not handle NaNs, but will work with masked arrays.
+    Args:
+        x_data (numpy.ndarray):
+            x axis data.
+        y_data (numpy.ndarray):
+            y axis data.
+        axis (int or tuple of int):
+            Optional argument, specifies the axis to operate on.
+            Default is to flatten arrays and fit all points.
+        keepdims (bool):
+            If this is set to True, the axes which are reduced are left in the
+            result as dimensions with size one. With this option, the result
+            will broadcast correctly against the input array.
+        gradient_only (bool):
+            If true only returns the gradient.
+        with_nan (bool):
+            If true, there are NaNs in your data (that you know about).
+    Returns:
+        (tuple): tuple containing:
+            **gradient** (numpy.ndarray):
+                The gradient between x and y.
+            **y-intercept** (numpy.ndarray):
+                The calculated y-intercepts.
+    """
+    # Check that the positions of nans match in x and y
+    if with_nan and not (np.isnan(x_data) == np.isnan(y_data)).all():
+        raise ValueError("Positions of NaNs in x and y do not match")
+
+    # Check that there are no mismatched masks (this will mess up the mean).
+    if not with_nan and not (ma.getmask(y_data) == ma.getmask(x_data)).all():
+        raise ValueError("Mask of x and y do not match.")
+
+    if with_nan:
+        mean, sum_func = np.nanmean, np.nansum
+    else:
+        mean, sum_func = np.mean, np.sum
+
+    x_mean = mean(x_data, axis=axis, keepdims=True)
+    y_mean = mean(y_data, axis=axis, keepdims=True)
+
+    x_diff = x_data - x_mean
+    y_diff = y_data - y_mean
+
+    xy_cov = sum_func(x_diff * y_diff, axis=axis, keepdims=keepdims)
+    x_var = sum_func(x_diff * x_diff, axis=axis, keepdims=keepdims)
+
+    grad = xy_cov / x_var
+
+    if gradient_only:
+        return grad
+
+    if not keepdims:
+        x_mean = x_mean.squeeze(axis=axis)
+        y_mean = y_mean.squeeze(axis=axis)
+
+    intercept = y_mean - grad * x_mean
+    return grad, intercept

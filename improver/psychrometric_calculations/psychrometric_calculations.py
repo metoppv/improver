@@ -48,7 +48,7 @@ from improver.utilities.ancillary_creation import SaturatedVapourPressureTable
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.interpolation import interpolate_missing_data
-from improver.utilities.mathematical_operations import Integration
+from improver.utilities.mathematical_operations import Integration, fast_linear_fit
 from improver.utilities.spatial import (
     OccurrenceWithinVicinity,
     number_of_grid_cells_to_distance,
@@ -766,22 +766,9 @@ class PhaseChangeLevel(BasePlugin):
         intercept = np.zeros(result_shape)
         if np.any(sea_points):
             # Use only subset of heights.
-            wbt = wet_bulb_temperature[start_point:end_point]
-            hgt = heights[start_point:end_point]
-            N = len(hgt)
-            # Make the 1D sea point array 3D to account for the height axis
-            # on the wet bulb temperature array.
-            index3d = np.broadcast_to(sea_points, wbt.shape)
-            # Flatten the array to make it more convenient to find a linear fit
-            # for every point of interest.
-            y_vals = wbt[index3d].reshape(N, -1)
-            x_vals = hgt.reshape(N, 1)
-            y_sum = np.sum(y_vals, axis=0)
-            x_sum = np.sum(x_vals, axis=0)
-            xy_cov = np.sum(y_vals * x_vals, axis=0) - (1 / N) * (y_sum * x_sum)
-            x_var = np.sum(x_vals * x_vals, axis=0) - (1 / N) * (x_sum * x_sum)
-            gradient_values = xy_cov / x_var
-            intercept_values = (1 / N) * (y_sum - gradient_values * x_sum)
+            wbt = wet_bulb_temperature[start_point:end_point, sea_points]
+            hgt = heights[start_point:end_point].reshape(-1, 1)
+            gradient_values, intercept_values = fast_linear_fit(hgt, wbt, axis=0)
             gradient[sea_points] = gradient_values
             intercept[sea_points] = intercept_values
         return gradient, intercept
