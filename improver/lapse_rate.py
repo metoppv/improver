@@ -315,10 +315,10 @@ class LapseRate(BasePlugin):
             orog_centre = orog[..., cnpt : cnpt + 1, cnpt : cnpt + 1]
             height_diff_mask = np.abs(orog - orog_centre) > self.max_height_diff
 
-            temp = ma.masked_array(temp, mask=height_diff_mask)
+            temp = ma.masked_array(temp, mask=height_diff_mask, copy=False)
 
             # Masks orog to match temp
-            orog = ma.masked_array(orog, mask=temp.mask)
+            orog = ma.masked_array(orog, mask=temp.mask, copy=False)
 
             grad = mathematical_operations.fast_linear_fit(
                 orog, temp, axis=axis, gradient_only=True

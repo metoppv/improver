@@ -101,6 +101,24 @@ class Test__calc_lapse_rate(IrisTest):
         )[1, 1]
         self.assertArrayAlmostEqual(result, expected_out)
 
+    def test_handles_height_difference(self):
+        """Test that the function calculates the correct value when a large height
+        difference is present in the orography data."""
+        self.temperature[..., 1, 1] = 280.03
+        self.orography[..., 0, 0] = 205.0
+        expected_out = np.array(
+            [
+                [0.00358138, -0.00249654, -0.00615844],
+                [-0.00759706, -0.00775436, -0.0098],
+                [-0.00755349, -0.00655047, -0.0098],
+            ]
+        )
+
+        result = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
+            self.temperature, self.orography, self.land_sea_mask
+        )
+        self.assertArrayAlmostEqual(result, expected_out)
+
 
 class Test_process(IrisTest):
     """Test the LapseRate processing works"""
