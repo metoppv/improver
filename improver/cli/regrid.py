@@ -53,6 +53,8 @@ def process(
             Source cube to be regridded.
         target_grid (iris.cube.Cube):
             Cube defining the spatial grid onto which to regrid the source data.
+            If also using land_sea_mask-aware regridding then this must be
+            land_binary_mask data.
         land_sea_mask (iris.cube.Cube):
             Cube describing the land_binary_mask on the source grid if land-sea
             aware regridding is required, with land points set to one and sea points
