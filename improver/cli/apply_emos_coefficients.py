@@ -35,7 +35,6 @@ Regression (NGR)."""
 
 from improver import cli
 
-
 # Creates the value_converter that clize needs.
 inputcoeffs = cli.create_constrained_inputcubelist_converter(
     "emos_coefficient_alpha",

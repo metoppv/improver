@@ -252,7 +252,10 @@ def create_constrained_inputcubelist_converter(*constraints, strict=True):
                 Constraint(cube_func=constr) if callable(constr) else constr,
                 strict=strict,
             )
-            result.append(item) if strict else result.extend(item)
+            if strict:
+                result.append(item)
+            else:
+                result.extend(item)
         return result
 
     return constrained_inputcubelist_converter

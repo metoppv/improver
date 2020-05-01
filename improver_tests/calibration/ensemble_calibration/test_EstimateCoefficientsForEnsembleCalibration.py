@@ -58,7 +58,6 @@ from .helper_functions import (
     build_coefficients_cubelist,
 )
 
-
 try:
     importlib.import_module("statsmodels")
 except (ModuleNotFoundError, ImportError):
