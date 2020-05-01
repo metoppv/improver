@@ -36,8 +36,10 @@ from improver import cli
 
 # Creates the value_converter that clize needs.
 inputadvection = cli.create_constrained_inputcubelist_converter(
-    ["precipitation_advection_x_velocity", "grid_eastward_wind"],
-    ["precipitation_advection_y_velocity", "grid_northward_wind"],
+    lambda cube: cube.name()
+    in ["precipitation_advection_x_velocity", "grid_eastward_wind"],
+    lambda cube: cube.name()
+    in ["precipitation_advection_y_velocity", "grid_northward_wind"],
 )
 
 
