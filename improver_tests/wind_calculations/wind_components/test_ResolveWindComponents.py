@@ -48,27 +48,19 @@ RAD_TO_DEG = 180.0 / np.pi
 def set_up_cube(data_2d, name, unit):
     """Set up a 2D test cube of wind direction or speed"""
 
-    x_coord = DimCoord(
-        np.linspace(150000, 250000, data_2d.shape[1]),
-        "projection_x_coordinate",
-        units="metres",
-        coord_system=OSGB(),
+    cube = set_up_variable_cube(
+        data_2d.astype(np.float32), name=name, units=unit, spatial_grid='equalarea')
+
+    cube.coord('projection_x_coordinate').points = (
+        np.linspace(150000, 250000, data_2d.shape[1])
     )
-    y_coord = DimCoord(
-        np.linspace(0, 600000, data_2d.shape[0]),
-        "projection_y_coordinate",
-        units="metres",
-        coord_system=OSGB(),
+    cube.coord('projection_y_coordinate').points = (
+        np.linspace(0, 600000, data_2d.shape[0])
     )
-    cube = iris.cube.Cube(
-        data_2d,
-        standard_name=name,
-        units=unit,
-        dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
-    )
-    time_unit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
-    t_coord = DimCoord(402292.5, "time", units=time_unit)
-    cube.add_aux_coord(t_coord)
+    for axis in ['x', 'y']:
+        cube.coord(axis=axis).coord_system = OSGB()
+        cube.coord(axis=axis).bounds = None
+
     return cube
 
 
