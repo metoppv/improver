@@ -422,3 +422,17 @@ def fast_linear_fit(
 
     intercept = y_mean - grad * x_mean
     return grad, intercept
+
+
+def fast_cumsum_2d(data, out=None):
+    """Faster implementation of 2D cumsum."""
+    if out is None:
+        out = np.empty_like(data)
+    # Python loop can be faster by working along fast dimension thanks to
+    # less cache trashing.
+    row_prev = 0
+    for row_out, row_inp in zip(out, data):
+        row_inp.cumsum(out=row_out)
+        row_out += row_prev
+        row_prev = row_out
+    return out

@@ -105,3 +105,89 @@ def pad_and_roll(input_array, shape, **kwargs):
     pad_extent.extend((d // 2, d // 2) for d in shape)
     input_array = np.pad(input_array, pad_extent, **kwargs)
     return rolling_window(input_array, shape, writeable=writeable)
+
+
+def pad_boxsum(data, boxsize, **pad_options):
+    """Pad an array to shape suitable for `boxsum`.
+
+    Args:
+        data (numpy.ndarray):
+            The input data array.
+        boxsize (int or pair of int):
+            The size of the neighbourhood.
+        pad_options (dict):
+            Additional keyword arguments passed to `numpy.pad` function.
+    Returns:
+        numpy.ndarray:
+            Array padded to shape suitable for `boxsum`.
+    """
+    boxsize = np.atleast_1d(boxsize)
+    ih, jh = boxsize[0] // 2, boxsize[-1] // 2
+    padding = [(0, 0)] * (data.ndim - 2) + [(ih + 1, ih), (jh + 1, jh)]
+    padded = np.pad(data, padding, **pad_options)
+    return padded
+
+
+def boxsum(data, boxsize, cumsum=True, **pad_options):
+    """Fast vectorised approach to calculating neighbourhood totals.
+
+    Displacements are calculated as follows for the following input array,
+    where the accumulation has occurred from top to bottom and left to right::
+
+    | 1 | 2 | 2 | 2 |
+    | 1 | 3 | 4 | 4 |
+    | 2 | 4 | 5 | 6 |
+    | 2 | 4 | 6 | 7 |
+
+
+    For a 3x3 neighbourhood centred around the point with a value of 5::
+
+    | 1 (C) | 2 | 2                 | 2 (D) |
+    | 1     | 3 | 4                 | 4     |
+    | 2     | 4 | 5 (Central point) | 6     |
+    | 2 (A) | 4 | 6                 | 7 (B) |
+
+    To calculate the value for the neighbourhood sum at the "Central point"
+    with a value of 5, calculate::
+
+      Neighbourhood sum = B - A - D + C
+
+    At the central point, this will yield::
+
+      Neighbourhood sum = 7 - 2 - 2 +1 => 4
+
+    Args:
+        data (numpy.ndarray):
+            The input data array.
+        boxsize (int or pair of int):
+            The size of the neighbourhood.
+        cumsum (bool or callable):
+            If False, assume the input data is already cumulative. If True
+            (default), calculate cumsum along the last two dimensions of
+            the input array. If callable is passed, use it for this calculation
+            instead of `data.cumsum(-2).cumsum(-1)`.
+        pad_options (dict):
+            Additional keyword arguments passed to `numpy.pad` function.
+            If given, the returned result will have the same shape as the input
+            array.
+
+    Returns:
+        numpy.ndarray:
+            Array containing the calculated neighbourhood total.
+    """
+    boxsize = np.atleast_1d(boxsize)
+    if pad_options:
+        data = pad_boxsum(data, boxsize, **pad_options)
+    if callable(cumsum):
+        data = cumsum(data)
+    elif cumsum:
+        data = data.cumsum(-2).cumsum(-1)
+    i, j = boxsize[0], boxsize[-1]
+    m, n = data.shape[-2] - i, data.shape[-1] - j
+    result = (
+        data[..., i : i + m, j : j + n]
+        - data[..., :m, j : j + n]
+        + data[..., :m, :n]
+        - data[..., i : i + m, :n]
+    )
+    return result
