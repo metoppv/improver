@@ -111,7 +111,6 @@ def make_wdir_cube_222():
     cube = set_up_variable_cube(
         data, name="wind_from_direction", units="degrees", spatial_grid="equalarea"
     )
-
     return cube
 
 
@@ -152,6 +151,7 @@ def make_wdir_cube_534():
     cube = set_up_variable_cube(
         data, name="wind_from_direction", units="degrees", spatial_grid="equalarea"
     )
+
     return cube
 
 
@@ -166,11 +166,13 @@ def pad_wdir_cube_222():
     padded_data = np.pad(
         data, ((0, 0), (4, 4), (4, 4)), "constant", constant_values=(0.0, 0.0)
     )
-    cube_data = np.zeros((2, 10, 10), dtype=np.float32)
     cube = set_up_variable_cube(
-        cube_data, name="wind_from_direction", units="degrees", spatial_grid="equalarea"
+        padded_data.astype(np.float32), name="wind_from_direction",
+        units="degrees", spatial_grid="equalarea"
     )
-    cube.data = padded_data
+    cube.coord(axis="x").points = np.arange(-50000.0, -31000.0, 2000.0)
+    cube.coord(axis="y").points = np.arange(0.0, 19000.0, 2000.0)
+
     return cube
 
 
@@ -554,14 +556,15 @@ class Test_process(IrisTest):
 
         # set up a larger cube using a "neutral" pad value so that
         # neighbourhood processing does not fail
-        data = np.full((5, 9, 10), 30.0, dtype=np.float32)
+        data = np.full((5, 10, 10), 30.0, dtype=np.float32)
         data[:, 3:6, 3:7] = self.cube.data[:, :, :].copy()
 
         cube = set_up_variable_cube(
             data, name="wind_from_direction", units="degrees", spatial_grid="equalarea"
         )
         cube.coord(axis="x").points = np.arange(-50000.0, -31000.0, 2000.0)
-        cube.coord(axis="y").points = np.arange(0.0, 17000.0, 2000.0)
+        cube.coord(axis="y").points = np.arange(0.0, 19000.0, 2000.0)
+
         self.expected_wind_mean[1, 1] = 30.0870
         self.expected_r_vals[1, 1] = 2.665601e-08
         self.expected_confidence_measure[1, 1] = 0.0
