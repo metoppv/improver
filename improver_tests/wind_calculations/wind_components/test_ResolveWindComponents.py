@@ -60,6 +60,7 @@ def set_up_cube(data_2d, name, unit):
         0, 600000, data_2d.shape[0]
     )
     for axis in ["x", "y"]:
+        cube.coord(axis=axis).units = "metres"
         cube.coord(axis=axis).coord_system = OSGB()
         cube.coord(axis=axis).bounds = None
 
@@ -112,7 +113,7 @@ class Test_calc_true_north_offset(IrisTest):
             dtype=np.float32,
         )
         result = self.plugin.calc_true_north_offset(self.directions)
-        self.assertArrayAlmostEqual(RAD_TO_DEG * result, expected_result, decimal=5)
+        self.assertArrayAlmostEqual(RAD_TO_DEG * result, expected_result)
 
 
 class Test_resolve_wind_components(IrisTest):
