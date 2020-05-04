@@ -47,7 +47,7 @@ from ...set_up_test_cubes import add_coordinate, set_up_percentile_cube
 
 
 def create_cube_with_percentile_coord(
-    data=None, standard_name=None, perc_values=None, perc_name="percentile", units=None
+    data=None, perc_values=None, name="wind_speed_of_gust"
 ):
     """Create a cube with percentile coordinate and two time slices"""
     if perc_values is None:
@@ -61,7 +61,7 @@ def create_cube_with_percentile_coord(
     perc_cube = set_up_percentile_cube(
         data[:, 0, :, :],
         perc_values,
-        name="wind_speed_of_gust",
+        name=name,
         units="m s-1",
         time=data_times[0],
         frt=datetime(2015, 11, 18, 21),
@@ -143,7 +143,7 @@ class Test_extract_percentile_data(IrisTest):
         self.ws_perc = 95.0
         gust = "wind_speed_of_gust"
         self.cube_wg = create_cube_with_percentile_coord(
-            data=data, perc_values=[self.wg_perc, 90.0], standard_name=gust
+            data=data, perc_values=[self.wg_perc, 90.0]
         )
 
     def test_basic(self):
@@ -210,7 +210,7 @@ class Test_process(IrisTest):
         data_ws[0, 1, :, :] = 2.0
         speed = "wind_speed"
         self.cube_ws = create_cube_with_percentile_coord(
-            data=data_ws, perc_values=[self.ws_perc], standard_name=speed
+            data=data_ws, perc_values=[self.ws_perc], name="wind_speed"
         )
         data_wg = np.zeros((1, 2, 2, 2), dtype=np.float32)
         data_wg[0, 0, :, :] = 3.0
@@ -218,7 +218,7 @@ class Test_process(IrisTest):
         self.wg_perc = 50.0
         gust = "wind_speed_of_gust"
         self.cube_wg = create_cube_with_percentile_coord(
-            data=data_wg, perc_values=[self.wg_perc], standard_name=gust
+            data=data_wg, perc_values=[self.wg_perc]
         )
 
     def test_basic(self):
