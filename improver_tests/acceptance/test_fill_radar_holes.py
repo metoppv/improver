@@ -42,7 +42,7 @@ run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
-    """Test filling radar holes by interpolation"""
+    """Test interpolating radar holes"""
     kgo_dir = acc.kgo_root() / "fill-radar-holes/basic"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "201811271330_remasked_rainrate_composite.nc"
