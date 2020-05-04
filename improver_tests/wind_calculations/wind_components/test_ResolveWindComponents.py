@@ -40,6 +40,7 @@ from iris.coords import DimCoord
 from iris.tests import IrisTest
 
 from improver.wind_calculations.wind_components import ResolveWindComponents
+from ...set_up_test_cubes import set_up_variable_cube, add_coordinate
 
 RAD_TO_DEG = 180.0 / np.pi
 
@@ -117,7 +118,8 @@ class Test_calc_true_north_offset(IrisTest):
             dtype=np.float32,
         )
         result = self.plugin.calc_true_north_offset(self.directions)
-        self.assertArrayAlmostEqual(RAD_TO_DEG * result, expected_result)
+        self.assertArrayAlmostEqual(RAD_TO_DEG * result, expected_result,
+            decimal=5)
 
 
 class Test_resolve_wind_components(IrisTest):
@@ -133,7 +135,8 @@ class Test_resolve_wind_components(IrisTest):
                 [90.0, 120.0, 135.0, 150.0],
                 [180.0, 210.0, 225.0, 240.0],
                 [270.0, 300.0, 315.0, 330.0],
-            ]
+            ],
+            dtype=np.float32,
         )
         self.wind_cube = set_up_cube(wind_speed, "wind_speed", "knots")
         self.directions = set_up_cube(wind_angle, "wind_to_direction", "degrees")
@@ -155,7 +158,8 @@ class Test_resolve_wind_components(IrisTest):
                 [2.0, np.sqrt(3.0), np.sqrt(2.0), 1.0],
                 [0.0, -1.0, -np.sqrt(2.0), -np.sqrt(3.0)],
                 [-2.0, -np.sqrt(3.0), -np.sqrt(2.0), -1.0],
-            ]
+            ],
+            dtype=np.float32
         )
 
         expected_vspeed = 5 * np.array(
@@ -164,14 +168,17 @@ class Test_resolve_wind_components(IrisTest):
                 [0.0, -1.0, -np.sqrt(2.0), -np.sqrt(3.0)],
                 [-2.0, -np.sqrt(3.0), -np.sqrt(2.0), -1.0],
                 [0.0, 1.0, np.sqrt(2.0), np.sqrt(3.0)],
-            ]
+            ],
+            dtype=np.float32
         )
 
         uspeed, vspeed = self.plugin.resolve_wind_components(
             self.wind_cube, self.directions, self.adjustments
         )
-        self.assertArrayAlmostEqual(uspeed.data, expected_uspeed)
-        self.assertArrayAlmostEqual(vspeed.data, expected_vspeed)
+        self.assertArrayAlmostEqual(uspeed.data, expected_uspeed,
+            decimal=5)
+        self.assertArrayAlmostEqual(vspeed.data, expected_vspeed,
+            decimal=5)
 
 
 class Test_process(IrisTest):
