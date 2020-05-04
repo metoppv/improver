@@ -104,6 +104,16 @@ def extract_diagnostic_name(cube_name):
     return diagnostic_name
 
 
+def is_probability(cube):
+    """Determines whether an iris.cube.Cube contains probability data at
+    a range of thresholds"""
+    try:
+        find_threshold_coordinate(cube)
+    except CoordinateNotFoundError:
+        return False
+    return True
+
+
 def find_threshold_coordinate(cube):
     """Find threshold coordinate in cube.
 
