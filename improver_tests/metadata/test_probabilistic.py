@@ -45,7 +45,6 @@ from improver.metadata.probabilistic import (
     is_probability,
 )
 
-from ..metadata.test_amend import create_cube_with_threshold
 from ..set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,

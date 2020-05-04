@@ -205,7 +205,6 @@ class Test_process(IrisTest):
         data_ws = np.zeros((1, 2, 2, 2), dtype=np.float32)
         data_ws[0, 0, :, :] = 2.5
         data_ws[0, 1, :, :] = 2.0
-        speed = "wind_speed"
         self.cube_ws = create_wind_percentile_cube(
             data=data_ws, perc_values=[self.ws_perc], name="wind_speed"
         )
