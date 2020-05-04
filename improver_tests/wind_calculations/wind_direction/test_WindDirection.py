@@ -100,23 +100,8 @@ WIND_DIR_COMPLEX = np.array(
 )
 
 
-def make_wdir_cube_222():
-    """Make a wind direction cube for testing this plugin"""
-    # 2x2x2 3D Array containing wind direction in angles.
-    # First element - two angles set at 90 and 270 degrees.
-    data = np.array(
-        [[[90.0, 50.0], [270.0, 350.0]], [[270.0, 60.0], [290.0, 10.0]]],
-        dtype=np.float32,
-    )
-    cube = set_up_variable_cube(
-        data, name="wind_from_direction", units="degrees", spatial_grid="equalarea"
-    )
-    return cube
-
-
 def make_wdir_cube_534():
-    """Make a wind direction cube for testing this plugin"""
-    # 5x3x4 3D Array containing wind direction in angles.
+    """Make a 5x3x4 wind direction cube for testing this plugin"""
     data = np.array(
         [
             [
@@ -155,10 +140,21 @@ def make_wdir_cube_534():
     return cube
 
 
+def make_wdir_cube_222():
+    """Make a 2x2x2 wind direction cube for testing this plugin"""
+    data = np.array(
+        [[[90.0, 50.0], [270.0, 350.0]], [[270.0, 60.0], [290.0, 10.0]]],
+        dtype=np.float32,
+    )
+    cube = set_up_variable_cube(
+        data, name="wind_from_direction", units="degrees", spatial_grid="equalarea"
+    )
+    return cube
+
+
 def pad_wdir_cube_222():
-    """Make a padded wind direction cube for testing this plugin"""
-    # 2x2x2 3D Array containing wind direction in angles.
-    # Padded in x and y to 2x10x10 for use with nbhood option
+    """Make a padded wind direction cube using the same data as make_wdir_cube().
+    Original data: 2x2x2; padded data 2x10x10"""
     data = np.array(
         [[[90.0, 50.0], [270.0, 350.0]], [[270.0, 60.0], [290.0, 10.0]]],
         dtype=np.float32,
@@ -369,12 +365,19 @@ class Test_calc_confidence_measure(IrisTest):
         self.plugin = WindDirection()
         self.plugin.wdir_complex = WIND_DIR_COMPLEX
         self.plugin.realization_axis = 0
-        self.plugin.r_vals_slice = make_wdir_cube_222()[0]
-        self.plugin.r_vals_slice.data = np.array(
-            [[6.12323400e-17, 0.996194698], [0.984807753, 0.984807753]]
+        rvals =  np.array(
+            [[6.12323400e-17, 0.996194698], [0.984807753, 0.984807753]],
+            dtype=np.float32,
         )
-        self.plugin.wdir_slice_mean = make_wdir_cube_222()[0]
-        self.plugin.wdir_slice_mean.data = np.array([[180.0, 55.0], [280.0, 0.0]])
+        self.plugin.r_vals_slice = set_up_variable_cube(
+            rvals, name="r_values", units="1", spatial_grid="equalarea"
+        )
+        wdir = np.array([[180.0, 55.0], [280.0, 0.0]], dtype=np.float32)
+        self.plugin.wdir_slice_mean = set_up_variable_cube(
+            wdir,
+            name="wind_from_direction",
+            units="degrees",
+            spatial_grid="equalarea")
 
     def test_returns_confidence(self):
         """First element has two angles directly opposite (90 & 270 degs).
@@ -402,8 +405,9 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin = WindDirection(backup_method="first_realization")
         self.plugin.wdir_complex = WIND_DIR_COMPLEX
         self.plugin.realization_axis = 0
-        self.plugin.wdir_slice_mean = make_wdir_cube_222()[0]
-        self.plugin.wdir_slice_mean.data = np.array([[180.0, 55.0], [280.0, 0.0]])
+        self.plugin.wdir_slice_mean = cube[0].copy(
+            data=np.array([[180.0, 55.0], [280.0, 0.0]])
+        )
         self.plugin.wdir_mean_complex = self.plugin.deg_to_complex(
             self.plugin.wdir_slice_mean.data
         )
@@ -447,11 +451,11 @@ class Test_wind_dir_decider(IrisTest):
             "constant",
             constant_values=(0.0 + 0.0j),
         )
-        self.plugin.wdir_slice_mean = pad_wdir_cube_222()[0]
-        self.plugin.wdir_slice_mean.data = np.pad(
-            wind_dir_deg_mean, ((4, 4), (4, 4)), "constant", constant_values=0.0
+        self.plugin.wdir_slice_mean = cube[0].copy(
+            data=np.pad(
+                wind_dir_deg_mean, ((4, 4), (4, 4)), "constant", constant_values=0.0
+            )
         )
-        ### the below line is the problem - figure this out (distance of 6000.0m gives zero cell
         self.plugin.wind_dir_decider(where_low_r, cube)
         result = self.plugin.wdir_slice_mean.data
         self.assertIsInstance(result, np.ndarray)
