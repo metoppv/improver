@@ -365,7 +365,7 @@ class Test_calc_confidence_measure(IrisTest):
         self.plugin = WindDirection()
         self.plugin.wdir_complex = WIND_DIR_COMPLEX
         self.plugin.realization_axis = 0
-        rvals =  np.array(
+        rvals = np.array(
             [[6.12323400e-17, 0.996194698], [0.984807753, 0.984807753]],
             dtype=np.float32,
         )
@@ -374,10 +374,8 @@ class Test_calc_confidence_measure(IrisTest):
         )
         wdir = np.array([[180.0, 55.0], [280.0, 0.0]], dtype=np.float32)
         self.plugin.wdir_slice_mean = set_up_variable_cube(
-            wdir,
-            name="wind_from_direction",
-            units="degrees",
-            spatial_grid="equalarea")
+            wdir, name="wind_from_direction", units="degrees", spatial_grid="equalarea"
+        )
 
     def test_returns_confidence(self):
         """First element has two angles directly opposite (90 & 270 degs).
