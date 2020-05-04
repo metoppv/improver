@@ -40,7 +40,7 @@ from iris.tests import IrisTest
 
 from improver.wind_calculations.wind_direction import WindDirection
 
-from ...set_up_test_cubes import set_up_variable_cube, add_coordinate
+from ...set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 # Data to test complex/degree handling functions.
 # Complex angles equivalent to np.arange(0., 360, 10) degrees.
@@ -104,13 +104,12 @@ def make_wdir_cube_222():
     """Make a wind direction cube for testing this plugin"""
     # 2x2x2 3D Array containing wind direction in angles.
     # First element - two angles set at 90 and 270 degrees.
-    data = np.array([[[90.0, 50.0], [270.0, 350.0]],
-                     [[270.0, 60.0], [290.0, 10.0]]], dtype = np.float32)
+    data = np.array(
+        [[[90.0, 50.0], [270.0, 350.0]], [[270.0, 60.0], [290.0, 10.0]]],
+        dtype=np.float32,
+    )
     cube = set_up_variable_cube(
-        data,
-        name="wind_from_direction",
-        units="degrees",
-        spatial_grid="equalarea"
+        data, name="wind_from_direction", units="degrees", spatial_grid="equalarea"
     )
 
     return cube
@@ -140,7 +139,6 @@ def make_wdir_cube_534():
                 [190.0, 40.0, 270.0, 90.0],
                 [170.0, 170.0, 47.0, 47.0],
                 [310.0, 309.0, 10.0, 10.0],
-
             ],
             [
                 [190.0, 40.0, 270.0, 270.0],
@@ -151,11 +149,8 @@ def make_wdir_cube_534():
         dtype=np.float32,
     )
 
-    cube=set_up_variable_cube(
-        data,
-        name="wind_from_direction",
-        units="degrees",
-        spatial_grid="equalarea"
+    cube = set_up_variable_cube(
+        data, name="wind_from_direction", units="degrees", spatial_grid="equalarea"
     )
     return cube
 
@@ -164,19 +159,18 @@ def pad_wdir_cube_222():
     """Make a padded wind direction cube for testing this plugin"""
     # 2x2x2 3D Array containing wind direction in angles.
     # Padded in x and y to 2x10x10 for use with nbhood option
-    data = np.array([[[90.0, 50.0], [270.0, 350.0]],
-                     [[270.0, 60.0], [290.0, 10.0]]], dtype=np.float32)
+    data = np.array(
+        [[[90.0, 50.0], [270.0, 350.0]], [[270.0, 60.0], [290.0, 10.0]]],
+        dtype=np.float32,
+    )
     padded_data = np.pad(
         data, ((0, 0), (4, 4), (4, 4)), "constant", constant_values=(0.0, 0.0)
     )
-    cube_data = np.zeros((2, 10, 10), dtype = np.float32)
+    cube_data = np.zeros((2, 10, 10), dtype=np.float32)
     cube = set_up_variable_cube(
-        cube_data,
-        name="wind_from_direction",
-        units="degrees",
-        spatial_grid="equalarea"
+        cube_data, name="wind_from_direction", units="degrees", spatial_grid="equalarea"
     )
-    cube.data=padded_data
+    cube.data = padded_data
     return cube
 
 
@@ -303,9 +297,8 @@ class Test_calc_wind_dir_mean(IrisTest):
                 [170.0, 170.0, 47.0, 36.544231],
                 [333.413239, 320.035217, 10.0, 10.0],
             ],
-            dtype=np.float32
+            dtype=np.float32,
         )
-
 
     def test_complex(self):
         """Test that the function defines correct complex mean."""
@@ -454,8 +447,8 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin.wdir_slice_mean.data = np.pad(
             wind_dir_deg_mean, ((4, 4), (4, 4)), "constant", constant_values=0.0
         )
-### the below line is the problem - figure this out (distance of 6000.0m gives zero cell
-        self.plugin.wind_dir_decider(where_low_r, cube) 
+        ### the below line is the problem - figure this out (distance of 6000.0m gives zero cell
+        self.plugin.wind_dir_decider(where_low_r, cube)
         result = self.plugin.wdir_slice_mean.data
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result[4:6, 4:6], expected_out, decimal=2)
@@ -515,14 +508,9 @@ class Test_process(IrisTest):
     def test_fails_if_data_is_not_convertible_to_degrees(self):
         """Test code raises a ValueError if input cube is not convertible to
         degrees."""
-        data = np.array([[300.0, 270.0],
-                         [270.0, 300.0]], dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            name="air_temperature",
-            units="K"
-        )
-            
+        data = np.array([[300.0, 270.0], [270.0, 300.0]], dtype=np.float32)
+        cube = set_up_variable_cube(data, name="air_temperature", units="K")
+
         msg = "Input cube cannot be converted to degrees"
         with self.assertRaisesRegex(ValueError, msg):
             WindDirection().process(cube)

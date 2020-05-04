@@ -40,7 +40,8 @@ from iris.coords import DimCoord
 from iris.tests import IrisTest
 
 from improver.wind_calculations.wind_components import ResolveWindComponents
-from ...set_up_test_cubes import set_up_variable_cube, add_coordinate
+
+from ...set_up_test_cubes import set_up_variable_cube
 
 RAD_TO_DEG = 180.0 / np.pi
 
@@ -49,15 +50,16 @@ def set_up_cube(data_2d, name, unit):
     """Set up a 2D test cube of wind direction or speed"""
 
     cube = set_up_variable_cube(
-        data_2d.astype(np.float32), name=name, units=unit, spatial_grid='equalarea')
+        data_2d.astype(np.float32), name=name, units=unit, spatial_grid="equalarea"
+    )
 
-    cube.coord('projection_x_coordinate').points = (
-        np.linspace(150000, 250000, data_2d.shape[1])
+    cube.coord("projection_x_coordinate").points = np.linspace(
+        150000, 250000, data_2d.shape[1]
     )
-    cube.coord('projection_y_coordinate').points = (
-        np.linspace(0, 600000, data_2d.shape[0])
+    cube.coord("projection_y_coordinate").points = np.linspace(
+        0, 600000, data_2d.shape[0]
     )
-    for axis in ['x', 'y']:
+    for axis in ["x", "y"]:
         cube.coord(axis=axis).coord_system = OSGB()
         cube.coord(axis=axis).bounds = None
 
@@ -110,8 +112,7 @@ class Test_calc_true_north_offset(IrisTest):
             dtype=np.float32,
         )
         result = self.plugin.calc_true_north_offset(self.directions)
-        self.assertArrayAlmostEqual(RAD_TO_DEG * result, expected_result,
-            decimal=5)
+        self.assertArrayAlmostEqual(RAD_TO_DEG * result, expected_result, decimal=5)
 
 
 class Test_resolve_wind_components(IrisTest):
@@ -151,7 +152,7 @@ class Test_resolve_wind_components(IrisTest):
                 [0.0, -1.0, -np.sqrt(2.0), -np.sqrt(3.0)],
                 [-2.0, -np.sqrt(3.0), -np.sqrt(2.0), -1.0],
             ],
-            dtype=np.float32
+            dtype=np.float32,
         )
 
         expected_vspeed = 5 * np.array(
@@ -161,16 +162,14 @@ class Test_resolve_wind_components(IrisTest):
                 [-2.0, -np.sqrt(3.0), -np.sqrt(2.0), -1.0],
                 [0.0, 1.0, np.sqrt(2.0), np.sqrt(3.0)],
             ],
-            dtype=np.float32
+            dtype=np.float32,
         )
 
         uspeed, vspeed = self.plugin.resolve_wind_components(
             self.wind_cube, self.directions, self.adjustments
         )
-        self.assertArrayAlmostEqual(uspeed.data, expected_uspeed,
-            decimal=5)
-        self.assertArrayAlmostEqual(vspeed.data, expected_vspeed,
-            decimal=5)
+        self.assertArrayAlmostEqual(uspeed.data, expected_uspeed, decimal=5)
+        self.assertArrayAlmostEqual(vspeed.data, expected_vspeed, decimal=5)
 
 
 class Test_process(IrisTest):

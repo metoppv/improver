@@ -41,7 +41,8 @@ from iris.tests import IrisTest
 
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
-from ...set_up_test_cubes import set_up_percentile_cube, add_coordinate
+
+from ...set_up_test_cubes import add_coordinate, set_up_percentile_cube
 
 
 def create_cube_with_percentile_coord(
@@ -51,27 +52,24 @@ def create_cube_with_percentile_coord(
     if perc_values is None:
         perc_values = [50.0]
     if data is None:
-        data = np.zeros((len(perc_values), 2, 2, 2), dtype = np.float32)
+        data = np.zeros((len(perc_values), 2, 2, 2), dtype=np.float32)
         data[:, 0, :, :] = 1.0
         data[:, 1, :, :] = 2.0
-    mock_data = np.zeros((len(perc_values), 2, 2), dtype = np.float32)
+    mock_data = np.zeros((len(perc_values), 2, 2), dtype=np.float32)
     perc_cube = set_up_percentile_cube(
-        mock_data,
-        perc_values,
-        name = "wind_speed_of_gust",
-        units = "m s^-1"
+        mock_data, perc_values, name="wind_speed_of_gust", units="m s^-1"
     )
     time_points = [1447893000, 1447896600]
     cube = add_coordinate(
         perc_cube,
         time_points,
         "time",
-        dtype = np.int64,
+        dtype=np.int64,
         coord_units="seconds since 1970-01-01 00:00:00",
-        order = [1, 0, 2, 3]
+        order=[1, 0, 2, 3],
     )
     cube.data = data
-    return (cube)
+    return cube
 
 
 class Test__init__(IrisTest):
@@ -273,8 +271,10 @@ class Test_process(IrisTest):
         """Test raises no Value Error if wind-speed point in bounds """
         cube_wg = self.cube_wg
         cube_wg.coord("time").points = [1447891200.0, 1447894800.0]
-        cube_wg.coord("time").bounds = [[1447889400.0, 1447893000.0],
-            [1447893000.0, 1447896600.0]]
+        cube_wg.coord("time").bounds = [
+            [1447889400.0, 1447893000.0],
+            [1447893000.0, 1447896600.0],
+        ]
 
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         result = plugin(cube_wg, self.cube_ws)
