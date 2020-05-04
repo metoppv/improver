@@ -30,11 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the windgust_diagnostic.WindGustDiagnostic plugin."""
 import unittest
+from datetime import datetime
 
 import iris
 import numpy as np
 from cf_units import Unit
-from datetime import datetime
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
@@ -46,9 +46,7 @@ from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 from ...set_up_test_cubes import add_coordinate, set_up_percentile_cube
 
 
-def create_cube_with_percentile_coord(
-    data=None, perc_values=None, name="wind_speed_of_gust"
-):
+def create_wind_percentile_cube(data=None, perc_values=None, name="wind_speed_of_gust"):
     """Create a cube with percentile coordinate and two time slices"""
     if perc_values is None:
         perc_values = [50.0]
@@ -101,7 +99,7 @@ class Test_add_metadata(IrisTest):
 
     def setUp(self):
         """Create a cube."""
-        self.cube_wg = create_cube_with_percentile_coord()
+        self.cube_wg = create_wind_percentile_cube()
 
     def test_basic(self):
         """Test that the function returns a Cube. """
@@ -141,8 +139,7 @@ class Test_extract_percentile_data(IrisTest):
         data = np.zeros((2, 2, 2, 2), dtype=np.float32)
         self.wg_perc = 50.0
         self.ws_perc = 95.0
-        gust = "wind_speed_of_gust"
-        self.cube_wg = create_cube_with_percentile_coord(
+        self.cube_wg = create_wind_percentile_cube(
             data=data, perc_values=[self.wg_perc, 90.0]
         )
 
@@ -209,15 +206,14 @@ class Test_process(IrisTest):
         data_ws[0, 0, :, :] = 2.5
         data_ws[0, 1, :, :] = 2.0
         speed = "wind_speed"
-        self.cube_ws = create_cube_with_percentile_coord(
+        self.cube_ws = create_wind_percentile_cube(
             data=data_ws, perc_values=[self.ws_perc], name="wind_speed"
         )
         data_wg = np.zeros((1, 2, 2, 2), dtype=np.float32)
         data_wg[0, 0, :, :] = 3.0
         data_wg[0, 1, :, :] = 1.5
         self.wg_perc = 50.0
-        gust = "wind_speed_of_gust"
-        self.cube_wg = create_cube_with_percentile_coord(
+        self.cube_wg = create_wind_percentile_cube(
             data=data_wg, perc_values=[self.wg_perc]
         )
 
