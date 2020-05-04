@@ -46,8 +46,8 @@ run_cli = acc.run_cli(CLI)
 def test_regrid_basic(tmp_path):
     """Test basic regridding"""
     # KGO for this test is the same as test_regrid_check_landmask below
-    kgo_dir = acc.kgo_root() / "standardise/regrid-basic"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "basic/kgo.nc"
     input_path = kgo_dir / "global_cutout.nc"
     target_path = kgo_dir / "ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
@@ -58,10 +58,10 @@ def test_regrid_basic(tmp_path):
 
 def test_regrid_nearest(tmp_path):
     """Test nearest neighbour regridding"""
-    kgo_dir = acc.kgo_root() / "standardise/regrid-nearest"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "../regrid-basic/global_cutout.nc"
-    target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "nearest/kgo.nc"
+    input_path = kgo_dir / "global_cutout.nc"
+    target_path = kgo_dir / "ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
@@ -79,10 +79,10 @@ def test_regrid_nearest(tmp_path):
 
 def test_regrid_extrapolate(tmp_path):
     """Test nearest neighbour regridding with extrapolation"""
-    kgo_dir = acc.kgo_root() / "standardise/regrid-extrapolate"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
-    target_path = kgo_dir / "../regrid-basic/global_cutout.nc"
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "extrapolate/kgo.nc"
+    input_path = kgo_dir / "ukvx_grid.nc"
+    target_path = kgo_dir / "global_cutout.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
@@ -103,11 +103,11 @@ def test_regrid_extrapolate(tmp_path):
 @pytest.mark.slow
 def test_regrid_nearest_landmask(tmp_path):
     """Test nearest neighbour regridding with land sea mask"""
-    kgo_dir = acc.kgo_root() / "standardise/regrid-landmask"
+    kgo_dir = acc.kgo_root() / "regrid/landmask"
     kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "../regrid-basic/global_cutout.nc"
-    landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
-    target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
+    input_path = kgo_dir / "../global_cutout.nc"
+    landmask_path = kgo_dir / "glm_landmask.nc"
+    target_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
@@ -128,11 +128,11 @@ def test_regrid_nearest_landmask(tmp_path):
 def test_regrid_check_landmask(tmp_path):
     """Test land sea mask output matches other test"""
     # KGO for this test is the same as test_basic above
-    kgo_dir = acc.kgo_root() / "standardise/regrid-nearest"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "../regrid-basic/global_cutout.nc"
-    landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
-    target_path = kgo_dir / "../regrid-basic/ukvx_grid.nc"
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "nearest/kgo.nc"
+    input_path = kgo_dir / "global_cutout.nc"
+    landmask_path = kgo_dir / "landmask/glm_landmask.nc"
+    target_path = kgo_dir / "ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
@@ -153,10 +153,10 @@ def test_regrid_check_landmask(tmp_path):
 
 def test_args_error_landmask(tmp_path):
     """Test land sea mask specified but no regrid mode"""
-    kgo_dir = acc.kgo_root() / "standardise/regrid-landmask"
-    input_path = kgo_dir / "../regrid-basic/global_cutout.nc"
-    landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
-    target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
+    kgo_dir = acc.kgo_root() / "regrid/landmask"
+    input_path = kgo_dir / "../global_cutout.nc"
+    landmask_path = kgo_dir / "glm_landmask.nc"
+    target_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, target_path, landmask_path, "--output", output_path]
     with pytest.raises(ValueError, match=".*nearest-with-mask.*"):
@@ -165,9 +165,9 @@ def test_args_error_landmask(tmp_path):
 
 def test_args_error_no_landmask(tmp_path):
     """Test landmask mode but no land sea mask provided"""
-    kgo_dir = acc.kgo_root() / "standardise/regrid-landmask"
-    input_path = kgo_dir / "../regrid-basic/global_cutout.nc"
-    target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
+    kgo_dir = acc.kgo_root() / "regrid/landmask"
+    input_path = kgo_dir / "../global_cutout.nc"
+    target_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
@@ -184,11 +184,11 @@ def test_args_error_no_landmask(tmp_path):
 @pytest.mark.slow
 def test_regrid_nearest_landmask_multi_realization(tmp_path):
     """Test nearest neighbour with land sea mask and realizations"""
-    kgo_dir = acc.kgo_root() / "standardise/regrid-landmask"
+    kgo_dir = acc.kgo_root() / "regrid/landmask"
     kgo_path = kgo_dir / "kgo_multi_realization.nc"
-    input_path = kgo_dir / "../regrid-basic/global_cutout_multi_realization.nc"
-    landmask_path = kgo_dir / "../regrid-landmask/glm_landmask.nc"
-    target_path = kgo_dir / "../regrid-landmask/ukvx_landmask.nc"
+    input_path = kgo_dir / "global_cutout_multi_realization.nc"
+    landmask_path = kgo_dir / "glm_landmask.nc"
+    target_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
