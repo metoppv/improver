@@ -167,8 +167,10 @@ def pad_wdir_cube_222():
         data, ((0, 0), (4, 4), (4, 4)), "constant", constant_values=(0.0, 0.0)
     )
     cube = set_up_variable_cube(
-        padded_data.astype(np.float32), name="wind_from_direction",
-        units="degrees", spatial_grid="equalarea"
+        padded_data.astype(np.float32),
+        name="wind_from_direction",
+        units="degrees",
+        spatial_grid="equalarea",
     )
     cube.coord(axis="x").points = np.arange(-50000.0, -31000.0, 2000.0)
     cube.coord(axis="y").points = np.arange(0.0, 19000.0, 2000.0)

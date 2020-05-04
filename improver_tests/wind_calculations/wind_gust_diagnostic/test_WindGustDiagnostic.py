@@ -64,14 +64,10 @@ def create_cube_with_percentile_coord(
         name="wind_speed_of_gust",
         units="m s-1",
         time=data_times[0],
-        frt=datetime(2015, 11, 18, 21)
+        frt=datetime(2015, 11, 18, 21),
     )
     cube = add_coordinate(
-        perc_cube,
-        data_times,
-        "time",
-        is_datetime=True,
-        order=[1, 0, 2, 3]
+        perc_cube, data_times, "time", is_datetime=True, order=[1, 0, 2, 3]
     )
     cube.data = data
     return cube
@@ -256,7 +252,7 @@ class Test_process(IrisTest):
     def test_raises_error_points_mismatch_and_no_bounds(self):
         """Test raises Value Error if points mismatch and no bounds """
         # offset times by half an hour (in seconds)
-        self.cube_wg.coord("time").points = self.cube_wg.coord("time").points + 30*60
+        self.cube_wg.coord("time").points = self.cube_wg.coord("time").points + 30 * 60
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = "Could not match time coordinate"
         with self.assertRaisesRegex(ValueError, msg):
@@ -265,10 +261,13 @@ class Test_process(IrisTest):
     def test_raises_error_points_mismatch_and_bounds(self):
         """Test raises Value Error if both points and bounds mismatch """
         # offset by 4 hours (in seconds)
-        self.cube_wg.coord("time").points = self.cube_wg.coord("time").points + 4*60*60
+        self.cube_wg.coord("time").points = (
+            self.cube_wg.coord("time").points + 4 * 60 * 60
+        )
         times = self.cube_wg.coord("time").points
         self.cube_wg.coord("time").bounds = [
-            [times[0] - 3600, times[0]], [times[1] - 3600, times[1]],
+            [times[0] - 3600, times[0]],
+            [times[1] - 3600, times[1]],
         ]
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = "Could not match time coordinate"
@@ -277,10 +276,11 @@ class Test_process(IrisTest):
 
     def test_no_error_if_ws_point_in_bounds(self):
         """Test raises no Value Error if wind-speed point in bounds """
-        self.cube_wg.coord("time").points = self.cube_wg.coord("time").points + 30*60
+        self.cube_wg.coord("time").points = self.cube_wg.coord("time").points + 30 * 60
         times = self.cube_wg.coord("time").points
         self.cube_wg.coord("time").bounds = [
-            [times[0] - 3600, times[0]], [times[1] - 3600, times[1]],
+            [times[0] - 3600, times[0]],
+            [times[1] - 3600, times[1]],
         ]
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         result = plugin(self.cube_wg, self.cube_ws)
