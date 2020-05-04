@@ -34,6 +34,7 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
+from datetime import datetime
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
@@ -48,25 +49,29 @@ from ...set_up_test_cubes import add_coordinate, set_up_percentile_cube
 def create_cube_with_percentile_coord(
     data=None, standard_name=None, perc_values=None, perc_name="percentile", units=None
 ):
-    """Create a cube with percentile coord."""
+    """Create a cube with percentile coordinate and two time slices"""
     if perc_values is None:
         perc_values = [50.0]
     if data is None:
         data = np.zeros((len(perc_values), 2, 2, 2), dtype=np.float32)
         data[:, 0, :, :] = 1.0
         data[:, 1, :, :] = 2.0
-    mock_data = np.zeros((len(perc_values), 2, 2), dtype=np.float32)
+
+    data_times = [datetime(2015, 11, 19, 0, 30), datetime(2015, 11, 19, 1, 30)]
     perc_cube = set_up_percentile_cube(
-        mock_data, perc_values, name="wind_speed_of_gust", units="m s^-1"
+        data[:, 0, :, :],
+        perc_values,
+        name="wind_speed_of_gust",
+        units="m s-1",
+        time=data_times[0],
+        frt=datetime(2015, 11, 18, 21)
     )
-    time_points = [1447893000, 1447896600]
     cube = add_coordinate(
         perc_cube,
-        time_points,
+        data_times,
         "time",
-        dtype=np.int64,
-        coord_units="seconds since 1970-01-01 00:00:00",
-        order=[1, 0, 2, 3],
+        is_datetime=True,
+        order=[1, 0, 2, 3]
     )
     cube.data = data
     return cube
@@ -250,34 +255,35 @@ class Test_process(IrisTest):
 
     def test_raises_error_points_mismatch_and_no_bounds(self):
         """Test raises Value Error if points mismatch and no bounds """
-        cube_wg = self.cube_wg
-        cube_wg.coord("time").points = [402192.5, 402194.5]
+        # offset times by half an hour (in seconds)
+        self.cube_wg.coord("time").points = self.cube_wg.coord("time").points + 30*60
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = "Could not match time coordinate"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin(cube_wg, self.cube_ws)
+            plugin(self.cube_wg, self.cube_ws)
 
     def test_raises_error_points_mismatch_and_bounds(self):
         """Test raises Value Error if both points and bounds mismatch """
-        cube_wg = self.cube_wg
-        cube_wg.coord("time").points = [402192.0, 402193.0]
-        cube_wg.coord("time").bounds = [[402191.0, 402192.0], [402192.0, 402193.0]]
+        # offset by 4 hours (in seconds)
+        self.cube_wg.coord("time").points = self.cube_wg.coord("time").points + 4*60*60
+        times = self.cube_wg.coord("time").points
+        self.cube_wg.coord("time").bounds = [
+            [times[0] - 3600, times[0]], [times[1] - 3600, times[1]],
+        ]
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = "Could not match time coordinate"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin(cube_wg, self.cube_ws)
+            plugin(self.cube_wg, self.cube_ws)
 
-    def test_no_raises_error_if_ws_point_in_bounds(self):
+    def test_no_error_if_ws_point_in_bounds(self):
         """Test raises no Value Error if wind-speed point in bounds """
-        cube_wg = self.cube_wg
-        cube_wg.coord("time").points = [1447891200.0, 1447894800.0]
-        cube_wg.coord("time").bounds = [
-            [1447889400.0, 1447893000.0],
-            [1447893000.0, 1447896600.0],
+        self.cube_wg.coord("time").points = self.cube_wg.coord("time").points + 30*60
+        times = self.cube_wg.coord("time").points
+        self.cube_wg.coord("time").bounds = [
+            [times[0] - 3600, times[0]], [times[1] - 3600, times[1]],
         ]
-
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
-        result = plugin(cube_wg, self.cube_ws)
+        result = plugin(self.cube_wg, self.cube_ws)
         self.assertIsInstance(result, Cube)
 
     def test_returns_wind_gust_diagnostic(self):
