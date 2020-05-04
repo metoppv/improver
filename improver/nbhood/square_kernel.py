@@ -39,6 +39,8 @@ from improver.utilities.cube_checker import (
     check_for_x_and_y_axes,
 )
 from improver.utilities.cube_manipulation import clip_cube_data
+from improver.utilities.mathematical_operations import fast_cumsum_2d
+from improver.utilities.neighbourhood_tools import boxsum
 from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_cube
 from improver.utilities.spatial import distance_to_number_of_grid_cells
 
@@ -455,6 +457,60 @@ class SquareNeighbourhood:
             )
         return neighbourhood_averaged_cube
 
+    @staticmethod
+    def _calculate_neighbourhood(data, mask, nb_size, sum_only, re_mask, name):
+        if not sum_only:
+            min_val = np.nanmin(data)
+            max_val = np.nanmax(data)
+
+        cumsum = fast_cumsum_2d if data.ndim == 2 else True
+
+        # Use 64-bit types for enough precision in accumulations.
+        area_mask_dtype = np.int64
+        if mask is None:
+            area_mask = np.ones(data.shape, dtype=area_mask_dtype)
+        else:
+            area_mask = np.array(mask, dtype=area_mask_dtype, copy=False)
+        # Data mask to be eventually used for re-masking.
+        # (This is OK even if mask is None, it gives a scalar False mask then.)
+        data_mask = mask == 0
+        if isinstance(data, np.ma.MaskedArray):
+            # Include data mask if masked array
+            data_mask = data_mask | data.mask
+            data = data.data
+        if issubclass(data.dtype.type, np.complexfloating):
+            data_dtype = np.complex128
+        elif name.startswith("probability_of"):
+            data_dtype = np.float32
+            cumsum = True
+        else:
+            data_dtype = np.float64
+        data = np.array(data, dtype=data_dtype)
+        nan_mask = np.isnan(data)
+        zero_mask = nan_mask | data_mask
+        np.copyto(area_mask, 0, where=zero_mask)
+        np.copyto(data, 0, where=zero_mask)
+
+        data = boxsum(data, nb_size, cumsum=cumsum, mode="constant")
+        if not sum_only:
+            area_sum = boxsum(area_mask, nb_size, cumsum=cumsum, mode="constant")
+            with np.errstate(divide="ignore", invalid="ignore"):
+                data = data / area_sum
+            mask_invalid = (area_sum == 0) | nan_mask
+            np.copyto(data, np.nan, where=mask_invalid)
+            data = data.clip(min_val, max_val)
+
+        if issubclass(data.dtype.type, np.complexfloating):
+            data_dtype = np.complex64
+        else:
+            data_dtype = np.float32
+        data = data.astype(data_dtype)
+
+        if re_mask:
+            data = np.ma.masked_array(data, data_mask, copy=False)
+
+        return data
+
     def run(self, cube, radius, mask_cube=None):
         """
         Call the methods required to apply a square neighbourhood
@@ -489,20 +545,23 @@ class SquareNeighbourhood:
         original_attributes = cube.attributes
         original_methods = cube.cell_methods
         grid_cells = distance_to_number_of_grid_cells(cube, radius)
+        nb_size = 2 * grid_cells + 1
+        try:
+            mask_cube_data = mask_cube.data
+        except AttributeError:
+            mask_cube_data = None
 
         result_slices = iris.cube.CubeList()
         for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
-            (cube_slice, mask, nan_array) = self.set_up_cubes_to_be_neighbourhooded(
-                cube_slice, mask_cube
+            cube_slice.data = self._calculate_neighbourhood(
+                cube_slice.data,
+                mask_cube_data,
+                nb_size,
+                self.sum_or_fraction == "sum",
+                self.re_mask,
+                cube.name(),
             )
-            neighbourhood_averaged_cube = self._pad_and_calculate_neighbourhood(
-                cube_slice, mask, grid_cells
-            )
-            neighbourhood_averaged_cube = self._remove_padding_and_mask(
-                neighbourhood_averaged_cube, cube_slice, mask, grid_cells
-            )
-            neighbourhood_averaged_cube.data[nan_array.astype(bool)] = np.nan
-            result_slices.append(neighbourhood_averaged_cube)
+            result_slices.append(cube_slice)
 
         neighbourhood_averaged_cube = result_slices.merge_cube()
 
