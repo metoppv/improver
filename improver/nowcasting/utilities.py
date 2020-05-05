@@ -36,6 +36,7 @@ import numpy as np
 from cf_units import Unit
 
 from improver import BasePlugin
+from improver.utilities import neighbourhood_tools
 from improver.utilities.temporal import (
     extract_nearest_time_point,
     iris_time_to_datetime,
@@ -106,24 +107,7 @@ class FillRadarHoles(BasePlugin):
     in log rainrate space."""
 
     @staticmethod
-    def _rr_to_log_rr(data):
-        """Convert a masked array of rainrates in mm/h into log space.  This
-        does not preserve values below 0.001; however, since the radar encodes
-        trace rain rates with a value of 0.03 mm/h, this should not have any
-        effect on "real" data.
-        """
-        min_rr_mmh = 0.001
-        result = np.where(data > min_rr_mmh, np.log10(data), np.nan)
-        return np.ma.MaskedArray(result, mask=data.mask)
-
-    @staticmethod
-    def _log_rr_to_rr(data):
-        """Convert a masked array of log rainrates into mm/h"""
-        result = np.where(np.isfinite(data), np.power(10, data), 0.0)
-        return np.ma.MaskedArray(result, mask=data.mask)
-
-    @staticmethod
-    def _find_and_interpolate_speckle(log_rr):
+    def _find_and_interpolate_speckle(cube, copy=False):
         """Identify and interpolate "speckle" points, where "speckle" is defined
         as areas of "no data" that are small enough to fill by interpolation
         without affecting data integrity.  We would not wish to interpolate large
@@ -136,18 +120,17 @@ class FillRadarHoles(BasePlugin):
         The interpolation radius has been chosen to match these constants,
         as the smallest radius that ensures there will always be valid data in
         the neighbourhood (25 pixels) over which averaging is performed.
-
         Masked pixels near the border of the input data array will not be
         interpolated.
 
         Args:
-            log_rr (numpy.ma.MaskedArray):
-                Masked array of rainrates in log10(mm/h)
-
+            cube (iris.cube.Cube):
+                Cube containing rainrates (mm/h).
+            copy (bool):
+                If true, creates a copy of the cube and returns the copy, otherwise writes it in place.
         Returns:
-            numpy.ma.MaskedArray:
-                Masked array of interpolated rainrates in log10(mm/h)
-        """
+            iris.cube.Cube:
+                Cube containing the interpolated rainrates (mm/h)."""
         # proportion of masked neighbours below which a pixel is considered to
         # be isolated "speckle", which can be filled in by interpolation
         p_masked = 0.3
@@ -156,48 +139,46 @@ class FillRadarHoles(BasePlugin):
         # radius of neighbourhood from which to calculate interpolated values
         r_interp = 2
 
-        interpolated_points = np.ma.MaskedArray(
-            np.full_like(log_rr, 0), mask=np.full_like(log_rr, True)
+        min_rr_mmh = 0.001
+
+        if copy:
+            cube_new = cube.copy()
+        else:
+            cube_new = cube
+
+        window_shape = (2 * r_speckle) + 1
+        window_shape = (window_shape, window_shape)
+        max_mask_values = window_shape[0] * window_shape[1] * p_masked
+
+        mask_windows = neighbourhood_tools.pad_and_roll(
+            cube_new.data.mask, window_shape, mode="constant", constant_values=1
+        )
+        data_windows = neighbourhood_tools.pad_and_roll(
+            cube_new.data, window_shape, mode="constant", constant_values=np.nan
         )
 
-        for y in range(r_speckle, log_rr.shape[0] - r_speckle - 1, 1):
-            for x in range(r_speckle, log_rr.shape[1] - r_speckle - 1, 1):
-                if log_rr.mask[y, x]:
-                    nbhood = np.mean(
-                        log_rr.mask[
-                            y - r_speckle : y + r_speckle + 1,
-                            x - r_speckle : x + r_speckle + 1,
-                        ]
-                    )
-                    if nbhood < p_masked:
-                        surroundings = log_rr[
-                            y - r_interp : y + r_interp + 1,
-                            x - r_interp : x + r_interp + 1,
-                        ]
-                        interpolated_points[y, x] = np.mean(
-                            surroundings[~surroundings.mask]
-                        )
-                        interpolated_points.mask[y, x] = False
+        # Find where the center pixel is masked and the total masked in the bhood doesn't exceed the threshold
+        indices = np.where(
+            (mask_windows[..., r_speckle, r_speckle] == 1)
+            & (np.sum(mask_windows, axis=(-2, -1)) < max_mask_values)
+        )
+        data_windows[indices]
 
-        output_data = np.where(interpolated_points.mask, log_rr, interpolated_points)
-        output_mask = np.where(interpolated_points.mask, log_rr.mask, False)
-        return np.ma.MaskedArray(output_data, mask=output_mask)
+        # Take the 5x5 array around the center point in the location where the speckles exist
+        data = data_windows[indices][..., 2:7, 2:7]
+        mask = mask_windows[indices][..., 2:7, 2:7]
 
-    def _fill_radar_holes(self, masked_radar):
-        """Fill in small "no data" regions in precipitation rates by
-        interpolation
+        for row_ind, col_ind, data_win, mask_win in zip(*indices, data, mask):
+            valid_points = data_win[np.where(mask_win == 0)]
+            mean = np.mean(
+                np.where(valid_points > min_rr_mmh, np.log10(valid_points), np.nan)
+            )
+            if np.isnan(mean):
+                cube_new.data[row_ind, col_ind] = 0
+            else:
+                cube_new.data[row_ind, col_ind] = np.power(10, mean)
 
-        Args:
-            masked_radar (numpy.ma.MaskedArray):
-                Precipitation rate data in mm/h to be interpolated
-
-        Returns:
-            numpy.ma.MaskedArray:
-                Interpolated precipitation rate data in mm/h
-        """
-        log_rr = self._rr_to_log_rr(masked_radar)
-        interpolated_log_rr = self._find_and_interpolate_speckle(log_rr)
-        return self._log_rr_to_rr(interpolated_log_rr)
+        return cube_new
 
     def process(self, masked_radar):
         """
@@ -218,7 +199,7 @@ class FillRadarHoles(BasePlugin):
         masked_radar_mmh.convert_units("mm h-1")
 
         # fill "holes" in data by interpolation
-        masked_radar_mmh.data = self._fill_radar_holes(masked_radar_mmh.data)
+        masked_radar_mmh = self._find_and_interpolate_speckle(masked_radar_mmh)
 
         # return new cube in original units
         masked_radar_mmh.convert_units(masked_radar.units)

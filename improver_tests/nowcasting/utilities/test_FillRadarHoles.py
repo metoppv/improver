@@ -108,13 +108,3 @@ def test_wide_mask(rainrate):
     rainrate.data.mask = np.where(np.isfinite(rainrate.data.data), False, True)
     result = plugin(rainrate)
     check_fillradarholes(result, rainrate.data.copy())
-
-
-def test_log_transform_reversability(rainrate):
-    """Test that data in mm h-1 are reproduced when transforming to
-    and from log rainrates"""
-    plugin = FillRadarHoles()
-    log_rr = plugin._rr_to_log_rr(rainrate.data)
-    np.testing.assert_array_equal(log_rr[np.where(rainrate.data == 0)], np.nan)
-    lin_rr = plugin._log_rr_to_rr(log_rr)
-    np.testing.assert_allclose(lin_rr, rainrate.data)
