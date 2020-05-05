@@ -104,66 +104,82 @@ class ExtendRadarMask(BasePlugin):
 
 class FillRadarHoles(BasePlugin):
     """Fill in small "no data" regions in the radar composite by interpolating
-    in log rainrate space."""
+    in log rainrate space.
 
-    @staticmethod
-    def _find_and_interpolate_speckle(cube):
+    The log-linear transformation does not preserve non-zero rainrates of less
+    than 0.001 mm/h. Since the radar composite encodes trace rain rates with a
+    value of 0.03 mm/h, this should not have any effect on "real" data from the
+    Met Office.
+    """
+    MIN_RR_MMH = 0.001
+
+    def __init__(self):
+        """Initialise parameters of interpolation
+
+        The constants defining neighbourhood size and proportion of neighbouring
+        masked pixels for speckle identification have been empirically tuned for
+        UK radar data. As configured, this method will flag "holes" of up to 24
+        pixels in size. The radius used to interpolate data into these holes has
+        been chosen to match these constants, defining the smallest radius that
+        ensures there will always be valid data in the neighbourhood (25 pixels)
+        over which averaging is performed.
+        """
+        # shape of neighbourhood over which to search for masked neighbours
+        self.r_speckle = 4
+        self.window_shape = ((self.r_speckle * 2) + 1, (self.r_speckle * 2) + 1)
+
+        # proportion of masked neighbours below which a pixel is considered to
+        # be isolated "speckle", which can be filled in by interpolation
+        p_masked = 0.3
+        # number of masked neighbours in neighbourhood
+        self.max_masked_values = self.window_shape[0] * self.window_shape[1] * p_masked
+
+        # radius of neighbourhood from which to calculate interpolated values
+        self.r_interp = 2
+
+    def _find_and_interpolate_speckle(self, cube):
         """Identify and interpolate "speckle" points, where "speckle" is defined
         as areas of "no data" that are small enough to fill by interpolation
         without affecting data integrity.  We would not wish to interpolate large
         areas as this may give false confidence in "no precipitation", where in
         fact precipitation exists in a "no data" region.
 
-        The constants for speckle identification ("p_masked" and "r_speckle")
-        have been empirically tuned for UK radar data.  With the constants
-        as set, this method will flag "holes" of up to 24 pixels in size.
-        The interpolation radius has been chosen to match these constants,
-        as the smallest radius that ensures there will always be valid data in
-        the neighbourhood (25 pixels) over which averaging is performed.
-        Masked pixels near the border of the input data array will not be
-        interpolated.
+        Masked pixels near the borders of the input data array are not considered
+        for interpolation.
 
         Args:
             cube (iris.cube.Cube):
                 Cube containing rainrates (mm/h).
+
         Returns:
             iris.cube.Cube:
-                Cube containing the interpolated rainrates (mm/h)."""
-        # proportion of masked neighbours below which a pixel is considered to
-        # be isolated "speckle", which can be filled in by interpolation
-        p_masked = 0.3
-        # shape of neighbourhood over which to search for masked neighbours
-        r_speckle = 4
-        window_shape = ((r_speckle * 2) + 1, (r_speckle * 2) + 1)
-        # radius of neighbourhood from which to calculate interpolated values
-        r_interp = 2
-
-        min_rr_mmh = 0.001
-
-        max_mask_values = window_shape[0] * window_shape[1] * p_masked
-
+                Cube containing the interpolated rainrates (mm/h).
+        """
         mask_windows = neighbourhood_tools.pad_and_roll(
-            cube.data.mask, window_shape, mode="constant", constant_values=1
+            cube.data.mask, self.window_shape, mode="constant", constant_values=1
         )
         data_windows = neighbourhood_tools.pad_and_roll(
-            cube.data, window_shape, mode="constant", constant_values=np.nan
+            cube.data, self.window_shape, mode="constant", constant_values=np.nan
         )
 
-        # Find where the center pixel is masked and the total masked in the bhood doesn't exceed the threshold
+        # find indices of "speckle" pixels
         indices = np.where(
-            (mask_windows[..., r_speckle, r_speckle] == 1)
-            & (np.sum(mask_windows, axis=(-2, -1)) < max_mask_values)
+            (mask_windows[..., self.r_speckle, self.r_speckle] == 1)
+            & (np.sum(mask_windows, axis=(-2, -1)) < self.max_masked_values)
         )
 
-        # Take the 5x5 array around the center point in the location where the speckles exist
-        bounds = slice(r_speckle - r_interp, r_speckle + r_interp + 1)
+        # average data from the 5x5 nbhood around each "speckle" point
+        bounds = slice(self.r_speckle - self.r_interp,
+                       self.r_speckle + self.r_interp + 1)
         data = data_windows[indices][..., bounds, bounds]
         mask = mask_windows[indices][..., bounds, bounds]
 
         for row_ind, col_ind, data_win, mask_win in zip(*indices, data, mask):
             valid_points = data_win[np.where(mask_win == 0)]
             mean = np.mean(
-                np.where(valid_points > min_rr_mmh, np.log10(valid_points), np.nan)
+                np.where(
+                    valid_points > self.MIN_RR_MMH, np.log10(valid_points), np.nan
+                )
             )
             if np.isnan(mean):
                 cube.data[row_ind, col_ind] = 0
