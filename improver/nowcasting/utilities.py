@@ -111,6 +111,7 @@ class FillRadarHoles(BasePlugin):
     value of 0.03 mm/h, this should not have any effect on "real" data from the
     Met Office.
     """
+
     MIN_RR_MMH = 0.001
 
     def __init__(self):
@@ -169,17 +170,16 @@ class FillRadarHoles(BasePlugin):
         )
 
         # average data from the 5x5 nbhood around each "speckle" point
-        bounds = slice(self.r_speckle - self.r_interp,
-                       self.r_speckle + self.r_interp + 1)
+        bounds = slice(
+            self.r_speckle - self.r_interp, self.r_speckle + self.r_interp + 1
+        )
         data = data_windows[indices][..., bounds, bounds]
         mask = mask_windows[indices][..., bounds, bounds]
 
         for row_ind, col_ind, data_win, mask_win in zip(*indices, data, mask):
             valid_points = data_win[np.where(mask_win == 0)]
             mean = np.mean(
-                np.where(
-                    valid_points > self.MIN_RR_MMH, np.log10(valid_points), np.nan
-                )
+                np.where(valid_points > self.MIN_RR_MMH, np.log10(valid_points), np.nan)
             )
             if np.isnan(mean):
                 cube.data[row_ind, col_ind] = 0
