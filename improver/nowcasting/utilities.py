@@ -134,8 +134,9 @@ class FillRadarHoles(BasePlugin):
         # proportion of masked neighbours below which a pixel is considered to
         # be isolated "speckle", which can be filled in by interpolation
         p_masked = 0.3
-        # radius of neighbourhood over which to search for masked neighbours
+        # shape of neighbourhood over which to search for masked neighbours
         r_speckle = 4
+        window_shape = ((r_speckle * 2) + 1, (r_speckle * 2) + 1)
         # radius of neighbourhood from which to calculate interpolated values
         r_interp = 2
 
@@ -146,8 +147,6 @@ class FillRadarHoles(BasePlugin):
         else:
             cube_new = cube
 
-        window_shape = (2 * r_speckle) + 1
-        window_shape = (window_shape, window_shape)
         max_mask_values = window_shape[0] * window_shape[1] * p_masked
 
         mask_windows = neighbourhood_tools.pad_and_roll(
@@ -164,14 +163,9 @@ class FillRadarHoles(BasePlugin):
         )
 
         # Take the 5x5 array around the center point in the location where the speckles exist
-        lower_bound = r_speckle - r_interp
-        upper_bound = r_speckle + r_interp + 1
-        data = data_windows[indices][
-            ..., lower_bound:upper_bound, lower_bound:upper_bound
-        ]
-        mask = mask_windows[indices][
-            ..., lower_bound:upper_bound, lower_bound:upper_bound
-        ]
+        bounds = (r_speckle - r_interp, r_speckle + r_interp + 1)
+        data = data_windows[indices][..., bounds[0] : bounds[1], bounds[0] : bounds[1]]
+        mask = mask_windows[indices][..., bounds[0] : bounds[1], bounds[0] : bounds[1]]
 
         for row_ind, col_ind, data_win, mask_win in zip(*indices, data, mask):
             valid_points = data_win[np.where(mask_win == 0)]
