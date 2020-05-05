@@ -162,11 +162,16 @@ class FillRadarHoles(BasePlugin):
             (mask_windows[..., r_speckle, r_speckle] == 1)
             & (np.sum(mask_windows, axis=(-2, -1)) < max_mask_values)
         )
-        data_windows[indices]
 
         # Take the 5x5 array around the center point in the location where the speckles exist
-        data = data_windows[indices][..., 2:7, 2:7]
-        mask = mask_windows[indices][..., 2:7, 2:7]
+        lower_bound = r_speckle - r_interp
+        upper_bound = r_speckle + r_interp + 1
+        data = data_windows[indices][
+            ..., lower_bound:upper_bound, lower_bound:upper_bound
+        ]
+        mask = mask_windows[indices][
+            ..., lower_bound:upper_bound, lower_bound:upper_bound
+        ]
 
         for row_ind, col_ind, data_win, mask_win in zip(*indices, data, mask):
             valid_points = data_win[np.where(mask_win == 0)]
