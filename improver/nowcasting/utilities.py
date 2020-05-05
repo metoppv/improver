@@ -150,11 +150,7 @@ class FillRadarHoles(BasePlugin):
 
         Args:
             cube (iris.cube.Cube):
-                Cube containing rainrates (mm/h).
-
-        Returns:
-            iris.cube.Cube:
-                Cube containing the interpolated rainrates (mm/h).
+                Cube containing rainrates (mm/h).  Data modified in place.
         """
         mask_windows = neighbourhood_tools.pad_and_roll(
             cube.data.mask, self.window_shape, mode="constant", constant_values=1
@@ -181,12 +177,11 @@ class FillRadarHoles(BasePlugin):
             mean = np.mean(
                 np.where(valid_points > self.MIN_RR_MMH, np.log10(valid_points), np.nan)
             )
+            # when data value is set, mask is removed at that point
             if np.isnan(mean):
                 cube.data[row_ind, col_ind] = 0
             else:
                 cube.data[row_ind, col_ind] = np.power(10, mean)
-
-        return cube
 
     def process(self, masked_radar):
         """
@@ -207,7 +202,7 @@ class FillRadarHoles(BasePlugin):
         masked_radar_mmh.convert_units("mm h-1")
 
         # fill "holes" in data by interpolation
-        masked_radar_mmh = self._find_and_interpolate_speckle(masked_radar_mmh)
+        self._find_and_interpolate_speckle(masked_radar_mmh)
 
         # return new cube in original units
         masked_radar_mmh.convert_units(masked_radar.units)
