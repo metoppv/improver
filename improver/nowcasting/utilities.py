@@ -107,7 +107,7 @@ class FillRadarHoles(BasePlugin):
     in log rainrate space."""
 
     @staticmethod
-    def _find_and_interpolate_speckle(cube, copy=False):
+    def _find_and_interpolate_speckle(cube):
         """Identify and interpolate "speckle" points, where "speckle" is defined
         as areas of "no data" that are small enough to fill by interpolation
         without affecting data integrity.  We would not wish to interpolate large
@@ -126,8 +126,6 @@ class FillRadarHoles(BasePlugin):
         Args:
             cube (iris.cube.Cube):
                 Cube containing rainrates (mm/h).
-            copy (bool):
-                If true, creates a copy of the cube and returns the copy, otherwise writes it in place.
         Returns:
             iris.cube.Cube:
                 Cube containing the interpolated rainrates (mm/h)."""
@@ -142,18 +140,13 @@ class FillRadarHoles(BasePlugin):
 
         min_rr_mmh = 0.001
 
-        if copy:
-            cube_new = cube.copy()
-        else:
-            cube_new = cube
-
         max_mask_values = window_shape[0] * window_shape[1] * p_masked
 
         mask_windows = neighbourhood_tools.pad_and_roll(
-            cube_new.data.mask, window_shape, mode="constant", constant_values=1
+            cube.data.mask, window_shape, mode="constant", constant_values=1
         )
         data_windows = neighbourhood_tools.pad_and_roll(
-            cube_new.data, window_shape, mode="constant", constant_values=np.nan
+            cube.data, window_shape, mode="constant", constant_values=np.nan
         )
 
         # Find where the center pixel is masked and the total masked in the bhood doesn't exceed the threshold
@@ -163,9 +156,9 @@ class FillRadarHoles(BasePlugin):
         )
 
         # Take the 5x5 array around the center point in the location where the speckles exist
-        bounds = (r_speckle - r_interp, r_speckle + r_interp + 1)
-        data = data_windows[indices][..., bounds[0] : bounds[1], bounds[0] : bounds[1]]
-        mask = mask_windows[indices][..., bounds[0] : bounds[1], bounds[0] : bounds[1]]
+        bounds = slice(r_speckle - r_interp, r_speckle + r_interp + 1)
+        data = data_windows[indices][..., bounds, bounds]
+        mask = mask_windows[indices][..., bounds, bounds]
 
         for row_ind, col_ind, data_win, mask_win in zip(*indices, data, mask):
             valid_points = data_win[np.where(mask_win == 0)]
@@ -173,11 +166,11 @@ class FillRadarHoles(BasePlugin):
                 np.where(valid_points > min_rr_mmh, np.log10(valid_points), np.nan)
             )
             if np.isnan(mean):
-                cube_new.data[row_ind, col_ind] = 0
+                cube.data[row_ind, col_ind] = 0
             else:
-                cube_new.data[row_ind, col_ind] = np.power(10, mean)
+                cube.data[row_ind, col_ind] = np.power(10, mean)
 
-        return cube_new
+        return cube
 
     def process(self, masked_radar):
         """
