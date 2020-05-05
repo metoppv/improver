@@ -95,55 +95,6 @@ class SquareNeighbourhood:
         return result.format(self.weighted_mode, self.sum_or_fraction, self.re_mask)
 
     @staticmethod
-    def set_up_cubes_to_be_neighbourhooded(cube, mask_cube=None):
-        """
-        Set up a cube ready for neighourhooding the data.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube that will be checked for whether the data is masked
-                or nan. The cube should contain only x and y dimensions,
-                so will generally be a slice of a cube.
-            mask_cube (iris.cube.Cube):
-                Input Cube containing the array to be used as a mask.
-
-        Returns:
-            (tuple): tuple containing:
-                **cube** (iris.cube.Cube):
-                    Cube with masked or NaN values set to 0.0
-                **mask** (iris.cube.Cube):
-                    Cube with masked or NaN values set to 0.0
-                **nan_array** (numpy.ndarray):
-                    numpy array to be used to set the values within
-                    the data of the output cube to be NaN.
-
-        """
-        # Set up mask_cube
-        if not mask_cube:
-            mask = cube.copy()
-            mask.data = np.real(np.ones_like(mask.data))
-        else:
-            mask = mask_cube
-        # If there is a mask, fill the data array of the mask_cube with a
-        # logical array, logically inverted compared to the integer version of
-        # the mask within the original data array.
-
-        if isinstance(cube.data, np.ma.MaskedArray):
-            index = np.where(cube.data.mask.astype(int) == 1)
-            mask.data[index] = 0.0
-            cube.data = cube.data.data
-        mask.rename("mask_data")
-        cube = iris.util.squeeze(cube)
-        mask = iris.util.squeeze(mask)
-        # Set NaN values to 0 in both the cube data and mask data.
-        nan_array = np.isnan(cube.data)
-        mask.data[nan_array] = 0.0
-        cube.data[nan_array] = 0.0
-        #  Set cube.data to 0.0 where mask_cube is 0.0
-        cube.data = (cube.data * mask.data).astype(cube.data.dtype)
-        return cube, mask, nan_array
-
-    @staticmethod
     def _calculate_neighbourhood(data, mask, nb_size, sum_only, re_mask, name):
         if not sum_only:
             min_val = np.nanmin(data)
