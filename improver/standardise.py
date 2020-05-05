@@ -51,6 +51,7 @@ from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_checker import spatial_coords_match
+from improver.utilities.round import round_close
 from improver.utilities.spatial import OccurrenceWithinVicinity
 
 
@@ -170,11 +171,11 @@ class StandardiseMetadata(BasePlugin):
             req_dtype = get_required_dtype(coord)
             # ensure points and bounds have the same dtype
             if np.issubdtype(req_dtype, np.integer):
-                coord.points = np.around(coord.points)
+                coord.points = round_close(coord.points)
             coord.points = as_correct_dtype(coord.points, req_dtype)
             if coord.has_bounds():
                 if np.issubdtype(req_dtype, np.integer):
-                    coord.bounds = np.around(coord.bounds)
+                    coord.bounds = round_close(coord.bounds)
                 coord.bounds = as_correct_dtype(coord.bounds, req_dtype)
 
     def process(
