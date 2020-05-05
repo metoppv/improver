@@ -37,7 +37,9 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_manipulation import MergeCubes
+from improver.utilities.round import round_close
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 from improver.utilities.temporal import iris_time_to_datetime
@@ -195,26 +197,14 @@ class TemporalInterpolation(BasePlugin):
                 have been enforced.
 
         """
-        coord_dtypes = {
-            "time": np.int64,
-            "forecast_reference_time": np.int64,
-            "forecast_period": np.int32,
-        }
-        coord_units = {
-            "time": "seconds since 1970-01-01 00:00:00",
-            "forecast_reference_time": "seconds since 1970-01-01 00:00:00",
-            "forecast_period": "seconds",
-        }
-
         for coord_name in ["time", "forecast_reference_time", "forecast_period"]:
+            coord_spec = TIME_COORDS[coord_name]
             if cube.coords(coord_name):
                 coord = cube.coord(coord_name)
-                coord.convert_units(coord_units[coord_name])
-                coord.points = np.around(coord.points)
-                coord.points = coord.points.astype(coord_dtypes[coord_name])
+                coord.convert_units(coord_spec.units)
+                coord.points = round_close(coord.points, dtype=coord_spec.dtype)
                 if hasattr(coord, "bounds") and coord.bounds is not None:
-                    coord.bounds = np.around(coord.bounds)
-                    coord.bounds = coord.bounds.astype(coord_dtypes[coord_name])
+                    coord.bounds = round_close(coord.bounds, dtype=coord_spec.dtype)
         return cube
 
     @staticmethod
