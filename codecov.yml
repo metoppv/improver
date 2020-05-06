@@ -1,4 +1,10 @@
 # codecov options
 
+coverage:
+  status:
+    project:
+      default:
+          base: "parent"
+          informational: true
 ignore:
   - "improver/cli"  # ignore folders and all its contents
