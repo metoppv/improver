@@ -425,11 +425,26 @@ def fast_linear_fit(
 
 
 def fast_cumsum_2d(data, out=None):
-    """Faster implementation of 2D cumsum."""
+    """Faster implementation of 2D cumsum.
+
+    This routine is equvalent to::
+
+        data.cumsum(1).cumsum(0)
+
+    Args:
+        data (numpy.ndarray):
+            2D input data to calculate cumulative sums along both dimensions.
+        out (numpy.ndarray):
+            Optional output array to store the result in.
+    Returns:
+        numpy.ndarray:
+            2D array of the same shape as input with cumulative sums along its
+            both dimensions.
+    """
     if out is None:
         out = np.empty_like(data)
-    # Python loop can be faster by working along fast dimension thanks to
-    # less cache trashing.
+    # Python loop can be faster by working more along the inner array dimension
+    # thanks to less CPU cache trashing.
     row_prev = 0
     for row_out, row_inp in zip(out, data):
         row_inp.cumsum(out=row_out)
