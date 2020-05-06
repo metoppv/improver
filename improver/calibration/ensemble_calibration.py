@@ -590,12 +590,30 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """
         coeff_names = self.coeff_names
         if self.predictor.lower() == "realizations":
-            realization_coeffs = []
-            for realization in historic_forecast.coord("realization").points:
-                realization_coeffs.append(
-                    "{}{}".format(self.coeff_names[-1], np.int32(realization))
+            realizations_coeff_names = coeff_names[:-1] + [coeff_names[-1]] * len(
+                historic_forecast.coord("realization").points
+            )
+            beta_values = np.array([], dtype=np.float32)
+            for optimised_coeff, coeff_name in zip(
+                optimised_coeffs, realizations_coeff_names
+            ):
+                if coeff_name == "beta":
+                    beta_values = np.append(beta_values, optimised_coeff)
+            if len(beta_values) != len(historic_forecast.coord("realization").points):
+                msg = (
+                    "The number of beta coefficients in {} must equal the "
+                    "number of realizations {}, when the predictor is "
+                    "'realizations'.".format(
+                        optimised_coeffs[-len(beta_values) :],
+                        historic_forecast.coord("realization").points,
+                    )
                 )
-            coeff_names = self.coeff_names[:-1] + realization_coeffs
+                raise ValueError(msg)
+
+            optimised_coeffs = [
+                *optimised_coeffs[: -len(beta_values)],
+                np.array(beta_values),
+            ]
 
         if len(optimised_coeffs) != len(coeff_names):
             msg = (
@@ -656,6 +674,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             coeff_units = "1"
             if coeff_name in ["gamma", "alpha"]:
                 coeff_units = historic_forecast.units
+            if self.predictor.lower() == "realizations" and coeff_name == "beta":
+                dim_coords_and_dims.append(
+                    (historic_forecast.coord("realization").copy(), 0)
+                )
             cube = iris.cube.Cube(
                 optimised_coeff,
                 long_name=f"emos_coefficient_{coeff_name}",
@@ -1023,8 +1045,9 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # number of ensemble realizations. In this case, b = beta^2.
         beta_values = np.array([], dtype=np.float32)
         for coeff_cube in self.coefficients_cubelist:
-            if coeff_cube.name().startswith("emos_coefficient_beta"):
-                beta_values = np.append(beta_values, coeff_cube.data)
+            if coeff_cube.name() == "emos_coefficient_beta":
+                for coeff_slice in coeff_cube.slices_over("realization"):
+                    beta_values = np.append(beta_values, coeff_slice.data)
         a_and_b = np.append(
             self.coefficients_cubelist.extract_strict("emos_coefficient_alpha").data,
             beta_values ** 2,

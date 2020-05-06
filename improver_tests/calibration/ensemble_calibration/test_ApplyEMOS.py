@@ -142,8 +142,8 @@ class Test_process(IrisTest):
 
     def test_bias(self):
         """Test emos coefficients that correct a bias"""
-        for coeff, cube in zip([0, 1, 1, 1], self.coefficients):
-            cube.data = coeff
+        # update the "alpha" value
+        self.coefficients[2].data = 1
         expected_mean = np.mean(self.percentiles.data + 1.0)
         expected_data = np.array(
             [
@@ -158,8 +158,8 @@ class Test_process(IrisTest):
 
     def test_spread(self):
         """Test emos coefficients that correct underspread"""
-        for coeff, cube in zip([1, 1, 0, 1], self.coefficients):
-            cube.data = coeff
+        # update the "gamma" value
+        self.coefficients[0].data = 1
         expected_mean = np.mean(self.percentiles.data)
         expected_data = np.array(
             [
@@ -185,8 +185,8 @@ class Test_process(IrisTest):
         land_sea_mask = set_up_variable_cube(
             land_sea_data, name="land_binary_mask", units="1"
         )
-        for coeff, cube in zip([1, 1, 0, 1], self.coefficients):
-            cube.data = coeff
+        # update the "gamma" value
+        self.coefficients[0].data = 1
         expected_data_slice = np.array(
             [
                 [9.7121525, 9.7121525, 10.2],

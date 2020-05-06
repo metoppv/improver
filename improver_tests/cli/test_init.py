@@ -268,16 +268,6 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         with self.assertRaisesRegex(ConstraintMismatchError, "^Got 2 cubes"):
             func(self.wind_cubes)
 
-    def test_two_valid_strict_false(self):
-        """Tests that two cubes are loaded using one constraint."""
-        func = create_constrained_inputcubelist_converter(
-            lambda cube: cube.name().startswith("wind"), strict=False
-        )
-        result = func(self.wind_cubes)
-        self.assertEqual(self.wind_speed_cube, result[0])
-        self.assertEqual(self.wind_dir_cube, result[1])
-        self.assertEqual(2, len(result))
-
 
 class Test_clizefy(unittest.TestCase):
     """Test the clizefy decorator function"""

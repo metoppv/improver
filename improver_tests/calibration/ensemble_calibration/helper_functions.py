@@ -210,7 +210,7 @@ class SetupCubes(IrisTest):
         ).merge_cube()
 
 
-def build_coefficients_cubelist(template, coeff_names, coeff_values):
+def build_coefficients_cubelist(template, coeff_names, coeff_values, predictor="mean"):
     """Make a cubelist of coefficients with expected metadata
 
     Args:
@@ -224,45 +224,54 @@ def build_coefficients_cubelist(template, coeff_names, coeff_values):
         coeff_values (numpy.ndarray or list):
             The values of the coefficients. These values will be used as the
             cube data.
+        predictor (str):
+            Choice of predictor of location parameter. Either the ensemble mean
+            "mean" or ensemble realizations ("realizations") are supported.
 
     Returns:
-        coefficients (iris.cube.CubeList) - The resulting EMOS
+        cubelist (iris.cube.CubeList) - The resulting EMOS
             coefficients cubelist.
 
     """
-    aux_coord_and_dims = []
+    dim_coords_and_dims = []
+    aux_coords_and_dims = []
+
+    if predictor.lower() == "realizations":
+        coeff_values = [*coeff_values[:3], np.array(coeff_values[3:])]
 
     # add spatial and temporal coords from forecast to be calibrated
     for coord in ["time", "forecast_period", "forecast_reference_time"]:
-        aux_coord_and_dims.append((template.coord(coord).copy(), None))
+        aux_coords_and_dims.append((template.coord(coord).copy(), None))
 
     for coord in [template.coord(axis="x"), template.coord(axis="y")]:
         bounds = [min(coord.points), max(coord.points)]
         point = np.median(bounds)
         new_coord = coord.copy(points=[point], bounds=[bounds])
-        aux_coord_and_dims.append((new_coord, None))
+        aux_coords_and_dims.append((new_coord, None))
 
     attributes = {
-        "mosg__model_configuration": "uk_det",
+        "mosg__model_configuration": "uk_ens",
         "diagnostic_standard_name": "air_temperature",
     }
 
-    coefficients = iris.cube.CubeList([])
-    for coeff_value, coeff_name in zip(coeff_values, coeff_names):
+    cubelist = iris.cube.CubeList([])
+    for optimised_coeff, coeff_name in zip(coeff_values, coeff_names):
         coeff_units = "1"
         if coeff_name in ["gamma", "alpha"]:
             coeff_units = template.units
-        coefficients.append(
-            iris.cube.Cube(
-                coeff_value,
-                long_name=f"emos_coefficient_{coeff_name}",
-                units=coeff_units,
-                aux_coords_and_dims=aux_coord_and_dims,
-                attributes=attributes,
-            )
+        if predictor.lower() == "realizations" and coeff_name == "beta":
+            dim_coords_and_dims.append((template.coord("realization").copy(), 0))
+        cube = iris.cube.Cube(
+            optimised_coeff,
+            long_name=f"emos_coefficient_{coeff_name}",
+            units=coeff_units,
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims,
+            attributes=attributes,
         )
+        cubelist.append(cube)
 
-    return coefficients
+    return cubelist
 
 
 def set_up_probability_threshold_cube(
@@ -571,8 +580,8 @@ def _create_historic_forecasts(
     data, time_dt, frt_dt, standard_grid_metadata="uk_ens", number_of_days=5, **kwargs
 ):
     """
-    Function to create a set of pseudo historic forecast cubes, based on the
-    input cube, and assuming that there will be one forecast per day at the
+    Function to create a cubelist of historic forecasts, based on the inputs
+    provided, and assuming that there will be one forecast per day at the
     same hour of the day.
 
     Please see improver.tests.set_up_test_cubes.set_up_variable_cube for the

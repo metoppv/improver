@@ -200,9 +200,8 @@ def inputpath(to_convert):
     return maybe_coerce_with(pathlib.Path, to_convert)
 
 
-def create_constrained_inputcubelist_converter(*constraints, strict=True):
+def create_constrained_inputcubelist_converter(*constraints):
     """Makes function that the input constraints are used in a loop.
-
     The function is a @value_converter, this means it is used by clize to convert
     strings into objects.
     This is a way of not using the IMPROVER load_cube which will try to merge
@@ -210,7 +209,6 @@ def create_constrained_inputcubelist_converter(*constraints, strict=True):
     So an example is if you wanted to load an X cube and a Y cube from a cubelist
     of 2. You call this function with a list of constraints.
     These cubes get loaded and returned as a CubeList.
-
     Args:
         *constraints (tuple of str or callable or iris.Constraint):
             Constraints to be used in extracting the required cubes.
@@ -218,27 +216,20 @@ def create_constrained_inputcubelist_converter(*constraints, strict=True):
             will be sorted to match their order.
             A constraint can be an iris.Constraint object or a callable
             or cube name that can be used to construct one.
-        strict (boolean):
-            If strict is True, then there must be exactly one cube per constraint.
-
     Returns:
         callable:
             A function with the constraints used for a list comprehension.
-
     """
 
     @value_converter
     def constrained_inputcubelist_converter(to_convert):
         """Passes the cube and constraints onto maybe_coerce_with.
-
         Args:
             to_convert (str or iris.cube.CubeList):
                 A CubeList or a filename to be loaded into a CubeList.
-
         Returns:
             iris.cube.CubeList:
                 The loaded cubelist of constrained cubes.
-
         """
         from improver.utilities.load import load_cubelist
         from iris import Constraint
@@ -246,17 +237,13 @@ def create_constrained_inputcubelist_converter(*constraints, strict=True):
 
         cubelist = maybe_coerce_with(load_cubelist, to_convert)
 
-        result = CubeList([])
-        for constr in constraints:
-            item = cubelist.extract(
+        return CubeList(
+            cubelist.extract(
                 Constraint(cube_func=constr) if callable(constr) else constr,
-                strict=strict,
+                strict=True,
             )
-            if strict:
-                result.append(item)
-            else:
-                result.extend(item)
-        return result
+            for constr in constraints
+        )
 
     return constrained_inputcubelist_converter
 

@@ -38,10 +38,9 @@ from improver import cli
 # Creates the value_converter that clize needs.
 inputcoeffs = cli.create_constrained_inputcubelist_converter(
     "emos_coefficient_alpha",
-    lambda cube: cube.name().startswith("emos_coefficient_beta"),
+    "emos_coefficient_beta",
     "emos_coefficient_gamma",
     "emos_coefficient_delta",
-    strict=False,
 )
 
 
@@ -142,12 +141,11 @@ def process(
     """
     import warnings
 
-    import iris
     import numpy as np
 
     from improver.calibration.ensemble_calibration import ApplyEMOS
 
-    if not isinstance(cube, iris.cube.Cube) or cube.name() == "land_binary_mask":
+    if cube.name() == "land_binary_mask":
         msg = "Invalid forecast cube provided (name '{}')"
         raise ValueError(msg.format(cube.name()))
 
