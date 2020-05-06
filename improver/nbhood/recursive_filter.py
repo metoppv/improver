@@ -172,7 +172,7 @@ class RecursiveFilter(PostProcessingPlugin):
         """
         # Set up mask_cube
         if not mask_cube:
-            mask = cube.copy(np.ones_like(cube.data, dtype=np.int64))
+            mask = cube.copy(np.ones_like(cube.data, dtype=np.bool))
         else:
             mask = mask_cube
         # If there is a mask, fill the data array of the mask_cube with a
@@ -180,18 +180,17 @@ class RecursiveFilter(PostProcessingPlugin):
         # the mask within the original data array.
 
         if isinstance(cube.data, np.ma.MaskedArray):
-            index = np.where(cube.data.mask.astype(int) == 1)
-            mask.data[index] = 0.0
+            mask.data[cube.data.mask] = 0
             cube.data = cube.data.data
         mask.rename("mask_data")
         cube = iris.util.squeeze(cube)
         mask = iris.util.squeeze(mask)
         # Set NaN values to 0 in both the cube data and mask data.
         nan_array = np.isnan(cube.data)
-        mask.data[nan_array] = 0.0
+        mask.data[nan_array] = 0
         cube.data[nan_array] = 0.0
         #  Set cube.data to 0.0 where mask_cube is 0.0
-        cube.data = (cube.data * mask.data).astype(cube.data.dtype)
+        cube.data[mask.data == 0] = 0.0
         return cube, mask, nan_array
 
     @staticmethod
@@ -501,9 +500,9 @@ class RecursiveFilter(PostProcessingPlugin):
                 new_cube, 2 * self.edge_width, 2 * self.edge_width
             )
             if self.re_mask:
-                new_cube.data[nan_array.astype(bool)] = np.nan
+                new_cube.data[nan_array] = np.nan
                 new_cube.data = np.ma.masked_array(
-                    new_cube.data, mask=np.logical_not(mask)
+                    new_cube.data, mask=np.logical_not(mask), copy=False
                 )
 
             recursed_cube.append(new_cube)

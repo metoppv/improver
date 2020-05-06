@@ -190,8 +190,8 @@ class Test_set_up_cubes(IrisTest):
     def test_without_masked_data(self):
         """Test setting up cubes to be neighbourhooded when the input cube
         does not contain masked arrays."""
-        expected_mask = np.ones((5, 5))
-        expected_nans = expected_mask.astype(bool) * False
+        expected_mask = np.ones((5, 5), dtype=np.bool)
+        expected_nans = np.zeros((5, 5), dtype=np.bool)
         cube, mask, nan_array = RecursiveFilter.set_up_cubes(self.cube)
         self.assertIsInstance(cube, Cube)
         self.assertIsInstance(mask, Cube)
@@ -207,8 +207,8 @@ class Test_set_up_cubes(IrisTest):
         cube.data[1, 3] = 0.5
         cube.data[3, 3] = 0.5
         cube.data = np.ma.masked_equal(data, 0.5)
-        mask = np.logical_not(cube.data.mask.astype(int))
-        expected_nans = np.ones((5, 5)).astype(bool) * False
+        mask = ~cube.data.mask
+        expected_nans = np.zeros((5, 5), dtype=np.bool)
         data = cube.data.data * mask
         result_cube, result_mask, result_nan_array = RecursiveFilter.set_up_cubes(
             cube.copy()
@@ -224,12 +224,11 @@ class Test_set_up_cubes(IrisTest):
         mask_cube = self.cube.copy()
         mask_cube.data = np.ones((5, 5))
         mask_cube.data[self.cube.data == 0.5] = 0
-        mask_cube.data = mask_cube.data.astype(int)
         expected_data = self.cube.data * mask_cube.data
         expected_mask = np.ones((5, 5))
         expected_mask[1, 3] = 0.0
         expected_mask[3, 3] = 0.0
-        expected_nans = np.ones((5, 5)).astype(bool) * False
+        expected_nans = np.zeros((5, 5), dtype=np.bool)
         result_cube, result_mask, result_nan_array = RecursiveFilter.set_up_cubes(
             self.cube.copy(), mask_cube=mask_cube
         )
@@ -258,7 +257,7 @@ class Test_set_up_cubes(IrisTest):
         expected_data = self.cube.data * expected_mask
         expected_data[1, 2] = 0.0
         expected_data[3, 1] = 0.0
-        expected_nans = np.ones((5, 5)).astype(bool) * False
+        expected_nans = np.zeros((5, 5), dtype=np.bool)
         expected_nans[1, 2] = True
         expected_nans[3, 1] = True
 
