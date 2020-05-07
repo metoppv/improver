@@ -54,6 +54,7 @@ from improver.calibration.utilities import (
     filter_non_matching_cubes,
     flatten_ignoring_masked_data,
     merge_land_and_sea,
+    time_coords_match,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles,
@@ -1147,6 +1148,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         self.coefficients_cubelist = coefficients_cubelist
 
         # Check coefficients_cube and forecast cube are compatible.
+        for cube in coefficients_cubelist:
+            time_coords_match(cube, current_forecast)
         self._spatial_domain_match()
 
         if self.predictor.lower() == "mean":

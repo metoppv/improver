@@ -33,8 +33,10 @@ Unit tests for the utilities within the `ensemble_calibration_utilities`
 module.
 
 """
+import datetime
 import unittest
 
+from cf_units import date2num
 import iris
 import numpy as np
 from iris.tests import IrisTest
@@ -48,9 +50,11 @@ from improver.calibration.utilities import (
     filter_non_matching_cubes,
     flatten_ignoring_masked_data,
     merge_land_and_sea,
+    time_coords_match,
 )
+from improver.metadata.constants.time_types import TIME_COORDS
 
-from ...set_up_test_cubes import set_up_percentile_cube
+from ...set_up_test_cubes import set_up_percentile_cube, set_up_variable_cube
 from ..ensemble_calibration.helper_functions import SetupCubes, set_up_temperature_cube
 from ..reliability_calibration.test_AggregateReliabilityCalibrationTables import (
     Test_Aggregation,
@@ -570,6 +574,50 @@ class Test_merge_land_and_sea(IrisTest):
             expected_cube.xml(checksum=True), self.percentiles_land.xml(checksum=True)
         )
         self.assertEqual(self.percentiles_land.data.dtype, np.float32)
+
+
+class Test_time_coords_match(IrisTest):
+
+    """Test for function that tests if forecast period and the hour of the
+     forecast_reference_time coordinate match between two cubes."""
+
+    def setUp(self):
+        """Set-up testing."""
+        self.data = np.ones((3, 3), dtype=np.float32)
+        self.ref_cube = set_up_variable_cube(
+            self.data, frt=datetime.datetime(2017, 11, 10, 1, 0),
+            time=datetime.datetime(2017, 11, 10, 4, 0))
+        coord_spec = TIME_COORDS["time"]
+        bounds = []
+        for bound in [datetime.datetime(2017, 11, 10, 0, 0),
+                datetime.datetime(2017, 11, 10, 1, 0)]:
+            bounds.append(date2num(bound, coord_spec.units, coord_spec.calendar))
+
+        self.ref_cube.coord("forecast_reference_time").bounds = bounds
+        self.message = "The following coordinates of the two cubes do not match"
+
+    def test_match(self):
+        """Test returns None when cubes time coordinates match."""
+        result = time_coords_match(self.ref_cube, self.ref_cube.copy())
+        self.assertIsNone(result)
+
+    def test_forecast_period_mismatch(self):
+        """Test an error is raised when the forecast period mismatches."""
+        self.adjusted_cube = set_up_variable_cube(
+            self.data, frt=datetime.datetime(2017, 11, 10, 1, 0),
+            time=datetime.datetime(2017, 11, 10, 5, 0))
+
+        with self.assertRaisesRegex(ValueError, self.message):
+            time_coords_match(self.ref_cube, self.adjusted_cube)
+
+    def test_frt_hour_without_bounds_mismatch(self):
+        """Test an error is raised when the forecast_reference_time mismatches"""
+        self.adjusted_cube = set_up_variable_cube(
+            self.data, frt=datetime.datetime(2017, 11, 10, 2, 0),
+            time=datetime.datetime(2017, 11, 10, 5, 0))
+
+        with self.assertRaisesRegex(ValueError, self.message):
+            time_coords_match(self.ref_cube, self.adjusted_cube)
 
 
 if __name__ == "__main__":
