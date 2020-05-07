@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities for Unit tests for Weather Symbols"""
 
+from improver.wxcode.utilities import get_parameter_names
+
 
 def check_diagnostic_lists_consistency(query):
     """
@@ -50,7 +52,10 @@ def check_diagnostic_lists_consistency(query):
         "diagnostic_conditions",
         "diagnostic_thresholds",
     ]
-    values = [query[key] for key in diagnostic_keys]
+    values = [
+        get_parameter_names(query[key]) if key == "diagnostic_fields" else query[key]
+        for key in diagnostic_keys
+    ]
     if not check_nested_list_consistency(values):
         msg = f"Inconsistent list structure: \n"
         for key in diagnostic_keys:

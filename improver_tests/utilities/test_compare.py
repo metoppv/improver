@@ -234,6 +234,18 @@ def test_compare_netcdf_attrs(dummy_nc):
     compare.compare_attributes("root", actual_ds, expected_ds, message_collector)
     assert len(messages_reported) == 1
     assert "float_number" in messages_reported[0]
+    actual_ds.setncattr("float_number", 3.2)
+
+    # Reset attribute back to original value
+    actual_ds.setncattr("float_number", 1.5)
+    messages_reported = []
+
+    # Check changing attribute type from int to float
+    actual_ds.setncattr("whole_number", 4.0)
+    compare.compare_attributes("root", actual_ds, expected_ds, message_collector)
+    assert len(messages_reported) == 1
+    for part in ("int", "float", "whole_number"):
+        assert part in messages_reported[0]
 
 
 def test_compare_data_floats_equal(dummy_nc):

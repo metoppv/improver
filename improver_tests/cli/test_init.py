@@ -35,6 +35,7 @@ from unittest.mock import patch
 
 import numpy as np
 from iris.cube import CubeList
+from iris.exceptions import ConstraintMismatchError
 
 import improver
 from improver.cli import (
@@ -45,10 +46,8 @@ from improver.cli import (
     inputjson,
     maybe_coerce_with,
     unbracket,
-    with_intermediate_output,
     with_output,
 )
-from improver.utilities.load import load_cube
 
 from ..set_up_test_cubes import set_up_variable_cube
 
@@ -76,12 +75,6 @@ def dummy_function(first, second=0, third=2):
 def wrapped_with_output(first):
     """dummy function for testing with_output wrapper"""
     return dummy_function(first)
-
-
-@with_intermediate_output
-def wrapped_with_intermediate_output(first):
-    """dummy function for testing with_intermediate_output wrapper"""
-    return dummy_function(first), True
 
 
 class Test_docutilize(unittest.TestCase):
@@ -172,66 +165,29 @@ class Test_with_output(unittest.TestCase):
         self.assertEqual(result, None)
 
 
-class Test_with_intermediate_output(unittest.TestCase):
-    """Tests the intermediate output wrapper"""
+def setup_for_mock():
+    """Function that returns a CubeList of wind_speed and wind_from_direction
 
-    @patch("improver.utilities.save.save_netcdf")
-    def test_without_output(self, m):
-        """Tests that the wrapped function is called and result is returned"""
-        result = wrapped_with_intermediate_output(2)
-        m.assert_not_called()
-        self.assertEqual(result, 4)
-
-    @patch("improver.utilities.save.save_netcdf")
-    def test_with_output(self, m):
-        """Tests with an intermediate_output
-
-        Tests that save_netcdf is called with object and string, and
-        wrapped function returns the result.
-
-        """
-        # pylint disable is needed as it can't see the wrappers output kwarg.
-        # pylint: disable=unexpected-keyword-arg
-        result = wrapped_with_intermediate_output(2, intermediate_output="foo")
-        m.assert_called_with(True, "foo")
-        self.assertEqual(result, 4)
-
-
-def replace_load_with_extract(func, cube, constraints=None):
-    """Function to replicate the call to maybe_coerce_with within
-    create_constrained_inputcubelist_converter.
-
-    Args:
-        func:
-            Unused argument for the purpose of replicating the
-            maybe_coerce_with interface.
-        cube (iris.cube.Cube or iris.cube.CubeList):
-            Cube or CubeList to be extracted from.
-        constraints (str or None):
-            Expected name of cube for extraction.
+    These cubes should be the same as the setup cubes.
 
     Returns:
-        iris.cube.Cube:
-            The extracted cube.
-
-    Raises:
-        ValueError:
-            Error to replicate the behaviour of the call of maybe_coerce_with,
-            where loading a cube with an invalid constraint results in a
-            ValueError.
+        iris.cube.CubeList:
+            The CubeList.
     """
-    del func
-    if constraints:
-        cube = cube.extract(constraints)
-    if isinstance(cube, CubeList):
-        (cube,) = cube.copy()
-    if cube is None:
-        raise ValueError
-    return cube
+    return CubeList(
+        [
+            set_up_variable_cube(
+                data=np.zeros((2, 2), dtype=np.float32), name="wind_speed"
+            ),
+            set_up_variable_cube(
+                data=np.zeros((2, 2), dtype=np.float32), name="wind_from_direction"
+            ),
+        ]
+    )
 
 
 class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
-    """Tests the creature constraint_inputcubelist_converter"""
+    """Tests the create_constrained_inputcubelist_converter"""
 
     def setUp(self):
         data = np.zeros((2, 2), dtype=np.float32)
@@ -239,71 +195,78 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
         self.wind_dir_cube = set_up_variable_cube(data, name="wind_from_direction")
         self.wind_cubes = CubeList([self.wind_speed_cube, self.wind_dir_cube])
 
-    @patch("improver.cli.maybe_coerce_with", return_value="return")
-    def test_basic(self, m):
-        """Tests that it returns a function which itself returns 2 cubes"""
-        result = create_constrained_inputcubelist_converter(
+    def test_basic(self):
+        """Tests a basic creation of create_constrained_inputcubelist_converter"""
+        func = create_constrained_inputcubelist_converter(
+            lambda cube: cube.name()
+            in ["wind_speed", "airspeed_velocity_of_unladen_swallow"]
+        )
+        result = func(self.wind_cubes)
+        self.assertEqual(self.wind_speed_cube, result[0])
+        self.assertEqual(1, len(result))
+
+    def test_extracting_two_cubes(self):
+        """Tests a creation of with two cube names"""
+        func = create_constrained_inputcubelist_converter(
             "wind_speed", "wind_from_direction"
         )
-        result("foo")
-        m.assert_any_call(load_cube, "foo", constraints="wind_speed")
-        m.assert_any_call(load_cube, "foo", constraints="wind_from_direction")
-        self.assertEqual(m.call_count, 2)
+        result = func(self.wind_cubes)
+        self.assertEqual(self.wind_speed_cube, result[0])
+        self.assertEqual(self.wind_dir_cube, result[1])
+        self.assertEqual(2, len(result))
 
-    @patch("improver.cli.maybe_coerce_with", return_value="return")
-    def test_list(self, m):
-        """Tests that a list returns a function which itself returns 2 cubes"""
-        result = create_constrained_inputcubelist_converter(
-            ["wind_speed"], ["wind_from_direction"]
+    @patch("improver.cli.maybe_coerce_with", return_value=setup_for_mock())
+    def test_basic_given_str(self, mocked_maybe_coerce):
+        """Tests that a str is given to maybe_coerce_with which would return a CubeList."""
+        func = create_constrained_inputcubelist_converter(
+            "wind_speed", "wind_from_direction"
         )
-        result("foo")
-        m.assert_any_call(load_cube, "foo", constraints="wind_speed")
-        m.assert_any_call(load_cube, "foo", constraints="wind_from_direction")
-        self.assertEqual(m.call_count, 2)
+        result = func(self.wind_cubes)
+        self.assertEqual(self.wind_speed_cube, result[0])
+        self.assertEqual(self.wind_dir_cube, result[1])
+        self.assertEqual(2, len(result))
+        mocked_maybe_coerce.assert_called_once()
 
-    @patch("improver.cli.maybe_coerce_with", new=replace_load_with_extract)
-    def test_list_one_valid(self):
-        """Tests that a list returns a function which itself returns 1 cube
-        that matches the constraints provided."""
-        obj = create_constrained_inputcubelist_converter(["wind_speed", "nonsense"])
-        result = obj(self.wind_speed_cube)
-        self.assertEqual(result, [self.wind_speed_cube])
-
-    @patch("improver.cli.maybe_coerce_with", new=replace_load_with_extract)
     def test_list_two_valid(self):
-        """Tests that providing two valid constraints raises a ValueError."""
-        obj = create_constrained_inputcubelist_converter(
-            ["wind_speed", "wind_from_direction"]
+        """Tests that one cube is loaded from each list."""
+        func = create_constrained_inputcubelist_converter(
+            lambda cube: cube.name()
+            in ["airspeed_velocity_of_unladen_swallow", "wind_speed"],
+            lambda cube: cube.name() in ["direction_of_swallow", "wind_from_direction"],
         )
-        msg = "Incorrect number of valid inputs available"
-        with self.assertRaisesRegex(ValueError, msg):
-            obj(self.wind_cubes)
+        result = func(self.wind_cubes)
+        self.assertEqual(self.wind_speed_cube, result[0])
+        self.assertEqual(self.wind_dir_cube, result[1])
+        self.assertEqual(2, len(result))
 
-    @patch("improver.cli.maybe_coerce_with", new=replace_load_with_extract)
+    def test_list_two_diff_shapes(self):
+        """Tests that one cube is loaded from each list
+        when the two lists are different sizes.
+        """
+        func = create_constrained_inputcubelist_converter(
+            "wind_speed",
+            lambda cube: cube.name() in ["direction_of_swallow", "wind_from_direction"],
+        )
+        result = func(self.wind_cubes)
+        self.assertEqual(self.wind_speed_cube, result[0])
+        self.assertEqual(self.wind_dir_cube, result[1])
+        self.assertEqual(2, len(result))
+
     def test_list_no_match(self):
-        """Tests that providing no valid constraints raises a ValueError."""
-        obj = create_constrained_inputcubelist_converter(["nonsense"])
-        msg = "Incorrect number of valid inputs available"
-        with self.assertRaisesRegex(ValueError, msg):
-            obj(self.wind_cubes)
-
-    @patch("improver.cli.maybe_coerce_with", new=replace_load_with_extract)
-    def test_list_one_optional_constraint(self):
-        """Tests that a list returns a function which itself returns 2 cubes"""
-        obj = create_constrained_inputcubelist_converter(
-            ["wind_speed", "nonsense"], "wind_from_direction"
+        """Tests that providing no valid constraints raises a ConstraintMismatchError."""
+        func = create_constrained_inputcubelist_converter(
+            "airspeed_velocity_of_unladen_swallow",
         )
-        result = obj(self.wind_cubes)
-        self.assertEqual(result, self.wind_cubes)
+        with self.assertRaisesRegex(ConstraintMismatchError, "^Got 0 cubes"):
+            func(self.wind_cubes)
 
-    @patch("improver.cli.maybe_coerce_with", new=replace_load_with_extract)
-    def test_list_mismatching_lengths(self):
-        """Tests that a list returns a function which itself returns 2 cubes"""
-        obj = create_constrained_inputcubelist_converter(
-            ["wind_speed", "nonsense"], ["wind_from_direction"]
+    def test_two_valid_cubes(self):
+        """Tests that providing 2 valid constraints raises a ConstraintMismatchError."""
+        func = create_constrained_inputcubelist_converter(
+            lambda cube: cube.name() in ["wind_speed", "wind_from_direction"],
         )
-        result = obj(self.wind_cubes)
-        self.assertEqual(result, self.wind_cubes)
+        with self.assertRaisesRegex(ConstraintMismatchError, "^Got 2 cubes"):
+            func(self.wind_cubes)
 
 
 class Test_clizefy(unittest.TestCase):

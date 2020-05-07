@@ -67,14 +67,12 @@ def rescale(data, data_range=None, scale_range=(0.0, 1.0), clip=False):
     # Range check
     if data_min == data_max:
         raise ValueError(
-            "Cannot rescale a zero input range "
-            + "({} -> {})".format(data_min, data_max)
+            "Cannot rescale a zero input range ({} -> {})".format(data_min, data_max)
         )
 
     if scale_min == scale_max:
         raise ValueError(
-            "Cannot rescale a zero output range "
-            + "({} -> {})".format(scale_min, scale_max)
+            "Cannot rescale a zero output range ({} -> {})".format(scale_min, scale_max)
         )
 
     result = (

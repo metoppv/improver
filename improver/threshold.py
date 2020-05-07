@@ -218,9 +218,7 @@ class BasicThreshold(PostProcessingPlugin):
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         return (
-            "<BasicThreshold: thresholds {}, "
-            + "fuzzy_bounds {}, "
-            + "method: data {} threshold>"
+            "<BasicThreshold: thresholds {}, fuzzy_bounds {}, method: data {} threshold>"
         ).format(self.thresholds, self.fuzzy_bounds, self.comparison_operator_string)
 
     def _add_threshold_coord(self, cube, threshold):

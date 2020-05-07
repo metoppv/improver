@@ -82,36 +82,12 @@ class Test_WXCode(IrisTest):
 
         data_rain = np.array(
             [
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                1.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
+                [[0.01, 0.01, 0.01], [0.01, 0.01, 0.01], [1.00, 1.00, 1.00]],
+                [[0.01, 0.01, 0.01], [0.01, 0.01, 0.01], [1.00, 0.01, 1.00]],
+                [[0.01, 0.01, 0.01], [0.01, 0.01, 0.01], [0.01, 0.01, 0.01]],
             ],
             dtype=np.float32,
-        ).reshape((3, 3, 3))
+        )
 
         rainfall_rate = set_up_probability_cube(
             data_rain,
@@ -135,7 +111,7 @@ class Test_WXCode(IrisTest):
         )
 
         precip_vicinity = set_up_probability_cube(
-            data_rain,
+            data_precip,
             thresholds,
             variable_name="lwe_precipitation_rate_in_vicinity",
             threshold_units="m s-1",
@@ -146,27 +122,11 @@ class Test_WXCode(IrisTest):
         thresholds = np.array([0.1875, 0.8125], dtype=np.float32)
         data_cloud = np.array(
             [
-                0.0,
-                1.0,
-                0.0,
-                0.0,
-                1.0,
-                1.0,
-                0.0,
-                0.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                1.0,
-                0.0,
-                0.0,
-                1.0,
+                [[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]],
+                [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 1.0]],
             ],
             dtype=np.float32,
-        ).reshape((2, 3, 3))
+        )
 
         cloud = set_up_probability_cube(
             data_cloud,
@@ -179,7 +139,7 @@ class Test_WXCode(IrisTest):
 
         thresholds = np.array([0.85], dtype=np.float32)
         data_cld_low = np.array(
-            [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0], dtype=np.float32
+            [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]], dtype=np.float32
         ).reshape((1, 3, 3))
         cloud_low = set_up_probability_cube(
             data_cld_low,
@@ -193,27 +153,11 @@ class Test_WXCode(IrisTest):
         thresholds = np.array([1000.0, 5000.0], dtype=np.float32)
         data_vis = np.array(
             [
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                0.0,
+                [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
             ],
             dtype=np.float32,
-        ).reshape((2, 3, 3))
+        )
         visibility = set_up_probability_cube(
             data_vis,
             thresholds,
@@ -388,16 +332,13 @@ class Test_construct_condition(IrisTest):
         )
         condition = "<"
         prob_threshold = 0.5
-        gamma = None
         expected = (
             "cubes.extract(Constraint(name="
             "'probability_of_rainfall_rate_above_threshold',"
             " coord_values={'threshold': 0.03})"
             ")[0].data < 0.5"
         )
-        result = plugin.construct_condition(
-            constraint_value, condition, prob_threshold, gamma
-        )
+        result = plugin.construct_condition(constraint_value, condition, prob_threshold)
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -406,29 +347,33 @@ class Test_construct_condition(IrisTest):
         of Constraints. """
         plugin = WeatherSymbols()
         constraint_list = [
-            iris.Constraint(
-                name="probability_of_lwe_snowfall_rate_above_threshold",
-                coord_values={"threshold": 0.03},
+            str(
+                iris.Constraint(
+                    name="probability_of_lwe_snowfall_rate_above_threshold",
+                    coord_values={"threshold": 0.03},
+                )
             ),
-            iris.Constraint(
-                name="probability_of_rainfall_rate_above_threshold",
-                coord_values={"threshold": 0.03},
+            "-",
+            str(
+                iris.Constraint(
+                    name="probability_of_rainfall_rate_above_threshold",
+                    coord_values={"threshold": 0.03},
+                )
             ),
+            "*",
+            "0.7",
         ]
         condition = "<"
         prob_threshold = 0.5
-        gamma = 0.7
         expected = (
-            "(cubes.extract(Constraint(name="
+            "( cubes.extract(Constraint(name="
             "'probability_of_lwe_snowfall_rate_above_threshold', "
             "coord_values={'threshold': 0.03}))[0].data - "
             "cubes.extract(Constraint(name="
             "'probability_of_rainfall_rate_above_threshold', "
             "coord_values={'threshold': 0.03}))[0].data * 0.7) < 0.5"
         )
-        result = plugin.construct_condition(
-            constraint_list, condition, prob_threshold, gamma
-        )
+        result = plugin.construct_condition(constraint_list, condition, prob_threshold)
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -499,7 +444,8 @@ class Test_create_condition_chain(IrisTest):
             )
         )
         self.assertIsInstance(result, list)
-        self.assertIsInstance(result[0], str)
+        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertEqual(len(result), 1)
         self.assertEqual(result[0], expected)
 
     def test_old_naming_convention(self):
@@ -523,7 +469,61 @@ class Test_create_condition_chain(IrisTest):
             )
         )
         self.assertIsInstance(result, list)
-        self.assertIsInstance(result[0], str)
+        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0], expected)
+
+    def test_complex_condition(self):
+        """Test with a condition that uses an operator"""
+        query = {
+            "rain_or_snow": self.dummy_queries["significant_precipitation"],
+        }
+        query["rain_or_snow"]["diagnostic_fields"] = [
+            [
+                "probability_of_lwe_sleetfall_rate_above_threshold",
+                "-",
+                "probability_of_rainfall_rate_above_threshold",
+            ],
+            [
+                "probability_of_lwe_sleetfall_rate_above_threshold",
+                "-",
+                "probability_of_lwe_snowfall_rate_above_threshold",
+            ],
+        ]
+        query["rain_or_snow"]["diagnostic_thresholds"] = [
+            [AuxCoord(0.1, units="mm hr-1"), AuxCoord(0.1, units="mm hr-1")],
+            [AuxCoord(0.1, units="mm hr-1"), AuxCoord(0.1, units="mm hr-1")],
+        ]
+        query["rain_or_snow"]["diagnostic_conditions"] = [
+            ["above", "above"],
+            ["above", "above"],
+        ]
+        plugin = WeatherSymbols()
+        test_condition = query["rain_or_snow"]
+        result = plugin.create_condition_chain(test_condition)
+        expected = (
+            "(( cubes.extract(iris.Constraint(name='probability_of_"
+            "lwe_sleetfall_rate_above_threshold', lwe_sleetfall_rate="
+            "lambda cell: 0.1 * {t_min} < cell < 0.1 * {t_max})"
+            ")[0].data - cubes.extract(iris.Constraint("
+            "name='probability_of_rainfall_rate_above_threshold', "
+            "rainfall_rate=lambda cell: 0.1 * {t_min} < cell < "
+            "0.1 * {t_max}))[0].data) >= 0.5) | "
+            "(( cubes.extract(iris.Constraint(name="
+            "'probability_of_lwe_sleetfall_rate_above_threshold', "
+            "lwe_sleetfall_rate=lambda cell: 0.1 * {t_min} < cell "
+            "< 0.1 * {t_max}))[0].data - "
+            "cubes.extract(iris.Constraint(name="
+            "'probability_of_lwe_snowfall_rate_above_threshold', "
+            "lwe_snowfall_rate=lambda cell: 0.1 * {t_min} < cell "
+            "< 0.1 * {t_max}))[0].data) >= 0.5)".format(
+                t_min=(1.0 - WeatherSymbols().float_tolerance),
+                t_max=(1.0 + WeatherSymbols().float_tolerance),
+            )
+        )
+        self.assertIsInstance(result, list)
+        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertEqual(len(result), 1)
         self.assertEqual(result[0], expected)
 
 
@@ -698,36 +698,12 @@ class Test_create_symbol_cube(IrisTest):
         """Set up cube """
         data = np.array(
             [
-                0.1,
-                0.3,
-                0.4,
-                0.2,
-                0.6,
-                0.7,
-                0.4,
-                0.2,
-                0.1,
-                0.2,
-                0.2,
-                0.5,
-                0.1,
-                0.3,
-                0.9,
-                0.8,
-                0.5,
-                0.3,
-                0.6,
-                0.3,
-                0.5,
-                0.6,
-                0.8,
-                0.2,
-                0.8,
-                0.1,
-                0.2,
+                [[0.1, 0.3, 0.4], [0.2, 0.6, 0.7], [0.4, 0.2, 0.1]],
+                [[0.2, 0.2, 0.5], [0.1, 0.3, 0.9], [0.8, 0.5, 0.3]],
+                [[0.6, 0.3, 0.5], [0.6, 0.8, 0.2], [0.8, 0.1, 0.2]],
             ],
             dtype=np.float32,
-        ).reshape((3, 3, 3))
+        )
         self.cube = set_up_probability_cube(
             data, np.array([288, 290, 292], dtype=np.float32)
         )
@@ -740,6 +716,7 @@ class Test_create_symbol_cube(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
+        self.assertTrue((result.data == -1).all())
 
     def test_removes_bounds(self):
         """Test bounds are removed from time and forecast period coordinate"""
@@ -827,102 +804,44 @@ class Test_process(Test_WXCode):
                 [[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.1]],
                 [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [1.0, 1.0, 0.0]],
                 [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
-            ]
+            ],
+            dtype=np.float32,
         )
         data_sleet = np.array(
             [
                 [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
                 [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
                 [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-            ]
+            ],
+            dtype=np.float32,
         )
         data_rain = np.array(
             [
                 [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
                 [[1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
                 [[1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-            ]
+            ],
+            dtype=np.float32,
         )
         # pylint: disable=no-member
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
         data_precipv = np.array(
             [
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-            ]
-        ).reshape((3, 3, 3))
+                [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]],
+                [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]],
+                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+            ],
+            dtype=np.float32,
+        )
         data_cloud = np.array(
             [
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                1.0,
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                1.0,
-            ]
-        ).reshape((2, 3, 3))
-        data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(
-            (1, 3, 3)
+                [[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
+                [[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
+            ],
+            dtype=np.float32,
         )
-        data_vis = np.array(
-            [
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-            ]
-        ).reshape((2, 3, 3))
+        data_cld_low = np.zeros((1, 3, 3))
+        data_vis = np.zeros((2, 3, 3))
         data_lightning = np.zeros((1, 3, 3))
 
         cubes = self.cubes
@@ -979,113 +898,29 @@ class Test_process(Test_WXCode):
 
         data_snow = np.array(
             [
-                0.0,
-                0.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                0.1,
-                0.0,
-                0.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                1.0,
-                0.0,
-                0.0,
-                1.0,
-                1.0,
-                1.0,
-            ]
-        ).reshape((3, 3, 3))
+                [[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.1]],
+                [[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.0]],
+                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [1.0, 1.0, 1.0]],
+            ],
+            dtype=np.float32,
+        )
         data_rain = np.array(
             [
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                1.0,
-                1.0,
-                1.0,
-                1.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-            ]
-        ).reshape((3, 3, 3))
+                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+            ],
+            dtype=np.float32,
+        )
         data_cloud = np.array(
             [
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                1.0,
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                0.0,
-                1.0,
-                1.0,
-            ]
-        ).reshape((2, 3, 3))
-        data_cld_low = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(
-            (1, 3, 3)
+                [[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
+                [[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
+            ],
+            dtype=np.float32,
         )
-        data_vis = np.array(
-            [
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-                0.0,
-            ]
-        ).reshape((2, 3, 3))
+        data_cld_low = np.zeros((1, 3, 3), dtype=np.float32)
+        data_vis = np.zeros((2, 3, 3), dtype=np.float32)
         cubes = self.cubes.extract(self.gbl)
         cubes[0].data = data_snow
         cubes[1].data = data_rain

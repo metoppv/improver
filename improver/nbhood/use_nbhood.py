@@ -93,6 +93,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         coord_for_masking,
         radii,
         lead_times=None,
+        collapse_weights=None,
         weighted_mode=True,
         sum_or_fraction="fraction",
         re_mask=False,
@@ -109,6 +110,11 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
+            collapse_weights (iris.cube.Cube):
+                A cube from an ancillary file containing the weights for each
+                point in the 'coord_for_masking' at each grid point. If given,
+                `CollapseMaskedNeighbourhoodCoordinate` will be used to
+                collapse over 'coord_for_masking'.
             lead_times (list):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
@@ -136,6 +142,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         self.neighbourhood_method = "square"
         self.radii = radii
         self.lead_times = lead_times
+        self.collapse_weights = collapse_weights
         self.weighted_mode = weighted_mode
         self.sum_or_fraction = sum_or_fraction
         self.re_mask = re_mask
@@ -145,14 +152,15 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         result = (
             "<ApplyNeighbourhoodProcessingWithAMask: "
             "coord_for_masking: {}, neighbourhood_method: {}, "
-            "radii: {}, lead_times: {}, weighted_mode: {}, "
-            "sum_or_fraction: {}, re_mask: {}>"
+            "radii: {}, lead_times: {}, collapse_weights: {}, "
+            "weighted_mode: {}, sum_or_fraction: {}, re_mask: {}>"
         )
         return result.format(
             self.coord_for_masking,
             self.neighbourhood_method,
             self.radii,
             self.lead_times,
+            self.collapse_weights,
             self.weighted_mode,
             self.sum_or_fraction,
             self.re_mask,
@@ -185,6 +193,12 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
         result_slices = iris.cube.CubeList([])
+        if self.collapse_weights is None:
+            collapse_plugin = None
+        else:
+            collapse_plugin = CollapseMaskedNeighbourhoodCoordinate(
+                self.coord_for_masking, self.collapse_weights
+            )
         # Take 2D slices of the input cube for memory issues.
         prev_x_y_slice = None
         for x_y_slice in cube.slices([yname, xname]):
@@ -226,6 +240,8 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 concatenated_cube,
                 exception_coordinates=exception_coordinates,
             )
+            if collapse_plugin:
+                concatenated_cube = collapse_plugin(concatenated_cube)
             result_slices.append(concatenated_cube)
         result = result_slices.merge_cube()
         exception_coordinates = find_dimension_coordinate_mismatch(
@@ -362,11 +378,10 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         if ma.is_masked(self.weights.data):
             condition = condition & ~self.weights.data.mask
 
-        self.weights.data[condition] = 0.0
+        weights_data = self.weights.data.copy()
+        weights_data[condition] = 0.0
         axis = nbhood_cube.coord_dims(self.coord_masked)
-        self.weights.data = WeightsUtilities.normalise_weights(
-            self.weights.data, axis=axis
-        )
+        return WeightsUtilities.normalise_weights(weights_data, axis=axis)
 
     def process(self, cube):
         """
@@ -389,23 +404,21 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         """
         # Mask out any NaNs in the neighbourhood data so that Iris ignores
         # them when calculating the weighted mean.
-        cube.data = ma.masked_invalid(cube.data)
+        cube.data = ma.masked_invalid(cube.data, copy=False)
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
 
-        if self.weights.shape != cube.shape:
-            # The input cube may have leading dimensions.
-            first_slice = next(
-                cube.slices([self.coord_masked, yname, xname], ordered=False)
-            )
-            self.renormalize_weights(first_slice)
-        else:
-            self.renormalize_weights(cube)
-        weights = self.weights.data
+        renormalize = True
+        if self.weights.shape == cube.shape:
+            weights = self.renormalize_weights(cube)
+            renormalize = False
 
         # Loop over any extra dimensions
         cubelist = iris.cube.CubeList([])
         for slice_3d in cube.slices([self.coord_masked, yname, xname]):
+            if renormalize:
+                weights = self.renormalize_weights(slice_3d)
+                renormalize = False
             collapsed_slice = collapsed(
                 slice_3d, self.coord_masked, iris.analysis.MEAN, weights=weights
             )

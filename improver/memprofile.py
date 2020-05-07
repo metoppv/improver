@@ -45,7 +45,7 @@ def memory_profile_start(outfile_prefix):
     Args:
         outfile_prefix (str):
             Prefix for the generated output. 2 files will
-            be generated: *_SNAPSHOT and *_MAX_TRACKER.
+            be generated: \\*_SNAPSHOT and \\*_MAX_TRACKER.
 
     Returns:
         Active Thread tracking the memory.
@@ -83,7 +83,7 @@ def memory_monitor(queue, outfile_prefix):
             Active queue instance to communicate with the thread.
         outfile_prefix (str):
             Prefix for the generated output. 2 files will
-            be generated: *_SNAPSHOT and *_MAX_TRACKER.
+            be generated: \\*_SNAPSHOT and \\*_MAX_TRACKER.
     """
     tracemalloc.start()
     old_max = 0
@@ -120,7 +120,7 @@ def memory_profile_decorator(func, outfile_prefix):
             function to track the maximum memory of.
         outfile_prefix (str):
             Prefix for the generated output. 2 files will
-            be generated: *_SNAPSHOT and *_MAX_TRACKER.
+            be generated: \\*_SNAPSHOT and \\*_MAX_TRACKER.
     """
 
     def wrapper(*args, **kwargs):

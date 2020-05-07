@@ -50,6 +50,7 @@ from improver.metadata.utilities import (
 )
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
+from improver.utilities.round import round_close
 
 
 class AdvectField(BasePlugin):
@@ -257,7 +258,7 @@ class AdvectField(BasePlugin):
         time_coord = advected_cube.coord(time_coord_name)
         time_coord.points = new_time
         time_coord.convert_units(time_coord_spec.units)
-        time_coord.points = np.around(time_coord.points).astype(time_coord_spec.dtype)
+        time_coord.points = round_close(time_coord.points, dtype=time_coord_spec.dtype)
 
     @staticmethod
     def _add_forecast_reference_time(input_time, advected_cube):
@@ -271,7 +272,7 @@ class AdvectField(BasePlugin):
         frt_coord = input_time.copy()
         frt_coord.rename(frt_coord_name)
         frt_coord.convert_units(frt_coord_spec.units)
-        frt_coord.points = np.around(frt_coord.points).astype(frt_coord_spec.dtype)
+        frt_coord.points = round_close(frt_coord.points, dtype=frt_coord_spec.dtype)
         advected_cube.add_aux_coord(frt_coord)
 
     @staticmethod

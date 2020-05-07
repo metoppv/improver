@@ -203,25 +203,24 @@ def inputpath(to_convert):
 def create_constrained_inputcubelist_converter(*constraints):
     """Makes function that the input constraints are used in a loop.
 
-    The function is value_converter, this means it is used by clize to convert
+    The function is a @value_converter, this means it is used by clize to convert
     strings into objects.
     This is a way of not using the IMPROVER load_cube which will try to merge
     cubes. Iris load on the other hand won't deal with meta data properly.
-    So an example if you wanted to load an X cube and a Y cube from a cubelist
+    So an example is if you wanted to load an X cube and a Y cube from a cubelist
     of 2. You call this function with a list of constraints.
     These cubes get loaded and returned as a CubeList.
 
     Args:
-        *constraints (tuple of str or list):
-            Constraints to be used in the loading of cubes into a CubeList.
-            If the tuple contains a string or multiple strings, then each
-            string is expected to return exactly one match. If the tuple
-            contains a list or multiple lists, then each list is treated as a
-            group that is expected to return a single match. The tuple
-            can contain a mixture of strings and lists as required.
+        *constraints (tuple of str or callable or iris.Constraint):
+            Constraints to be used in extracting the required cubes.
+            Each constraint must match exactly one cube and extracted cubes
+            will be sorted to match their order.
+            A constraint can be an iris.Constraint object or a callable
+            or cube name that can be used to construct one.
 
     Returns:
-        function:
+        callable:
             A function with the constraints used for a list comprehension.
 
     """
@@ -231,46 +230,27 @@ def create_constrained_inputcubelist_converter(*constraints):
         """Passes the cube and constraints onto maybe_coerce_with.
 
         Args:
-            to_convert (string):
-                The filename to be loaded.
+            to_convert (str or iris.cube.CubeList):
+                A CubeList or a filename to be loaded into a CubeList.
 
         Returns:
             iris.cube.CubeList:
                 The loaded cubelist of constrained cubes.
 
-        Raises:
-            ValueError:
-                Each constraint (either a string or a list) is expected to
-                return a single match. An error is raised if no match or more
-                than one match is found.
         """
-        from improver.utilities.load import load_cube
+        from improver.utilities.load import load_cubelist
+        from iris import Constraint
         from iris.cube import CubeList
 
-        cubelist = CubeList()
-        for constr in constraints:
-            constr_list = [constr] if isinstance(constr, str) else constr
-            found_cubes = []
-            for constr_item in constr_list:
-                try:
-                    found_cubes.append(
-                        maybe_coerce_with(
-                            load_cube, to_convert, constraints=constr_item
-                        )
-                    )
-                except ValueError:
-                    pass
-            if len(found_cubes) != 1:
-                msg = (
-                    f"Incorrect number of valid inputs available for the "
-                    "{constr} constraint. "
-                    f"Number of valid inputs: {len(found_cubes)} "
-                    f"The valid inputs found are: {found_cubes}"
-                )
-                raise ValueError(msg)
-            cubelist.extend(found_cubes)
+        cubelist = maybe_coerce_with(load_cubelist, to_convert)
 
-        return cubelist
+        return CubeList(
+            cubelist.extract(
+                Constraint(cube_func=constr) if callable(constr) else constr,
+                strict=True,
+            )
+            for constr in constraints
+        )
 
     return constrained_inputcubelist_converter
 
@@ -302,25 +282,6 @@ def with_output(wrapped, *args, output=None, **kwargs):
     if output:
         save_netcdf(result, output)
         return
-    return result
-
-
-@decorator
-def with_intermediate_output(wrapped, *args, intermediate_output=None, **kwargs):
-    """Add `intermediate_output` keyword only argument.
-
-    Args:
-        wrapped (obj):
-            The function to be wrapped.
-        intermediate_output (str, optional):
-            Output file name for intermediate result.
-    """
-
-    from improver.utilities.save import save_netcdf
-
-    result, intermediate_result = wrapped(*args, **kwargs)
-    if intermediate_output:
-        save_netcdf(intermediate_result, intermediate_output)
     return result
 
 

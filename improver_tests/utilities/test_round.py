@@ -28,38 +28,37 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the apply-reliability-calibration CLI."""
+"""Unit tests for the "round" module"""
 
+
+import numpy as np
 import pytest
 
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver.utilities.round import round_close
 
 
-def test_calibration(tmp_path):
-    """
-    Test calibration of a forecast using a reliability calibration table.
-    """
-    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    forecast_path = kgo_dir / "forecast.nc"
-    table_path = kgo_dir / "collapsed_table.nc"
-    output_path = tmp_path / "output.nc"
-    args = [forecast_path, table_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+def test_round_close():
+    """Test output when input is nearly an integer"""
+    result = round_close(29.99999)
+    assert result == 30
+    assert isinstance(result, np.int64)
 
 
-def test_no_calibration(tmp_path):
-    """
-    Test applying reliability calibration without a reliability table.
-    """
-    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
-    forecast_path = kgo_dir / "forecast.nc"
-    output_path = tmp_path / "output.nc"
-    args = [forecast_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, forecast_path)
+def test_dtype():
+    """Test near-integer output with specific dtype"""
+    result = round_close(29.99999, dtype=np.int32)
+    assert result == 30
+    assert isinstance(result, np.int32)
+
+
+def test_round_close_array():
+    """Test near-integer output from array input"""
+    expected = np.array([30, 4], dtype=int)
+    result = round_close(np.array([29.999999, 4.0000001]))
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_error_not_close():
+    """Test error when output would require significant rounding"""
+    with pytest.raises(ValueError):
+        round_close(29.9)

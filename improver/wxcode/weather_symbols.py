@@ -47,6 +47,8 @@ from improver.metadata.utilities import (
 )
 from improver.wxcode.utilities import (
     expand_nested_lists,
+    get_parameter_names,
+    is_variable,
     update_daynight,
     weather_code_attributes,
 )
@@ -74,8 +76,8 @@ class WeatherSymbols(BasePlugin):
         Key Args:
             wxtree (str):
                 Used to choose weather symbol decision tree.
-                Default is 'high_resolution'
-                'global' will load the global weather symbol decision tree.
+                Default is "high_resolution"
+                "global" will load the global weather symbol decision tree.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
@@ -142,7 +144,9 @@ class WeatherSymbols(BasePlugin):
         optional_node_data_missing = {}
         missing_data = []
         for key, query in self.queries.items():
-            diagnostics = expand_nested_lists(query, "diagnostic_fields")
+            diagnostics = get_parameter_names(
+                expand_nested_lists(query, "diagnostic_fields")
+            )
             thresholds = expand_nested_lists(query, "diagnostic_thresholds")
             conditions = expand_nested_lists(query, "diagnostic_conditions")
             for diagnostic, threshold, condition in zip(
@@ -257,9 +261,7 @@ class WeatherSymbols(BasePlugin):
         return inverted_threshold, inverted_combination
 
     @staticmethod
-    def construct_condition(
-        extract_constraint, condition, probability_threshold, gamma
-    ):
+    def construct_condition(extract_constraint, condition, probability_threshold):
         """
         Create a string representing a comparison condition.
 
@@ -269,14 +271,13 @@ class WeatherSymbols(BasePlugin):
                 that will be used to extract the correct diagnostic cube
                 (by name) from the input cube list and the correct threshold
                 from that cube.
+                A list should contain only cube names, operators and numbers,
+                e.g. ["probability_of_lwe_snowfall_rate_above_threshold", "-",
+                  "probability_of_rainfall_rate_above_threshold", "*", "0.7"]
             condition (str):
                 The condition statement (e.g. greater than, >).
             probability_threshold (float):
                 The probability value to use in the comparison.
-            gamma (float or None):
-                The gamma factor to multiply one field by when performing
-                a subtraction. This value will be None in the case that
-                extract_constraint is not a list; it will not be used.
         Returns:
             string:
                 The formatted condition statement,
@@ -288,16 +289,14 @@ class WeatherSymbols(BasePlugin):
                                 )[0].data < 0.5)
         """
         if isinstance(extract_constraint, list):
-            return (
-                "(cubes.extract({})[0].data - cubes.extract({})[0].data * "
-                "{}) {} {}".format(
-                    extract_constraint[0],
-                    extract_constraint[1],
-                    gamma,
-                    condition,
-                    probability_threshold,
-                )
-            )
+            formatted_str = ""
+
+            for item in extract_constraint:
+                if is_variable(item):
+                    formatted_str += f" cubes.extract({item})[0].data"
+                else:
+                    formatted_str += " " + item
+            return f"({formatted_str}) {condition} {probability_threshold}"
         return "cubes.extract({})[0].data {} {}".format(
             extract_constraint, condition, probability_threshold
         )
@@ -358,20 +357,40 @@ class WeatherSymbols(BasePlugin):
             test_conditions["diagnostic_thresholds"],
         ):
 
-            gamma = test_conditions.get("diagnostic_gamma")
-            if gamma is not None:
-                gamma = gamma[loop]
             loop += 1
 
-            extract_constraint = self.construct_extract_constraint(
-                diagnostic, d_threshold, self.coord_named_threshold
-            )
+            if isinstance(diagnostic, list):
+                # We have a list which could contain variable names, operators and
+                # numbers. The variable names need converting into Iris Constraint
+                # syntax while operators and numbers remain unchanged.
+                # We expect an entry in p_threshold for each variable name, so
+                # d_threshold_index is used to track these.
+                d_threshold_index = -1
+                extract_constraint = []
+                for item in diagnostic:
+                    if is_variable(item):
+                        # Add a constraint from the variable name and threshold value
+                        d_threshold_index += 1
+                        extract_constraint.append(
+                            self.construct_extract_constraint(
+                                item,
+                                d_threshold[d_threshold_index],
+                                self.coord_named_threshold,
+                            )
+                        )
+                    else:
+                        # Add this operator or variable as-is
+                        extract_constraint.append(item)
+            else:
+                # Non-lists are assumed to be strings containing one variable name.
+                extract_constraint = self.construct_extract_constraint(
+                    diagnostic, d_threshold, self.coord_named_threshold
+                )
             conditions.append(
                 self.construct_condition(
                     extract_constraint,
                     test_conditions["threshold_condition"],
                     p_threshold,
-                    gamma,
                 )
             )
         condition_chain = WeatherSymbols.format_condition_chain(
@@ -529,7 +548,8 @@ class WeatherSymbols(BasePlugin):
         Returns:
             iris.cube.Cube:
                 A cube with suitable metadata to describe the weather symbols
-                that will fill it
+                that will fill it and data initiated with the value -1 to allow
+                any unset points to be readily identified.
         """
         threshold_coord = find_threshold_coordinate(cubes[0])
         template_cube = next(cubes[0].slices_over([threshold_coord])).copy()
@@ -546,7 +566,7 @@ class WeatherSymbols(BasePlugin):
             template_cube,
             attributes,
             optional_attributes=weather_code_attributes(),
-            dtype=np.int32,
+            data=np.full_like(template_cube.data, dtype=np.int32, fill_value=-1),
         )
         return symbols
 

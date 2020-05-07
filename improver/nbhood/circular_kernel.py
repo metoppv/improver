@@ -39,6 +39,7 @@ from improver.utilities.cube_checker import (
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,
 )
+from improver.utilities.neighbourhood_tools import pad_and_roll
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area,
     distance_to_number_of_grid_cells,
@@ -378,41 +379,26 @@ class GeneratePercentilesFromACircularNeighbourhood:
                      [ 0.5,  0.5,  0.5],
                      [ 0.5,  0.5,  0.5]]]
         """
-        ranges_xy = np.empty(2, dtype=int)
-        ranges_xy[0] = int(np.floor(kernel.shape[0] / 2.0))
-        ranges_xy[1] = int(np.floor(kernel.shape[1] / 2.0))
-        padded = np.pad(
-            slice_2d.data, ranges_xy, mode="mean", stat_length=np.max(ranges_xy)
+        kernel_mask = kernel > 0
+        nb_slices = pad_and_roll(
+            slice_2d.data, kernel.shape, mode="mean", stat_length=max(kernel.shape) // 2
         )
-        padshape = np.shape(padded)  # Store size to make unflatten easier
-        padded = padded.flatten()
-        # Add 2nd dimension with each point's neighbourhood points along it.
-        # nbhood_slices is a list of numpy arrays where each array contains the
-        # total number of points within the padded array. The number of arrays
-        # is equal to the number of points within the kernel.
-        nbhood_slices = [
-            np.roll(padded, (padshape[1] * j) + i)
-            for i in range(-ranges_xy[1], ranges_xy[1] + 1)
-            for j in range(-ranges_xy[0], ranges_xy[0] + 1)
-            if kernel[..., i + ranges_xy[1], j + ranges_xy[0]] > 0.0
-        ]
+        percentiles = np.array(self.percentiles, dtype=np.float32)
 
-        # Collapse this dimension into percentiles (a new 2nd dimension)
-        perc_data = np.percentile(
-            nbhood_slices, np.array(self.percentiles, dtype=np.float32), axis=0
-        )
-
-        # Convert back to float32 (np.percentile always gives float64 here...)
-        perc_data = perc_data.astype(np.float32)
-
-        # Return to 3D
-        perc_data = perc_data.reshape(len(self.percentiles), padshape[0], padshape[1])
-        # Create a cube for these data:
+        # Create cube for output percentile data.
         pctcube = self.make_percentile_cube(slice_2d)
-        # And put in data, removing the padding
-        pctcube.data = perc_data[
-            :, ranges_xy[0] : -ranges_xy[0], ranges_xy[1] : -ranges_xy[1]
-        ]
+
+        # Collapse neighbourhood windows into percentiles.
+        # (Loop over outer dimension to reduce memory footprint.)
+        for nb_chunk, perc_chunk in zip(nb_slices, pctcube.data.swapaxes(0, 1)):
+            np.percentile(
+                nb_chunk[..., kernel_mask],
+                percentiles,
+                axis=-1,
+                out=perc_chunk,
+                overwrite_input=True,
+            )
+
         return pctcube
 
     def run(self, cube, radius, mask_cube=None):

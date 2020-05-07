@@ -32,6 +32,7 @@
 
 import pytest
 
+from improver.wxcode.utilities import WX_DICT, get_parameter_names
 from improver.wxcode.wxcode_decision_tree import START_NODE, wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import (
     START_NODE_GLOBAL,
@@ -141,14 +142,14 @@ def test_diagnostic_condition(tree_name):
 @pytest.mark.parametrize("tree_name", TREE_NAMES)
 def test_node_points_to_valid_value(tree_name):
     """Test that succeed and fail point to valid values or nodes."""
+    valid_codes = list(WX_DICT.keys())
     tree = TREES[tree_name]
     for node in tree:
-        succeed = tree[node]["succeed"]
-        if isinstance(succeed, str):
-            assert succeed in tree.keys()
-        fail = tree[node]["fail"]
-        if isinstance(fail, str):
-            assert fail in tree
+        for value in tree[node]["succeed"], tree[node]["fail"]:
+            if isinstance(value, str):
+                assert value in tree.keys()
+            else:
+                assert value in valid_codes
 
 
 @pytest.mark.parametrize("tree_name", TREE_NAMES)
@@ -168,16 +169,4 @@ def test_probability_len_match(tree_name):
     for _, query in tree.items():
         check_list = query["probability_thresholds"]
         assert all([isinstance(x, (int, float)) for x in check_list])
-        assert len(check_list) == len(query["diagnostic_fields"])
-
-
-@pytest.mark.parametrize("tree_name", TREE_NAMES)
-def test_gamma_len_match(tree_name):
-    """Test diagnostic_gamma list is right shape if present."""
-    tree = TREES[tree_name]
-    for _, query in tree.items():
-        check_list = query.get("diagnostic_gamma", None)
-        if not check_list:
-            continue
-        assert all([isinstance(x, (int, float)) for x in check_list])
-        assert len(check_list) == len(query["diagnostic_fields"])
+        assert len(check_list) == len(get_parameter_names(query["diagnostic_fields"]))

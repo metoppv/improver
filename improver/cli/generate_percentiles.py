@@ -40,9 +40,7 @@ def process(
     cube: cli.inputcube,
     *,
     coordinates: cli.comma_separated_list = None,
-    ignore_ecc_bounds=False,
     percentiles: cli.comma_separated_list = None,
-    percentiles_count: int = None,
 ):
     r"""Collapses cube coordinates and calculate percentiled data.
 
@@ -67,15 +65,8 @@ def process(
             converting probabilities to percentiles and may be omitted. This
             coordinate(s) will be removed and replaced by a percentile
             coordinate.
-        ignore_ecc_bounds (bool):
-            If True, where calculated percentiles are outside the ECC bounds
-            range, raises a warning rather than an exception.
         percentiles (list):
             Optional definition of percentiles at which to calculate data.
-        percentiles_count (int):
-            Optional definition of the number of percentiles to be generated,
-            these distributed regularly with the aim of dividing into blocks
-            of equal probability.
 
     Returns:
         iris.cube.Cube:
@@ -98,19 +89,14 @@ def process(
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         ConvertProbabilitiesToPercentiles,
     )
-    from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
+    from improver.metadata.probabilistic import is_probability
     from improver.percentile import PercentileConverter
 
     if percentiles is not None:
         percentiles = [float(p) for p in percentiles]
 
-    if percentiles_count is not None:
-        percentiles = choose_set_of_percentiles(percentiles_count, sampling="quantile")
-    # TODO: Correct when formal cf-standards exists
-    if "probability_of_" in cube.name():
-        result = ConvertProbabilitiesToPercentiles(
-            ecc_bounds_warning=ignore_ecc_bounds
-        )(cube, percentiles=percentiles)
+    if is_probability(cube):
+        result = ConvertProbabilitiesToPercentiles()(cube, percentiles=percentiles)
         if coordinates:
             warnings.warn(
                 "Converting probabilities to percentiles. The "

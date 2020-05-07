@@ -278,9 +278,14 @@ class Test_pad_cube_with_halo(IrisTest):
         )
         self.cube.data[2, 2] = 0
 
+        data = np.array(
+            [[0.0, 0.1, 0.0], [0.1, 0.5, 0.1], [0.0, 0.1, 0.0]], dtype=np.float32,
+        )
+        self.alternative_cube = self.cube[1:-1, 1:-1].copy(data=data)
+
     def test_basic(self):
         """Test that padding the data in a cube with a halo has worked as
-        intended."""
+        intended when using the default option, which is to use zeroes."""
         expected = np.array(
             [
                 [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -295,9 +300,7 @@ class Test_pad_cube_with_halo(IrisTest):
             ]
         )
         width_x = width_y = 2
-        padded_cube = pad_cube_with_halo(
-            self.cube, width_x, width_y, halo_mean_data=False
-        )
+        padded_cube = pad_cube_with_halo(self.cube, width_x, width_y)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -323,9 +326,7 @@ class Test_pad_cube_with_halo(IrisTest):
         )
         width_x = 2
         width_y = 4
-        padded_cube = pad_cube_with_halo(
-            self.cube, width_x, width_y, halo_mean_data=False
-        )
+        padded_cube = pad_cube_with_halo(self.cube, width_x, width_y)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
@@ -351,15 +352,14 @@ class Test_pad_cube_with_halo(IrisTest):
         )
         width_x = 0
         width_y = 4
-        padded_cube = pad_cube_with_halo(
-            self.cube, width_x, width_y, halo_mean_data=False
-        )
+        padded_cube = pad_cube_with_halo(self.cube, width_x, width_y)
         self.assertIsInstance(padded_cube, iris.cube.Cube)
         self.assertArrayAlmostEqual(padded_cube.data, expected)
 
-    def test_halo_using_mean_smoothing(self):
-        """Test values in halo are correctly smoothed when halo_mean_data=True.
+    def test_halo_using_mean_method(self):
+        """Test values in halo are correctly smoothed when using pad_method='mean'.
         This impacts recursive filter outputs."""
+
         data = np.array(
             [
                 [0.0, 0.0, 0.1, 0.0, 0.0],
@@ -371,6 +371,7 @@ class Test_pad_cube_with_halo(IrisTest):
             dtype=np.float32,
         )
         self.cube.data = data
+
         expected_data = np.array(
             [
                 [0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0],
@@ -386,7 +387,84 @@ class Test_pad_cube_with_halo(IrisTest):
             dtype=np.float32,
         )
 
-        padded_cube = pad_cube_with_halo(self.cube, 2, 2)
+        padded_cube = pad_cube_with_halo(self.cube, 2, 2, pad_method="mean")
+        self.assertArrayAlmostEqual(padded_cube.data, expected_data)
+
+    def test_halo_using_symmetric_method(self):
+        """Test values in halo are correct when using pad_method='symmetric'."""
+
+        expected_data = np.array(
+            [
+                [0.5, 0.1, 0.1, 0.5, 0.1, 0.1, 0.5],
+                [0.1, 0.0, 0.0, 0.1, 0.0, 0.0, 0.1],
+                [0.1, 0.0, 0.0, 0.1, 0.0, 0.0, 0.1],
+                [0.5, 0.1, 0.1, 0.5, 0.1, 0.1, 0.5],
+                [0.1, 0.0, 0.0, 0.1, 0.0, 0.0, 0.1],
+                [0.1, 0.0, 0.0, 0.1, 0.0, 0.0, 0.1],
+                [0.5, 0.1, 0.1, 0.5, 0.1, 0.1, 0.5],
+            ],
+            dtype=np.float32,
+        )
+
+        padded_cube = pad_cube_with_halo(
+            self.alternative_cube, 2, 2, pad_method="symmetric"
+        )
+        self.assertArrayAlmostEqual(padded_cube.data, expected_data)
+
+    def test_halo_using_minimum_method(self):
+        """Test values in halo are correct when using pad_method='minimum'.
+        Note that a larger halo is used as the stat_length used for np.pad
+        is half the halo width, thus to include the 0.5 within stat_length the
+        halo size must be at least 4."""
+
+        expected_data = np.array(
+            [
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.1, 0.1, 0.1, 0.1, 0.1, 0.5, 0.1, 0.1, 0.1, 0.1, 0.1],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+            ],
+            dtype=np.float32,
+        )
+
+        padded_cube = pad_cube_with_halo(
+            self.alternative_cube, 4, 4, pad_method="minimum"
+        )
+        self.assertArrayAlmostEqual(padded_cube.data, expected_data)
+
+    def test_halo_using_maximum_method(self):
+        """Test values in halo are correct when using pad_method='maximum'.
+        Note that a larger halo is used as the stat_length used for np.pad
+        is half the halo width, thus to include the 0.5 within stat_length the
+        halo size must be at least 4."""
+
+        expected_data = np.array(
+            [
+                [0.5, 0.5, 0.5, 0.5, 0.1, 0.5, 0.1, 0.5, 0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5, 0.5, 0.1, 0.5, 0.1, 0.5, 0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5, 0.5, 0.1, 0.5, 0.1, 0.5, 0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5, 0.5, 0.1, 0.5, 0.1, 0.5, 0.5, 0.5, 0.5],
+                [0.1, 0.1, 0.1, 0.1, 0.0, 0.1, 0.0, 0.1, 0.1, 0.1, 0.1],
+                [0.5, 0.5, 0.5, 0.5, 0.1, 0.5, 0.1, 0.5, 0.5, 0.5, 0.5],
+                [0.1, 0.1, 0.1, 0.1, 0.0, 0.1, 0.0, 0.1, 0.1, 0.1, 0.1],
+                [0.5, 0.5, 0.5, 0.5, 0.1, 0.5, 0.1, 0.5, 0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5, 0.5, 0.1, 0.5, 0.1, 0.5, 0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5, 0.5, 0.1, 0.5, 0.1, 0.5, 0.5, 0.5, 0.5],
+                [0.5, 0.5, 0.5, 0.5, 0.1, 0.5, 0.1, 0.5, 0.5, 0.5, 0.5],
+            ],
+            dtype=np.float32,
+        )
+
+        padded_cube = pad_cube_with_halo(
+            self.alternative_cube, 4, 4, pad_method="maximum"
+        )
         self.assertArrayAlmostEqual(padded_cube.data, expected_data)
 
 
