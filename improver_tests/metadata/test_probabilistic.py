@@ -45,9 +45,10 @@ from improver.metadata.probabilistic import (
     is_probability,
 )
 
-from ..set_up_test_cubes import set_up_probability_cube, set_up_variable_cube
-from ..wind_calculations.wind_gust_diagnostic.test_WindGustDiagnostic import (
-    create_cube_with_percentile_coord,
+from ..set_up_test_cubes import (
+    set_up_percentile_cube,
+    set_up_probability_cube,
+    set_up_variable_cube,
 )
 
 
@@ -221,16 +222,9 @@ class Test_find_percentile_coordinate(IrisTest):
 
     def setUp(self):
         """Create a wind-speed and wind-gust cube with percentile coord."""
-        data = np.zeros((2, 2, 2, 2))
-        self.wg_perc = 50.0
-        self.ws_perc = 95.0
-        gust = "wind_speed_of_gust"
-        self.cube_wg = create_cube_with_percentile_coord(
-            data=data,
-            perc_values=[self.wg_perc, 90.0],
-            perc_name="percentile",
-            standard_name=gust,
-        )
+        data = np.zeros((2, 3, 3), dtype=np.float32)
+        percentiles = np.array([50.0, 90.0], dtype=np.float32)
+        self.cube_wg = set_up_percentile_cube(data, percentiles)
 
     def test_basic(self):
         """Test that the function returns a Coord."""
@@ -240,13 +234,9 @@ class Test_find_percentile_coordinate(IrisTest):
 
     def test_fails_if_data_is_not_cube(self):
         """Test it raises a Type Error if cube is not a cube."""
-        msg = (
-            "Expecting data to be an instance of "
-            "iris.cube.Cube but is"
-            " {}.".format(type(self.wg_perc))
-        )
+        msg = "Expecting data to be an instance of iris.cube.Cube "
         with self.assertRaisesRegex(TypeError, msg):
-            find_percentile_coordinate(self.wg_perc)
+            find_percentile_coordinate(50.0)
 
     def test_fails_if_no_perc_coord(self):
         """Test it raises an Error if there is no percentile coord."""
