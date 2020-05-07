@@ -34,6 +34,7 @@ specific for ensemble calibration.
 
 """
 import iris
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.utilities.temporal import iris_time_to_datetime
@@ -306,3 +307,51 @@ def time_coords_match(first_cube, second_cube):
     if mismatches:
         msg = "The following coordinates of the two cubes do not match: {}"
         raise ValueError(msg.format(", ".join(mismatches)))
+
+
+def get_cycle_hours(forecast_reference_time):
+    """
+    Returns a set of integer representations of the hour of the
+    forecast reference time (the cycle hour).
+
+    Args:
+        forecast_reference_time (iris.coord.DimCoord):
+            The forecast_reference_time coordinate to extract cycle hours
+            from.
+    Returns:
+        set:
+            A set of integer representations of the cycle hours.
+    """
+    cycle_hours = []
+    for frt in forecast_reference_time.cells():
+        cycle_hours.append(np.int32(frt.point.hour))
+    return set(cycle_hours)
+
+
+def check_forecast_consistency(forecasts):
+    """
+    Checks that the forecast cubes are all from a consistent cycle and
+    with a consistent forecast period.
+
+    Args:
+        forecasts (iris.cube.Cube):
+    Raises:
+        ValueError: Forecast cubes do not share consistent cycle hour and
+                    forecast period.
+    """
+    n_cycle_hours = len(
+        get_cycle_hours(forecasts.coord("forecast_reference_time"))
+    )
+    try:
+        (n_forecast_periods,) = forecasts.coord("forecast_period").shape
+    except CoordinateNotFoundError:
+        n_forecast_periods = 0
+    if n_cycle_hours != 1 or n_forecast_periods != 1:
+        msg = (
+            "Forecasts have been provided from differing cycle hours "
+            "or forecast periods, or without these coordinates. These "
+            "coordinates should be present and consistent between "
+            "forecasts. Number of cycle hours found: {}, number of "
+            "forecast periods found: {}."
+        )
+        raise ValueError(msg.format(n_cycle_hours, n_forecast_periods))

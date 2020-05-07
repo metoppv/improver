@@ -693,7 +693,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         default values for the coefficients will be used.
 
         If the predictor is "mean", then the order of the initial_guess is
-        [alpha, beta, gamma, delta, ]. Otherwise, if the predictor is
+        [alpha, beta, gamma, delta]. Otherwise, if the predictor is
         "realizations" then the order of the initial_guess is
         [alpha, beta0, beta1, beta2, gamma, delta], where the number of beta
         variables will correspond to the number of realizations. In this
@@ -876,7 +876,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         check_predictor(self.predictor)
 
         historic_forecast, truth = filter_non_matching_cubes(historic_forecast, truth)
-
+        self._check_forecast_consistency(historic_forecasts)
         # Make sure inputs have the same units.
         if self.desired_units:
             historic_forecast.convert_units(self.desired_units)
