@@ -57,6 +57,7 @@ from improver.utilities.cube_manipulation import (
     get_dim_coord_names,
     sort_coord_in_cube,
 )
+from improver.utilities.round import round_close
 from improver.utilities.temporal import cycletime_to_number
 
 
@@ -753,7 +754,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         cycletime_point = cycletime_to_number(
             cycletime, time_unit=frt_units, calendar=frt_calendar
         )
-        return np.round(cycletime_point).astype(np.int64)
+        return round_close(cycletime_point, dtype=np.int64)
 
     def _set_coords_to_remove(self, input_cube):
         """

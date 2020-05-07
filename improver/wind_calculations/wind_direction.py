@@ -196,10 +196,7 @@ class WindDirection(BasePlugin):
         angle = np.where(angle < 0, angle + 360, angle)
 
         # If angle == 360 - set to zero degrees.
-        # Due to floating point - need to round value before using
-        # equal operator.
-        round_angle = np.around(angle, 2)
-        angle = np.where(round_angle == 360, 0.0, angle)
+        angle = np.where(np.isclose(angle, 360, atol=0.001), 0.0, angle)
 
         # We don't need 64 bit precision.
         angle = angle.astype(np.float32)
