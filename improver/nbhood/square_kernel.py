@@ -39,7 +39,6 @@ from improver.utilities.cube_checker import (
     check_for_x_and_y_axes,
 )
 from improver.utilities.cube_manipulation import clip_cube_data
-from improver.utilities.mathematical_operations import fast_cumsum_2d
 from improver.utilities.neighbourhood_tools import boxsum
 from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_cube
 from improver.utilities.spatial import distance_to_number_of_grid_cells
@@ -95,12 +94,31 @@ class SquareNeighbourhood:
         return result.format(self.weighted_mode, self.sum_or_fraction, self.re_mask)
 
     @staticmethod
-    def _calculate_neighbourhood(data, mask, nb_size, sum_only, re_mask, name):
+    def _calculate_neighbourhood(data, mask, nb_size, sum_only, re_mask):
+        """
+        Apply neighbourhood processing.
+
+        Args:
+            data (numpy.ndarray):
+                Input data array.
+            mask (numpy.ndarray):
+                Mask of valid input data elements.
+            nb_size (int):
+                Size of the square neighbourhood as the number of grid cells.
+            sum_only (bool):
+                If true, return neighbourhood sum instead of mean.
+            re_mask (bool):
+                If true, reapply the original mask and return
+                `numpy.ma.MaskedArray`.
+
+        Returns:
+            numpy.ndarray:
+                Array containing the smoothed field after the square
+                neighbourhood method has been applied.
+        """
         if not sum_only:
             min_val = np.nanmin(data)
             max_val = np.nanmax(data)
-
-        cumsum = fast_cumsum_2d if data.ndim == 2 else True
 
         # Use 64-bit types for enough precision in accumulations.
         area_mask_dtype = np.int64
@@ -108,35 +126,41 @@ class SquareNeighbourhood:
             area_mask = np.ones(data.shape, dtype=area_mask_dtype)
         else:
             area_mask = np.array(mask, dtype=area_mask_dtype, copy=False)
+
         # Data mask to be eventually used for re-masking.
         # (This is OK even if mask is None, it gives a scalar False mask then.)
         data_mask = mask == 0
         if isinstance(data, np.ma.MaskedArray):
-            # Include data mask if masked array
+            # Include data mask if masked array.
             data_mask = data_mask | data.mask
             data = data.data
+
+        # Working type.
         if issubclass(data.dtype.type, np.complexfloating):
             data_dtype = np.complex128
-        elif name.startswith("probability_of"):
-            data_dtype = np.float32
-            cumsum = True
         else:
             data_dtype = np.float64
         data = np.array(data, dtype=data_dtype)
+
+        # Replace invalid elements with zeros.
         nan_mask = np.isnan(data)
         zero_mask = nan_mask | data_mask
         np.copyto(area_mask, 0, where=zero_mask)
         np.copyto(data, 0, where=zero_mask)
 
-        data = boxsum(data, nb_size, cumsum=cumsum, mode="constant")
+        # Calculate neighbourhood totals for input data.
+        data = boxsum(data, nb_size, mode="constant")
         if not sum_only:
-            area_sum = boxsum(area_mask, nb_size, cumsum=cumsum, mode="constant")
+            # Calculate neighbourhood totals for mask.
+            area_sum = boxsum(area_mask, nb_size, mode="constant")
             with np.errstate(divide="ignore", invalid="ignore"):
+                # Calculate neighbourhood mean.
                 data = data / area_sum
             mask_invalid = (area_sum == 0) | nan_mask
             np.copyto(data, np.nan, where=mask_invalid)
             data = data.clip(min_val, max_val)
 
+        # Output type.
         if issubclass(data.dtype.type, np.complexfloating):
             data_dtype = np.complex64
         else:
@@ -196,7 +220,6 @@ class SquareNeighbourhood:
                 nb_size,
                 self.sum_or_fraction == "sum",
                 self.re_mask,
-                cube.name(),
             )
             result_slices.append(cube_slice)
 

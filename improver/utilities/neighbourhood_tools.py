@@ -161,11 +161,10 @@ def boxsum(data, boxsize, cumsum=True, **pad_options):
             The input data array.
         boxsize (int or pair of int):
             The size of the neighbourhood.
-        cumsum (bool or callable):
+        cumsum (bool):
             If False, assume the input data is already cumulative. If True
             (default), calculate cumsum along the last two dimensions of
-            the input array. If callable is passed, use it for this calculation
-            instead of `data.cumsum(-2).cumsum(-1)`.
+            the input array.
         pad_options (dict):
             Additional keyword arguments passed to `numpy.pad` function.
             If given, the returned result will have the same shape as the input
@@ -178,9 +177,7 @@ def boxsum(data, boxsize, cumsum=True, **pad_options):
     boxsize = np.atleast_1d(boxsize)
     if pad_options:
         data = pad_boxsum(data, boxsize, **pad_options)
-    if callable(cumsum):
-        data = cumsum(data)
-    elif cumsum:
+    if cumsum:
         data = data.cumsum(-2).cumsum(-1)
     i, j = boxsize[0], boxsize[-1]
     m, n = data.shape[-2] - i, data.shape[-1] - j
