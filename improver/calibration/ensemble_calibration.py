@@ -65,7 +65,10 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ResamplePercentiles,
 )
 from improver.metadata.probabilistic import find_percentile_coordinate
-from improver.metadata.utilities import create_new_diagnostic_cube, generate_mandatory_attributes
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 from improver.utilities.cube_manipulation import collapsed, enforce_coordinate_ordering
 
 
@@ -329,7 +332,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             beta = initial_guess[2:]
         elif predictor.lower() == "realizations":
             beta = np.array(
-                [initial_guess[0]] + (initial_guess[1:-2] ** 2).tolist(), dtype=np.float32
+                [initial_guess[0]] + (initial_guess[1:-2] ** 2).tolist(),
+                dtype=np.float32,
             )
 
         new_col = np.ones(truth.shape, dtype=np.float32)
@@ -390,7 +394,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             beta = initial_guess[2:]
         elif predictor.lower() == "realizations":
             beta = np.array(
-                [initial_guess[0]] + (initial_guess[1:-2] ** 2).tolist(), dtype=np.float32
+                [initial_guess[0]] + (initial_guess[1:-2] ** 2).tolist(),
+                dtype=np.float32,
             )
 
         new_col = np.ones(truth.shape, dtype=np.float32)
@@ -574,22 +579,21 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecast.coord("realization").points
         )
         beta_values = optimised_coeffs[realizations_coeff_names.index("beta")]
-        if len(beta_values) != len(
-                historic_forecast.coord("realization").points):
+        if len(beta_values) != len(historic_forecast.coord("realization").points):
             msg = (
                 "The number of beta coefficients in {} must equal the "
                 "number of realizations {}, when the predictor is "
                 "'realizations'.".format(
-                    optimised_coeffs[-len(beta_values):],
+                    optimised_coeffs[-len(beta_values) :],
                     historic_forecast.coord("realization").points,
                 )
             )
             raise ValueError(msg)
 
-        return np.array([
-            *optimised_coeffs[: -len(beta_values)],
-            np.array(beta_values),
-        ], dtype=np.float32)
+        return np.array(
+            [*optimised_coeffs[: -len(beta_values)], np.array(beta_values),],
+            dtype=np.float32,
+        )
 
     def create_coefficients_cubelist(self, optimised_coeffs, historic_forecast):
         """Create a cubelist for storing the coefficients computed using EMOS.
@@ -619,7 +623,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         coeff_names = self.coeff_names
         if self.predictor.lower() == "realizations":
             optimised_coeffs = self._multiple_beta_coefficients(
-                optimised_coeffs, historic_forecast)
+                optimised_coeffs, historic_forecast
+            )
 
         if len(optimised_coeffs) != len(coeff_names):
             msg = (
@@ -629,7 +634,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             raise ValueError(msg)
 
         # Create forecast reference time coordinate.
-        frt_coord = create_unified_frt_coord(historic_forecast.coord("forecast_reference_time"))
+        frt_coord = create_unified_frt_coord(
+            historic_forecast.coord("forecast_reference_time")
+        )
 
         # Create forecast period coordinate.
         fp_point = np.unique(historic_forecast.coord("forecast_period").points)
@@ -657,7 +664,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 coeff_units = historic_forecast.units
             dim_coords_and_dims = []
             if self.predictor.lower() == "realizations" and coeff_name == "beta":
-                dim_coords_and_dims = [(historic_forecast.coord("realization").copy(), 0)]
+                dim_coords_and_dims = [
+                    (historic_forecast.coord("realization").copy(), 0)
+                ]
             cube = iris.cube.Cube(
                 optimised_coeff,
                 long_name=f"emos_coefficient_{coeff_name}",
@@ -739,9 +748,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             predictor.lower() == "realizations"
             and not estimate_coefficients_from_linear_model_flag
         ):
-            initial_guess = [0, np.repeat(
-                np.sqrt(1.0 / no_of_realizations), no_of_realizations
-            ).tolist(), 0, 1]
+            initial_guess = [
+                0,
+                np.repeat(
+                    np.sqrt(1.0 / no_of_realizations), no_of_realizations
+                ).tolist(),
+                0,
+                1,
+            ]
         elif estimate_coefficients_from_linear_model_flag:
             truth_flattened = flatten_ignoring_masked_data(truth.data)
             if predictor.lower() == "mean":
@@ -769,9 +783,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     gradient = est.params[1:]
                     initial_guess = [intercept, gradient.tolist(), 0, 1]
                 else:
-                    initial_guess = [0, np.repeat(
-                        np.sqrt(1.0 / no_of_realizations), no_of_realizations
-                    ).tolist(), 0, 1]
+                    initial_guess = [
+                        0,
+                        np.repeat(
+                            np.sqrt(1.0 / no_of_realizations), no_of_realizations
+                        ).tolist(),
+                        0,
+                        1,
+                    ]
         return np.array(initial_guess, dtype=np.float32)
 
     @staticmethod

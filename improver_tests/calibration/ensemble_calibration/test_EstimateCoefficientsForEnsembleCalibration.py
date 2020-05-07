@@ -109,7 +109,7 @@ class SetupExpectedCoefficients(IrisTest):
             [-0.2838, -0.0774, 0.3892, 0.9167, -0.0003, 1.0022], dtype=np.float32
         )
         self.expected_realizations_gaussian_no_statsmodels = np.array(
-            [-0.0, 0.5785, 0.578, 0.5733, 0.0001, 1.0227, ], dtype=np.float32
+            [-0.0, 0.5785, 0.578, 0.5733, 0.0001, 1.0227,], dtype=np.float32
         )
         self.expected_realizations_truncated_gaussian_statsmodels = np.array(
             [-0.606, -0.0623, 0.3786, 0.9014, 0.0003, 1.2571], dtype=np.float32
@@ -301,16 +301,35 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
             desired_units=self.desired_units,
             predictor=self.predictor,
         )
-        self.expected_frt = datetime.datetime.strptime(self.current_cycle, "%Y%m%dT%H%MZ")
-        self.expected_x_coord_points = np.median(self.historic_forecast.coord(axis="x").points)
-        self.expected_x_coord_bounds = np.array([[min(self.historic_forecast.coord(axis="x").points),
-                                        max(self.historic_forecast.coord(axis="x").points)]])
-        self.expected_y_coord_points = np.median(self.historic_forecast.coord(axis="y").points)
-        self.expected_y_coord_bounds = np.array([[min(self.historic_forecast.coord(axis="y").points),
-                                        max(self.historic_forecast.coord(axis="y").points)]])
-        self.attributes = {"diagnostic_standard_name": self.historic_forecast.name(),
-                           "mosg__model_configuration": "uk_ens",
-                           }
+        self.expected_frt = datetime.datetime.strptime(
+            self.current_cycle, "%Y%m%dT%H%MZ"
+        )
+        self.expected_x_coord_points = np.median(
+            self.historic_forecast.coord(axis="x").points
+        )
+        self.expected_x_coord_bounds = np.array(
+            [
+                [
+                    min(self.historic_forecast.coord(axis="x").points),
+                    max(self.historic_forecast.coord(axis="x").points),
+                ]
+            ]
+        )
+        self.expected_y_coord_points = np.median(
+            self.historic_forecast.coord(axis="y").points
+        )
+        self.expected_y_coord_bounds = np.array(
+            [
+                [
+                    min(self.historic_forecast.coord(axis="y").points),
+                    max(self.historic_forecast.coord(axis="y").points),
+                ]
+            ]
+        )
+        self.attributes = {
+            "diagnostic_standard_name": self.historic_forecast.name(),
+            "mosg__model_configuration": "uk_ens",
+        }
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_mean(self):
@@ -322,11 +341,21 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
 
         self.assertEqual(len(result), 4)
         for cube in result:
-            self.assertEqual(cube.coord("forecast_reference_time").cell(0).point, self.expected_frt)
-            self.assertArrayAlmostEqual(cube.coord(axis="x").points, self.expected_x_coord_points)
-            self.assertArrayAlmostEqual(cube.coord(axis="x").bounds, self.expected_x_coord_bounds)
-            self.assertArrayAlmostEqual(cube.coord(axis="y").points, self.expected_y_coord_points)
-            self.assertArrayAlmostEqual(cube.coord(axis="y").bounds, self.expected_y_coord_bounds)
+            self.assertEqual(
+                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").points, self.expected_x_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").points, self.expected_y_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
+            )
             self.assertArrayAlmostEqual(cube.attributes, self.attributes)
 
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
@@ -349,16 +378,28 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         )
         self.assertEqual(len(result), 4)
         for cube in result:
-            self.assertEqual(cube.coord("forecast_reference_time").cell(0).point, self.expected_frt)
-            self.assertArrayAlmostEqual(cube.coord(axis="x").points, self.expected_x_coord_points)
-            self.assertArrayAlmostEqual(cube.coord(axis="x").bounds, self.expected_x_coord_bounds)
-            self.assertArrayAlmostEqual(cube.coord(axis="y").points, self.expected_y_coord_points)
-            self.assertArrayAlmostEqual(cube.coord(axis="y").bounds, self.expected_y_coord_bounds)
+            self.assertEqual(
+                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").points, self.expected_x_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").points, self.expected_y_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
+            )
             self.assertArrayAlmostEqual(cube.attributes, self.attributes)
 
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
-        self.assertEqual(result.extract("emos_coefficient_beta").coord("realization").points,
-                         self.historic_forecast_with_realizations.coord("realization").points)
+        self.assertEqual(
+            result.extract("emos_coefficient_beta").coord("realization").points,
+            self.historic_forecast_with_realizations.coord("realization").points,
+        )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_mean_non_standard_units(self):
@@ -372,11 +413,21 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         )
         self.assertEqual(len(result), 4)
         for cube in result:
-            self.assertEqual(cube.coord("forecast_reference_time").cell(0).point, self.expected_frt)
-            self.assertArrayAlmostEqual(cube.coord(axis="x").points, self.expected_x_coord_points)
-            self.assertArrayAlmostEqual(cube.coord(axis="x").bounds, self.expected_x_coord_bounds)
-            self.assertArrayAlmostEqual(cube.coord(axis="y").points, self.expected_y_coord_points)
-            self.assertArrayAlmostEqual(cube.coord(axis="y").bounds, self.expected_y_coord_bounds)
+            self.assertEqual(
+                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").points, self.expected_x_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").points, self.expected_y_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
+            )
             self.assertArrayAlmostEqual(cube.attributes, self.attributes)
 
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
@@ -394,11 +445,21 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         )
         self.assertEqual(len(result), 4)
         for cube in result:
-            self.assertEqual(cube.coord("forecast_reference_time").cell(0).point, self.expected_frt)
-            self.assertArrayAlmostEqual(cube.coord(axis="x").points, self.expected_x_coord_points)
-            self.assertArrayAlmostEqual(cube.coord(axis="x").bounds, self.expected_x_coord_bounds)
-            self.assertArrayAlmostEqual(cube.coord(axis="y").points, self.expected_y_coord_points)
-            self.assertArrayAlmostEqual(cube.coord(axis="y").bounds, self.expected_y_coord_bounds)
+            self.assertEqual(
+                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").points, self.expected_x_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").points, self.expected_y_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
+            )
             self.assertArrayAlmostEqual(cube.attributes, self.attributes)
 
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
@@ -415,11 +476,21 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         )
         self.assertEqual(len(result), 4)
         for cube in result:
-            self.assertEqual(cube.coord("forecast_reference_time").cell(0).point, self.expected_frt)
-            self.assertArrayAlmostEqual(cube.coord(axis="x").points, self.expected_x_coord_points)
-            self.assertArrayAlmostEqual(cube.coord(axis="x").bounds, self.expected_x_coord_bounds)
-            self.assertArrayAlmostEqual(cube.coord(axis="y").points, self.expected_y_coord_points)
-            self.assertArrayAlmostEqual(cube.coord(axis="y").bounds, self.expected_y_coord_bounds)
+            self.assertEqual(
+                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").points, self.expected_x_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").points, self.expected_y_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
+            )
             self.assertArrayAlmostEqual(cube.attributes, self.attributes)
 
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)

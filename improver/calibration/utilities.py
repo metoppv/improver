@@ -288,6 +288,7 @@ def time_coords_match(first_cube, second_cube):
     Raises:
         ValueError: The two cubes are not equivalent.
     """
+
     def _frt_hours(cube):
         hours = []
         for cell in cube.coord("forecast_reference_time").cells():
@@ -305,4 +306,3 @@ def time_coords_match(first_cube, second_cube):
     if mismatches:
         msg = "The following coordinates of the two cubes do not match: {}"
         raise ValueError(msg.format(", ".join(mismatches)))
-
