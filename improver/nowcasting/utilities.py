@@ -120,10 +120,12 @@ class FillRadarHoles(BasePlugin):
         The constants defining neighbourhood size and proportion of neighbouring
         masked pixels for speckle identification have been empirically tuned for
         UK radar data. As configured, this method will flag "holes" of up to 24
-        pixels in size. The radius used to interpolate data into these holes has
-        been chosen to match these constants, defining the smallest radius that
-        ensures there will always be valid data in the neighbourhood (25 pixels)
-        over which averaging is performed.
+        pixels in size (30% of a 9 x 9 neighbourhood).
+
+        The radius used to interpolate data into these holes has been chosen to
+        match these constants, by defining the smallest radius that ensures there
+        will always be valid data in the neighbourhood (25 pixels) over which
+        averaging is performed.
         """
         # shape of neighbourhood over which to search for masked neighbours
         self.r_speckle = 4
@@ -173,7 +175,7 @@ class FillRadarHoles(BasePlugin):
         mask = mask_windows[indices][..., bounds, bounds]
 
         for row_ind, col_ind, data_win, mask_win in zip(*indices, data, mask):
-            valid_points = data_win[np.where(mask_win == 0)]
+            valid_points = data_win[mask_win == 0]
             mean = np.mean(
                 np.where(valid_points > self.MIN_RR_MMH, np.log10(valid_points), np.nan)
             )

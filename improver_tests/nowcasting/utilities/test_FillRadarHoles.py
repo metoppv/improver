@@ -66,7 +66,7 @@ def rainrate_fixture() -> Cube:
 @pytest.fixture(name="interp_rainrate")
 def interp_rainrate_fixture(rainrate) -> MaskedArray:
     """Interpolated rain rates, expected output from applying FillRadarHoles"""
-    data = rainrate.data
+    data = rainrate.data.copy()
     data[7:10, 8:10] = [
         [0.2, 0.07138586],
         [0.11366593, 0.09165306],
