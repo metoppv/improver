@@ -216,6 +216,7 @@ def create_constrained_inputcubelist_converter(*constraints):
             will be sorted to match their order.
             A constraint can be an iris.Constraint object or a callable
             or cube name that can be used to construct one.
+
     Returns:
         callable:
             A function with the constraints used for a list comprehension.
@@ -224,9 +225,11 @@ def create_constrained_inputcubelist_converter(*constraints):
     @value_converter
     def constrained_inputcubelist_converter(to_convert):
         """Passes the cube and constraints onto maybe_coerce_with.
+
         Args:
             to_convert (str or iris.cube.CubeList):
                 A CubeList or a filename to be loaded into a CubeList.
+
         Returns:
             iris.cube.CubeList:
                 The loaded cubelist of constrained cubes.

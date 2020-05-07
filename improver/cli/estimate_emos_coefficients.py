@@ -42,7 +42,6 @@ def process(
     *cubes: cli.inputcube,
     distribution,
     truth_attribute,
-    cycletime,
     units=None,
     predictor="mean",
     tolerance: float = 0.01,
@@ -70,11 +69,6 @@ def process(
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on historical truth cubes.
-        cycletime (str):
-            This denotes the cycle at which forecasts will be calibrated using
-            the calculated EMOS coefficients. The validity time in the output
-            coefficients cube will be calculated relative to this cycletime.
-            This cycletime is in the format YYYYMMDDTHHMMZ.
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
@@ -112,7 +106,6 @@ def process(
 
     plugin = EstimateCoefficientsForEnsembleCalibration(
         distribution,
-        cycletime,
         desired_units=units,
         predictor=predictor,
         tolerance=tolerance,

@@ -55,7 +55,6 @@ from .helper_functions import (
     EnsembleCalibrationAssertions,
     SetupCubes,
     _create_historic_forecasts,
-    build_coefficients_cubelist,
 )
 
 try:
@@ -292,10 +291,6 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         ).merge_cube()
         self.optimised_coeffs = np.array([0, 1, 2, 3], np.int32)
 
-        self.expected = build_coefficients_cubelist(
-            self.historic_forecast[0], self.coeff_names, self.optimised_coeffs
-        )
-
         self.distribution = "gaussian"
         self.current_cycle = "20171110T0000Z"
         self.desired_units = "degreesC"
@@ -306,6 +301,16 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
             desired_units=self.desired_units,
             predictor=self.predictor,
         )
+        self.expected_frt = datetime.datetime.strptime(self.current_cycle, "%Y%m%dT%H%MZ")
+        self.expected_x_coord_points = np.median(self.historic_forecast.coord(axis="x").points)
+        self.expected_x_coord_bounds = np.array([[min(self.historic_forecast.coord(axis="x").points),
+                                        max(self.historic_forecast.coord(axis="x").points)]])
+        self.expected_y_coord_points = np.median(self.historic_forecast.coord(axis="y").points)
+        self.expected_y_coord_bounds = np.array([[min(self.historic_forecast.coord(axis="y").points),
+                                        max(self.historic_forecast.coord(axis="y").points)]])
+        self.attributes = {"diagnostic_standard_name": self.historic_forecast.name(),
+                           "mosg__model_configuration": "uk_ens",
+                           }
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_mean(self):
@@ -314,7 +319,16 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
-        self.assertEqual(result, self.expected)
+
+        self.assertEqual(len(result), 4)
+        for cube in result:
+            self.assertEqual(cube.coord("forecast_reference_time").cell(0).point, self.expected_frt)
+            self.assertArrayAlmostEqual(cube.coord(axis="x").points, self.expected_x_coord_points)
+            self.assertArrayAlmostEqual(cube.coord(axis="x").bounds, self.expected_x_coord_bounds)
+            self.assertArrayAlmostEqual(cube.coord(axis="y").points, self.expected_y_coord_points)
+            self.assertArrayAlmostEqual(cube.coord(axis="y").bounds, self.expected_y_coord_bounds)
+            self.assertArrayAlmostEqual(cube.attributes, self.attributes)
+
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -323,14 +337,6 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         ensemble realizations are used as the predictor."""
         predictor = "realizations"
         optimised_coeffs = [0, 1, 2, 3, 4, 5]
-
-        # Set up an expected cube.
-        expected = build_coefficients_cubelist(
-            self.historic_forecast_with_realizations[0],
-            self.coeff_names,
-            optimised_coeffs,
-            predictor="realizations",
-        )
 
         plugin = Plugin(
             distribution=self.distribution,
@@ -341,10 +347,18 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         result = plugin.create_coefficients_cubelist(
             optimised_coeffs, self.historic_forecast_with_realizations
         )
-        self.assertEqual(result, expected)
-        self.assertArrayEqual(
-            [cube.name() for cube in result], self.expected_coeff_names
-        )
+        self.assertEqual(len(result), 4)
+        for cube in result:
+            self.assertEqual(cube.coord("forecast_reference_time").cell(0).point, self.expected_frt)
+            self.assertArrayAlmostEqual(cube.coord(axis="x").points, self.expected_x_coord_points)
+            self.assertArrayAlmostEqual(cube.coord(axis="x").bounds, self.expected_x_coord_bounds)
+            self.assertArrayAlmostEqual(cube.coord(axis="y").points, self.expected_y_coord_points)
+            self.assertArrayAlmostEqual(cube.coord(axis="y").bounds, self.expected_y_coord_bounds)
+            self.assertArrayAlmostEqual(cube.attributes, self.attributes)
+
+        self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
+        self.assertEqual(result.extract("emos_coefficient_beta").coord("realization").points,
+                         self.historic_forecast_with_realizations.coord("realization").points)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_mean_non_standard_units(self):
@@ -356,7 +370,15 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
-        self.assertEqual(result, self.expected)
+        self.assertEqual(len(result), 4)
+        for cube in result:
+            self.assertEqual(cube.coord("forecast_reference_time").cell(0).point, self.expected_frt)
+            self.assertArrayAlmostEqual(cube.coord(axis="x").points, self.expected_x_coord_points)
+            self.assertArrayAlmostEqual(cube.coord(axis="x").bounds, self.expected_x_coord_bounds)
+            self.assertArrayAlmostEqual(cube.coord(axis="y").points, self.expected_y_coord_points)
+            self.assertArrayAlmostEqual(cube.coord(axis="y").bounds, self.expected_y_coord_bounds)
+            self.assertArrayAlmostEqual(cube.attributes, self.attributes)
+
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -370,7 +392,16 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
-        self.assertEqual(result, self.expected)
+        self.assertEqual(len(result), 4)
+        for cube in result:
+            self.assertEqual(cube.coord("forecast_reference_time").cell(0).point, self.expected_frt)
+            self.assertArrayAlmostEqual(cube.coord(axis="x").points, self.expected_x_coord_points)
+            self.assertArrayAlmostEqual(cube.coord(axis="x").bounds, self.expected_x_coord_bounds)
+            self.assertArrayAlmostEqual(cube.coord(axis="y").points, self.expected_y_coord_points)
+            self.assertArrayAlmostEqual(cube.coord(axis="y").bounds, self.expected_y_coord_bounds)
+            self.assertArrayAlmostEqual(cube.attributes, self.attributes)
+
+        self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_model_configuration_not_present(self):
@@ -382,7 +413,16 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
-        self.assertEqual(result, self.expected)
+        self.assertEqual(len(result), 4)
+        for cube in result:
+            self.assertEqual(cube.coord("forecast_reference_time").cell(0).point, self.expected_frt)
+            self.assertArrayAlmostEqual(cube.coord(axis="x").points, self.expected_x_coord_points)
+            self.assertArrayAlmostEqual(cube.coord(axis="x").bounds, self.expected_x_coord_bounds)
+            self.assertArrayAlmostEqual(cube.coord(axis="y").points, self.expected_y_coord_points)
+            self.assertArrayAlmostEqual(cube.coord(axis="y").bounds, self.expected_y_coord_bounds)
+            self.assertArrayAlmostEqual(cube.attributes, self.attributes)
+
+        self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_too_few_coefficients(self):

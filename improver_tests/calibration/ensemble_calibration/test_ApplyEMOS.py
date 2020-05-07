@@ -44,7 +44,69 @@ from ...set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
-from .helper_functions import build_coefficients_cubelist
+
+
+def build_coefficients_cubelist(template, coeff_names, coeff_values, predictor="mean"):
+    """Make a cubelist of coefficients with expected metadata
+
+    Args:
+        template (iris.cube.Cube):
+            Cube containing information about the time,
+            forecast_reference_time, forecast_period, x coordinate and
+            y coordinate that will be used within the EMOS coefficient cube.
+        coeff_names (list):
+            The names of the EMOS coefficients. Each coefficient will be in a
+            separate cube within the resulting cubelist.
+        coeff_values (numpy.ndarray or list):
+            The values of the coefficients. These values will be used as the
+            cube data.
+        predictor (str):
+            Choice of predictor of location parameter. Either the ensemble mean
+            "mean" or ensemble realizations ("realizations") are supported.
+
+    Returns:
+        cubelist (iris.cube.CubeList) - The resulting EMOS
+            coefficients cubelist.
+
+    """
+    dim_coords_and_dims = []
+    aux_coords_and_dims = []
+
+    if predictor.lower() == "realizations":
+        coeff_values = [*coeff_values[:3], np.array(coeff_values[3:])]
+
+    # add spatial and temporal coords from forecast to be calibrated
+    for coord in ["time", "forecast_period", "forecast_reference_time"]:
+        aux_coords_and_dims.append((template.coord(coord).copy(), None))
+
+    for coord in [template.coord(axis="x"), template.coord(axis="y")]:
+        bounds = [min(coord.points), max(coord.points)]
+        point = np.median(bounds)
+        new_coord = coord.copy(points=[point], bounds=[bounds])
+        aux_coords_and_dims.append((new_coord, None))
+
+    attributes = {
+        "diagnostic_standard_name": "air_temperature",
+    }
+
+    cubelist = iris.cube.CubeList([])
+    for optimised_coeff, coeff_name in zip(coeff_values, coeff_names):
+        coeff_units = "1"
+        if coeff_name in ["gamma", "alpha"]:
+            coeff_units = template.units
+        if predictor.lower() == "realizations" and coeff_name == "beta":
+            dim_coords_and_dims.append((template.coord("realization").copy(), 0))
+        cube = iris.cube.Cube(
+            optimised_coeff,
+            long_name=f"emos_coefficient_{coeff_name}",
+            units=coeff_units,
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims,
+            attributes=attributes,
+        )
+        cubelist.append(cube)
+
+    return cubelist
 
 
 class Test_process(IrisTest):

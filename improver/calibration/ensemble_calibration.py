@@ -37,7 +37,6 @@ Statistics (EMOS).
    ensemble_calibration.rst
 
 """
-import datetime
 import warnings
 
 import iris
@@ -51,6 +50,7 @@ from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
     check_predictor,
     convert_cube_data_to_2d,
+    create_unified_frt_coord,
     filter_non_matching_cubes,
     flatten_ignoring_masked_data,
     merge_land_and_sea,
@@ -64,10 +64,9 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ResamplePercentiles,
 )
 from improver.metadata.probabilistic import find_percentile_coordinate
-from improver.metadata.utilities import create_new_diagnostic_cube
+from improver.metadata.utilities import create_new_diagnostic_cube, generate_mandatory_attributes
 from improver.utilities.cube_checker import time_coords_match
 from improver.utilities.cube_manipulation import collapsed, enforce_coordinate_ordering
-from improver.utilities.temporal import cycletime_to_datetime, datetime_to_iris_time
 
 
 class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
@@ -434,7 +433,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
     def __init__(
         self,
         distribution,
-        current_cycle,
         desired_units=None,
         predictor="mean",
         tolerance=0.01,
@@ -452,10 +450,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             distribution (str):
                 Name of distribution. Assume that a calibrated version of the
                 current forecast could be represented using this distribution.
-            current_cycle (str):
-                The current cycle in YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
-                This is used to create a forecast_reference_time coordinate
-                on the resulting EMOS coefficients cube.
             desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
@@ -499,7 +493,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             raise ValueError(msg)
         self.distribution = distribution
-        self.current_cycle = current_cycle
         self.desired_units = desired_units
         # Ensure predictor is valid.
         check_predictor(predictor)
@@ -544,7 +537,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         result = (
             "<EstimateCoefficientsForEnsembleCalibration: "
             "distribution: {}; "
-            "current_cycle: {}; "
             "desired_units: {}; "
             "predictor: {}; "
             "minimiser: {}; "
@@ -554,7 +546,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         )
         return result.format(
             self.distribution,
-            self.current_cycle,
             self.desired_units,
             self.predictor,
             self.minimiser.__class__,
@@ -562,6 +553,46 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             self.tolerance,
             self.max_iterations,
         )
+
+    def _multiple_beta_coefficients(self, optimised_coeffs, historic_forecast):
+        """Re-structure the coefficients, if provided multiple beta values
+
+        Args:
+            optimised_coeffs (numpy.ndarray):
+                Order of coefficients is [gamma, delta, alpha, beta].
+            historic_forecast (iris.cube.Cube):
+                The cube containing the historic forecast.
+
+        Returns:
+            optimised_coeffs (np.ndarray):
+                Array of coefficients that itself contains are array of beta
+                coefficients.
+                Order of coefficients is [gamma, delta, alpha, beta].
+
+        Raises:
+            ValueError: If the number of beta coefficients do not match the
+                number of realizations.
+        """
+        realizations_coeff_names = self.coeff_names[:-1] + [self.coeff_names[-1]] * len(
+            historic_forecast.coord("realization").points
+        )
+        beta_values = optimised_coeffs[realizations_coeff_names.index("beta")]
+        if len(beta_values) != len(
+                historic_forecast.coord("realization").points):
+            msg = (
+                "The number of beta coefficients in {} must equal the "
+                "number of realizations {}, when the predictor is "
+                "'realizations'.".format(
+                    optimised_coeffs[-len(beta_values):],
+                    historic_forecast.coord("realization").points,
+                )
+            )
+            raise ValueError(msg)
+
+        return np.array([
+            *optimised_coeffs[: -len(beta_values)],
+            np.array(beta_values),
+        ], dtype=np.float32)
 
     def create_coefficients_cubelist(self, optimised_coeffs, historic_forecast):
         """Create a cubelist for storing the coefficients computed using EMOS.
@@ -590,30 +621,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """
         coeff_names = self.coeff_names
         if self.predictor.lower() == "realizations":
-            realizations_coeff_names = coeff_names[:-1] + [coeff_names[-1]] * len(
-                historic_forecast.coord("realization").points
-            )
-            beta_values = np.array([], dtype=np.float32)
-            for optimised_coeff, coeff_name in zip(
-                optimised_coeffs, realizations_coeff_names
-            ):
-                if coeff_name == "beta":
-                    beta_values = np.append(beta_values, optimised_coeff)
-            if len(beta_values) != len(historic_forecast.coord("realization").points):
-                msg = (
-                    "The number of beta coefficients in {} must equal the "
-                    "number of realizations {}, when the predictor is "
-                    "'realizations'.".format(
-                        optimised_coeffs[-len(beta_values) :],
-                        historic_forecast.coord("realization").points,
-                    )
-                )
-                raise ValueError(msg)
-
-            optimised_coeffs = [
-                *optimised_coeffs[: -len(beta_values)],
-                np.array(beta_values),
-            ]
+            optimised_coeffs = self._multiple_beta_coefficients(
+                optimised_coeffs, historic_forecast)
 
         if len(optimised_coeffs) != len(coeff_names):
             msg = (
@@ -622,37 +631,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             raise ValueError(msg)
 
-        dim_coords_and_dims = []
-        aux_coords_and_dims = []
+        # Create forecast reference time coordinate.
+        frt_coord = create_unified_frt_coord(historic_forecast.coord("forecast_reference_time"))
 
-        # Create a forecast_reference_time coordinate.
-        frt_point = cycletime_to_datetime(self.current_cycle)
-        try:
-            frt_coord = historic_forecast.coord("forecast_reference_time").copy(
-                datetime_to_iris_time(frt_point)
-            )
-        except CoordinateNotFoundError:
-            pass
-        else:
-            aux_coords_and_dims.append((frt_coord, None))
+        # Create forecast period coordinate.
+        fp_point = np.unique(historic_forecast.coord("forecast_period").points)
+        fp_coord = historic_forecast.coord("forecast_period").copy(fp_point)
 
-        # Create forecast period and time coordinates.
-        try:
-            fp_point = np.unique(historic_forecast.coord("forecast_period").points)
-            fp_coord = historic_forecast.coord("forecast_period").copy(fp_point)
-        except CoordinateNotFoundError:
-            pass
-        else:
-            aux_coords_and_dims.append((fp_coord, None))
-            if historic_forecast.coords("time"):
-                # Ensure that the fp_point is determined with units of seconds.
-                copy_of_fp_coord = historic_forecast.coord("forecast_period").copy()
-                copy_of_fp_coord.convert_units("seconds")
-                (fp_point,) = np.unique(copy_of_fp_coord.points)
-                time_point = frt_point + datetime.timedelta(seconds=float(fp_point))
-                time_point = datetime_to_iris_time(time_point)
-                time_coord = historic_forecast.coord("time").copy(time_point)
-                aux_coords_and_dims.append((time_coord, None))
+        aux_coords_and_dims = [(frt_coord, None), (fp_coord, None)]
 
         # Create x and y coordinates
         for axis in ["x", "y"]:
@@ -664,20 +650,17 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             aux_coords_and_dims.append((new_coord, None))
 
-        attributes = {"diagnostic_standard_name": historic_forecast.name()}
-        for attribute in historic_forecast.attributes.keys():
-            if attribute.endswith("model_configuration"):
-                attributes[attribute] = historic_forecast.attributes[attribute]
+        attributes = generate_mandatory_attributes([historic_forecast])
+        attributes["diagnostic_standard_name"] = historic_forecast.name()
 
         cubelist = iris.cube.CubeList([])
         for optimised_coeff, coeff_name in zip(optimised_coeffs, coeff_names):
             coeff_units = "1"
             if coeff_name in ["gamma", "alpha"]:
                 coeff_units = historic_forecast.units
+            dim_coords_and_dims = []
             if self.predictor.lower() == "realizations" and coeff_name == "beta":
-                dim_coords_and_dims.append(
-                    (historic_forecast.coord("realization").copy(), 0)
-                )
+                dim_coords_and_dims = [(historic_forecast.coord("realization").copy(), 0)]
             cube = iris.cube.Cube(
                 optimised_coeff,
                 long_name=f"emos_coefficient_{coeff_name}",
@@ -1168,8 +1151,6 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         self.coefficients_cubelist = coefficients_cubelist
 
         # Check coefficients_cube and forecast cube are compatible.
-        for coeff_cube in self.coefficients_cubelist:
-            time_coords_match(self.current_forecast, coeff_cube)
         self._spatial_domain_match()
 
         if self.predictor.lower() == "mean":
