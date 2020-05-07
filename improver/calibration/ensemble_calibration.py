@@ -65,7 +65,6 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 )
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.metadata.utilities import create_new_diagnostic_cube, generate_mandatory_attributes
-from improver.utilities.cube_checker import time_coords_match
 from improver.utilities.cube_manipulation import collapsed, enforce_coordinate_ordering
 
 
@@ -160,7 +159,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Args:
             initial_guess (list):
                 List of optimised coefficients.
-                Order of coefficients is [gamma, delta, alpha, beta].
+                Order of coefficients is [alpha, beta, gamma, delta].
             forecast_predictor (iris.cube.Cube):
                 Cube containing the fields to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
@@ -180,7 +179,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Returns:
             list of float:
                 List of optimised coefficients.
-                Order of coefficients is [gamma, delta, alpha, beta].
+                Order of coefficients is [alpha, beta, gamma, delta].
 
         Raises:
             KeyError: If the distribution is not supported.
@@ -303,7 +302,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Args:
             initial_guess (list):
                 List of optimised coefficients.
-                Order of coefficients is [gamma, delta, alpha, beta].
+                Order of coefficients is [alpha, beta, gamma, delta].
             forecast_predictor (numpy.ndarray):
                 Data to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
@@ -329,13 +328,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             beta = initial_guess[2:]
         elif predictor.lower() == "realizations":
             beta = np.array(
-                [initial_guess[2]] + (initial_guess[3:] ** 2).tolist(), dtype=np.float32
+                [initial_guess[0]] + (initial_guess[1:-2] ** 2).tolist(), dtype=np.float32
             )
 
         new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
         mu = np.dot(all_data, beta)
-        sigma = np.sqrt(initial_guess[0] ** 2 + initial_guess[1] ** 2 * forecast_var)
+        sigma = np.sqrt(initial_guess[-2] ** 2 + initial_guess[-1] ** 2 * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
         normal_pdf = norm.pdf(xz)
@@ -364,7 +363,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Args:
             initial_guess (list):
                 List of optimised coefficients.
-                Order of coefficients is [gamma, delta, alpha, beta].
+                Order of coefficients is [alpha, beta, gamma, delta].
             forecast_predictor (numpy.ndarray):
                 Data to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
@@ -390,13 +389,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             beta = initial_guess[2:]
         elif predictor.lower() == "realizations":
             beta = np.array(
-                [initial_guess[2]] + (initial_guess[3:] ** 2).tolist(), dtype=np.float32
+                [initial_guess[0]] + (initial_guess[1:-2] ** 2).tolist(), dtype=np.float32
             )
 
         new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
         mu = np.dot(all_data, beta)
-        sigma = np.sqrt(initial_guess[0] ** 2 + initial_guess[1] ** 2 * forecast_var)
+        sigma = np.sqrt(initial_guess[-2] ** 2 + initial_guess[-1] ** 2 * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
         normal_pdf = norm.pdf(xz)
@@ -503,11 +502,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             tolerance=self.tolerance, max_iterations=self.max_iterations
         )
 
-        # Setting default values for coeff_names. Beta is the final
-        # coefficient name in the list, as there can potentially be
-        # multiple beta coefficients if the ensemble realizations, rather
-        # than the ensemble mean, are provided as the predictor.
-        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
+        # Setting default values for coeff_names.
+        self.coeff_names = ["alpha", "beta", "gamma", "delta"]
 
         import importlib
 
@@ -559,7 +555,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         Args:
             optimised_coeffs (numpy.ndarray):
-                Order of coefficients is [gamma, delta, alpha, beta].
+                Order of coefficients is [alpha, beta, gamma, delta].
             historic_forecast (iris.cube.Cube):
                 The cube containing the historic forecast.
 
@@ -567,7 +563,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             optimised_coeffs (np.ndarray):
                 Array of coefficients that itself contains are array of beta
                 coefficients.
-                Order of coefficients is [gamma, delta, alpha, beta].
+                Order of coefficients is [alpha, beta, gamma, delta].
 
         Raises:
             ValueError: If the number of beta coefficients do not match the
@@ -604,7 +600,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Args:
             optimised_coeffs (numpy.ndarray):
                 List of optimised coefficients.
-                Order of coefficients is [gamma, delta, alpha, beta].
+                Order of coefficients is [alpha, beta, gamma, delta].
             historic_forecast (iris.cube.Cube):
                 The cube containing the historic forecast.
 
@@ -612,8 +608,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             iris.cube.CubeList:
                 CubeList constructed using the coefficients provided and using
                 metadata from the historic_forecast cube. Each cube within the
-                cubelist is for a separate EMOS coefficient e.g. gamma, delta,
-                alpha, beta.
+                cubelist is for a separate EMOS coefficient e.g. alpha, beta,
+                gamma, delta.
 
         Raises:
             ValueError: If the number of coefficients in the optimised_coeffs
@@ -656,7 +652,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         cubelist = iris.cube.CubeList([])
         for optimised_coeff, coeff_name in zip(optimised_coeffs, coeff_names):
             coeff_units = "1"
-            if coeff_name in ["gamma", "alpha"]:
+            if coeff_name in ["alpha", "gamma"]:
                 coeff_units = historic_forecast.units
             dim_coords_and_dims = []
             if self.predictor.lower() == "realizations" and coeff_name == "beta":
@@ -687,22 +683,22 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         default values for the coefficients will be used.
 
         If the predictor is "mean", then the order of the initial_guess is
-        [gamma, delta, alpha, beta]. Otherwise, if the predictor is
+        [alpha, beta, gamma, delta, ]. Otherwise, if the predictor is
         "realizations" then the order of the initial_guess is
-        [gamma, delta, alpha, beta0, beta1, beta2], where the number of beta
+        [alpha, beta0, beta1, beta2, gamma, delta], where the number of beta
         variables will correspond to the number of realizations. In this
         example initial guess with three beta variables, there will
         correspondingly be three realizations.
 
         The default values for the initial guesses are in
-        [gamma, delta, alpha, beta] ordering:
+        [alpha, beta, gamma, delta] ordering:
 
         * For the ensemble mean, the default initial guess: [0, 1, 0, 1]
           assumes that the raw forecast is skilful and the expected adjustments
           are small.
 
         * For the ensemble realizations, the default initial guess is
-          effectively: [0, 1, 0, 1/3., 1/3., 1/3.], such that
+          effectively: [0, 1/3., 1/3., 1/3., 0, 1], such that
           each realization is assumed to have equal weight.
 
         If linear regression is enabled, the alpha and beta coefficients
@@ -730,7 +726,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Returns:
             list of float:
                 List of coefficients to be used as initial guess.
-                Order of coefficients is [gamma, delta, alpha, beta].
+                Order of coefficients is [alpha, beta, gamma, delta].
 
         """
         if (
@@ -742,9 +738,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             predictor.lower() == "realizations"
             and not estimate_coefficients_from_linear_model_flag
         ):
-            initial_guess = [0, 1, 0] + np.repeat(
+            initial_guess = [0, np.repeat(
                 np.sqrt(1.0 / no_of_realizations), no_of_realizations
-            ).tolist()
+            ).tolist(), 0, 1]
         elif estimate_coefficients_from_linear_model_flag:
             truth_flattened = flatten_ignoring_masked_data(truth.data)
             if predictor.lower() == "mean":
@@ -759,7 +755,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     gradient, intercept, _, _, _ = stats.linregress(
                         forecast_predictor_flattened, truth_flattened
                     )
-                initial_guess = [0, 1, intercept, gradient]
+                initial_guess = [intercept, gradient, 0, 1]
             elif predictor.lower() == "realizations":
                 if self.statsmodels_found:
                     enforce_coordinate_ordering(forecast_predictor, "realization")
@@ -770,11 +766,11 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     est = self.sm.OLS(truth_flattened, val).fit()
                     intercept = est.params[0]
                     gradient = est.params[1:]
-                    initial_guess = [0, 1, intercept] + gradient.tolist()
+                    initial_guess = [intercept, gradient.tolist(), 0, 1]
                 else:
-                    initial_guess = [0, 1, 0] + np.repeat(
+                    initial_guess = [0, np.repeat(
                         np.sqrt(1.0 / no_of_realizations), no_of_realizations
-                    ).tolist()
+                    ).tolist(), 0, 1]
         return np.array(initial_guess, dtype=np.float32)
 
     @staticmethod
@@ -843,8 +839,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             iris.cube.CubeList:
                 CubeList constructed using the coefficients provided and using
                 metadata from the historic_forecast cube. Each cube within the
-                cubelist is for a separate EMOS coefficient e.g. gamma, delta,
-                alpha, beta.
+                cubelist is for a separate EMOS coefficient e.g. alpha, beta,
+                gamma, delta.
 
         Raises:
             ValueError: If either the historic_forecast or truth cubes were not
@@ -1123,8 +1119,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
             coefficients_cubelist (iris.cube.CubeList):
                 CubeList constructed using the coefficients provided and using
                 metadata from the historic_forecast cube. Each cube within the
-                cubelist is for a separate EMOS coefficient e.g. gamma, delta,
-                alpha, beta.
+                cubelist is for a separate EMOS coefficient e.g. alpha, beta,
+                gamma, delta.
             landsea_mask (iris.cube.Cube or None):
                 The optional cube containing a land-sea mask. If provided sea
                 points will be masked in the output cube.

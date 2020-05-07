@@ -92,7 +92,7 @@ def build_coefficients_cubelist(template, coeff_names, coeff_values, predictor="
     cubelist = iris.cube.CubeList([])
     for optimised_coeff, coeff_name in zip(coeff_values, coeff_names):
         coeff_units = "1"
-        if coeff_name in ["gamma", "alpha"]:
+        if coeff_name in ["alpha", "gamma"]:
             coeff_units = template.units
         if predictor.lower() == "realizations" and coeff_name == "beta":
             dim_coords_and_dims.append((template.coord("realization").copy(), 0))
@@ -151,7 +151,7 @@ class Test_process(IrisTest):
         )
 
         self.coefficients = build_coefficients_cubelist(
-            self.realizations, ["gamma", "delta", "alpha", "beta"], [0, 1, 0, 1]
+            self.realizations, ["alpha", "beta", "gamma", "delta"], [0, 1, 0, 1]
         )
 
     def test_null_percentiles(self):

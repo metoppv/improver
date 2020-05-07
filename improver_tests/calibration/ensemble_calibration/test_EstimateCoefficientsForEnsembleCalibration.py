@@ -93,29 +93,29 @@ class SetupExpectedCoefficients(IrisTest):
     def setUp(self):
         """Set up expected coefficients and coefficient names."""
         super().setUp()
-        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
+        self.coeff_names = ["alpha", "beta", "gamma", "delta"]
         self.expected_coeff_names = [f"emos_coefficient_{s}" for s in self.coeff_names]
 
         # The expected coefficients for temperature in Kelvin.
         self.expected_mean_predictor_gaussian = np.array(
-            [0.0013, 0.4675, 25.4302, 0.9058], dtype=np.float32
+            [25.4302, 0.9058, 0.0013, 0.4675], dtype=np.float32
         )
         # The expected coefficients for wind speed in m s^-1.
         self.expected_mean_predictor_truncated_gaussian = np.array(
-            [-0.0025, 1.5457, -0.5185, 0.9408], dtype=np.float32
+            [-0.5185, 0.9408, -0.0025, 1.5457], dtype=np.float32
         )
 
         self.expected_realizations_gaussian_statsmodels = np.array(
-            [-0.0003, 1.0022, -0.2838, -0.0774, 0.3892, 0.9167], dtype=np.float32
+            [-0.2838, -0.0774, 0.3892, 0.9167, -0.0003, 1.0022], dtype=np.float32
         )
         self.expected_realizations_gaussian_no_statsmodels = np.array(
-            [0.0001, 1.0227, -0.0, 0.5785, 0.578, 0.5733], dtype=np.float32
+            [-0.0, 0.5785, 0.578, 0.5733, 0.0001, 1.0227, ], dtype=np.float32
         )
         self.expected_realizations_truncated_gaussian_statsmodels = np.array(
-            [0.0003, 1.2571, -0.606, -0.0623, 0.3786, 0.9014], dtype=np.float32
+            [-0.606, -0.0623, 0.3786, 0.9014, 0.0003, 1.2571], dtype=np.float32
         )
         self.expected_realizations_truncated_gaussian_no_statsmodels = np.array(
-            [0.0007, 1.356, -0.0015, 0.7171, -0.0089, 0.585], dtype=np.float32
+            [-0.0015, 0.7171, -0.0089, 0.585, 0.0007, 1.356], dtype=np.float32
         )
 
 
@@ -132,7 +132,7 @@ class Test__init__(SetupCubes):
     def test_coeff_names(self):
         """Test that the plugin instance defines the expected
         coefficient names."""
-        expected = ["gamma", "delta", "alpha", "beta"]
+        expected = ["alpha", "beta", "gamma", "delta"]
         predictor = "mean"
         tolerance = 10
         max_iterations = 10
@@ -219,7 +219,7 @@ class Test__repr__(IrisTest):
         self.distribution = "gaussian"
         self.current_cycle = "20171110T0000Z"
         self.minimiser = repr(ContinuousRankedProbabilityScoreMinimisers())
-        self.coeff_names = ["gamma", "delta", "alpha", "beta"]
+        self.coeff_names = ["alpha", "beta", "gamma", "delta"]
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic(self):
@@ -233,7 +233,7 @@ class Test__repr__(IrisTest):
             "predictor: mean; "
             "minimiser: <class 'improver.calibration.ensemble_calibration."
             "ContinuousRankedProbabilityScoreMinimisers'>; "
-            "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
+            "coeff_names: ['alpha', 'beta', 'gamma', 'delta']; "
             "tolerance: 0.01; "
             "max_iterations: 1000>"
         )
@@ -260,7 +260,7 @@ class Test__repr__(IrisTest):
             "predictor: realizations; "
             "minimiser: <class 'improver.calibration.ensemble_calibration."
             "ContinuousRankedProbabilityScoreMinimisers'>; "
-            "coeff_names: ['gamma', 'delta', 'alpha', 'beta']; "
+            "coeff_names: ['alpha', 'beta', 'gamma', 'delta']; "
             "tolerance: 10; "
             "max_iterations: 10>"
         )
@@ -551,11 +551,11 @@ class Test_compute_initial_guess(IrisTest):
         self.expected_realizations_predictor_no_linear_model = np.array(
             [
                 0,
-                1,
+                np.sqrt(1.0 / self.no_of_realizations),
+                np.sqrt(1.0 / self.no_of_realizations),
+                np.sqrt(1.0 / self.no_of_realizations),
                 0,
-                np.sqrt(1.0 / self.no_of_realizations),
-                np.sqrt(1.0 / self.no_of_realizations),
-                np.sqrt(1.0 / self.no_of_realizations),
+                1,
             ],
             dtype=np.float32,
         )
@@ -565,7 +565,7 @@ class Test_compute_initial_guess(IrisTest):
             [0.0, 1.0, 1.0, 1.0], dtype=np.float32
         )
         self.expected_realizations_predictor_with_linear_model = np.array(
-            [0.0, 1.0, 0.333333, 0.0, 0.333333, 0.666667], dtype=np.float32
+            [0.333333, 0.0, 0.333333, 0.666667, 0.0, 1.0], dtype=np.float32
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -921,7 +921,7 @@ class Test_process(
         expected values for a Gaussian distribution for when the historic
         forecasts and truths input having some mismatches in validity time.
         """
-        expected = [0.0041, 0.4885, 23.4593, 0.9128]
+        expected = [23.4593, 0.9128, 0.0041, 0.4885]
         partial_historic_forecasts = (
             self.historic_forecasts[:2] + self.historic_forecasts[3:]
         ).merge_cube()
@@ -946,7 +946,7 @@ class Test_process(
         Reducing the value for the tolerance would result in the coefficients
         more closely matching the coefficients created when using a linear
         least-squares regression to construct the initial guess."""
-        expected = [0.0001, 1.0374, -0.0001, 0.9974]
+        expected = [-0.0001, 0.9974, 0.0001, 1.0374]
         plugin = Plugin(self.distribution, self.current_cycle)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
         result = plugin.process(
@@ -1041,7 +1041,7 @@ class Test_process(
         Reducing the value for the tolerance would result in the coefficients
         more closely matching the coefficients created when using a linear
         least-squares regression to construct the initial guess."""
-        expected = [-0.0013, 1.3785, -0.0002, 0.8557]
+        expected = [-0.0002, 0.8557, -0.0013, 1.3785]
         distribution = "truncated_gaussian"
 
         plugin = Plugin(distribution, self.current_cycle)
