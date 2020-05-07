@@ -48,6 +48,7 @@ from scipy.stats import norm
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
+    check_forecast_consistency,
     check_predictor,
     convert_cube_data_to_2d,
     create_unified_frt_coord,
@@ -329,16 +330,16 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         """
         if predictor.lower() == "mean":
-            beta = initial_guess[2:]
+            alpha_beta = initial_guess[:-2]
         elif predictor.lower() == "realizations":
-            beta = np.array(
+            alpha_beta = np.array(
                 [initial_guess[0]] + (initial_guess[1:-2] ** 2).tolist(),
                 dtype=np.float32,
             )
 
         new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
-        mu = np.dot(all_data, beta)
+        mu = np.dot(all_data, alpha_beta)
         sigma = np.sqrt(initial_guess[-2] ** 2 + initial_guess[-1] ** 2 * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
@@ -391,16 +392,16 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         """
         if predictor.lower() == "mean":
-            beta = initial_guess[2:]
+            alpha_beta = initial_guess[:-2]
         elif predictor.lower() == "realizations":
-            beta = np.array(
+            alpha_beta = np.array(
                 [initial_guess[0]] + (initial_guess[1:-2] ** 2).tolist(),
                 dtype=np.float32,
             )
 
         new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
-        mu = np.dot(all_data, beta)
+        mu = np.dot(all_data, alpha_beta)
         sigma = np.sqrt(initial_guess[-2] ** 2 + initial_guess[-1] ** 2 * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
@@ -566,34 +567,36 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 The cube containing the historic forecast.
 
         Returns:
-            optimised_coeffs (np.ndarray):
-                Array of coefficients that itself contains are array of beta
-                coefficients.
+            list:
+                List of coefficients containing are array of beta coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
 
         Raises:
             ValueError: If the number of beta coefficients do not match the
                 number of realizations.
         """
-        realizations_coeff_names = self.coeff_names[:-1] + [self.coeff_names[-1]] * len(
+        coeff_names_without_beta = self.coeff_names[:]
+        coeff_names_without_beta.remove("beta")
+        if len(optimised_coeffs) != len(coeff_names_without_beta) + len(
             historic_forecast.coord("realization").points
-        )
-        beta_values = optimised_coeffs[realizations_coeff_names.index("beta")]
-        if len(beta_values) != len(historic_forecast.coord("realization").points):
+        ):
             msg = (
-                "The number of beta coefficients in {} must equal the "
-                "number of realizations {}, when the predictor is "
+                "The number of coefficients provided {} must equal the "
+                "alpha, gamma and delta coefficients plus the beta "
+                "coefficients where the number of beta coefficients equals "
+                "the number of realizations {}, when the predictor is "
                 "'realizations'.".format(
-                    optimised_coeffs[-len(beta_values) :],
-                    historic_forecast.coord("realization").points,
+                    optimised_coeffs, historic_forecast.coord("realization").points,
                 )
             )
             raise ValueError(msg)
 
-        return np.array(
-            [*optimised_coeffs[: -len(beta_values)], np.array(beta_values),],
-            dtype=np.float32,
-        )
+        return [
+            optimised_coeffs[0],
+            np.array(optimised_coeffs[1:-2]),
+            optimised_coeffs[-2],
+            optimised_coeffs[-1],
+        ]
 
     def create_coefficients_cubelist(self, optimised_coeffs, historic_forecast):
         """Create a cubelist for storing the coefficients computed using EMOS.
@@ -747,15 +750,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         elif (
             predictor.lower() == "realizations"
             and not estimate_coefficients_from_linear_model_flag
-        ):
-            initial_guess = [
-                0,
-                np.repeat(
+        ) or (predictor.lower() == "realizations" and not self.statsmodels_found):
+            initial_guess = (
+                [0]
+                + np.repeat(
                     np.sqrt(1.0 / no_of_realizations), no_of_realizations
-                ).tolist(),
-                0,
-                1,
-            ]
+                ).tolist()
+                + [0, 1]
+            )
         elif estimate_coefficients_from_linear_model_flag:
             truth_flattened = flatten_ignoring_masked_data(truth.data)
             if predictor.lower() == "mean":
@@ -772,25 +774,16 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     )
                 initial_guess = [intercept, gradient, 0, 1]
             elif predictor.lower() == "realizations":
-                if self.statsmodels_found:
-                    enforce_coordinate_ordering(forecast_predictor, "realization")
-                    forecast_predictor_flattened = flatten_ignoring_masked_data(
-                        forecast_predictor.data, preserve_leading_dimension=True
-                    )
-                    val = self.sm.add_constant(forecast_predictor_flattened.T)
-                    est = self.sm.OLS(truth_flattened, val).fit()
-                    intercept = est.params[0]
-                    gradient = est.params[1:]
-                    initial_guess = [intercept, gradient.tolist(), 0, 1]
-                else:
-                    initial_guess = [
-                        0,
-                        np.repeat(
-                            np.sqrt(1.0 / no_of_realizations), no_of_realizations
-                        ).tolist(),
-                        0,
-                        1,
-                    ]
+                enforce_coordinate_ordering(forecast_predictor, "realization")
+                forecast_predictor_flattened = flatten_ignoring_masked_data(
+                    forecast_predictor.data, preserve_leading_dimension=True
+                )
+                val = self.sm.add_constant(forecast_predictor_flattened.T)
+                est = self.sm.OLS(truth_flattened, val).fit()
+                intercept = est.params[0]
+                gradient = est.params[1:]
+                initial_guess = [intercept] + gradient.tolist() + [0, 1]
+
         return np.array(initial_guess, dtype=np.float32)
 
     @staticmethod
@@ -876,7 +869,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         check_predictor(self.predictor)
 
         historic_forecast, truth = filter_non_matching_cubes(historic_forecast, truth)
-        self._check_forecast_consistency(historic_forecasts)
+        check_forecast_consistency(historic_forecast)
         # Make sure inputs have the same units.
         if self.desired_units:
             historic_forecast.convert_units(self.desired_units)

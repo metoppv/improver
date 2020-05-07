@@ -629,6 +629,14 @@ class Test_time_coords_match(IrisTest):
         with self.assertRaisesRegex(ValueError, self.message):
             time_coords_match(self.ref_cube, self.adjusted_cube)
 
+    def test_frt_hour_with_bounds_mismatch(self):
+        """Test returns None when the forecast_reference_time bounds are
+        absent from one cube"""
+        self.adjusted_cube = self.ref_cube.copy()
+        self.adjusted_cube.coord("forecast_reference_time").bounds = None
+        result = time_coords_match(self.ref_cube, self.adjusted_cube)
+        self.assertIsNone(result)
+
 
 class Test_get_cycle_hours(IrisTest):
 
@@ -637,16 +645,22 @@ class Test_get_cycle_hours(IrisTest):
     def test_single_value(self):
         """Test that the expected cycle hour value is returned in a set."""
 
-        frt = iris.coords.DimCoord([0], standard_name="forecast_reference_time",
-                                   units=TIME_COORDS["forecast_reference_time"].units)
+        frt = iris.coords.DimCoord(
+            [0],
+            standard_name="forecast_reference_time",
+            units=TIME_COORDS["forecast_reference_time"].units,
+        )
         result = get_cycle_hours(frt)
         self.assertEqual(result, set([0]))
 
     def test_multiple_values(self):
         """Test that the expected cycle hour values are returned in a set."""
         expected = np.array([0, 1, 4], dtype=np.float32)
-        frt = iris.coords.DimCoord(expected*3600, standard_name="forecast_reference_time",
-                                   units=TIME_COORDS["forecast_reference_time"].units)
+        frt = iris.coords.DimCoord(
+            expected * 3600,
+            standard_name="forecast_reference_time",
+            units=TIME_COORDS["forecast_reference_time"].units,
+        )
         result = get_cycle_hours(frt)
         self.assertEqual(result, set(expected))
 

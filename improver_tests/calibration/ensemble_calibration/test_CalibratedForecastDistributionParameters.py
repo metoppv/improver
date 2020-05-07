@@ -80,9 +80,8 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         super().setUp()
         # Set up a coefficients cube when using the ensemble mean as the
         # predictor.
-        current_cycle = "20171110T0000Z"
         estimator = EstimateCoefficientsForEnsembleCalibration(
-            "gaussian", current_cycle, desired_units="Celsius"
+            "gaussian", desired_units="Celsius"
         )
         self.coeffs_from_mean = estimator.create_coefficients_cubelist(
             self.expected_mean_predictor_gaussian,
@@ -92,7 +91,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         # Set up a coefficients cube when using the ensemble realization as the
         # predictor and the coefficients have been estimated using statsmodels.
         estimator = EstimateCoefficientsForEnsembleCalibration(
-            "gaussian", current_cycle, desired_units="Celsius", predictor="realizations"
+            "gaussian", desired_units="Celsius", predictor="realizations"
         )
         self.coeffs_from_statsmodels_realizations = estimator.create_coefficients_cubelist(
             self.expected_realizations_gaussian_statsmodels,
@@ -103,7 +102,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         # predictor and the coefficients have been estimated without using
         # statsmodels.
         estimator = EstimateCoefficientsForEnsembleCalibration(
-            "gaussian", current_cycle, desired_units="Celsius", predictor="realizations"
+            "gaussian", desired_units="Celsius", predictor="realizations"
         )
         self.coeffs_from_no_statsmodels_realizations = estimator.create_coefficients_cubelist(
             self.expected_realizations_gaussian_no_statsmodels,

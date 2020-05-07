@@ -88,6 +88,31 @@ class EnsembleCalibrationAssertions(IrisTest):
          """
         self.assertArrayAlmostEqual(first, second, decimal=4)
 
+    def assertCoefficientsCubeList(self, expected, result):
+        self.assertEqual(len(result), 4)
+        for cube in result:
+            self.assertEqual(
+                cube.coord("forecast_reference_time").cell(0).point,
+                expected.expected_frt,
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").points, expected.expected_x_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").bounds, expected.expected_x_coord_bounds
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").points, expected.expected_y_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").bounds, expected.expected_y_coord_bounds
+            )
+            self.assertDictEqual(cube.attributes, expected.attributes)
+
+        self.assertEqual(
+            [cube.name() for cube in result], expected.expected_coeff_names
+        )
+
 
 class SetupCubes(IrisTest):
 

@@ -48,6 +48,7 @@ from improver.calibration.ensemble_calibration import (
 from improver.calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration as Plugin,
 )
+from improver.metadata.utilities import generate_mandatory_attributes
 from improver.utilities.warnings_handler import ManageWarnings
 
 from ...set_up_test_cubes import set_up_variable_cube
@@ -217,18 +218,16 @@ class Test__repr__(IrisTest):
     def setUp(self):
         """Set up values for tests."""
         self.distribution = "gaussian"
-        self.current_cycle = "20171110T0000Z"
         self.minimiser = repr(ContinuousRankedProbabilityScoreMinimisers())
         self.coeff_names = ["alpha", "beta", "gamma", "delta"]
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic(self):
         """Test without specifying keyword arguments"""
-        result = str(Plugin(self.distribution, self.current_cycle))
+        result = str(Plugin(self.distribution))
         msg = (
             "<EstimateCoefficientsForEnsembleCalibration: "
             "distribution: gaussian; "
-            "current_cycle: 20171110T0000Z; "
             "desired_units: None; "
             "predictor: mean; "
             "minimiser: <class 'improver.calibration.ensemble_calibration."
@@ -245,7 +244,6 @@ class Test__repr__(IrisTest):
         result = str(
             Plugin(
                 self.distribution,
-                self.current_cycle,
                 desired_units="Kelvin",
                 predictor="realizations",
                 tolerance=10,
@@ -255,7 +253,6 @@ class Test__repr__(IrisTest):
         msg = (
             "<EstimateCoefficientsForEnsembleCalibration: "
             "distribution: gaussian; "
-            "current_cycle: 20171110T0000Z; "
             "desired_units: Kelvin; "
             "predictor: realizations; "
             "minimiser: <class 'improver.calibration.ensemble_calibration."
@@ -267,7 +264,9 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
+class Test_create_coefficients_cubelist(
+    SetupExpectedCoefficients, EnsembleCalibrationAssertions
+):
 
     """Test the create_coefficients_cubelist method."""
 
@@ -279,30 +278,24 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         time_dt = datetime.datetime(2017, 11, 10, 4, 0)
         data = np.ones((3, 3), dtype=np.float32)
         self.historic_forecast = _create_historic_forecasts(
-            data, time_dt, frt_dt, standard_grid_metadata="uk_ens"
+            data, time_dt, frt_dt,
         ).merge_cube()
         data_with_realizations = np.ones((3, 3, 3), dtype=np.float32)
         self.historic_forecast_with_realizations = _create_historic_forecasts(
-            data_with_realizations,
-            time_dt,
-            frt_dt,
-            standard_grid_metadata="uk_ens",
-            realizations=[0, 1, 2],
+            data_with_realizations, time_dt, frt_dt, realizations=[0, 1, 2],
         ).merge_cube()
         self.optimised_coeffs = np.array([0, 1, 2, 3], np.int32)
 
         self.distribution = "gaussian"
-        self.current_cycle = "20171110T0000Z"
         self.desired_units = "degreesC"
         self.predictor = "mean"
         self.plugin = Plugin(
             distribution=self.distribution,
-            current_cycle=self.current_cycle,
             desired_units=self.desired_units,
             predictor=self.predictor,
         )
-        self.expected_frt = datetime.datetime.strptime(
-            self.current_cycle, "%Y%m%dT%H%MZ"
+        self.expected_frt = (
+            self.historic_forecast.coord("forecast_reference_time").cell(-1).point
         )
         self.expected_x_coord_points = np.median(
             self.historic_forecast.coord(axis="x").points
@@ -326,10 +319,8 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
                 ]
             ]
         )
-        self.attributes = {
-            "diagnostic_standard_name": self.historic_forecast.name(),
-            "mosg__model_configuration": "uk_ens",
-        }
+        self.attributes = generate_mandatory_attributes([self.historic_forecast])
+        self.attributes["diagnostic_standard_name"] = self.historic_forecast.name()
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_mean(self):
@@ -338,27 +329,7 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
-
-        self.assertEqual(len(result), 4)
-        for cube in result:
-            self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").points, self.expected_x_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").points, self.expected_y_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
-            )
-            self.assertArrayAlmostEqual(cube.attributes, self.attributes)
-
-        self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
+        self.assertCoefficientsCubeList(self, result)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_realizations(self):
@@ -369,131 +340,19 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
 
         plugin = Plugin(
             distribution=self.distribution,
-            current_cycle=self.current_cycle,
             desired_units=self.desired_units,
             predictor=predictor,
         )
         result = plugin.create_coefficients_cubelist(
             optimised_coeffs, self.historic_forecast_with_realizations
         )
-        self.assertEqual(len(result), 4)
-        for cube in result:
-            self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").points, self.expected_x_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").points, self.expected_y_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
-            )
-            self.assertArrayAlmostEqual(cube.attributes, self.attributes)
-
-        self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
-        self.assertEqual(
-            result.extract("emos_coefficient_beta").coord("realization").points,
+        self.assertCoefficientsCubeList(self, result)
+        self.assertArrayEqual(
+            result.extract("emos_coefficient_beta", strict=True)
+            .coord("realization")
+            .points,
             self.historic_forecast_with_realizations.coord("realization").points,
         )
-
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_from_mean_non_standard_units(self):
-        """Test that the expected coefficient cube is returned when the
-        historic forecast units are non-standard."""
-        self.historic_forecast.coord("forecast_period").convert_units("hours")
-        for cube in self.expected:
-            cube.coord("forecast_period").convert_units("hours")
-        result = self.plugin.create_coefficients_cubelist(
-            self.optimised_coeffs, self.historic_forecast
-        )
-        self.assertEqual(len(result), 4)
-        for cube in result:
-            self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").points, self.expected_x_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").points, self.expected_y_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
-            )
-            self.assertArrayAlmostEqual(cube.attributes, self.attributes)
-
-        self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
-
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_forecast_period_coordinate_not_present(self):
-        """Test that the coefficients cube is created correctly when the
-        forecast_period coordinate is not present within the input cube."""
-        for cube in self.expected:
-            cube.remove_coord("forecast_period")
-            cube.remove_coord("time")
-        self.historic_forecast.remove_coord("forecast_period")
-        result = self.plugin.create_coefficients_cubelist(
-            self.optimised_coeffs, self.historic_forecast
-        )
-        self.assertEqual(len(result), 4)
-        for cube in result:
-            self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").points, self.expected_x_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").points, self.expected_y_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
-            )
-            self.assertArrayAlmostEqual(cube.attributes, self.attributes)
-
-        self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
-
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_model_configuration_not_present(self):
-        """Test that the coefficients cube is created correctly when a
-        model_configuration coordinate is not present within the input cube."""
-        for cube in self.expected:
-            cube.attributes.pop("mosg__model_configuration")
-        self.historic_forecast.attributes.pop("mosg__model_configuration")
-        result = self.plugin.create_coefficients_cubelist(
-            self.optimised_coeffs, self.historic_forecast
-        )
-        self.assertEqual(len(result), 4)
-        for cube in result:
-            self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").points, self.expected_x_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").points, self.expected_y_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
-            )
-            self.assertArrayAlmostEqual(cube.attributes, self.attributes)
-
-        self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_too_few_coefficients(self):
@@ -505,10 +364,7 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         predictor = "mean"
         optimised_coeffs = [1, 2, 3]
         plugin = Plugin(
-            distribution=distribution,
-            current_cycle=self.current_cycle,
-            desired_units=desired_units,
-            predictor=predictor,
+            distribution=distribution, desired_units=desired_units, predictor=predictor,
         )
         msg = "The number of coefficients in"
         with self.assertRaisesRegex(ValueError, msg):
@@ -526,12 +382,9 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         predictor = "realizations"
         optimised_coeffs = [1, 2, 3, 4, 5]
         plugin = Plugin(
-            distribution=distribution,
-            current_cycle=self.current_cycle,
-            desired_units=desired_units,
-            predictor=predictor,
+            distribution=distribution, desired_units=desired_units, predictor=predictor,
         )
-        msg = "The number of beta coefficients in"
+        msg = "The number of coefficients provided"
         with self.assertRaisesRegex(ValueError, msg):
             plugin.create_coefficients_cubelist(
                 optimised_coeffs, self.historic_forecast_with_realizations
@@ -633,7 +486,7 @@ class Test_compute_initial_guess(IrisTest):
         # Set up results for the case where the
         # estimate_coefficients_from_linear_model_flag is True
         self.expected_mean_predictor_with_linear_model = np.array(
-            [0.0, 1.0, 1.0, 1.0], dtype=np.float32
+            [1.0, 1.0, 0.0, 1.0], dtype=np.float32
         )
         self.expected_realizations_predictor_with_linear_model = np.array(
             [0.333333, 0.0, 0.333333, 0.666667, 0.0, 1.0], dtype=np.float32
@@ -641,44 +494,6 @@ class Test_compute_initial_guess(IrisTest):
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic_mean_predictor(self):
-        """
-        Test that the plugin returns a list containing the initial guess
-        for the calibration coefficients, when the ensemble mean is used
-        as the predictor.
-        """
-        estimate_coefficients_from_linear_model_flag = False
-
-        plugin = Plugin(self.distribution, self.desired_units)
-        result = plugin.compute_initial_guess(
-            self.truth,
-            self.current_forecast_predictor_mean,
-            self.predictor,
-            estimate_coefficients_from_linear_model_flag,
-        )
-        self.assertIsInstance(result, np.ndarray)
-
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_realizations_predictor(self):
-        """
-        Test that the plugin returns a list containing the initial guess
-        for the calibration coefficients, when the individual ensemble
-        realizations are used as predictors.
-        """
-        predictor = "realizations"
-        estimate_coefficients_from_linear_model_flag = False
-
-        plugin = Plugin(self.distribution, self.desired_units)
-        result = plugin.compute_initial_guess(
-            self.truth,
-            self.current_forecast_predictor_realizations,
-            predictor,
-            estimate_coefficients_from_linear_model_flag,
-            no_of_realizations=self.no_of_realizations,
-        )
-        self.assertIsInstance(result, np.ndarray)
-
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_mean_predictor_value_check(self):
         """
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
@@ -694,12 +509,13 @@ class Test_compute_initial_guess(IrisTest):
             self.predictor,
             estimate_coefficients_from_linear_model_flag,
         )
+        self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
             result, self.expected_mean_predictor_no_linear_model
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_realizations_predictor_value_check(self):
+    def test_basic_realizations_predictor(self):
         """
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the individual ensemble
@@ -718,6 +534,7 @@ class Test_compute_initial_guess(IrisTest):
             estimate_coefficients_from_linear_model_flag,
             no_of_realizations=self.no_of_realizations,
         )
+        self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
             result, self.expected_realizations_predictor_no_linear_model
         )
@@ -913,7 +730,6 @@ class Test_process(
     def setUp(self):
         """Set up multiple cubes for testing."""
         super().setUp()
-        self.current_cycle = "20171110T0000Z"
         self.distribution = "gaussian"
 
         landsea_data = np.array(
@@ -934,7 +750,7 @@ class Test_process(
     def test_basic(self):
         """Ensure that the optimised_coefficients are returned as a cube,
         with the expected number of coefficients."""
-        plugin = Plugin(self.distribution, self.current_cycle)
+        plugin = Plugin(self.distribution)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -948,7 +764,7 @@ class Test_process(
         expected values for a Gaussian distribution. In this case,
         a linear least-squares regression is used to construct the initial
         guess."""
-        plugin = Plugin(self.distribution, self.current_cycle)
+        plugin = Plugin(self.distribution)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -970,7 +786,7 @@ class Test_process(
         guess. The original data is surrounded by a halo that is masked
         out by the landsea_mask, giving the same results as the original data.
         """
-        plugin = Plugin(self.distribution, self.current_cycle)
+        plugin = Plugin(self.distribution)
         result = plugin.process(
             self.historic_temperature_forecast_cube_halo,
             self.temperature_truth_cube_halo,
@@ -997,7 +813,7 @@ class Test_process(
             self.historic_forecasts[:2] + self.historic_forecasts[3:]
         ).merge_cube()
         partial_truth = self.truth[1:].merge_cube()
-        plugin = Plugin(self.distribution, self.current_cycle)
+        plugin = Plugin(self.distribution)
         result = plugin.process(partial_historic_forecasts, partial_truth)
 
         self.assertEMOSCoefficientsAlmostEqual(
@@ -1018,7 +834,7 @@ class Test_process(
         more closely matching the coefficients created when using a linear
         least-squares regression to construct the initial guess."""
         expected = [-0.0001, 0.9974, 0.0001, 1.0374]
-        plugin = Plugin(self.distribution, self.current_cycle)
+        plugin = Plugin(self.distribution)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
@@ -1039,9 +855,7 @@ class Test_process(
         argument is specified."""
         max_iterations = 800
 
-        plugin = Plugin(
-            self.distribution, self.current_cycle, max_iterations=max_iterations
-        )
+        plugin = Plugin(self.distribution, max_iterations=max_iterations)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1063,7 +877,7 @@ class Test_process(
         guess."""
         distribution = "truncated_gaussian"
 
-        plugin = Plugin(distribution, self.current_cycle)
+        plugin = Plugin(distribution)
         result = plugin.process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
         )
@@ -1087,7 +901,7 @@ class Test_process(
         """
         distribution = "truncated_gaussian"
 
-        plugin = Plugin(distribution, self.current_cycle)
+        plugin = Plugin(distribution)
         result = plugin.process(
             self.historic_wind_speed_forecast_cube_halo,
             self.wind_speed_truth_cube_halo,
@@ -1115,7 +929,7 @@ class Test_process(
         expected = [-0.0002, 0.8557, -0.0013, 1.3785]
         distribution = "truncated_gaussian"
 
-        plugin = Plugin(distribution, self.current_cycle)
+        plugin = Plugin(distribution)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
         result = plugin.process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
@@ -1137,7 +951,7 @@ class Test_process(
         realizations are used as the predictor."""
         predictor = "realizations"
 
-        plugin = Plugin(self.distribution, self.current_cycle, predictor=predictor)
+        plugin = Plugin(self.distribution, predictor=predictor)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1160,7 +974,7 @@ class Test_process(
         """
         predictor = "realizations"
 
-        plugin = Plugin(self.distribution, self.current_cycle, predictor=predictor)
+        plugin = Plugin(self.distribution, predictor=predictor)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1182,7 +996,7 @@ class Test_process(
         distribution = "truncated_gaussian"
         predictor = "realizations"
 
-        plugin = Plugin(distribution, self.current_cycle, predictor=predictor)
+        plugin = Plugin(distribution, predictor=predictor)
         result = plugin.process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
         )
@@ -1204,7 +1018,7 @@ class Test_process(
         distribution = "truncated_gaussian"
         predictor = "realizations"
 
-        plugin = Plugin(distribution, self.current_cycle, predictor=predictor)
+        plugin = Plugin(distribution, predictor=predictor)
         result = plugin.process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
         )
@@ -1224,9 +1038,7 @@ class Test_process(
         self.temperature_truth_cube.convert_units("Fahrenheit")
         desired_units = "Kelvin"
 
-        plugin = Plugin(
-            self.distribution, self.current_cycle, desired_units=desired_units
-        )
+        plugin = Plugin(self.distribution, desired_units=desired_units)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1243,9 +1055,7 @@ class Test_process(
         self.historic_temperature_forecast_cube.convert_units("Fahrenheit")
         desired_units = "Kelvin"
 
-        plugin = Plugin(
-            self.distribution, self.current_cycle, desired_units=desired_units
-        )
+        plugin = Plugin(self.distribution, desired_units=desired_units)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1261,7 +1071,7 @@ class Test_process(
         have non matching units."""
         self.historic_temperature_forecast_cube.convert_units("Fahrenheit")
 
-        plugin = Plugin(self.distribution, self.current_cycle)
+        plugin = Plugin(self.distribution)
 
         msg = "The historic forecast units"
         with self.assertRaisesRegex(ValueError, msg):
@@ -1275,7 +1085,7 @@ class Test_process(
         forecasts or truth were missing."""
         self.historic_temperature_forecast_cube.convert_units("Fahrenheit")
 
-        plugin = Plugin(self.distribution, self.current_cycle)
+        plugin = Plugin(self.distribution)
 
         msg = ".*cubes must be provided"
         with self.assertRaisesRegex(ValueError, msg):

@@ -290,11 +290,11 @@ def time_coords_match(first_cube, second_cube):
         ValueError: The two cubes are not equivalent.
     """
 
-    def _frt_hours(cube):
+    def _frt_hours(cube, include_bounds=False):
         hours = []
         for cell in cube.coord("forecast_reference_time").cells():
             hours.append(cell.point.hour)
-            if cell.bound:
+            if include_bounds and cell.bound:
                 for bound in cell.bound:
                     hours.append(bound.hour)
         return hours
@@ -302,7 +302,16 @@ def time_coords_match(first_cube, second_cube):
     mismatches = []
     if first_cube.coord("forecast_period") != second_cube.coord("forecast_period"):
         mismatches.append("forecast_period")
-    if _frt_hours(first_cube) != _frt_hours(second_cube):
+
+    has_bounds = False
+    if (
+        first_cube.coord("forecast_reference_time").has_bounds()
+        and second_cube.coord("forecast_reference_time").has_bounds()
+    ):
+        has_bounds = True
+    if _frt_hours(first_cube, include_bounds=has_bounds) != _frt_hours(
+        second_cube, include_bounds=has_bounds
+    ):
         mismatches.append("forecast_reference_time hours")
     if mismatches:
         msg = "The following coordinates of the two cubes do not match: {}"
@@ -339,9 +348,7 @@ def check_forecast_consistency(forecasts):
         ValueError: Forecast cubes do not share consistent cycle hour and
                     forecast period.
     """
-    n_cycle_hours = len(
-        get_cycle_hours(forecasts.coord("forecast_reference_time"))
-    )
+    n_cycle_hours = len(get_cycle_hours(forecasts.coord("forecast_reference_time")))
     try:
         (n_forecast_periods,) = forecasts.coord("forecast_period").shape
     except CoordinateNotFoundError:
