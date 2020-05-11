@@ -38,6 +38,7 @@ import scipy
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
+    check_forecast_consistency,
     create_unified_frt_coord,
     filter_non_matching_cubes,
 )

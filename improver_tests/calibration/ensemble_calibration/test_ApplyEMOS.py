@@ -205,7 +205,7 @@ class Test_process(IrisTest):
     def test_bias(self):
         """Test emos coefficients that correct a bias"""
         # update the "alpha" value
-        self.coefficients[2].data = 1
+        self.coefficients[0].data = 1
         expected_mean = np.mean(self.percentiles.data + 1.0)
         expected_data = np.array(
             [
@@ -221,7 +221,7 @@ class Test_process(IrisTest):
     def test_spread(self):
         """Test emos coefficients that correct underspread"""
         # update the "gamma" value
-        self.coefficients[0].data = 1
+        self.coefficients[2].data = 1
         expected_mean = np.mean(self.percentiles.data)
         expected_data = np.array(
             [
@@ -248,7 +248,7 @@ class Test_process(IrisTest):
             land_sea_data, name="land_binary_mask", units="1"
         )
         # update the "gamma" value
-        self.coefficients[0].data = 1
+        self.coefficients[2].data = 1
         expected_data_slice = np.array(
             [
                 [9.7121525, 9.7121525, 10.2],

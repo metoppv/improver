@@ -572,8 +572,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Order of coefficients is [alpha, beta, gamma, delta].
 
         Raises:
-            ValueError: If the number of beta coefficients do not match the
-                number of realizations.
+            ValueError: If the number of coefficients are not as expected when
+                multiple beta coefficients are provided.
         """
         coeff_names_without_beta = self.coeff_names[:]
         coeff_names_without_beta.remove("beta")
@@ -597,6 +597,23 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             optimised_coeffs[-2],
             optimised_coeffs[-1],
         ]
+
+    @staticmethod
+    def _set_attributes(historic_forecast):
+        """Set attributes for use on the EMOS coefficients cube.
+
+        Args:
+            historic_forecast (iris.cube.Cube):
+                The cube containing the historic forecast.
+
+        Returns:
+            attributes (dict):
+                Attributes for an EMOS coefficients cube.
+        """
+        attributes = generate_mandatory_attributes([historic_forecast])
+        attributes["diagnostic_standard_name"] = historic_forecast.name()
+        attributes["title"] = "Ensemble Model Output Statistics coefficients"
+        return attributes
 
     def create_coefficients_cubelist(self, optimised_coeffs, historic_forecast):
         """Create a cubelist for storing the coefficients computed using EMOS.
@@ -657,8 +674,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             aux_coords_and_dims.append((new_coord, None))
 
-        attributes = generate_mandatory_attributes([historic_forecast])
-        attributes["diagnostic_standard_name"] = historic_forecast.name()
+        attributes = self._set_attributes(historic_forecast)
 
         cubelist = iris.cube.CubeList([])
         for optimised_coeff, coeff_name in zip(optimised_coeffs, coeff_names):
@@ -953,10 +969,31 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         check_predictor(predictor)
         self.predictor = predictor
 
+        self.coefficients_cubelist = None
+        self.current_forecast = None
+
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = "<CalibratedForecastDistributionParameters: predictor: {}>"
         return result.format(self.predictor)
+
+    def _diagnostic_match(self):
+        """Check that the forecast diagnostic matches the coefficients used to
+        construct the coefficients.
+
+        Raises:
+            ValueError: If the forecast diagnostic and coefficients cube
+                diagnostic does not match.
+        """
+        for cube in self.coefficients_cubelist:
+            diag = cube.attributes["diagnostic_standard_name"]
+            if self.current_forecast.name() != diag:
+                msg = (
+                    f"The forecast diagnostic ({self.current_forecast.name()}) "
+                    "does not match the diagnostic used to construct the "
+                    f"coefficients ({diag})"
+                )
+                raise ValueError(msg)
 
     def _spatial_domain_match(self):
         """
@@ -1160,6 +1197,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         self.coefficients_cubelist = coefficients_cubelist
 
         # Check coefficients_cube and forecast cube are compatible.
+        self._diagnostic_match()
         for cube in coefficients_cubelist:
             time_coords_match(cube, current_forecast)
         self._spatial_domain_match()

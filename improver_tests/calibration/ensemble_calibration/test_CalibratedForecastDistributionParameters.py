@@ -381,6 +381,16 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         self.plugin = Plugin()
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_diagnostic_match(self):
+        """Test that the cubes passed into the plugin are allocated to
+        plugin variables appropriately."""
+        msg = "The forecast diagnostic"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process(
+                self.current_wind_speed_forecast_cube, self.coeffs_from_mean
+            )
+
+    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_variable_setting(self):
         """Test that the cubes passed into the plugin are allocated to
         plugin variables appropriately."""

@@ -264,8 +264,48 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
+class CoefficientsCubeListAssertions(IrisTest):
+
+    """Assertions for testing a coefficient cubelist."""
+
+    def assertCoefficientsCubeList(self, expected, result):
+        """Assertions for testing the length of the coefficients cubelist,
+        the forecast reference time, the spatial dimensions, the attributes
+        and the names of the cubes in the cubelist.
+
+        Args:
+            expected (iris.cube.Cube):
+                Cube containing the expected result.
+            result (numpy.ndarray):
+                Cube containing the actual result.
+        """
+        self.assertEqual(len(result), 4)
+        for cube in result:
+            self.assertEqual(
+                cube.coord("forecast_reference_time").cell(0).point,
+                expected.expected_frt,
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").points, expected.expected_x_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").bounds, expected.expected_x_coord_bounds
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").points, expected.expected_y_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").bounds, expected.expected_y_coord_bounds
+            )
+            self.assertDictEqual(cube.attributes, expected.attributes)
+
+        self.assertEqual(
+            [cube.name() for cube in result], expected.expected_coeff_names
+        )
+
+
 class Test_create_coefficients_cubelist(
-    SetupExpectedCoefficients, EnsembleCalibrationAssertions
+    SetupExpectedCoefficients, CoefficientsCubeListAssertions
 ):
 
     """Test the create_coefficients_cubelist method."""
@@ -321,6 +361,7 @@ class Test_create_coefficients_cubelist(
         )
         self.attributes = generate_mandatory_attributes([self.historic_forecast])
         self.attributes["diagnostic_standard_name"] = self.historic_forecast.name()
+        self.attributes["title"] = "Ensemble Model Output Statistics coefficients"
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_mean(self):

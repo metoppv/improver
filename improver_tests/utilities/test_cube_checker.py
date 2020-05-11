@@ -31,10 +31,8 @@
 """Unit tests for the cube_checker utility."""
 
 import unittest
-from datetime import datetime
 
 import iris
-import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
@@ -44,11 +42,9 @@ from improver.utilities.cube_checker import (
     check_for_x_and_y_axes,
     find_dimension_coordinate_mismatch,
     spatial_coords_match,
-    time_coords_match,
 )
 
 from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
-from ..set_up_test_cubes import set_up_variable_cube
 
 
 class Test_check_for_x_and_y_axes(IrisTest):

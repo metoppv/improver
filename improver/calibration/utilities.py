@@ -34,8 +34,8 @@ specific for ensemble calibration.
 
 """
 import iris
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.temporal import iris_time_to_datetime
 
