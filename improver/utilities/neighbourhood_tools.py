@@ -131,30 +131,41 @@ def pad_boxsum(data, boxsize, **pad_options):
 def boxsum(data, boxsize, cumsum=True, **pad_options):
     """Fast vectorised approach to calculating neighbourhood totals.
 
-    Displacements are calculated as follows for the following input array,
-    where the accumulation has occurred from top to bottom and left to right::
+    This function makes use of the summed-area table method. An input
+    array is accumulated top to bottom and left to right. This accumulated
+    array can then be used to efficiently calculated the total within a
+    neighbourhood about any point. An example input data array::
+    
+        | 1 | 1 | 1 | 1 | 1 |
+        | 1 | 1 | 1 | 1 | 1 |
+        | 1 | 1 | 1 | 1 | 1 |
+        | 1 | 1 | 1 | 1 | 1 |
+    
+    is accumulated to become::
+    
+        | 1 | 2  | 3  | 4  | 5  |
+        | 2 | 4  | 6  | 8  | 10 |
+        | 3 | 6  | 9  | 12 | 15 |
+        | 4 | 8  | 12 | 16 | 20 |
+        | 5 | 10 | 15 | 20 | 25 |         
+    
+    If we wish to calculate the total in a 3x3 neighbourhood about 
+    some point (*) of our array we use the following points::
 
-    | 1 | 2 | 2 | 2 |
-    | 1 | 3 | 4 | 4 |
-    | 2 | 4 | 5 | 6 |
-    | 2 | 4 | 6 | 7 |
+        | 1 (C) | 2  | 3     | 4 (D)  | 5  |
+        | 2     | 4  | 6     | 8      | 10 |
+        | 3     | 6  | 9 (*) | 12     | 15 |
+        | 4 (A) | 8  | 12    | 16 (B) | 20 |
+        | 5     | 10 | 15    | 20     | 25 |         
 
-
-    For a 3x3 neighbourhood centred around the point with a value of 5::
-
-    | 1 (C) | 2 | 2                 | 2 (D) |
-    | 1     | 3 | 4                 | 4     |
-    | 2     | 4 | 5 (Central point) | 6     |
-    | 2 (A) | 4 | 6                 | 7 (B) |
-
-    To calculate the value for the neighbourhood sum at the "Central point"
-    with a value of 5, calculate::
-
-      Neighbourhood sum = B - A - D + C
-
-    At the central point, this will yield::
-
-      Neighbourhood sum = 7 - 2 - 2 +1 => 4
+    And the calculation is::
+    
+        Neighbourhood sum = C - A - D + B
+        = 1 - 4 - 4 + 16
+        = 9
+        
+    This is the value we would expect for a 3x3 neighbourhood
+    in an array filled with ones.
 
     Args:
         data (numpy.ndarray):
