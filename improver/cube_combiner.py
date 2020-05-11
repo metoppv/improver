@@ -180,7 +180,7 @@ class CubeCombiner(BasePlugin):
             msg = "Expecting 2 or more cubes in cube_list"
             raise ValueError(msg)
 
-        self._check_dimensions_match(cube_list)
+        # self._check_dimensions_match(cube_list)
 
         # perform operation (add, subtract, min, max, multiply) cumulatively
         result = cube_list[0].copy()
