@@ -604,8 +604,7 @@ class Test_time_coords_match(IrisTest):
 
     def test_match(self):
         """Test returns None when cubes time coordinates match."""
-        result = time_coords_match(self.ref_cube, self.ref_cube.copy())
-        self.assertIsNone(result)
+        self.assertIsNone(time_coords_match(self.ref_cube, self.ref_cube.copy()))
 
     def test_forecast_period_mismatch(self):
         """Test an error is raised when the forecast period mismatches."""
@@ -634,8 +633,7 @@ class Test_time_coords_match(IrisTest):
         absent from one cube"""
         self.adjusted_cube = self.ref_cube.copy()
         self.adjusted_cube.coord("forecast_reference_time").bounds = None
-        result = time_coords_match(self.ref_cube, self.adjusted_cube)
-        self.assertIsNone(result)
+        self.assertIsNone(time_coords_match(self.ref_cube, self.adjusted_cube))
 
 
 class Test_get_cycle_hours(IrisTest):
@@ -670,6 +668,7 @@ class Test_check_forecast_consistency(IrisTest):
     """Test the _check_forecast_consistency method."""
 
     def setUp(self):
+        """Set-up cubes for testing."""
         forecast1 = set_up_variable_cube(
             np.ones((3, 3), dtype=np.float32),
             frt=datetime.datetime(2017, 11, 10, 1, 0),

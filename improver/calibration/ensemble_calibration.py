@@ -603,17 +603,105 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """Set attributes for use on the EMOS coefficients cube.
 
         Args:
-            historic_forecast (iris.cube.Cube):
-                The cube containing the historic forecast.
+            historic_forecast (iris.cube.Cube)
 
         Returns:
             attributes (dict):
-                Attributes for an EMOS coefficients cube.
+                Attributes for an EMOS coefficients cube including
+                "diagnostic standard name" and an updated title.
         """
         attributes = generate_mandatory_attributes([historic_forecast])
         attributes["diagnostic_standard_name"] = historic_forecast.name()
         attributes["title"] = "Ensemble Model Output Statistics coefficients"
         return attributes
+
+    @staticmethod
+    def _create_temporal_coordinates(historic_forecast):
+        """Create forecast reference time and forecast period coordinates
+        for the EMOS coefficients cube.
+
+        Args:
+            historic_forecast (iris.cube.Cube)
+
+        Returns:
+            (list):
+                List of tuples of the temporal coordinates and the associated
+                dimension. This format is suitable for use by iris.cube.Cube.
+        """
+        # Create forecast reference time coordinate.
+        frt_coord = create_unified_frt_coord(
+            historic_forecast.coord("forecast_reference_time")
+        )
+
+        # Create forecast period coordinate.
+        fp_point = np.unique(historic_forecast.coord("forecast_period").points)
+        fp_coord = historic_forecast.coord("forecast_period").copy(fp_point)
+
+        return [(frt_coord, None), (fp_coord, None)]
+
+    @staticmethod
+    def _create_spatial_coordinates(historic_forecast):
+        """Create spatial coordinates for the EMOS coefficients cube.
+
+        Args:
+            historic_forecast (iris.cube.Cube)
+
+        Returns:
+            (list):
+                List of tuples of the spatial coordinates and the associated
+                dimension. This format is suitable for use by iris.cube.Cube.
+        """
+        spatial_coords_and_dims = []
+        for axis in ["x", "y"]:
+            historic_coord_points = historic_forecast.coord(axis=axis).points
+            coord_point = np.median(historic_coord_points)
+            coord_bounds = [historic_coord_points[0], historic_coord_points[-1]]
+            new_coord = historic_forecast.coord(axis=axis).copy(
+                points=coord_point, bounds=coord_bounds
+            )
+            spatial_coords_and_dims.append((new_coord, None))
+        return spatial_coords_and_dims
+
+    def _combine_data_and_metadata(
+        self, optimised_coeffs, historic_forecast, aux_coords_and_dims, attributes
+    ):
+        """Create a cubelist by combining the optimised coefficients and the
+        appropriate metadata.
+
+        Args:
+            optimised_coeffs (numpy.ndarray)
+            historic_forecast (iris.cube.Cube)
+            aux_coords_and_dims (list of tuples)
+                List of tuples of the format [(coord, dim), (coord, dim)]
+            attributes (dict)
+
+        Returns:
+            cubelist (iris.cube.CubeList):
+                CubeList constructed using the coefficients provided and using
+                metadata from the historic_forecast cube. Each cube within the
+                cubelist is for a separate EMOS coefficient e.g. alpha, beta,
+                gamma, delta.
+        """
+        cubelist = iris.cube.CubeList([])
+        for optimised_coeff, coeff_name in zip(optimised_coeffs, self.coeff_names):
+            coeff_units = "1"
+            if coeff_name in ["alpha", "gamma"]:
+                coeff_units = historic_forecast.units
+            dim_coords_and_dims = []
+            if self.predictor.lower() == "realizations" and coeff_name == "beta":
+                dim_coords_and_dims = [
+                    (historic_forecast.coord("realization").copy(), 0)
+                ]
+            cube = iris.cube.Cube(
+                optimised_coeff,
+                long_name=f"emos_coefficient_{coeff_name}",
+                units=coeff_units,
+                dim_coords_and_dims=dim_coords_and_dims,
+                aux_coords_and_dims=aux_coords_and_dims,
+                attributes=attributes,
+            )
+            cubelist.append(cube)
+        return cubelist
 
     def create_coefficients_cubelist(self, optimised_coeffs, historic_forecast):
         """Create a cubelist for storing the coefficients computed using EMOS.
@@ -640,62 +728,27 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             ValueError: If the number of coefficients in the optimised_coeffs
                 does not match the expected number.
         """
-        coeff_names = self.coeff_names
         if self.predictor.lower() == "realizations":
             optimised_coeffs = self._multiple_beta_coefficients(
                 optimised_coeffs, historic_forecast
             )
 
-        if len(optimised_coeffs) != len(coeff_names):
+        if len(optimised_coeffs) != len(self.coeff_names):
             msg = (
                 "The number of coefficients in {} must equal the "
-                "number of coefficient names {}.".format(optimised_coeffs, coeff_names)
+                "number of coefficient names {}.".format(
+                    optimised_coeffs, self.coeff_names
+                )
             )
             raise ValueError(msg)
 
-        # Create forecast reference time coordinate.
-        frt_coord = create_unified_frt_coord(
-            historic_forecast.coord("forecast_reference_time")
-        )
-
-        # Create forecast period coordinate.
-        fp_point = np.unique(historic_forecast.coord("forecast_period").points)
-        fp_coord = historic_forecast.coord("forecast_period").copy(fp_point)
-
-        aux_coords_and_dims = [(frt_coord, None), (fp_coord, None)]
-
-        # Create x and y coordinates
-        for axis in ["x", "y"]:
-            historic_coord_points = historic_forecast.coord(axis=axis).points
-            coord_point = np.median(historic_coord_points)
-            coord_bounds = [historic_coord_points[0], historic_coord_points[-1]]
-            new_coord = historic_forecast.coord(axis=axis).copy(
-                points=coord_point, bounds=coord_bounds
-            )
-            aux_coords_and_dims.append((new_coord, None))
-
+        aux_coords_and_dims = self._create_temporal_coordinates(historic_forecast)
+        aux_coords_and_dims.extend(self._create_spatial_coordinates(historic_forecast))
         attributes = self._set_attributes(historic_forecast)
 
-        cubelist = iris.cube.CubeList([])
-        for optimised_coeff, coeff_name in zip(optimised_coeffs, coeff_names):
-            coeff_units = "1"
-            if coeff_name in ["alpha", "gamma"]:
-                coeff_units = historic_forecast.units
-            dim_coords_and_dims = []
-            if self.predictor.lower() == "realizations" and coeff_name == "beta":
-                dim_coords_and_dims = [
-                    (historic_forecast.coord("realization").copy(), 0)
-                ]
-            cube = iris.cube.Cube(
-                optimised_coeff,
-                long_name=f"emos_coefficient_{coeff_name}",
-                units=coeff_units,
-                dim_coords_and_dims=dim_coords_and_dims,
-                aux_coords_and_dims=aux_coords_and_dims,
-                attributes=attributes,
-            )
-            cubelist.append(cube)
-        return cubelist
+        return self._combine_data_and_metadata(
+            optimised_coeffs, historic_forecast, aux_coords_and_dims, attributes
+        )
 
     def compute_initial_guess(
         self,
@@ -763,10 +816,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             and not estimate_coefficients_from_linear_model_flag
         ):
             initial_guess = [0, 1, 0, 1]
-        elif (
-            predictor.lower() == "realizations"
-            and not estimate_coefficients_from_linear_model_flag
-        ) or (predictor.lower() == "realizations" and not self.statsmodels_found):
+        elif predictor.lower() == "realizations" and (
+            not estimate_coefficients_from_linear_model_flag
+            or not self.statsmodels_found
+        ):
             initial_guess = (
                 [0]
                 + np.repeat(
