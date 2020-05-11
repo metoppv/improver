@@ -568,7 +568,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         Returns:
             list:
-                List of coefficients containing are array of beta coefficients.
+                List of coefficients containing a list of beta coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
 
         Raises:
@@ -593,7 +593,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         return [
             optimised_coeffs[0],
-            np.array(optimised_coeffs[1:-2]),
+            optimised_coeffs[1:-2],
             optimised_coeffs[-2],
             optimised_coeffs[-1],
         ]
@@ -666,7 +666,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self, optimised_coeffs, historic_forecast, aux_coords_and_dims, attributes
     ):
         """Create a cubelist by combining the optimised coefficients and the
-        appropriate metadata.
+        appropriate metadata. The units of the alpha and gamma coefficients
+        match the units of the historic forecast. If the predictor is the
+        realizations, then the beta coefficient cube contains a realization
+        coordinate.
 
         Args:
             optimised_coeffs (numpy.ndarray)

@@ -46,7 +46,7 @@ from ...set_up_test_cubes import (
 )
 
 
-def build_coefficients_cubelist(template, coeff_names, coeff_values, predictor="mean"):
+def build_coefficients_cubelist(template, coeff_values, predictor="mean"):
     """Make a cubelist of coefficients with expected metadata
 
     Args:
@@ -54,9 +54,6 @@ def build_coefficients_cubelist(template, coeff_names, coeff_values, predictor="
             Cube containing information about the time,
             forecast_reference_time, forecast_period, x coordinate and
             y coordinate that will be used within the EMOS coefficient cube.
-        coeff_names (list):
-            The names of the EMOS coefficients. Each coefficient will be in a
-            separate cube within the resulting cubelist.
         coeff_values (numpy.ndarray or list):
             The values of the coefficients. These values will be used as the
             cube data.
@@ -73,10 +70,15 @@ def build_coefficients_cubelist(template, coeff_names, coeff_values, predictor="
     aux_coords_and_dims = []
 
     if predictor.lower() == "realizations":
-        coeff_values = [*coeff_values[:3], np.array(coeff_values[3:])]
+        coeff_values = [
+            coeff_values[0],
+            coeff_values[1:-2],
+            coeff_values[-2],
+            coeff_values[-1],
+        ]
 
     # add spatial and temporal coords from forecast to be calibrated
-    for coord in ["time", "forecast_period", "forecast_reference_time"]:
+    for coord in ["forecast_period", "forecast_reference_time"]:
         aux_coords_and_dims.append((template.coord(coord).copy(), None))
 
     for coord in [template.coord(axis="x"), template.coord(axis="y")]:
@@ -89,6 +91,7 @@ def build_coefficients_cubelist(template, coeff_names, coeff_values, predictor="
         "diagnostic_standard_name": "air_temperature",
     }
 
+    coeff_names = ["alpha", "beta", "gamma", "delta"]
     cubelist = iris.cube.CubeList([])
     for optimised_coeff, coeff_name in zip(coeff_values, coeff_names):
         coeff_units = "1"
@@ -150,9 +153,7 @@ class Test_process(IrisTest):
             attributes=attributes,
         )
 
-        self.coefficients = build_coefficients_cubelist(
-            self.realizations, ["alpha", "beta", "gamma", "delta"], [0, 1, 0, 1]
-        )
+        self.coefficients = build_coefficients_cubelist(self.realizations, [0, 1, 0, 1])
 
     def test_null_percentiles(self):
         """Test effect of "neutral" emos coefficients in percentile space

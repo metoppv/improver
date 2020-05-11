@@ -202,6 +202,7 @@ def inputpath(to_convert):
 
 def create_constrained_inputcubelist_converter(*constraints):
     """Makes function that the input constraints are used in a loop.
+
     The function is a @value_converter, this means it is used by clize to convert
     strings into objects.
     This is a way of not using the IMPROVER load_cube which will try to merge
@@ -209,6 +210,7 @@ def create_constrained_inputcubelist_converter(*constraints):
     So an example is if you wanted to load an X cube and a Y cube from a cubelist
     of 2. You call this function with a list of constraints.
     These cubes get loaded and returned as a CubeList.
+
     Args:
         *constraints (tuple of str or callable or iris.Constraint):
             Constraints to be used in extracting the required cubes.
