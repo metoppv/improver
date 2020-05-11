@@ -135,35 +135,35 @@ def boxsum(data, boxsize, cumsum=True, **pad_options):
     array is accumulated top to bottom and left to right. This accumulated
     array can then be used to efficiently calculated the total within a
     neighbourhood about any point. An example input data array::
-    
+
         | 1 | 1 | 1 | 1 | 1 |
         | 1 | 1 | 1 | 1 | 1 |
         | 1 | 1 | 1 | 1 | 1 |
         | 1 | 1 | 1 | 1 | 1 |
-    
+
     is accumulated to become::
-    
+
         | 1 | 2  | 3  | 4  | 5  |
         | 2 | 4  | 6  | 8  | 10 |
         | 3 | 6  | 9  | 12 | 15 |
         | 4 | 8  | 12 | 16 | 20 |
-        | 5 | 10 | 15 | 20 | 25 |         
-    
-    If we wish to calculate the total in a 3x3 neighbourhood about 
+        | 5 | 10 | 15 | 20 | 25 |
+
+    If we wish to calculate the total in a 3x3 neighbourhood about
     some point (*) of our array we use the following points::
 
         | 1 (C) | 2  | 3     | 4 (D)  | 5  |
         | 2     | 4  | 6     | 8      | 10 |
         | 3     | 6  | 9 (*) | 12     | 15 |
         | 4 (A) | 8  | 12    | 16 (B) | 20 |
-        | 5     | 10 | 15    | 20     | 25 |         
+        | 5     | 10 | 15    | 20     | 25 |
 
     And the calculation is::
-    
+
         Neighbourhood sum = C - A - D + B
         = 1 - 4 - 4 + 16
         = 9
-        
+
     This is the value we would expect for a 3x3 neighbourhood
     in an array filled with ones.
 
@@ -171,7 +171,7 @@ def boxsum(data, boxsize, cumsum=True, **pad_options):
         data (numpy.ndarray):
             The input data array.
         boxsize (int or pair of int):
-            The size of the neighbourhood.
+            The size of the neighbourhood. Must be an odd number.
         cumsum (bool):
             If False, assume the input data is already cumulative. If True
             (default), calculate cumsum along the last two dimensions of
@@ -186,6 +186,10 @@ def boxsum(data, boxsize, cumsum=True, **pad_options):
             Array containing the calculated neighbourhood total.
     """
     boxsize = np.atleast_1d(boxsize)
+    if not issubclass(boxsize.dtype.type, np.integer):
+        raise ValueError("The size of the neighbourhood must be of an integer type.")
+    if not np.all(boxsize % 2):
+        raise ValueError("The size of the neighbourhood must be an odd number.")
     if pad_options:
         data = pad_boxsum(data, boxsize, **pad_options)
     if cumsum:
