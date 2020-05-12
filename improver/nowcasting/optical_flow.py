@@ -243,15 +243,36 @@ class OpticalFlow(BasePlugin):
         check_if_grid_is_equal_area(cube2)
 
     @staticmethod
-    def _get_input_time_difference(cube1, cube2):
-        """Get time difference between input cubes, in seconds"""
-        time1 = (cube1.coord("time").units).num2date(cube1.coord("time").points[0])
-        time2 = (cube2.coord("time").units).num2date(cube2.coord("time").points[0])
-        cube_time_diff = time2 - time1
-        if cube_time_diff.total_seconds() <= 0:
+    def _get_advection_time(cube1, cube2):
+        """Get time over which the advection has occurred, in seconds, using the
+        difference in time or forecast reference time between input cubes"""
+        time_diff_seconds = (
+            cube2.coord("time").cell(0).point - cube1.coord("time").cell(0).point
+        ).total_seconds()
+
+        if time_diff_seconds < 0:
             msg = "Expected positive time difference cube2 - cube1: got {} s"
-            raise InvalidCubeError(msg.format(cube_time_diff.total_seconds()))
-        return cube_time_diff.total_seconds()
+            raise InvalidCubeError(msg.format(time_diff_seconds))
+
+        if time_diff_seconds == 0:
+            # second cube should be an observation; first cube should have a
+            # non-zero forecast period which describes the advection time
+            if (
+                cube2.coords("forecast_period")
+                and cube2.coord("forecast_period").points[0] != 0
+            ):
+                raise ValueError("The second input cube must be a current observation")
+
+            # get the time difference from the first cube's forecast period
+            fp_coord = cube1.coord("forecast_period").copy()
+            fp_coord.convert_units("seconds")
+            time_diff_seconds = fp_coord.points
+
+        if time_diff_seconds == 0:
+            msg = "Expected positive time difference cube2 - cube1: got {} s"
+            raise InvalidCubeError(msg.format(time_diff_seconds))
+
+        return time_diff_seconds
 
     def _get_smoothing_radius(self, time_diff_seconds, grid_length_km):
         """Calculate appropriate data smoothing radius in grid squares.
@@ -770,7 +791,7 @@ class OpticalFlow(BasePlugin):
             self._zero_advection_velocities_warning(vel_comp, rain_mask)
         return ucomp, vcomp
 
-    def process(self, cube1, cube2, boxsize=30, perturbation=False):
+    def process(self, cube1, cube2, boxsize=30):
         """
         Extracts data from input cubes, performs dimensionless advection
         displacement calculation, and creates new cubes with advection
@@ -782,19 +803,16 @@ class OpticalFlow(BasePlugin):
 
         Args:
             cube1 (iris.cube.Cube):
-                2D cube from (earlier) time 1 OR forecast cube from previous cycle
+                2D cube that advection will be FROM / advection start point.
+                This may be an earlier observation or an extrapolation forecast
+                for the current time.
             cube2 (iris.cube.Cube):
-                2D cube from (later) time 2 OR observation matching forecast cube
+                2D cube that advection will be TO / advection end point.
+                This will be the most recent observation.
             boxsize (int):
                 The side length of the square box over which to solve the
                 optical flow constraint.  This should be greater than the
                 data smoothing radius.
-            perturbation (bool):
-                If False, this plugin calculates the difference between two
-                input fields at different times.  If True, a perturbation between
-                a forecast and an observation is calculated, which can be added
-                to the "background" advection field (that was used to generate the
-                forecast) to produce an update advection field.
 
         Returns:
             (tuple): tuple containing:
@@ -810,20 +828,8 @@ class OpticalFlow(BasePlugin):
         # check input cubes have appropriate and matching contents and dimensions
         self._check_input_cubes(cube1, cube2)
 
-        # get time difference between cubes
-        if perturbation:
-            # check the observation cube has a forecast period of zero
-            if (
-                cube2.coords("forecast_period")
-                and cube2.coord("forecast_period").points[0] != 0
-            ):
-                raise ValueError("The second input cube must be a current observation")
-            # get the time difference from the first cube's forecast period
-            fp_coord = cube1.coord("forecast_period").copy()
-            fp_coord.convert_units("seconds")
-            (time_diff_seconds,) = fp_coord.points
-        else:
-            time_diff_seconds = self._get_input_time_difference(cube1, cube2)
+        # get time over which advection displacement has occurred
+        time_diff_seconds = self._get_advection_time(cube1, cube2)
 
         # if time difference is greater 15 minutes, increase data smoothing
         # radius so that larger advection displacements can be resolved
