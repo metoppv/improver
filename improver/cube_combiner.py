@@ -34,6 +34,9 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import expand_bounds
+from iris.exceptions import CoordinateNotFoundError
+from iris.coords import DimCoord
+from iris.cube import CubeList
 
 
 class CubeCombiner(BasePlugin):
@@ -54,13 +57,16 @@ class CubeCombiner(BasePlugin):
         "mean": np.add,
     }  # mean is calculated in two steps: sum and normalise
 
-    def __init__(self, operation, warnings_on=False):
+    def __init__(self, operation, broadcast_to_coords=[], warnings_on=False):
         """
         Create a CubeCombiner plugin
 
         Args:
             operation (str):
                 Operation (+, - etc) to apply to the incoming cubes.
+            broadcast_to_coords (list):
+                Specifies a list of coord names that exist only on one cube that the
+                other cube needs broadcasting to prior to the combine.
             warnings_on (bool):
                 If True output warnings for mismatching metadata.
 
@@ -74,6 +80,7 @@ class CubeCombiner(BasePlugin):
             msg = "Unknown operation {}".format(operation)
             raise ValueError(msg)
         self.operation = operation
+        self.broadcast_coords = broadcast_to_coords
         self.warnings_on = warnings_on
 
     def __repr__(self):
@@ -83,8 +90,7 @@ class CubeCombiner(BasePlugin):
         )
         return desc
 
-    @staticmethod
-    def _check_dimensions_match(cube_list):
+    def _check_dimensions_match(self, cube_list):
         """
         Check all coordinate dimensions on the input cubes are equal
 
@@ -98,6 +104,16 @@ class CubeCombiner(BasePlugin):
         ref_coords = cube_list[0].coords(dim_coords=True)
         for cube in cube_list[1:]:
             coords = cube.coords(dim_coords=True)
+            for broadcast_coord in self.broadcast_coords:
+                try:
+                    cube.coord(broadcast_coord)
+                    msg = (
+                        f"Cannot broadcast to coord {broadcast_coord} "
+                        f"as it is already present: {repr(cube)}"
+                    )
+                    raise ValueError(msg)
+                except CoordinateNotFoundError:
+                    coords.append(cube_list[0].coord(broadcast_coord))
             compare = [a == b for a, b in zip(coords, ref_coords)]
             if not np.all(compare):
                 msg = (
@@ -140,6 +156,43 @@ class CubeCombiner(BasePlugin):
                     expanded_coords.append(coord)
         return expanded_coords
 
+    def _do_coord_broadcast(self, cube_list):
+        """
+        Broadcasts any cube in cube_list to include the coords specified in
+        self.broadcast_coords
+
+        Args:
+            cube_list: (iris.cube.CubeList)
+
+        Returns:
+            None
+
+        """
+        for coord in self.broadcast_coords:
+            for cube in cube_list:
+                try:
+                    target_coord = cube.coord(coord)
+                    break
+                except CoordinateNotFoundError:
+                    continue
+            else:
+                raise CoordinateNotFoundError(f"{self.broadcast_coords} not found in {cube_list}")
+            for cube in cube_list:
+                try:
+                    cube.coord(target_coord)
+                except CoordinateNotFoundError:
+                    new_coord = DimCoord(
+                            [0],
+                            standard_name=target_coord.standard_name,
+                            long_name=target_coord.long_name,
+                            var_name=target_coord.var_name,
+                            units=target_coord.units,
+                            bounds=None,
+                            attributes=target_coord.attributes,
+                            coord_system=target_coord.coord_system,
+                        )
+                    cube.add_dim_coord(new_coord, None)
+
     def process(self, cube_list, new_diagnostic_name, use_midpoint=False):
         """
         Combine data and metadata from a list of input cubes into a single
@@ -174,13 +227,15 @@ class CubeCombiner(BasePlugin):
                 Cube containing the combined data.
 
         Raises:
-            ValueError: If the cubelist contains only one cube.
+            ValueError: If the cube_list contains only one cube.
         """
         if len(cube_list) < 2:
             msg = "Expecting 2 or more cubes in cube_list"
             raise ValueError(msg)
 
-        # self._check_dimensions_match(cube_list)
+        if self.broadcast_coords:
+            self._do_coord_broadcast(cube_list)
+        self._check_dimensions_match(cube_list)
 
         # perform operation (add, subtract, min, max, multiply) cumulatively
         result = cube_list[0].copy()
