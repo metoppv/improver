@@ -270,7 +270,7 @@ class OpticalFlow(BasePlugin):
             # get the time difference from the first cube's forecast period
             fp_coord = cube1.coord("forecast_period").copy()
             fp_coord.convert_units("seconds")
-            time_diff_seconds, = fp_coord.points
+            (time_diff_seconds,) = fp_coord.points
 
             if time_diff_seconds == 0:
                 raise InvalidCubeError(error_msg.format(time_diff_seconds))
