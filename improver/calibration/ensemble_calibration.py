@@ -583,7 +583,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecast (iris.cube.Cube)
 
         Returns:
-            (list of tuples):
+            list of tuples:
                 List of tuples of the temporal coordinates and the associated
                 dimension. This format is suitable for use by iris.cube.Cube.
         """
@@ -606,7 +606,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecast (iris.cube.Cube)
 
         Returns:
-            (list of tuples):
+            list of tuples:
                 List of tuples of the spatial coordinates and the associated
                 dimension. This format is suitable for use by iris.cube.Cube.
         """

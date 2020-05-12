@@ -364,25 +364,6 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         result = plugin.create_coefficients_cubelist(
             optimised_coeffs, self.historic_forecast_with_realizations
         )
-        self.assertEqual(len(result), 4)
-        for cube in result:
-            self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt,
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").points, self.expected_x_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").points, self.expected_y_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
-            )
-            self.assertDictEqual(cube.attributes, self.attributes)
-
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
         self.assertArrayEqual(
             result.extract("emos_coefficient_beta", strict=True)
