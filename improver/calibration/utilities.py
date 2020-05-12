@@ -35,7 +35,6 @@ specific for ensemble calibration.
 """
 import iris
 import numpy as np
-from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.temporal import iris_time_to_datetime
 
@@ -275,10 +274,13 @@ def merge_land_and_sea(calibrated_land_only, uncalibrated):
         calibrated_land_only.data = new_data
 
 
-def time_coords_match(first_cube, second_cube):
+def forecast_coords_match(first_cube, second_cube):
     """
-    Determine if two cubes have equivalent forecast_periods and that the time
-    component of the forecast_reference_time coordinates match.
+    Determine if two cubes have equivalent forecast_periods and that the hours
+    of the forecast_reference_time coordinates match. Only the points of the
+    forecast period and forecast reference time coordinate are checked. This is
+    to ensure that an EMOS coefficient cube matches the forecast cube, as
+    appropriate.
 
     Args:
         first_cube (iris.cube.Cube):
@@ -290,75 +292,61 @@ def time_coords_match(first_cube, second_cube):
         ValueError: The two cubes are not equivalent.
     """
 
-    def _frt_hours(cube, include_bounds=False):
+    def _frt_hours(cube):
         hours = []
         for cell in cube.coord("forecast_reference_time").cells():
             hours.append(cell.point.hour)
-            if include_bounds and cell.bound:
-                for bound in cell.bound:
-                    hours.append(bound.hour)
         return hours
 
     mismatches = []
     if first_cube.coord("forecast_period") != second_cube.coord("forecast_period"):
         mismatches.append("forecast_period")
 
-    has_bounds = False
-    if (
-        first_cube.coord("forecast_reference_time").has_bounds()
-        and second_cube.coord("forecast_reference_time").has_bounds()
-    ):
-        has_bounds = True
-    if _frt_hours(first_cube, include_bounds=has_bounds) != _frt_hours(
-        second_cube, include_bounds=has_bounds
-    ):
+    if _frt_hours(first_cube) != _frt_hours(second_cube):
         mismatches.append("forecast_reference_time hours")
     if mismatches:
         msg = "The following coordinates of the two cubes do not match: {}"
         raise ValueError(msg.format(", ".join(mismatches)))
 
 
-def get_cycle_hours(forecast_reference_time):
+def get_frt_hours(forecast_reference_time):
     """
     Returns a set of integer representations of the hour of the
-    forecast reference time (the cycle hour).
+    forecast reference time.
 
     Args:
         forecast_reference_time (iris.coord.DimCoord):
-            The forecast_reference_time coordinate to extract cycle hours
-            from.
+            The forecast_reference_time coordinate to extract the hours from.
     Returns:
         set:
-            A set of integer representations of the cycle hours.
+            A set of integer representations of the forecast reference time
+            hours.
     """
-    cycle_hours = []
+    frt_hours = []
     for frt in forecast_reference_time.cells():
-        cycle_hours.append(np.int32(frt.point.hour))
-    return set(cycle_hours)
+        frt_hours.append(np.int32(frt.point.hour))
+    return set(frt_hours)
 
 
 def check_forecast_consistency(forecasts):
     """
-    Checks that the forecast cubes are all from a consistent cycle and
-    with a consistent forecast period.
+    Checks that the forecast cubes have a consistent forecast reference time
+    hour and a consistent forecast period.
 
     Args:
         forecasts (iris.cube.Cube):
     Raises:
-        ValueError: Forecast cubes do not share consistent cycle hour and
-                    forecast period.
+        ValueError: Forecast cubes have differing forecast reference time hours
+        ValueError: Forecast cubes have differing forecast periods
     """
-    n_cycle_hours = len(get_cycle_hours(forecasts.coord("forecast_reference_time")))
-    try:
-        (n_forecast_periods,) = forecasts.coord("forecast_period").shape
-    except CoordinateNotFoundError:
-        n_forecast_periods = 0
-    if n_cycle_hours != 1 or n_forecast_periods != 1:
+    frt_hours = get_frt_hours(forecasts.coord("forecast_reference_time"))
+
+    if len(frt_hours) != 1:
         msg = (
-            "Forecasts have been provided from differing cycle hours "
-            "or forecast periods, or without these coordinates. These "
-            "coordinates should be present and consistent between "
-            "forecasts. Number of cycle hours found: {}, number of "
-            "forecast periods found: {}."
+            "Forecasts have been provided with differing hours for the "
+            "forecast reference time {}"
         )
-        raise ValueError(msg.format(n_cycle_hours, n_forecast_periods))
+        raise ValueError(msg.format(frt_hours))
+    if len(forecasts.coord("forecast_period").points) != 1:
+        msg = "Forecasts have been provided with differing forecast periods {}"
+        raise ValueError(msg.format(forecasts.coord("forecast_period").points))

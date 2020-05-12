@@ -382,8 +382,8 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_diagnostic_match(self):
-        """Test that the cubes passed into the plugin are allocated to
-        plugin variables appropriately."""
+        """Test that an error is raised if the diagnostic_standard_name does
+        not match when comparing a forecast cube and coefficients cubelist."""
         msg = "The forecast diagnostic"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.process(

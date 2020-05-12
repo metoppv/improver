@@ -264,49 +264,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class CoefficientsCubeListAssertions(IrisTest):
-
-    """Assertions for testing a coefficient cubelist."""
-
-    def assertCoefficientsCubeList(self, expected, result):
-        """Assertions for testing the length of the coefficients cubelist,
-        the forecast reference time, the spatial dimensions, the attributes
-        and the names of the cubes in the cubelist.
-
-        Args:
-            expected (iris.cube.Cube):
-                Cube containing the expected result.
-            result (numpy.ndarray):
-                Cube containing the actual result.
-        """
-        self.assertEqual(len(result), 4)
-        for cube in result:
-            self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point,
-                expected.expected_frt,
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").points, expected.expected_x_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="x").bounds, expected.expected_x_coord_bounds
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").points, expected.expected_y_coord_points
-            )
-            self.assertArrayAlmostEqual(
-                cube.coord(axis="y").bounds, expected.expected_y_coord_bounds
-            )
-            self.assertDictEqual(cube.attributes, expected.attributes)
-
-        self.assertEqual(
-            [cube.name() for cube in result], expected.expected_coeff_names
-        )
-
-
-class Test_create_coefficients_cubelist(
-    SetupExpectedCoefficients, CoefficientsCubeListAssertions
-):
+class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
 
     """Test the create_coefficients_cubelist method."""
 
@@ -370,7 +328,26 @@ class Test_create_coefficients_cubelist(
         result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
         )
-        self.assertCoefficientsCubeList(self, result)
+        self.assertEqual(len(result), 4)
+        for cube in result:
+            self.assertEqual(
+                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt,
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").points, self.expected_x_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").points, self.expected_y_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
+            )
+            self.assertDictEqual(cube.attributes, self.attributes)
+
+        self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_realizations(self):
@@ -387,7 +364,26 @@ class Test_create_coefficients_cubelist(
         result = plugin.create_coefficients_cubelist(
             optimised_coeffs, self.historic_forecast_with_realizations
         )
-        self.assertCoefficientsCubeList(self, result)
+        self.assertEqual(len(result), 4)
+        for cube in result:
+            self.assertEqual(
+                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt,
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").points, self.expected_x_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="x").bounds, self.expected_x_coord_bounds
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").points, self.expected_y_coord_points
+            )
+            self.assertArrayAlmostEqual(
+                cube.coord(axis="y").bounds, self.expected_y_coord_bounds
+            )
+            self.assertDictEqual(cube.attributes, self.attributes)
+
+        self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
         self.assertArrayEqual(
             result.extract("emos_coefficient_beta", strict=True)
             .coord("realization")
@@ -411,24 +407,6 @@ class Test_create_coefficients_cubelist(
         with self.assertRaisesRegex(ValueError, msg):
             plugin.create_coefficients_cubelist(
                 optimised_coeffs, self.historic_forecast
-            )
-
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_beta_coefficients_realizations_mismatch(self):
-        """Test that an exception is raised if the number of beta_coefficients
-        provided for creating the coefficients cube is not equal to the
-        number of realizations."""
-        distribution = "truncated_gaussian"
-        desired_units = "Fahrenheit"
-        predictor = "realizations"
-        optimised_coeffs = [1, 2, 3, 4, 5]
-        plugin = Plugin(
-            distribution=distribution, desired_units=desired_units, predictor=predictor,
-        )
-        msg = "The number of coefficients provided"
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin.create_coefficients_cubelist(
-                optimised_coeffs, self.historic_forecast_with_realizations
             )
 
 

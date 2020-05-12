@@ -38,7 +38,6 @@ import unittest
 
 import iris
 import numpy as np
-from cf_units import date2num
 from iris.tests import IrisTest
 from iris.util import squeeze
 from numpy.testing import assert_array_equal
@@ -50,9 +49,9 @@ from improver.calibration.utilities import (
     create_unified_frt_coord,
     filter_non_matching_cubes,
     flatten_ignoring_masked_data,
-    get_cycle_hours,
+    forecast_coords_match,
+    get_frt_hours,
     merge_land_and_sea,
-    time_coords_match,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 
@@ -578,7 +577,7 @@ class Test_merge_land_and_sea(IrisTest):
         self.assertEqual(self.percentiles_land.data.dtype, np.float32)
 
 
-class Test_time_coords_match(IrisTest):
+class Test_forecast_coords_match(IrisTest):
 
     """Test for function that tests if forecast period and the hour of the
      forecast_reference_time coordinate match between two cubes."""
@@ -591,20 +590,11 @@ class Test_time_coords_match(IrisTest):
             frt=datetime.datetime(2017, 11, 10, 1, 0),
             time=datetime.datetime(2017, 11, 10, 4, 0),
         )
-        coord_spec = TIME_COORDS["time"]
-        bounds = []
-        for bound in [
-            datetime.datetime(2017, 11, 10, 0, 0),
-            datetime.datetime(2017, 11, 10, 1, 0),
-        ]:
-            bounds.append(date2num(bound, coord_spec.units, coord_spec.calendar))
-
-        self.ref_cube.coord("forecast_reference_time").bounds = bounds
         self.message = "The following coordinates of the two cubes do not match"
 
     def test_match(self):
         """Test returns None when cubes time coordinates match."""
-        self.assertIsNone(time_coords_match(self.ref_cube, self.ref_cube.copy()))
+        self.assertIsNone(forecast_coords_match(self.ref_cube, self.ref_cube.copy()))
 
     def test_forecast_period_mismatch(self):
         """Test an error is raised when the forecast period mismatches."""
@@ -615,9 +605,9 @@ class Test_time_coords_match(IrisTest):
         )
 
         with self.assertRaisesRegex(ValueError, self.message):
-            time_coords_match(self.ref_cube, self.adjusted_cube)
+            forecast_coords_match(self.ref_cube, self.adjusted_cube)
 
-    def test_frt_hour_without_bounds_mismatch(self):
+    def test_frt_hour_mismatch(self):
         """Test an error is raised when the forecast_reference_time mismatches"""
         self.adjusted_cube = set_up_variable_cube(
             self.data,
@@ -626,50 +616,45 @@ class Test_time_coords_match(IrisTest):
         )
 
         with self.assertRaisesRegex(ValueError, self.message):
-            time_coords_match(self.ref_cube, self.adjusted_cube)
-
-    def test_frt_hour_with_bounds_mismatch(self):
-        """Test returns None when the forecast_reference_time bounds are
-        absent from one cube"""
-        self.adjusted_cube = self.ref_cube.copy()
-        self.adjusted_cube.coord("forecast_reference_time").bounds = None
-        self.assertIsNone(time_coords_match(self.ref_cube, self.adjusted_cube))
+            forecast_coords_match(self.ref_cube, self.adjusted_cube)
 
 
-class Test_get_cycle_hours(IrisTest):
+class Test_get_frt_hours(IrisTest):
 
-    """Test the _get_cycle_hours method."""
+    """Test the get_frt_hours function."""
 
     def test_single_value(self):
-        """Test that the expected cycle hour value is returned in a set."""
+        """Test that the expected forecast reference time hour value is
+        returned in a set."""
 
         frt = iris.coords.DimCoord(
             [0],
             standard_name="forecast_reference_time",
             units=TIME_COORDS["forecast_reference_time"].units,
         )
-        result = get_cycle_hours(frt)
+        result = get_frt_hours(frt)
         self.assertEqual(result, set([0]))
 
     def test_multiple_values(self):
-        """Test that the expected cycle hour values are returned in a set."""
+        """Test that the expected forecast reference time hour values are
+        returned in a set."""
         expected = np.array([0, 1, 4], dtype=np.float32)
         frt = iris.coords.DimCoord(
             expected * 3600,
             standard_name="forecast_reference_time",
             units=TIME_COORDS["forecast_reference_time"].units,
         )
-        result = get_cycle_hours(frt)
+        result = get_frt_hours(frt)
         self.assertEqual(result, set(expected))
 
 
 class Test_check_forecast_consistency(IrisTest):
 
-    """Test the _check_forecast_consistency method."""
+    """Test the check_forecast_consistency function."""
 
     def setUp(self):
         """Set-up cubes for testing."""
-        forecast1 = set_up_variable_cube(
+        self.forecast1 = set_up_variable_cube(
             np.ones((3, 3), dtype=np.float32),
             frt=datetime.datetime(2017, 11, 10, 1, 0),
             time=datetime.datetime(2017, 11, 10, 4, 0),
@@ -679,69 +664,48 @@ class Test_check_forecast_consistency(IrisTest):
             frt=datetime.datetime(2017, 11, 11, 1, 0),
             time=datetime.datetime(2017, 11, 11, 4, 0),
         )
-        self.forecasts = iris.cube.CubeList([forecast1, forecast2]).merge_cube()
+        self.forecasts = iris.cube.CubeList([self.forecast1, forecast2]).merge_cube()
 
     def test_matching_forecasts(self):
-        """Test case in which forecasts share cycle hour and forecast period
+        """Test case in which forecasts share frt hour and forecast period
         values. No result is expected in this case, hence there is no value
         comparison; the test is the absence of an exception."""
 
         check_forecast_consistency(self.forecasts)
 
-    def test_mismatching_cycle_hours(self):
-        """Test case in which forecasts do not share consistent cycle hours."""
-
-        self.forecasts.coord("forecast_reference_time").points = [3600, 7200]
-
-        msg = (
-            "Forecasts have been provided from differing cycle hours "
-            "or forecast periods, or without these coordinates. These "
-            "coordinates should be present and consistent between "
-            "forecasts. Number of cycle hours found: 2, number of "
-            "forecast periods found: 1."
+    def test_mismatching_frt_hours(self):
+        """Test case in which forecast reference time hours differ."""
+        forecast2 = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32),
+            frt=datetime.datetime(2017, 11, 11, 2, 0),
+            time=datetime.datetime(2017, 11, 11, 4, 0),
         )
-
-        with self.assertRaisesRegex(ValueError, msg):
-            check_forecast_consistency(self.forecasts)
-
-    def test_mismatching_forecast_periods(self):
-        """Test case in which forecasts do not share consistent forecast
-        periods."""
-
-        forecasts = iris.cube.CubeList()
-        forecast = self.forecasts[0].copy()
-        forecast.coord("forecast_period").points = [3600]
-        forecasts.append(forecast)
-        forecasts.append(self.forecasts[1])
-        forecasts = forecasts.merge_cube()
+        forecasts = iris.cube.CubeList([self.forecast1, forecast2]).merge_cube()
 
         msg = (
-            "Forecasts have been provided from differing cycle hours "
-            "or forecast periods, or without these coordinates. These "
-            "coordinates should be present and consistent between "
-            "forecasts. Number of cycle hours found: 1, number of "
-            "forecast periods found: 2."
+            "Forecasts have been provided with differing hours for the "
+            "forecast reference time {1, 2}"
         )
 
         with self.assertRaisesRegex(ValueError, msg):
             check_forecast_consistency(forecasts)
 
-    def test_missing_forecast_period(self):
-        """Test case in which forecasts do not have a forecast period
-        coordinate."""
-
-        self.forecasts.remove_coord("forecast_period")
+    def test_mismatching_forecast_periods(self):
+        """Test case in which the forecast periods differ."""
+        forecast2 = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32),
+            frt=datetime.datetime(2017, 11, 11, 1, 0),
+            time=datetime.datetime(2017, 11, 11, 5, 0),
+        )
+        forecasts = iris.cube.CubeList([self.forecast1, forecast2]).merge_cube()
 
         msg = (
-            "Forecasts have been provided from differing cycle hours "
-            "or forecast periods, or without these coordinates. These "
-            "coordinates should be present and consistent between "
-            "forecasts. Number of cycle hours found: 1, number of "
-            "forecast periods found: 0."
+            "Forecasts have been provided with differing forecast periods "
+            "\[10800 14400\]"
         )
 
         with self.assertRaisesRegex(ValueError, msg):
-            check_forecast_consistency(self.forecasts)
+            check_forecast_consistency(forecasts)
 
 
 if __name__ == "__main__":

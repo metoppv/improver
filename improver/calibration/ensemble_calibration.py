@@ -54,8 +54,8 @@ from improver.calibration.utilities import (
     create_unified_frt_coord,
     filter_non_matching_cubes,
     flatten_ignoring_masked_data,
+    forecast_coords_match,
     merge_land_and_sea,
-    time_coords_match,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles,
@@ -330,7 +330,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         """
         if predictor.lower() == "mean":
-            alpha_beta = initial_guess[:-2]
+            alpha_beta = initial_guess[:2]
         elif predictor.lower() == "realizations":
             alpha_beta = np.array(
                 [initial_guess[0]] + (initial_guess[1:-2] ** 2).tolist(),
@@ -392,7 +392,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         """
         if predictor.lower() == "mean":
-            alpha_beta = initial_guess[:-2]
+            alpha_beta = initial_guess[:2]
         elif predictor.lower() == "realizations":
             alpha_beta = np.array(
                 [initial_guess[0]] + (initial_guess[1:-2] ** 2).tolist(),
@@ -557,47 +557,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             self.max_iterations,
         )
 
-    def _multiple_beta_coefficients(self, optimised_coeffs, historic_forecast):
-        """Re-structure the coefficients, if provided multiple beta values
-
-        Args:
-            optimised_coeffs (numpy.ndarray):
-                Order of coefficients is [alpha, beta, gamma, delta].
-            historic_forecast (iris.cube.Cube):
-                The cube containing the historic forecast.
-
-        Returns:
-            list:
-                List of coefficients containing a list of beta coefficients.
-                Order of coefficients is [alpha, beta, gamma, delta].
-
-        Raises:
-            ValueError: If the number of coefficients are not as expected when
-                multiple beta coefficients are provided.
-        """
-        coeff_names_without_beta = self.coeff_names[:]
-        coeff_names_without_beta.remove("beta")
-        if len(optimised_coeffs) != len(coeff_names_without_beta) + len(
-            historic_forecast.coord("realization").points
-        ):
-            msg = (
-                "The number of coefficients provided {} must equal the "
-                "alpha, gamma and delta coefficients plus the beta "
-                "coefficients where the number of beta coefficients equals "
-                "the number of realizations {}, when the predictor is "
-                "'realizations'.".format(
-                    optimised_coeffs, historic_forecast.coord("realization").points,
-                )
-            )
-            raise ValueError(msg)
-
-        return [
-            optimised_coeffs[0],
-            optimised_coeffs[1:-2],
-            optimised_coeffs[-2],
-            optimised_coeffs[-1],
-        ]
-
     @staticmethod
     def _set_attributes(historic_forecast):
         """Set attributes for use on the EMOS coefficients cube.
@@ -606,7 +565,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecast (iris.cube.Cube)
 
         Returns:
-            attributes (dict):
+            dict:
                 Attributes for an EMOS coefficients cube including
                 "diagnostic standard name" and an updated title.
         """
@@ -624,7 +583,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecast (iris.cube.Cube)
 
         Returns:
-            (list):
+            (list of tuples):
                 List of tuples of the temporal coordinates and the associated
                 dimension. This format is suitable for use by iris.cube.Cube.
         """
@@ -647,7 +606,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecast (iris.cube.Cube)
 
         Returns:
-            (list):
+            (list of tuples):
                 List of tuples of the spatial coordinates and the associated
                 dimension. This format is suitable for use by iris.cube.Cube.
         """
@@ -662,7 +621,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             spatial_coords_and_dims.append((new_coord, None))
         return spatial_coords_and_dims
 
-    def _combine_data_and_metadata(
+    def _create_cubelist(
         self, optimised_coeffs, historic_forecast, aux_coords_and_dims, attributes
     ):
         """Create a cubelist by combining the optimised coefficients and the
@@ -714,8 +673,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
            ensemble_calibration/create_coefficients_cube.rst
 
         Args:
-            optimised_coeffs (numpy.ndarray):
-                List of optimised coefficients.
+            optimised_coeffs (list or numpy.ndarray):
+                Array or list of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
             historic_forecast (iris.cube.Cube):
                 The cube containing the historic forecast.
@@ -732,9 +691,12 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 does not match the expected number.
         """
         if self.predictor.lower() == "realizations":
-            optimised_coeffs = self._multiple_beta_coefficients(
-                optimised_coeffs, historic_forecast
-            )
+            optimised_coeffs = [
+                optimised_coeffs[0],
+                optimised_coeffs[1:-2],
+                optimised_coeffs[-2],
+                optimised_coeffs[-1],
+            ]
 
         if len(optimised_coeffs) != len(self.coeff_names):
             msg = (
@@ -749,7 +711,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         aux_coords_and_dims.extend(self._create_spatial_coordinates(historic_forecast))
         attributes = self._set_attributes(historic_forecast)
 
-        return self._combine_data_and_metadata(
+        return self._create_cubelist(
             optimised_coeffs, historic_forecast, aux_coords_and_dims, attributes
         )
 
@@ -823,13 +785,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             not estimate_coefficients_from_linear_model_flag
             or not self.statsmodels_found
         ):
-            initial_guess = (
-                [0]
-                + np.repeat(
-                    np.sqrt(1.0 / no_of_realizations), no_of_realizations
-                ).tolist()
-                + [0, 1]
-            )
+            initial_beta = np.repeat(
+                np.sqrt(1.0 / no_of_realizations), no_of_realizations
+            ).tolist()
+            initial_guess = [0] + initial_beta + [0, 1]
         elif estimate_coefficients_from_linear_model_flag:
             truth_flattened = flatten_ignoring_masked_data(truth.data)
             if predictor.lower() == "mean":
@@ -1129,10 +1088,9 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # ensemble realizations. The number of b and X terms depends upon the
         # number of ensemble realizations. In this case, b = beta^2.
         beta_values = np.array([], dtype=np.float32)
-        for coeff_cube in self.coefficients_cubelist:
-            if coeff_cube.name() == "emos_coefficient_beta":
-                for coeff_slice in coeff_cube.slices_over("realization"):
-                    beta_values = np.append(beta_values, coeff_slice.data)
+        beta_values = self.coefficients_cubelist.extract_strict(
+            "emos_coefficient_beta"
+        ).data.copy()
         a_and_b = np.append(
             self.coefficients_cubelist.extract_strict("emos_coefficient_alpha").data,
             beta_values ** 2,
@@ -1255,7 +1213,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # Check coefficients_cube and forecast cube are compatible.
         self._diagnostic_match()
         for cube in coefficients_cubelist:
-            time_coords_match(cube, current_forecast)
+            forecast_coords_match(cube, current_forecast)
         self._spatial_domain_match()
 
         if self.predictor.lower() == "mean":
