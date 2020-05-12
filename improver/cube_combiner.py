@@ -35,6 +35,7 @@ import numpy as np
 import iris
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import expand_bounds, enforce_coordinate_ordering
+from improver.metadata.probabilistic import find_threshold_coordinate
 from iris.exceptions import CoordinateNotFoundError
 from iris.coords import DimCoord
 from iris.cube import CubeList
@@ -163,7 +164,10 @@ class CubeCombiner(BasePlugin):
         for coord in self.broadcast_coords:
             for cube in cube_list:
                 try:
-                    target_coord = cube.coord(coord)
+                    if coord == 'threshold':
+                        target_coord = find_threshold_coordinate(cube)
+                    else:
+                        target_coord = cube.coord(coord)
                     target_cube = cube
                     break
                 except CoordinateNotFoundError:

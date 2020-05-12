@@ -77,8 +77,10 @@ def process(
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubes[0].name()
+    if broadcast_to_coord:
+        broadcast_to_coord = [broadcast_to_coord]
     result = CubeCombiner(
-        operation, warnings_on=check_metadata, broadcast_to_coords=[broadcast_to_coord]
+        operation, warnings_on=check_metadata, broadcast_to_coords=broadcast_to_coord
     )(CubeList(cubes), new_name, use_midpoint=use_midpoint)
 
     return result
