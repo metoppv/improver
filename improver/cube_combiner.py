@@ -32,8 +32,9 @@
 
 import numpy as np
 
+import iris
 from improver import BasePlugin
-from improver.utilities.cube_manipulation import expand_bounds
+from improver.utilities.cube_manipulation import expand_bounds, enforce_coordinate_ordering
 from iris.exceptions import CoordinateNotFoundError
 from iris.coords import DimCoord
 from iris.cube import CubeList
@@ -104,16 +105,6 @@ class CubeCombiner(BasePlugin):
         ref_coords = cube_list[0].coords(dim_coords=True)
         for cube in cube_list[1:]:
             coords = cube.coords(dim_coords=True)
-            for broadcast_coord in self.broadcast_coords:
-                try:
-                    cube.coord(broadcast_coord)
-                    msg = (
-                        f"Cannot broadcast to coord {broadcast_coord} "
-                        f"as it is already present: {repr(cube)}"
-                    )
-                    raise ValueError(msg)
-                except CoordinateNotFoundError:
-                    coords.append(cube_list[0].coord(broadcast_coord))
             compare = [a == b for a, b in zip(coords, ref_coords)]
             if not np.all(compare):
                 msg = (
@@ -156,27 +147,30 @@ class CubeCombiner(BasePlugin):
                     expanded_coords.append(coord)
         return expanded_coords
 
-    def _do_coord_broadcast(self, cube_list):
+    def _setup_coord_broadcast(self, cube_list):
         """
-        Broadcasts any cube in cube_list to include the coords specified in
-        self.broadcast_coords
+        Adds a scalar DimCoord to any cube in cube_list so that they all include all of
+        the coords specified in self.broadcast_coords in the right order.
 
         Args:
             cube_list: (iris.cube.CubeList)
 
         Returns:
-            None
+            iris.cube.CubeList
+                Updated version of cube_list
 
         """
         for coord in self.broadcast_coords:
             for cube in cube_list:
                 try:
                     target_coord = cube.coord(coord)
+                    target_cube = cube
                     break
                 except CoordinateNotFoundError:
                     continue
             else:
                 raise CoordinateNotFoundError(f"{self.broadcast_coords} not found in {cube_list}")
+            new_list = CubeList([])
             for cube in cube_list:
                 try:
                     cube.coord(target_coord)
@@ -191,7 +185,12 @@ class CubeCombiner(BasePlugin):
                             attributes=target_coord.attributes,
                             coord_system=target_coord.coord_system,
                         )
-                    cube.add_dim_coord(new_coord, None)
+                    cube.add_aux_coord(new_coord, None)
+                    cube = iris.util.new_axis(cube, new_coord)
+                    enforce_coordinate_ordering(cube, [d.name() for d in target_cube.coords(dim_coords=True)])
+                new_list.append(cube)
+            cube_list = new_list
+        return cube_list
 
     def process(self, cube_list, new_diagnostic_name, use_midpoint=False):
         """
@@ -234,8 +233,8 @@ class CubeCombiner(BasePlugin):
             raise ValueError(msg)
 
         if self.broadcast_coords:
-            self._do_coord_broadcast(cube_list)
-        self._check_dimensions_match(cube_list)
+            cube_list = self._setup_coord_broadcast(cube_list)
+        #self._check_dimensions_match(cube_list)
 
         # perform operation (add, subtract, min, max, multiply) cumulatively
         result = cube_list[0].copy()
