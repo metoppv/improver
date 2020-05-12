@@ -249,10 +249,12 @@ class OpticalFlow(BasePlugin):
         time_diff_seconds = (
             cube2.coord("time").cell(0).point - cube1.coord("time").cell(0).point
         ).total_seconds()
+        time_diff_seconds = int(time_diff_seconds)
+
+        error_msg = "Expected positive time difference cube2 - cube1: got {} s"
 
         if time_diff_seconds < 0:
-            msg = "Expected positive time difference cube2 - cube1: got {} s"
-            raise InvalidCubeError(msg.format(time_diff_seconds))
+            raise InvalidCubeError(error_msg.format(time_diff_seconds))
 
         if time_diff_seconds == 0:
             # second cube should be an observation; first cube should have a
@@ -261,16 +263,17 @@ class OpticalFlow(BasePlugin):
                 cube2.coords("forecast_period")
                 and cube2.coord("forecast_period").points[0] != 0
             ):
-                raise ValueError("The second input cube must be a current observation")
+                raise InvalidCubeError(
+                    "Second input cube must be a current observation"
+                )
 
             # get the time difference from the first cube's forecast period
             fp_coord = cube1.coord("forecast_period").copy()
             fp_coord.convert_units("seconds")
-            time_diff_seconds = fp_coord.points
+            time_diff_seconds, = fp_coord.points
 
-        if time_diff_seconds == 0:
-            msg = "Expected positive time difference cube2 - cube1: got {} s"
-            raise InvalidCubeError(msg.format(time_diff_seconds))
+            if time_diff_seconds == 0:
+                raise InvalidCubeError(error_msg.format(time_diff_seconds))
 
         return time_diff_seconds
 

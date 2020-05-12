@@ -733,6 +733,7 @@ class Test_process(IrisTest):
         """Test velocity values are as expected when input cubes are presented
         as an older extrapolation forecast and recent observation"""
         # make cube 1 into a forecast with a 15 minute forecast period
+        self.cube1.coord("time").points = self.cube2.coord("time").points
         self.cube1.coord("forecast_reference_time").points = (
             self.cube1.coord("forecast_reference_time").points - 15 * 60
         )
