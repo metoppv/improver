@@ -46,7 +46,10 @@ from scipy import ndimage, signal
 from improver import BasePlugin
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import collapsed
-from improver.utilities.spatial import check_if_grid_is_equal_area
+from improver.utilities.spatial import (
+    calculate_grid_spacing,
+    check_if_grid_is_equal_area,
+)
 
 
 def generate_optical_flow_components(
@@ -205,6 +208,73 @@ class OpticalFlow(BasePlugin):
             self.iterations,
             self.point_weight,
         )
+
+    @staticmethod
+    def _check_input_cubes(cube1, cube2):
+        """Check that input cubes have appropriate and matching dimensions"""
+        # check the nature of the input cubes, and raise a warning if they are
+        # not both precipitation
+        if cube1.name() != cube2.name():
+            msg = "Input cubes contain different data types {} and {}"
+            raise ValueError(msg.format(cube1.name(), cube2.name()))
+
+        data_name = cube1.name().lower()
+        if "rain" not in data_name and "precipitation" not in data_name:
+            msg = (
+                "Input data are of non-precipitation type {}.  Plugin "
+                "parameters have not been tested and may not be appropriate"
+                " for this variable."
+            )
+            warnings.warn(msg.format(cube1.name()))
+
+        # check cubes have exactly two spatial dimension coordinates and a
+        # scalar time coordinate
+        check_input_coords(cube1, require_time=True)
+        check_input_coords(cube2, require_time=True)
+
+        # check cube dimensions match
+        if cube1.coord(axis="x") != cube2.coord(axis="x") or cube1.coord(
+            axis="y"
+        ) != cube2.coord(axis="y"):
+            raise InvalidCubeError("Input cubes on unmatched grids")
+
+        # check grids are equal area
+        check_if_grid_is_equal_area(cube1)
+        check_if_grid_is_equal_area(cube2)
+
+    @staticmethod
+    def _get_input_time_difference(cube1, cube2):
+        """Get time difference between input cubes, in seconds"""
+        time1 = (cube1.coord("time").units).num2date(cube1.coord("time").points[0])
+        time2 = (cube2.coord("time").units).num2date(cube2.coord("time").points[0])
+        cube_time_diff = time2 - time1
+        if cube_time_diff.total_seconds() <= 0:
+            msg = "Expected positive time difference cube2 - cube1: got {} s"
+            raise InvalidCubeError(msg.format(cube_time_diff.total_seconds()))
+        return cube_time_diff.total_seconds()
+
+    def _get_smoothing_radius(self, time_diff_seconds, grid_length_km):
+        """Calculate appropriate data smoothing radius in grid squares.
+        If time difference is greater 15 minutes, increase data smoothing
+        radius in km so that larger advection displacements can be resolved.
+        """
+        if time_diff_seconds > 900:
+            data_smoothing_radius_km = self.data_smoothing_radius_km * (
+                time_diff_seconds / 900.0
+            )
+        else:
+            data_smoothing_radius_km = self.data_smoothing_radius_km
+
+        # calculate smoothing radius in integer grid squares
+        data_smoothing_radius = int(data_smoothing_radius_km / grid_length_km)
+
+        # fail verbosely if data smoothing radius is too small and will
+        # trigger silent failures downstream
+        if data_smoothing_radius < 3:
+            msg = "Input data smoothing radius {} too small (minimum 3 grid squares)"
+            raise ValueError(msg.format(data_smoothing_radius))
+
+        return data_smoothing_radius
 
     @staticmethod
     def interp_to_midpoint(data, axis=None):
@@ -700,7 +770,7 @@ class OpticalFlow(BasePlugin):
             self._zero_advection_velocities_warning(vel_comp, rain_mask)
         return ucomp, vcomp
 
-    def process(self, cube1, cube2, boxsize=30):
+    def process(self, cube1, cube2, boxsize=30, perturbation=False):
         """
         Extracts data from input cubes, performs dimensionless advection
         displacement calculation, and creates new cubes with advection
@@ -712,13 +782,19 @@ class OpticalFlow(BasePlugin):
 
         Args:
             cube1 (iris.cube.Cube):
-                2D cube from (earlier) time 1
+                2D cube from (earlier) time 1 OR forecast cube from previous cycle
             cube2 (iris.cube.Cube):
-                2D cube from (later) time 2
+                2D cube from (later) time 2 OR observation matching forecast cube
             boxsize (int):
                 The side length of the square box over which to solve the
                 optical flow constraint.  This should be greater than the
                 data smoothing radius.
+            perturbation (bool):
+                If False, this plugin calculates the difference between two
+                input fields at different times.  If True, a perturbation between
+                a forecast and an observation is calculated, which can be added
+                to the "background" advection field (that was used to generate the
+                forecast) to produce an update advection field.
 
         Returns:
             (tuple): tuple containing:
@@ -731,41 +807,46 @@ class OpticalFlow(BasePlugin):
         self.data_smoothing_radius = None
         self.boxsize = None
 
-        # check the nature of the input cubes, and raise a warning if they are
-        # not both precipitation
-        if cube1.name() != cube2.name():
-            msg = "Input cubes contain different data types {} and {}"
-            raise ValueError(msg.format(cube1.name(), cube2.name()))
+        # check input cubes have appropriate and matching contents and dimensions
+        self._check_input_cubes(cube1, cube2)
 
-        data_name = cube1.name().lower()
-        if "rain" not in data_name and "precipitation" not in data_name:
+        # get time difference between cubes
+        if perturbation:
+            # check the observation cube has a forecast period of zero
+            if (
+                cube2.coords("forecast_period")
+                and cube2.coord("forecast_period").points[0] != 0
+            ):
+                raise ValueError("The second input cube must be a current observation")
+            # get the time difference from the first cube's forecast period
+            fp_coord = cube1.coord("forecast_period").copy()
+            fp_coord.convert_units("seconds")
+            (time_diff_seconds,) = fp_coord.points
+        else:
+            time_diff_seconds = self._get_input_time_difference(cube1, cube2)
+
+        # if time difference is greater 15 minutes, increase data smoothing
+        # radius so that larger advection displacements can be resolved
+        grid_length_km = calculate_grid_spacing(cube1, "km")
+        data_smoothing_radius = self._get_smoothing_radius(
+            time_diff_seconds, grid_length_km
+        )
+
+        # fail if self.boxsize is less than data smoothing radius
+        self.boxsize = boxsize
+        if self.boxsize < data_smoothing_radius:
             msg = (
-                "Input data are of non-precipitation type {}.  Plugin "
-                "parameters have not been tested and may not be appropriate"
-                " for this variable."
+                "Box size {} too small (should not be less than data "
+                "smoothing radius {})"
             )
-            warnings.warn(msg.format(cube1.name()))
-
-        # check cubes have exactly two spatial dimension coordinates and a
-        # scalar time coordinate
-        check_input_coords(cube1, require_time=True)
-        check_input_coords(cube2, require_time=True)
-
-        # check cube dimensions match
-        if cube1.coord(axis="x") != cube2.coord(axis="x") or cube1.coord(
-            axis="y"
-        ) != cube2.coord(axis="y"):
-            raise InvalidCubeError("Input cubes on unmatched grids")
-
-        # check grids are equal area
-        check_if_grid_is_equal_area(cube1)
-        check_if_grid_is_equal_area(cube2)
+            raise ValueError(msg.format(self.boxsize, data_smoothing_radius))
 
         # convert units to mm/hr as these avoid the need to manipulate tiny
         # decimals
+        cube1 = cube1.copy()
+        cube2 = cube2.copy()
+
         try:
-            cube1 = cube1.copy()
-            cube2 = cube2.copy()
             cube1.convert_units("mm/hr")
             cube2.convert_units("mm/hr")
         except ValueError as err:
@@ -774,44 +855,6 @@ class OpticalFlow(BasePlugin):
                 "which are the required units for use with optical flow."
             )
             raise ValueError(msg) from err
-
-        # check time difference is positive
-        time1 = (cube1.coord("time").units).num2date(cube1.coord("time").points[0])
-        time2 = (cube2.coord("time").units).num2date(cube2.coord("time").points[0])
-        cube_time_diff = time2 - time1
-        if cube_time_diff.total_seconds() <= 0:
-            msg = "Expected positive time difference cube2 - cube1: got {} s"
-            raise InvalidCubeError(msg.format(cube_time_diff.total_seconds()))
-
-        # if time difference is greater 15 minutes, increase data smoothing
-        # radius so that larger advection displacements can be resolved
-        if cube_time_diff.total_seconds() > 900:
-            data_smoothing_radius_km = self.data_smoothing_radius_km * (
-                cube_time_diff.total_seconds() / 900.0
-            )
-        else:
-            data_smoothing_radius_km = self.data_smoothing_radius_km
-
-        # calculate smoothing radius in grid square units
-        new_coord = cube1.coord(axis="x").copy()
-        new_coord.convert_units("km")
-        grid_length_km = np.float32(np.diff((new_coord).points)[0])
-        data_smoothing_radius = int(data_smoothing_radius_km / grid_length_km)
-
-        # Fail verbosely if data smoothing radius is too small and will
-        # trigger silent failures downstream
-        if data_smoothing_radius < 3:
-            msg = "Input data smoothing radius {} too small (minimum 3 " "grid squares)"
-            raise ValueError(msg.format(data_smoothing_radius))
-
-        # Fail if self.boxsize is less than data smoothing radius
-        self.boxsize = boxsize
-        if self.boxsize < data_smoothing_radius:
-            msg = (
-                "Box size {} too small (should not be less than data "
-                "smoothing radius {})"
-            )
-            raise ValueError(msg.format(self.boxsize, data_smoothing_radius))
 
         # extract 2-dimensional data arrays
         data1 = next(cube1.slices([cube1.coord(axis="y"), cube1.coord(axis="x")])).data
@@ -844,7 +887,7 @@ class OpticalFlow(BasePlugin):
             # convert displacements to velocities in metres per second
             for vel in [ucomp, vcomp]:
                 vel *= np.float32(1000.0 * grid_length_km)
-                vel /= cube_time_diff.total_seconds()
+                vel /= time_diff_seconds
 
         # create velocity output cubes based on metadata from later input cube
         x_coord = cube2.coord(axis="x")
