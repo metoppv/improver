@@ -890,15 +890,15 @@ class OpticalFlow(BasePlugin):
                 vel /= time_diff_seconds
 
         # create velocity output cubes based on metadata from later input cube
-        x_coord = cube2.coord(axis="x")
-        y_coord = cube2.coord(axis="y")
-        t_coord = cube2.coord("time")
         ucube = iris.cube.Cube(
             ucomp,
             long_name="precipitation_advection_x_velocity",
             units="m s-1",
-            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
-            aux_coords_and_dims=[(t_coord, None)],
+            dim_coords_and_dims=[
+                (cube2.coord(axis="y"), 0),
+                (cube2.coord(axis="x"), 1),
+            ],
+            aux_coords_and_dims=[(cube2.coord("time"), None)],
         )
         vcube = ucube.copy(vcomp)
         vcube.rename("precipitation_advection_y_velocity")
