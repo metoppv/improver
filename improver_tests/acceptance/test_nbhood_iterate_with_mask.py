@@ -80,7 +80,6 @@ def test_collapse_bands(tmp_path):
         "topographic_zone",
         "--radii",
         "10000",
-        "--collapse-dimension",
         "--output",
         output_path,
     ]
