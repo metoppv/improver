@@ -125,10 +125,14 @@ def test_ecc_bounds_warning(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "multiple_percentiles_wind_cube_out_of_bounds.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path,
-            "--realizations-count", "5",
-            "--ignore-ecc-bounds",
-            "--output", output_path]
+    args = [
+        input_path,
+        "--realizations-count",
+        "5",
+        "--ignore-ecc-bounds",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
