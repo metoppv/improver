@@ -41,6 +41,7 @@ def process(
     *,
     realizations_count: int = None,
     random_seed: int = None,
+    ignore_ecc_bounds=False,
 ):
     """Converts an incoming cube into one containing realizations.
 
@@ -60,6 +61,10 @@ def process(
             This value is for testing purposes only, to ensure reproduceable outputs.
             It should not be used in real time operations as it may introduce a bias
             into the reordered forecasts.
+        ignore_ecc_bounds (bool):
+            If True where percentiles (calculated as an intermediate output
+            before realization) exceed the ECC bounds range, raises a
+            warning rather than an exception.
 
     Returns:
         iris.cube.Cube:
@@ -88,11 +93,13 @@ def process(
             raise ValueError(msg)
 
     if cube.coords("percentile"):
-        percentiles = ResamplePercentiles()(cube, no_of_percentiles=realizations_count)
-    else:
-        percentiles = ConvertProbabilitiesToPercentiles()(
+        percentiles = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
             cube, no_of_percentiles=realizations_count
         )
+    else:
+        percentiles = ConvertProbabilitiesToPercentiles(
+            ecc_bounds_warning=ignore_ecc_bounds
+        )(cube, no_of_percentiles=realizations_count)
 
     if raw_cube:
         result = EnsembleReordering()(percentiles, raw_cube, random_seed=random_seed)
