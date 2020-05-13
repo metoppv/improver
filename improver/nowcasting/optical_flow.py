@@ -251,11 +251,6 @@ class OpticalFlow(BasePlugin):
         ).total_seconds()
         time_diff_seconds = int(time_diff_seconds)
 
-        error_msg = "Expected positive time difference cube2 - cube1: got {} s"
-
-        if time_diff_seconds < 0:
-            raise InvalidCubeError(error_msg.format(time_diff_seconds))
-
         if time_diff_seconds == 0:
             # second cube should be an observation; first cube should have a
             # non-zero forecast period which describes the advection time
@@ -272,8 +267,9 @@ class OpticalFlow(BasePlugin):
             fp_coord.convert_units("seconds")
             (time_diff_seconds,) = fp_coord.points
 
-            if time_diff_seconds == 0:
-                raise InvalidCubeError(error_msg.format(time_diff_seconds))
+        if time_diff_seconds <= 0:
+            error_msg = "Expected positive time difference cube2 - cube1: got {} s"
+            raise InvalidCubeError(error_msg.format(time_diff_seconds))
 
         return time_diff_seconds
 
