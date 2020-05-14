@@ -178,14 +178,21 @@ class ResamplePercentiles(BasePlugin):
         forecast_at_percentiles_with_endpoints = concatenate_2d_array_with_2d_array_endpoints(
             forecast_at_percentiles, lower_bound, upper_bound
         )
+
         if np.any(np.diff(forecast_at_percentiles_with_endpoints) < 0):
+            out_of_bounds_vals = forecast_at_percentiles_with_endpoints[
+                np.where(np.diff(forecast_at_percentiles_with_endpoints) < 0)
+            ]
             msg = (
-                "The end points added to the forecast at percentile "
-                "values representing each percentile must result in "
-                "an ascending order. "
-                "In this case, the forecast at percentile values {} "
-                "is outside the allowable range given by the "
-                "bounds {}".format(forecast_at_percentiles, bounds_pairing)
+                "Forecast values exist that fall outside the expected extrema "
+                "values that are defined as bounds in "
+                "ensemble_copula_coupling/constants.py. "
+                "Applying the extrema values as end points to the distribution "
+                "would result in non-monotonically increasing values. "
+                "The defined extremes are {}, whilst the following forecast "
+                "values exist outside this range: {}.".format(
+                    bounds_pairing, out_of_bounds_vals
+                )
             )
 
             if self.ecc_bounds_warning:

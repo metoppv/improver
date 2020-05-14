@@ -133,7 +133,8 @@ def test_ecc_bounds_warning(tmp_path):
         "--output",
         output_path,
     ]
-    run_cli(args)
+    with pytest.warns(UserWarning, match="Forecast values exist that fall outside"):
+        run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
