@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2019 Met Office.
@@ -28,60 +29,23 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the nbhood-iterate-with-mask CLI
-"""
-
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+"""Script to fill in small holes in the radar composite"""
+from improver import cli
 
 
-@pytest.mark.slow
-def test_basic(tmp_path):
-    """Test basic iterate with mask"""
-    kgo_dir = acc.kgo_root() / "nbhood-iterate-with-mask/basic"
-    kgo_path = kgo_dir / "kgo_basic.nc"
-    input_path = kgo_dir / "input.nc"
-    mask_path = kgo_dir / "mask.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        mask_path,
-        "--coord-for-masking",
-        "topographic_zone",
-        "--radii",
-        "20000",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube):
+    """ Fill in small "no data" holes in the radar composite
 
+    Args:
+        cube (iris.cube.Cube):
+            Masked radar composite
 
-@pytest.mark.slow
-def test_collapse_bands(tmp_path):
-    """Test with collapsing orographic bands"""
-    kgo_dir = acc.kgo_root() / "nbhood-iterate-with-mask/basic_collapse_bands"
-    kgo_path = kgo_dir / "kgo_collapsed.nc"
-    input_path = kgo_dir / "thresholded_input.nc"
-    mask_path = kgo_dir / "orographic_bands_mask.nc"
-    weights_path = kgo_dir / "orographic_bands_weights.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        mask_path,
-        weights_path,
-        "--coord-for-masking",
-        "topographic_zone",
-        "--radii",
-        "10000",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    Returns:
+        iris.cube.Cube
+    """
+    from improver.nowcasting.utilities import FillRadarHoles
+
+    result = FillRadarHoles()(cube)
+    return result

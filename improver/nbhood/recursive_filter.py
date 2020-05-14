@@ -147,6 +147,53 @@ class RecursiveFilter(PostProcessingPlugin):
         )
 
     @staticmethod
+    def set_up_cubes(cube, mask_cube=None):
+        """
+        Set up cubes ready for recursive filtering.
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube that will be checked for whether the data is masked
+                or nan. The cube should contain only x and y dimensions,
+                so will generally be a slice of a cube.
+            mask_cube (iris.cube.Cube):
+                Input Cube containing the array to be used as a mask.
+
+        Returns:
+            (tuple): tuple containing:
+                **cube** (iris.cube.Cube):
+                    Cube with masked or NaN values set to 0.0
+                **mask** (iris.cube.Cube):
+                    Cube with masked or NaN values set to 0.0
+                **nan_array** (numpy.ndarray):
+                    numpy array to be used to set the values within
+                    the data of the output cube to be NaN.
+
+        """
+        # Set up mask_cube
+        if not mask_cube:
+            mask = cube.copy(np.ones_like(cube.data, dtype=np.bool))
+        else:
+            mask = mask_cube
+        # If there is a mask, fill the data array of the mask_cube with a
+        # logical array, logically inverted compared to the integer version of
+        # the mask within the original data array.
+
+        if isinstance(cube.data, np.ma.MaskedArray):
+            mask.data[cube.data.mask] = 0
+            cube.data = cube.data.data
+        mask.rename("mask_data")
+        cube = iris.util.squeeze(cube)
+        mask = iris.util.squeeze(mask)
+        # Set NaN values to 0 in both the cube data and mask data.
+        nan_array = np.isnan(cube.data)
+        mask.data[nan_array] = 0
+        cube.data[nan_array] = 0.0
+        #  Set cube.data to 0.0 where mask_cube is 0.0
+        cube.data[mask.data == 0] = 0.0
+        return cube, mask, nan_array
+
+    @staticmethod
     def _recurse_forward(grid, smoothing_coefficients, axis):
         """
         Method to run the recursive filter in the forward direction.
@@ -436,13 +483,7 @@ class RecursiveFilter(PostProcessingPlugin):
             # Setup cube and mask for processing.
             # This should set up a mask full of 1.0 if None is provided
             # and set the data 0.0 where mask is 0.0 or the data is NaN
-            (
-                output,
-                mask,
-                nan_array,
-            ) = SquareNeighbourhood().set_up_cubes_to_be_neighbourhooded(
-                output, mask_cube
-            )
+            output, mask, nan_array = self.set_up_cubes(output, mask_cube)
             mask = mask.data.squeeze()
 
             padded_cube = pad_cube_with_halo(
@@ -459,9 +500,9 @@ class RecursiveFilter(PostProcessingPlugin):
                 new_cube, 2 * self.edge_width, 2 * self.edge_width
             )
             if self.re_mask:
-                new_cube.data[nan_array.astype(bool)] = np.nan
+                new_cube.data[nan_array] = np.nan
                 new_cube.data = np.ma.masked_array(
-                    new_cube.data, mask=np.logical_not(mask)
+                    new_cube.data, mask=np.logical_not(mask), copy=False
                 )
 
             recursed_cube.append(new_cube)

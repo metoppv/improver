@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Tests for the nbhood-iterate-with-mask CLI
+Tests for the fill-radar-holes CLI
 """
 
 import pytest
@@ -41,47 +41,12 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.slow
 def test_basic(tmp_path):
-    """Test basic iterate with mask"""
-    kgo_dir = acc.kgo_root() / "nbhood-iterate-with-mask/basic"
-    kgo_path = kgo_dir / "kgo_basic.nc"
-    input_path = kgo_dir / "input.nc"
-    mask_path = kgo_dir / "mask.nc"
+    """Test interpolating radar holes"""
+    kgo_dir = acc.kgo_root() / "fill-radar-holes/basic"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "201811271330_remasked_rainrate_composite.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        mask_path,
-        "--coord-for-masking",
-        "topographic_zone",
-        "--radii",
-        "20000",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.slow
-def test_collapse_bands(tmp_path):
-    """Test with collapsing orographic bands"""
-    kgo_dir = acc.kgo_root() / "nbhood-iterate-with-mask/basic_collapse_bands"
-    kgo_path = kgo_dir / "kgo_collapsed.nc"
-    input_path = kgo_dir / "thresholded_input.nc"
-    mask_path = kgo_dir / "orographic_bands_mask.nc"
-    weights_path = kgo_dir / "orographic_bands_weights.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        mask_path,
-        weights_path,
-        "--coord-for-masking",
-        "topographic_zone",
-        "--radii",
-        "10000",
-        "--output",
-        output_path,
-    ]
+    args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
