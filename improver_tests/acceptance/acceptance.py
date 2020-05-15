@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Setup and checking of known good output for CLI tests"""
 
+import functools
+import hashlib
 import importlib
 import os
 import pathlib
@@ -45,6 +47,8 @@ from improver.utilities.compare import compare_netcdfs
 RECREATE_DIR_ENVVAR = "RECREATE_KGO"
 ACC_TEST_DIR_ENVVAR = "IMPROVER_ACC_TEST_DIR"
 ACC_TEST_DIR_MISSING = pathlib.Path("/dev/null")
+DEFAULT_CHECKSUM = "sha256"
+DEFAULT_CHECKSUM_FILE = pathlib.Path(__file__).parent / "SHA256SUMS"
 
 
 def run_cli(cli_name, verbose=True):
@@ -52,6 +56,7 @@ def run_cli(cli_name, verbose=True):
     Prepare a function for running clize CLIs.
     Use of the returned function avoids writing "improver" and the CLI name in
     each test function.
+    Checksums of input files are verified before the clize CLI is run.
 
     Args:
         cli_name (str): name of the CLI
@@ -62,6 +67,7 @@ def run_cli(cli_name, verbose=True):
     """
 
     def run_function(args):
+        verify_checksums(args)
         cli.main("improver", cli_name, *args, verbose=verbose)
 
     return run_function
@@ -82,6 +88,110 @@ def cli_name_with_dashes(dunder_file):
         module_name = module_name[5:]
     module_dashes = module_name.replace("_", "-")
     return module_dashes
+
+
+@functools.lru_cache()
+def acceptance_checksums(checksum_path=None):
+    """
+    Retrieve a list of checksums from file in text list format, as produced by
+    the sha256sum command line tool.
+
+    Args:
+        checksum_path (Optional[pathlib.Path]): Path to checksum file. File
+            should be plain text in the format produced by the sha256sum
+            command line tool. Paths listed in the file should be relative to
+            the KGO root directory found by kgo_root().
+
+    Returns:
+        Dict[pathlib.Path, str]: dictionary with keys being absolute paths and
+            values being hexadecimal checksums
+    """
+    if checksum_path is None:
+        checksum_path = DEFAULT_CHECKSUM_FILE
+    if not kgo_exists():
+        raise IOError("KGO path must be defined")
+    kgo_root_dir = kgo_root()
+    with open(checksum_path, mode="r") as checksum_file:
+        checksum_lines = checksum_file.readlines()
+    checksums = {}
+    for line in checksum_lines:
+        parts = line.strip().split("  ", maxsplit=1)
+        csum = parts[0]
+        path = (kgo_root_dir / parts[1]).resolve()
+        checksums[path] = csum
+    return checksums
+
+
+def verify_checksum(kgo_path, checksums=None, checksum_path=None):
+    """
+    Verify an individual KGO file's checksum.
+
+    Args:
+        kgo_path (pathlib.Path): Path to file in KGO directory
+        checksums (Optional[Dict[pathlib.Path, str]]): Lookup dictionary
+            mapping from paths to hexadecimal checksums. If provided, used in
+            preference to checksum_path.
+        checksum_path (pathlib.Path): Path to checksum file. File should be
+            plain text in the format produced by the sha256sum command line
+            tool.
+
+    Raises:
+        KeyError: file being verified is not found in checksum dict/file
+        ValueError: checksum does not match value in checksum dict/file
+    """
+    if checksums is None:
+        checksums = acceptance_checksums(checksum_path)
+    hasher = hashlib.sha256()
+    with open(kgo_path, mode="rb") as kgo_file:
+        while True:
+            # read 1 megabyte binary chunks from file and feed them to hasher
+            kgo_chunk = kgo_file.read(2 ** 20)
+            if not kgo_chunk:
+                break
+            hasher.update(kgo_chunk)
+    kgo_checksum = hasher.hexdigest()
+    try:
+        expected = checksums[kgo_path.resolve()]
+    except KeyError:
+        msg = f"Checksum for {kgo_path} is missing"
+        raise KeyError(msg)
+    if kgo_checksum != expected:
+        msg = f"Checksum for {kgo_path} is {kgo_checksum}, expected {expected}"
+        raise ValueError(msg)
+    return
+
+
+def verify_checksums(cli_arglist):
+    """
+    Verify input file checksums based on input arguments to a CLI.
+    Intended for use inside acceptance tests, so raises exceptions to report
+    various issues that should result in a test failure.
+
+    Args:
+        cli_arglist (List[Union[str,pathlib.Path]]): list of arguments bein
+            passed to a CLI such as via improver.cli.main function.
+    """
+    # copy the arglist as it will be edited to remove output args
+    arglist = cli_arglist.copy()
+    # if there is an --output argument, remove the path in the following argument
+    try:
+        output_idx = cli_arglist.index("--output")
+        arglist.pop(output_idx + 1)
+    except ValueError:
+        pass
+    # check for non-path-type arguments that refer to KGOs
+    kgo_dir = str(kgo_root())
+    path_strs = [arg for arg in arglist if isinstance(arg, str) and kgo_dir in arg]
+    if len(path_strs) > 0:
+        raise ValueError(f"arg strings referring to KGOs {path_strs}")
+    # verify checksums of remaining path-type arguments
+    path_args = [arg for arg in arglist if isinstance(arg, pathlib.Path)]
+    for arg in path_args:
+        # expand any globs in the argument and verify each of them
+        arg_globs = arg.parent.glob(arg.name)
+        for arg_glob in arg_globs:
+            verify_checksum(arg_glob)
+    return
 
 
 def kgo_recreate():
@@ -205,6 +315,7 @@ def compare(
     if not isinstance(rtol, (int, float)):
         raise ValueError("rtol")
 
+    verify_checksum(kgo_path)
     difference_found = False
     message = ""
 
