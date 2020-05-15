@@ -95,5 +95,6 @@ def test_eccbounds(tmp_path):
         "25,50,75",
         "--ignore-ecc-bounds",
     ]
-    run_cli(args)
+    with pytest.warns(UserWarning, match="The calculated threshold values"):
+        run_cli(args)
     acc.compare(output_path, kgo_path)
