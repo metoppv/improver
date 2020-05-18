@@ -473,157 +473,157 @@ class Test_multiply_weights(IrisTest):
             )
 
 
-class Test_normalised_masked_weights(IrisTest):
-    """Test normalised_masked_weights method"""
-
-    def setUp(self):
-        """Set up a cube with 2 thresholds to test normalisation. We are
-        testing normalising along the leading dimension in this cube."""
-        thresholds = [10, 20]
-        data = np.ones((2, 2, 3), dtype=np.float32)
-        cycle1 = set_up_probability_cube(
-            data,
-            thresholds,
-            spatial_grid="equalarea",
-            time=datetime(2017, 11, 10, 4, 0),
-            frt=datetime(2017, 11, 10, 0, 0),
-        )
-        cycle2 = set_up_probability_cube(
-            data,
-            thresholds,
-            spatial_grid="equalarea",
-            time=datetime(2017, 11, 10, 4, 0),
-            frt=datetime(2017, 11, 10, 1, 0),
-        )
-        cycle3 = set_up_probability_cube(
-            data,
-            thresholds,
-            spatial_grid="equalarea",
-            time=datetime(2017, 11, 10, 4, 0),
-            frt=datetime(2017, 11, 10, 2, 0),
-        )
-        self.spatial_weights_cube = CubeList([cycle1, cycle2, cycle3]).merge_cube()
-        self.spatial_weights_cube = squeeze(self.spatial_weights_cube)
-        self.spatial_weights_cube.rename("weights")
-        # This input array has 3 forecast reference times and 2 thresholds.
-        # The two thresholds have the same weights.
-        self.spatial_weights_cube.data = np.array(
-            [
-                [[[0.2, 0, 0.2], [0.2, 0, 0.2]], [[0.2, 0, 0.2], [0.2, 0, 0.2]]],
-                [[[0, 0, 0.5], [0, 0, 0.5]], [[0, 0, 0.5], [0, 0, 0.5]]],
-                [
-                    [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3]],
-                    [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3]],
-                ],
-            ],
-            dtype=np.float32,
-        )
-        self.plugin = SpatiallyVaryingWeightsFromMask()
-
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_basic(self):
-        """Test a basic example normalising along forecast_reference_time"""
-        expected_result = np.array(
-            [
-                [[[0.4, 0, 0.2], [0.4, 0, 0.2]], [[0.4, 0, 0.2], [0.4, 0, 0.2]]],
-                [[[0, 0, 0.5], [0, 0, 0.5]], [[0, 0, 0.5], [0, 0, 0.5]]],
-                [
-                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
-                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
-                ],
-            ],
-            dtype=np.float32,
-        )
-        result = self.plugin.normalised_masked_weights(
-            self.spatial_weights_cube, "forecast_reference_time"
-        )
-        self.assertArrayAlmostEqual(result.data, expected_result)
-        self.assertEqual(result.metadata, self.spatial_weights_cube.metadata)
-
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_less_input_dims(self):
-        """Test a smaller input cube"""
-        expected_result = np.array(
-            [
-                [[0.4, 0, 0.2], [0.4, 0, 0.2]],
-                [[0, 0, 0.5], [0, 0, 0.5]],
-                [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
-            ],
-            dtype=np.float32,
-        )
-        result = self.plugin.normalised_masked_weights(
-            self.spatial_weights_cube[:, 0, :, :], "forecast_reference_time"
-        )
-        self.assertArrayAlmostEqual(result.data, expected_result)
-        self.assertEqual(
-            result[:, 0, :, :].metadata, self.spatial_weights_cube.metadata
-        )
-
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_transpose_cube(self):
-        """Test the function still works when we transpose the input cube.
-           Same as test_basic except for transpose."""
-        expected_result = np.array(
-            [
-                [[[0.4, 0, 0.2], [0.4, 0, 0.2]], [[0.4, 0, 0.2], [0.4, 0, 0.2]]],
-                [[[0, 0, 0.5], [0, 0, 0.5]], [[0, 0, 0.5], [0, 0, 0.5]]],
-                [
-                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
-                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
-                ],
-            ],
-            dtype=np.float32,
-        )
-        # The function always puts the blend_coord as a leading dimension.
-        # The process method will ensure the order of the output dimensions
-        # matches those in the input.
-        expected_result = np.transpose(expected_result, axes=[0, 3, 2, 1])
-        self.spatial_weights_cube.transpose(new_order=[3, 2, 0, 1])
-        result = self.plugin.normalised_masked_weights(
-            self.spatial_weights_cube, "forecast_reference_time"
-        )
-        self.assertArrayAlmostEqual(result.data, expected_result)
-        self.assertEqual(result.metadata, self.spatial_weights_cube.metadata)
-
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_already_normalised(self):
-        """Test nothing happens if the input data is already normalised."""
-        self.spatial_weights_cube.data = np.array(
-            [
-                [[[0.4, 0, 0.2], [0.4, 0, 0.2]], [[0.4, 0, 0.2], [0.4, 0, 0.2]]],
-                [[[0, 0, 0.5], [0, 0, 0.5]], [[0, 0, 0.5], [0, 0, 0.5]]],
-                [
-                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
-                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
-                ],
-            ],
-            dtype=np.float32,
-        )
-        result = self.plugin.normalised_masked_weights(
-            self.spatial_weights_cube, "forecast_reference_time"
-        )
-        self.assertArrayAlmostEqual(result.data, self.spatial_weights_cube.data)
-        self.assertEqual(result.metadata, self.spatial_weights_cube.metadata)
-
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_weights_sum_to_zero(self):
-        """Test all x-y slices have zero weight in the same index.
-           This case corresponds to the case when all the input fields are
-           all masked in the same place."""
-        self.spatial_weights_cube.data[:, :, :, 0] = 0
-        expected_result = np.array(
-            [
-                [[[0, 0, 0.2], [0, 0, 0.2]], [[0, 0, 0.2], [0, 0, 0.2]]],
-                [[[0, 0, 0.5], [0, 0, 0.5]], [[0, 0, 0.5], [0, 0, 0.5]]],
-                [[[0, 1.0, 0.3], [0, 1.0, 0.3]], [[0, 1.0, 0.3], [0, 1.0, 0.3]]],
-            ],
-            dtype=np.float32,
-        )
-        result = self.plugin.normalised_masked_weights(
-            self.spatial_weights_cube, "forecast_reference_time"
-        )
-        self.assertArrayAlmostEqual(result.data, expected_result)
-        self.assertEqual(result.metadata, self.spatial_weights_cube.metadata)
+#class Test_normalised_masked_weights(IrisTest):
+#    """Test normalised_masked_weights method"""
+#
+#    def setUp(self):
+#        """Set up a cube with 2 thresholds to test normalisation. We are
+#        testing normalising along the leading dimension in this cube."""
+#        thresholds = [10, 20]
+#        data = np.ones((2, 2, 3), dtype=np.float32)
+#        cycle1 = set_up_probability_cube(
+#            data,
+#            thresholds,
+#            spatial_grid="equalarea",
+#            time=datetime(2017, 11, 10, 4, 0),
+#            frt=datetime(2017, 11, 10, 0, 0),
+#        )
+#        cycle2 = set_up_probability_cube(
+#            data,
+#            thresholds,
+#            spatial_grid="equalarea",
+#            time=datetime(2017, 11, 10, 4, 0),
+#            frt=datetime(2017, 11, 10, 1, 0),
+#        )
+#        cycle3 = set_up_probability_cube(
+#            data,
+#            thresholds,
+#            spatial_grid="equalarea",
+#            time=datetime(2017, 11, 10, 4, 0),
+#            frt=datetime(2017, 11, 10, 2, 0),
+#        )
+#        self.spatial_weights_cube = CubeList([cycle1, cycle2, cycle3]).merge_cube()
+#        self.spatial_weights_cube = squeeze(self.spatial_weights_cube)
+#        self.spatial_weights_cube.rename("weights")
+#        # This input array has 3 forecast reference times and 2 thresholds.
+#        # The two thresholds have the same weights.
+#        self.spatial_weights_cube.data = np.array(
+#            [
+#                [[[0.2, 0, 0.2], [0.2, 0, 0.2]], [[0.2, 0, 0.2], [0.2, 0, 0.2]]],
+#                [[[0, 0, 0.5], [0, 0, 0.5]], [[0, 0, 0.5], [0, 0, 0.5]]],
+#                [
+#                    [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3]],
+#                    [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3]],
+#                ],
+#            ],
+#            dtype=np.float32,
+#        )
+#        self.plugin = SpatiallyVaryingWeightsFromMask()
+#
+#    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+#    def test_basic(self):
+#        """Test a basic example normalising along forecast_reference_time"""
+#        expected_result = np.array(
+#            [
+#                [[[0.4, 0, 0.2], [0.4, 0, 0.2]], [[0.4, 0, 0.2], [0.4, 0, 0.2]]],
+#                [[[0, 0, 0.5], [0, 0, 0.5]], [[0, 0, 0.5], [0, 0, 0.5]]],
+#                [
+#                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
+#                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
+#                ],
+#            ],
+#            dtype=np.float32,
+#        )
+#        result = self.plugin.normalised_masked_weights(
+#            self.spatial_weights_cube, "forecast_reference_time"
+#        )
+#        self.assertArrayAlmostEqual(result.data, expected_result)
+#        self.assertEqual(result.metadata, self.spatial_weights_cube.metadata)
+#
+#    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+#    def test_less_input_dims(self):
+#        """Test a smaller input cube"""
+#        expected_result = np.array(
+#            [
+#                [[0.4, 0, 0.2], [0.4, 0, 0.2]],
+#                [[0, 0, 0.5], [0, 0, 0.5]],
+#                [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
+#            ],
+#            dtype=np.float32,
+#        )
+#        result = self.plugin.normalised_masked_weights(
+#            self.spatial_weights_cube[:, 0, :, :], "forecast_reference_time"
+#        )
+#        self.assertArrayAlmostEqual(result.data, expected_result)
+#        self.assertEqual(
+#            result[:, 0, :, :].metadata, self.spatial_weights_cube.metadata
+#        )
+#
+#    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+#    def test_transpose_cube(self):
+#        """Test the function still works when we transpose the input cube.
+#           Same as test_basic except for transpose."""
+#        expected_result = np.array(
+#            [
+#                [[[0.4, 0, 0.2], [0.4, 0, 0.2]], [[0.4, 0, 0.2], [0.4, 0, 0.2]]],
+#                [[[0, 0, 0.5], [0, 0, 0.5]], [[0, 0, 0.5], [0, 0, 0.5]]],
+#                [
+#                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
+#                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
+#                ],
+#            ],
+#            dtype=np.float32,
+#        )
+#        # The function always puts the blend_coord as a leading dimension.
+#        # The process method will ensure the order of the output dimensions
+#        # matches those in the input.
+#        expected_result = np.transpose(expected_result, axes=[0, 3, 2, 1])
+#        self.spatial_weights_cube.transpose(new_order=[3, 2, 0, 1])
+#        result = self.plugin.normalised_masked_weights(
+#            self.spatial_weights_cube, "forecast_reference_time"
+#        )
+#        self.assertArrayAlmostEqual(result.data, expected_result)
+#        self.assertEqual(result.metadata, self.spatial_weights_cube.metadata)
+#
+#    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+#    def test_already_normalised(self):
+#        """Test nothing happens if the input data is already normalised."""
+#        self.spatial_weights_cube.data = np.array(
+#            [
+#                [[[0.4, 0, 0.2], [0.4, 0, 0.2]], [[0.4, 0, 0.2], [0.4, 0, 0.2]]],
+#                [[[0, 0, 0.5], [0, 0, 0.5]], [[0, 0, 0.5], [0, 0, 0.5]]],
+#                [
+#                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
+#                    [[0.6, 1.0, 0.3], [0.6, 1.0, 0.3]],
+#                ],
+#            ],
+#            dtype=np.float32,
+#        )
+#        result = self.plugin.normalised_masked_weights(
+#            self.spatial_weights_cube, "forecast_reference_time"
+#        )
+#        self.assertArrayAlmostEqual(result.data, self.spatial_weights_cube.data)
+#        self.assertEqual(result.metadata, self.spatial_weights_cube.metadata)
+#
+#    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+#    def test_weights_sum_to_zero(self):
+#        """Test all x-y slices have zero weight in the same index.
+#           This case corresponds to the case when all the input fields are
+#           all masked in the same place."""
+#        self.spatial_weights_cube.data[:, :, :, 0] = 0
+#        expected_result = np.array(
+#            [
+#                [[[0, 0, 0.2], [0, 0, 0.2]], [[0, 0, 0.2], [0, 0, 0.2]]],
+#                [[[0, 0, 0.5], [0, 0, 0.5]], [[0, 0, 0.5], [0, 0, 0.5]]],
+#                [[[0, 1.0, 0.3], [0, 1.0, 0.3]], [[0, 1.0, 0.3], [0, 1.0, 0.3]]],
+#            ],
+#            dtype=np.float32,
+#        )
+#        result = self.plugin.normalised_masked_weights(
+#            self.spatial_weights_cube, "forecast_reference_time"
+#        )
+#        self.assertArrayAlmostEqual(result.data, expected_result)
+#        self.assertEqual(result.metadata, self.spatial_weights_cube.metadata)
 
 
 class Test_create_template_slice(IrisTest):
@@ -840,9 +840,9 @@ class Test_process(IrisTest):
         self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array(
             [
-                [[0.5, 0.0, 0.33333333], [0.5, 0.33333333, 0.33333333]],
-                [[0.0, 0.0, 0.33333333], [0.0, 0.33333333, 0.33333333]],
-                [[0.5, 1.0, 0.33333333], [0.5, 0.33333333, 0.33333333]],
+                [[1.0, 0.0, 1.0], [1.0, 1.0, 1.0]],
+                [[0.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
+                [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]],
             ],
             dtype=np.float32,
         )
@@ -863,9 +863,9 @@ class Test_process(IrisTest):
         self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array(
             [
-                [[0.5, 0.0, 0.33333333], [0.5, 0.33333333, 0.33333333]],
-                [[0.0, 0.0, 0.33333333], [0.0, 0.33333333, 0.33333333]],
-                [[0.5, 1.0, 0.33333333], [0.5, 0.33333333, 0.33333333]],
+                [[1.0, 0.0, 1.0], [1.0, 1.0, 1.0]],
+                [[0.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
+                [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]],
             ],
             dtype=np.float32,
         )
@@ -885,9 +885,9 @@ class Test_process(IrisTest):
         plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=1)
         expected_result = np.array(
             [
-                [[0.4, 0.0, 0.2], [0.4, 0.2, 0.2]],
+                [[0.2, 0.0, 0.2], [0.2, 0.2, 0.2]],
                 [[0.0, 0.0, 0.5], [0.0, 0.5, 0.5]],
-                [[0.6, 1.0, 0.3], [0.6, 0.3, 0.3]],
+                [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3]],
             ],
             dtype=np.float32,
         )
@@ -939,6 +939,8 @@ class Test_process(IrisTest):
             self.one_dimensional_weights_cube,
             "forecast_reference_time",
         )
+        print(self.one_dimensional_weights_cube.data)
+        print(result.data)
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
