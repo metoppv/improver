@@ -41,6 +41,7 @@ def process(
     *,
     coordinates: cli.comma_separated_list = None,
     percentiles: cli.comma_separated_list = None,
+    ignore_ecc_bounds=False,
 ):
     r"""Collapses cube coordinates and calculate percentiled data.
 
@@ -67,6 +68,9 @@ def process(
             coordinate.
         percentiles (list):
             Optional definition of percentiles at which to calculate data.
+        ignore_ecc_bounds (bool):
+            If True, where calculated percentiles are outside the ECC bounds
+            range, raises a warning rather than an exception.
 
     Returns:
         iris.cube.Cube:
@@ -96,7 +100,9 @@ def process(
         percentiles = [float(p) for p in percentiles]
 
     if is_probability(cube):
-        result = ConvertProbabilitiesToPercentiles()(cube, percentiles=percentiles)
+        result = ConvertProbabilitiesToPercentiles(
+            ecc_bounds_warning=ignore_ecc_bounds
+        )(cube, percentiles=percentiles)
         if coordinates:
             warnings.warn(
                 "Converting probabilities to percentiles. The "

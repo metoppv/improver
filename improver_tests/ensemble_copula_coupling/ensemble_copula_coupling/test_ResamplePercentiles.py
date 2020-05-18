@@ -133,7 +133,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         percentiles = np.array([5, 70, 95])
         bounds_pairing = (-40, 50)
         plugin = Plugin()
-        msg = "The end points added to the forecast at percentile"
+        msg = "Forecast values exist that fall outside the expected extrema"
         with self.assertRaisesRegex(ValueError, msg):
             plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
                 percentiles, forecast_at_percentiles, bounds_pairing
@@ -151,7 +151,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         percentiles = np.array([5, 70, 95])
         bounds_pairing = (-40, 50)
         plugin = Plugin(ecc_bounds_warning=True)
-        warning_msg = "The end points added to the forecast at percentile "
+        warning_msg = "Forecast values exist that fall outside the expected extrema"
         plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
             percentiles, forecast_at_percentiles, bounds_pairing
         )

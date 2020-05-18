@@ -76,3 +76,25 @@ def test_probconvert(tmp_path, count):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.slow
+def test_eccbounds(tmp_path):
+    """Test ECC bounds warning option"""
+    kgo_dir = acc.kgo_root() / "generate-percentiles/ecc_bounds_warning"
+    kgo_path = kgo_dir / "kgo.nc"
+    perc_input = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        perc_input,
+        "--output",
+        output_path,
+        "--coordinates",
+        "realization",
+        "--percentiles",
+        "25,50,75",
+        "--ignore-ecc-bounds",
+    ]
+    with pytest.warns(UserWarning, match="The calculated threshold values"):
+        run_cli(args)
+    acc.compare(output_path, kgo_path)
