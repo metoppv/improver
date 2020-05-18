@@ -366,6 +366,7 @@ def fast_linear_fit(
     gradient along specified axis (default is to fit all points).
     Uses vectorized operations, so it's much faster than using scipy lstsq
     in a loop. This function does not handle NaNs, but will work with masked arrays.
+
     Args:
         x_data (numpy.ndarray):
             x axis data.
@@ -382,12 +383,11 @@ def fast_linear_fit(
             If true only returns the gradient.
         with_nan (bool):
             If true, there are NaNs in your data (that you know about).
+
     Returns:
-        (tuple): tuple containing:
-            **gradient** (numpy.ndarray):
-                The gradient between x and y.
-            **y-intercept** (numpy.ndarray):
-                The calculated y-intercepts.
+        Tuple[numpy.ndarray, numpy.ndarray]:
+            tuple with first element being the gradient between x and y, and
+            the second element being the calculated y-intercepts.
     """
     # Check that the positions of nans match in x and y
     if with_nan and not (np.isnan(x_data) == np.isnan(y_data)).all():
