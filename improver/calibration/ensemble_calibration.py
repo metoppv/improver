@@ -410,7 +410,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
         mu = np.dot(all_data, alpha_beta)
-        sigma = np.sqrt(initial_guess[-2] ** 2 + initial_guess[-1] ** 2 * forecast_var)
+        sigma = np.sqrt(gamma ** 2 + delta ** 2 * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
         normal_pdf = norm.pdf(xz)
