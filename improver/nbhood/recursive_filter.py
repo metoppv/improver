@@ -239,6 +239,14 @@ class RecursiveFilter(PostProcessingPlugin):
                 grid[:, i] = (1.0 - smoothing_coefficients[:, i]) * grid[
                     :, i
                 ] + smoothing_coefficients[:, i] * grid[:, i - 1]
+            # if axis == 0:
+            #     grid[i, :] = (1.0 - smoothing_coefficients[i - 1, :]) * grid[
+            #         i, :
+            #     ] + smoothing_coefficients[i - 1, :] * grid[i - 1, :]
+            # if axis == 1:
+            #     grid[:, i] = (1.0 - smoothing_coefficients[:, i - 1]) * grid[
+            #         :, i
+            #     ] + smoothing_coefficients[:, i - 1] * grid[:, i - 1]
         return grid
 
     @staticmethod
@@ -407,6 +415,16 @@ class RecursiveFilter(PostProcessingPlugin):
         )
         return smoothing_coefficients_cube
 
+    # def _calc_paired_smoothing_coefficients(smoothing_coefficients, coord):
+    #     dim, = smoothing_coefficients.coord_dims(smoothing_coefficients_x.coord(axis=coord).name())
+    #     if dim == 0:
+    #         smoothing_coefficients = smoothing_coefficients[0:-1, :].copy(
+    #             data=0.5 * (smoothing_coefficients.data[1:, :] + smoothing_coefficients.data[0:-1, :]))
+    #     if dim == 1:
+    #         smoothing_coefficients = smoothing_coefficients[:, 0:-1].copy(
+    #             data=0.5 * (smoothing_coefficients.data[:, 1:] + smoothing_coefficients.data[:, 0:-1]))
+    #     return smoothing_coefficients
+
     def process(
         self,
         cube,
@@ -455,6 +473,8 @@ class RecursiveFilter(PostProcessingPlugin):
         Raises:
             ValueError: If any smoothing_coefficient cube value is over 0.5
         """
+        print("cube = ", cube)
+
         for smoothing_coefficient in (
             smoothing_coefficients_x,
             smoothing_coefficients_y,
@@ -468,7 +488,8 @@ class RecursiveFilter(PostProcessingPlugin):
                     "A large smoothing_coefficient value leads to poor "
                     "conservation of probabilities"
                 )
-
+        print("x = ", smoothing_coefficients_x)
+        print("y = ", smoothing_coefficients_y)
         cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
         smoothing_coefficients_x = self._set_smoothing_coefficients(
             cube_format, self.smoothing_coefficient_x, smoothing_coefficients_x
@@ -476,6 +497,13 @@ class RecursiveFilter(PostProcessingPlugin):
         smoothing_coefficients_y = self._set_smoothing_coefficients(
             cube_format, self.smoothing_coefficient_y, smoothing_coefficients_y
         )
+
+        # smoothing_coefficients_x = self._calc_paired_smoothing_coefficients(
+        #     smoothing_coefficients_x, 'x'
+        # )
+        # smoothing_coefficients_y = self._calc_paired_smoothing_coefficients(
+        #     smoothing_coefficients_y, 'y'
+        # )
 
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
