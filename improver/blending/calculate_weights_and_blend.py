@@ -242,30 +242,47 @@ class WeightAndBlend(BasePlugin):
             if spatial_weights:
                 weights = self._update_spatial_weights(cube, weights, fuzzy_length)
 
-            print(weights)
-            print(self.blend_coord)
-            print(cube)
             coords = {c.name() for c in cube.dim_coords} - {
                 self.blend_coord,
                 "projection_x_coordinate",
                 "projection_y_coordinate",
             }
 
-            # for subcube in cube.slices_over(coords):
-            #    print(subcube)
-
-            # blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
 
+            #NEW CODE
+            indices = [slice(None)] * cube.ndim
+            # Just slice over one dimension
+            dims_to_slice = cube.coord_dims(coords.pop())[0]
+
+            n = 25
+
             cubes = []
-            for subcube in cube.slices_over(coords):
-                r = BlendingPlugin(
-                    subcube,
-                    weights=weights,
-                    cycletime=cycletime,
-                    attributes_dict=attributes_dict,
-                )
-                cubes.append(r)
-            result = CubeList(cubes).merge_cube()
+            for vals in range(0, cube.shape[dims_to_slice], n):
+                indices[dims_to_slice] = slice(vals, vals+n)
+                subcube = cube[tuple(indices)]
+                result = BlendingPlugin(subcube, weights=weights, cycletime=cycletime, attributes_dict=attributes_dict)
+                result.data = result.lazy_data()
+                cubes.append(result)
+            result = CubeList(cubes).concatenate_cube()
+
+            # blend across specified dimension
+            #BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
+
+            #cubes = []
+            #for vals in range(
+
+
+            #cubes = []
+            #for subcube in cube.slices_over(coords):
+            #    result = BlendingPlugin(
+            #        subcube,
+            #        weights=weights,
+            #        cycletime=cycletime,
+            #        attributes_dict=attributes_dict,
+            #    )
+            #    result.data = result.lazy_data()
+            #    cubes.append(result)
+            #result = CubeList(cubes).merge_cube()
 
         return result
