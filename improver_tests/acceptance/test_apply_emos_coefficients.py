@@ -370,21 +370,3 @@ def test_wrong_forecast_coefficients(tmp_path):
 
     with pytest.raises(MergeError, match="failed to merge into a single cube.*"):
         run_cli(args)
-
-
-def test_wrong_forecast_land_sea(tmp_path):
-    """Test forecast cube being a land_sea_mask cube"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/land_sea"
-    land_sea_path = kgo_dir / "landmask.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        land_sea_path,
-        "--distribution",
-        "norm",
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(ValueError, match=".*Invalid forecast"):
-        run_cli(args)

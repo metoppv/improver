@@ -178,7 +178,7 @@ class Test_calculate_normal_crps(SetupGaussianInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.2609061)
+        self.assertAlmostEqual(result, 0.2609116)
 
     @ManageWarnings(
         ignored_messages=[
@@ -232,12 +232,12 @@ class Test_process_gaussian_distribution(
         self.plugin = Plugin(tolerance=self.tolerance)
         self.expected_mean_coefficients = [-0.0008, 1.0009, 0.0023, 0.8070]
         self.expected_realizations_coefficients = [
-            0.0409,
-            0.414,
-            0.2056,
-            0.8871,
-            -0.1373,
-            0.1141,
+            0.0427,
+            0.4117,
+            0.1946,
+            0.8907,
+            -0.1435,
+            0.037,
         ]
 
     @ManageWarnings(
@@ -526,7 +526,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedGaussianInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.1670167)
+        self.assertAlmostEqual(result, 0.1670168)
 
     @ManageWarnings(
         ignored_messages=[

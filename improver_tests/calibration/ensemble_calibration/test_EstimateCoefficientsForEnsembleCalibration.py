@@ -298,22 +298,24 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         self.expected_x_coord_points = np.median(
             self.historic_forecast.coord(axis="x").points
         )
+        self.historic_forecast.coord(axis="x").guess_bounds()
         self.expected_x_coord_bounds = np.array(
             [
                 [
-                    min(self.historic_forecast.coord(axis="x").points),
-                    max(self.historic_forecast.coord(axis="x").points),
+                    np.min(self.historic_forecast.coord(axis="x").bounds),
+                    np.max(self.historic_forecast.coord(axis="x").bounds),
                 ]
             ]
         )
         self.expected_y_coord_points = np.median(
             self.historic_forecast.coord(axis="y").points
         )
+        self.historic_forecast.coord(axis="y").guess_bounds()
         self.expected_y_coord_bounds = np.array(
             [
                 [
-                    min(self.historic_forecast.coord(axis="y").points),
-                    max(self.historic_forecast.coord(axis="y").points),
+                    np.min(self.historic_forecast.coord(axis="y").bounds),
+                    np.max(self.historic_forecast.coord(axis="y").bounds),
                 ]
             ]
         )

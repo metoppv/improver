@@ -145,10 +145,6 @@ def process(
 
     from improver.calibration.ensemble_calibration import ApplyEMOS
 
-    if cube.name() == "land_binary_mask":
-        msg = "Invalid forecast cube provided (name '{}')"
-        raise ValueError(msg.format(cube.name()))
-
     if coefficients is None:
         msg = (
             "There are no coefficients provided for calibration. The "
