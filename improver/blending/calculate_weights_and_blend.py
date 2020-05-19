@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to calculate blend weights and blend data across a dimension"""
 
+from iris.cube import CubeList
+
 from improver import BasePlugin
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.blending.weighted_blend import (
@@ -240,13 +242,30 @@ class WeightAndBlend(BasePlugin):
             if spatial_weights:
                 weights = self._update_spatial_weights(cube, weights, fuzzy_length)
 
+            print(weights)
+            print(self.blend_coord)
+            print(cube)
+            coords = {c.name() for c in cube.dim_coords} - {
+                self.blend_coord,
+                "projection_x_coordinate",
+                "projection_y_coordinate",
+            }
+
+            # for subcube in cube.slices_over(coords):
+            #    print(subcube)
+
             # blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
-            result = BlendingPlugin(
-                cube,
-                weights=weights,
-                cycletime=cycletime,
-                attributes_dict=attributes_dict,
-            )
+
+            cubes = []
+            for subcube in cube.slices_over(coords):
+                r = BlendingPlugin(
+                    subcube,
+                    weights=weights,
+                    cycletime=cycletime,
+                    attributes_dict=attributes_dict,
+                )
+                cubes.append(r)
+            result = CubeList(cubes).merge_cube()
 
         return result
