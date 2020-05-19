@@ -333,7 +333,12 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             alpha, beta, gamma, delta = initial_guess
             alpha_beta = np.array([alpha, beta], dtype=np.float64)
         elif predictor.lower() == "realizations":
-            alpha, beta, gamma, delta = initial_guess[0], initial_guess[1:-2]**2, initial_guess[-2], initial_guess[-1]
+            alpha, beta, gamma, delta = (
+                initial_guess[0],
+                initial_guess[1:-2] ** 2,
+                initial_guess[-2],
+                initial_guess[-1],
+            )
             alpha_beta = np.array([alpha] + beta.tolist(), dtype=np.float64)
 
         new_col = np.ones(truth.shape, dtype=np.float32)
@@ -394,7 +399,12 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             alpha, beta, gamma, delta = initial_guess
             alpha_beta = np.array([alpha, beta], dtype=np.float64)
         elif predictor.lower() == "realizations":
-            alpha, beta, gamma, delta = initial_guess[0], initial_guess[1:-2]**2, initial_guess[-2], initial_guess[-1]
+            alpha, beta, gamma, delta = (
+                initial_guess[0],
+                initial_guess[1:-2] ** 2,
+                initial_guess[-2],
+                initial_guess[-1],
+            )
             alpha_beta = np.array([alpha] + beta.tolist(), dtype=np.float64)
 
         new_col = np.ones(truth.shape, dtype=np.float32)
@@ -614,7 +624,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         spatial_coords_and_dims = []
         for axis in ["x", "y"]:
             spatial_coords_and_dims.append(
-                (historic_forecasts.coord(axis=axis).collapsed(), None))
+                (historic_forecasts.coord(axis=axis).collapsed(), None)
+            )
         return spatial_coords_and_dims
 
     def _create_cubelist(
@@ -895,7 +906,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         # Ensure predictor is valid.
         check_predictor(self.predictor)
 
-        historic_forecasts, truths = filter_non_matching_cubes(historic_forecasts, truths)
+        historic_forecasts, truths = filter_non_matching_cubes(
+            historic_forecasts, truths
+        )
         check_forecast_consistency(historic_forecasts)
         # Make sure inputs have the same units.
         if self.desired_units:
@@ -1022,8 +1035,16 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 
         for axis in ["x", "y"]:
             for coeff_cube in self.coefficients_cubelist:
-                if (self.current_forecast.coord(axis=axis).collapsed() !=
-                        coeff_cube.coord(axis=axis).collapsed()):
+                if (
+                    (
+                        self.current_forecast.coord(axis=axis).collapsed().points
+                        != coeff_cube.coord(axis=axis).collapsed().points
+                    ).all()
+                    or (
+                        self.current_forecast.coord(axis=axis).collapsed().bounds
+                        != coeff_cube.coord(axis=axis).collapsed().bounds
+                    ).all()
+                ):
                     raise ValueError(
                         msg.format(
                             axis,
