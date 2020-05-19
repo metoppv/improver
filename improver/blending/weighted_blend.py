@@ -579,6 +579,8 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 np.float32
             )
         (blend_dim,) = cube.coord_dims(self.blend_coord)
+        self.check_weights(weights_array, blend_dim)
+
         return weights_array
 
     def percentile_weights(self, cube, weights, perc_coord):
