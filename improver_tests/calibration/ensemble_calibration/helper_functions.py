@@ -117,6 +117,8 @@ class SetupCubes(IrisTest):
             frt=frt_dt,
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
+        for axis in ["x", "y"]:
+            self.current_temperature_forecast_cube.coord(axis=axis).guess_bounds()
 
         # Create historic forecasts and truth
         self.historic_forecasts = _create_historic_forecasts(
@@ -139,6 +141,8 @@ class SetupCubes(IrisTest):
             realizations=[0, 1, 2],
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
+        for axis in ["x", "y"]:
+            self.current_wind_speed_forecast_cube.coord(axis=axis).guess_bounds()
 
         self.historic_wind_speed_forecast_cube = _create_historic_forecasts(
             base_data,
@@ -516,8 +520,8 @@ def _create_historic_forecasts(
     data, time_dt, frt_dt, standard_grid_metadata="uk_ens", number_of_days=5, **kwargs
 ):
     """
-    Function to create a set of pseudo historic forecast cubes, based on the
-    input cube, and assuming that there will be one forecast per day at the
+    Function to create a cubelist of historic forecasts, based on the inputs
+    provided, and assuming that there will be one forecast per day at the
     same hour of the day.
 
     Please see improver.tests.set_up_test_cubes.set_up_variable_cube for the

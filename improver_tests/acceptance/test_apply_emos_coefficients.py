@@ -63,7 +63,7 @@ def test_gaussian(tmp_path):
 
 
 def test_truncated_gaussian(tmp_path):
-    """Test diagnostic with assumed gaussian distribution"""
+    """Test diagnostic with assumed truncated gaussian distribution"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/truncated_gaussian"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
@@ -325,7 +325,9 @@ def test_wrong_coefficients(tmp_path):
         "--output",
         output_path,
     ]
-    with pytest.raises(ValueError, match=".*coefficients cube.*"):
+    from iris.exceptions import ConstraintMismatchError
+
+    with pytest.raises(ConstraintMismatchError, match="Got 0 cubes for constraint.*"):
         run_cli(args)
 
 
@@ -338,7 +340,7 @@ def test_wrong_land_sea_mask(tmp_path):
     args = [
         input_path,
         emos_est_path,
-        emos_est_path,
+        input_path,
         "--distribution",
         "norm",
         "--random-seed",
@@ -364,23 +366,7 @@ def test_wrong_forecast_coefficients(tmp_path):
         "--output",
         output_path,
     ]
-    with pytest.raises(ValueError, match=".*Invalid forecast"):
-        run_cli(args)
+    from iris.exceptions import MergeError
 
-
-def test_wrong_forecast_land_sea(tmp_path):
-    """Test forecast cube being a land_sea_mask cube"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/land_sea"
-    land_sea_path = kgo_dir / "landmask.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        land_sea_path,
-        "--distribution",
-        "norm",
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(ValueError, match=".*Invalid forecast"):
+    with pytest.raises(MergeError, match="failed to merge into a single cube.*"):
         run_cli(args)

@@ -272,3 +272,76 @@ def merge_land_and_sea(calibrated_land_only, uncalibrated):
         mask = calibrated_land_only.data.mask
         new_data[mask] = uncalibrated.data[mask]
         calibrated_land_only.data = new_data
+
+
+def forecast_coords_match(first_cube, second_cube):
+    """
+    Determine if two cubes have equivalent forecast_periods and that the hours
+    of the forecast_reference_time coordinates match. Only the points of the
+    forecast period and forecast reference time coordinate are checked. This is
+    to ensure that a calibration / coefficient cube matches the forecast cube,
+    as appropriate.
+
+    Args:
+        first_cube (iris.cube.Cube):
+            First cube to compare.
+        second_cube (iris.cube.Cube):
+            Second cube to compare.
+
+    Raises:
+        ValueError: The two cubes are not equivalent.
+    """
+    mismatches = []
+    if first_cube.coord("forecast_period") != second_cube.coord("forecast_period"):
+        mismatches.append("forecast_period")
+
+    if get_frt_hours(first_cube.coord("forecast_reference_time")) != get_frt_hours(
+        second_cube.coord("forecast_reference_time")
+    ):
+        mismatches.append("forecast_reference_time hours")
+    if mismatches:
+        msg = "The following coordinates of the two cubes do not match: {}"
+        raise ValueError(msg.format(", ".join(mismatches)))
+
+
+def get_frt_hours(forecast_reference_time):
+    """
+    Returns a set of integer representations of the hour of the
+    forecast reference time.
+
+    Args:
+        forecast_reference_time (iris.coord.DimCoord):
+            The forecast_reference_time coordinate to extract the hours from.
+    Returns:
+        set:
+            A set of integer representations of the forecast reference time
+            hours.
+    """
+    frt_hours = []
+    for frt in forecast_reference_time.cells():
+        frt_hours.append(np.int32(frt.point.hour))
+    return set(frt_hours)
+
+
+def check_forecast_consistency(forecasts):
+    """
+    Checks that the forecast cubes have a consistent forecast reference time
+    hour and a consistent forecast period.
+
+    Args:
+        forecasts (iris.cube.Cube):
+    Raises:
+        ValueError: Forecast cubes have differing forecast reference time hours
+        ValueError: Forecast cubes have differing forecast periods
+    """
+    frt_hours = get_frt_hours(forecasts.coord("forecast_reference_time"))
+
+    if len(frt_hours) != 1:
+        msg = (
+            "Forecasts have been provided with differing hours for the "
+            "forecast reference time {}"
+        )
+        raise ValueError(msg.format(frt_hours))
+    if len(forecasts.coord("forecast_period").points) != 1:
+        msg = "Forecasts have been provided with differing forecast periods {}"
+        raise ValueError(msg.format(forecasts.coord("forecast_period").points))
