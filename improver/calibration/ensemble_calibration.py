@@ -570,7 +570,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """Set attributes for use on the EMOS coefficients cube.
 
         Args:
-            historic_forecasts (iris.cube.Cube)
+            historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.
 
         Returns:
@@ -589,7 +589,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         for the EMOS coefficients cube.
 
         Args:
-            historic_forecasts (iris.cube.Cube)
+            historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.
 
         Returns:
@@ -613,7 +613,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """Create spatial coordinates for the EMOS coefficients cube.
 
         Args:
-            historic_forecasts (iris.cube.Cube)
+            historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.
 
         Returns:
@@ -639,11 +639,13 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         Args:
             optimised_coeffs (numpy.ndarray)
-            historic_forecasts (iris.cube.Cube)
+            historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.
-            aux_coords_and_dims (list of tuples)
+            aux_coords_and_dims (list of tuples):
                 List of tuples of the format [(coord, dim), (coord, dim)]
-            attributes (dict)
+            attributes (dict):
+                Attributes for an EMOS coefficients cube including
+                "diagnostic standard name" and an updated title.
 
         Returns:
             cubelist (iris.cube.CubeList):

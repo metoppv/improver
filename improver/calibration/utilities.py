@@ -279,8 +279,8 @@ def forecast_coords_match(first_cube, second_cube):
     Determine if two cubes have equivalent forecast_periods and that the hours
     of the forecast_reference_time coordinates match. Only the points of the
     forecast period and forecast reference time coordinate are checked. This is
-    to ensure that an EMOS coefficient cube matches the forecast cube, as
-    appropriate.
+    to ensure that a calibration / coefficient cube matches the forecast cube,
+    as appropriate.
 
     Args:
         first_cube (iris.cube.Cube):
