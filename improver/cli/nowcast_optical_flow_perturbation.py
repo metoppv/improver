@@ -48,9 +48,6 @@ def process(
     previous_forecast: cli.inputcube,
     previous_advection: inputadvection,
     orographic_enhancement: cli.inputcube,
-    *
-    ofc_box_size: int = 30,
-    smart_smoothing_iterations: int = 100,
 ):
     """Calculate optical flow components from input fields.
 
@@ -92,7 +89,7 @@ def process(
 
     # adjust previous advection components by perturbation values to generate
     # new components
-    for prev, adj in zip(previous_advection, advection_perterbations):
+    for prev, adj in zip(previous_advection, advection_perturbations):
         prev.convert_units(adj.units)
         adj.data += prev.data
 

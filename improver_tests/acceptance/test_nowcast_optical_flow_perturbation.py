@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2020 Met Office.
@@ -29,50 +28,33 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate optical flow advection velocities with option to
-extrapolate."""
+"""
+Tests for the nowcast-optical-flow-perturbation CLI
+"""
 
-from improver import cli
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@cli.clizefy
-@cli.with_output
-def process(
-    orographic_enhancement: cli.inputcube,
-    *cubes: cli.inputcube,
-):
-    """Calculate optical flow components from input fields.
+FORECAST = "20190101T1600Z-PT0000H00M"
+CURRENT = "20190101T1615Z"
 
-    Args:
-        orographic_enhancement (iris.cube.Cube):
-            Cube containing the orographic enhancement fields.
-        cubes (iris.cube.CubeList):
-            Cubes from which to calculate optical flow velocities.
-            These three cubes will be sorted by their time coords.
+def test_basic(tmp_path):
+    """Test basic optical flow nowcast"""
+    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-optical-flow-perturbation"
+    kgo_path = kgo_dir / "kgo.nc"
+    obs_path = kgo_dir / f"{CURRENT}_current_obs.nc"
+    forecast_path = kgo_dir / f"{CURRENT}_forecast_slice.nc"
+    advection_path = kgo_dir / f"{FORECAST}-precipitation_advection_velocity.nc"
+    orogenh_path = kgo_dir / f"{FORECAST}-orographic_enhancement.nc"
 
-    Returns:
-        iris.cube.CubeList:
-            List of the umean and vmean cubes.
-
-    """
-    from iris.cube import CubeList
-
-    from improver.nowcasting.optical_flow import generate_optical_flow_components
-    from improver.nowcasting.utilities import ApplyOrographicEnhancement
-
-    original_cube_list = CubeList(cubes)
-    # order input files by validity time
-    original_cube_list.sort(key=lambda x: x.coord("time").points[0])
-
-    # subtract orographic enhancement
-    cube_list = ApplyOrographicEnhancement("subtract")(
-        original_cube_list, orographic_enhancement
-    )
-
-    # calculate optical flow velocities from T-1 to T and T-2 to T-1, and
-    # average to produce the velocities for use in advection
-    u_mean, v_mean = generate_optical_flow_components(
-        cube_list, ofc_box_size=30, smart_smoothing_iterations=100
-    )
-
-    return CubeList([u_mean, v_mean])
+    input_paths = [obs_path, forecast_path, advection_path, orogenh_path]
+    output_path = tmp_path / "output.nc"
+    args = [*input_paths, "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
