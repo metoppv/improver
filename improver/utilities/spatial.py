@@ -275,7 +275,6 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                     x axis.
 
         """
-        # diffs = [self.calculate_difference(cube, axis) for axis in ["x", "y"]]
         diffs = []
         for axis in ["x", "y"]:
             coord_name = cube.coord(axis=axis).name()

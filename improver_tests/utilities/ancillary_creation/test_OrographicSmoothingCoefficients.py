@@ -41,7 +41,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.utilities.ancillary_creation import OrographicSmoothingCoefficients
-from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
+from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 
 def set_up_cube():
@@ -128,7 +128,7 @@ class Test_unnormalised_smoothing_coefficients(IrisTest):
         expected = np.array(
             [[1.53125, 2.53125, 3.78125], [0.0, 0.5, 2.0], [1.53125, 0.03125, 0.78125]]
         )
-        gradient_x, _ = DifferenceBetweenAdjacentGridSquares(gradient=True).process(
+        gradient_x, _ = GradientBetweenAdjacentGridSquares(regrid=True).process(
             self.cube
         )
         smoothing_coefficient_x = self.plugin.unnormalised_smoothing_coefficients(
@@ -147,9 +147,8 @@ class Test_gradient_to_smoothing_coefficient(IrisTest):
             min_smoothing_coefficient=0.5, max_smoothing_coefficient=0.3
         )
         self.cube = set_up_cube()
-        self.gradient_x, self.gradient_y = DifferenceBetweenAdjacentGridSquares(
-            gradient=True
-        ).process(self.cube)
+        self.gradient_x, self.gradient_y = GradientBetweenAdjacentGridSquares(
+        regrid=True).process(self.cube)
 
     def test_basic(self):
         """Test basic version of gradient to smoothing_coefficient"""
