@@ -60,7 +60,7 @@ class BasicThreshold(PostProcessingPlugin):
         fuzzy_bounds=None,
         threshold_units=None,
         comparison_operator=">",
-        each_threshold_func=None,
+        each_threshold_func=(),
     ):
         """
         Set up for processing an in-or-out of threshold field, including the
@@ -113,8 +113,9 @@ class BasicThreshold(PostProcessingPlugin):
                 evaluate data < threshold. When using fuzzy thresholds, there
                 is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
-            each_threshold_func (callable):
-                Function to apply on each threshold cube before concatenating.
+            each_threshold_func (callable or sequence of callables):
+                Callable or sequence of callables to apply to each threshold
+                cube before concatenating.
 
         Raises:
             ValueError: If a threshold of 0.0 is requested when using a fuzzy
@@ -218,6 +219,8 @@ class BasicThreshold(PostProcessingPlugin):
         self.comparison_operator_string = comparison_operator
         self._decode_comparison_operator_string()
 
+        if callable(each_threshold_func):
+            each_threshold_func = (each_threshold_func,)
         self.each_threshold_func = each_threshold_func
 
     def __repr__(self):
@@ -375,8 +378,8 @@ class BasicThreshold(PostProcessingPlugin):
                 cube.data[input_cube.data.mask] = input_cube.data[input_cube.data.mask]
             cube = self._add_threshold_coord(cube, threshold)
 
-            if self.each_threshold_func:
-                cube = self.each_threshold_func(cube)
+            for func in self.each_threshold_func:
+                cube = func(cube)
 
             thresholded_cubes.append(cube)
 

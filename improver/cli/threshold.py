@@ -152,18 +152,13 @@ def process(
             WeightAndBlend(collapse_coord, "linear", y0val=1.0, ynval=1.0)
         )
 
-    def each_threshold_func(cube):
-        for func in each_threshold_func_list:
-            cube = func(cube)
-        return cube
-
     result = BasicThreshold(
         thresholds,
         fuzzy_factor=fuzzy_factor,
         fuzzy_bounds=fuzzy_bounds,
         threshold_units=threshold_units,
         comparison_operator=comparison_operator,
-        each_threshold_func=each_threshold_func,
+        each_threshold_func=each_threshold_func_list,
     )(cube)
 
     if vicinity is not None:
