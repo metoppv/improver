@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -87,7 +87,7 @@ class SetupInputs(IrisTest):
 
         self.initial_guess_for_mean = np.array([0, 1, 0, 1], dtype=np.float64)
         self.initial_guess_for_realization = np.array(
-            [0, 1, 0, np.sqrt(1 / 3.0), np.sqrt(1 / 3.0), np.sqrt(1 / 3.0)],
+            [0, np.sqrt(1 / 3.0), np.sqrt(1 / 3.0), np.sqrt(1 / 3.0), 0, 1],
             dtype=np.float64,
         )
 
@@ -178,7 +178,7 @@ class Test_calculate_normal_crps(SetupGaussianInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.2609061)
+        self.assertAlmostEqual(result, 0.2609116)
 
     @ManageWarnings(
         ignored_messages=[
@@ -225,19 +225,19 @@ class Test_process_gaussian_distribution(
 
     def setUp(self):
         """Set up expected output.
-        The coefficients are in the order [gamma, delta, alpha, beta].
+        The coefficients are in the order [alpha, beta, gamma, delta].
         """
         super().setUp()
         self.tolerance = 1e-4
         self.plugin = Plugin(tolerance=self.tolerance)
-        self.expected_mean_coefficients = [0.0023, 0.8070, -0.0008, 1.0009]
+        self.expected_mean_coefficients = [-0.0008, 1.0009, 0.0023, 0.8070]
         self.expected_realizations_coefficients = [
-            -0.1373,
-            0.1141,
-            0.0409,
-            0.414,
-            0.2056,
-            0.8871,
+            0.0427,
+            0.4117,
+            0.1946,
+            0.8907,
+            -0.1435,
+            0.037,
         ]
 
     @ManageWarnings(
@@ -526,7 +526,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedGaussianInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.1670167)
+        self.assertAlmostEqual(result, 0.1670168)
 
     @ManageWarnings(
         ignored_messages=[
@@ -576,14 +576,14 @@ class Test_process_truncated_gaussian_distribution(
         super().setUp()
         self.tolerance = 1e-4
         self.plugin = Plugin(tolerance=self.tolerance)
-        self.expected_mean_coefficients = [0.0459, 0.6047, 0.3965, 0.958]
+        self.expected_mean_coefficients = [0.3965, 0.958, 0.0459, 0.6047]
         self.expected_realizations_coefficients = [
-            0.0265,
-            0.2175,
             0.2692,
             0.0126,
             0.5965,
             0.7952,
+            0.0265,
+            0.2175,
         ]
 
     @ManageWarnings(
@@ -776,7 +776,7 @@ class Test_process_truncated_gaussian_distribution(
         greater than the tolerated value.
         The ensemble mean is the predictor.
         """
-        initial_guess = np.array([5000, 1, 0, 1], dtype=np.float64)
+        initial_guess = np.array([0, 1, 5000, 1], dtype=np.float64)
 
         predictor = "mean"
         distribution = "truncated_gaussian"

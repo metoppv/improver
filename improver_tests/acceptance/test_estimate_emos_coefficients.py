@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -75,8 +75,6 @@ def test_gaussian(tmp_path):
         truth_path,
         "--distribution",
         "gaussian",
-        "--cycletime",
-        "20170605T0300Z",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--tolerance",
@@ -106,8 +104,6 @@ def test_trunc_gaussian(tmp_path):
         truth_path,
         "--distribution",
         "truncated_gaussian",
-        "--cycletime",
-        "20170605T0300Z",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--tolerance",
@@ -134,8 +130,6 @@ def test_units(tmp_path):
         truth_path,
         "--distribution",
         "gaussian",
-        "--cycletime",
-        "20170605T0300Z",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--units",
@@ -165,8 +159,6 @@ def test_using_realizations_as_predictor_no_sm(tmp_path):
         truth_path,
         "--distribution",
         "gaussian",
-        "--cycletime",
-        "20170605T0300Z",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--predictor",
@@ -197,8 +189,6 @@ def test_using_realizations_as_predictor_sm(tmp_path):
         truth_path,
         "--distribution",
         "gaussian",
-        "--cycletime",
-        "20170605T0300Z",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--predictor",
@@ -231,8 +221,6 @@ def test_land_points_only(tmp_path):
         lsmask_path,
         "--distribution",
         "gaussian",
-        "--cycletime",
-        "20170605T0300Z",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--tolerance",

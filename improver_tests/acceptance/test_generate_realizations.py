@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -111,6 +111,31 @@ def test_realizations(tmp_path):
     args = [input_path, "--realizations-count", "12", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, input_path)
+
+
+@pytest.mark.slow
+def test_ecc_bounds_warning(tmp_path):
+    """
+    Test use of ECC to convert one set of percentiles to another set of
+    percentiles, and then rebadge the percentiles to be ensemble realizations.
+    Data in this input exceeds the ECC bounds and so tests ecc_bounds_warning
+    functionality.
+    """
+    kgo_dir = acc.kgo_root() / "generate-realizations/ecc_bounds_warning"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "multiple_percentiles_wind_cube_out_of_bounds.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--realizations-count",
+        "5",
+        "--ignore-ecc-bounds",
+        "--output",
+        output_path,
+    ]
+    with pytest.warns(UserWarning, match="Forecast values exist that fall outside"):
+        run_cli(args)
+    acc.compare(output_path, kgo_path)
 
 
 def test_error_no_realizations_count(tmp_path):

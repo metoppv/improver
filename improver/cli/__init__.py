@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -222,7 +222,6 @@ def create_constrained_inputcubelist_converter(*constraints):
     Returns:
         callable:
             A function with the constraints used for a list comprehension.
-
     """
 
     @value_converter
@@ -236,7 +235,6 @@ def create_constrained_inputcubelist_converter(*constraints):
         Returns:
             iris.cube.CubeList:
                 The loaded cubelist of constrained cubes.
-
         """
         from improver.utilities.load import load_cubelist
         from iris import Constraint

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -273,11 +273,12 @@ class WeatherSymbols(BasePlugin):
                 from that cube.
                 A list should contain only cube names, operators and numbers,
                 e.g. ["probability_of_lwe_snowfall_rate_above_threshold", "-",
-                  "probability_of_rainfall_rate_above_threshold", "*", "0.7"]
+                "probability_of_rainfall_rate_above_threshold", "*", "0.7"]
             condition (str):
                 The condition statement (e.g. greater than, >).
             probability_threshold (float):
                 The probability value to use in the comparison.
+
         Returns:
             string:
                 The formatted condition statement,

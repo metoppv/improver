@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -75,4 +75,26 @@ def test_probconvert(tmp_path, count):
         "25,50,75",
     ]
     run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.slow
+def test_eccbounds(tmp_path):
+    """Test ECC bounds warning option"""
+    kgo_dir = acc.kgo_root() / "generate-percentiles/ecc_bounds_warning"
+    kgo_path = kgo_dir / "kgo.nc"
+    perc_input = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        perc_input,
+        "--output",
+        output_path,
+        "--coordinates",
+        "realization",
+        "--percentiles",
+        "25,50,75",
+        "--ignore-ecc-bounds",
+    ]
+    with pytest.warns(UserWarning, match="The calculated threshold values"):
+        run_cli(args)
     acc.compare(output_path, kgo_path)
