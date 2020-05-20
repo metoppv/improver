@@ -161,7 +161,4 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
             indices[dim_to_collapse] = subcube_index
             blended_cube.data += cube[tuple(indices)].data * weights.data[subcube_index]
 
-        if np.sum(weights.data) != 1:
-            blended_cube.data *= 1 / np.sum(weights.data)
-
         return blended_cube
