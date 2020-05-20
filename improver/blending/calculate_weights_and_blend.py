@@ -31,6 +31,7 @@
 """Plugin to calculate blend weights and blend data across a dimension"""
 
 from iris.cube import CubeList
+from iris.util import new_axis
 
 from improver import BasePlugin
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
@@ -242,47 +243,39 @@ class WeightAndBlend(BasePlugin):
             if spatial_weights:
                 weights = self._update_spatial_weights(cube, weights, fuzzy_length)
 
-            coords = {c.name() for c in cube.dim_coords} - {
-                self.blend_coord,
-                "projection_x_coordinate",
-                "projection_y_coordinate",
+            dims_to_collapse = set(range(cube.ndim)) - {
+                cube.coord_dims(self.blend_coord)[0]
             }
 
-            BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
-
-            #NEW CODE
+            # In the event of multiple dimensions, always use the first available one to slice over
+            dim_to_collapse = min(dims_to_collapse)
+            number_of_subcubes = cube.shape[dim_to_collapse]
             indices = [slice(None)] * cube.ndim
-            # Just slice over one dimension
-            dims_to_slice = cube.coord_dims(coords.pop())[0]
-
-            n = 25
-
-            cubes = []
-            for vals in range(0, cube.shape[dims_to_slice], n):
-                indices[dims_to_slice] = slice(vals, vals+n)
-                subcube = cube[tuple(indices)]
-                result = BlendingPlugin(subcube, weights=weights, cycletime=cycletime, attributes_dict=attributes_dict)
-                result.data = result.lazy_data()
-                cubes.append(result)
-            result = CubeList(cubes).concatenate_cube()
 
             # blend across specified dimension
-            #BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
+            BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
 
-            #cubes = []
-            #for vals in range(
+            cubes = []
+            for subcube_index in range(number_of_subcubes):
+                indices[dim_to_collapse] = subcube_index
+                subcube = cube[tuple(indices)]
+                result = BlendingPlugin(
+                    subcube,
+                    weights=weights,
+                    cycletime=cycletime,
+                    attributes_dict=attributes_dict,
+                )
+                result.data = result.lazy_data()
+                cubes.append(result)
+            result = CubeList(cubes).merge_cube()
 
-
-            #cubes = []
-            #for subcube in cube.slices_over(coords):
-            #    result = BlendingPlugin(
-            #        subcube,
-            #        weights=weights,
-            #        cycletime=cycletime,
-            #        attributes_dict=attributes_dict,
-            #    )
-            #    result.data = result.lazy_data()
-            #    cubes.append(result)
-            #result = CubeList(cubes).merge_cube()
+            # Making the dim coords consistent between the original cube and new blended cube
+            dim_coords = {coord.name() for coord in cube.dim_coords}
+            blend_dim = {cube.coords()[cube.coord_dims(self.blend_coord)[0]].name()}
+            promote_set = (
+                dim_coords - {coord.name() for coord in result.dim_coords} - blend_dim
+            )
+            for dim in promote_set:
+                result = new_axis(result, dim)
 
         return result

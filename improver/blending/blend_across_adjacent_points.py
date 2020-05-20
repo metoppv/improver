@@ -32,6 +32,7 @@
 opposed to collapsing the whole dimension."""
 
 import iris
+import numpy as np
 from cf_units import Unit
 
 from improver import PostProcessingPlugin
@@ -77,12 +78,6 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
         # Set up a plugin to calculate the triangular weights.
         self.WeightsPlugin = ChooseDefaultWeightsTriangular(
             width, units=parameter_units
-        )
-
-        # Set up the blending function, based on whether weighted blending or
-        # maximum probabilities are needed.
-        self.BlendingPlugin = WeightedBlendAcrossWholeDimension(
-            coord, timeblending=True
         )
 
     def __repr__(self):
@@ -155,11 +150,18 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
 
         # Calculate weights and produce blended output.
         weights = self.WeightsPlugin(cube, self.coord, self.central_point)
-        blended_cube = self.BlendingPlugin(cube, weights)
 
-        # With one threshold dimension (such as for low cloud), the threshold
-        # axis is demoted to a scalar co-ordinate by BlendingPlugin. This line
-        # promotes threshold to match the dimensions of central_point_cube.
-        blended_cube = check_cube_coordinates(central_point_cube, blended_cube)
-        blended_cube = central_point_cube.copy(blended_cube.data)
+        dim_to_collapse = cube.coord_dims(self.coord)[0]
+        indices = [slice(None)] * cube.ndim
+        # Create the cube using the same metadata as the central cube, fill it with zeros
+        blended_cube = central_point_cube.copy(np.zeros_like(central_point_cube.data))
+
+        number_of_subcubes = cube.shape[dim_to_collapse]
+        for subcube_index in range(number_of_subcubes):
+            indices[dim_to_collapse] = subcube_index
+            blended_cube.data += cube[tuple(indices)].data * weights.data[subcube_index]
+
+        if np.sum(weights.data) != 1:
+            blended_cube.data *= 1 / np.sum(weights.data)
+
         return blended_cube
