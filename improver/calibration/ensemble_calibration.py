@@ -1025,56 +1025,31 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         match.
 
         Raises:
-            ValueError: If the points of the specified axis of the current_forecast and
-                coefficients_cube do not match.
-            ValueError: If the bounds of the specified axis of the current_forecast and
-                coefficients_cube do not match.
-            ValueError: If the coord system of the current_forecast and
-                coefficients_cube do not match.
+            ValueError: If the points or bounds of the specified axis of the
+                current_forecast and coefficients_cube do not match.
         """
+        msg = (
+            "The points or bounds of the {} axis given by the current forecast {} "
+            "do not match those given by the coefficients cube {}."
+        )
+
         for axis in ["x", "y"]:
             for coeff_cube in self.coefficients_cubelist:
                 if (
-                    self.current_forecast.coord(axis=axis).collapsed().points
-                    != coeff_cube.coord(axis=axis).collapsed().points
-                ).all():
-                    msg = (
-                        "The points of the {} axis given by the current forecast {} "
-                        "do not match the points given by the coefficients cube {}."
-                    )
+                    (
+                        self.current_forecast.coord(axis=axis).collapsed().points
+                        != coeff_cube.coord(axis=axis).collapsed().points
+                    ).all()
+                    or (
+                        self.current_forecast.coord(axis=axis).collapsed().bounds
+                        != coeff_cube.coord(axis=axis).collapsed().bounds
+                    ).all()
+                ):
                     raise ValueError(
                         msg.format(
                             axis,
-                            self.current_forecast.coord(axis=axis).collapsed().points,
-                            coeff_cube.coord(axis=axis).collapsed().points,
-                        )
-                    )
-
-                if (
-                    self.current_forecast.coord(axis=axis).collapsed().bounds
-                    != coeff_cube.coord(axis=axis).collapsed().bounds
-                ).all():
-                    msg = (
-                        "The bounds of the {} axis given by the current forecast {} "
-                        "do not match the bounds given by the coefficients cube {}."
-                    )
-                    raise ValueError(
-                        msg.format(
-                            axis,
-                            self.current_forecast.coord(axis=axis).collapsed().bounds,
-                            coeff_cube.coord(axis=axis).collapsed().bounds,
-                        )
-                    )
-
-                if self.current_forecast.coord_system() != coeff_cube.coord_system():
-                    msg = (
-                        "The coord system of the current forecast {} does not "
-                        "the coord system of the coefficients cube {}."
-                    )
-                    raise ValueError(
-                        msg.format(
-                            self.current_forecast.coord_system(),
-                            coeff_cube.coord_system(),
+                            self.current_forecast.coord(axis=axis).collapsed(),
+                            coeff_cube.coord(axis=axis).collapsed(),
                         )
                     )
 
