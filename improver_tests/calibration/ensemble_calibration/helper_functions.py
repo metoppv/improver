@@ -117,6 +117,8 @@ class SetupCubes(IrisTest):
             frt=frt_dt,
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
+        for axis in ["x", "y"]:
+            self.current_temperature_forecast_cube.coord(axis=axis).guess_bounds()
 
         # Create historic forecasts and truth
         self.historic_forecasts = _create_historic_forecasts(
@@ -139,6 +141,8 @@ class SetupCubes(IrisTest):
             realizations=[0, 1, 2],
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
+        for axis in ["x", "y"]:
+            self.current_wind_speed_forecast_cube.coord(axis=axis).guess_bounds()
 
         self.historic_wind_speed_forecast_cube = _create_historic_forecasts(
             base_data,

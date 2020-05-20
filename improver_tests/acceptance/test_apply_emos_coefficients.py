@@ -63,7 +63,7 @@ def test_gaussian(tmp_path):
 
 
 def test_truncated_gaussian(tmp_path):
-    """Test diagnostic with assumed gaussian distribution"""
+    """Test diagnostic with assumed truncated gaussian distribution"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/truncated_gaussian"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"

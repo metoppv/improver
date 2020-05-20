@@ -330,20 +330,20 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         """
         if predictor.lower() == "mean":
-            alpha, beta, gamma, delta = initial_guess
-            alpha_beta = np.array([alpha, beta], dtype=np.float64)
+            a, b, gamma, delta = initial_guess
+            a_b = np.array([a, b], dtype=np.float64)
         elif predictor.lower() == "realizations":
-            alpha, beta, gamma, delta = (
+            a, b, gamma, delta = (
                 initial_guess[0],
                 initial_guess[1:-2] ** 2,
                 initial_guess[-2],
                 initial_guess[-1],
             )
-            alpha_beta = np.array([alpha] + beta.tolist(), dtype=np.float64)
+            a_b = np.array([a] + b.tolist(), dtype=np.float64)
 
         new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
-        mu = np.dot(all_data, alpha_beta)
+        mu = np.dot(all_data, a_b)
         sigma = np.sqrt(gamma ** 2 + delta ** 2 * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
@@ -396,20 +396,20 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         """
         if predictor.lower() == "mean":
-            alpha, beta, gamma, delta = initial_guess
-            alpha_beta = np.array([alpha, beta], dtype=np.float64)
+            a, b, gamma, delta = initial_guess
+            a_b = np.array([a, b], dtype=np.float64)
         elif predictor.lower() == "realizations":
-            alpha, beta, gamma, delta = (
+            a, b, gamma, delta = (
                 initial_guess[0],
                 initial_guess[1:-2] ** 2,
                 initial_guess[-2],
                 initial_guess[-1],
             )
-            alpha_beta = np.array([alpha] + beta.tolist(), dtype=np.float64)
+            a_b = np.array([a] + b.tolist(), dtype=np.float64)
 
         new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
-        mu = np.dot(all_data, alpha_beta)
+        mu = np.dot(all_data, a_b)
         sigma = np.sqrt(gamma ** 2 + delta ** 2 * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
@@ -1025,31 +1025,56 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         match.
 
         Raises:
-            ValueError: If the domain information of the current_forecast and
+            ValueError: If the points of the specified axis of the current_forecast and
+                coefficients_cube do not match.
+            ValueError: If the bounds of the specified axis of the current_forecast and
+                coefficients_cube do not match.
+            ValueError: If the coord system of the current_forecast and
                 coefficients_cube do not match.
         """
-        msg = (
-            "The domain along the {} axis given by the current forecast {} "
-            "does not match the domain given by the coefficients cube {}."
-        )
-
         for axis in ["x", "y"]:
             for coeff_cube in self.coefficients_cubelist:
                 if (
-                    (
-                        self.current_forecast.coord(axis=axis).collapsed().points
-                        != coeff_cube.coord(axis=axis).collapsed().points
-                    ).all()
-                    or (
-                        self.current_forecast.coord(axis=axis).collapsed().bounds
-                        != coeff_cube.coord(axis=axis).collapsed().bounds
-                    ).all()
-                ):
+                    self.current_forecast.coord(axis=axis).collapsed().points
+                    != coeff_cube.coord(axis=axis).collapsed().points
+                ).all():
+                    msg = (
+                        "The points of the {} axis given by the current forecast {} "
+                        "do not match the points given by the coefficients cube {}."
+                    )
                     raise ValueError(
                         msg.format(
                             axis,
-                            self.current_forecast.coord(axis=axis).collapsed(),
-                            coeff_cube.coord(axis=axis).collapsed(),
+                            self.current_forecast.coord(axis=axis).collapsed().points,
+                            coeff_cube.coord(axis=axis).collapsed().points,
+                        )
+                    )
+
+                if (
+                    self.current_forecast.coord(axis=axis).collapsed().bounds
+                    != coeff_cube.coord(axis=axis).collapsed().bounds
+                ).all():
+                    msg = (
+                        "The bounds of the {} axis given by the current forecast {} "
+                        "do not match the bounds given by the coefficients cube {}."
+                    )
+                    raise ValueError(
+                        msg.format(
+                            axis,
+                            self.current_forecast.coord(axis=axis).collapsed().bounds,
+                            coeff_cube.coord(axis=axis).collapsed().bounds,
+                        )
+                    )
+
+                if self.current_forecast.coord_system() != coeff_cube.coord_system():
+                    msg = (
+                        "The coord system of the current forecast {} does not "
+                        "the coord system of the coefficients cube {}."
+                    )
+                    raise ValueError(
+                        msg.format(
+                            self.current_forecast.coord_system(),
+                            coeff_cube.coord_system(),
                         )
                     )
 

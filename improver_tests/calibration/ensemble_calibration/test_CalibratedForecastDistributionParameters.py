@@ -36,7 +36,6 @@ class.
 """
 import unittest
 
-import iris
 import numpy as np
 from iris.tests import IrisTest
 from numpy.testing import assert_array_almost_equal
@@ -150,12 +149,16 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             units="K",
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
+        for axis in ["x", "y"]:
+            self.expected_loc_param_mean_cube.coord(axis=axis).guess_bounds()
         self.expected_scale_param_mean_cube = set_up_variable_cube(
             self.expected_scale_param_mean,
             name="scale_parameter",
             units="Kelvin^2",
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
+        for axis in ["x", "y"]:
+            self.expected_scale_param_mean_cube.coord(axis=axis).guess_bounds()
 
 
 class Test__init__(IrisTest):
@@ -204,25 +207,64 @@ class Test__spatial_domain_match(SetupCoefficientsCubes):
         self.plugin.coefficients_cubelist = self.coeffs_from_mean
         self.plugin._spatial_domain_match()
 
-    def test_unmatching_x_axis(self):
-        """Test case in which the x-dimensions of the domains do not match."""
-        self.current_temperature_forecast_cube.coord(axis="x").points = (
-            self.current_temperature_forecast_cube.coord(axis="x").points * 2.0
+    def test_unmatching_x_axis_points(self):
+        """Test when the points of the x dimension do not match."""
+        self.current_temperature_forecast_cube.coord(axis="x").bounds = (
+            self.current_temperature_forecast_cube.coord(axis="x").bounds + 2.0
         )
         self.plugin.current_forecast = self.current_temperature_forecast_cube
         self.plugin.coefficients_cubelist = self.coeffs_from_mean
-        msg = "The domain along the x axis given by the current forecast"
+        msg = "The points of the x axis given by the current forecast"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin._spatial_domain_match()
+
+    def test_unmatching_x_axis_bounds(self):
+        """Test when the bounds of the x dimension do not match."""
+        self.current_temperature_forecast_cube.coord(axis="x").bounds = [
+            [-35, -5],
+            [-5, 5],
+            [5, 35],
+        ]
+        self.plugin.current_forecast = self.current_temperature_forecast_cube
+        self.plugin.coefficients_cubelist = self.coeffs_from_mean
+        msg = "The bounds of the x axis given by the current forecast"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin._spatial_domain_match()
+
+    def test_unmatching_x_axis_coord_system(self):
+        """Test when the coord_system of the x dimension do not match."""
+        different_coord_system_cube = set_up_variable_cube(
+            self.current_temperature_forecast_cube.data,
+            units="Kelvin",
+            spatial_grid="equalarea",
+            realizations=[0, 1, 2],
+            time=self.current_temperature_forecast_cube.coord("time").cell(0).point,
+            frt=self.current_temperature_forecast_cube.coord("forecast_reference_time")
+            .cell(0)
+            .point,
+            attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
+        )
+        different_coord_system_cube.coord(
+            axis="x"
+        ).points = self.current_temperature_forecast_cube.coord(axis="x").points
+        different_coord_system_cube.coord(
+            axis="x"
+        ).bounds = self.current_temperature_forecast_cube.coord(axis="x").bounds
+
+        self.plugin.current_forecast = different_coord_system_cube
+        self.plugin.coefficients_cubelist = self.coeffs_from_mean
+        msg = "The coord system of the current forecast"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._spatial_domain_match()
 
     def test_unmatching_y_axis(self):
         """Test case in which the y-dimensions of the domains do not match."""
-        self.current_temperature_forecast_cube.coord(axis="y").points = (
-            self.current_temperature_forecast_cube.coord(axis="y").points * 2.0
+        self.current_temperature_forecast_cube.coord(axis="y").bounds = (
+            self.current_temperature_forecast_cube.coord(axis="y").bounds + 2.0
         )
         self.plugin.current_forecast = self.current_temperature_forecast_cube
         self.plugin.coefficients_cubelist = self.coeffs_from_mean
-        msg = "The domain along the y axis given by the current forecast"
+        msg = "The points of the x axis given by the current forecast"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._spatial_domain_match()
 
@@ -366,7 +408,6 @@ class Test__create_output_cubes(SetupCoefficientsCubes, EnsembleCalibrationAsser
         ) = self.plugin._create_output_cubes(
             self.expected_loc_param_mean, self.expected_scale_param_mean
         )
-
         self.assertEqual(location_parameter_cube, self.expected_loc_param_mean_cube)
         self.assertEqual(scale_parameter_cube, self.expected_scale_param_mean_cube)
 
