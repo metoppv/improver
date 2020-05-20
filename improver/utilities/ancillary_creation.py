@@ -261,7 +261,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
                     len(cube.data.shape)
                 )
             )
-        gradient_x, gradient_y = GradientBetweenAdjacentGridSquares(regrid=True)(
+        gradient_x, gradient_y = GradientBetweenAdjacentGridSquares()(
             cube
         )
         (
