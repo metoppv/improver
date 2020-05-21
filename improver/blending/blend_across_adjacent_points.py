@@ -33,12 +33,10 @@ opposed to collapsing the whole dimension."""
 
 import iris
 from cf_units import Unit
-from iris.cube import CubeList
 
 from improver import PostProcessingPlugin
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.blending.weights import ChooseDefaultWeightsTriangular
-from improver.utilities.cube_checker import check_cube_coordinates
 
 
 class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
@@ -156,20 +154,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
 
         # Calculate weights and produce blended output.
         weights = self.WeightsPlugin(cube, self.coord, self.central_point)
-
-        dims_to_collapse = set(range(cube.ndim)) - {cube.coord_dims(self.coord)[0]}
-
-        # In the event of multiple dimensions, always use the first available one to slice over
-        dim_to_collapse = min(dims_to_collapse)
-
-        allow_slicing = not self.BlendingPlugin.check_percentile_coord(cube)
-
-        cube_slices = cube.slices_over(dim_to_collapse) if allow_slicing else [cube]
-        result_slices = CubeList()
-        for cube_slice in cube_slices:
-            result_slice = self.BlendingPlugin(cube_slice, weights=weights,)
-            result_slices.append(result_slice)
-        blended_cube = result_slices.merge_cube() if allow_slicing else result_slices[0]
+        blended_cube = self.BlendingPlugin(cube, weights)
 
         # Copy the metadata of the central cube
         blended_cube = central_point_cube.copy(blended_cube.data)

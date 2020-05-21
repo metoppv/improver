@@ -575,10 +575,8 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             weights_array = self.shape_weights(cube, weights)
         else:
             (number_of_fields,) = cube.coord(self.blend_coord).shape
-            weights_array = np.broadcast_to(1.0 / number_of_fields, cube.shape).astype(
-                np.float32
-            )
-        (blend_dim,) = cube.coord_dims(self.blend_coord)
+            weight = np.float32(1.0 / number_of_fields)
+            weights_array = np.broadcast_to(weight, cube.shape)
 
         return weights_array
 
@@ -632,9 +630,8 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             )
         else:
             (number_of_fields,) = cube.coord(self.blend_coord).shape
-            weights_array = np.broadcast_to(1.0 / number_of_fields, cube.shape).astype(
-                np.float32
-            )
+            weight = np.float32(1.0 / number_of_fields)
+            weights_array = np.broadcast_to(weight, cube.shape)
 
         (blend_dim,) = cube.coord_dims(self.blend_coord)
         (perc_dim,) = cube.coord_dims(perc_coord)
@@ -721,13 +718,25 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         """
         weights_array = self.non_percentile_weights(cube, weights)
 
-        # Calculate the weighted average.
-        cube_new = collapsed(
-            cube, self.blend_coord, iris.analysis.MEAN, weights=weights_array
-        )
-        cube_new.data = cube_new.data.astype(np.float32)
+        (collapse_dim,) = cube.coord_dims(self.blend_coord)
+        slice_dim = 1 if collapse_dim == 0 else 0
+        allow_slicing = cube.ndim > 1 and cube.shape[slice_dim] > 1
 
-        return cube_new
+        cube_slices = cube.slices_over(slice_dim) if allow_slicing else [cube]
+        weights_slices = (
+            np.moveaxis(weights_array, slice_dim, 0)
+            if allow_slicing
+            else [weights_array]
+        )
+
+        result_slices = iris.cube.CubeList(
+            collapsed(c_slice, self.blend_coord, iris.analysis.MEAN, weights=w_slice)
+            for c_slice, w_slice in zip(cube_slices, weights_slices)
+        )
+
+        result = result_slices.merge_cube() if allow_slicing else result_slices[0]
+
+        return result
 
     @staticmethod
     def _get_cycletime_point(input_cube, cycletime):

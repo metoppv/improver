@@ -30,9 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to calculate blend weights and blend data across a dimension"""
 
-from iris.cube import CubeList
-from iris.util import new_axis
-
 from improver import BasePlugin
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.blending.weighted_blend import (
@@ -246,33 +243,11 @@ class WeightAndBlend(BasePlugin):
             # blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
 
-            # Note: to reduce memory, slice over the first non-blended dim
-            # and merge afterwards (blended dim is 0)
-            slice_dim = 1
-            allow_slicing = (
-                cube.ndim > 1
-                and cube.shape[slice_dim] > 1
-                and not BlendingPlugin.check_percentile_coord(cube)
+            result = BlendingPlugin(
+                cube,
+                weights=weights,
+                cycletime=cycletime,
+                attributes_dict=attributes_dict,
             )
-            cube_slices = cube.slices_over(slice_dim) if allow_slicing else [cube]
-            result_slices = CubeList()
-            for cube_slice in cube_slices:
-                result_slice = BlendingPlugin(
-                    cube_slice,
-                    weights=weights,
-                    cycletime=cycletime,
-                    attributes_dict=attributes_dict,
-                )
-                result_slices.append(result_slice)
-            result = result_slices.merge_cube() if allow_slicing else result_slices[0]
-
-            # Making the dim coords consistent between the original cube and new blended cube
-            dim_coords = {coord.name() for coord in cube.dim_coords}
-            blend_dim = {cube.coords()[cube.coord_dims(self.blend_coord)[0]].name()}
-            promote_set = (
-                dim_coords - {coord.name() for coord in result.dim_coords} - blend_dim
-            )
-            for dim in promote_set:
-                result = new_axis(result, dim)
 
         return result
