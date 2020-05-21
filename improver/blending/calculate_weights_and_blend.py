@@ -242,7 +242,6 @@ class WeightAndBlend(BasePlugin):
 
             # blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
-
             result = BlendingPlugin(
                 cube,
                 weights=weights,
