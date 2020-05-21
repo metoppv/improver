@@ -139,14 +139,18 @@ class Test_calculate_difference(IrisTest):
     def test_x_dimension(self):
         """Test differences calculated along the x dimension."""
         expected = np.array([[1, 1], [2, 2], [5, 5]])
-        result = self.plugin.calculate_difference(self.cube, self.cube.coord(axis="x").name())
+        result = self.plugin.calculate_difference(
+            self.cube, self.cube.coord(axis="x").name()
+        )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
 
     def test_y_dimension(self):
         """Test differences calculated along the y dimension."""
         expected = np.array([[1, 2, 3], [3, 6, 9]])
-        result = self.plugin.calculate_difference(self.cube, self.cube.coord(axis="y").name())
+        result = self.plugin.calculate_difference(
+            self.cube, self.cube.coord(axis="y").name()
+        )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
 
@@ -155,7 +159,9 @@ class Test_calculate_difference(IrisTest):
         data = np.array([[1, 2, 3], [np.nan, 4, 6], [5, 10, 15]])
         cube = set_up_cube(data, "wind_speed", "m s-1")
         expected = np.array([[np.nan, 2, 3], [np.nan, 6, 9]])
-        result = self.plugin.calculate_difference(cube, self.cube.coord(axis="y").name())
+        result = self.plugin.calculate_difference(
+            cube, self.cube.coord(axis="y").name()
+        )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
 
@@ -166,7 +172,9 @@ class Test_calculate_difference(IrisTest):
         )
         cube = set_up_cube(data, "wind_speed", "m s-1")
         expected = ma.array([[1, 2, 3], [3, 6, 9]], mask=[[1, 0, 0], [1, 0, 0]])
-        result = self.plugin.calculate_difference(cube, self.cube.coord(axis="y").name())
+        result = self.plugin.calculate_difference(
+            cube, self.cube.coord(axis="y").name()
+        )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayEqual(result, expected)
         self.assertArrayEqual(result.mask, expected.mask)
@@ -205,7 +213,9 @@ class Test_process(IrisTest):
         result = self.plugin.process(self.cube)
         for cube, cm in zip(result, [cell_method_x, cell_method_y]):
             self.assertEqual(cube.cell_methods[0], cm)
-            self.assertEqual(cube.attributes["form_of_difference"], "forward_difference")
+            self.assertEqual(
+                cube.attributes["form_of_difference"], "forward_difference"
+            )
             self.assertEqual(cube.name(), "difference_of_wind_speed")
 
     def test_3d_cube(self):

@@ -148,7 +148,8 @@ class Test_gradient_to_smoothing_coefficient(IrisTest):
         )
         self.cube = set_up_cube()
         self.gradient_x, self.gradient_y = GradientBetweenAdjacentGridSquares(
-        regrid=True).process(self.cube)
+            regrid=True
+        ).process(self.cube)
 
     def test_basic(self):
         """Test basic version of gradient to smoothing_coefficient"""
@@ -188,20 +189,9 @@ class Test_process(IrisTest):
         """Tests that the final processing step gets the right values."""
         result = self.plugin.process(self.cube)
 
-        expected_x = np.array(
-            [
-                [0.4, 0.2],
-                [1.0, 0.6],
-                [0.8, 1.],
-            ]
-        )
+        expected_x = np.array([[0.4, 0.2], [1.0, 0.6], [0.8, 1.0],])
 
-        expected_y = np.array(
-            [
-                [0.8, 1., 0.6],
-                [0.6, 0.8, 0.],
-            ]
-        )
+        expected_y = np.array([[0.8, 1.0, 0.6], [0.6, 0.8, 0.0],])
 
         self.assertArrayAlmostEqual(result[0].data, expected_x)
         self.assertArrayAlmostEqual(result[1].data, expected_y)
