@@ -243,15 +243,6 @@ class WeightAndBlend(BasePlugin):
             if spatial_weights:
                 weights = self._update_spatial_weights(cube, weights, fuzzy_length)
 
-            dims_to_collapse = set(range(cube.ndim)) - {
-                cube.coord_dims(self.blend_coord)[0]
-            }
-
-            # In the event of multiple dimensions, always use the first available one to slice over
-            dim_to_collapse = min(dims_to_collapse)
-            number_of_subcubes = cube.shape[dim_to_collapse]
-            indices = [slice(None)] * cube.ndim
-
             # blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
 

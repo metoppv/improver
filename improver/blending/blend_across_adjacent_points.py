@@ -34,6 +34,7 @@ opposed to collapsing the whole dimension."""
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import CubeList
 
 from improver import PostProcessingPlugin
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
@@ -78,6 +79,12 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
         # Set up a plugin to calculate the triangular weights.
         self.WeightsPlugin = ChooseDefaultWeightsTriangular(
             width, units=parameter_units
+        )
+
+        # Set up the blending function, based on whether weighted blending or
+        # maximum probabilities are needed.
+        self.BlendingPlugin = WeightedBlendAcrossWholeDimension(
+            coord, timeblending=True
         )
 
     def __repr__(self):
@@ -151,14 +158,21 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
         # Calculate weights and produce blended output.
         weights = self.WeightsPlugin(cube, self.coord, self.central_point)
 
-        dim_to_collapse = cube.coord_dims(self.coord)[0]
-        indices = [slice(None)] * cube.ndim
-        # Create the cube using the same metadata as the central cube, fill it with zeros
-        blended_cube = central_point_cube.copy(np.zeros_like(central_point_cube.data))
+        dims_to_collapse = set(range(cube.ndim)) - {cube.coord_dims(self.coord)[0]}
 
-        number_of_subcubes = cube.shape[dim_to_collapse]
-        for subcube_index in range(number_of_subcubes):
-            indices[dim_to_collapse] = subcube_index
-            blended_cube.data += cube[tuple(indices)].data * weights.data[subcube_index]
+        # In the event of multiple dimensions, always use the first available one to slice over
+        dim_to_collapse = min(dims_to_collapse)
+
+        allow_slicing = not self.BlendingPlugin.check_percentile_coord(cube)
+
+        cube_slices = cube.slices_over(dim_to_collapse) if allow_slicing else [cube]
+        result_slices = CubeList()
+        for cube_slice in cube_slices:
+            result_slice = self.BlendingPlugin(cube_slice, weights=weights,)
+            result_slices.append(result_slice)
+        blended_cube = result_slices.merge_cube() if allow_slicing else result_slices[0]
+
+        # Copy the metadata of the central cube
+        blended_cube = central_point_cube.copy(blended_cube.data)
 
         return blended_cube
