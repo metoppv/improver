@@ -32,7 +32,6 @@
 opposed to collapsing the whole dimension."""
 
 import iris
-import numpy as np
 from cf_units import Unit
 from iris.cube import CubeList
 
