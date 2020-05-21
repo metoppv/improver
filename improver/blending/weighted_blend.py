@@ -733,6 +733,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             collapsed(c_slice, self.blend_coord, iris.analysis.MEAN, weights=w_slice)
             for c_slice, w_slice in zip(cube_slices, weights_slices)
         )
+        self.has_mask = False
+        for c_slice in cube_slices:
+            if isinstance(c_slice.data, np.ma.core.MaskedArray): self.has_mask = True
 
         result = result_slices.merge_cube() if allow_slicing else result_slices[0]
 
@@ -912,7 +915,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         self._update_blended_metadata(result, attributes_dict)
 
         # Re-mask output
-        if isinstance(cube.data, np.ma.core.MaskedArray):
+        if self.has_mask:
             result.data = np.ma.array(result.data)
 
         return result
