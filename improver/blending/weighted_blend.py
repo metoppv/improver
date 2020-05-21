@@ -647,7 +647,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         # Check the weights add up to 1 across the blending dimension.
         self.check_weights(weights_array, 0)
 
-        return weights_array.astype(np.float32)
+        return weights_array
 
     def percentile_weighted_mean(self, cube, weights, perc_coord):
         """

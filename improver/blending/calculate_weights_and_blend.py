@@ -255,19 +255,25 @@ class WeightAndBlend(BasePlugin):
             # blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
 
-            cubes = []
-            for subcube_index in range(number_of_subcubes):
-                indices[dim_to_collapse] = subcube_index
-                subcube = cube[tuple(indices)]
-                result = BlendingPlugin(
-                    subcube,
+            # Note: to reduce memory, slice over the first non-blended dim
+            # and merge afterwards (blended dim is 0)
+            slice_dim = 1
+            allow_slicing = (
+                cube.ndim > 1
+                and cube.shape[slice_dim] > 1
+                and not BlendingPlugin.check_percentile_coord(cube)
+            )
+            cube_slices = cube.slices_over(slice_dim) if allow_slicing else [cube]
+            result_slices = CubeList()
+            for cube_slice in cube_slices:
+                result_slice = BlendingPlugin(
+                    cube_slice,
                     weights=weights,
                     cycletime=cycletime,
                     attributes_dict=attributes_dict,
                 )
-                result.data = result.lazy_data()
-                cubes.append(result)
-            result = CubeList(cubes).merge_cube()
+                result_slices.append(result_slice)
+            result = result_slices.merge_cube() if allow_slicing else result_slices[0]
 
             # Making the dim coords consistent between the original cube and new blended cube
             dim_coords = {coord.name() for coord in cube.dim_coords}
