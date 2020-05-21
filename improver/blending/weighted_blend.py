@@ -721,7 +721,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         (collapse_dim,) = cube.coord_dims(self.blend_coord)
         slice_dim = 1 if collapse_dim == 0 else 0
 
-        slicing_threshold = 1620000  # (2, 900, 900)
+        slicing_threshold = 3e7
         allow_slicing = (
             cube.ndim > 2 and np.array(cube.shape).prod() > slicing_threshold
         )
