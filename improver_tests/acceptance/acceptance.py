@@ -150,7 +150,6 @@ def verify_checksum(kgo_path, checksums=None, checksum_path=None):
     if kgo_csum != expected_csum:
         msg = f"Checksum for {kgo_rel_path} is {kgo_csum}, expected {expected_csum}"
         raise ValueError(msg)
-    return
 
 
 def calculate_checksum(path):
@@ -205,7 +204,6 @@ def verify_checksums(cli_arglist):
         arg_globs = list(arg.parent.glob(arg.name))
         for arg_glob in arg_globs:
             verify_checksum(arg_glob)
-    return
 
 
 def kgo_recreate():

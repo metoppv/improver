@@ -86,4 +86,3 @@ def recreate_checksum_file(kgo_paths, checksum_path=None):
             checksum_file.write(f"{checksum}  ./{rel_path}\n")
     print(f"Checksum file {checksum_path} recreated")
     print("This test and any others with checksum failures should now pass when re-run")
-    return

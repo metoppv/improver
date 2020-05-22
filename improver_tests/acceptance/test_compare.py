@@ -39,7 +39,7 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI, verbose=False)
 
 
-def test_same(tmp_path, capsys):
+def test_same(capsys):
     """Compare identical files, should not produce any output"""
     kgo_dir = acc.kgo_root()
     input_file = kgo_dir / "apply-lapse-rate/highres_orog.nc"
