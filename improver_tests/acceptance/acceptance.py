@@ -140,13 +140,15 @@ def verify_checksum(kgo_path, checksums=None, checksum_path=None):
     if checksums is None:
         checksums = acceptance_checksums(checksum_path)
     kgo_csum = calculate_checksum(kgo_path)
+    kgo_norm_path = pathlib.Path(os.path.normpath(kgo_path))
+    kgo_rel_path = kgo_norm_path.relative_to(kgo_root())
     try:
-        expected_csum = checksums[kgo_path.relative_to(kgo_root())]
+        expected_csum = checksums[kgo_rel_path]
     except KeyError:
-        msg = f"Checksum for {kgo_path} is missing"
+        msg = f"Checksum for {kgo_rel_path} is missing"
         raise KeyError(msg)
     if kgo_csum != expected_csum:
-        msg = f"Checksum for {kgo_path} is {kgo_csum}, expected {expected_csum}"
+        msg = f"Checksum for {kgo_rel_path} is {kgo_csum}, expected {expected_csum}"
         raise ValueError(msg)
     return
 
@@ -202,7 +204,6 @@ def verify_checksums(cli_arglist):
         # expand any globs in the argument and verify each of them
         arg_globs = list(arg.parent.glob(arg.name))
         for arg_glob in arg_globs:
-            print(arg_glob)
             verify_checksum(arg_glob)
     return
 
