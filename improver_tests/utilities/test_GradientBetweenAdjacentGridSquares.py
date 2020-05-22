@@ -55,7 +55,7 @@ def orography_fixture() -> Cube:
 
 @pytest.fixture()
 def make_expected() -> callable:
-    """Factory as fixture of generating a cube of varying size."""
+    """Factory as fixture for generating a cube of varying size."""
 
     def _make_expected(shape, value) -> Cube:
         """Create a cube filled with data of a specific shape and value."""
