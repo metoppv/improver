@@ -39,7 +39,6 @@ import shlex
 import shutil
 
 import pytest
-from filelock import FileLock
 
 from improver import cli
 from improver.constants import DEFAULT_TOLERANCE
@@ -110,37 +109,15 @@ def acceptance_checksums(checksum_path=None):
         checksum_path = DEFAULT_CHECKSUM_FILE
     if not kgo_exists():
         raise IOError("KGO path must be defined")
-    kgo_root_dir = kgo_root()
     with open(checksum_path, mode="r") as checksum_file:
         checksum_lines = checksum_file.readlines()
     checksums = {}
     for line in checksum_lines:
         parts = line.strip().split("  ", maxsplit=1)
         csum = parts[0]
-        path = (kgo_root_dir / parts[1]).resolve()
+        path = pathlib.Path(parts[1])
         checksums[path] = csum
     return checksums
-
-
-def update_checksum_file(path, checksum, checksum_path=None):
-    if checksum_path is None:
-        checksum_path = DEFAULT_CHECKSUM_FILE
-    kgo_root_dir = kgo_root()
-    # lock the checksum file to avoid conflicting updates from other test processes
-    with FileLock(checksum_path.with_suffix("lock"), timeout=15).acquire():
-        # clear lru_cache so update applies to current checksum file contents
-        acceptance_checksums.cache_clear()
-        checksums = acceptance_checksums()
-        # insert the updated checksum
-        checksums[path] = checksum
-        # rewrite the checksum file
-        with open(checksum_path, mode="w") as checksum_file:
-            for path in sorted(checksums.keys()):
-                relpath = path.relative_to(kgo_root_dir)
-                checksum_file.write(f"{checksums[path]}  ./{relpath}\n")
-        # clear lru_cache again so that any further tests pick up the new changes
-        acceptance_checksums.cache_clear()
-    return
 
 
 def verify_checksum(kgo_path, checksums=None, checksum_path=None):
@@ -164,7 +141,7 @@ def verify_checksum(kgo_path, checksums=None, checksum_path=None):
         checksums = acceptance_checksums(checksum_path)
     kgo_checksum = calculate_checksum(kgo_path)
     try:
-        expected = checksums[kgo_path.resolve()]
+        expected = checksums[kgo_path.relative_to(kgo_root())]
     except KeyError:
         msg = f"Checksum for {kgo_path} is missing"
         raise KeyError(msg)
@@ -214,8 +191,9 @@ def verify_checksums(cli_arglist):
     path_args = [arg for arg in arglist if isinstance(arg, pathlib.Path)]
     for arg in path_args:
         # expand any globs in the argument and verify each of them
-        arg_globs = arg.parent.glob(arg.name)
+        arg_globs = list(arg.parent.glob(arg.name))
         for arg_glob in arg_globs:
+            print(arg_glob)
             verify_checksum(arg_glob)
     return
 
@@ -282,7 +260,6 @@ def recreate_if_needed(output_path, kgo_path, recreate_dir_path=None):
     recreate_file_path.parent.mkdir(exist_ok=True, parents=True)
     if recreate_file_path.exists():
         recreate_file_path.unlink()
-    update_checksum_file(kgo_relative, calculate_checksum(output_path))
     shutil.copyfile(str(output_path), str(recreate_file_path))
     print(f"Updated KGO file is at {recreate_file_path}")
     print(
