@@ -102,7 +102,7 @@ def acceptance_checksums(checksum_path=None):
             the KGO root directory found by kgo_root().
 
     Returns:
-        Dict[pathlib.Path, str]: dictionary with keys being absolute paths and
+        Dict[pathlib.Path, str]: Dict with keys being relative paths and
             values being hexadecimal checksums
     """
     if checksum_path is None:
@@ -134,24 +134,33 @@ def verify_checksum(kgo_path, checksums=None, checksum_path=None):
             tool.
 
     Raises:
-        KeyError: file being verified is not found in checksum dict/file
-        ValueError: checksum does not match value in checksum dict/file
+        KeyError: File being verified is not found in checksum dict/file
+        ValueError: Checksum does not match value in checksum dict/file
     """
     if checksums is None:
         checksums = acceptance_checksums(checksum_path)
-    kgo_checksum = calculate_checksum(kgo_path)
+    kgo_csum = calculate_checksum(kgo_path)
     try:
-        expected = checksums[kgo_path.relative_to(kgo_root())]
+        expected_csum = checksums[kgo_path.relative_to(kgo_root())]
     except KeyError:
         msg = f"Checksum for {kgo_path} is missing"
         raise KeyError(msg)
-    if kgo_checksum != expected:
-        msg = f"Checksum for {kgo_path} is {kgo_checksum}, expected {expected}"
+    if kgo_csum != expected_csum:
+        msg = f"Checksum for {kgo_path} is {kgo_csum}, expected {expected_csum}"
         raise ValueError(msg)
     return
 
 
 def calculate_checksum(path):
+    """
+    Calculate SHA256 hash/checksum of a file
+
+    Args:
+        path (pathlib.Path): Path to file
+
+    Returns:
+        str: checksum as hexadecimal string
+    """
     hasher = hashlib.sha256()
     with open(path, mode="rb") as kgo_file:
         while True:

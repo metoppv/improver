@@ -44,6 +44,7 @@ def test_kgo_checksums():
     """Bulk check of all KGO checksums independent of other tests"""
     kgo_root = acc.kgo_root()
     data_paths = []
+    # walk the KGO directory and gather all files and symlinks to files
     for directory, subdirectories, filenames in os.walk(kgo_root, topdown=True):
         # exclude dotfiles such as .git
         subdirectories[:] = [d for d in subdirectories if not d.startswith(".")]
@@ -65,10 +66,15 @@ def test_kgo_checksums():
 def recreate_checksum_file(kgo_paths, checksum_path=None):
     """
     Recreate the KGO checksum file.
+    The checksum file is in plain text format as produced by the sha256sum
+    tool, with paths relative to the KGO root directory.
 
     Args:
-        kgo_paths (Sequence[pathlib.Path]): paths to each KGO data file
-        checksum_path (Optional[pathlib.Path]): path to checksum file
+        kgo_paths (Sequence[pathlib.Path]): Absolute path to each KGO data
+            file to include in the checksum file. Paths should be inside
+            the KGO root directory.
+        checksum_path (Optional[pathlib.Path]): Path to checksum file.
+            Default is provided by DEFAULT_CHECKSUM_FILE constant.
     """
     if checksum_path is None:
         checksum_path = acc.DEFAULT_CHECKSUM_FILE
