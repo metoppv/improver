@@ -39,6 +39,7 @@ import shlex
 import shutil
 
 import pytest
+from filelock import FileLock
 
 from improver import cli
 from improver.constants import DEFAULT_TOLERANCE
@@ -47,7 +48,6 @@ from improver.utilities.compare import compare_netcdfs
 RECREATE_DIR_ENVVAR = "RECREATE_KGO"
 ACC_TEST_DIR_ENVVAR = "IMPROVER_ACC_TEST_DIR"
 ACC_TEST_DIR_MISSING = pathlib.Path("/dev/null")
-DEFAULT_CHECKSUM = "sha256"
 DEFAULT_CHECKSUM_FILE = pathlib.Path(__file__).parent / "SHA256SUMS"
 
 
@@ -122,6 +122,27 @@ def acceptance_checksums(checksum_path=None):
     return checksums
 
 
+def update_checksum_file(path, checksum, checksum_path=None):
+    if checksum_path is None:
+        checksum_path = DEFAULT_CHECKSUM_FILE
+    kgo_root_dir = kgo_root()
+    # lock the checksum file to avoid conflicting updates from other test processes
+    with FileLock(checksum_path.with_suffix("lock"), timeout=15).acquire():
+        # clear lru_cache so update applies to current checksum file contents
+        acceptance_checksums.cache_clear()
+        checksums = acceptance_checksums()
+        # insert the updated checksum
+        checksums[path] = checksum
+        # rewrite the checksum file
+        with open(checksum_path, mode="w") as checksum_file:
+            for path in sorted(checksums.keys()):
+                relpath = path.relative_to(kgo_root_dir)
+                checksum_file.write(f"{checksums[path]}  ./{relpath}\n")
+        # clear lru_cache again so that any further tests pick up the new changes
+        acceptance_checksums.cache_clear()
+    return
+
+
 def verify_checksum(kgo_path, checksums=None, checksum_path=None):
     """
     Verify an individual KGO file's checksum.
@@ -141,15 +162,7 @@ def verify_checksum(kgo_path, checksums=None, checksum_path=None):
     """
     if checksums is None:
         checksums = acceptance_checksums(checksum_path)
-    hasher = hashlib.sha256()
-    with open(kgo_path, mode="rb") as kgo_file:
-        while True:
-            # read 1 megabyte binary chunks from file and feed them to hasher
-            kgo_chunk = kgo_file.read(2 ** 20)
-            if not kgo_chunk:
-                break
-            hasher.update(kgo_chunk)
-    kgo_checksum = hasher.hexdigest()
+    kgo_checksum = calculate_checksum(kgo_path)
     try:
         expected = checksums[kgo_path.resolve()]
     except KeyError:
@@ -159,6 +172,19 @@ def verify_checksum(kgo_path, checksums=None, checksum_path=None):
         msg = f"Checksum for {kgo_path} is {kgo_checksum}, expected {expected}"
         raise ValueError(msg)
     return
+
+
+def calculate_checksum(path):
+    hasher = hashlib.sha256()
+    with open(path, mode="rb") as kgo_file:
+        while True:
+            # read 1 megabyte binary chunks from file and feed them to hasher
+            kgo_chunk = kgo_file.read(2 ** 20)
+            if not kgo_chunk:
+                break
+            hasher.update(kgo_chunk)
+    checksum = hasher.hexdigest()
+    return checksum
 
 
 def verify_checksums(cli_arglist):
@@ -256,6 +282,7 @@ def recreate_if_needed(output_path, kgo_path, recreate_dir_path=None):
     recreate_file_path.parent.mkdir(exist_ok=True, parents=True)
     if recreate_file_path.exists():
         recreate_file_path.unlink()
+    update_checksum_file(kgo_relative, calculate_checksum(output_path))
     shutil.copyfile(str(output_path), str(recreate_file_path))
     print(f"Updated KGO file is at {recreate_file_path}")
     print(
