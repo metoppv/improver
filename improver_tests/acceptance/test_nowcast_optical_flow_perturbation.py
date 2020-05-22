@@ -44,9 +44,12 @@ run_cli = acc.run_cli(CLI)
 FORECAST = "20190101T1600Z-PT0000H00M"
 CURRENT = "20190101T1615Z"
 
+
 def test_basic(tmp_path):
     """Test basic optical flow nowcast"""
-    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-optical-flow-perturbation"
+    kgo_dir = (
+        acc.kgo_root() / "nowcast-feature-branch/nowcast-optical-flow-perturbation"
+    )
     kgo_path = kgo_dir / "kgo.nc"
     obs_path = kgo_dir / f"{CURRENT}_current_obs.nc"
     forecast_path = kgo_dir / f"{CURRENT}_forecast_slice.nc"
