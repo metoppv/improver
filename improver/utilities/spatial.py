@@ -169,13 +169,8 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
     individually.
     """
 
-    def __init__(self):
-        """
-        Initialise class.
-        """
-        pass
-
-    def _update_metadata(self, diff_cube, coord_name, cube_name):
+    @staticmethod
+    def _update_metadata(diff_cube, coord_name, cube_name):
         """Rename cube, add attribute and cell method to describe difference.
 
         Args:
@@ -194,7 +189,8 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diff_cube.attributes["form_of_difference"] = "forward_difference"
         diff_cube.rename("difference_of_" + cube_name)
 
-    def create_difference_cube(self, cube, coord_name, diff_along_axis):
+    @staticmethod
+    def create_difference_cube(cube, coord_name, diff_along_axis):
         """
         Put the difference array into a cube with the appropriate
         metadata.
@@ -235,7 +231,8 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
             diff_cube.add_aux_coord(coord.copy(), dims)
         return diff_cube
 
-    def calculate_difference(self, cube, coord_name):
+    @staticmethod
+    def calculate_difference(cube, coord_name):
         """
         Calculate the difference along the axis specified by the
         coordinate.
@@ -304,7 +301,8 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
             """
         self.regrid = regrid
 
-    def _update_metadata(self, gradient, cube):
+    @staticmethod
+    def _update_metadata(gradient, cube):
         """Rename cube and remove inappropriate metadata.
 
         Args:
