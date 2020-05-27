@@ -361,12 +361,12 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **gradient_along_y_cube** (iris.cube.Cube):
-                    Cube after the gradients have been calculated along the
-                    y axis.
                 **gradient_along_x_cube** (iris.cube.Cube):
                     Cube after the gradients have been calculated along the
                     x axis.
+                **gradient_along_y_cube** (iris.cube.Cube):
+                    Cube after the gradients have been calculated along the
+                    y axis.
 
         """
         gradients = []
