@@ -89,6 +89,8 @@ def build_coefficients_cubelist(template, coeff_values, predictor="mean"):
 
     attributes = {
         "diagnostic_standard_name": "air_temperature",
+        "distribution": "norm",
+        "title": "Ensemble Model Output Statistics coefficients",
     }
 
     coeff_names = ["alpha", "beta", "gamma", "delta"]
@@ -264,6 +266,47 @@ class Test_process(IrisTest):
             realizations_count=3,
         )
         self.assertArrayAlmostEqual(result.data[0], expected_data_slice)
+
+    def test_null_percentiles_truncnorm_distribution(self):
+        """Test effect of "neutral" emos coefficients in percentile space
+        (this is small but non-zero due to limited sampling of the
+        distribution) for the truncated normal distribution."""
+        coefficients = iris.cube.CubeList([])
+        for cube in self.coefficients:
+            cube.attributes["distribution"] = "truncnorm"
+            cube.attributes["shape_parameters"] = np.array([0, np.inf], np.float32)
+            coefficients.append(cube)
+
+        expected_mean = np.mean(self.percentiles.data)
+        expected_data = np.array(
+            [
+                np.full((3, 3), 10.265101),
+                np.full((3, 3), 10.4),
+                np.full((3, 3), 10.534898),
+            ]
+        )
+        result = ApplyEMOS()(self.percentiles, coefficients, realizations_count=3)
+        self.assertIn("percentile", get_dim_coord_names(result))
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertAlmostEqual(np.mean(result.data), expected_mean)
+
+    def test_invalid_attribute(self):
+        """Test that an exception is raised if multiple different distribution
+        attributes are provided within the coefficients cubelist."""
+        self.coefficients[0].attributes["distribution"] = "truncnorm"
+        msg = "Coefficients must share the same"
+        with self.assertRaisesRegex(ValueError, msg):
+            ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
+
+    def test_missing_attribute(self):
+        """Test that an exception is raised if the expected distribution
+        attribute is missing from within the coefficients cubelist."""
+        self.coefficients[0].attributes.pop("distribution")
+        msg = "Coefficients must share the same"
+        with self.assertRaisesRegex(ValueError, msg):
+            ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
+
+
 
 
 if __name__ == "__main__":

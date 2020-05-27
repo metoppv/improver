@@ -51,13 +51,11 @@ def process(
     coefficients: inputcoeffs = None,
     land_sea_mask: cli.inputcube = None,
     *,
-    distribution,
     realizations_count: int = None,
     randomise=False,
     random_seed: int = None,
     ignore_ecc_bounds=False,
     predictor="mean",
-    shape_parameters: cli.comma_separated_list = None,
 ):
     """Applying coefficients for Ensemble Model Output Statistics.
 
@@ -82,12 +80,6 @@ def process(
             "If not None this argument will enable land-only calibration, in "
             "which sea points are returned without the application of "
             "calibration."
-        distribution (str):
-            The distribution for constructing realizations, percentiles or
-            probabilities. This should typically match the distribution used
-            for minimising the Continuous Ranked Probability Score when
-            estimating the EMOS coefficients. The distributions available are
-            those supported by :data:`scipy.stats`.
         realizations_count (int):
             Option to specify the number of ensemble realizations that will be
             created from probabilities or percentiles for input into EMOS.
@@ -115,15 +107,6 @@ def process(
             the location parameter when estimating the EMOS coefficients.
             Currently the ensemble mean ("mean") and the ensemble
             realizations ("realizations") are supported as the predictors.
-        shape_parameters (float or str):
-            The shape parameters required for defining the distribution
-            specified by the distribution argument. The shape parameters
-            should either be a number or 'inf' or '-inf' to represent
-            infinity. Further details about appropriate shape parameters
-            are available in scipy.stats. For the truncated normal
-            distribution with a lower bound of zero, as available when
-            estimating EMOS coefficients, the appropriate shape parameters
-            are 0 and inf.
 
     Returns:
         iris.cube.Cube:
@@ -141,8 +124,6 @@ def process(
     """
     import warnings
 
-    import numpy as np
-
     from improver.calibration.ensemble_calibration import ApplyEMOS
 
     if coefficients is None:
@@ -157,8 +138,6 @@ def process(
         msg = "The land_sea_mask cube does not have the name 'land_binary_mask'"
         raise ValueError(msg)
 
-    if shape_parameters:
-        shape_parameters = [np.float32(x) for x in shape_parameters]
 
     calibration_plugin = ApplyEMOS()
     result = calibration_plugin(
@@ -168,8 +147,6 @@ def process(
         realizations_count=realizations_count,
         ignore_ecc_bounds=ignore_ecc_bounds,
         predictor=predictor,
-        distribution=distribution,
-        shape_parameters=shape_parameters,
         randomise=randomise,
         random_seed=random_seed,
     )

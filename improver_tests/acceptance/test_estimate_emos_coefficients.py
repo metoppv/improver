@@ -60,12 +60,12 @@ EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
 
 
 @pytest.mark.slow
-def test_gaussian(tmp_path):
+def test_normal(tmp_path):
     """
     Test estimate-emos-coefficients for diagnostic with assumed
-    gaussian distribution
+    normal distribution
     """
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/gaussian"
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
     kgo_path = kgo_dir / "kgo.nc"
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
@@ -74,7 +74,7 @@ def test_gaussian(tmp_path):
         history_path,
         truth_path,
         "--distribution",
-        "gaussian",
+        "norm",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--tolerance",
@@ -89,12 +89,12 @@ def test_gaussian(tmp_path):
 
 
 @pytest.mark.slow
-def test_trunc_gaussian(tmp_path):
+def test_truncated_normal(tmp_path):
     """
     Test estimate-emos-coefficients for diagnostic with assumed
-    truncated gaussian distribution
+    truncated normal distribution
     """
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/truncated_gaussian"
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/truncated_normal"
     kgo_path = kgo_dir / "kgo.nc"
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
@@ -103,7 +103,7 @@ def test_trunc_gaussian(tmp_path):
         history_path,
         truth_path,
         "--distribution",
-        "truncated_gaussian",
+        "truncnorm",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--tolerance",
@@ -120,7 +120,7 @@ def test_trunc_gaussian(tmp_path):
 @pytest.mark.slow
 def test_units(tmp_path):
     """Test prescribed units that may not match inputs"""
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/gaussian"
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
     kgo_path = kgo_dir / "kgo.nc"
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
@@ -129,7 +129,7 @@ def test_units(tmp_path):
         history_path,
         truth_path,
         "--distribution",
-        "gaussian",
+        "norm",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--units",
@@ -151,14 +151,14 @@ def test_using_realizations_as_predictor_no_sm(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
     kgo_path = kgo_dir / "realizations/without_statsmodels_kgo.nc"
-    history_path = kgo_dir / "gaussian/history/*.nc"
-    truth_path = kgo_dir / "gaussian/truth/*.nc"
+    history_path = kgo_dir / "normal/history/*.nc"
+    truth_path = kgo_dir / "normal/truth/*.nc"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
         truth_path,
         "--distribution",
-        "gaussian",
+        "norm",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--predictor",
@@ -181,14 +181,14 @@ def test_using_realizations_as_predictor_sm(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
     kgo_path = kgo_dir / "realizations/with_statsmodels_kgo.nc"
-    history_path = kgo_dir / "gaussian/history/*.nc"
-    truth_path = kgo_dir / "gaussian/truth/*.nc"
+    history_path = kgo_dir / "normal/history/*.nc"
+    truth_path = kgo_dir / "normal/truth/*.nc"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
         truth_path,
         "--distribution",
-        "gaussian",
+        "norm",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--predictor",
@@ -210,17 +210,17 @@ def test_using_realizations_as_predictor_sm(tmp_path):
 def test_land_points_only(tmp_path):
     """Test use of land-sea mask"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    kgo_path = kgo_dir / "gaussian/land_only_kgo.nc"
+    kgo_path = kgo_dir / "normal/land_only_kgo.nc"
     lsmask_path = kgo_dir / "landmask.nc"
-    history_path = kgo_dir / "gaussian/history/*.nc"
-    truth_path = kgo_dir / "gaussian/truth/*.nc"
+    history_path = kgo_dir / "normal/history/*.nc"
+    truth_path = kgo_dir / "normal/truth/*.nc"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
         truth_path,
         lsmask_path,
         "--distribution",
-        "gaussian",
+        "norm",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--tolerance",

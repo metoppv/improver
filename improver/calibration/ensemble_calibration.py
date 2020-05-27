@@ -125,10 +125,11 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         """
         # Dictionary containing the functions that will be minimised,
-        # depending upon the distribution requested.
+        # depending upon the distribution requested. The names of these
+        # distributions match the names of distributions in scipy.stats.
         self.minimisation_dict = {
-            "gaussian": self.calculate_normal_crps,
-            "truncated_gaussian": self.calculate_truncated_normal_crps,
+            "norm": self.calculate_normal_crps,
+            "truncnorm": self.calculate_truncated_normal_crps,
         }
         self.tolerance = tolerance
         # Maximum iterations for minimisation using Nelder-Mead.
@@ -497,22 +498,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Warns:
             ImportWarning: If the statsmodels module can't be imported.
         """
-        valid_distributions = (
-            ContinuousRankedProbabilityScoreMinimisers().minimisation_dict.keys()
-        )
-        if distribution not in valid_distributions:
-            msg = (
-                "Given distribution {} not available. Available "
-                "distributions are {}".format(distribution, valid_distributions)
-            )
-            raise ValueError(msg)
         self.distribution = distribution
+        self._validate_distribution()
         self.desired_units = desired_units
         # Ensure predictor is valid.
         check_predictor(predictor)
         self.predictor = predictor
         self.tolerance = tolerance
         self.max_iterations = max_iterations
+
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
             tolerance=self.tolerance, max_iterations=self.max_iterations
         )
@@ -520,28 +514,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         # Setting default values for coeff_names.
         self.coeff_names = ["alpha", "beta", "gamma", "delta"]
 
-        import importlib
-
-        try:
-            importlib.import_module("statsmodels")
-        except (ModuleNotFoundError, ImportError):
-            statsmodels_found = False
-            if predictor.lower() == "realizations":
-                msg = (
-                    "The statsmodels can not be imported. "
-                    "Will not be able to calculate an initial guess from "
-                    "the individual ensemble realizations. "
-                    "A default initial guess will be used without "
-                    "estimating coefficients from a linear model."
-                )
-                warnings.warn(msg, ImportWarning)
-        else:
-            import statsmodels.api as sm
-
-            statsmodels_found = True
-            self.sm = sm
-
-        self.statsmodels_found = statsmodels_found
+        self.statsmodels_found = self._get_statsmodels_availability()
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -565,8 +538,54 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             self.max_iterations,
         )
 
-    @staticmethod
-    def _set_attributes(historic_forecasts):
+    def _validate_distribution(self):
+        """Validate that the distribution supplied has a corresponding method
+        for minimising the Continuous Ranked Probability Score.
+
+        Raises:
+            ValueError: If the distribution requested is not supported.
+
+        """
+        valid_distributions = (
+            ContinuousRankedProbabilityScoreMinimisers().minimisation_dict.keys()
+        )
+        if self.distribution not in valid_distributions:
+            msg = (
+                "Given distribution {} not available. Available "
+                "distributions are {}".format(self.distribution, valid_distributions)
+            )
+            raise ValueError(msg)
+
+    def _get_statsmodels_availability(self):
+        """Import the statsmodels module, if available.
+
+        Returns:
+            bool:
+                True if the statsmodels module is available. Otherwise, False.
+        """
+        import importlib
+
+        try:
+            importlib.import_module("statsmodels")
+        except (ModuleNotFoundError, ImportError):
+            statsmodels_found = False
+            if self.predictor.lower() == "realizations":
+                msg = (
+                    "The statsmodels can not be imported. "
+                    "Will not be able to calculate an initial guess from "
+                    "the individual ensemble realizations. "
+                    "A default initial guess will be used without "
+                    "estimating coefficients from a linear model."
+                )
+                warnings.warn(msg, ImportWarning)
+        else:
+            import statsmodels.api as sm
+
+            statsmodels_found = True
+            self.sm = sm
+        return statsmodels_found
+
+    def _set_attributes(self, historic_forecasts):
         """Set attributes for use on the EMOS coefficients cube.
 
         Args:
@@ -576,10 +595,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Returns:
             dict:
                 Attributes for an EMOS coefficients cube including
-                "diagnostic standard name" and an updated title.
+                "diagnostic standard name", "distribution" and an updated title.
         """
         attributes = generate_mandatory_attributes([historic_forecasts])
         attributes["diagnostic_standard_name"] = historic_forecasts.name()
+        attributes["distribution"] = self.distribution
+        if self.distribution == "truncnorm":
+            # For the CRPS minimisation, the truncnorm distribution is
+            # truncated at zero.
+            attributes["shape_parameters"] = np.array([0, np.inf], dtype=np.float32)
         attributes["title"] = "Ensemble Model Output Statistics coefficients"
         return attributes
 
@@ -1264,6 +1288,26 @@ class ApplyEMOS(PostProcessingPlugin):
     """
 
     @staticmethod
+    def _get_attribute(coefficients, attribute_name):
+        """
+        Args:
+            coefficients (iris.cube.CubeList):
+                EMOS coefficients
+            attribute_name (str):
+                Name of expected attribute
+        """
+        attribute = [c.attributes[attribute_name] for c in coefficients if c.attributes.get(attribute_name) is not None]
+        print("attribute")
+        if not attribute:
+            return None
+        if len(set(attribute)) == 1 and len(attribute) == len(coefficients):
+            return coefficients[0].attributes[attribute_name]
+        msg = ("Coefficients must share the same {0} attribute. "
+               "{0} attributes provided: {1}".format(
+                attribute_name, attribute))
+        raise ValueError(msg)
+
+    @staticmethod
     def _get_forecast_type(forecast):
         """Identifies whether the forecast is in probability, realization
         or percentile space
@@ -1382,8 +1426,6 @@ class ApplyEMOS(PostProcessingPlugin):
         realizations_count=None,
         ignore_ecc_bounds=True,
         predictor="mean",
-        distribution="norm",
-        shape_parameters=None,
         randomise=False,
         random_seed=None,
     ):
@@ -1408,11 +1450,6 @@ class ApplyEMOS(PostProcessingPlugin):
             predictor (str):
                 Predictor to be used to calculate the location parameter of the
                 calibrated distribution.  Value is "mean" or "realizations".
-            distribution (str):
-                Expected forecast distribution
-            shape_parameters (list of float or None):
-                Fixed shape parameters if the forecast distribution is
-                non-Gaussian
             randomise (bool):
                 Used in generating calibrated realizations.  If input forecast
                 is probabilities or percentiles, this is ignored.
@@ -1441,12 +1478,12 @@ class ApplyEMOS(PostProcessingPlugin):
         )
 
         self.distribution = {
-            "name": distribution,
+            "name": self._get_attribute(coefficients, "distribution"),
             "location": location_parameter,
             "scale": scale_parameter,
-            "shape": shape_parameters,
+            "shape": self._get_attribute(coefficients, "shape_parameters"),
         }
-
+        print("self.distribution = ", self.distribution)
         result = self._calibrate_forecast(forecast, randomise, random_seed)
 
         if land_sea_mask:

@@ -98,24 +98,24 @@ class SetupExpectedCoefficients(IrisTest):
         self.expected_coeff_names = [f"emos_coefficient_{s}" for s in self.coeff_names]
 
         # The expected coefficients for temperature in Kelvin.
-        self.expected_mean_predictor_gaussian = np.array(
+        self.expected_mean_predictor_norm = np.array(
             [25.4302, 0.9058, 0.0013, 0.4675], dtype=np.float32
         )
         # The expected coefficients for wind speed in m s^-1.
-        self.expected_mean_predictor_truncated_gaussian = np.array(
+        self.expected_mean_predictor_truncnorm = np.array(
             [-0.5185, 0.9408, -0.0025, 1.5457], dtype=np.float32
         )
 
-        self.expected_realizations_gaussian_statsmodels = np.array(
+        self.expected_realizations_norm_statsmodels = np.array(
             [-0.2838, -0.0774, 0.3892, 0.9167, -0.0003, 1.0022], dtype=np.float32
         )
-        self.expected_realizations_gaussian_no_statsmodels = np.array(
+        self.expected_realizations_norm_no_statsmodels = np.array(
             [-0.0, 0.5785, 0.578, 0.5733, 0.0001, 1.0227,], dtype=np.float32
         )
-        self.expected_realizations_truncated_gaussian_statsmodels = np.array(
+        self.expected_realizations_truncnorm_statsmodels = np.array(
             [-0.606, -0.0623, 0.3786, 0.9014, 0.0003, 1.2571], dtype=np.float32
         )
-        self.expected_realizations_truncated_gaussian_no_statsmodels = np.array(
+        self.expected_realizations_truncnorm_no_statsmodels = np.array(
             [-0.0015, 0.7171, -0.0089, 0.585, 0.0007, 1.356], dtype=np.float32
         )
 
@@ -126,7 +126,7 @@ class Test__init__(SetupCubes):
 
     def setUp(self):
         """Set up variables for testing."""
-        self.distribution = "gaussian"
+        self.distribution = "norm"
         self.desired_units = "degreesC"
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -217,7 +217,7 @@ class Test__repr__(IrisTest):
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """Set up values for tests."""
-        self.distribution = "gaussian"
+        self.distribution = "norm"
         self.minimiser = repr(ContinuousRankedProbabilityScoreMinimisers())
         self.coeff_names = ["alpha", "beta", "gamma", "delta"]
 
@@ -227,7 +227,7 @@ class Test__repr__(IrisTest):
         result = str(Plugin(self.distribution))
         msg = (
             "<EstimateCoefficientsForEnsembleCalibration: "
-            "distribution: gaussian; "
+            "distribution: norm; "
             "desired_units: None; "
             "predictor: mean; "
             "minimiser: <class 'improver.calibration.ensemble_calibration."
@@ -252,7 +252,7 @@ class Test__repr__(IrisTest):
         )
         msg = (
             "<EstimateCoefficientsForEnsembleCalibration: "
-            "distribution: gaussian; "
+            "distribution: norm; "
             "desired_units: Kelvin; "
             "predictor: realizations; "
             "minimiser: <class 'improver.calibration.ensemble_calibration."
@@ -284,7 +284,7 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         ).merge_cube()
         self.optimised_coeffs = np.array([0, 1, 2, 3], np.int32)
 
-        self.distribution = "gaussian"
+        self.distribution = "norm"
         self.desired_units = "degreesC"
         self.predictor = "mean"
         self.plugin = Plugin(
@@ -321,6 +321,7 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         )
         self.attributes = generate_mandatory_attributes([self.historic_forecast])
         self.attributes["diagnostic_standard_name"] = self.historic_forecast.name()
+        self.attributes["distribution"] = self.distribution
         self.attributes["title"] = "Ensemble Model Output Statistics coefficients"
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -351,6 +352,24 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
 
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
 
+    def test_attributes_for_truncnorm(self):
+        """Test that the expected attributes are created for a truncated normal
+        distribution."""
+        distribution = "truncnorm"
+        self.attributes["distribution"] = distribution
+        self.attributes["shape_parameters"] = np.array([0, np.inf], dtype=np.float32)
+
+        plugin = Plugin(
+            distribution=distribution,
+            desired_units=self.desired_units,
+            predictor=self.predictor,
+        )
+        result = plugin.create_coefficients_cubelist(
+            self.optimised_coeffs, self.historic_forecast
+        )
+        for cube in result:
+            self.assertDictEqual(cube.attributes, self.attributes)
+
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_realizations(self):
         """Test that the expected coefficient cube is returned when the
@@ -379,7 +398,7 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         """Test that an exception is raised if the number of coefficients
         provided for creating the coefficients cube is not equal to the
         number of coefficient names."""
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
         desired_units = "Fahrenheit"
         predictor = "mean"
         optimised_coeffs = [1, 2, 3]
@@ -404,7 +423,7 @@ class Test_compute_initial_guess(IrisTest):
         halo surrounding the original data.
         Set up expected results for different situations.
         """
-        self.distribution = "gaussian"
+        self.distribution = "norm"
         self.desired_units = "degreesC"
         self.predictor = "mean"
         self.no_of_realizations = 3
@@ -657,7 +676,7 @@ class Test_mask_cube(SetupCubes):
         self.mask_cube = set_up_variable_cube(
             mask_data, name="land_binary_mask", units="1"
         )
-        self.plugin = Plugin("gaussian", "20171110T0000Z")
+        self.plugin = Plugin("norm", "20171110T0000Z")
         # Copy a few slices of the temperature truth cube to test on.
         self.cube3D = self.temperature_truth_cube[0:2, ...].copy()
 
@@ -732,7 +751,7 @@ class Test_process(
     def setUp(self):
         """Set up multiple cubes for testing."""
         super().setUp()
-        self.distribution = "gaussian"
+        self.distribution = "norm"
 
         landsea_data = np.array(
             [
@@ -760,10 +779,10 @@ class Test_process(
         self.assertEqual(len(result), len(self.coeff_names))
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficient_values_for_gaussian_distribution(self):
+    def test_coefficient_values_for_norm_distribution(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution. In this case,
+        expected values for a normal distribution. In this case,
         a linear least-squares regression is used to construct the initial
         guess."""
         plugin = Plugin(self.distribution)
@@ -773,17 +792,17 @@ class Test_process(
 
         self.assertEMOSCoefficientsAlmostEqual(
             np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_gaussian,
+            self.expected_mean_predictor_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficient_values_for_gaussian_distribution_landsea_mask(self):
+    def test_coefficient_values_for_norm_distribution_landsea_mask(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution. In this case,
+        expected values for a normal distribution. In this case,
         a linear least-squares regression is used to construct the initial
         guess. The original data is surrounded by a halo that is masked
         out by the landsea_mask, giving the same results as the original data.
@@ -797,17 +816,17 @@ class Test_process(
 
         self.assertEMOSCoefficientsAlmostEqual(
             np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_gaussian,
+            self.expected_mean_predictor_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficient_values_for_gaussian_distribution_mismatching_inputs(self):
+    def test_coefficient_values_for_norm_distribution_mismatching_inputs(self):
         """Test that the values for the optimised coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution for when the historic
+        expected values for a normal distribution for when the historic
         forecasts and truths input having some mismatches in validity time.
         """
         expected = [23.4593, 0.9128, 0.0041, 0.4885]
@@ -826,10 +845,10 @@ class Test_process(
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_gaussian_distribution_default_initial_guess(self):
+    def test_coefficients_norm_distribution_default_initial_guess(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution, where the
+        expected values for a normal distribution, where the
         default values for the initial guess are used, rather than using a
         linear least-squares regression to construct an initial guess.
         Reducing the value for the tolerance would result in the coefficients
@@ -850,10 +869,10 @@ class Test_process(
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficient_values_for_gaussian_distribution_max_iterations(self):
+    def test_coefficient_values_for_norm_distribution_max_iterations(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution, when the max_iterations
+        expected values for a normal distribution, when the max_iterations
         argument is specified."""
         max_iterations = 800
 
@@ -864,20 +883,20 @@ class Test_process(
 
         self.assertEMOSCoefficientsAlmostEqual(
             np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_gaussian,
+            self.expected_mean_predictor_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficient_values_for_truncated_gaussian_distribution(self):
+    def test_coefficient_values_for_truncnorm_distribution(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a truncated Gaussian distribution. In this case,
+        expected values for a truncated normal distribution. In this case,
         a linear least-squares regression is used to construct the initial
         guess."""
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
 
         plugin = Plugin(distribution)
         result = plugin.process(
@@ -886,22 +905,27 @@ class Test_process(
 
         self.assertEMOSCoefficientsAlmostEqual(
             np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_truncated_gaussian,
+            self.expected_mean_predictor_truncnorm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
         )
+        for cube in result:
+            self.assertArrayEqual(
+                cube.attributes["shape_parameters"],
+                np.array([0, np.inf], dtype=np.float32)
+            )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficient_values_for_truncated_gaussian_distribution_mask(self):
+    def test_coefficient_values_for_truncnorm_distribution_mask(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a truncated Gaussian distribution. In this case,
+        expected values for a truncated normal distribution. In this case,
         a linear least-squares regression is used to construct the initial
         guess.The original data is surrounded by a halo that is masked
         out by the land-sea mask, giving the same results as the original data.
         """
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
 
         plugin = Plugin(distribution)
         result = plugin.process(
@@ -912,24 +936,24 @@ class Test_process(
 
         self.assertEMOSCoefficientsAlmostEqual(
             np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_truncated_gaussian,
+            self.expected_mean_predictor_truncnorm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_truncated_gaussian_default_initial_guess(self):
+    def test_coefficients_truncnorm_default_initial_guess(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a truncated Gaussian distribution, where the
+        expected values for a truncated normal distribution, where the
         default values for the initial guess are used, rather than using a
         linear least-squares regression to construct an initial guess.
         Reducing the value for the tolerance would result in the coefficients
         more closely matching the coefficients created when using a linear
         least-squares regression to construct the initial guess."""
         expected = [-0.0002, 0.8557, -0.0013, 1.3785]
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
 
         plugin = Plugin(distribution)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
@@ -946,10 +970,10 @@ class Test_process(
 
     @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_gaussian_realizations_statsmodels(self):
+    def test_coefficients_norm_realizations_statsmodels(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution where the
+        expected values for a normal distribution where the
         realizations are used as the predictor."""
         predictor = "realizations"
 
@@ -960,7 +984,7 @@ class Test_process(
 
         self.assertEMOSCoefficientsAlmostEqual(
             np.concatenate([np.atleast_1d(cube.data) for cube in result]),
-            self.expected_realizations_gaussian_statsmodels,
+            self.expected_realizations_norm_statsmodels,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -968,10 +992,10 @@ class Test_process(
 
     @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_gaussian_realizations_no_statsmodels(self):
+    def test_coefficients_norm_realizations_no_statsmodels(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a Gaussian distribution where the
+        expected values for a normal distribution where the
         realizations are used as the predictor.
         """
         predictor = "realizations"
@@ -982,7 +1006,7 @@ class Test_process(
         )
         self.assertEMOSCoefficientsAlmostEqual(
             np.concatenate([np.atleast_1d(cube.data) for cube in result]),
-            self.expected_realizations_gaussian_no_statsmodels,
+            self.expected_realizations_norm_no_statsmodels,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -990,12 +1014,12 @@ class Test_process(
 
     @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_truncated_gaussian_realizations_statsmodels(self):
+    def test_coefficients_truncnorm_realizations_statsmodels(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a truncated Gaussian distribution where the
+        expected values for a truncated normal distribution where the
         realizations are used as the predictor."""
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
         predictor = "realizations"
 
         plugin = Plugin(distribution, predictor=predictor)
@@ -1004,7 +1028,7 @@ class Test_process(
         )
         self.assertEMOSCoefficientsAlmostEqual(
             np.concatenate([np.atleast_1d(cube.data) for cube in result]),
-            self.expected_realizations_truncated_gaussian_statsmodels,
+            self.expected_realizations_truncnorm_statsmodels,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -1012,12 +1036,12 @@ class Test_process(
 
     @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_truncated_gaussian_realizations_no_statsmodels(self):
+    def test_coefficients_truncnorm_realizations_no_statsmodels(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
-        expected values for a truncated Gaussian distribution where the
+        expected values for a truncated normal distribution where the
         realizations are used as the predictor."""
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
         predictor = "realizations"
 
         plugin = Plugin(distribution, predictor=predictor)
@@ -1027,7 +1051,7 @@ class Test_process(
 
         self.assertEMOSCoefficientsAlmostEqual(
             np.concatenate([np.atleast_1d(cube.data) for cube in result]),
-            self.expected_realizations_truncated_gaussian_no_statsmodels,
+            self.expected_realizations_truncnorm_no_statsmodels,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -1047,7 +1071,7 @@ class Test_process(
 
         self.assertEMOSCoefficientsAlmostEqual(
             np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_gaussian,
+            self.expected_mean_predictor_norm,
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1064,7 +1088,7 @@ class Test_process(
 
         self.assertEMOSCoefficientsAlmostEqual(
             np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_gaussian,
+            self.expected_mean_predictor_norm,
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)

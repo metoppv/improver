@@ -58,8 +58,8 @@ class Test__repr__(IrisTest):
         result = str(Plugin())
         msg = (
             "<ContinuousRankedProbabilityScoreMinimisers: "
-            "minimisation_dict: {'gaussian': 'calculate_normal_crps', "
-            "'truncated_gaussian': 'calculate_truncated_normal_crps'}; "
+            "minimisation_dict: {'norm': 'calculate_normal_crps', "
+            "'truncnorm': 'calculate_truncated_normal_crps'}; "
             "tolerance: 0.01; max_iterations: 1000>"
         )
         self.assertEqual(result, msg)
@@ -69,8 +69,8 @@ class Test__repr__(IrisTest):
         result = str(Plugin(tolerance=10, max_iterations=10))
         msg = (
             "<ContinuousRankedProbabilityScoreMinimisers: "
-            "minimisation_dict: {'gaussian': 'calculate_normal_crps', "
-            "'truncated_gaussian': 'calculate_truncated_normal_crps'}; "
+            "minimisation_dict: {'norm': 'calculate_normal_crps', "
+            "'truncnorm': 'calculate_truncated_normal_crps'}; "
             "tolerance: 10; max_iterations: 10>"
         )
         self.assertEqual(result, msg)
@@ -92,7 +92,7 @@ class SetupInputs(IrisTest):
         )
 
 
-class SetupGaussianInputs(SetupInputs, SetupCubes):
+class SetupNormalInputs(SetupInputs, SetupCubes):
 
     """Create a class for setting up cubes for testing."""
 
@@ -128,10 +128,10 @@ class SetupGaussianInputs(SetupInputs, SetupCubes):
         self.truth_data = self.truth.data.flatten().astype(np.float64)
 
 
-class Test_calculate_normal_crps(SetupGaussianInputs):
+class Test_calculate_normal_crps(SetupNormalInputs):
 
     """
-    Test minimising the CRPS for a gaussian distribution.
+    Test minimising the CRPS for a normal distribution.
     Either the ensemble mean or the individual ensemble realizations are
     used as the predictors.
     """
@@ -213,12 +213,12 @@ class Test_calculate_normal_crps(SetupGaussianInputs):
         self.assertAlmostEqual(result, plugin.BAD_VALUE)
 
 
-class Test_process_gaussian_distribution(
-    SetupGaussianInputs, EnsembleCalibrationAssertions
+class Test_process_normal_distribution(
+    SetupNormalInputs, EnsembleCalibrationAssertions
 ):
 
     """
-    Test minimising the CRPS for a gaussian distribution.
+    Test minimising the CRPS for a normal distribution.
     Either the ensemble mean or the individual ensemble realizations are used
     as the predictors.
     """
@@ -254,7 +254,7 @@ class Test_process_gaussian_distribution(
         coefficients. The ensemble mean is the predictor.
         """
         predictor = "mean"
-        distribution = "gaussian"
+        distribution = "norm"
         result = self.plugin.process(
             self.initial_guess_for_mean,
             self.forecast_predictor_mean,
@@ -282,7 +282,7 @@ class Test_process_gaussian_distribution(
         coefficients. The ensemble realizations are the predictor.
         """
         predictor = "realizations"
-        distribution = "gaussian"
+        distribution = "norm"
         result = self.plugin.process(
             self.initial_guess_for_realization,
             self.forecast_predictor_realizations,
@@ -337,7 +337,7 @@ class Test_process_gaussian_distribution(
         """
         predictor = "mean"
         max_iterations = 400
-        distribution = "gaussian"
+        distribution = "norm"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=max_iterations)
         result = plugin.process(
@@ -370,7 +370,7 @@ class Test_process_gaussian_distribution(
         """
         predictor = "realizations"
         max_iterations = 1000
-        distribution = "gaussian"
+        distribution = "norm"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=max_iterations)
         result = plugin.process(
@@ -394,7 +394,7 @@ class Test_process_gaussian_distribution(
         does not result in a convergence. The ensemble mean is the predictor.
         """
         predictor = "mean"
-        distribution = "gaussian"
+        distribution = "norm"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=10)
         plugin.process(
@@ -422,7 +422,7 @@ class Test_process_gaussian_distribution(
         """
         initial_guess = np.array([5000, 1, 0, 1], dtype=np.float64)
         predictor = "mean"
-        distribution = "gaussian"
+        distribution = "norm"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=5)
         plugin.process(
@@ -440,7 +440,7 @@ class Test_process_gaussian_distribution(
         self.assertTrue(any(warning_msg_iter in str(item) for item in warning_list))
 
 
-class SetupTruncatedGaussianInputs(SetupInputs, SetupCubes):
+class SetupTruncatedNormalInputs(SetupInputs, SetupCubes):
 
     """Create a class for setting up cubes for testing."""
 
@@ -476,10 +476,10 @@ class SetupTruncatedGaussianInputs(SetupInputs, SetupCubes):
         self.truth_data = self.truth.data.flatten().astype(np.float64)
 
 
-class Test_calculate_truncated_normal_crps(SetupTruncatedGaussianInputs):
+class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
 
     """
-    Test minimising the crps for a truncated gaussian distribution.
+    Test minimising the crps for a truncated normal distribution.
     Either the ensemble mean or the individual ensemble realizations are used
     as the predictors.
     """
@@ -561,12 +561,12 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedGaussianInputs):
         self.assertAlmostEqual(result, plugin.BAD_VALUE)
 
 
-class Test_process_truncated_gaussian_distribution(
-    SetupTruncatedGaussianInputs, EnsembleCalibrationAssertions
+class Test_process_truncated_normal_distribution(
+    SetupTruncatedNormalInputs, EnsembleCalibrationAssertions
 ):
 
     """
-    Test minimising the CRPS for a truncated gaussian distribution.
+    Test minimising the CRPS for a truncated normal distribution.
     Either the ensemble mean or the individual ensemble realizations are used
     as the predictors.
     """
@@ -601,7 +601,7 @@ class Test_process_truncated_gaussian_distribution(
         is the predictor.
         """
         predictor = "mean"
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
 
         result = self.plugin.process(
             self.initial_guess_for_mean,
@@ -629,7 +629,7 @@ class Test_process_truncated_gaussian_distribution(
         coefficients. The ensemble realizations are the predictor.
         """
         predictor = "realizations"
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
 
         result = self.plugin.process(
             self.initial_guess_for_realization,
@@ -692,7 +692,7 @@ class Test_process_truncated_gaussian_distribution(
         """
         predictor = "mean"
         max_iterations = 400
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=max_iterations)
         result = plugin.process(
@@ -725,7 +725,7 @@ class Test_process_truncated_gaussian_distribution(
         """
         predictor = "realizations"
         max_iterations = 1000
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=max_iterations)
         result = plugin.process(
@@ -749,7 +749,7 @@ class Test_process_truncated_gaussian_distribution(
         does not result in a convergence. The ensemble mean is the predictor.
         """
         predictor = "mean"
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=10)
         plugin.process(
@@ -779,7 +779,7 @@ class Test_process_truncated_gaussian_distribution(
         initial_guess = np.array([0, 1, 5000, 1], dtype=np.float64)
 
         predictor = "mean"
-        distribution = "truncated_gaussian"
+        distribution = "truncnorm"
 
         plugin = Plugin(tolerance=self.tolerance, max_iterations=5)
 
