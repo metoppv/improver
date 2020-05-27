@@ -791,8 +791,7 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_norm,
+            np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -815,8 +814,7 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_norm,
+            np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -882,8 +880,7 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_norm,
+            np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -913,7 +910,7 @@ class Test_process(
         for cube in result:
             self.assertArrayEqual(
                 cube.attributes["shape_parameters"],
-                np.array([0, np.inf], dtype=np.float32)
+                np.array([0, np.inf], dtype=np.float32),
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1070,8 +1067,7 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_norm,
+            np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1087,8 +1083,7 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_norm,
+            np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)

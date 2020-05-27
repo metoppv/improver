@@ -1289,22 +1289,39 @@ class ApplyEMOS(PostProcessingPlugin):
 
     @staticmethod
     def _get_attribute(coefficients, attribute_name):
-        """
+        """Get the value for the requested attribute, ensuring that the
+        attribute is present consistently across the cubes within the
+        coefficients cubelist.
+
         Args:
             coefficients (iris.cube.CubeList):
                 EMOS coefficients
             attribute_name (str):
                 Name of expected attribute
+
+        Returns:
+            None or Any:
+                Returns None if the attribute is not present. Otherwise,
+                the value of the attribute is returned.
+
+        Raises:
+            ValueError: If coefficients do not share the expected attributes.
         """
-        attribute = [c.attributes[attribute_name] for c in coefficients if c.attributes.get(attribute_name) is not None]
-        print("attribute")
+        attribute = [
+            tuple(c.attributes[attribute_name])
+            for c in coefficients
+            if c.attributes.get(attribute_name) is not None
+        ]
         if not attribute:
             return None
+
         if len(set(attribute)) == 1 and len(attribute) == len(coefficients):
             return coefficients[0].attributes[attribute_name]
-        msg = ("Coefficients must share the same {0} attribute. "
-               "{0} attributes provided: {1}".format(
-                attribute_name, attribute))
+
+        msg = (
+            "Coefficients must share the same {0} attribute. "
+            "{0} attributes provided: {1}".format(attribute_name, attribute)
+        )
         raise ValueError(msg)
 
     @staticmethod

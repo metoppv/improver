@@ -307,7 +307,5 @@ class Test_process(IrisTest):
             ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
 
 
-
-
 if __name__ == "__main__":
     unittest.main()

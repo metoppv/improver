@@ -138,7 +138,6 @@ def process(
         msg = "The land_sea_mask cube does not have the name 'land_binary_mask'"
         raise ValueError(msg)
 
-
     calibration_plugin = ApplyEMOS()
     result = calibration_plugin(
         cube,
