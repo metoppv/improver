@@ -264,12 +264,12 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **diff_along_y_cube** (iris.cube.Cube):
-                    Cube after the differences have been calculated along the
-                    y axis.
                 **diff_along_x_cube** (iris.cube.Cube):
                     Cube after the differences have been calculated along the
                     x axis.
+                **diff_along_y_cube** (iris.cube.Cube):
+                    Cube after the differences have been calculated along the
+                    y axis.
 
         """
         diffs = []
