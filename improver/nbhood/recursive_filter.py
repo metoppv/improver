@@ -382,7 +382,6 @@ class RecursiveFilter(PostProcessingPlugin):
             smoothing_coefficients_x,
             smoothing_coefficients_y,
         ):
-            # print("smoothing_coefficient.data)
             if (smoothing_coefficient.data > 0.5).any():
                 raise ValueError(
                     "All smoothing_coefficient values must be less than 0.5. "

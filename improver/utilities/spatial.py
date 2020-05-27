@@ -302,12 +302,17 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         self.regrid = regrid
 
     @staticmethod
-    def _update_metadata(gradient, cube):
-        """Rename cube and remove inappropriate metadata.
+    def _update_metadata(gradient, cube, diff, axis):
+        """Rename cube and assign appropriate units.
 
         Args:
             gradient (iris.cube.Cube)
+                Cube containing gradients along the x or y axis.
             cube (iris.cube.Cube)
+                Cube used to calculate differences and gradients.
+            diff (iris.cube.Cube)
+                Cube containing differences along the x or y axis.
+            axis (str)
 
         Returns:
             iris.cube.Cube:
@@ -315,19 +320,20 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
 
         """
         gradient.rename("gradient_of_" + cube.name())
+        gradient.units = cube.units / diff.coord(axis=axis).units
         return gradient
 
-    def _gradient_from_diff(self, diff_cube, ref_cube, coord_axis):
+    def _gradient_from_diff(self, diff, cube, axis):
         """
         Calculate the gradient along the x or y axis from differences between
         adjacent grid squares.
 
         Args:
-            diff_cube (iris.cube.Cube):
+            diff (iris.cube.Cube):
                 Cube containing differences along the x or y axis
-            ref_cube (iris.cube.Cube):
+            cube (iris.cube.Cube):
                 Cube with correct output dimensions
-            coord_axis (str):
+            axis (str):
                 Short-hand reference for the x or y coordinate, as allowed by
                 iris.util.guess_coord_axis.
 
@@ -335,10 +341,10 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
             iris.cube.Cube:
                 A cube of the gradients in the coordinate direction specified.
         """
-        grid_spacing = np.diff(diff_cube.coord(axis=coord_axis).points)[0]
-        gradient = diff_cube.copy(data=diff_cube.data / grid_spacing)
+        grid_spacing = np.diff(diff.coord(axis=axis).points)[0]
+        gradient = diff.copy(data=diff.data / grid_spacing)
         if self.regrid:
-            gradient = gradient.regrid(ref_cube, iris.analysis.Linear())
+            gradient = gradient.regrid(cube, iris.analysis.Linear())
         return gradient
 
     def process(self, cube):
@@ -353,15 +359,15 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **diff_along_y_cube** (iris.cube.Cube):
-                    Cube after the differences have been calculated along the
+                **gradient_along_y_cube** (iris.cube.Cube):
+                    Cube after the gradients have been calculated along the
                     y axis.
-                **diff_along_x_cube** (iris.cube.Cube):
-                    Cube after the differences have been calculated along the
+                **gradient_along_x_cube** (iris.cube.Cube):
+                    Cube after the gradients have been calculated along the
                     x axis.
 
         """
-        diffs = []
+        gradients = []
         for axis in ["x", "y"]:
             coord_name = cube.coord(axis=axis).name()
             diff = DifferenceBetweenAdjacentGridSquares().calculate_difference(
@@ -371,10 +377,10 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
                 cube, coord_name, diff
             )
             gradient = self._gradient_from_diff(diff, cube, axis)
-            self._update_metadata(gradient, cube)
-            diffs.append(gradient)
+            self._update_metadata(gradient, cube, diff, axis)
+            gradients.append(gradient)
 
-        return diffs[0], diffs[1]
+        return gradients[0], gradients[1]
 
 
 class OccurrenceWithinVicinity(PostProcessingPlugin):

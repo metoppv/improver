@@ -41,12 +41,12 @@ from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 from ..set_up_test_cubes import set_up_variable_cube
 
 
-@pytest.fixture(name="orography")
-def orography_fixture() -> Cube:
-    """Orography in m"""
+@pytest.fixture(name="wind_speed")
+def wind_speed_fixture() -> Cube:
+    """Wind speed in m/s"""
     data = np.array([[0, 1, 2], [2, 3, 4], [4, 5, 6]], dtype=np.float32)
     cube = set_up_variable_cube(
-        data, name="surface_altitude", units="m", spatial_grid="equalarea"
+        data, name="wind_speed", units="m s^-1", spatial_grid="equalarea"
     )
     for axis in ["x", "y"]:
         cube.coord(axis=axis).points = np.array([0, 1, 2], dtype=np.float32)
@@ -61,10 +61,7 @@ def make_expected_fixture() -> callable:
         """Create a cube filled with data of a specific shape and value."""
         data = np.full(shape, value, dtype=np.float32)
         cube = set_up_variable_cube(
-            data,
-            name="gradient_of_surface_altitude",
-            units="m",
-            spatial_grid="equalarea",
+            data, name="gradient_of_wind_speed", units="s^-1", spatial_grid="equalarea",
         )
         for index, axis in enumerate(["y", "x"]):
             cube.coord(axis=axis).points = np.array(
@@ -82,23 +79,25 @@ def check_assertions(result, expected):
     assert result[1].name() == expected[1].name()
     assert result[0].attributes == expected[0].attributes
     assert result[1].attributes == expected[1].attributes
+    assert result[0].units == expected[0].units
+    assert result[1].units == expected[1].units
     np.testing.assert_allclose(result[0].data, expected[0].data, rtol=1e-5, atol=1e-8)
     np.testing.assert_allclose(result[1].data, expected[1].data, rtol=1e-5, atol=1e-8)
 
 
-def test_with_regrid(orography, make_expected):
+def test_with_regrid(wind_speed, make_expected):
     """Check calculating the gradient with regridding enabled."""
     x_cube = make_expected((3, 3), 1)
     y_cube = make_expected((3, 3), 2)
-    result = GradientBetweenAdjacentGridSquares(regrid=True)(orography)
+    result = GradientBetweenAdjacentGridSquares(regrid=True)(wind_speed)
     check_assertions(result, (x_cube, y_cube))
 
 
-def test_without_regrid(orography, make_expected):
+def test_without_regrid(wind_speed, make_expected):
     """Check calculating the gradient with regridding disabled."""
     x_cube = make_expected((3, 2), 1)
     y_cube = make_expected((2, 3), 2)
-    result = GradientBetweenAdjacentGridSquares()(orography)
+    result = GradientBetweenAdjacentGridSquares()(wind_speed)
     check_assertions(result, (x_cube, y_cube))
 
 
