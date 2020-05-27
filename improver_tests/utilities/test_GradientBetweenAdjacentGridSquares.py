@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Tests of GradientBetweenAdjacentGridSquares plugin."""
 
-import unittest
-
 import numpy as np
 import pytest
 from iris.cube import Cube
@@ -72,34 +70,22 @@ def make_expected_fixture() -> callable:
     return _make_expected
 
 
-def check_assertions(result, expected):
-    """Compare results of test functions"""
-    assert isinstance(result, tuple)
-    assert result[0].name() == expected[0].name()
-    assert result[1].name() == expected[1].name()
-    assert result[0].attributes == expected[0].attributes
-    assert result[1].attributes == expected[1].attributes
-    assert result[0].units == expected[0].units
-    assert result[1].units == expected[1].units
-    np.testing.assert_allclose(result[0].data, expected[0].data, rtol=1e-5, atol=1e-8)
-    np.testing.assert_allclose(result[1].data, expected[1].data, rtol=1e-5, atol=1e-8)
-
-
-def test_with_regrid(wind_speed, make_expected):
-    """Check calculating the gradient with regridding enabled."""
-    x_cube = make_expected((3, 3), 1)
-    y_cube = make_expected((3, 3), 2)
-    result = GradientBetweenAdjacentGridSquares(regrid=True)(wind_speed)
-    check_assertions(result, (x_cube, y_cube))
-
-
-def test_without_regrid(wind_speed, make_expected):
-    """Check calculating the gradient with regridding disabled."""
-    x_cube = make_expected((3, 2), 1)
-    y_cube = make_expected((2, 3), 2)
-    result = GradientBetweenAdjacentGridSquares()(wind_speed)
-    check_assertions(result, (x_cube, y_cube))
-
-
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.parametrize(
+    "grid",
+    (
+        {"regrid": False, "xshape": (3, 2), "yshape": (2, 3)},
+        {"regrid": True, "xshape": (3, 3), "yshape": (3, 3)},
+    ),
+)
+def test_gradient(wind_speed, make_expected, grid):
+    """Check calculating the gradient with and without regridding"""
+    expected_x = make_expected(grid["xshape"], 1)
+    expected_y = make_expected(grid["yshape"], 2)
+    gradient_x, gradient_y = GradientBetweenAdjacentGridSquares(regrid=grid["regrid"])(
+        wind_speed
+    )
+    for result, expected in zip((gradient_x, gradient_y), (expected_x, expected_y)):
+        assert result.name() == expected.name()
+        assert result.attributes == expected.attributes
+        assert result.units == expected.units
+        np.testing.assert_allclose(result.data, expected.data, rtol=1e-5, atol=1e-8)
