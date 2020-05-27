@@ -506,7 +506,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.predictor = predictor
         self.tolerance = tolerance
         self.max_iterations = max_iterations
-
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
             tolerance=self.tolerance, max_iterations=self.max_iterations
         )
@@ -595,7 +594,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Returns:
             dict:
                 Attributes for an EMOS coefficients cube including
-                "diagnostic standard name", "distribution" and an updated title.
+                "diagnostic standard name", "distribution", "shape_parameters"
+                and an updated title.
         """
         attributes = generate_mandatory_attributes([historic_forecasts])
         attributes["diagnostic_standard_name"] = historic_forecasts.name()
@@ -1307,20 +1307,21 @@ class ApplyEMOS(PostProcessingPlugin):
         Raises:
             ValueError: If coefficients do not share the expected attributes.
         """
-        attribute = [
+        attributes = [
             tuple(c.attributes[attribute_name])
             for c in coefficients
             if c.attributes.get(attribute_name) is not None
         ]
-        if not attribute:
+
+        if not attributes:
             return None
 
-        if len(set(attribute)) == 1 and len(attribute) == len(coefficients):
+        if len(set(attributes)) == 1 and len(attributes) == len(coefficients):
             return coefficients[0].attributes[attribute_name]
 
         msg = (
             "Coefficients must share the same {0} attribute. "
-            "{0} attributes provided: {1}".format(attribute_name, attribute)
+            "{0} attributes provided: {1}".format(attribute_name, attributes)
         )
         raise ValueError(msg)
 
@@ -1405,6 +1406,7 @@ class ApplyEMOS(PostProcessingPlugin):
             )
 
         else:
+            print("self.distribution = ", self.distribution)
             conversion_plugin = ConvertLocationAndScaleParametersToPercentiles(
                 distribution=self.distribution["name"],
                 shape_parameters=self.distribution["shape"],
@@ -1500,7 +1502,7 @@ class ApplyEMOS(PostProcessingPlugin):
             "scale": scale_parameter,
             "shape": self._get_attribute(coefficients, "shape_parameters"),
         }
-        print("self.distribution = ", self.distribution)
+
         result = self._calibrate_forecast(forecast, randomise, random_seed)
 
         if land_sea_mask:

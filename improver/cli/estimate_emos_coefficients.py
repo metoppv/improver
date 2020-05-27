@@ -98,8 +98,6 @@ def process(
             coefficient is stored in a separate cube.
     """
 
-    import numpy as np
-
     from improver.calibration import split_forecasts_and_truth
     from improver.calibration.ensemble_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
