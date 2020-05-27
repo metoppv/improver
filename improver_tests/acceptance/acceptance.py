@@ -181,7 +181,7 @@ def verify_checksums(cli_arglist):
     various issues that should result in a test failure.
 
     Args:
-        cli_arglist (List[Union[str,pathlib.Path]]): list of arguments bein
+        cli_arglist (List[Union[str,pathlib.Path]]): list of arguments being
             passed to a CLI such as via improver.cli.main function.
     """
     # copy the arglist as it will be edited to remove output args
@@ -192,11 +192,17 @@ def verify_checksums(cli_arglist):
         arglist.pop(output_idx + 1)
     except ValueError:
         pass
+    # drop arguments of the form --output=file
+    arglist = [
+        arg
+        for arg in arglist
+        if not isinstance(arg, str) or not arg.startswith("--output=")
+    ]
     # check for non-path-type arguments that refer to KGOs
     kgo_dir = str(kgo_root())
     path_strs = [arg for arg in arglist if isinstance(arg, str) and kgo_dir in arg]
-    if len(path_strs) > 0:
-        raise ValueError(f"arg strings referring to KGOs {path_strs}")
+    if path_strs:
+        raise ValueError(f"arg list contains KGO paths as strings {path_strs}")
     # verify checksums of remaining path-type arguments
     path_args = [arg for arg in arglist if isinstance(arg, pathlib.Path)]
     for arg in path_args:
