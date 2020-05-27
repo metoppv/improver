@@ -306,13 +306,15 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         """Rename cube and assign appropriate units.
 
         Args:
-            gradient (iris.cube.Cube)
+            gradient (iris.cube.Cube):
                 Cube containing gradients along the x or y axis.
-            cube (iris.cube.Cube)
+            cube (iris.cube.Cube):
                 Cube used to calculate differences and gradients.
-            diff (iris.cube.Cube)
+            diff (iris.cube.Cube):
                 Cube containing differences along the x or y axis.
-            axis (str)
+            axis (str):
+                Short-hand reference for the x or y coordinate, as allowed by
+                iris.util.guess_coord_axis.
 
         Returns:
             iris.cube.Cube:
