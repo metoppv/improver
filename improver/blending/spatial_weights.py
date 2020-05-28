@@ -62,8 +62,6 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
            range of the effect is controlled by the supplied fuzzy_length
         3. Multiplies the fuzzy spatial weights by the one dimensional weights
            supplied to the plugin.
-        4. Normalises the weights along the coordinate that will be collapsed
-           when blending is carried out using these weights.
     """
 
     def __init__(self, fuzzy_length=10):
