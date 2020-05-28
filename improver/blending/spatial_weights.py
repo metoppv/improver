@@ -317,7 +317,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                A cube containing normalised spatial weights based on the
+                A cube containing non-normalised spatial weights based on the
                 cube_to_collapsemask and the one_dimensional weights supplied.
                 Contains the dimensions, blend_coord, y, x.
         """
