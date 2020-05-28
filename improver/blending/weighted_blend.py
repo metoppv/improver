@@ -50,6 +50,7 @@ from improver.metadata.forecast_times import (
     rebadge_forecasts_as_latest_cycle,
 )
 from improver.metadata.probabilistic import find_percentile_coordinate
+from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import (
     MergeCubes,
     collapsed,
@@ -911,5 +912,10 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         else:
             result = self.weighted_mean(cube, weights)
         self._update_blended_metadata(result, attributes_dict)
+
+        # Checks the coordinate dimensions match the first relevant cube in the unblended cubeList.
+        index = [slice(None)] * cube.ndim
+        index[cube.coord_dims(self.blend_coord)[0]] = 0
+        result = check_cube_coordinates(cube[tuple(index)], result)
 
         return result

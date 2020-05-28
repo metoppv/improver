@@ -158,5 +158,6 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
 
         # Copy the metadata of the central cube
         blended_cube = central_point_cube.copy(blended_cube.data)
+        print(blended_cube)
 
         return blended_cube
