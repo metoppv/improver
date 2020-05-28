@@ -794,6 +794,7 @@ class Test_process(Test_weighted_blend):
         result = plugin(new_cube, self.weights1d)
 
         # Getting the final value of the iterator
+        expected_output = None
         for expected_output in new_cube.slices_over(coord):
             pass
 
