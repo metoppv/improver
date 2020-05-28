@@ -149,10 +149,14 @@ class SquareNeighbourhood:
         np.copyto(data, 0, where=zero_mask)
 
         # Calculate neighbourhood totals for input data.
+        print("\n data before boxsum \n{}\n".format(data))
         data = boxsum(data, nb_size, mode="constant")
+        print("\n data after boxsum \n{}\n".format(data))
         if not sum_only:
             # Calculate neighbourhood totals for mask.
+            print("\n area mask before boxsum \n{}\n".format(area_mask))
             area_sum = boxsum(area_mask, nb_size, mode="constant")
+            print("\ndmask in nbhood boxsum\n {}\n".format(area_sum))
             with np.errstate(divide="ignore", invalid="ignore"):
                 # Calculate neighbourhood mean.
                 data = data / area_sum
@@ -207,6 +211,7 @@ class SquareNeighbourhood:
         original_methods = cube.cell_methods
         grid_cells = distance_to_number_of_grid_cells(cube, radius)
         nb_size = 2 * grid_cells + 1
+        print("nbhood_size ", nb_size)
         try:
             mask_cube_data = mask_cube.data
         except AttributeError:
@@ -222,7 +227,11 @@ class SquareNeighbourhood:
                 self.re_mask,
             )
             result_slices.append(cube_slice)
-
+            print(
+                "\n\nresult slice within square nbhood processing plugin \n {}\n\n".format(
+                    cube_slice.data
+                )
+            )
         neighbourhood_averaged_cube = result_slices.merge_cube()
 
         neighbourhood_averaged_cube.cell_methods = original_methods

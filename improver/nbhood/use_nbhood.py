@@ -76,12 +76,49 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         resulting in a cube with a "topographic_zone" coordinate which is
         returned from this plugin.
 
-        There is an option to remask the output from the plugin, but if the
-        result is left unmasked then the you can weight between adjacent bands
-        when you collapse the new "topographic_zone" coordinate. See
-        :class:`~improver.nbhood.use_nbhood.\
-        CollapseMaskedNeighbourhoodCoordinate`
-        for a plugin to collapse the new dimension on the output cube.
+        The remask option can be used to return the resulting cube with a
+        "topographic_zone" coordinate, with each slice over the
+        "topographic_zone" masked using the input mask cube.
+
+        Otherwise ifweights are provided then the you can weight between
+        adjacent bands when you collapse the new "topographic_zone" coordinate.
+        This takes into account the result from the neighbourhood processing to
+        adjust the weights for points in a "topographic_zone" that don't have
+        a valid result.
+
+        For example below we have two points A and B. Say point A was halfway
+        between the midpoint and top of the lower band. We would want to
+        generate a final result by weighting 0.75 times to neighbourhooded
+        value from the bottom band and 0.25 times the neighbourhooded value in
+        the upper band. For point B we would take equal weightings between the
+        bands. There is a plugin to generate weights here:
+        :class:`~improver.generate_ancillaries.\
+        generate_topographic_zone_weights.GenerateTopographicZoneWeights`
+        ::
+
+                        A             B
+                    ..........................
+            band 2
+
+                    ..................x.......
+                        x
+            band 1
+                    ..........................
+
+        We may need adjust the weights if there is missing data in the adjacent
+        band. If we look at the diagram with labelled bands, points that are
+        near the top of band 2 could be weighted with band 3, except there
+        are no nearby points in band 3. In this case the neighbourhood code
+        puts NaNs in band 3 and we want to take 100% of band 2. This can be
+        easily done by renormalization of the weights, which happens
+        automatically within the numpy functions called within the
+        iris collapse method.
+
+        After collapsing the "topographic_zone" coordinate we end up with a
+        cube with the same dimensions as the original cube, but the neighbourhood processing
+        has been applied using masks so that only similar points are used in
+        the neighbourhood.
+
         See also :class:`~improver.generate_ancillaries.generate_ancillary.\
         GenerateOrographyBandAncils`
         for a plugin for generating topographic band masks.
@@ -113,8 +150,11 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             collapse_weights (iris.cube.Cube):
                 A cube from an ancillary file containing the weights for each
                 point in the 'coord_for_masking' at each grid point. If given,
-                `CollapseMaskedNeighbourhoodCoordinate` will be used to
-                collapse over 'coord_for_masking'.
+                the coord_for_masking coordinate will be collapsed using these
+                weights resulting in an output cube with the same dimensions
+                as the input cube. Otherwise the output cube will have the
+                coord_for_masking from the supplied mask_cube as an additional
+                dimension.
             lead_times (list):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
@@ -137,6 +177,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 mask is not applied. Therefore, the neighbourhood processing
                 may result in values being present in areas that were
                 originally masked.
+                This should be set to False if using collapse_weights.
         """
         self.coord_for_masking = coord_for_masking
         self.neighbourhood_method = "square"
@@ -166,13 +207,57 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             self.re_mask,
         )
 
+    def collapse_mask_coord(self, cube):
+        """
+        Collapse the chosen coordinate with the available weights. The result
+        of the neighbourhood processing is taken into account to renormalize
+        any weights corresponding to a NaN in the result from neighbourhooding.
+        In this case the weights are re-normalized so that we do not lose
+        probability.
+
+        Args:
+            cube (iris.cube.Cube):
+                Cube containing the array to which the square neighbourhood
+                with a mask has been applied.
+                Dimensions self.coord_for_masking, y and x.
+
+        Returns:
+            iris.cube.Cube:
+                Cube containing the weighted mean from neighbourhood after
+                collapsing the chosen coordinate.
+
+        """
+        # print(cube.data.shape)
+        # print(self.collapse_weights.data.shape)
+        # Mask out any NaNs in the neighbourhood data so that Iris ignores
+        # them when calculating the weighted mean.
+        cube.data = ma.masked_invalid(cube.data, copy=False)
+        # Collapse the coord_for_masking. Renormalization of the weights happen
+        # within the underlying call to a numpy function within the Iris method.
+        result = collapsed(
+            cube,
+            self.coord_for_masking,
+            iris.analysis.MEAN,
+            weights=self.collapse_weights.data,
+        )
+        # Set masked invalid data points back to np.nans
+        if np.ma.is_masked(result.data):
+            result.data.data[result.data.mask] = np.nan
+        # Remove references to self.coord_masked in the result cube.
+        result.remove_coord(self.coord_for_masking)
+        return result
+
     def process(self, cube, mask_cube):
         """
-        1. Iterate over the chosen coordinate within the mask_cube and apply
-           the mask at each iteration to the cube that is to be neighbourhood
-           processed.
-        2. Concatenate the cubes from each iteration together to create a
-           single cube.
+        Process each x-y slice of the input cube separately to minimise
+        memory use. For each slice:
+        1. Iterate over the coord_for_masking coordinate within the mask_cube
+           and apply the mask at each iteration to the cube that is to be
+           neighbourhood processed.
+        2. If a collapse_weights cube is provided collapse the coord_for_masking
+           coordinate.
+        Finally concatenate the cubes from each iteration together to create a
+        single cube, and check the dimensions of this cube.
 
         Args:
             cube (iris.cube.Cube):
@@ -190,15 +275,17 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 coordinates match the input cube.
 
         """
+        plugin = NeighbourhoodProcessing(
+            self.neighbourhood_method,
+            self.radii,
+            lead_times=self.lead_times,
+            weighted_mode=self.weighted_mode,
+            sum_or_fraction=self.sum_or_fraction,
+            re_mask=self.re_mask,
+        )
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
         result_slices = iris.cube.CubeList([])
-        if self.collapse_weights is None:
-            collapse_plugin = None
-        else:
-            collapse_plugin = CollapseMaskedNeighbourhoodCoordinate(
-                self.coord_for_masking, self.collapse_weights
-            )
         # Take 2D slices of the input cube for memory issues.
         prev_x_y_slice = None
         for x_y_slice in cube.slices([yname, xname]):
@@ -214,35 +301,36 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             prev_x_y_slice = x_y_slice
 
             cube_slices = iris.cube.CubeList([])
-
-            plugin = NeighbourhoodProcessing(
-                self.neighbourhood_method,
-                self.radii,
-                lead_times=self.lead_times,
-                weighted_mode=self.weighted_mode,
-                sum_or_fraction=self.sum_or_fraction,
-                re_mask=self.re_mask,
-            )
-
+            # print("\nx_y_slice {}\n\n".format(x_y_slice))
             # Apply each mask in in mask_cube to the 2D input slice.
-            for cube_slice in mask_cube.slices_over(self.coord_for_masking):
-                output_cube = plugin(x_y_slice, mask_cube=cube_slice)
-                coord_object = cube_slice.coord(self.coord_for_masking).copy()
+            for mask_slice in mask_cube.slices_over(self.coord_for_masking):
+                output_cube = plugin(x_y_slice, mask_cube=mask_slice)
+                coord_object = mask_slice.coord(self.coord_for_masking).copy()
                 output_cube.add_aux_coord(coord_object)
                 output_cube = iris.util.new_axis(output_cube, self.coord_for_masking)
                 cube_slices.append(output_cube)
+            # print("\ncube_slices {}\n\n".format(cube_slices))
             concatenated_cube = cube_slices.concatenate_cube()
-            exception_coordinates = find_dimension_coordinate_mismatch(
-                x_y_slice, concatenated_cube, two_way_mismatch=False
+            print(
+                "\nconcatenated cube post top nbhood processing{}\n\n".format(
+                    concatenated_cube.data
+                )
             )
-            concatenated_cube = check_cube_coordinates(
-                x_y_slice,
-                concatenated_cube,
-                exception_coordinates=exception_coordinates,
-            )
-            if collapse_plugin:
-                concatenated_cube = collapse_plugin(concatenated_cube)
+            # exception_coordinates = find_dimension_coordinate_mismatch(
+            #     x_y_slice, concatenated_cube, two_way_mismatch=False
+            # )
+            # concatenated_cube = check_cube_coordinates(
+            #     x_y_slice,
+            #     concatenated_cube,
+            #     exception_coordinates=exception_coordinates,
+            # )
+            # print("\nconcatenated cube {}\n\n".format(concatenated_cube))
+            # If weights are provided collapse the coord_for_masking coordinate
+            if self.collapse_weights is not None:
+                concatenated_cube = self.collapse_mask_coord(concatenated_cube)
+                # print("\nconcatenated cube {}\n\n".format(concatenated_cube))
             result_slices.append(concatenated_cube)
+        # print("\nresult_slices {}\n\n".format(result_slices))
         result = result_slices.merge_cube()
         exception_coordinates = find_dimension_coordinate_mismatch(
             cube, result, two_way_mismatch=False
@@ -251,179 +339,4 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             cube, result, exception_coordinates=exception_coordinates
         )
 
-        return result
-
-
-class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
-
-    r"""
-    Plugin for collapsing the coordinate the mask was applied to after
-    masked neighbourhood processing.
-
-    Takes into account the result from the neighbourhood processing to
-    adjust the weights between the bands in the coordinate for the points
-    where the were no points within a neighbourhood for and a non-zero
-    weighting.
-
-    Example:
-
-        This plugin is designed to work with
-        :class:`~improver.nbhood.use_nbhood.\
-        ApplyNeighbourhoodProcessingWithAMask` which adds a dimension to the
-        resulting cube based on the masks that are applied. This most obvious
-        example of these masks are topographic bands which separate the points
-        in the field to be neighbourhooded into bands with points of similar
-        orographic height.
-        ::
-
-            ..............................
-            Band 3
-            ..............................
-            Band 2        ---
-            ............./...\.../\.......
-            Band 1      /     ---  \
-            .........../............\.....
-            Band 0    /              --
-            ........--.................\..
-
-
-        The cube that is input into this plugin has had neighbourhooding
-        applied *n* times for the *n* bands. We now want to collapse this
-        new "topographic_zone" coordinate by weighting between adjacent bands.
-
-        For example below we have two points A and B. Say point A was halfway
-        between the midpoint and top of the lower band. We would want to
-        generate a final result by weighting 0.75 times to neighbourhooded
-        value from the bottom band and 0.25 times the neighbourhooded value in
-        the upper band. For point B we would take equal weightings between the
-        bands. There is a plugin to generate weights here:
-        :class:`~improver.generate_ancillaries.\
-        generate_topographic_zone_weights.GenerateTopographicZoneWeights`
-        ::
-
-                        A             B
-                    ..........................
-            band 2
-
-                    ..................x.......
-                        x
-            band 1
-                    ..........................
-
-        We may need adjust the weights if there is missing data in the adjacent
-        band. If we look at the diagram with labelled bands, points that are
-        near the top of band 2 could be weighted with band 3, except there
-        are no nearby points in band 3. In this case the neighbourhood code
-        puts NaNs in band 3 and we want to take 100% of band 2. This can be
-        easily done by renormalization of the weights.
-
-        Once we have valid weights for adjacent bands for each point we can
-        collapse the "topographic_zone" coordinate using a weighted mean.
-
-        When this plugin is used alongside
-        :class:`~improver.nbhood.use_nbhood.\
-        ApplyNeighbourhoodProcessingWithAMask` we end up with a cube with the
-        same dimensions as the original cube, but the neighbourhood processing
-        has been applied using masks so that only similar points are used in
-        the neighbourhood.
-
-    """
-
-    def __init__(self, coord_masked, weights):
-        """
-        Initialise the class.
-
-        Args:
-            coord_masked (str):
-                String matching the name of the coordinate that has been used
-                for masking.
-            weights (iris.cube.Cube):
-                A cube from an ancillary file containing the weights for each
-                point in the coord_masked at each grid point. Only two points
-                in coord_masked can have a non-zero weight for each grid-point,
-                i.e. we are only weighting between two adjacent bands in the
-                neighbourhood output for each gridpoint.
-                Should have the coordinates coord_masked, x and y.
-                The weights cube can be masked, and this mask will be retained,
-                and will be present in the output.
-
-        """
-        self.coord_masked = coord_masked
-        self.weights = weights
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = (
-            "<ApplyNeighbourhoodProcessingWithAMask: " "coord_masked: {}, weights: {}>"
-        )
-        return result.format(self.coord_masked, self.weights)
-
-    def renormalize_weights(self, nbhood_cube):
-        """
-        Renormalize the weights taking into account where there are NaNs in the
-        result from neighbourhood.
-
-        The weights corresponding to NaNs in the result from neighbourhooding
-        with a mask are set to zero and then the weights are renormalized along
-        the axis corresponding to the coordinate we want to collapse.
-
-        Args:
-            nbhood_cube (iris.cube.Cube):
-                The cube that has been through masked neighbourhood processing
-                and has the dimension we wish to collapse. Must have the same
-                dimensions of the cube.
-        """
-        # If the weights are masked we want to retain the mask.
-        condition = np.isnan(nbhood_cube.data)
-        if ma.is_masked(self.weights.data):
-            condition = condition & ~self.weights.data.mask
-
-        weights_data = self.weights.data.copy()
-        weights_data[condition] = 0.0
-        axis = nbhood_cube.coord_dims(self.coord_masked)
-        return WeightsUtilities.normalise_weights(weights_data, axis=axis)
-
-    def process(self, cube):
-        """
-        Collapse the chosen coordinates with the available weights. The result
-        of the neighbourhood processing is taken into account to renormalize
-        any weights corresponding to a NaN in the result from neighbourhooding.
-        In this case the weights are re-normalized so that we do not lose
-        probability.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube containing the array to which the square neighbourhood
-                with a mask has been applied.
-
-        Returns:
-            iris.cube.Cube:
-                Cube containing the weighted mean from neighbourhood after
-                collapsing the chosen coordinate.
-
-        """
-        # Mask out any NaNs in the neighbourhood data so that Iris ignores
-        # them when calculating the weighted mean.
-        cube.data = ma.masked_invalid(cube.data, copy=False)
-        yname = cube.coord(axis="y").name()
-        xname = cube.coord(axis="x").name()
-
-        # Loop over any extra dimensions
-        weights = self.weights.data
-        cubelist = iris.cube.CubeList([])
-        for slice_3d in cube.slices([self.coord_masked, yname, xname]):
-            collapsed_slice = collapsed(
-                slice_3d, self.coord_masked, iris.analysis.MEAN, weights=weights
-            )
-            cubelist.append(collapsed_slice)
-
-        result = cubelist.merge_cube()
-        # Promote any scalar coordinates with one point back to dimension
-        # coordinates if they were dimensions in the input cube.
-        # Take a slice over the coordinate we are collapsing as we do not
-        # expect this in the output cube.
-        first_slice = next(cube.slices_over([self.coord_masked]))
-        result = check_cube_coordinates(first_slice, result)
-        # Remove references to self.coord_masked in the result cube.
-        result.remove_coord(self.coord_masked)
         return result
