@@ -921,8 +921,8 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         self._update_blended_metadata(result, attributes_dict)
 
         # Checks the coordinate dimensions match the first relevant cube in the unblended cubeList.
-        index = [slice(None)] * cube.ndim
-        index[cube.coord_dims(self.blend_coord)[0]] = 0
-        result = check_cube_coordinates(cube[tuple(index)], result)
+        result = check_cube_coordinates(
+            next(cube.slices_over(self.blend_coord)), result
+        )
 
         return result
