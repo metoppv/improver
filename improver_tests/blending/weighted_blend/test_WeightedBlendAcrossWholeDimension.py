@@ -782,6 +782,39 @@ class Test_process(Test_weighted_blend):
         )
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
+    def test_threshold_cube_with_promoted_dimension_weighted_mean(self):
+        """Test weighted_mean method works collapsing a cube with a threshold
+        dimension when the blending is over a different coordinate. Note that
+        this test is in process to include the slicing."""
+        coord = "forecast_reference_time"
+        plugin = WeightedBlendAcrossWholeDimension(coord)
+
+        new_cube = add_coordinate(self.cube_threshold, [0.5], "height", coord_units="m")
+        new_cube = iris.util.new_axis(new_cube, "height")
+        result = plugin(new_cube, self.weights1d)
+
+        # Getting the final value of the iterator
+        for expected_output in new_cube.slices_over(coord):
+            pass
+
+        expected_result_array = np.ones((2, 2, 2)) * 0.3
+        expected_result_array[1, :, :] = 0.5
+
+        # Expecting an additional dimension for our "height" dimension
+        expected_output.data = expected_result_array[np.newaxis, ...]
+
+        expected_frt = int(self.cube.coord("forecast_reference_time").points[-1])
+        expected_forecast_period = int(self.cube.coord("forecast_period").points[-1])
+
+        self.assertEqual(expected_output.coord("height"), result.coord("height"))
+        self.assertArrayAlmostEqual(result.data, expected_output.data)
+        self.assertEqual(result.attributes, self.expected_attributes)
+        self.assertEqual(result.coord("time").points, expected_frt)
+        self.assertEqual(
+            result.coord("forecast_period").points, expected_forecast_period
+        )
+
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_remove_unnecessary_scalar_coordinates(self):
         """Test model_id and model_configuration coordinates are both removed
         after model blending"""
