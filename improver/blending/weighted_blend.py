@@ -720,11 +720,18 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         weights_array = self.non_percentile_weights(cube, weights)
 
         (collapse_dim,) = cube.coord_dims(self.blend_coord)
-        slice_dim = 1 if collapse_dim == 0 else 0
+        if collapse_dim == 0:
+            slice_dim = 1
+        else:
+            slice_dim = 0
 
         allow_slicing = cube.ndim > 3
 
-        cube_slices = cube.slices_over(slice_dim) if allow_slicing else [cube]
+        if allow_slicing:
+            cube_slices = cube.slices_over(slice_dim)
+        else:
+            cube_slices = [cube]
+
         weights_slices = (
             np.moveaxis(weights_array, slice_dim, 0)
             if allow_slicing
