@@ -1406,7 +1406,6 @@ class ApplyEMOS(PostProcessingPlugin):
             )
 
         else:
-            print("self.distribution = ", self.distribution)
             conversion_plugin = ConvertLocationAndScaleParametersToPercentiles(
                 distribution=self.distribution["name"],
                 shape_parameters=self.distribution["shape"],

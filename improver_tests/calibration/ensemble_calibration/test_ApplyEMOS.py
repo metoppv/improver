@@ -267,7 +267,7 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data[0], expected_data_slice)
 
-    def test_null_percentiles_truncnorm_distribution(self):
+    def test_null_percentiles_truncnorm_standard_shape_parameters(self):
         """Test effect of "neutral" emos coefficients in percentile space
         (this is small but non-zero due to limited sampling of the
         distribution) for the truncated normal distribution."""
@@ -289,6 +289,30 @@ class Test_process(IrisTest):
         self.assertIn("percentile", get_dim_coord_names(result))
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertAlmostEqual(np.mean(result.data), expected_mean)
+
+    def test_null_percentiles_truncnorm_alternative_shape_parameters(self):
+        """Test effect of "neutral" emos coefficients in percentile space
+        (this is small but non-zero due to limited sampling of the
+        distribution) for the truncated normal distribution with alternative
+        shape parameters to show the truncnorm distribution having an effect."""
+        coefficients = iris.cube.CubeList([])
+        for cube in self.coefficients:
+            cube.attributes["distribution"] = "truncnorm"
+            cube.attributes["shape_parameters"] = np.array([10, np.inf], np.float32)
+            coefficients.append(cube)
+
+        expected_mean = np.mean(self.percentiles.data)
+        expected_data = np.array(
+            [
+                np.full((3, 3), 10.275656),
+                np.full((3, 3), 10.405704),
+                np.full((3, 3), 10.5385),
+            ]
+        )
+        result = ApplyEMOS()(self.percentiles, coefficients, realizations_count=3)
+        self.assertIn("percentile", get_dim_coord_names(result))
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertNotAlmostEqual(np.mean(result.data), expected_mean)
 
     def test_invalid_attribute(self):
         """Test that an exception is raised if multiple different distribution
