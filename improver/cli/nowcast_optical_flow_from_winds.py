@@ -77,14 +77,14 @@ def process(
     ).total_seconds()
 
     advection_plugin = PystepsExtrapolate(lead_time_seconds, lead_time_seconds)
-    advected_cube = advection_plugin(
-        cubes[0], *steering_flow, orographic_enhancement
-    )[-1]
+    advected_cube = advection_plugin(cubes[0], *steering_flow, orographic_enhancement)[
+        -1
+    ]
 
     perturbations = OpticalFlow()([advected_cube, cubes[1]])
 
     for flow, adj in zip(steering_flow, perturbations):
         flow.convert_units(adj.units)
         adj.data += flow.data
-    
+
     return CubeList(perturbations)
