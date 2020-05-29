@@ -41,20 +41,18 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
+KGO_DIR = acc.kgo_root() / "nowcast-feature-branch/nowcast-optical-flow-perturbation"
 FORECAST = "20190101T1600Z-PT0000H00M"
 CURRENT = "20190101T1615Z"
 
 
 def test_basic(tmp_path):
     """Test optical flow given whole input forecast"""
-    kgo_dir = (
-        acc.kgo_root() / "nowcast-feature-branch/nowcast-optical-flow-perturbation"
-    )
-    kgo_path = kgo_dir / "kgo.nc"
-    obs_path = kgo_dir / f"{CURRENT}_current_obs.nc"
-    forecast_path = kgo_dir / f"{FORECAST}-precip_rate.nc"
-    advection_path = kgo_dir / f"{FORECAST}-precipitation_advection_velocity.nc"
-    orogenh_path = kgo_dir / f"{FORECAST}-orographic_enhancement.nc"
+    kgo_path = KGO_DIR / "kgo.nc"
+    obs_path = KGO_DIR / f"{CURRENT}_current_obs.nc"
+    forecast_path = KGO_DIR / f"{FORECAST}-precip_rate.nc"
+    advection_path = KGO_DIR / f"{FORECAST}-precipitation_advection_velocity.nc"
+    orogenh_path = KGO_DIR / f"{FORECAST}-orographic_enhancement.nc"
 
     input_paths = [obs_path, forecast_path, advection_path, orogenh_path]
     output_path = tmp_path / "output.nc"
@@ -65,17 +63,29 @@ def test_basic(tmp_path):
 
 def test_slice(tmp_path):
     """Test optical flow given slice of input forecast"""
-    kgo_dir = (
-        acc.kgo_root() / "nowcast-feature-branch/nowcast-optical-flow-perturbation"
-    )
-    kgo_path = kgo_dir / "kgo.nc"
-    obs_path = kgo_dir / f"{CURRENT}_current_obs.nc"
-    forecast_path = kgo_dir / f"{CURRENT}_forecast_slice.nc"
-    advection_path = kgo_dir / f"{FORECAST}-precipitation_advection_velocity.nc"
-    orogenh_path = kgo_dir / f"{FORECAST}-orographic_enhancement.nc"
+    kgo_path = KGO_DIR / "kgo.nc"
+    obs_path = KGO_DIR / f"{CURRENT}_current_obs.nc"
+    forecast_path = KGO_DIR / f"{CURRENT}_forecast_slice.nc"
+    advection_path = KGO_DIR / f"{FORECAST}-precipitation_advection_velocity.nc"
+    orogenh_path = KGO_DIR / f"{FORECAST}-orographic_enhancement.nc"
 
     input_paths = [obs_path, forecast_path, advection_path, orogenh_path]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_forecast_period(tmp_path):
+    """Test different forecast period can be extracted and causes
+    mismatched time error"""
+    obs_path = KGO_DIR / f"{CURRENT}_current_obs.nc"
+    forecast_path = KGO_DIR / f"{FORECAST}-precip_rate.nc"
+    advection_path = KGO_DIR / f"{FORECAST}-precipitation_advection_velocity.nc"
+    orogenh_path = KGO_DIR / f"{FORECAST}-orographic_enhancement.nc"
+
+    input_paths = [obs_path, forecast_path, advection_path, orogenh_path]
+    output_path = tmp_path / "output.nc"
+    args = [*input_paths, "--forecast-period", "30", "--output", output_path]
+    with pytest.raises(ValueError, match=".*validity time must match.*"):
+        run_cli(args)
