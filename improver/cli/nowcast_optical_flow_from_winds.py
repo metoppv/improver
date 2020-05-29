@@ -76,12 +76,18 @@ def process(
         cubes[1].coord("time").cell(0) - cubes[0].coord("time").cell(0)
     ).total_seconds()
 
+    # advect earlier cube forward to match time of later cube, using steering flow
     advected_cube = PystepsExtrapolate(lead_time_seconds, lead_time_seconds)(
         cubes[0], *steering_flow, orographic_enhancement
     )[-1]
 
-    perturbations = OpticalFlow()([advected_cube, cubes[1]])
+    # calculate velocity perterbations required to match "forecast" and later cube
+    cube_list = ApplyOrographicEnhancement("subtract")(
+        [advected_cube, cubes[1]], orographic_enhancement
+    )
+    perturbations = OpticalFlow()(cube_list)
 
+    # add perturbations to original flow field
     for flow, adj in zip(steering_flow, perturbations):
         flow.convert_units(adj.units)
         adj.data += flow.data
