@@ -76,10 +76,9 @@ def process(
         cubes[1].coord("time").cell(0) - cubes[0].coord("time").cell(0)
     ).total_seconds()
 
-    advection_plugin = PystepsExtrapolate(lead_time_seconds, lead_time_seconds)
-    advected_cube = advection_plugin(cubes[0], *steering_flow, orographic_enhancement)[
-        -1
-    ]
+    advected_cube = PystepsExtrapolate(lead_time_seconds, lead_time_seconds)(
+        cubes[0], *steering_flow, orographic_enhancement
+    )[-1]
 
     perturbations = OpticalFlow()([advected_cube, cubes[1]])
 
