@@ -29,8 +29,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate optical flow advection velocities with option to
-extrapolate."""
+"""Script to calculate optical flow advection velocities as perturbations
+from a previous estimate"""
 
 from improver import cli
 
@@ -47,6 +47,8 @@ def process(
     previous_forecast: cli.inputcube,
     previous_advection: inputadvection,
     orographic_enhancement: cli.inputcube,
+    *,
+    forecast_period=15,
 ):
     """Calculate optical flow components from input fields.
 
@@ -61,16 +63,26 @@ def process(
             the previous forecast
         orographic_enhancement (iris.cube.Cube):
             Cube containing orographic enhancement for this timestep
+        forecast_period (int):
+            Forecast period of previous forecast, in minutes.  Used to extract
+            a forecast from a cube that may contain multiple lead times.
 
     Returns:
         iris.cube.CubeList:
             List of the umean and vmean cubes.
 
     """
+    import iris
     from iris.cube import CubeList
 
     from improver.nowcasting.optical_flow import OpticalFlow
     from improver.nowcasting.utilities import ApplyOrographicEnhancement
+
+    # extract forecast at required lead time (expected in seconds)
+    previous_forecast.coord("forecast_period").convert_units("seconds")
+    previous_forecast = previous_forecast.extract(
+        iris.Constraint(forecast_period=60 * forecast_period)
+    )
 
     # check that validity times on the forecast and observation match
     if current_obs.coord("time").cell(0) != previous_forecast.coord("time").cell(0):

@@ -46,7 +46,25 @@ CURRENT = "20190101T1615Z"
 
 
 def test_basic(tmp_path):
-    """Test basic optical flow nowcast"""
+    """Test optical flow given whole input forecast"""
+    kgo_dir = (
+        acc.kgo_root() / "nowcast-feature-branch/nowcast-optical-flow-perturbation"
+    )
+    kgo_path = kgo_dir / "kgo.nc"
+    obs_path = kgo_dir / f"{CURRENT}_current_obs.nc"
+    forecast_path = kgo_dir / f"{FORECAST}-precip_rate.nc"
+    advection_path = kgo_dir / f"{FORECAST}-precipitation_advection_velocity.nc"
+    orogenh_path = kgo_dir / f"{FORECAST}-orographic_enhancement.nc"
+
+    input_paths = [obs_path, forecast_path, advection_path, orogenh_path]
+    output_path = tmp_path / "output.nc"
+    args = [*input_paths, "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_slice(tmp_path):
+    """Test optical flow given slice of input forecast"""
     kgo_dir = (
         acc.kgo_root() / "nowcast-feature-branch/nowcast-optical-flow-perturbation"
     )
