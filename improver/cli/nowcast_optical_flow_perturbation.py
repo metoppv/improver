@@ -50,7 +50,9 @@ def process(
     *,
     forecast_period=15,
 ):
-    """Calculate optical flow components from input fields.
+    """Calculate optical flow components as a perturbation from the previous
+    advection components, using the difference between a current observation
+    and forecast from the previous time step.
 
     Args:
         current_obs (iris.cube.Cube):
