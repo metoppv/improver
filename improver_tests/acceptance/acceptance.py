@@ -107,8 +107,6 @@ def acceptance_checksums(checksum_path=DEFAULT_CHECKSUM_FILE):
     """
     if checksum_path is None:
         checksum_path = DEFAULT_CHECKSUM_FILE
-    if not kgo_exists():
-        raise IOError("KGO path must be defined")
     with open(checksum_path, mode="r") as checksum_file:
         checksum_lines = checksum_file.readlines()
     checksums = {}
@@ -209,7 +207,11 @@ def verify_checksums(cli_arglist):
     kgo_dir = str(kgo_root())
     path_strs = [arg for arg in arglist if isinstance(arg, str) and kgo_dir in arg]
     if path_strs:
-        raise ValueError(f"arg list contains KGO paths as strings {path_strs}")
+        msg = (
+            f"arg list contains KGO paths as strings {path_strs}, "
+            "expected paths to be pathlib.Path objects"
+        )
+        raise ValueError()
     # verify checksums of remaining path-type arguments
     path_args = [arg for arg in arglist if isinstance(arg, pathlib.Path)]
     for arg in path_args:

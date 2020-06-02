@@ -52,7 +52,7 @@ def test_kgo_checksums():
         for filename in filenames:
             data_paths.append(pathlib.Path(directory) / filename)
     try:
-        # check that the all data files are in the list
+        # check that all the data files are in the list
         assert len(data_paths) == len(acc.acceptance_checksums())
         # check each file's checksum
         for path in data_paths:
@@ -79,10 +79,12 @@ def recreate_checksum_file(kgo_paths, checksum_path=None):
     if checksum_path is None:
         checksum_path = acc.DEFAULT_CHECKSUM_FILE
     kgo_root = acc.kgo_root()
+    new_checksum_lines = []
+    for path in sorted(kgo_paths):
+        checksum = acc.calculate_checksum(path)
+        rel_path = path.relative_to(kgo_root)
+        new_checksum_lines.append(f"{checksum}  ./{rel_path}\n")
     with open(checksum_path, mode="w") as checksum_file:
-        for path in sorted(kgo_paths):
-            checksum = acc.calculate_checksum(path)
-            rel_path = path.relative_to(kgo_root)
-            checksum_file.write(f"{checksum}  ./{rel_path}\n")
+            checksum_file.writelines(new_checksum_lines)
     print(f"Checksum file {checksum_path} recreated")
     print("This test and any others with checksum failures should now pass when re-run")
