@@ -90,13 +90,13 @@ def cli_name_with_dashes(dunder_file):
 
 
 @functools.lru_cache()
-def acceptance_checksums(checksum_path=None):
+def acceptance_checksums(checksum_path=DEFAULT_CHECKSUM_FILE):
     """
     Retrieve a list of checksums from file in text list format, as produced by
     the sha256sum command line tool.
 
     Args:
-        checksum_path (Optional[pathlib.Path]): Path to checksum file. File
+        checksum_path (pathlib.Path): Path to checksum file. File
             should be plain text in the format produced by the sha256sum
             command line tool. Paths listed in the file should be relative to
             the KGO root directory found by kgo_root().
@@ -120,7 +120,7 @@ def acceptance_checksums(checksum_path=None):
     return checksums
 
 
-def verify_checksum(kgo_path, checksums=None, checksum_path=None):
+def verify_checksum(kgo_path, checksums=None, checksum_path=DEFAULT_CHECKSUM_FILE):
     """
     Verify an individual KGO file's checksum.
 
@@ -129,26 +129,33 @@ def verify_checksum(kgo_path, checksums=None, checksum_path=None):
         checksums (Optional[Dict[pathlib.Path, str]]): Lookup dictionary
             mapping from paths to hexadecimal checksums. If provided, used in
             preference to checksum_path.
-        checksum_path (pathlib.Path): Path to checksum file. File should be
-            plain text in the format produced by the sha256sum command line
-            tool.
+        checksum_path (pathlib.Path): Path to checksum file, used if checksums is
+            None. File should be plain text in the format produced by the
+            sha256sum command line tool.
 
     Raises:
         KeyError: File being verified is not found in checksum dict/file
         ValueError: Checksum does not match value in checksum dict/file
     """
     if checksums is None:
-        checksums = acceptance_checksums(checksum_path)
+        checksums_dict = acceptance_checksums(checksum_path=checksum_path)
+        checksums_source = checksum_path
+    else:
+        checksums_dict = checksums
+        checksums_source = "lookup dict"
     kgo_csum = calculate_checksum(kgo_path)
     kgo_norm_path = pathlib.Path(os.path.normpath(kgo_path))
     kgo_rel_path = kgo_norm_path.relative_to(kgo_root())
     try:
-        expected_csum = checksums[kgo_rel_path]
+        expected_csum = checksums_dict[kgo_rel_path]
     except KeyError:
-        msg = f"Checksum for {kgo_rel_path} is missing"
+        msg = f"Checksum for {kgo_rel_path} missing from {checksums_source}"
         raise KeyError(msg)
     if kgo_csum != expected_csum:
-        msg = f"Checksum for {kgo_rel_path} is {kgo_csum}, expected {expected_csum}"
+        msg = (
+            f"Checksum for {kgo_rel_path} is {kgo_csum}, "
+            f"expected {expected_csum} in {checksums_source}"
+        )
         raise ValueError(msg)
 
 
