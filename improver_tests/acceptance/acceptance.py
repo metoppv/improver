@@ -211,7 +211,7 @@ def verify_checksums(cli_arglist):
             f"arg list contains KGO paths as strings {path_strs}, "
             "expected paths to be pathlib.Path objects"
         )
-        raise ValueError()
+        raise ValueError(msg)
     # verify checksums of remaining path-type arguments
     path_args = [arg for arg in arglist if isinstance(arg, pathlib.Path)]
     for arg in path_args:
