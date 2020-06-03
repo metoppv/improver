@@ -35,17 +35,17 @@ from collections import OrderedDict
 
 import iris
 import numpy as np
-from numpy.testing import assert_allclose, assert_array_equal
 from iris.coords import DimCoord
+from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
 
-from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 from ...set_up_test_cubes import (
-    set_up_variable_cube,
-    set_up_probability_cube,
     add_coordinate,
+    set_up_probability_cube,
+    set_up_variable_cube,
 )
+from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 
 
 class Test__init__(unittest.TestCase):
@@ -221,12 +221,14 @@ class Test_process(unittest.TestCase):
 
     def setUp(self):
         """
-        Set up a cube with a single threshold to be processed and corresponding
-        mask and weights cubes.
+        Set up a cube with a single threshold and a cube with two thresholds
+        to be processed.
+        Set up mask and weights cubes.
+        Set up expected results.
         """
+        # Set up cube to process.
         data = np.array([[[1, 1, 1,], [1, 1, 0,], [0, 0, 0,],],], dtype=np.float32,)
         self.cube = set_up_probability_cube(data, [278.15], spatial_grid="equalarea",)
-
         # Set up mask cube. Currently mask cubes have sea points set to zero,
         # not masked out.
         mask_data = np.array(
@@ -247,7 +249,7 @@ class Test_process(unittest.TestCase):
         self.mask_cube.data = mask_data
 
         # Set up weights cubes, with one masked sea point. Currently only
-        # weights cubes have masked out sea points.
+        # weights cubes can have masked out sea points.
         weights_data = np.array(
             [
                 [[np.nan, 1, 0,], [1, 0.5, 0,], [0, 0, 0,],],
@@ -276,15 +278,14 @@ class Test_process(unittest.TestCase):
             cube.coord("projection_y_coordinate").points = np.array(
                 [0, 2000, 4000], dtype=np.float32
             )
-
-    def test_basic_no_collapse(self):
-        """Test process for a cube with 1 threshold and no collapse.
-        This test shows the result of neighbourhood processing the same input
-        data three times with the three different masks for the different
-        topographic zones."""
-        plugin = ApplyNeighbourhoodProcessingWithAMask("topographic_zone", 2000)
-        result = plugin(self.cube, self.mask_cube)
-        expected_result = np.array(
+        # Set up a cube with multiple thresholds
+        cube2 = self.cube.copy()
+        cube2.coord("air_temperature").points = np.array([273.15], dtype=np.float32)
+        self.multi_threshold_cube = iris.cube.CubeList(
+            [cube2, self.cube]
+        ).concatenate_cube()
+        # Set up expected uncollapsed result
+        self.expected_uncollapsed_result = np.array(
             [
                 [
                     [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0],],
@@ -294,7 +295,25 @@ class Test_process(unittest.TestCase):
             ],
             dtype=np.float32,
         )
-        assert_allclose(result.data, expected_result, equal_nan=True)
+        # Set up expected collapsed result
+        expected_result = np.array(
+            [[[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]]],
+            dtype=np.float32,
+        )
+        self.expected_collapsed_result = np.ma.masked_invalid(expected_result)
+
+    def test_basic_no_collapse(self):
+        """Test process for a cube with 1 threshold and no collapse.
+        This test shows the result of neighbourhood processing the same input
+        data three times with the three different masks for the different
+        topographic zones."""
+        plugin = ApplyNeighbourhoodProcessingWithAMask("topographic_zone", 2000)
+        result = plugin(self.cube, self.mask_cube)
+        assert_allclose(result.data, self.expected_uncollapsed_result, equal_nan=True)
+        expected_coords = self.cube.coords()
+        expected_coords.insert(1, self.mask_cube.coord("topographic_zone"))
+        self.assertEqual(result.coords(), expected_coords)
+        self.assertEqual(result.metadata, self.cube.metadata)
 
     def test_basic_collapse(self):
         """Test process for a cube with 1 threshold and collapsing the topographic_zones.
@@ -306,61 +325,44 @@ class Test_process(unittest.TestCase):
             "topographic_zone", 2000, collapse_weights=self.weights_cube
         )
         result = plugin(self.cube, self.mask_cube)
-        expected_result = np.array(
-            [[[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]]],
-            dtype=np.float32,
+
+        assert_allclose(
+            result.data.data, self.expected_collapsed_result.data, equal_nan=True
         )
-        expected_result = np.ma.masked_invalid(expected_result)
-        assert_allclose(result.data.data, expected_result.data, equal_nan=True)
-        assert_array_equal(result.data.mask, expected_result.mask)
+        assert_array_equal(result.data.mask, self.expected_collapsed_result.mask)
+        self.assertEqual(result.coords(), self.cube.coords())
+        self.assertEqual(result.metadata, self.cube.metadata)
 
     def test_no_collapse_multithreshold(self):
         """Test process for a cube with 2 thresholds and no collapse.
         Same data as test_basic_no_collapse with an extra point in the leading
         threshold dimension"""
-        cube2 = self.cube.copy()
-        cube2.coord("air_temperature").points = np.array([273.15], dtype=np.float32)
-        multi_threshold_cube = iris.cube.CubeList([cube2, self.cube]).concatenate_cube()
         plugin = ApplyNeighbourhoodProcessingWithAMask("topographic_zone", 2000)
-        result = plugin(multi_threshold_cube, self.mask_cube)
-        expected_result = np.array(
-            [
-                [
-                    [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0],],
-                    [[np.nan, 0.5, 0.5], [0.0, 0.25, 0.33333334], [0.0, 0.0, 0.0],],
-                    [[np.nan, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0],],
-                ],
-                [
-                    [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0],],
-                    [[np.nan, 0.5, 0.5], [0.0, 0.25, 0.33333334], [0.0, 0.0, 0.0],],
-                    [[np.nan, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0],],
-                ],
-            ],
-            dtype=np.float32,
+        result = plugin(self.multi_threshold_cube, self.mask_cube)
+        expected_result = np.concatenate(
+            [self.expected_uncollapsed_result, self.expected_uncollapsed_result]
         )
         assert_allclose(result.data, expected_result, equal_nan=True)
+        expected_coords = self.multi_threshold_cube.coords()
+        expected_coords.insert(1, self.mask_cube.coord("topographic_zone"))
+        self.assertEqual(result.coords(), expected_coords)
+        self.assertEqual(result.metadata, self.cube.metadata)
 
     def test_collapse_multithreshold(self):
         """Test process for a cube with 2 thresholds and collapsing the topographic_zones.
         Same data as test_basic_collapse with an extra point in the leading
         threshold dimension"""
-        cube2 = self.cube.copy()
-        cube2.coord("air_temperature").points = np.array([273.15], dtype=np.float32)
-        multi_threshold_cube = iris.cube.CubeList([cube2, self.cube]).concatenate_cube()
         plugin = ApplyNeighbourhoodProcessingWithAMask(
             "topographic_zone", 2000, collapse_weights=self.weights_cube
         )
-        result = plugin(multi_threshold_cube, self.mask_cube)
-        expected_result = np.array(
-            [
-                [[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]],
-                [[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]],
-            ],
-            dtype=np.float32,
+        result = plugin(self.multi_threshold_cube, self.mask_cube)
+        expected_result = np.ma.concatenate(
+            [self.expected_collapsed_result, self.expected_collapsed_result]
         )
-        expected_result = np.ma.masked_invalid(expected_result)
         assert_allclose(result.data.data, expected_result.data, equal_nan=True)
         assert_array_equal(result.data.mask, expected_result.mask)
+        self.assertEqual(result.coords(), self.multi_threshold_cube.coords())
+        self.assertEqual(result.metadata, self.multi_threshold_cube.metadata)
 
 
 if __name__ == "__main__":
