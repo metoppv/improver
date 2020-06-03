@@ -154,7 +154,12 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 weights resulting in an output cube with the same dimensions
                 as the input cube. Otherwise the output cube will have the
                 coord_for_masking from the supplied mask_cube as an additional
-                dimension.
+                dimension. The data in this cube may be an instance of
+                numpy.ma.masked_array, for example if sea points have been
+                set to np.nan and masked in order for them to be discounted
+                when calclating the result. In this case the result returned
+                from the process method of this plugin will have the same
+                points masked.
             lead_times (list):
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
@@ -227,8 +232,6 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 collapsing the chosen coordinate.
 
         """
-        # print(cube.data.shape)
-        # print(self.collapse_weights.data.shape)
         # Mask out any NaNs in the neighbourhood data so that Iris ignores
         # them when calculating the weighted mean.
         cube.data = ma.masked_invalid(cube.data, copy=False)
@@ -264,8 +267,10 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 Cube containing the array to which the square neighbourhood
                 will be applied.
             mask_cube (iris.cube.Cube):
-                Cube containing the array to be used as a mask.
-
+                Cube containing the array to be used as a mask. The data in
+                this array is not an instance of numpy.ma.MaskedArray. Any sea
+                points that should be ignored are set to zeros in every layer
+                of the mask_cube.
         Returns:
             iris.cube.Cube:
                 Cube containing the smoothed field after the square
@@ -301,7 +306,6 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             prev_x_y_slice = x_y_slice
 
             cube_slices = iris.cube.CubeList([])
-            # print("\nx_y_slice {}\n\n".format(x_y_slice))
             # Apply each mask in in mask_cube to the 2D input slice.
             for mask_slice in mask_cube.slices_over(self.coord_for_masking):
                 output_cube = plugin(x_y_slice, mask_cube=mask_slice)
@@ -309,29 +313,13 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 output_cube.add_aux_coord(coord_object)
                 output_cube = iris.util.new_axis(output_cube, self.coord_for_masking)
                 cube_slices.append(output_cube)
-            # print("\ncube_slices {}\n\n".format(cube_slices))
             concatenated_cube = cube_slices.concatenate_cube()
-            print(
-                "\nconcatenated cube post top nbhood processing{}\n\n".format(
-                    concatenated_cube.data
-                )
-            )
-            # exception_coordinates = find_dimension_coordinate_mismatch(
-            #     x_y_slice, concatenated_cube, two_way_mismatch=False
-            # )
-            # concatenated_cube = check_cube_coordinates(
-            #     x_y_slice,
-            #     concatenated_cube,
-            #     exception_coordinates=exception_coordinates,
-            # )
-            # print("\nconcatenated cube {}\n\n".format(concatenated_cube))
-            # If weights are provided collapse the coord_for_masking coordinate
             if self.collapse_weights is not None:
                 concatenated_cube = self.collapse_mask_coord(concatenated_cube)
-                # print("\nconcatenated cube {}\n\n".format(concatenated_cube))
             result_slices.append(concatenated_cube)
-        # print("\nresult_slices {}\n\n".format(result_slices))
         result = result_slices.merge_cube()
+        # Promote any single value dimension coordinates if they were
+        # dimension on the input cube.
         exception_coordinates = find_dimension_coordinate_mismatch(
             cube, result, two_way_mismatch=False
         )

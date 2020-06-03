@@ -48,64 +48,6 @@ from ...set_up_test_cubes import (
 )
 
 
-def add_dimensions_to_cube(cube, new_dims):
-    """
-    Add additional dimensions to a cube by adding new axes to the input cube
-    and concatenating them.
-
-    Args:
-        cube (iris.cube.Cube):
-            The cube we want to add dimensions to.
-        new_dims (dict):
-            A dictionary containing the names of the dimensions you want to
-            add and the number of points you want in that dimension.
-            e.g {"threshold": 3, "realization": 4}
-            Points in the additional dimension will be integers
-            counting up from 0.
-            The data will all be copies of the input cube's data.
-    Returns:
-        iris.cube.Cube:
-            The iris cube with the additional dimensions added.
-    """
-    for dim_name, dim_size in new_dims.items():
-        cubes = iris.cube.CubeList()
-        for i in range(dim_size):
-            threshold_coord = DimCoord([i], long_name=dim_name)
-            threshold_cube = iris.util.new_axis(cube.copy())
-            threshold_cube.add_dim_coord(threshold_coord, 0)
-            cubes.append(threshold_cube)
-        cube = cubes.concatenate_cube()
-    return cube
-
-
-def set_up_topographic_zone_cube(
-    mask_data,
-    topographic_zone_point,
-    topographic_zone_bounds,
-    num_time_points=1,
-    num_grid_points=16,
-    num_realization_points=1,
-):
-    """Function to generate a cube with a topographic_zone coordinate. This
-    uses the existing functionality from the set_up_cube function."""
-    mask_cube = set_up_cube(
-        zero_point_indices=((0, 0, 0, 0),),
-        num_time_points=num_time_points,
-        num_grid_points=num_grid_points,
-        num_realization_points=num_realization_points,
-    )
-    mask_cube = iris.util.squeeze(mask_cube)
-    mask_cube.data = mask_data
-    mask_cube.long_name = "Topography mask"
-    coord_name = "topographic_zone"
-    threshold_coord = iris.coords.AuxCoord(
-        topographic_zone_point, bounds=topographic_zone_bounds, long_name=coord_name
-    )
-    mask_cube.add_aux_coord(threshold_coord)
-    mask_cube.attributes["Topographical Type"] = "Land"
-    return mask_cube
-
-
 class Test__init__(unittest.TestCase):
 
     """Test the __init__ method of ApplyNeighbourhoodProcessingWithAMask."""
@@ -285,18 +227,16 @@ class Test_process(unittest.TestCase):
         data = np.array([[[1, 1, 1,], [1, 1, 0,], [0, 0, 0,],],], dtype=np.float32,)
         self.cube = set_up_probability_cube(data, [278.15], spatial_grid="equalarea",)
 
-        # Set up mask cube, with one masked sea point.
+        # Set up mask cube. Currently mask cubes have sea points set to zero,
+        # not masked out.
         mask_data = np.array(
             [
-                [[np.nan, 1, 0,], [1, 1, 0,], [0, 0, 0,],],
-                [[np.nan, 0, 1,], [0, 0, 1,], [1, 1, 0,],],
-                [[np.nan, 0, 0,], [0, 0, 0,], [0, 0, 1,],],
+                [[0, 1, 0,], [1, 1, 0,], [0, 0, 0,],],
+                [[0, 0, 1,], [0, 0, 1,], [1, 1, 0,],],
+                [[0, 0, 0,], [0, 0, 0,], [0, 0, 1,],],
             ],
             dtype=np.float32,
         )
-        mask_data = np.ma.masked_invalid(mask_data)
-        print(mask_data)
-        print(mask_data.data)
         cube = set_up_variable_cube(
             np.ones((3, 3), dtype=np.float32),
             name="topographic_zone_weights",
@@ -306,12 +246,13 @@ class Test_process(unittest.TestCase):
         self.mask_cube = add_coordinate(cube, [50, 100, 150], "topographic_zone", "m")
         self.mask_cube.data = mask_data
 
-        # Set up weights cubes, with one masked sea point.
+        # Set up weights cubes, with one masked sea point. Currently only
+        # weights cubes have masked out sea points.
         weights_data = np.array(
             [
                 [[np.nan, 1, 0,], [1, 0.5, 0,], [0, 0, 0,],],
-                [[np.nan, 0, 1,], [0, 0.5, 0.75,], [1, 0.75, 0.5,],],
-                [[np.nan, 0, 0,], [0, 0, 0.25,], [0, 0.25, 0.5,],],
+                [[np.nan, 0, 1,], [0, 0.5, 0.75,], [0.75, 0.75, 0.5,],],
+                [[np.nan, 0, 0,], [0, 0, 0.25,], [0.25, 0.25, 0.5,],],
             ],
             dtype=np.float32,
         )
@@ -343,278 +284,83 @@ class Test_process(unittest.TestCase):
         topographic zones."""
         plugin = ApplyNeighbourhoodProcessingWithAMask("topographic_zone", 2000)
         result = plugin(self.cube, self.mask_cube)
-        # cube
-        # [[[1, 1, 1,],
-        #   [1, 1, 0,],
-        #   [0, 0, 0,],],]
-        #      mask       [
-        #                 [0, 1, 0,],
-        #                  [1, 1, 0,],
-        #                  [0, 0, 0,],],
-        #                 [[np.nan, 0, 1,],
-        #                  [0, 0, 1,],
-        #                  [1, 1, 0,],],
-        #                 [[np.nan, 0, 0,],
-        #                  [0, 0, 0,],
-        #                  [0, 0, 1,],],
-        #             ],
-        # print(result.data)
         expected_result = np.array(
             [
-                [[0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [1.0, 1.0, 1.0]],
-                [[0.0, 0.0, 0.5], [0.0, 0.0, 0.33333334], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0, np.nan], [0.0, 0.0, 0.0], [np.nan, 0.0, 0.0]],
+                [
+                    [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0],],
+                    [[np.nan, 0.5, 0.5], [0.0, 0.25, 0.33333334], [0.0, 0.0, 0.0],],
+                    [[np.nan, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0],],
+                ],
             ],
             dtype=np.float32,
         )
+        assert_allclose(result.data, expected_result, equal_nan=True)
 
-    # def setUp(self):
-    #     """Set up a cube."""
-    #     self.cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
-    #     # The neighbourhood code adds bounds to the coordinates if they are
-    #     # not present so add them now to make it easier to compare input and
-    #     # output from the plugin.
-    #     self.cube.coord("projection_x_coordinate").guess_bounds()
-    #     self.cube.coord("projection_y_coordinate").guess_bounds()
-    #     self.cube = iris.util.squeeze(self.cube)
-    #     mask_data = np.array(
-    #         [
-    #             [
-    #                 [1, 0, 0, 0, 0],
-    #                 [1, 1, 0, 0, 0],
-    #                 [1, 1, 0, 0, 0],
-    #                 [0, 0, 0, 0, 0],
-    #                 [0, 0, 0, 0, 0],
-    #             ],
-    #             [
-    #                 [0, 0, 0, 0, 0],
-    #                 [0, 0, 1, 1, 0],
-    #                 [0, 0, 1, 1, 0],
-    #                 [0, 0, 0, 0, 0],
-    #                 [0, 0, 0, 0, 0],
-    #             ],
-    #             [
-    #                 [0, 0, 0, 0, 0],
-    #                 [0, 0, 0, 0, 0],
-    #                 [0, 0, 0, 0, 0],
-    #                 [0, 0, 0, 1, 1],
-    #                 [0, 0, 0, 1, 1],
-    #             ],
-    #         ]
-    #     )
-    #     weights_data = np.array(
-    #         [
-    #             [
-    #                 [0.8, 0.7, 0.0, 0.0, 0.0],
-    #                 [0.7, 0.3, 0.0, 0.0, 0.0],
-    #                 [0.3, 0.1, 0.0, 0.0, 0.0],
-    #                 [0.0, 0.0, 0.0, 0.0, 0.0],
-    #                 [0.0, 0.0, 0.0, 0.0, 0.0],
-    #             ],
-    #             [
-    #                 [0.2, 0.3, 1.0, 1.0, 1.0],
-    #                 [0.3, 0.7, 1.0, 1.0, 1.0],
-    #                 [0.7, 0.9, 1.0, 1.0, 1.0],
-    #                 [1.0, 1.0, 1.0, 0.9, 0.5],
-    #                 [1.0, 1.0, 1.0, 0.6, 0.2],
-    #             ],
-    #             [
-    #                 [0.0, 0.0, 0.0, 0.0, 0.0],
-    #                 [0.0, 0.0, 0.0, 0.0, 0.0],
-    #                 [0.0, 0.0, 0.0, 0.0, 0.0],
-    #                 [0.0, 0.0, 0.0, 0.1, 0.5],
-    #                 [0.0, 0.0, 0.0, 0.4, 0.8],
-    #             ],
-    #         ]
-    #     )
-    #     topographic_zone_points = [50, 150, 250]
-    #     topographic_zone_bounds = [[0, 100], [100, 200], [200, 300]]
-    #
-    #     mask_cubes = iris.cube.CubeList([])
-    #     weights_cubes = iris.cube.CubeList([])
-    #     for mdata, wdata, pnt, bnd in zip(
-    #         mask_data, weights_data, topographic_zone_points, topographic_zone_bounds
-    #     ):
-    #         for data, cubes in [(mdata, mask_cubes), (wdata, weights_cubes)]:
-    #             cubes.append(
-    #                 set_up_topographic_zone_cube(data, pnt, bnd, num_grid_points=5)
-    #             )
-    #     self.mask_cube = mask_cubes.merge_cube()
-    #     self.weights_cube = weights_cubes.merge_cube()
-    #
-    # def test_basic(self):
-    #     """Test that the expected result is returned, when the
-    #     topographic_zone coordinate is iterated over."""
-    #     expected = np.array(
-    #         [
-    #             [
-    #                 [1.00, 1.00, 1.00, np.nan, np.nan],
-    #                 [1.00, 1.00, 1.00, np.nan, np.nan],
-    #                 [1.00, 1.00, 1.00, np.nan, np.nan],
-    #                 [1.00, 1.00, 1.00, np.nan, np.nan],
-    #                 [np.nan, np.nan, np.nan, np.nan, np.nan],
-    #             ],
-    #             [
-    #                 [np.nan, 1.00, 1.00, 1.00, 1.00],
-    #                 [np.nan, 0.50, 0.75, 0.75, 1.00],
-    #                 [np.nan, 0.50, 0.75, 0.75, 1.00],
-    #                 [np.nan, 0.00, 0.50, 0.50, 1.00],
-    #                 [np.nan, np.nan, np.nan, np.nan, np.nan],
-    #             ],
-    #             [
-    #                 [np.nan, np.nan, np.nan, np.nan, np.nan],
-    #                 [np.nan, np.nan, np.nan, np.nan, np.nan],
-    #                 [np.nan, np.nan, 1.00, 1.00, 1.00],
-    #                 [np.nan, np.nan, 1.00, 1.00, 1.00],
-    #                 [np.nan, np.nan, 1.00, 1.00, 1.00],
-    #             ],
-    #         ]
-    #     )
-    #     coord_for_masking = "topographic_zone"
-    #     radii = 2000
-    #     num_zones = len(self.mask_cube.coord(coord_for_masking).points)
-    #     expected_shape = tuple([num_zones] + list(self.cube.data.shape))
-    #     result = ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii)(
-    #         self.cube, self.mask_cube
-    #     )
-    #     self.assertEqual(result.data.shape, expected_shape)
-    #     assert_allclose(result.data, expected)
-    #
-    # def test_collapse_preserve_dimensions_input(self):
-    #     """Test that the dimensions on the output cube are the same as the
-    #        input cube, apart from the additional topographic zone coordinate.
-    #     """
-    #     self.cube.remove_coord("realization")
-    #     cube = add_dimensions_to_cube(
-    #         self.cube, OrderedDict([("threshold", 3), ("realization", 4)])
-    #     )
-    #     coord_for_masking = "topographic_zone"
-    #     radii = 2000
-    #     uncollapsed_result = None
-    #     mask_data = np.array(
-    #         [
-    #             [
-    #                 [1, 1, 1, 1, 1],
-    #                 [1, 1, 0, 0, 0],
-    #                 [1, 1, 0, 0, 0],
-    #                 [0, 0, 0, 0, 0],
-    #                 [0, 0, 0, 0, 0],
-    #             ],
-    #             [
-    #                 [0, 0, 0, 0, 1],
-    #                 [0, 0, 1, 1, 1],
-    #                 [0, 0, 1, 1, 1],
-    #                 [1, 1, 0, 1, 0],
-    #                 [1, 1, 0, 0, 0],
-    #             ],
-    #             [
-    #                 [0, 0, 0, 0, 0],
-    #                 [0, 0, 0, 0, 0],
-    #                 [0, 0, 0, 1, 1],
-    #                 [0, 0, 1, 1, 1],
-    #                 [0, 0, 1, 1, 1],
-    #             ],
-    #         ]
-    #     )
-    #     mask_cube = self.mask_cube.copy(mask_data)
-    #
-    #     for collapse_weights in [None, self.weights_cube]:
-    #         coords_order = [
-    #             "realization",
-    #             "threshold",
-    #             "topographic_zone",
-    #             "projection_y_coordinate",
-    #             "projection_x_coordinate",
-    #         ]
-    #         plugin = ApplyNeighbourhoodProcessingWithAMask(
-    #             coord_for_masking, radii, collapse_weights=collapse_weights,
-    #         )
-    #         result = plugin(cube, mask_cube)
-    #         expected_dims = list(cube.dim_coords)
-    #         if collapse_weights is None:
-    #             uncollapsed_result = result
-    #             expected_dims.insert(2, self.mask_cube.coord("topographic_zone"))
-    #         else:
-    #             coords_order.remove("topographic_zone")
-    #             collapsed_result = plugin.collapse_mask_coord(uncollapsed_result)
-    #             assert_allclose(result.data, collapsed_result.data)
-    #         self.assertEqual(result.dim_coords, tuple(expected_dims))
-    #         for dim, coord in enumerate(coords_order):
-    #             self.assertEqual(result.coord_dims(coord), (dim,))
-    #
-    # def test_preserve_dimensions_with_single_point(self):
-    #     """Test that the dimensions on the output cube are the same as the
-    #        input cube, apart from the collapsed dimension.
-    #        Check that a dimension coordinate with a single point is preserved
-    #        and not demoted to a scalar coordinate."""
-    #     self.cube.remove_coord("realization")
-    #     cube = add_dimensions_to_cube(self.cube, {"threshold": 4, "realization": 1})
-    #     coord_for_masking = "topographic_zone"
-    #     radii = 2000
-    #     result = ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii)(
-    #         cube, self.mask_cube
-    #     )
-    #     expected_dims = list(cube.dim_coords)
-    #     expected_dims.insert(2, self.mask_cube.coord("topographic_zone"))
-    #
-    #     self.assertEqual(result.dim_coords, tuple(expected_dims))
-    #     self.assertEqual(result.coord_dims("realization"), (0,))
-    #     self.assertEqual(result.coord_dims("threshold"), (1,))
-    #     self.assertEqual(result.coord_dims("topographic_zone"), (2,))
-    #     self.assertEqual(result.coord_dims("projection_y_coordinate"), (3,))
-    #     self.assertEqual(result.coord_dims("projection_x_coordinate"), (4,))
-    #
-    # def test_identical_slices(self):
-    #     """Test that identical successive slices of the cube produce
-    #        identical results."""
-    #     expected = np.array(
-    #         [
-    #             [
-    #                 [1.00, 1.00, 1.00, np.nan, np.nan],
-    #                 [1.00, 1.00, 1.00, np.nan, np.nan],
-    #                 [1.00, 1.00, 1.00, np.nan, np.nan],
-    #                 [1.00, 1.00, 1.00, np.nan, np.nan],
-    #                 [np.nan, np.nan, np.nan, np.nan, np.nan],
-    #             ],
-    #             [
-    #                 [np.nan, 1.00, 1.00, 1.00, 1.00],
-    #                 [np.nan, 0.50, 0.75, 0.75, 1.00],
-    #                 [np.nan, 0.50, 0.75, 0.75, 1.00],
-    #                 [np.nan, 0.00, 0.50, 0.50, 1.00],
-    #                 [np.nan, np.nan, np.nan, np.nan, np.nan],
-    #             ],
-    #             [
-    #                 [np.nan, np.nan, np.nan, np.nan, np.nan],
-    #                 [np.nan, np.nan, np.nan, np.nan, np.nan],
-    #                 [np.nan, np.nan, 1.00, 1.00, 1.00],
-    #                 [np.nan, np.nan, 1.00, 1.00, 1.00],
-    #                 [np.nan, np.nan, 1.00, 1.00, 1.00],
-    #             ],
-    #         ]
-    #     )
-    #     cube = set_up_cube(
-    #         zero_point_indices=((0, 0, 2, 2), (1, 0, 2, 2)),
-    #         num_grid_points=5,
-    #         num_realization_points=2,
-    #     )
-    #     # The neighbourhood code adds bounds to the coordinates if they are
-    #     # not present so add them now to make it easier to compare input and
-    #     # output from the plugin.
-    #     cube.coord("projection_x_coordinate").guess_bounds()
-    #     cube.coord("projection_y_coordinate").guess_bounds()
-    #     cube = iris.util.squeeze(cube)
-    #     coord_for_masking = "topographic_zone"
-    #     radii = 2000
-    #     num_zones = len(self.mask_cube.coord(coord_for_masking).points)
-    #     expected_shape = tuple(
-    #         [cube.data.shape[0], num_zones] + list(cube.data.shape[1:])
-    #     )
-    #     result = ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii)(
-    #         cube, self.mask_cube
-    #     )
-    #     self.assertEqual(result.data.shape, expected_shape)
-    #     for realization_slice in result.slices_over("realization"):
-    #         assert_allclose(realization_slice.data, expected)
+    def test_basic_collapse(self):
+        """Test process for a cube with 1 threshold and collapsing the topographic_zones.
+        This test shows the result of neighbourhood processing the same input
+        data three times with the three different masks for the different
+        topographic zones, then doing a weighted collapse of the topopgraphic
+        band taking into account any missing data."""
+        plugin = ApplyNeighbourhoodProcessingWithAMask(
+            "topographic_zone", 2000, collapse_weights=self.weights_cube
+        )
+        result = plugin(self.cube, self.mask_cube)
+        expected_result = np.array(
+            [[[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]]],
+            dtype=np.float32,
+        )
+        expected_result = np.ma.masked_invalid(expected_result)
+        assert_allclose(result.data.data, expected_result.data, equal_nan=True)
+        assert_array_equal(result.data.mask, expected_result.mask)
+
+    def test_no_collapse_multithreshold(self):
+        """Test process for a cube with 2 thresholds and no collapse.
+        Same data as test_basic_no_collapse with an extra point in the leading
+        threshold dimension"""
+        cube2 = self.cube.copy()
+        cube2.coord("air_temperature").points = np.array([273.15], dtype=np.float32)
+        multi_threshold_cube = iris.cube.CubeList([cube2, self.cube]).concatenate_cube()
+        plugin = ApplyNeighbourhoodProcessingWithAMask("topographic_zone", 2000)
+        result = plugin(multi_threshold_cube, self.mask_cube)
+        expected_result = np.array(
+            [
+                [
+                    [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0],],
+                    [[np.nan, 0.5, 0.5], [0.0, 0.25, 0.33333334], [0.0, 0.0, 0.0],],
+                    [[np.nan, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0],],
+                ],
+                [
+                    [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0],],
+                    [[np.nan, 0.5, 0.5], [0.0, 0.25, 0.33333334], [0.0, 0.0, 0.0],],
+                    [[np.nan, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0],],
+                ],
+            ],
+            dtype=np.float32,
+        )
+        assert_allclose(result.data, expected_result, equal_nan=True)
+
+    def test_collapse_multithreshold(self):
+        """Test process for a cube with 2 thresholds and collapsing the topographic_zones.
+        Same data as test_basic_collapse with an extra point in the leading
+        threshold dimension"""
+        cube2 = self.cube.copy()
+        cube2.coord("air_temperature").points = np.array([273.15], dtype=np.float32)
+        multi_threshold_cube = iris.cube.CubeList([cube2, self.cube]).concatenate_cube()
+        plugin = ApplyNeighbourhoodProcessingWithAMask(
+            "topographic_zone", 2000, collapse_weights=self.weights_cube
+        )
+        result = plugin(multi_threshold_cube, self.mask_cube)
+        expected_result = np.array(
+            [
+                [[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]],
+                [[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]],
+            ],
+            dtype=np.float32,
+        )
+        expected_result = np.ma.masked_invalid(expected_result)
+        assert_allclose(result.data.data, expected_result.data, equal_nan=True)
+        assert_array_equal(result.data.mask, expected_result.mask)
 
 
 if __name__ == "__main__":
