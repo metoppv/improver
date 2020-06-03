@@ -48,6 +48,7 @@ RECREATE_DIR_ENVVAR = "RECREATE_KGO"
 ACC_TEST_DIR_ENVVAR = "IMPROVER_ACC_TEST_DIR"
 ACC_TEST_DIR_MISSING = pathlib.Path("/dev/null")
 DEFAULT_CHECKSUM_FILE = pathlib.Path(__file__).parent / "SHA256SUMS"
+IGNORED_ATTRIBUTES = ["history", "Conventions"]
 
 
 def run_cli(cli_name, verbose=True):
@@ -358,6 +359,7 @@ def compare(
         rtol=rtol,
         exclude_vars=exclude_vars,
         reporter=message_recorder,
+        ignored_attributes=IGNORED_ATTRIBUTES,
     )
     if difference_found:
         if recreate:

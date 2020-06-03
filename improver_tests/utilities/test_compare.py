@@ -248,6 +248,78 @@ def test_compare_netcdf_attrs(dummy_nc):
         assert part in messages_reported[0]
 
 
+def test_ignore_netcdf_attrs(dummy_nc):
+    """Check that changes to ignored attributes are ignored."""
+    actual_nc, expected_nc = dummy_nc
+    expected_ds = nc.Dataset(expected_nc, mode="r")
+    actual_ds = nc.Dataset(actual_nc, mode="a")
+
+    messages_reported = []
+
+    def message_collector(message):
+        messages_reported.append(message)
+
+    # Check modifying a simple attribute
+    actual_ds.setncattr("float_number", 3.2)
+    compare.compare_attributes(
+        "root",
+        actual_ds,
+        expected_ds,
+        message_collector,
+        ignored_attributes=["float_number"],
+    )
+    assert len(messages_reported) == 0
+
+    # Reset attribute back to original value
+    actual_ds.setncattr("float_number", 1.5)
+    messages_reported = []
+
+    # Check modifying an array attribute
+    actual_ds[CAT].setncattr("additional_numbers", np.linspace(0.0, 0.8, 11))
+    compare.compare_attributes(
+        "root",
+        actual_ds[CAT],
+        expected_ds[CAT],
+        message_collector,
+        ignored_attributes=["additional_numbers"],
+    )
+    assert len(messages_reported) == 0
+
+    # Reset attribute back to original value
+    actual_ds[CAT].setncattr("additional_numbers", np.linspace(0.0, 1.0, 11))
+    messages_reported = []
+
+    # Check adding another attribute
+    actual_ds.setncattr("extra", "additional")
+    compare.compare_attributes(
+        "longer name",
+        actual_ds,
+        expected_ds,
+        message_collector,
+        ignored_attributes=["extra"],
+    )
+    assert len(messages_reported) == 0
+
+    # Remove added attribute
+    actual_ds.delncattr("extra")
+    messages_reported = []
+
+    # Check removing an attribute
+    actual_ds.delncattr("float_number")
+    compare.compare_attributes(
+        "root",
+        actual_ds,
+        expected_ds,
+        message_collector,
+        ignored_attributes=["float_number"],
+    )
+    assert len(messages_reported) == 0
+
+    # Reset attribute back to original value
+    actual_ds.setncattr("float_number", 1.5)
+    messages_reported = []
+
+
 def test_compare_data_floats_equal(dummy_nc):
     """Check comparison of floating point data considered exactly equal"""
     actual_nc, expected_nc = dummy_nc
