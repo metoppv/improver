@@ -254,11 +254,13 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         """
         Process each x-y slice of the input cube separately to minimise
         memory use. For each slice:
+
         1. Iterate over the coord_for_masking coordinate within the mask_cube
-           and apply the mask at each iteration to the cube that is to be
-           neighbourhood processed.
+        and apply the mask at each iteration to the cube that is to be
+        neighbourhood processed.
+
         2. If a collapse_weights cube is provided collapse the coord_for_masking
-           coordinate.
+        coordinate.
         Finally concatenate the cubes from each iteration together to create a
         single cube, and check the dimensions of this cube.
 
