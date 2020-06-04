@@ -284,7 +284,8 @@ class RecursiveFilter(PostProcessingPlugin):
             cube.data = output
         return cube
 
-    def _validate_smoothing_coefficients(self, cube, smoothing_coefficients_cube):
+    @staticmethod
+    def _validate_smoothing_coefficients(cube, smoothing_coefficients_cube):
         """Validate the smoothing coefficients cubes.
 
         Args:
@@ -335,7 +336,7 @@ class RecursiveFilter(PostProcessingPlugin):
                 len(cube.coord(axis="x").points),
             )
             raise ValueError(msg)
-        elif smoothing_coefficients_cube.name() == "smoothing_coefficient_y" and len(
+        if smoothing_coefficients_cube.name() == "smoothing_coefficient_y" and len(
             smoothing_coefficients_cube.coord(axis="y").points
         ) != len(mean_y_points):
             msg = msg.format(
@@ -355,7 +356,7 @@ class RecursiveFilter(PostProcessingPlugin):
             smoothing_coefficients_cube.coord(axis="x").points, mean_x_points
         ):
             raise ValueError(msg.format("x"))
-        elif smoothing_coefficients_cube.name() == "smoothing_coefficient_y" and not np.allclose(
+        if smoothing_coefficients_cube.name() == "smoothing_coefficient_y" and not np.allclose(
             smoothing_coefficients_cube.coord(axis="y").points, mean_y_points
         ):
             raise ValueError(msg.format("y"))

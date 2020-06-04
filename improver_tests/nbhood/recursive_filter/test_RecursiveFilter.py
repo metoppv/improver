@@ -273,7 +273,7 @@ class Test_set_up_cubes(IrisTest):
 
 class Test__set_smoothing_coefficients(Test_RecursiveFilter):
 
-    """Test the _set_smoothing_coefficients function"""
+    """Test the _set_smoothing_coefficients method"""
 
     def test_smoothing_coefficients_cube(self):
         """Test that the returned smoothing_coefficients array has the expected
@@ -290,6 +290,9 @@ class Test__set_smoothing_coefficients(Test_RecursiveFilter):
 
 
 class Test__validate_smoothing_coefficients(Test_RecursiveFilter):
+
+    """Test the _validate_smoothing_coefficients method"""
+
     def test_smoothing_coefficients_cube(self):
         """Test that correctly shaped smoothing_coefficients validate."""
         RecursiveFilter(edge_width=1)._validate_smoothing_coefficients(
@@ -326,7 +329,7 @@ class Test__validate_smoothing_coefficients(Test_RecursiveFilter):
     def test_smoothing_coefficients_mismatched_x_points(self):
         """Test that an error is raised if the x smoothing_coefficients_cube
         has mismatched coordinate points compared to the data cube."""
-        msg = "The points of the x spatial dimension of the " "smoothing coefficients"
+        msg = "The points of the x spatial dimension of the smoothing coefficients"
         with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(edge_width=1)._validate_smoothing_coefficients(
                 self.cube, self.smoothing_coefficients_cube_wrong_x_points
@@ -335,7 +338,7 @@ class Test__validate_smoothing_coefficients(Test_RecursiveFilter):
     def test_smoothing_coefficients_mismatched_y_points(self):
         """Test that an error is raised if the y smoothing_coefficients_cube
         has mismatched coordinate points compared to the data cube."""
-        msg = "The points of the y spatial dimension of the " "smoothing coefficients"
+        msg = "The points of the y spatial dimension of the smoothing coefficients"
         with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(edge_width=1)._validate_smoothing_coefficients(
                 self.cube, self.smoothing_coefficients_cube_wrong_y_points
