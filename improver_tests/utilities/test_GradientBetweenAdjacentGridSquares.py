@@ -34,6 +34,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube
 
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 from ..set_up_test_cubes import set_up_variable_cube
@@ -59,7 +60,11 @@ def make_expected_fixture() -> callable:
         """Create a cube filled with data of a specific shape and value."""
         data = np.full(shape, value, dtype=np.float32)
         cube = set_up_variable_cube(
-            data, name="gradient_of_wind_speed", units="s^-1", spatial_grid="equalarea",
+            data,
+            name="gradient_of_wind_speed",
+            units="s^-1",
+            spatial_grid="equalarea",
+            attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
         for index, axis in enumerate(["y", "x"]):
             cube.coord(axis=axis).points = np.array(

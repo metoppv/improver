@@ -93,34 +93,39 @@ class Test_create_difference_cube(IrisTest):
     def setUp(self):
         """Set up cube."""
         data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
+        self.diff_in_y_array = np.array([[1, 2, 3], [3, 6, 9]])
         self.cube = set_up_cube(data, "wind_speed", "m s-1")
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
     def test_y_dimension(self):
         """Test differences calculated along the y dimension."""
-        diff_array = np.array([[1, 2, 3], [3, 6, 9]])
+        points = self.cube.coord(axis="y").points
+        expected_y = (points[1:] + points[:-1]) / 2
         result = self.plugin.create_difference_cube(
-            self.cube, "projection_y_coordinate", diff_array
+            self.cube, "projection_y_coordinate", self.diff_in_y_array
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, diff_array)
+        self.assertArrayAlmostEqual(result.coord(axis="y").points, expected_y)
+        self.assertArrayAlmostEqual(result.data, self.diff_in_y_array)
 
     def test_x_dimension(self):
         """Test differences calculated along the x dimension."""
         diff_array = np.array([[1, 1], [2, 2], [5, 5]])
+        points = self.cube.coord(axis="x").points
+        expected_x = (points[1:] + points[:-1]) / 2
         result = self.plugin.create_difference_cube(
             self.cube, "projection_x_coordinate", diff_array
         )
         self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x)
         self.assertArrayAlmostEqual(result.data, diff_array)
 
     def test_othercoords(self):
         """Test that other coords are transferred properly"""
-        diff_array = np.array([[1, 2, 3], [3, 6, 9]])
         time_coord = self.cube.coord("time")
         proj_x_coord = self.cube.coord(axis="x")
         result = self.plugin.create_difference_cube(
-            self.cube, "projection_y_coordinate", diff_array
+            self.cube, "projection_y_coordinate", self.diff_in_y_array
         )
         self.assertEqual(result.coord(axis="x"), proj_x_coord)
         self.assertEqual(result.coord("time"), time_coord)

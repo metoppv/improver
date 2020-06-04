@@ -35,7 +35,6 @@ import iris
 import numpy as np
 
 from improver import PostProcessingPlugin
-from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_cube
 
@@ -285,40 +284,97 @@ class RecursiveFilter(PostProcessingPlugin):
             cube.data = output
         return cube
 
-    def _set_smoothing_coefficients(self, cube, smoothing_coefficients_cube):
-        """
-        Set up the smoothing_coefficient parameter.
+    def _validate_smoothing_coefficients(self, cube, smoothing_coefficients_cube):
+        """Validate the smoothing coefficients cubes.
 
         Args:
             cube (iris.cube.Cube):
                 2D cube containing the input data to which the recursive
                 filter will be applied.
 
-            smoothing_coefficients_cube (iris.cube.Cube or None):
+            smoothing_coefficients_cube (iris.cube.Cube):
+                Cube containing array of smoothing_coefficient values that will
+                be used when applying the recursive filter in a specific
+
+        Raises:
+            ValueError: Smoothing coefficient cubes are not named correctly.
+            ValueError: The coordinate to be smoothed within the
+                smoothing coefficient cube is not of the expected length.
+            ValueError: The coordinate to be smoothed within the
+                smoothing coefficient cube does not have the expected points.
+        """
+        mean_x_points = (
+            cube.coord(axis="x").points[1:] + cube.coord(axis="x").points[:-1]
+        ) / 2
+        mean_y_points = (
+            cube.coord(axis="y").points[1:] + cube.coord(axis="y").points[:-1]
+        ) / 2
+
+        if smoothing_coefficients_cube.name() not in [
+            "smoothing_coefficient_x",
+            "smoothing_coefficient_y",
+        ]:
+            msg = (
+                "The smoothing coefficients cube must be named either "
+                "smoothing_coefficient_x or smoothing_coefficient_y"
+            )
+            raise ValueError(msg)
+
+        msg = (
+            "The {0} spatial dimension of the smoothing coefficients must be "
+            "of a length of one less than the input cube. The spatial "
+            "dimensions were smoothing coefficients {0} {1}, input cube {0} {2}"
+        )
+
+        if smoothing_coefficients_cube.name() == "smoothing_coefficient_x" and len(
+            smoothing_coefficients_cube.coord(axis="x").points
+        ) != len(mean_x_points):
+            msg = msg.format(
+                "x",
+                len(smoothing_coefficients_cube.coord(axis="x").points),
+                len(cube.coord(axis="x").points),
+            )
+            raise ValueError(msg)
+        elif smoothing_coefficients_cube.name() == "smoothing_coefficient_y" and len(
+            smoothing_coefficients_cube.coord(axis="y").points
+        ) != len(mean_y_points):
+            msg = msg.format(
+                "y",
+                len(smoothing_coefficients_cube.coord(axis="y").points),
+                len(cube.coord(axis="y").points),
+            )
+            raise ValueError(msg)
+
+        msg = (
+            "The points of the {0} spatial dimension of the smoothing "
+            "coefficients must be equal to the mean of each pair of points "
+            "along the {0} dimension of the input cube."
+        )
+
+        if smoothing_coefficients_cube.name() == "smoothing_coefficient_x" and not np.allclose(
+            smoothing_coefficients_cube.coord(axis="x").points, mean_x_points
+        ):
+            raise ValueError(msg.format("x"))
+        elif smoothing_coefficients_cube.name() == "smoothing_coefficient_y" and not np.allclose(
+            smoothing_coefficients_cube.coord(axis="y").points, mean_y_points
+        ):
+            raise ValueError(msg.format("y"))
+
+    def _set_smoothing_coefficients(self, smoothing_coefficients_cube):
+        """
+        Set up the smoothing_coefficient parameter.
+
+        Args:
+            smoothing_coefficients_cube (iris.cube.Cube):
                 Cube containing array of smoothing_coefficient values that will
                 be used when applying the recursive filter in a specific
                 direction.
-        Raises:
-            ValueError: If the dimensions of the smoothing_coefficients array
-                        do not match the dimensions of the cube data.
 
         Returns:
             iris.cube.Cube:
                 Cube containing a padded array of smoothing_coefficient values
                 for the specified direction.
         """
-        # The smoothing coefficients cube is expected to be shorter than
-        # the input cube by one cell in one of the x or y dimensions.
-        if (
-            smoothing_coefficients_cube.shape != (cube.shape[0] - 1, cube.shape[1])
-        ) and (smoothing_coefficients_cube.shape != (cube.shape[0], cube.shape[1] - 1)):
-            emsg = (
-                "Dimensions of smoothing_coefficients array must be one cell "
-                "smaller along one of the spatial dimensions compared to the "
-                "data array: coefficients shape {}, data shape {}"
-            )
-            raise ValueError(emsg.format(smoothing_coefficients_cube.shape, cube.shape))
-
         smoothing_coefficients_cube = pad_cube_with_halo(
             smoothing_coefficients_cube,
             2 * self.edge_width,
@@ -332,7 +388,9 @@ class RecursiveFilter(PostProcessingPlugin):
     ):
         """
         Set up the smoothing_coefficient parameters and run the recursive
-        filter. The steps undertaken are:
+        filter. Smoothing coefficients can be generated using
+        :func:`~improver.utilities.ancillary_creation.OrographicSmoothingCoefficients`.
+        The steps undertaken are:
 
         1. Split the input cube into slices determined by the co-ordinates in
            the x and y directions.
@@ -389,11 +447,13 @@ class RecursiveFilter(PostProcessingPlugin):
                     "conservation of probabilities"
                 )
         cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
+        self._validate_smoothing_coefficients(cube_format, smoothing_coefficients_x)
         smoothing_coefficients_x = self._set_smoothing_coefficients(
-            cube_format, smoothing_coefficients_x
+            smoothing_coefficients_x
         )
+        self._validate_smoothing_coefficients(cube_format, smoothing_coefficients_y)
         smoothing_coefficients_y = self._set_smoothing_coefficients(
-            cube_format, smoothing_coefficients_y
+            smoothing_coefficients_y
         )
 
         recursed_cube = iris.cube.CubeList()
