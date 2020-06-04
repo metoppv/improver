@@ -342,7 +342,6 @@ def compare(
     if not isinstance(rtol, (int, float)):
         raise ValueError("rtol")
 
-    verify_checksum(kgo_path)
     difference_found = False
     message = ""
 
@@ -364,6 +363,7 @@ def compare(
         if recreate:
             recreate_if_needed(output_path, kgo_path)
         raise AssertionError(message)
+    verify_checksum(kgo_path)
 
 
 # Pytest decorator to skip tests if KGO is not available for use
