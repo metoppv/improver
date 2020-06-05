@@ -28,9 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the nowcast-optical-flow CLI
-"""
+"""Tests for the nowcast-optical-flow-from-winds CLI"""
 
 import pytest
 
@@ -40,39 +38,22 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
-RADAR_REGRID = "radar_rainrate_composite_UK_regridded"
-RADAR_REMASK = "radar_rainrate_remasked_composite_2km_UK"
-P_RATE = "lwe_precipitation_rate"
-OE = "orographic_enhancement_standard_resolution"
+RADAR_EXT = "radar_rainrate_remasked_composite_2km_UK"
+OE = "20181127T1400Z-PT0004H00M-orographic_enhancement_standard_resolution.nc"
 
 
-@pytest.mark.slow
 def test_basic(tmp_path):
-    """Test basic optical flow nowcast"""
-    kgo_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = [
-        kgo_dir / f"20181103{hhmm}_{RADAR_REGRID}.nc"
-        for hhmm in ("1530", "1545", "1600")
-    ]
-    oe_path = kgo_dir / f"20181103T1600Z-PT0003H00M-{OE}.nc"
-    output_path = tmp_path / "output.nc"
-    args = [oe_path, *input_paths, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.slow
-def test_remasked(tmp_path):
-    """Test remasked optical flow"""
+    """Test optical flow calculation by perturbing model winds"""
     kgo_dir = acc.kgo_root() / "nowcast-optical-flow/remasked"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [
-        kgo_dir / f"20181127{hhmm}_{RADAR_REMASK}.nc"
-        for hhmm in ("1330", "1345", "1400")
+        kgo_dir / f"20181127{hhmm}_{RADAR_EXT}.nc"
+        for hhmm in ("1345", "1400")
     ]
-    oe_path = kgo_dir / f"20181127T1400Z-PT0004H00M-{OE}.nc"
+    flow_path = "" # TODO run a test suite and get resolved wind components for this time
+    # or run a test suite and pull new set of times...
+    oe_path = kgo_dir / OE
     output_path = tmp_path / "output.nc"
-    args = [oe_path, *input_paths, "--output", output_path]
+    args = [flow_path, oe_path, *input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
