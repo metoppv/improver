@@ -92,13 +92,13 @@ def process(
 
     # subtract orographic enhancement
     cube_list = ApplyOrographicEnhancement("subtract")(
-        [current_obs, previous_forecast], orographic_enhancement
+        [previous_forecast, current_obs], orographic_enhancement
     )
 
     # calculate optical flow velocity perturbations from previous nowcast to
     # current observation
     ofc_plugin = OpticalFlow(iterations=100)
-    advection_perturbations = ofc_plugin(previous_forecast, current_obs, boxsize=30)
+    advection_perturbations = ofc_plugin(*cube_list, boxsize=30)
 
     # adjust previous advection components by perturbation values to generate
     # new components
