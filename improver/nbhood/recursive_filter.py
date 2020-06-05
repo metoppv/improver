@@ -378,7 +378,8 @@ class RecursiveFilter(PostProcessingPlugin):
         """
         Set up the smoothing_coefficient parameters and run the recursive
         filter. Smoothing coefficients can be generated using
-        :func:`~improver.utilities.ancillary_creation.OrographicSmoothingCoefficients`.
+        :func:`~improver.utilities.ancillary_creation.OrographicSmoothingCoefficients`
+        and :func:`~improver.cli.generate_orographic_smoothing_coefficients`.
         The steps undertaken are:
 
         1. Split the input cube into slices determined by the co-ordinates in
