@@ -271,24 +271,6 @@ class Test_set_up_cubes(IrisTest):
         self.assertArrayEqual(result_nan_array, expected_nans)
 
 
-class Test__set_smoothing_coefficients(Test_RecursiveFilter):
-
-    """Test the _set_smoothing_coefficients method"""
-
-    def test_smoothing_coefficients_cube(self):
-        """Test that the returned smoothing_coefficients array has the expected
-        result when smoothing_coefficients_cube is not None."""
-        result = RecursiveFilter(edge_width=1)._set_smoothing_coefficients(
-            self.smoothing_coefficients_cube_x
-        )
-        expected_result = 0.5
-        self.assertIsInstance(result.data, np.ndarray)
-        self.assertEqual(result.data[0][2], expected_result)
-        # Check shape: Array should be padded with 4 extra rows/columns
-        expected_shape = (9, 8)
-        self.assertEqual(result.shape, expected_shape)
-
-
 class Test__validate_smoothing_coefficients(Test_RecursiveFilter):
 
     """Test the _validate_smoothing_coefficients method"""
@@ -343,6 +325,24 @@ class Test__validate_smoothing_coefficients(Test_RecursiveFilter):
             RecursiveFilter(edge_width=1)._validate_smoothing_coefficients(
                 self.cube, self.smoothing_coefficients_cube_wrong_y_points
             )
+
+
+class Test__set_smoothing_coefficients(Test_RecursiveFilter):
+
+    """Test the _set_smoothing_coefficients method"""
+
+    def test_smoothing_coefficients_cube(self):
+        """Test that the returned smoothing_coefficients array has the expected
+        result when smoothing_coefficients_cube is not None."""
+        result = RecursiveFilter(edge_width=1)._set_smoothing_coefficients(
+            self.smoothing_coefficients_cube_x
+        )
+        expected_result = 0.5
+        self.assertIsInstance(result.data, np.ndarray)
+        self.assertEqual(result.data[0][2], expected_result)
+        # Check shape: Array should be padded with 4 extra rows/columns
+        expected_shape = (9, 8)
+        self.assertEqual(result.shape, expected_shape)
 
 
 class Test__recurse_forward(Test_RecursiveFilter):
