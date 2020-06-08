@@ -66,8 +66,8 @@ def build_spotdata_cube(
        build_spotdata_cube_examples.rst
 
     Args:
-        data (numpy.ndarray):
-            Array of data points from several sites.
+        data (float or numpy.ndarray):
+            Float spot data or array of data points from several sites.
             The spot index should be the last dimension if the array is
             multi-dimensional (see optional additional dimensions below).
         name (str):
@@ -88,6 +88,10 @@ def build_spotdata_cube(
             Optional list of neighbour method names, e.g. 'nearest'
         grid_attributes (list):
             Optional list of grid attribute names, e.g. x-index, y-index
+
+    Returns:
+        iris.cube.Cube:
+            A cube containing the extracted spot data with spot data being the final dimension.
     """
 
     # construct auxiliary coordinates
