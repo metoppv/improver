@@ -56,8 +56,8 @@ def compare_netcdfs(
     rtol=DEFAULT_TOLERANCE,
     atol=DEFAULT_TOLERANCE,
     exclude_vars=None,
-    reporter=None,
     ignored_attributes=None,
+    reporter=None,
 ):
     """
     Compare two netCDF files.
@@ -68,10 +68,10 @@ def compare_netcdfs(
         rtol (float): relative tolerance
         atol (float): absolute tolerance
         exclude_vars (Iterable[str]): variable names to exclude from comparison
-        reporter (Callable[[str], None]): callback function for
-            reporting differences
         ignored_attributes (Optional(List[str])): list of attributes to exclude
             from comparison.
+        reporter (Callable[[str], None]): callback function for
+            reporting differences
 
     Returns:
         None
@@ -104,20 +104,13 @@ def compare_netcdfs(
         rtol,
         atol,
         exclude_vars,
+        ignored_attributes,
         reporter,
-        ignored_attributes=ignored_attributes,
     )
 
 
 def compare_datasets(
-    name,
-    actual_ds,
-    desired_ds,
-    rtol,
-    atol,
-    exclude_vars,
-    reporter,
-    ignored_attributes=None,
+    name, actual_ds, desired_ds, rtol, atol, exclude_vars, ignored_attributes, reporter,
 ):
     """
     Compare netCDF datasets.
@@ -132,17 +125,15 @@ def compare_datasets(
         rtol (float): relative tolerance
         atol (float): absolute tolerance
         exclude_vars (List[str]): variable names to exclude from comparison
-        reporter (Callable[[str], None]): callback function for
-            reporting differences
         ignored_attributes (Optional(List[str])): list of attributes to exclude
             from comparison.
+        reporter (Callable[[str], None]): callback function for
+            reporting differences
 
     Returns:
         None
     """
-    compare_attributes(
-        "root", actual_ds, desired_ds, reporter, ignored_attributes=ignored_attributes
-    )
+    compare_attributes("root", actual_ds, desired_ds, ignored_attributes, reporter)
     actual_groups = set(actual_ds.groups.keys())
     desired_groups = set(desired_ds.groups.keys())
 
@@ -156,8 +147,8 @@ def compare_datasets(
             group,
             actual_ds.groups[group],
             desired_ds.groups[group],
+            ignored_attributes,
             reporter,
-            ignored_attributes=ignored_attributes,
         )
         compare_datasets(
             group,
@@ -166,12 +157,20 @@ def compare_datasets(
             rtol,
             atol,
             exclude_vars,
+            ignored_attributes,
             reporter,
-            ignored_attributes=ignored_attributes,
         )
-
     compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter)
-    compare_vars(name, actual_ds, desired_ds, rtol, atol, exclude_vars, reporter)
+    compare_vars(
+        name,
+        actual_ds,
+        desired_ds,
+        rtol,
+        atol,
+        exclude_vars,
+        ignored_attributes,
+        reporter,
+    )
 
 
 def compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter):
@@ -210,14 +209,7 @@ def compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter):
 
 
 def compare_vars(
-    name,
-    actual_ds,
-    desired_ds,
-    rtol,
-    atol,
-    exclude_vars,
-    reporter,
-    ignored_attributes=None,
+    name, actual_ds, desired_ds, rtol, atol, exclude_vars, ignored_attributes, reporter,
 ):
     """
     Compare variables in a netCDF dataset/group.
@@ -229,10 +221,10 @@ def compare_vars(
         rtol (float): relative tolerance
         atol (float): absolute tolerance
         exclude_vars (List[str]): variable names to exclude from comparison
-        reporter (Callable[[str], None]): callback function for
-            reporting differences
         ignored_attributes (Optional(List[str])): list of attributes to exclude
             from comparison.
+        reporter (Callable[[str], None]): callback function for
+            reporting differences
 
     Returns:
         None
@@ -259,11 +251,7 @@ def compare_vars(
         actual_var = actual_ds.variables[var]
         desired_var = desired_ds.variables[var]
         compare_attributes(
-            var_path,
-            actual_var,
-            desired_var,
-            reporter,
-            ignored_attributes=ignored_attributes,
+            var_path, actual_var, desired_var, ignored_attributes, reporter,
         )
         if var in coord_vars:
             compare_data(var_path, actual_var, desired_var, 0.0, 0.0, reporter)
@@ -271,7 +259,7 @@ def compare_vars(
             compare_data(var_path, actual_var, desired_var, rtol, atol, reporter)
 
 
-def compare_attributes(name, actual_ds, desired_ds, reporter, ignored_attributes=None):
+def compare_attributes(name, actual_ds, desired_ds, ignored_attributes, reporter):
     """
     Compare attributes in a netCDF dataset/group.
 
@@ -279,10 +267,10 @@ def compare_attributes(name, actual_ds, desired_ds, reporter, ignored_attributes
         name (str): group name
         actual_ds (netCDF.Dataset): dataset produced by test run
         desired_ds (netCDF.Dataset): dataset considered good
-        reporter (Callable[[str], None]): callback function for
-            reporting differences
         ignored_attributes (Optional(List[str])): list of attributes to exclude
             from comparison.
+        reporter (Callable[[str], None]): callback function for
+            reporting differences
 
     Returns:
         None

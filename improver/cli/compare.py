@@ -42,6 +42,8 @@ def process(
     desired: cli.inputpath,
     rtol: float = DEFAULT_TOLERANCE,
     atol: float = DEFAULT_TOLERANCE,
+    *,
+    ignored_attributes: cli.comma_separated_list = None,
 ) -> None:
     """
     Compare two netcdf files
@@ -51,10 +53,18 @@ def process(
         desired: path to desired/known good data netcdf file
         rtol: relative tolerance for data in variables
         atol: absolute tolerance for data in variables
+        ignored_attributes: list of attributes to ignore in the comparison
 
     Returns:
         None
     """
     from improver.utilities import compare
 
-    compare.compare_netcdfs(actual, desired, rtol=rtol, atol=atol, reporter=print)
+    compare.compare_netcdfs(
+        actual,
+        desired,
+        rtol=rtol,
+        atol=atol,
+        ignored_attributes=ignored_attributes,
+        reporter=print,
+    )
