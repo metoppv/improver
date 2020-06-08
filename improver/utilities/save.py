@@ -74,7 +74,7 @@ def _check_metadata(cube):
         raise ValueError("{} has unknown units".format(cube.name()))
 
 
-def save_netcdf(cubelist, filename):
+def save_netcdf(cubelist, filename, compress=True):
     """Save the input Cube or CubeList as a NetCDF file and check metadata
     where required for integrity.
 
@@ -87,6 +87,8 @@ def save_netcdf(cubelist, filename):
             Cube or list of cubes to be saved
         filename (str):
             Filename to save input cube(s)
+        compress (bool):
+            Flag to specify whether to compress netCDF file
 
     Raises:
         warning if cubelist contains cubes of varying dimensions.
@@ -138,7 +140,7 @@ def save_netcdf(cubelist, filename):
         local_keys=local_keys,
         complevel=1,
         shuffle=True,
-        zlib=True,
+        zlib=compress,
         chunksizes=chunksizes,
     )
     os.rename(ftmp, filename)

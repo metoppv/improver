@@ -411,7 +411,7 @@ def main(
     profile: value_converter(lambda _: _, name="FILENAME") = None,
     memprofile: value_converter(lambda _: _, name="FILENAME") = None,
     verbose=False,
-    dry_run=False
+    dry_run=False,
 ):
     """IMPROVER NWP post-processing toolbox
 
@@ -462,7 +462,7 @@ def main(
         command,
         *args,
         verbose=verbose,
-        dry_run=dry_run
+        dry_run=dry_run,
     )
     return result
 

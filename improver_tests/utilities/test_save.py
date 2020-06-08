@@ -106,6 +106,24 @@ class Test_save_netcdf(IrisTest):
         save_netcdf(self.cube, self.filepath)
         self.assertTrue(os.path.exists(self.filepath))
 
+    def test_compression(self):
+        """ Test data gets compressed when saved """
+        save_netcdf(self.cube, self.filepath)
+
+        data = Dataset(self.filepath, mode="r")
+        filters = data.variables['air_temperature'].filters()
+
+        self.assertTrue(filters['zlib'])
+
+    def test_no_compression(self):
+        """ Test data does not get compressed when saved with compress=False """
+        save_netcdf(self.cube, self.filepath, compress=False)
+        
+        data = Dataset(self.filepath, mode="r")
+        filters = data.variables['air_temperature'].filters()
+
+        self.assertFalse(filters['zlib'])
+
     def test_basic_cube_list(self):
         """
         Test functionality for saving iris.cube.CubeList
