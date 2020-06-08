@@ -45,9 +45,7 @@ def build_spotdata_cube(
     wmo_id,
     scalar_coords=None,
     neighbour_methods=None,
-    neighbour_methods_dim=0,
     grid_attributes=None,
-    grid_attributes_dim=1,
 ):
     """
     Function to build a spotdata cube with expected dimension and auxiliary
@@ -69,7 +67,7 @@ def build_spotdata_cube(
 
     Args:
         data (numpy.ndarray):
-            Float spot data or array of data points from several sites.
+            Array of data points from several sites.
             The spot index should be the last dimension if the array is
             multi-dimensional (see optional additional dimensions below).
         name (str):
@@ -88,12 +86,8 @@ def build_spotdata_cube(
             Optional list of iris.coords.AuxCoord instances
         neighbour_methods (list):
             Optional list of neighbour method names, e.g. 'nearest'
-        neighbour_methods_dim (int):
-            Data dimension to match the neighbour method list
         grid_attributes (list):
             Optional list of grid attribute names, e.g. x-index, y-index
-        grid_attributes_dim (int):
-            Data dimension to match the grid attributes list
     """
 
     # construct auxiliary coordinates
@@ -117,10 +111,9 @@ def build_spotdata_cube(
     )
 
     dim_coords_and_dims = []
-    spot_index_dim = 0
+    current_dim = 0
 
     if neighbour_methods is not None:
-        spot_index_dim += 1
         neighbour_methods_coord = DimCoord(
             np.arange(len(neighbour_methods), dtype=np.int32),
             long_name="neighbour_selection_method",
@@ -132,11 +125,11 @@ def build_spotdata_cube(
             units="no_unit",
         )
 
-        dim_coords_and_dims.append((neighbour_methods_coord, neighbour_methods_dim))
-        aux_coords_and_dims.append((neighbour_methods_key, neighbour_methods_dim))
+        dim_coords_and_dims.append((neighbour_methods_coord, current_dim))
+        aux_coords_and_dims.append((neighbour_methods_key, current_dim))
+        current_dim += 1
 
     if grid_attributes is not None:
-        spot_index_dim += 1
         grid_attributes_coord = DimCoord(
             np.arange(len(grid_attributes), dtype=np.int32),
             long_name="grid_attributes",
@@ -146,12 +139,13 @@ def build_spotdata_cube(
             grid_attributes, long_name="grid_attributes_key", units="no_unit"
         )
 
-        dim_coords_and_dims.append((grid_attributes_coord, grid_attributes_dim))
-        aux_coords_and_dims.append((grid_attributes_key, grid_attributes_dim))
+        dim_coords_and_dims.append((grid_attributes_coord, current_dim))
+        aux_coords_and_dims.append((grid_attributes_key, current_dim))
+        current_dim += 1
 
-    dim_coords_and_dims.append((spot_index, spot_index_dim))
+    dim_coords_and_dims.append((spot_index, current_dim))
     for coord in [alt_coord, lat_coord, lon_coord, id_coord]:
-        aux_coords_and_dims.append((coord, spot_index_dim))
+        aux_coords_and_dims.append((coord, current_dim))
 
     # create output cube
     spot_cube = iris.cube.Cube(

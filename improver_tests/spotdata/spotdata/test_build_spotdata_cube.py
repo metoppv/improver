@@ -138,7 +138,6 @@ class Test_build_spotdata_cube(IrisTest):
             self.longitude,
             self.wmo_id,
             grid_attributes=self.grid_attributes,
-            grid_attributes_dim=0,
         )
 
         self.assertArrayAlmostEqual(result.data, data)
