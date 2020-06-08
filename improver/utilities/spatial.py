@@ -376,8 +376,8 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
 
         """
         gradients = []
-        diff_x, diff_y = DifferenceBetweenAdjacentGridSquares()(cube)
-        for axis, diff in zip(["x", "y"], [diff_x, diff_y]):
+        diffs = DifferenceBetweenAdjacentGridSquares()(cube)
+        for axis, diff in zip(["x", "y"], diffs):
             gradient = self._gradient_from_diff(diff, axis)
             grad_cube = self._create_output_cube(gradient, diff, cube, axis)
             if self.regrid:

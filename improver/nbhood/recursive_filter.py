@@ -304,50 +304,56 @@ class RecursiveFilter(PostProcessingPlugin):
             ValueError: The coordinate to be smoothed within the
                 smoothing coefficient cube does not have the expected points.
         """
-        if smoothing_coefficients_cube.name() not in [
-            "smoothing_coefficient_x",
-            "smoothing_coefficient_y",
-        ]:
+        if smoothing_coefficients_cube.name() == "smoothing_coefficient_x":
+            smoothing_axis = "x"
+            non_smoothing_axis = "y"
+            smoothing_coord = smoothing_coefficients_cube.coord(axis="x")
+            non_smoothing_coord = smoothing_coefficients_cube.coord(axis="y")
+        elif smoothing_coefficients_cube.name() == "smoothing_coefficient_y":
+            smoothing_axis = "y"
+            non_smoothing_axis = "x"
+            smoothing_coord = smoothing_coefficients_cube.coord(axis="y")
+            non_smoothing_coord = smoothing_coefficients_cube.coord(axis="x")
+        else:
             msg = (
                 "The smoothing coefficients cube must be named either "
-                "smoothing_coefficient_x or smoothing_coefficient_y"
+                "smoothing_coefficient_x or smoothing_coefficient_y. "
+                "The smoothing coefficients are named: "
+                f"{smoothing_coefficients_cube.name()}"
             )
             raise ValueError(msg)
 
         mean_points = {
-            "x": (cube.coord(axis="x").points[1:] + cube.coord(axis="x").points[:-1])
-            / 2,
-            "y": (cube.coord(axis="y").points[1:] + cube.coord(axis="y").points[:-1])
-            / 2,
+            "x": (
+                (cube.coord(axis="x").points[1:] + cube.coord(axis="x").points[:-1]) / 2
+            ),
+            "y": (
+                (cube.coord(axis="y").points[1:] + cube.coord(axis="y").points[:-1]) / 2
+            ),
         }
 
-        for axis in ["x", "y"]:
-            if smoothing_coefficients_cube.name() == f"smoothing_coefficient_{axis}" and len(
-                smoothing_coefficients_cube.coord(axis=axis).points
-            ) != len(
-                mean_points[axis]
-            ):
-                msg = (
-                    "The {} spatial dimension of the smoothing coefficients must be "
-                    "of a length of one less than the input cube. The spatial "
-                    "dimensions were smoothing coefficients {}, input cube {}"
-                ).format(
-                    axis,
-                    len(smoothing_coefficients_cube.coord(axis=axis).points),
-                    len(cube.coord(axis=axis).points),
-                )
-                raise ValueError(msg)
+        if len(smoothing_coord.points) != len(
+            mean_points[smoothing_axis]
+        ) or not np.allclose(smoothing_coord.points, mean_points[smoothing_axis]):
+            msg = (
+                f"The points of the {smoothing_axis} spatial dimension of the "
+                "smoothing coefficients must be equal to the mean of each pair "
+                f"of points along the {smoothing_axis} dimension of the input "
+                "cube."
+            )
+            raise ValueError(msg)
 
-        for axis in ["x", "y"]:
-            if smoothing_coefficients_cube.name() == f"smoothing_coefficient_{axis}" and not np.allclose(
-                smoothing_coefficients_cube.coord(axis=axis).points, mean_points[axis]
-            ):
-                msg = (
-                    "The points of the {0} spatial dimension of the smoothing "
-                    "coefficients must be equal to the mean of each pair of points "
-                    "along the {0} dimension of the input cube."
-                ).format(axis)
-                raise ValueError(msg)
+        if len(non_smoothing_coord.points) != len(
+            cube.coord(axis=non_smoothing_axis).points
+        ) or not np.allclose(
+            non_smoothing_coord.points, cube.coord(axis=non_smoothing_axis).points
+        ):
+            msg = (
+                f"The points of the {non_smoothing_axis} spatial dimension of "
+                "the smoothing coefficients must be equal to the points along "
+                f"the {non_smoothing_axis} dimension of the input cube."
+            )
+            raise ValueError(msg)
 
     def _set_smoothing_coefficients(self, smoothing_coefficients_cube):
         """

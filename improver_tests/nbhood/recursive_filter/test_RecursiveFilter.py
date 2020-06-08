@@ -293,7 +293,7 @@ class Test__validate_smoothing_coefficients(Test_RecursiveFilter):
     def test_smoothing_coefficients_mismatched_x_dimension(self):
         """Test that an error is raised if the x smoothing_coefficients_cube is
         of an incorrect shape compared to the data cube."""
-        msg = "The x spatial dimension of the smoothing coefficients "
+        msg = "The points of the x spatial dimension of the smoothing coefficients"
         with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(edge_width=1)._validate_smoothing_coefficients(
                 self.cube, self.smoothing_coefficients_cube_wrong_x
@@ -302,7 +302,7 @@ class Test__validate_smoothing_coefficients(Test_RecursiveFilter):
     def test_smoothing_coefficients_mismatched_y_dimension(self):
         """Test that an error is raised if the y smoothing_coefficients_cube is
         of an incorrect shape compared to the data cube."""
-        msg = "The y spatial dimension of the smoothing coefficients "
+        msg = "The points of the y spatial dimension of the smoothing coefficients"
         with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(edge_width=1)._validate_smoothing_coefficients(
                 self.cube, self.smoothing_coefficients_cube_wrong_y
