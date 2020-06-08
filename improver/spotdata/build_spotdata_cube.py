@@ -70,7 +70,7 @@ def build_spotdata_cube(
     Args:
         data (numpy.ndarray):
             Float spot data or array of data points from several sites.
-            The spot index should be the first dimension if the array is
+            The spot index should be the last dimension if the array is
             multi-dimensional (see optional additional dimensions below).
         name (str):
             Cube name (eg 'air_temperature')
