@@ -106,7 +106,6 @@ class Test_SpotLapseRateAdjust(IrisTest):
                 [[1.0, 1.0, 2.0], [1.0, 1.0, 2.0], [-1.0, 0.0, -1.0]],
             ]
         )
-
         altitudes = np.array([3, 4, 0])
         latitudes = np.array([y_coord[0], y_coord[1], y_coord[2]])
         longitudes = np.array([x_coord[0], x_coord[1], x_coord[2]])

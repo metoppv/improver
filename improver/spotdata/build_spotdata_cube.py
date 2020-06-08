@@ -68,7 +68,7 @@ def build_spotdata_cube(
        build_spotdata_cube_examples.rst
 
     Args:
-        data (float or numpy.ndarray):
+        data (numpy.ndarray):
             Float spot data or array of data points from several sites.
             The spot index should be the first dimension if the array is
             multi-dimensional (see optional additional dimensions below).
@@ -103,8 +103,6 @@ def build_spotdata_cube(
     id_coord = AuxCoord(wmo_id, long_name="wmo_id", units="no_unit")
 
     aux_coords_and_dims = []
-    # for coord in [alt_coord, lat_coord, lon_coord, id_coord]:
-    #    aux_coords_and_dims.append((coord, 2))
 
     # append scalar coordinates
     if scalar_coords is not None:
@@ -118,7 +116,6 @@ def build_spotdata_cube(
         np.arange(data.shape[-1], dtype=np.int32), long_name="spot_index", units="1"
     )
 
-    # dim_coords_and_dims = [(spot_index, 2)]
     dim_coords_and_dims = []
     spot_index_dim = 0
 

@@ -58,7 +58,6 @@ class Test_check_grid_match(IrisTest):
         self.diagnostic_cube_hash = create_coordinate_hash(self.reference_cube)
 
         neighbours = np.array([[[0.0], [0.0], [0.0]]])
-
         altitudes = np.array([0])
         latitudes = np.array([0])
         longitudes = np.array([0])
