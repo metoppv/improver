@@ -257,12 +257,13 @@ def create_constrained_inputcubelist_converter(*constraints):
 
 
 @decorator
-def with_output(wrapped, *args, output=None, **kwargs):
+def with_output(wrapped, *args, output=None, no_compression=False, **kwargs):
     """Add `output` keyword only argument.
+    Add `no_compression` option.
 
-    This is used to add an extra `output` CLI option. If provided, it saves
+    This is used to add extra `output` and `no_compression` CLI options. If `output` provided, it saves
     the result of calling `wrapped` to file and returns None, otherwise it
-    returns the result.
+    returns the result. If `no_compression` provided, it does not compress the file.
 
     Args:
         wrapped (obj):
@@ -270,6 +271,8 @@ def with_output(wrapped, *args, output=None, **kwargs):
         output (str, optional):
             Output file name. If not supplied, the output object will be
             printed instead.
+        no_compression (bool):
+            If given, will not compress the netCDF file when saved.
 
     Returns:
         Result of calling `wrapped` or None if `output` is given.
@@ -278,7 +281,8 @@ def with_output(wrapped, *args, output=None, **kwargs):
 
     result = wrapped(*args, **kwargs)
     if output:
-        save_netcdf(result, output)
+        compress = not no_compression
+        save_netcdf(result, output, compress)
         return
     return result
 
@@ -407,7 +411,7 @@ def main(
     profile: value_converter(lambda _: _, name="FILENAME") = None,
     memprofile: value_converter(lambda _: _, name="FILENAME") = None,
     verbose=False,
-    dry_run=False,
+    dry_run=False
 ):
     """IMPROVER NWP post-processing toolbox
 
@@ -458,7 +462,7 @@ def main(
         command,
         *args,
         verbose=verbose,
-        dry_run=dry_run,
+        dry_run=dry_run
     )
     return result
 
