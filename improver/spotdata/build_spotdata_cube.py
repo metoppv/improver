@@ -45,9 +45,9 @@ def build_spotdata_cube(
     wmo_id,
     scalar_coords=None,
     neighbour_methods=None,
-    neighbour_methods_dim=1,
+    neighbour_methods_dim=0,
     grid_attributes=None,
-    grid_attributes_dim=2,
+    grid_attributes_dim=1,
 ):
     """
     Function to build a spotdata cube with expected dimension and auxiliary
@@ -103,8 +103,8 @@ def build_spotdata_cube(
     id_coord = AuxCoord(wmo_id, long_name="wmo_id", units="no_unit")
 
     aux_coords_and_dims = []
-    for coord in [alt_coord, lat_coord, lon_coord, id_coord]:
-        aux_coords_and_dims.append((coord, 0))
+    # for coord in [alt_coord, lat_coord, lon_coord, id_coord]:
+    #    aux_coords_and_dims.append((coord, 2))
 
     # append scalar coordinates
     if scalar_coords is not None:
@@ -115,11 +115,15 @@ def build_spotdata_cube(
     if np.isscalar(data):
         data = np.array([data])
     spot_index = DimCoord(
-        np.arange(len(data), dtype=np.int32), long_name="spot_index", units="1"
+        np.arange(data.shape[-1], dtype=np.int32), long_name="spot_index", units="1"
     )
-    dim_coords_and_dims = [(spot_index, 0)]
+
+    # dim_coords_and_dims = [(spot_index, 2)]
+    dim_coords_and_dims = []
+    spot_index_dim = 0
 
     if neighbour_methods is not None:
+        spot_index_dim += 1
         neighbour_methods_coord = DimCoord(
             np.arange(len(neighbour_methods), dtype=np.int32),
             long_name="neighbour_selection_method",
@@ -135,6 +139,7 @@ def build_spotdata_cube(
         aux_coords_and_dims.append((neighbour_methods_key, neighbour_methods_dim))
 
     if grid_attributes is not None:
+        spot_index_dim += 1
         grid_attributes_coord = DimCoord(
             np.arange(len(grid_attributes), dtype=np.int32),
             long_name="grid_attributes",
@@ -146,6 +151,10 @@ def build_spotdata_cube(
 
         dim_coords_and_dims.append((grid_attributes_coord, grid_attributes_dim))
         aux_coords_and_dims.append((grid_attributes_key, grid_attributes_dim))
+
+    dim_coords_and_dims.append((spot_index, spot_index_dim))
+    for coord in [alt_coord, lat_coord, lon_coord, id_coord]:
+        aux_coords_and_dims.append((coord, spot_index_dim))
 
     # create output cube
     spot_cube = iris.cube.Cube(

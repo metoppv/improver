@@ -688,7 +688,7 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(
             self.global_sites, self.global_orography, self.global_land_mask
         )
-        expected = [[[2, 4, 2]]]
+        expected = [[[2], [4], [2]]]
 
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.data, expected)
@@ -726,7 +726,7 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(
             self.global_sites, self.global_orography, self.global_land_mask
         )
-        expected = [[[1, 4, -3]]]
+        expected = [[[1], [4], [-3]]]
 
         self.assertArrayEqual(result.data, expected)
 
@@ -742,7 +742,7 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(
             self.global_sites, self.global_orography, self.global_land_mask
         )
-        expected = [[[0, 4, 1]]]
+        expected = [[[0], [4], [1]]]
 
         self.assertArrayEqual(result.data, expected)
 
@@ -767,7 +767,7 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(
             self.global_sites, self.global_orography, self.global_land_mask
         )
-        expected = [[[0, 4, 2]]]
+        expected = [[[0], [4], [2]]]
 
         self.assertArrayEqual(result.data, expected)
 
@@ -802,7 +802,7 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(
             self.region_sites, self.region_orography, self.region_land_mask
         )
-        expected = [[[2, 4, 2]]]
+        expected = [[[2], [4], [2]]]
 
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.data, expected)
@@ -845,7 +845,7 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(
             self.region_sites, self.region_orography, self.region_land_mask
         )
-        expected = [[[1, 4, -3]]]
+        expected = [[[1], [4], [-3]]]
 
         self.assertArrayEqual(result.data, expected)
 
@@ -866,7 +866,7 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(
             self.region_sites, self.region_orography, self.region_land_mask
         )
-        expected = [[[0, 4, 1]]]
+        expected = [[[0], [4], [1]]]
 
         self.assertArrayEqual(result.data, expected)
 
@@ -884,7 +884,7 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(
             self.global_sites, self.global_orography, self.global_land_mask
         )
-        expected = [[[2, 4, 2]]]
+        expected = [[[2], [4], [2]]]
 
         self.assertArrayEqual(result.data, expected)
 
@@ -900,7 +900,7 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(
             self.global_sites, self.global_orography, self.global_land_mask
         )
-        expected = [[[4, 4, 2]]]
+        expected = [[[4], [4], [2]]]
 
         self.assertArrayEqual(result.data, expected)
 
@@ -923,7 +923,7 @@ class Test_process(Test_NeighbourSelection):
         result = plugin.process(
             self.global_sites, self.global_orography, self.global_land_mask
         )
-        expected = [[[4, 4, 0]]]
+        expected = [[[4], [4], [0]]]
 
         self.assertArrayEqual(result.data, expected)
 

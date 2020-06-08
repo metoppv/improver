@@ -100,7 +100,7 @@ class Test_build_spotdata_cube(IrisTest):
 
     def test_neighbour_method(self):
         """Test output where neighbour_methods is populated"""
-        data = np.array([[1.6, 1.7], [1.3, 1.5], [1.4, 1.4], [1.1, 1.3]])
+        data = np.array([[1.6, 1.3, 1.4, 1.1], [1.7, 1.5, 1.4, 1.3]])
 
         result = build_spotdata_cube(
             data,
@@ -114,7 +114,7 @@ class Test_build_spotdata_cube(IrisTest):
         )
 
         self.assertArrayAlmostEqual(result.data, data)
-        self.assertEqual(result.coord_dims("neighbour_selection_method")[0], 1)
+        self.assertEqual(result.coord_dims("neighbour_selection_method")[0], 0)
         self.assertArrayEqual(
             result.coord("neighbour_selection_method").points, np.arange(2)
         )
@@ -126,7 +126,7 @@ class Test_build_spotdata_cube(IrisTest):
     def test_grid_attributes(self):
         """Test output where grid_attributes is populated"""
         data = np.array(
-            [[1.6, 1.7, 1.8], [1.3, 1.5, 1.5], [1.4, 1.4, 1.5], [1.1, 1.3, 1.4]]
+            [[1.6, 1.3, 1.4, 1.1], [1.7, 1.5, 1.4, 1.3], [1.8, 1.5, 1.5, 1.4]]
         )
 
         result = build_spotdata_cube(
@@ -138,11 +138,11 @@ class Test_build_spotdata_cube(IrisTest):
             self.longitude,
             self.wmo_id,
             grid_attributes=self.grid_attributes,
-            grid_attributes_dim=1,
+            grid_attributes_dim=0,
         )
 
         self.assertArrayAlmostEqual(result.data, data)
-        self.assertEqual(result.coord_dims("grid_attributes")[0], 1)
+        self.assertEqual(result.coord_dims("grid_attributes")[0], 0)
         self.assertArrayEqual(result.coord("grid_attributes").points, np.arange(3))
         self.assertArrayEqual(
             result.coord("grid_attributes_key").points, self.grid_attributes
@@ -150,7 +150,7 @@ class Test_build_spotdata_cube(IrisTest):
 
     def test_3d_spot_cube(self):
         """Test output with two extra dimensions"""
-        data = np.ones((4, 2, 3), dtype=np.float32)
+        data = np.ones((2, 3, 4), dtype=np.float32)
         result = build_spotdata_cube(
             data,
             "air_temperature",
@@ -164,8 +164,8 @@ class Test_build_spotdata_cube(IrisTest):
         )
 
         self.assertArrayAlmostEqual(result.data, data)
-        self.assertEqual(result.coord_dims("neighbour_selection_method")[0], 1)
-        self.assertEqual(result.coord_dims("grid_attributes")[0], 2)
+        self.assertEqual(result.coord_dims("neighbour_selection_method")[0], 0)
+        self.assertEqual(result.coord_dims("grid_attributes")[0], 1)
 
     def test_3d_spot_cube_with_unequal_length_coordinates(self):
         """Test error is raised if coordinates lengths do not match data
@@ -193,7 +193,7 @@ class Test_build_spotdata_cube(IrisTest):
             datetime(2015, 11, 23, 4, 30), None, datetime(2015, 11, 22, 22, 30)
         )
 
-        data = np.ones((4, 2), dtype=np.float32)
+        data = np.ones((2, 4), dtype=np.float32)
         result = build_spotdata_cube(
             data,
             "air_temperature",
