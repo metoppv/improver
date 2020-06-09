@@ -37,7 +37,7 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.constants import TRIPLE_PT_WATER
-from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
+from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 
 class OrographicSmoothingCoefficients(BasePlugin):
@@ -261,10 +261,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
                     len(cube.data.shape)
                 )
             )
-
-        gradient_x, gradient_y = DifferenceBetweenAdjacentGridSquares(gradient=True)(
-            cube
-        )
+        gradient_x, gradient_y = GradientBetweenAdjacentGridSquares()(cube)
         (
             smoothing_coefficient_x,
             smoothing_coefficient_y,

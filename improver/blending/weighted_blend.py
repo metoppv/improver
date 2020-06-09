@@ -50,6 +50,7 @@ from improver.metadata.forecast_times import (
     rebadge_forecasts_as_latest_cycle,
 )
 from improver.metadata.probabilistic import find_percentile_coordinate
+from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import (
     MergeCubes,
     collapsed,
@@ -575,12 +576,10 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             weights_array = self.shape_weights(cube, weights)
         else:
             (number_of_fields,) = cube.coord(self.blend_coord).shape
-            weights_array = np.broadcast_to(1.0 / number_of_fields, cube.shape).astype(
-                np.float32
-            )
-        (blend_dim,) = cube.coord_dims(self.blend_coord)
-        self.check_weights(weights_array, blend_dim)
-        return weights_array.astype(np.float32)
+            weight = np.float32(1.0 / number_of_fields)
+            weights_array = np.broadcast_to(weight, cube.shape)
+
+        return weights_array
 
     def percentile_weights(self, cube, weights, perc_coord):
         """
@@ -632,9 +631,8 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             )
         else:
             (number_of_fields,) = cube.coord(self.blend_coord).shape
-            weights_array = np.broadcast_to(1.0 / number_of_fields, cube.shape).astype(
-                np.float32
-            )
+            weight = np.float32(1.0 / number_of_fields)
+            weights_array = np.broadcast_to(weight, cube.shape)
 
         (blend_dim,) = cube.coord_dims(self.blend_coord)
         (perc_dim,) = cube.coord_dims(perc_coord)
@@ -647,7 +645,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         # Check the weights add up to 1 across the blending dimension.
         self.check_weights(weights_array, 0)
 
-        return weights_array.astype(np.float32)
+        return weights_array
 
     def percentile_weighted_mean(self, cube, weights, perc_coord):
         """
@@ -721,13 +719,33 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         """
         weights_array = self.non_percentile_weights(cube, weights)
 
-        # Calculate the weighted average.
-        cube_new = collapsed(
-            cube, self.blend_coord, iris.analysis.MEAN, weights=weights_array
-        )
-        cube_new.data = cube_new.data.astype(np.float32)
+        (collapse_dim,) = cube.coord_dims(self.blend_coord)
+        if collapse_dim == 0:
+            slice_dim = 1
+        else:
+            slice_dim = 0
 
-        return cube_new
+        allow_slicing = cube.ndim > 3
+
+        if allow_slicing:
+            cube_slices = cube.slices_over(slice_dim)
+        else:
+            cube_slices = [cube]
+
+        weights_slices = (
+            np.moveaxis(weights_array, slice_dim, 0)
+            if allow_slicing
+            else [weights_array]
+        )
+
+        result_slices = iris.cube.CubeList(
+            collapsed(c_slice, self.blend_coord, iris.analysis.MEAN, weights=w_slice)
+            for c_slice, w_slice in zip(cube_slices, weights_slices)
+        )
+
+        result = result_slices.merge_cube() if allow_slicing else result_slices[0]
+
+        return result
 
     @staticmethod
     def _get_cycletime_point(input_cube, cycletime):
@@ -902,8 +920,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             result = self.weighted_mean(cube, weights)
         self._update_blended_metadata(result, attributes_dict)
 
-        # Re-mask output
-        if isinstance(cube.data, np.ma.core.MaskedArray):
-            result.data = np.ma.array(result.data)
+        # Checks the coordinate dimensions match the first relevant cube in the unblended cubeList.
+        result = check_cube_coordinates(
+            next(cube.slices_over(self.blend_coord)), result
+        )
 
         return result
