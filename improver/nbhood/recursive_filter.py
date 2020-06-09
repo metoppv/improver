@@ -307,13 +307,9 @@ class RecursiveFilter(PostProcessingPlugin):
         if smoothing_coefficients_cube.name() == "smoothing_coefficient_x":
             smoothing_axis = "x"
             non_smoothing_axis = "y"
-            smoothing_coord = smoothing_coefficients_cube.coord(axis="x")
-            non_smoothing_coord = smoothing_coefficients_cube.coord(axis="y")
         elif smoothing_coefficients_cube.name() == "smoothing_coefficient_y":
             smoothing_axis = "y"
             non_smoothing_axis = "x"
-            smoothing_coord = smoothing_coefficients_cube.coord(axis="y")
-            non_smoothing_coord = smoothing_coefficients_cube.coord(axis="x")
         else:
             msg = (
                 "The smoothing coefficients cube must be named either "
@@ -323,18 +319,17 @@ class RecursiveFilter(PostProcessingPlugin):
             )
             raise ValueError(msg)
 
-        mean_points = {
-            "x": (
-                (cube.coord(axis="x").points[1:] + cube.coord(axis="x").points[:-1]) / 2
-            ),
-            "y": (
-                (cube.coord(axis="y").points[1:] + cube.coord(axis="y").points[:-1]) / 2
-            ),
-        }
+        smoothing_coord = smoothing_coefficients_cube.coord(axis=smoothing_axis)
+        non_smoothing_coord = smoothing_coefficients_cube.coord(axis=non_smoothing_axis)
 
-        if len(smoothing_coord.points) != len(
-            mean_points[smoothing_axis]
-        ) or not np.allclose(smoothing_coord.points, mean_points[smoothing_axis]):
+        mean_points = (
+            cube.coord(axis=smoothing_axis).points[1:]
+            + cube.coord(axis=smoothing_axis).points[:-1]
+        ) / 2
+
+        if len(smoothing_coord.points) != len(mean_points) or not np.allclose(
+            smoothing_coord.points, mean_points
+        ):
             msg = (
                 f"The points of the {smoothing_axis} spatial dimension of the "
                 "smoothing coefficients must be equal to the mean of each pair "
