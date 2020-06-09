@@ -111,6 +111,7 @@ class Test_save_netcdf(IrisTest):
         save_netcdf(self.cube, self.filepath)
 
         data = Dataset(self.filepath, mode="r")
+        # pylint: disable=unsubscriptable-object
         filters = data.variables["air_temperature"].filters()
 
         self.assertTrue(filters["zlib"])
