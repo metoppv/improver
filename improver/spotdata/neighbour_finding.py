@@ -587,6 +587,12 @@ class NeighbourSelection(BasePlugin):
         )
         data = np.expand_dims(data, 0).astype(np.float32)
 
+        # Sort the spot sites for better memory accessing later
+        for i in range(data.shape[0]):
+            site = data[i]
+            ind = np.lexsort((site[1], site[0]))
+            data[i] = site[:, ind]
+
         # Regardless of input sitelist coordinate system, the site coordinates
         # are stored as latitudes and longitudes in the neighbour cube.
         if self.site_coordinate_system != ccrs.PlateCarree():

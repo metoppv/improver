@@ -92,11 +92,7 @@ class SpotExtraction(BasePlugin):
         index_constraint = iris.Constraint(grid_attributes_key=["x_index", "y_index"])
         coordinate_cube = neighbour_cube.extract(method & index_constraint)
         if coordinate_cube:
-            data = coordinate_cube.data
-            data = np.rint(data).astype(int)
-            # sort the spot sites for better memory accessing later
-            ind = np.lexsort((data[1], data[0]))
-            coordinate_cube.data = data[:, ind]
+            coordinate_cube.data = np.rint(coordinate_cube.data).astype(int)
             return coordinate_cube
 
         available_methods = neighbour_cube.coord(
