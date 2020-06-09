@@ -492,11 +492,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
 
-        Raises:
-            ValueError: If the given distribution is not valid.
-
-        Warns:
-            ImportWarning: If the statsmodels module can't be imported.
         """
         self.distribution = distribution
         self._validate_distribution()
@@ -561,6 +556,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Returns:
             bool:
                 True if the statsmodels module is available. Otherwise, False.
+
+        Warns:
+            ImportWarning: If the statsmodels module cannot be imported.
         """
         import importlib
 
@@ -570,7 +568,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             statsmodels_found = False
             if self.predictor.lower() == "realizations":
                 msg = (
-                    "The statsmodels can not be imported. "
+                    "The statsmodels module cannot be imported. "
                     "Will not be able to calculate an initial guess from "
                     "the individual ensemble realizations. "
                     "A default initial guess will be used without "
@@ -1288,7 +1286,7 @@ class ApplyEMOS(PostProcessingPlugin):
     """
 
     @staticmethod
-    def _get_attribute(coefficients, attribute_name):
+    def _get_attribute(coefficients, attribute_name, optional=False):
         """Get the value for the requested attribute, ensuring that the
         attribute is present consistently across the cubes within the
         coefficients cubelist.
@@ -1298,6 +1296,8 @@ class ApplyEMOS(PostProcessingPlugin):
                 EMOS coefficients
             attribute_name (str):
                 Name of expected attribute
+            optional (bool):
+                Indicate whether the attribute is allowed to be optional.
 
         Returns:
             None or Any:
@@ -1308,13 +1308,19 @@ class ApplyEMOS(PostProcessingPlugin):
             ValueError: If coefficients do not share the expected attributes.
         """
         attributes = [
-            tuple(c.attributes[attribute_name])
+            str(c.attributes[attribute_name])
             for c in coefficients
             if c.attributes.get(attribute_name) is not None
         ]
 
-        if not attributes:
+        if not attributes and optional:
             return None
+        if not attributes and not optional:
+            msg = (
+                f"The {attribute_name} attribute must be specified on all "
+                "coefficients cubes."
+            )
+            raise AttributeError(msg)
 
         if len(set(attributes)) == 1 and len(attributes) == len(coefficients):
             return coefficients[0].attributes[attribute_name]
@@ -1323,7 +1329,7 @@ class ApplyEMOS(PostProcessingPlugin):
             "Coefficients must share the same {0} attribute. "
             "{0} attributes provided: {1}".format(attribute_name, attributes)
         )
-        raise ValueError(msg)
+        raise AttributeError(msg)
 
     @staticmethod
     def _get_forecast_type(forecast):
@@ -1499,7 +1505,9 @@ class ApplyEMOS(PostProcessingPlugin):
             "name": self._get_attribute(coefficients, "distribution"),
             "location": location_parameter,
             "scale": scale_parameter,
-            "shape": self._get_attribute(coefficients, "shape_parameters"),
+            "shape": self._get_attribute(
+                coefficients, "shape_parameters", optional=True
+            ),
         }
 
         result = self._calibrate_forecast(forecast, randomise, random_seed)

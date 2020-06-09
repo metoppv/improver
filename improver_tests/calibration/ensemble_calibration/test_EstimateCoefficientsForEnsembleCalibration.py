@@ -68,7 +68,7 @@ else:
 
 IGNORED_MESSAGES = [
     "Collapsing a non-contiguous coordinate",  # Originating from Iris
-    "The statsmodels can not be imported",
+    "The statsmodels module cannot be imported",
     "invalid escape sequence",  # Originating from statsmodels
     "can't resolve package from",  # Originating from statsmodels
     "Minimisation did not result in convergence",  # From calibration code
@@ -163,7 +163,7 @@ class Test__init__(SetupCubes):
         is not found for when the predictor is the ensemble mean.
         """
         predictor = "mean"
-        statsmodels_warning = "The statsmodels can not be imported"
+        statsmodels_warning = "The statsmodels module cannot be imported"
 
         Plugin(self.distribution, self.desired_units, predictor=predictor)
         self.assertNotIn(statsmodels_warning, warning_list)
@@ -205,7 +205,7 @@ class Test__init__(SetupCubes):
         predictor = "realizations"
 
         Plugin(self.distribution, self.desired_units, predictor=predictor)
-        warning_msg = "The statsmodels can not be imported"
+        warning_msg = "The statsmodels module cannot be imported"
         self.assertTrue(any(item.category == ImportWarning for item in warning_list))
         self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 

@@ -319,7 +319,7 @@ class Test_process(IrisTest):
         attributes are provided within the coefficients cubelist."""
         self.coefficients[0].attributes["distribution"] = "truncnorm"
         msg = "Coefficients must share the same"
-        with self.assertRaisesRegex(ValueError, msg):
+        with self.assertRaisesRegex(AttributeError, msg):
             ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
 
     def test_missing_attribute(self):
@@ -327,7 +327,16 @@ class Test_process(IrisTest):
         attribute is missing from within the coefficients cubelist."""
         self.coefficients[0].attributes.pop("distribution")
         msg = "Coefficients must share the same"
-        with self.assertRaisesRegex(ValueError, msg):
+        with self.assertRaisesRegex(AttributeError, msg):
+            ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
+
+    def test_completely_missing_attribute(self):
+        """Test that an exception is raised if the expected distribution
+        attribute is missing from all cubes within the coefficients cubelist."""
+        for cube in self.coefficients:
+            cube.attributes.pop("distribution")
+        msg = "The distribution attribute must be specified on all coefficients cubes."
+        with self.assertRaisesRegex(AttributeError, msg):
             ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
 
 

@@ -63,7 +63,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             "Collapsing a non-contiguous coordinate.",
             "invalid escape sequence",
             "can't resolve package from",
-            "The statsmodels can not be imported",
+            "The statsmodels module cannot be imported",
         ],
         warning_types=[UserWarning, DeprecationWarning, ImportWarning, ImportWarning],
     )
