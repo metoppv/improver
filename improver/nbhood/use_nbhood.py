@@ -76,11 +76,11 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         resulting in a cube with a "topographic_zone" coordinate which is
         returned from this plugin.
 
-        The remask option can be used to return the resulting cube with a
+        The re_mask option can be used to return the resulting cube with a
         "topographic_zone" coordinate, with each slice over the
         "topographic_zone" masked using the input mask cube.
 
-        Otherwise ifweights are provided then the you can weight between
+        Otherwise if weights are provided then you can weight between
         adjacent bands when you collapse the new "topographic_zone" coordinate.
         This takes into account the result from the neighbourhood processing to
         adjust the weights for points in a "topographic_zone" that don't have
@@ -91,7 +91,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         generate a final result by weighting 0.75 times to neighbourhooded
         value from the bottom band and 0.25 times the neighbourhooded value in
         the upper band. For point B we would take equal weightings between the
-        bands. There is a plugin to generate weights here:
+        bands. There is a plugin to generate these weights:
         :class:`~improver.generate_ancillaries.\
         generate_topographic_zone_weights.GenerateTopographicZoneWeights`
         ::
@@ -105,19 +105,19 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             band 1
                     ..........................
 
-        We may need adjust the weights if there is missing data in the adjacent
-        band. If we look at the diagram with labelled bands, points that are
-        near the top of band 2 could be weighted with band 3, except there
-        are no nearby points in band 3. In this case the neighbourhood code
-        puts NaNs in band 3 and we want to take 100% of band 2. This can be
-        easily done by renormalization of the weights, which happens
+        We may need to adjust the weights if there is missing data in the
+        adjacent band. If we look at the diagram with labelled bands, points
+        that are near the top of band 2 could be weighted with band 3, except
+        there are no nearby points in band 3. In this case the neighbourhood
+        code puts NaNs in band 3 and we want to take 100% of band 2. This can
+        be easily done by renormalization of the weights, which happens
         automatically within the numpy functions called within the
         iris collapse method.
 
         After collapsing the "topographic_zone" coordinate we end up with a
-        cube with the same dimensions as the original cube, but the neighbourhood processing
-        has been applied using masks so that only similar points are used in
-        the neighbourhood.
+        cube with the same dimensions as the original cube, but the neighbourhood
+        processing has been applied using masks so that only similar points
+        are used in the neighbourhood.
 
         See also :class:`~improver.generate_ancillaries.generate_ancillary.\
         GenerateOrographyBandAncils`
@@ -157,7 +157,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 dimension. The data in this cube may be an instance of
                 numpy.ma.masked_array, for example if sea points have been
                 set to np.nan and masked in order for them to be discounted
-                when calclating the result. In this case the result returned
+                when calculating the result. In this case the result returned
                 from the process method of this plugin will have the same
                 points masked.
             lead_times (list):
@@ -192,6 +192,10 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         self.weighted_mode = weighted_mode
         self.sum_or_fraction = sum_or_fraction
         self.re_mask = re_mask
+        # Check that if collapse_weights are provided then re_mask is set to False
+        if self.collapse_weights is not None and re_mask is True:
+            message = "re_mask should be set to False when using collapse_weights"
+            raise ValueError(message)
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -252,17 +256,8 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
 
     def process(self, cube, mask_cube):
         """
-        Process each x-y slice of the input cube separately to minimise
-        memory use. For each slice:
-
-        1. Iterate over the coord_for_masking coordinate within the mask_cube
-        and apply the mask at each iteration to the cube that is to be
-        neighbourhood processed.
-
-        2. If a collapse_weights cube is provided collapse the coord_for_masking
-        coordinate.
-        Finally concatenate the cubes from each iteration together to create a
-        single cube, and check the dimensions of this cube.
+        Apply neighbourhood processing with a mask to the input cube,
+        collapsing the coord_for_masking if collapse_weights have been provided.
 
         Args:
             cube (iris.cube.Cube):
@@ -328,5 +323,4 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         result = check_cube_coordinates(
             cube, result, exception_coordinates=exception_coordinates
         )
-
         return result

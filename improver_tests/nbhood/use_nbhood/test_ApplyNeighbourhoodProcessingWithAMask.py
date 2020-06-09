@@ -65,6 +65,17 @@ class Test__init__(unittest.TestCase):
         )
         self.assertEqual(str(result), msg)
 
+    def test_raises_error(self):
+        """Test raises an error if re_mask=True when using collapse_weights"""
+        message = "re_mask should be set to False when using collapse_weights"
+        with self.assertRaisesRegexp(ValueError, message):
+            ApplyNeighbourhoodProcessingWithAMask(
+                "topographic_zone",
+                2000,
+                collapse_weights=iris.cube.Cube([0]),
+                re_mask=True,
+            )
+
 
 class Test__repr__(unittest.TestCase):
 
@@ -132,7 +143,7 @@ class Test_collapse_mask_coord(unittest.TestCase):
         self.weights_cube.data = weights_data
 
     def test_basic(self):
-        """Test we get a the expected reult with a simple collapse"""
+        """Test we get the expected result with a simple collapse"""
         expected_data = np.array(
             [[1.0, 1.0, 1.0], [1.0, 1.0, 0.75], [1.0, 0.75, 0.5]], dtype=np.float32
         )
@@ -145,7 +156,7 @@ class Test_collapse_mask_coord(unittest.TestCase):
 
     def test_renormalise_when_missing_data(self):
         """
-        Test we get a the expected reult when the weights need renormalising
+        Test we get the expected result when the weights need renormalising
         to account for missing data that comes from neighbourhood processing
         where there are no points to process in a given band for a given point.
         The expected behaviour is that the weights are renormalised and the
@@ -172,8 +183,8 @@ class Test_collapse_mask_coord(unittest.TestCase):
 
     def test_masked_weights_data(self):
         """Test points where weights are masked.
-           Covers the case where sea points may be masked out so
-           they aren't neighbourhood processed."""
+        Covers the case where sea points may be masked out so they aren't
+        neighbourhood processed."""
         self.weights_cube.data[:, 0, 0] = np.nan
         self.weights_cube.data = np.ma.masked_invalid(self.weights_cube.data)
         expected_data = np.array(
@@ -192,11 +203,11 @@ class Test_collapse_mask_coord(unittest.TestCase):
 
     def test_masked_weights_and_missing(self):
         """Test masked weights, and one point has nan in from
-           neighbourhood processing.
-           Covers the case where sea points may be masked out so
-           they aren't neighbourhood processed. The nan point comes
-           from neighbourhood processing where it has found no points to
-           process for a given point in a given band."""
+        neighbourhood processing.
+        Covers the case where sea points may be masked out so they aren't
+        neighbourhood processed. The nan point comes from neighbourhood
+        processing where it has found no points to process for a given point
+        in a given band."""
         self.weights_cube.data[:, 0, 0] = np.nan
         self.weights_cube.data = np.ma.masked_invalid(self.weights_cube.data)
         self.cube.data[2, 2, 2] = np.nan
