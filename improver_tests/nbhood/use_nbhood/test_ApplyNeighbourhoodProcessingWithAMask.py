@@ -31,11 +31,9 @@
 """Unit tests for nbhood.ApplyNeighbourhoodProcessingWithAMask."""
 
 import unittest
-from collections import OrderedDict
 
 import iris
 import numpy as np
-from iris.coords import DimCoord
 from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
@@ -45,7 +43,6 @@ from ...set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
-from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 
 
 class Test__init__(unittest.TestCase):
@@ -68,7 +65,7 @@ class Test__init__(unittest.TestCase):
     def test_raises_error(self):
         """Test raises an error if re_mask=True when using collapse_weights"""
         message = "re_mask should be set to False when using collapse_weights"
-        with self.assertRaisesRegexp(ValueError, message):
+        with self.assertRaisesRegex(ValueError, message):
             ApplyNeighbourhoodProcessingWithAMask(
                 "topographic_zone",
                 2000,
@@ -311,7 +308,12 @@ class Test_process(unittest.TestCase):
             [[[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]]],
             dtype=np.float32,
         )
-        self.expected_collapsed_result = np.ma.masked_invalid(expected_result)
+        expected_mask = np.array(
+            [[[True, False, False], [False, False, False], [False, False, False]]],
+        )
+        self.expected_collapsed_result = np.ma.MaskedArray(
+            expected_result, expected_mask
+        )
 
     def test_basic_no_collapse(self):
         """Test process for a cube with 1 threshold and no collapse.
