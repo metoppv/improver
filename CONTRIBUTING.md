@@ -56,6 +56,7 @@ below:
 * Fiona Rust (Met Office, UK)
 * Chris Sampson (Met Office, UK)
 * Caroline Sandford (Met Office, UK)
+* Victoria Smart (Met Office, UK)
 * Eleanor Smith (Met Office, UK)
 * Tomasz Trzeciak (Met Office, UK)
 * Mark Worsfold (Met Office, UK)
