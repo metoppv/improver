@@ -157,22 +157,25 @@ class Test_process(IrisTest):
 
         self.coefficients = build_coefficients_cubelist(self.realizations, [0, 1, 0, 1])
 
-    def test_null_percentiles(self):
-        """Test effect of "neutral" emos coefficients in percentile space
-        (this is small but non-zero due to limited sampling of the
-        distribution)"""
-        expected_mean = np.mean(self.percentiles.data)
-        expected_data = np.array(
+        self.null_percentiles_expected_mean = np.mean(self.percentiles.data)
+        self.null_percentiles_expected = np.array(
             [
                 np.full((3, 3), 10.265101),
                 np.full((3, 3), 10.4),
                 np.full((3, 3), 10.534898),
             ]
         )
+
+    def test_null_percentiles(self):
+        """Test effect of "neutral" emos coefficients in percentile space
+        (this is small but non-zero due to limited sampling of the
+        distribution)"""
         result = ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
         self.assertIn("percentile", get_dim_coord_names(result))
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertAlmostEqual(np.mean(result.data), expected_mean)
+        self.assertArrayAlmostEqual(result.data, self.null_percentiles_expected)
+        self.assertAlmostEqual(
+            np.mean(result.data), self.null_percentiles_expected_mean
+        )
 
     def test_null_realizations(self):
         """Test effect of "neutral" emos coefficients in realization space"""
@@ -277,18 +280,12 @@ class Test_process(IrisTest):
             cube.attributes["shape_parameters"] = np.array([0, np.inf], np.float32)
             coefficients.append(cube)
 
-        expected_mean = np.mean(self.percentiles.data)
-        expected_data = np.array(
-            [
-                np.full((3, 3), 10.265101),
-                np.full((3, 3), 10.4),
-                np.full((3, 3), 10.534898),
-            ]
-        )
         result = ApplyEMOS()(self.percentiles, coefficients, realizations_count=3)
         self.assertIn("percentile", get_dim_coord_names(result))
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertAlmostEqual(np.mean(result.data), expected_mean)
+        self.assertArrayAlmostEqual(result.data, self.null_percentiles_expected)
+        self.assertAlmostEqual(
+            np.mean(result.data), self.null_percentiles_expected_mean
+        )
 
     def test_null_percentiles_truncnorm_alternative_shape_parameters(self):
         """Test effect of "neutral" emos coefficients in percentile space
