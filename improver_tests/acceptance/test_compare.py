@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the compare CLI"""
 
-import shutil
-
 import pytest
 
 from . import acceptance as acc
@@ -41,13 +39,12 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI, verbose=False)
 
 
-def test_same(tmp_path, capsys):
+def test_same(capsys):
     """Compare identical files, should not produce any output"""
     kgo_dir = acc.kgo_root()
-    input_file = kgo_dir / "generate-percentiles/basic/input.nc"
-    copied_file = tmp_path / "copied.nc"
-    shutil.copy(input_file, copied_file)
-    args = [input_file, copied_file]
+    input_file = kgo_dir / "apply-lapse-rate/highres_orog.nc"
+    matching_file = kgo_dir / "wind_downscaling/basic/highres_orog.nc"
+    args = [input_file, matching_file]
     run_cli(args)
     captured = capsys.readouterr()
     assert captured.out == ""
