@@ -133,12 +133,10 @@ def save_netcdf(cubelist, filename, compression_level=1):
         if key not in global_keys
     }
 
-    if not isinstance(compression_level, int):
-        raise ValueError("{} is not an int between 0 and 9".format(compression_level))
-    if compression_level > 9:
-        compression_level = 9
-    elif compression_level < 0:
-        compression_level = 0
+    if compression_level not in range(10):
+        raise ValueError(
+            "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
+        )
 
     # save atomically by writing to a temporary file and then renaming
     ftmp = str(filename) + ".tmp"
