@@ -148,7 +148,7 @@ def save_netcdf(cubelist, filename, compression_level=1):
         local_keys=local_keys,
         complevel=compression_level,
         shuffle=True,
-        zlib=True,
+        zlib=compression_level > 0,
         chunksizes=chunksizes,
     )
     os.rename(ftmp, filename)
