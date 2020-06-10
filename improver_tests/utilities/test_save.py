@@ -107,7 +107,7 @@ class Test_save_netcdf(IrisTest):
         self.assertTrue(os.path.exists(self.filepath))
 
     def test_compression(self):
-        """ Test data gets compressed when saved """
+        """ Test data gets compressed with default complevel 1 when saved """
         save_netcdf(self.cube, self.filepath)
 
         data = Dataset(self.filepath, mode="r")
@@ -115,10 +115,49 @@ class Test_save_netcdf(IrisTest):
         filters = data.variables["air_temperature"].filters()
 
         self.assertTrue(filters["zlib"])
+        self.assertEqual(filters["complevel"], 1)
+
+    def test_compression_level(self):
+        """ Test data gets compressed with complevel provided by compression_level
+        when saved """
+        save_netcdf(self.cube, self.filepath, compression_level=3)
+
+        data = Dataset(self.filepath, mode="r")
+        # pylint: disable=unsubscriptable-object
+        filters = data.variables["air_temperature"].filters()
+
+        self.assertTrue(filters["zlib"])
+        self.assertEqual(filters["complevel"], 3)
 
     def test_no_compression(self):
-        """ Test data does not get compressed when saved with compress=False """
-        save_netcdf(self.cube, self.filepath, compress=False)
+        """ Test data does not get compressed when saved with compression_level 0 """
+        save_netcdf(self.cube, self.filepath, compression_level=0)
+
+        data = Dataset(self.filepath, mode="r")
+        # pylint: disable=unsubscriptable-object
+        filters = data.variables["air_temperature"].filters()
+
+        self.assertFalse(filters["zlib"])
+
+    def test_compression_level_invalid(self):
+        """ Test ValueError raised when invalid compression_level """
+        with self.assertRaises(ValueError):
+            save_netcdf(self.cube, self.filepath, compression_level="ten")
+
+    def test_compression_level_out_of_range(self):
+        """ Test data data compressed with complevel 9 when compression_level > 9 """
+        save_netcdf(self.cube, self.filepath, compression_level=10)
+
+        data = Dataset(self.filepath, mode="r")
+        # pylint: disable=unsubscriptable-object
+        filters = data.variables["air_temperature"].filters()
+
+        self.assertTrue(filters["zlib"])
+        self.assertEqual(filters["complevel"], 9)
+
+    def test_compression_level_negative(self):
+        """ Test data does not get compressed when compression_level < 0 """
+        save_netcdf(self.cube, self.filepath, compression_level=-1)
 
         data = Dataset(self.filepath, mode="r")
         # pylint: disable=unsubscriptable-object

@@ -257,13 +257,13 @@ def create_constrained_inputcubelist_converter(*constraints):
 
 
 @decorator
-def with_output(wrapped, *args, output=None, no_compression=False, **kwargs):
+def with_output(wrapped, *args, output=None, compression_level=1, **kwargs):
     """Add `output` keyword only argument.
-    Add `no_compression` option.
+    Add `compression_level` option.
 
-    This is used to add extra `output` and `no_compression` CLI options. If `output` provided, it saves
-    the result of calling `wrapped` to file and returns None, otherwise it
-    returns the result. If `no_compression` provided, it does not compress the file.
+    This is used to add extra `output` and `compression_level` CLI options. If `output`
+    provided, it saves the result of calling `wrapped` to file and returns None, otherwise 
+    it returns the result. If `compression_level` provided, it does not compress the file.
 
     Args:
         wrapped (obj):
@@ -271,8 +271,8 @@ def with_output(wrapped, *args, output=None, no_compression=False, **kwargs):
         output (str, optional):
             Output file name. If not supplied, the output object will be
             printed instead.
-        no_compression (bool):
-            If given, will not compress the netCDF file when saved.
+        compression_level (int):
+            Will set the compression level (1 to 9), or disable compression (0).
 
     Returns:
         Result of calling `wrapped` or None if `output` is given.
@@ -281,8 +281,7 @@ def with_output(wrapped, *args, output=None, no_compression=False, **kwargs):
 
     result = wrapped(*args, **kwargs)
     if output:
-        compress = not no_compression
-        save_netcdf(result, output, compress)
+        save_netcdf(result, output, compression_level)
         return
     return result
 
