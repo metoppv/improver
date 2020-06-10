@@ -262,8 +262,9 @@ def with_output(wrapped, *args, output=None, compression_level=1, **kwargs):
     Add `compression_level` option.
 
     This is used to add extra `output` and `compression_level` CLI options. If `output`
-    provided, it saves the result of calling `wrapped` to file and returns None, otherwise 
-    it returns the result. If `compression_level` provided, it does not compress the file.
+    provided, it saves the result of calling `wrapped` to file and returns None, otherwise
+    it returns the result. If `compression_level` provided, it compresses the data with the
+    provided compression level (or not, if `compression_level` 0).
 
     Args:
         wrapped (obj):
