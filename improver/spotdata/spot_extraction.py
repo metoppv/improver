@@ -218,9 +218,9 @@ class SpotExtraction(BasePlugin):
 
         additional_dims = None
         if len(spot_values.shape) > 1:
-            additional_dims = np.flip([dim for dim in diagnostic_cube.dim_coords])[2:]
+            additional_dims = np.flip(diagnostic_cube.dim_coords)[2:]
 
-        scalar_coords = [dim for dim in diagnostic_cube.aux_coords]
+        scalar_coords = diagnostic_cube.aux_coords
         spotdata_cube = self.build_diagnostic_cube(
             neighbour_cube,
             diagnostic_cube,
