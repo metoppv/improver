@@ -133,8 +133,8 @@ class SpotExtraction(BasePlugin):
             anchor_start=False,
         )
 
-        coords = coordinate_cube.data
-        return diagnostic_cube.data[..., coords[1], coords[0]]
+        x_indices, y_indices = coordinate_cube.data
+        return diagnostic_cube.data[..., y_indices, x_indices]
 
     @staticmethod
     def build_diagnostic_cube(
