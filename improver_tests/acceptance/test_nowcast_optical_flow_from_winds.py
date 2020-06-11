@@ -38,23 +38,19 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
-DAY = "20181127"
-RADAR_EXT = "radar_rainrate_remasked_composite_2km_UK"
-OE = f"{DAY}T1400Z-PT0004H00M-orographic_enhancement_standard_resolution.nc"
+RADAR_EXT = "u1096_ng_radar_precip_ratecomposite_2km"
 
-# TODO run a test suite to generate input data from available archive,
-# then update times on paths above
 
 def test_basic(tmp_path):
     """Test optical flow calculation by perturbing model winds"""
-    kgo_dir = acc.kgo_root() / "nowcast-optical-flow/remasked"
+    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/optical-flow-from-winds"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [
-        kgo_dir / f"{DAY}{hhmm}_{RADAR_EXT}.nc"
-        for hhmm in ("1345", "1400")
+        kgo_dir / f"20190101T{hhmm}Z-{RADAR_EXT}.nc"
+        for hhmm in ("0645", "0700")
     ]
-    flow_path = "" # TODO populate
-    oe_path = kgo_dir / OE
+    flow_path = kgo_dir / "20190101T0700Z-PT0000H00M-wind_components_on_pressure_levels.nc"
+    oe_path = kgo_dir / "20190101T0700Z-PT0000H00M-orographic_enhancement.nc"
     output_path = tmp_path / "output.nc"
     args = [flow_path, oe_path, *input_paths, "--output", output_path]
     run_cli(args)

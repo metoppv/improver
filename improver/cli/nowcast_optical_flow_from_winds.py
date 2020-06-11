@@ -70,14 +70,16 @@ def process(
     from improver.nowcasting.pysteps_advection import PystepsExtrapolate
     from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
-    cubes.sort(key=lambda x: x.coord("time").points[0])
+    # cannot sort in place as cubes is tuple...
+    cubes = sorted(cubes, key=lambda x: x.coord("time").points[0])
 
     lead_time_seconds = (
-        cubes[1].coord("time").cell(0) - cubes[0].coord("time").cell(0)
+        cubes[1].coord("time").cell(0).point - cubes[0].coord("time").cell(0).point
     ).total_seconds()
+    lead_time_minutes = int(lead_time_seconds / 60)
 
     # advect earlier cube forward to match time of later cube, using steering flow
-    advected_cube = PystepsExtrapolate(lead_time_seconds, lead_time_seconds)(
+    advected_cube = PystepsExtrapolate(lead_time_minutes, lead_time_minutes)(
         cubes[0], *steering_flow, orographic_enhancement
     )[-1]
 
@@ -85,7 +87,12 @@ def process(
     cube_list = ApplyOrographicEnhancement("subtract")(
         [advected_cube, cubes[1]], orographic_enhancement
     )
-    perturbations = OpticalFlow()(cube_list)
+
+    print(cube_list[0])
+    print(cube_list[1])
+    # TODO BUG the second cube has a forecast period of 1... how, exactly?!?!?!
+
+    perturbations = OpticalFlow()(*cube_list)
 
     # add perturbations to original flow field
     for flow, adj in zip(steering_flow, perturbations):
