@@ -142,28 +142,12 @@ class Test_save_netcdf(IrisTest):
     def test_compression_level_invalid(self):
         """ Test ValueError raised when invalid compression_level """
         with self.assertRaises(ValueError):
-            save_netcdf(self.cube, self.filepath, compression_level="ten")
+            save_netcdf(self.cube, self.filepath, compression_level="one")
 
     def test_compression_level_out_of_range(self):
-        """ Test data data compressed with complevel 9 when compression_level > 9 """
-        save_netcdf(self.cube, self.filepath, compression_level=10)
-
-        data = Dataset(self.filepath, mode="r")
-        # pylint: disable=unsubscriptable-object
-        filters = data.variables["air_temperature"].filters()
-
-        self.assertTrue(filters["zlib"])
-        self.assertEqual(filters["complevel"], 9)
-
-    def test_compression_level_negative(self):
-        """ Test data does not get compressed when compression_level < 0 """
-        save_netcdf(self.cube, self.filepath, compression_level=-1)
-
-        data = Dataset(self.filepath, mode="r")
-        # pylint: disable=unsubscriptable-object
-        filters = data.variables["air_temperature"].filters()
-
-        self.assertFalse(filters["zlib"])
+        """ Test ValueError raised when compression_level out of range """
+        with self.assertRaises(ValueError):
+            save_netcdf(self.cube, self.filepath, compression_level=10)
 
     def test_basic_cube_list(self):
         """
