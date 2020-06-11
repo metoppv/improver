@@ -46,6 +46,7 @@ def build_spotdata_cube(
     scalar_coords=None,
     neighbour_methods=None,
     grid_attributes=None,
+    additional_dims=None,
 ):
     """
     Function to build a spotdata cube with expected dimension and auxiliary
@@ -88,6 +89,8 @@ def build_spotdata_cube(
             Optional list of neighbour method names, e.g. 'nearest'
         grid_attributes (list):
             Optional list of grid attribute names, e.g. x-index, y-index
+        additional_dims (list):
+            Optional list of additional dimensions to preceed the spot data dimension.
 
     Returns:
         iris.cube.Cube:
@@ -146,6 +149,11 @@ def build_spotdata_cube(
         dim_coords_and_dims.append((grid_attributes_coord, current_dim))
         aux_coords_and_dims.append((grid_attributes_key, current_dim))
         current_dim += 1
+
+    if additional_dims is not None:
+        for coord in additional_dims:
+            dim_coords_and_dims.append((coord, current_dim))
+            current_dim += 1
 
     dim_coords_and_dims.append((spot_index, current_dim))
     for coord in [alt_coord, lat_coord, lon_coord, id_coord]:
