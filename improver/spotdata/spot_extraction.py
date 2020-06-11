@@ -124,19 +124,14 @@ class SpotExtraction(BasePlugin):
                 An array of diagnostic values at the grid coordinates found
                 within the coordinate cube.
         """
-        yname = diagnostic_cube.coord(axis="y").name()
-        xname = diagnostic_cube.coord(axis="x").name()
-        if (
-            diagnostic_cube.dim_coords[-1].name() != xname
-            and diagnostic_cube.dim_coords[-2].name() != yname
-        ):
-            # Collect all the names, move y and x to the end and reorder the diagnostic cube
-            dims = [dim.name() for dim in diagnostic_cube.dim_coords]
-            dims.remove(xname)
-            dims.remove(yname)
-            dims.extend([yname, xname])
-            new_order = [diagnostic_cube.coord_dims(dim)[0] for dim in dims]
-            diagnostic_cube.transpose(new_order)
+        enforce_coordinate_ordering(
+            diagnostic_cube,
+            [
+                diagnostic_cube.coord(axis="y").name(),
+                diagnostic_cube.coord(axis="x").name(),
+            ],
+            anchor_start=False,
+        )
 
         coords = coordinate_cube.data
         return diagnostic_cube.data[..., coords[1], coords[0]]
