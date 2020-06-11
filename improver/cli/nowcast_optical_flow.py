@@ -38,10 +38,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    orographic_enhancement: cli.inputcube,
-    *cubes: cli.inputcube,
-    ofc_box_size: int = 30,
-    smart_smoothing_iterations: int = 100,
+    orographic_enhancement: cli.inputcube, *cubes: cli.inputcube,
 ):
     """Calculate optical flow components from input fields.
 
@@ -51,12 +48,6 @@ def process(
         cubes (iris.cube.CubeList):
             Cubes from which to calculate optical flow velocities.
             These three cubes will be sorted by their time coords.
-        ofc_box_size (int):
-            Size of square 'box' (in grid spaces) within which to solve
-            the optical flow equations.
-        smart_smoothing_iterations (int):
-            Number of iterations to perform in enforcing smoothness constraint
-            for optical flow velocities.
 
     Returns:
         iris.cube.CubeList:
@@ -80,7 +71,7 @@ def process(
     # calculate optical flow velocities from T-1 to T and T-2 to T-1, and
     # average to produce the velocities for use in advection
     u_mean, v_mean = generate_optical_flow_components(
-        cube_list, ofc_box_size, smart_smoothing_iterations
+        cube_list, ofc_box_size=30, smart_smoothing_iterations=100
     )
 
     return CubeList([u_mean, v_mean])
