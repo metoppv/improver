@@ -62,7 +62,7 @@ class CubeCombiner(BasePlugin):
         "mean": np.add,
     }  # mean is calculated in two steps: sum and normalise
 
-    def __init__(self, operation, broadcast_to_coords=[], warnings_on=False):
+    def __init__(self, operation, broadcast_to_coords=None, warnings_on=False):
         """
         Create a CubeCombiner plugin
 

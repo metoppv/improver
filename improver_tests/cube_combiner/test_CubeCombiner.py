@@ -265,7 +265,6 @@ class Test_process(CombinerTest):
         result = plugin.process(cubelist, "new_cube_name")
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "new_cube_name")
-        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
         self.assertArrayAlmostEqual(result.data, self.cube4.data)
 
     def test_error_broadcast_coord_wrong_order(self):
