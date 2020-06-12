@@ -63,6 +63,7 @@ def process(
         iris.cube.CubeList:
             List of u- and v- advection velocities
     """
+    import numpy as np
     import iris
     from iris.cube import CubeList
 
@@ -83,20 +84,18 @@ def process(
         cubes[0], *steering_flow, orographic_enhancement
     )[-1]
 
-    # calculate velocity perterbations required to match "forecast" and later cube
+    # calculate velocity perterbations required to match "forecast" to later cube
     cube_list = ApplyOrographicEnhancement("subtract")(
         [advected_cube, cubes[1]], orographic_enhancement
     )
-
-    print(cube_list[0])
-    print(cube_list[1])
-    # TODO BUG the second cube has a forecast period of 1... how, exactly?!?!?!
-
     perturbations = OpticalFlow()(*cube_list)
 
     # add perturbations to original flow field
     for flow, adj in zip(steering_flow, perturbations):
         flow.convert_units(adj.units)
-        adj.data += flow.data
+        perturbed_field = np.where(
+            np.isfinite(adj.data), adj.data + flow.data, flow.data
+        )
+        adj.data = perturbed_field.astype(adj.dtype)
 
     return CubeList(perturbations)
