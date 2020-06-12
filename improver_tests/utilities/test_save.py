@@ -106,6 +106,49 @@ class Test_save_netcdf(IrisTest):
         save_netcdf(self.cube, self.filepath)
         self.assertTrue(os.path.exists(self.filepath))
 
+    def test_compression(self):
+        """ Test data gets compressed with default complevel 1 when saved """
+        save_netcdf(self.cube, self.filepath)
+
+        data = Dataset(self.filepath, mode="r")
+        # pylint: disable=unsubscriptable-object
+        filters = data.variables["air_temperature"].filters()
+
+        self.assertTrue(filters["zlib"])
+        self.assertEqual(filters["complevel"], 1)
+
+    def test_compression_level(self):
+        """ Test data gets compressed with complevel provided by compression_level
+        when saved """
+        save_netcdf(self.cube, self.filepath, compression_level=3)
+
+        data = Dataset(self.filepath, mode="r")
+        # pylint: disable=unsubscriptable-object
+        filters = data.variables["air_temperature"].filters()
+
+        self.assertTrue(filters["zlib"])
+        self.assertEqual(filters["complevel"], 3)
+
+    def test_no_compression(self):
+        """ Test data does not get compressed when saved with compression_level 0 """
+        save_netcdf(self.cube, self.filepath, compression_level=0)
+
+        data = Dataset(self.filepath, mode="r")
+        # pylint: disable=unsubscriptable-object
+        filters = data.variables["air_temperature"].filters()
+
+        self.assertFalse(filters["zlib"])
+
+    def test_compression_level_invalid(self):
+        """ Test ValueError raised when invalid compression_level """
+        with self.assertRaises(ValueError):
+            save_netcdf(self.cube, self.filepath, compression_level="one")
+
+    def test_compression_level_out_of_range(self):
+        """ Test ValueError raised when compression_level out of range """
+        with self.assertRaises(ValueError):
+            save_netcdf(self.cube, self.filepath, compression_level=10)
+
     def test_basic_cube_list(self):
         """
         Test functionality for saving iris.cube.CubeList
