@@ -127,15 +127,23 @@ class SpotExtraction(BasePlugin):
         enforce_coordinate_ordering(
             diagnostic_cube,
             [
-                diagnostic_cube.coord(axis="x").name(),
                 diagnostic_cube.coord(axis="y").name(),
+                diagnostic_cube.coord(axis="x").name(),
             ],
+            anchor_start=False,
         )
-        spot_values = diagnostic_cube.data[tuple(coordinate_cube.data.T)]
-        return spot_values
+
+        x_indices, y_indices = coordinate_cube.data
+        return diagnostic_cube.data[..., y_indices, x_indices]
 
     @staticmethod
-    def build_diagnostic_cube(neighbour_cube, diagnostic_cube, spot_values):
+    def build_diagnostic_cube(
+        neighbour_cube,
+        diagnostic_cube,
+        spot_values,
+        additional_dims=None,
+        scalar_coords=None,
+    ):
         """
         Builds a spot data cube containing the extracted diagnostic values.
 
@@ -149,6 +157,10 @@ class SpotExtraction(BasePlugin):
             spot_values (numpy.ndarray):
                 An array containing the diagnostic values extracted for the
                 required spot sites.
+            additional_dims (list):
+                Optional list containing iris.coord.DimCoords with any leading dimensions required before spot data.
+            scalar_coords (list):
+                Optional list containing iris.coord.AuxCoords with all scalar coordinates relevant for the spot sites.
         Returns:
             iris.cube.Cube:
                 A spot data cube containing the extracted diagnostic data.
@@ -162,6 +174,8 @@ class SpotExtraction(BasePlugin):
             neighbour_cube.coord(axis="y").points,
             neighbour_cube.coord(axis="x").points,
             neighbour_cube.coord("wmo_id").points,
+            scalar_coords=scalar_coords,
+            additional_dims=additional_dims,
         )
         return neighbour_cube
 
@@ -195,27 +209,20 @@ class SpotExtraction(BasePlugin):
 
         coordinate_cube = self.extract_coordinates(neighbour_cube)
 
-        # Deal with leading dimensions such as thresholds, realizations, etc.
-        data_cubes = iris.cube.CubeList()
-        for cube in diagnostic_cube.slices(
-            [
-                diagnostic_cube.coord(axis="x").name(),
-                diagnostic_cube.coord(axis="y").name(),
-            ]
-        ):
+        spot_values = self.extract_diagnostic_data(coordinate_cube, diagnostic_cube)
 
-            spot_values = self.extract_diagnostic_data(coordinate_cube, cube)
-            spotdata_cube = self.build_diagnostic_cube(
-                neighbour_cube, cube, spot_values
-            )
+        additional_dims = None
+        if len(spot_values.shape) > 1:
+            additional_dims = np.flip(diagnostic_cube.dim_coords)[2:]
 
-            # Add scalar coordinates onto the spot cube which can be promoted
-            # to reform and leading dimensions.
-            for coord in cube.coords(dim_coords=False):
-                spotdata_cube.add_aux_coord(coord)
-            data_cubes.append(spotdata_cube)
-
-        spotdata_cube = data_cubes.merge_cube()
+        scalar_coords = diagnostic_cube.aux_coords
+        spotdata_cube = self.build_diagnostic_cube(
+            neighbour_cube,
+            diagnostic_cube,
+            spot_values,
+            scalar_coords=scalar_coords,
+            additional_dims=additional_dims,
+        )
 
         # Copy attributes from the diagnostic cube that describe the data's
         # provenance

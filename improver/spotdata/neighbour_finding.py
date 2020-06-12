@@ -583,9 +583,9 @@ class NeighbourSelection(BasePlugin):
         # Create an array of indices and displacements to return
         data = np.stack(
             (nearest_indices[:, 0], nearest_indices[:, 1], vertical_displacements),
-            axis=1,
+            axis=0,
         )
-        data = np.expand_dims(data, 1).astype(np.float32)
+        data = np.expand_dims(data, 0).astype(np.float32)
 
         # Regardless of input sitelist coordinate system, the site coordinates
         # are stored as latitudes and longitudes in the neighbour cube.

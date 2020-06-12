@@ -96,12 +96,11 @@ class Test_SpotExtraction(IrisTest):
         # [ 1.  1. -1.] is the nearest land point to the same site.
         neighbours = np.array(
             [
-                [[0.0, 0.0, 0.0], [1.0, 1.0, -1.0]],
-                [[0.0, 0.0, -1.0], [1.0, 1.0, 0.0]],
-                [[2.0, 2.0, 0.0], [2.0, 2.0, 0.0]],
-                [[2.0, 2.0, 1.0], [2.0, 2.0, 1.0]],
+                [[0.0, 0.0, 2.0, 2.0], [0.0, 0.0, 2.0, 2.0], [0.0, -1.0, 0.0, 1.0]],
+                [[1.0, 1.0, 2.0, 2.0], [1.0, 1.0, 2.0, 2.0], [-1.0, 0.0, 0.0, 1.0]],
             ]
         )
+
         altitudes = np.array([0, 1, 3, 2])
         latitudes = np.array([10, 10, 20, 20])
         longitudes = np.array([10, 10, 20, 20])
@@ -172,14 +171,14 @@ class Test_extract_coordinates(Test_SpotExtraction):
     def test_nearest(self):
         """Test extraction of nearest neighbour x and y indices."""
         plugin = SpotExtraction(neighbour_selection_method="nearest")
-        expected = self.neighbours[:, 0, 0:2].astype(int)
+        expected = self.neighbours[0, 0:2, :].astype(int)
         result = plugin.extract_coordinates(self.neighbour_cube)
         self.assertArrayEqual(result.data, expected)
 
     def test_nearest_land(self):
         """Test extraction of nearest land neighbour x and y indices."""
         plugin = SpotExtraction(neighbour_selection_method="nearest_land")
-        expected = self.neighbours[:, 1, 0:2].astype(int)
+        expected = self.neighbours[1, 0:2, :].astype(int)
         result = plugin.extract_coordinates(self.neighbour_cube)
         self.assertArrayEqual(result.data, expected)
 
@@ -223,7 +222,7 @@ class Test_build_diagnostic_cube(Test_SpotExtraction):
     def test_building_cube(self):
         """Test that a cube is built as expected."""
         plugin = SpotExtraction()
-        spot_values = [0, 0, 12, 12]
+        spot_values = np.array([0, 0, 12, 12])
         result = plugin.build_diagnostic_cube(
             self.neighbour_cube, self.diagnostic_cube_xy, spot_values
         )

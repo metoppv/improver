@@ -691,19 +691,18 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
         if coord in dim_coord_names:
             coords_to_reorder.append(coord)
 
-    # construct dictionary of original dimensions of the form, eg:
-    # {'time': 0, 'realization': 1, ...}
-    original_dims = {}
-    for coord in cube.coords(dim_coords=True):
-        original_dims[coord.name()] = cube.coord_dims(coord)[0]
+    original_coords = cube.coords(dim_coords=True)
+    coord_dims = cube.coord_dims
 
     # construct list of reordered dimensions assuming start anchor
-    new_dims = []
-    for coord in coords_to_reorder:
-        new_dims.append(original_dims[coord])
-    for coord in cube.coords(dim_coords=True):
-        if original_dims[coord.name()] not in new_dims:
-            new_dims.append(original_dims[coord.name()])
+    new_dims = [coord_dims(coord)[0] for coord in coords_to_reorder]
+    new_dims.extend(
+        [
+            coord_dims(coord)[0]
+            for coord in original_coords
+            if coord_dims(coord)[0] not in new_dims
+        ]
+    )
 
     # if anchor is end, reshuffle the list
     if not anchor_start:
@@ -712,7 +711,9 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
         new_dims = new_dims_end
 
     # transpose cube using new coordinate order
-    cube.transpose(new_dims)
+    if new_dims != sorted(new_dims):
+        cube.transpose(new_dims)
+    return
 
 
 def clip_cube_data(cube, minimum_value, maximum_value):

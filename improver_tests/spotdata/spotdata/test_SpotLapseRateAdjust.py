@@ -102,9 +102,8 @@ class Test_SpotLapseRateAdjust(IrisTest):
         # [ 1.  1. -1.] is the nearest point with minimum height difference.
         neighbours = np.array(
             [
-                [[0.0, 0.0, 2.0], [1.0, 1.0, -1.0]],
-                [[1.0, 1.0, 0.0], [1.0, 1.0, 0.0]],
-                [[2.0, 2.0, -1.0], [2.0, 2.0, -1.0]],
+                [[0.0, 1.0, 2.0], [0.0, 1.0, 2.0], [2.0, 0.0, -1.0]],
+                [[1.0, 1.0, 2.0], [1.0, 1.0, 2.0], [-1.0, 0.0, -1.0]],
             ]
         )
         altitudes = np.array([3, 4, 0])
