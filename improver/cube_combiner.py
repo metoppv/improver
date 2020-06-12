@@ -30,18 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin for CubeCombiner."""
 
-import numpy as np
-
 import iris
-from improver import BasePlugin
-from improver.utilities.cube_manipulation import (
-    expand_bounds,
-    enforce_coordinate_ordering,
-)
-from improver.metadata.probabilistic import find_threshold_coordinate
-from iris.exceptions import CoordinateNotFoundError
+import numpy as np
 from iris.coords import DimCoord
 from iris.cube import CubeList
+from iris.exceptions import CoordinateNotFoundError
+
+from improver import BasePlugin
+from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.utilities.cube_manipulation import (
+    enforce_coordinate_ordering,
+    expand_bounds,
+)
 
 
 class CubeCombiner(BasePlugin):
