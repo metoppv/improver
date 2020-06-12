@@ -35,6 +35,7 @@ from datetime import datetime
 import iris
 import numpy as np
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.cube_combiner import CubeCombiner
@@ -267,7 +268,17 @@ class Test_process(CombinerTest):
         expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
         self.assertArrayAlmostEqual(result.data, self.cube4.data)
 
-    def test_error_broadcast_coord(self):
+    def test_error_broadcast_coord_not_found(self):
+        """Test that plugin throws an error if the broadcast coord is not present anywhere"""
+        plugin = CubeCombiner("*", broadcast_to_coords=["kittens"])
+        cube = self.cube4[:, 0, ...].copy()
+        cube.data = np.ones_like(cube.data)
+        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
+        msg = "kittens not found in "
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            plugin.process(cubelist, "new_cube_name")
+
+    def test_error_broadcast_coord_is_auxcoord(self):
         """Test that plugin throws an error if the broadcast coord already exists"""
         plugin = CubeCombiner("*", broadcast_to_coords=["threshold"])
         cube = self.cube4[:, 0, ...].copy()
