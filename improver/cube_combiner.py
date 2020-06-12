@@ -70,8 +70,8 @@ class CubeCombiner(BasePlugin):
             operation (str):
                 Operation (+, - etc) to apply to the incoming cubes.
             broadcast_to_coords (list):
-                Specifies a list of coord names that exist only on one cube that the
-                other cube needs broadcasting to prior to the combine.
+                Specifies a list of coord names that exist only on the first cube that
+                the other cube(s) need(s) broadcasting to prior to the combine.
             warnings_on (bool):
                 If True output warnings for mismatching metadata.
 
@@ -169,7 +169,7 @@ class CubeCombiner(BasePlugin):
 
     def _setup_coord_broadcast(self, cube_list):
         """
-        Adds a scalar DimCoord to any cube in cube_list so that they all include all of
+        Adds a scalar DimCoord to any subsequent cube in cube_list so that they all include all of
         the coords specified in self.broadcast_coords in the right order.
 
         Args:
@@ -181,20 +181,14 @@ class CubeCombiner(BasePlugin):
 
         """
         for coord in self.broadcast_coords:
-            for cube in cube_list:
-                try:
-                    if coord == "threshold":
-                        target_coord = find_threshold_coordinate(cube)
-                    else:
-                        target_coord = cube.coord(coord)
-                    target_cube = cube
-                    break
-                except CoordinateNotFoundError:
-                    continue
-            else:
-                raise CoordinateNotFoundError(
-                    f"{self.broadcast_coords} not found in {cube_list}"
-                )
+            target_cube = cube_list[0]
+            try:
+                if coord == "threshold":
+                    target_coord = find_threshold_coordinate(target_cube)
+                else:
+                    target_coord = target_cube.coord(coord)
+            except CoordinateNotFoundError:
+                raise CoordinateNotFoundError(f"{coord} not found in {target_cube}")
             new_list = CubeList([])
             for cube in cube_list:
                 try:

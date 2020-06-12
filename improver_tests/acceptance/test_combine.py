@@ -110,3 +110,24 @@ def test_midpoint(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_combine_broadcast(tmp_path):
+    """Test combining precipitation realizations with phaseprob"""
+    kgo_dir = acc.kgo_root() / "combine/broadcast"
+    kgo_path = kgo_dir / "kgo.nc"
+    inputs = [kgo_dir / f for f in ["input_larger_cube.nc", "input_smaller_cube.nc"]]
+    output_path = tmp_path / "output.nc"
+    args = [
+        *inputs,
+        "--operation",
+        "multiply",
+        "--broadcast-to-coord",
+        "threshold",
+        "--new-name",
+        "rainfall_rate",
+        "--output",
+        f"{output_path}",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

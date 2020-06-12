@@ -268,6 +268,17 @@ class Test_process(CombinerTest):
         expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
         self.assertArrayAlmostEqual(result.data, self.cube4.data)
 
+    def test_error_broadcast_coord_wrong_order(self):
+        """Test that plugin throws an error if the broadcast coord is not on the first cube"""
+        plugin = CubeCombiner("*", broadcast_to_coords=["threshold"])
+        cube = self.cube4[:, 0, ...].copy()
+        cube.data = np.ones_like(cube.data)
+        cube.remove_coord("lwe_thickness_of_precipitation_amount")
+        cubelist = iris.cube.CubeList([cube, self.cube4.copy()])
+        msg = "threshold not found in "
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            plugin.process(cubelist, "new_cube_name")
+
     def test_error_broadcast_coord_not_found(self):
         """Test that plugin throws an error if the broadcast coord is not present anywhere"""
         plugin = CubeCombiner("*", broadcast_to_coords=["kittens"])
