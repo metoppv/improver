@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants import FLOAT_TYPES
 from improver.metadata.constants.time_types import TIME_COORDS
+from improver.utilities.round import round_close
 from improver.utilities.temporal import cycletime_to_datetime
 
 
@@ -148,9 +149,9 @@ def _calculate_forecast_period(
     result_coord.convert_units(coord_spec.units)
 
     if coord_spec.dtype not in FLOAT_TYPES:
-        result_coord.points = np.around(result_coord.points)
+        result_coord.points = round_close(result_coord.points)
         if result_coord.bounds is not None:
-            result_coord.bounds = np.around(result_coord.bounds)
+            result_coord.bounds = round_close(result_coord.bounds)
 
     result_coord.points = result_coord.points.astype(coord_spec.dtype)
     if result_coord.bounds is not None:
@@ -227,8 +228,8 @@ def unify_cycletime(cubes, cycletime):
         frt_coord_name = "forecast_reference_time"
         coord_type_spec = TIME_COORDS[frt_coord_name]
         coord_units = Unit(coord_type_spec.units)
-        frt_points = np.around([coord_units.date2num(cycletime)]).astype(
-            coord_type_spec.dtype
+        frt_points = round_close(
+            [coord_units.date2num(cycletime)], dtype=coord_type_spec.dtype
         )
         frt_coord = cube.coord(frt_coord_name).copy(points=frt_points)
         cube.remove_coord(frt_coord_name)

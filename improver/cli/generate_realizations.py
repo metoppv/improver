@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -57,40 +57,53 @@ def process(
         realizations_count (int):
             The number of ensemble realizations in the output.
         random_seed (int):
-            Option to specify a value for the random seed for testing
-            purposes, otherwise the default random seed behaviours is
-            utilised. The random seed is used in the generation of the
-            random numbers used for splitting tied values within the raw
-            ensemble, so that the values from the input percentiles can
-            be ordered to match the raw ensemble.
+            Option to specify a value for the random seed when reordering percentiles.
+            This value is for testing purposes only, to ensure reproduceable outputs.
+            It should not be used in real time operations as it may introduce a bias
+            into the reordered forecasts.
         ignore_ecc_bounds (bool):
-            If True, where percentiles exceed the ECC bounds range, raises a
+            If True where percentiles (calculated as an intermediate output
+            before realization) exceed the ECC bounds range, raises a
             warning rather than an exception.
 
     Returns:
         iris.cube.Cube:
             The processed cube.
     """
-    from improver.cli import percentiles_to_realizations, probabilities_to_realizations
+    from improver.metadata.probabilistic import is_probability
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        ConvertProbabilitiesToPercentiles,
+        RebadgePercentilesAsRealizations,
+        ResamplePercentiles,
+        EnsembleReordering,
+    )
+
+    if cube.coords("realization"):
+        return cube
+
+    if not cube.coords("percentile") and not is_probability(cube):
+        raise ValueError("Unable to convert to realizations:\n" + str(cube))
+
+    if realizations_count is None:
+        try:
+            realizations_count = len(raw_cube.coord("realization").points)
+        except AttributeError:
+            # raised if raw_cube is None, hence has no attribute "coord"
+            msg = "Either realizations_count or raw_cube must be provided"
+            raise ValueError(msg)
 
     if cube.coords("percentile"):
-        output_cube = percentiles_to_realizations.process(
-            cube,
-            raw_cube=raw_cube,
-            realizations_count=realizations_count,
-            random_seed=random_seed,
-            ignore_ecc_bounds=ignore_ecc_bounds,
+        percentiles = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
+            cube, no_of_percentiles=realizations_count
         )
-    elif cube.coords(var_name="threshold"):
-        output_cube = probabilities_to_realizations.process(
-            cube,
-            raw_cube=raw_cube,
-            realizations_count=realizations_count,
-            random_seed=random_seed,
-            ignore_ecc_bounds=ignore_ecc_bounds,
-        )
-    elif cube.coords("realization"):
-        output_cube = cube
     else:
-        raise ValueError("Unable to convert to realizations:\n" + str(cube))
-    return output_cube
+        percentiles = ConvertProbabilitiesToPercentiles(
+            ecc_bounds_warning=ignore_ecc_bounds
+        )(cube, no_of_percentiles=realizations_count)
+
+    if raw_cube:
+        result = EnsembleReordering()(percentiles, raw_cube, random_seed=random_seed)
+    else:
+        result = RebadgePercentilesAsRealizations()(percentiles)
+
+    return result

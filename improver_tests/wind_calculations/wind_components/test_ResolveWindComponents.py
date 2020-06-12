@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,33 +41,29 @@ from iris.tests import IrisTest
 
 from improver.wind_calculations.wind_components import ResolveWindComponents
 
+from ...set_up_test_cubes import set_up_variable_cube
+
 RAD_TO_DEG = 180.0 / np.pi
 
 
 def set_up_cube(data_2d, name, unit):
     """Set up a 2D test cube of wind direction or speed"""
 
-    x_coord = DimCoord(
-        np.linspace(150000, 250000, data_2d.shape[1]),
-        "projection_x_coordinate",
-        units="metres",
-        coord_system=OSGB(),
+    cube = set_up_variable_cube(
+        data_2d.astype(np.float32), name=name, units=unit, spatial_grid="equalarea"
     )
-    y_coord = DimCoord(
-        np.linspace(0, 600000, data_2d.shape[0]),
-        "projection_y_coordinate",
-        units="metres",
-        coord_system=OSGB(),
+
+    cube.coord("projection_x_coordinate").points = np.linspace(
+        150000, 250000, data_2d.shape[1]
     )
-    cube = iris.cube.Cube(
-        data_2d,
-        standard_name=name,
-        units=unit,
-        dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
+    cube.coord("projection_y_coordinate").points = np.linspace(
+        0, 600000, data_2d.shape[0]
     )
-    time_unit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
-    t_coord = DimCoord(402292.5, "time", units=time_unit)
-    cube.add_aux_coord(t_coord)
+    for axis in ["x", "y"]:
+        cube.coord(axis=axis).units = "metres"
+        cube.coord(axis=axis).coord_system = OSGB()
+        cube.coord(axis=axis).bounds = None
+
     return cube
 
 
@@ -133,7 +129,8 @@ class Test_resolve_wind_components(IrisTest):
                 [90.0, 120.0, 135.0, 150.0],
                 [180.0, 210.0, 225.0, 240.0],
                 [270.0, 300.0, 315.0, 330.0],
-            ]
+            ],
+            dtype=np.float32,
         )
         self.wind_cube = set_up_cube(wind_speed, "wind_speed", "knots")
         self.directions = set_up_cube(wind_angle, "wind_to_direction", "degrees")
@@ -155,7 +152,8 @@ class Test_resolve_wind_components(IrisTest):
                 [2.0, np.sqrt(3.0), np.sqrt(2.0), 1.0],
                 [0.0, -1.0, -np.sqrt(2.0), -np.sqrt(3.0)],
                 [-2.0, -np.sqrt(3.0), -np.sqrt(2.0), -1.0],
-            ]
+            ],
+            dtype=np.float32,
         )
 
         expected_vspeed = 5 * np.array(
@@ -164,14 +162,15 @@ class Test_resolve_wind_components(IrisTest):
                 [0.0, -1.0, -np.sqrt(2.0), -np.sqrt(3.0)],
                 [-2.0, -np.sqrt(3.0), -np.sqrt(2.0), -1.0],
                 [0.0, 1.0, np.sqrt(2.0), np.sqrt(3.0)],
-            ]
+            ],
+            dtype=np.float32,
         )
 
         uspeed, vspeed = self.plugin.resolve_wind_components(
             self.wind_cube, self.directions, self.adjustments
         )
-        self.assertArrayAlmostEqual(uspeed.data, expected_uspeed)
-        self.assertArrayAlmostEqual(vspeed.data, expected_vspeed)
+        self.assertArrayAlmostEqual(uspeed.data, expected_uspeed, decimal=5)
+        self.assertArrayAlmostEqual(vspeed.data, expected_vspeed, decimal=5)
 
 
 class Test_process(IrisTest):

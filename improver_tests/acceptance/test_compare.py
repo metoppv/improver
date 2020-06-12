@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ run_cli = acc.run_cli(CLI, verbose=False)
 def test_same(tmp_path, capsys):
     """Compare identical files, should not produce any output"""
     kgo_dir = acc.kgo_root()
-    input_file = kgo_dir / "percentile/basic/input.nc"
+    input_file = kgo_dir / "generate-percentiles/basic/input.nc"
     copied_file = tmp_path / "copied.nc"
     shutil.copy(input_file, copied_file)
     args = [input_file, copied_file]
@@ -57,7 +57,7 @@ def test_same(tmp_path, capsys):
 def test_different(capsys):
     """Compare different files, should report differences to stdout"""
     kgo_dir = acc.kgo_root()
-    a_file = kgo_dir / "percentile/basic/input.nc"
+    a_file = kgo_dir / "generate-percentiles/basic/input.nc"
     b_file = kgo_dir / "threshold/basic/input.nc"
     args = [a_file, b_file]
     run_cli(args)

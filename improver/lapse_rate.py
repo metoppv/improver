@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,8 +33,6 @@
 import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
-from numpy.linalg import lstsq
-from scipy.ndimage import generic_filter
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR
@@ -42,6 +40,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities import mathematical_operations, neighbourhood_tools
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
@@ -141,52 +140,6 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         return iris.cube.CubeList(adjusted_temperature).merge_cube()
 
 
-class SaveNeighbourhood:
-    """Saves the neighbourhood around each central point.
-
-    The "generic_filter" module extracts the neighbourhood around each
-    point as "buffer". This buffer is passed to the "SaveNeighbourhood" class.
-    The "filter" function then saves this buffer into the "allbuffers" array.
-
-    """
-
-    def __init__(self, allbuffers):
-        """Initialise the class.
-
-        Create the global variables that allows the "filter" function
-        to save each extracted buffer into "allbuffers".
-
-        Args:
-            allbuffers (numpy.ndarray):
-                Where to save each extracted buffer.
-
-        """
-        # Initialises the iterator.
-        self.i = 0
-        # Saves all the buffers into this array.
-        self.allbuffers = allbuffers
-
-    def filter(self, buffer):
-        """Defines filter function to be applied to extracted buffers.
-
-        Saves the contents of the buffer into "allbuffers" array. Therefore
-        a return value isn't required. However "generic_filter"
-        requires a return value - so use zero.
-
-        Args:
-            buffer (numpy.ndarray):
-                Array containing neighourbood points.
-
-        Returns:
-            zero (float)
-                Blank return value required by "generic_filter".
-
-        """
-        self.allbuffers[self.i, :] = buffer
-        self.i += 1
-        return 0.0
-
-
 class LapseRate(BasePlugin):
     """
     Plugin to calculate the lapse rate from orography and temperature
@@ -201,13 +154,9 @@ class LapseRate(BasePlugin):
     1) Apply land/sea mask to temperature and orography datasets. Mask sea
        points as NaN since image processing module does not recognise Numpy
        masks.
-    2) Extracts neighbourhoods from both datasets:
-       Apply "generic_filter" image processing module to temperature data
-       to extract a neighbourhood for each single point and save this
-       neighbourhood into a larger array.
-       Repeat for orography data.
-       generic_filter mode="constant" ensures that points beyond edges of
-       dataset will be filled with "cval". (NaN in this case)
+    2) Creates "views" of both datasets, where each view represents a
+       neighbourhood of points. To do this, each array is padded with
+       NaN values to a width of half the neighbourhood size.
     3) For all the stored orography neighbourhoods - take the neighbours around
        the central point and create a mask where the height difference from
        the central point is greater than 35m.
@@ -271,11 +220,9 @@ class LapseRate(BasePlugin):
         # central point.
         self.nbhood_size = int((2 * nbhood_radius) + 1)
 
-        # generic_filter extracts the neighbourhood and returns a 1D array.
-        # ind_central_point indicates where the central point would be on
-        # this array
-        self.nbhoodarray_size = self.nbhood_size ** 2
-        self.ind_central_point = int(self.nbhoodarray_size / 2)
+        # Used in the neighbourhood checks, ensures that the center
+        # of the array is non NaN.
+        self.ind_central_point = self.nbhood_size // 2
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -290,80 +237,31 @@ class LapseRate(BasePlugin):
         )
         return desc
 
-    def _calc_lapse_rate(self, temperature, orography):
-        """Function to calculate the lapse rate.
-
-        This holds the function to determine the local lapse rate at a point by
-        calculating a least-squares fit to local temperature and altitude data
-        to find the local lapse rate.
+    def _create_windows(self, temp, orog):
+        """Uses neighbourhood tools to pad and generate rolling windows
+        of the temp and orog datasets.
 
         Args:
-            temperature (1D numpy.ndarray):
-                Contains the temperature values for the central point and its
-                neighbours.
-
-            orography (1D numpy.ndarray):
-                Contains the height values for the central point and its
-                neighbours.
+            temp (numpy.ndarray):
+                2D array (single realization) of temperature data, in Kelvin
+            orog (numpy.ndarray):
+                2D array of orographies, in metres
 
         Returns:
-            float:
-                The gradient of the temperature/orography values. This
-                represents the lapse rate.
-
+            (tuple): tuple_containing:
+                **views of temp** (numpy.ndarray):
+                    Rolling windows of the padded temperature dataset.
+                **views of orog** (numpy.ndarray):
+                    Rolling windows of the padded orography dataset.
         """
-
-        # If central point NaN then return blank value.
-        if np.isnan(temperature[self.ind_central_point]):
-            return DALR
-
-        # Remove points where there are NaN temperature values from both arrays
-        # before calculation.
-        y_data = temperature[~np.isnan(temperature)]
-        x_data = orography[~np.isnan(temperature)]
-
-        # Return DALR if standard deviation of both datasets = 0 (where all
-        # points are the same value).
-        if np.isclose(np.std(x_data), 0.0) and np.isclose(np.std(y_data), 0.0):
-            return DALR
-
-        matrix = np.stack([x_data, np.ones(len(x_data))], axis=0).T
-        gradient, _ = lstsq(matrix, y_data, rcond=None)[0]
-
-        return gradient
-
-    def _create_heightdiff_mask(self, all_orog_subsections):
-        """
-        Function to create a mask for any neighbouring points where the height
-        difference from the central point is greater than max_height_diff.
-
-        Slice through the orography subsection array to remove central
-        points.
-        Extracts the height value of each central point and masks out the
-        neighbouring points where their height difference is greater than
-        the maximum.
-
-        Args:
-            all_orog_subsections(2D numpy.ndarray):
-               Each row contains the height values of each neighbourhood.
-
-        Returns:
-            numpy.ndarray:
-                A 2D array of boolean values.
-
-        """
-
-        self.all_orog_subsections = all_orog_subsections
-
-        central_points = self.all_orog_subsections[:, self.ind_central_point]
-        central_points = np.swapaxes([central_points], 0, 1)
-
-        height_diff = np.subtract(self.all_orog_subsections, central_points)
-        height_diff = np.absolute(height_diff)
-
-        height_diff_mask = np.where(height_diff >= self.max_height_diff, True, False)
-
-        return height_diff_mask
+        window_shape = (self.nbhood_size, self.nbhood_size)
+        orog_windows = neighbourhood_tools.pad_and_roll(
+            orog, window_shape, mode="constant", constant_values=np.nan
+        )
+        temp_windows = neighbourhood_tools.pad_and_roll(
+            temp, window_shape, mode="constant", constant_values=np.nan
+        )
+        return temp_windows, orog_windows
 
     def _generate_lapse_rate_array(
         self, temperature_data, orography_data, land_sea_mask_data
@@ -372,81 +270,68 @@ class LapseRate(BasePlugin):
         Calculate lapse rates and apply filters
 
         Args:
-            temperature_data (numpy.ndarray)
+            temperature_data (numpy.ndarray):
                 2D array (single realization) of temperature data, in Kelvin
-            orography_data (numpy.ndarray)
+            orography_data (numpy.ndarray):
                 2D array of orographies, in metres
-            land_sea_mask_data (numpy.ndarray)
+            land_sea_mask_data (numpy.ndarray):
                 2D land-sea mask
 
         Returns:
-            numpy.ndarray
+            numpy.ndarray:
                 Lapse rate values
         """
-        # Fill sea points with NaN values. Can't use Numpy mask since not
-        # recognised by "generic_filter" function.
+        # Fill sea points with NaN values.
         temperature_data = np.where(land_sea_mask_data, temperature_data, np.nan)
 
-        # Generate data neighbourhoods on which to calculate lapse rates
-        # pylint: disable=unsubscriptable-object
-        dataarray_size = temperature_data.shape[0] * temperature_data.shape[1]
+        # Preallocate output array
+        lapse_rate_array = np.empty_like(temperature_data, dtype=np.float32)
 
-        temp_nbhoods = np.zeros(
-            (dataarray_size, self.nbhoodarray_size), dtype=np.float32
-        )
-        fnc = SaveNeighbourhood(allbuffers=temp_nbhoods)
-        generic_filter(
-            temperature_data,
-            fnc.filter,
-            size=self.nbhood_size,
-            mode="constant",
-            cval=np.nan,
+        # Pads the data with nans and generates masked windows representing
+        # a neighbourhood for each point.
+        temp_nbhood_window, orog_nbhood_window = self._create_windows(
+            temperature_data, orography_data
         )
 
-        orog_nbhoods = np.zeros(
-            (dataarray_size, self.nbhoodarray_size), dtype=np.float32
-        )
-        fnc = SaveNeighbourhood(allbuffers=orog_nbhoods)
-        generic_filter(
-            orography_data,
-            fnc.filter,
-            size=self.nbhood_size,
-            mode="constant",
-            cval=np.nan,
-        )
+        # Zips together the windows for temperature and orography
+        # then finds the gradient of the surface temperature with
+        # orography height - i.e. lapse rate.
+        cnpt = self.ind_central_point
+        axis = (-2, -1)
+        for lapse, temp, orog in zip(
+            lapse_rate_array, temp_nbhood_window, orog_nbhood_window
+        ):
+            # height_diff_mask is True for points where the height
+            # difference between the central points and its
+            # neighbours is greater then max_height_diff.
+            orog_centre = orog[..., cnpt : cnpt + 1, cnpt : cnpt + 1]
+            height_diff_mask = np.abs(orog - orog_centre) > self.max_height_diff
 
-        # height_diff_mask is True for points where the height
-        # difference between the central point and its neighbours
-        # is > max_height_diff.
-        height_diff_mask = self._create_heightdiff_mask(orog_nbhoods)
+            temp = np.where(height_diff_mask, np.nan, temp)
 
-        # Mask points with extreme height differences as NaN.
-        temp_nbhoods = np.where(height_diff_mask, np.nan, temp_nbhoods)
-        orog_nbhoods = np.where(height_diff_mask, np.nan, orog_nbhoods)
+            # Places NaNs in orog to match temp
+            orog = np.where(np.isnan(temp), np.nan, orog)
 
-        # Loop through both arrays and find gradient of surface temperature
-        # with orography height - ie lapse rate.
-        # TODO: This for loop is the bottleneck in the code and needs to
-        # be parallelised.
-        lapse_rate_array = [
-            self._calc_lapse_rate(temp, orog)
-            for temp, orog in zip(temp_nbhoods, orog_nbhoods)
-        ]
+            grad = mathematical_operations.fast_linear_fit(
+                orog, temp, axis=axis, gradient_only=True, with_nan=True
+            )
 
-        lapse_rate_array = np.array(lapse_rate_array, dtype=np.float32).reshape(
-            (temperature_data.shape)
-        )
+            # Checks that the standard deviations are not 0
+            # i.e. there is some variance to fit a gradient to.
+            tempcheck = np.isclose(np.nanstd(temp, axis=axis), 0)
+            orogcheck = np.isclose(np.nanstd(orog, axis=axis), 0)
+            # checks that our central point in the neighbourhood
+            # is not nan
+            temp_nan_check = np.isnan(temp[..., cnpt, cnpt])
+
+            dalr_mask = tempcheck | orogcheck | temp_nan_check | np.isnan(grad)
+            grad[dalr_mask] = DALR
+
+            lapse[...] = grad
 
         # Enforce upper and lower limits on lapse rate values.
-        lapse_rate_array = np.where(
-            lapse_rate_array < self.min_lapse_rate,
-            self.min_lapse_rate,
-            lapse_rate_array,
-        )
-        lapse_rate_array = np.where(
-            lapse_rate_array > self.max_lapse_rate,
-            self.max_lapse_rate,
-            lapse_rate_array,
+        lapse_rate_array = lapse_rate_array.clip(
+            self.min_lapse_rate, self.max_lapse_rate
         )
         return lapse_rate_array
 

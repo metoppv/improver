@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,8 +29,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to standardise a NetCDF file by one or more of regridding, updating
-meta-data and demoting float64 data to float32"""
+"""Script to standardise a NetCDF file by updating metadata and demoting
+float64 data to float32"""
 
 from improver import cli
 
@@ -39,24 +39,17 @@ from improver import cli
 @cli.with_output
 def process(
     cube: cli.inputcube,
-    target_grid: cli.inputcube = None,
-    land_sea_mask: cli.inputcube = None,
     *,
-    regrid_mode="bilinear",
-    extrapolation_mode="nanmask",
-    land_sea_mask_vicinity: float = 25000,
-    regridded_title: str = None,
     attributes_config: cli.inputjson = None,
     coords_to_remove: cli.comma_separated_list = None,
     new_name: str = None,
     new_units: str = None,
 ):
-    """Standardises a cube by one or more of regridding, updating meta-data etc
-
-    Standardise a source cube. Available options are regridding (bi-linear or
-    nearest-neighbour, optionally with land-mask awareness), renaming,
-    converting units, updating attributes and converting float64 data to
-    float32.
+    """
+    Standardise a source cube. Available options are renaming, converting units,
+    updating attributes and removing named scalar coordinates. Remaining scalar
+    coordinates are collapsed, and data are cast to IMPROVER standard datatypes
+    and units.
 
     Deprecated behaviour:
     Translates metadata relating to the grid_id attribute from StaGE
@@ -66,40 +59,6 @@ def process(
     Args:
         cube (iris.cube.Cube):
             Source cube to be standardised
-        target_grid (iris.cube.Cube):
-            If specified, then regridding of the source against the target
-            grid is enabled. If also using land_sea_mask-aware regridding then
-            this must be land_binary_mask data.
-        land_sea_mask (iris.cube.Cube):
-            A cube describing the land_binary_mask on the source-grid if
-            coastline-aware regridding is required, with land points set to
-            one and sea points set to zero.
-        regrid_mode (str):
-            Selects which regridding techniques to use. Default uses
-            iris.analysis.Linear(); "nearest" uses Nearest() (for less
-            continuous fields, e.g precipitation); "nearest-with-mask"
-            ensures that target data are sources from points with the same
-            mask value (for coast-line-dependant variables like temperature).
-        extrapolation_mode (str):
-            Mode to use for extrapolating data into regions beyond the limits
-            of the input cube domain. Refer to online documentation for
-            iris.analysis.
-            Modes are -
-            extrapolate - extrapolated points will take their values from the
-            nearest source point
-            nan - extrapolated points will be set to NaN
-            error - a ValueError will be raised notifying an attempt to
-            extrapolate
-            mask - extrapolated points will always be masked, even if
-            the source data is not a MaskedArray
-            nanmask - if the source data is a MaskedArray extrapolated points
-            will be masked; otherwise they will be set to NaN
-        land_sea_mask_vicinity (float):
-            Radius of vicinity to search for a coastline, in metres.
-        regridded_title (str):
-            New "title" attribute to be set if the field is being regridded
-            (since "title" may contain grid information). If None, a default
-            value is used.
         attributes_config (dict):
             Dictionary containing required changes that will be applied to
             the attributes.
@@ -111,45 +70,19 @@ def process(
             Units to convert to.
 
     Returns:
-        iris.cube.Cube:
-            Processed cube.
-
-    Raises:
-        ValueError:
-            If source land_sea_mask is supplied but regrid mode is not
-            "nearest-with-mask".
-        ValueError:
-            If regrid_mode is "nearest-with-mask" but no source land_sea_mask
-            is provided (from plugin).
+        iris.cube.Cube
     """
     from improver.metadata.amend import update_stage_v110_metadata
-    from improver.standardise import StandardiseMetadata, RegridLandSea
-
-    if land_sea_mask and "nearest-with-mask" not in regrid_mode:
-        msg = (
-            "Land-mask file supplied without appropriate regrid-mode. "
-            "Use --regrid-mode nearest-with-mask."
-        )
-        raise ValueError(msg)
+    from improver.standardise import StandardiseMetadata
 
     # update_stage_v110_metadata is deprecated. Please ensure metadata is
     # StaGE version 1.2.0 compatible.
     update_stage_v110_metadata(cube)
 
-    cube = StandardiseMetadata()(
+    return StandardiseMetadata()(
         cube,
         new_name=new_name,
         new_units=new_units,
         coords_to_remove=coords_to_remove,
         attributes_dict=attributes_config,
     )
-
-    if target_grid:
-        cube = RegridLandSea(
-            regrid_mode=regrid_mode,
-            extrapolation_mode=extrapolation_mode,
-            landmask=land_sea_mask,
-            landmask_vicinity=land_sea_mask_vicinity,
-        )(cube, target_grid, regridded_title=regridded_title)
-
-    return cube

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Tests for the percentiles-to-realizations CLI
+Tests for the generate-realizations CLI
 """
 
 import pytest
@@ -37,24 +37,33 @@ import pytest
 from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-run_cli = acc.run_cli("percentiles-to-realizations")
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
+
+
+@pytest.mark.slow
+def test_percentiles(tmp_path):
+    """Test basic percentile to realization conversion"""
+    kgo_dir = acc.kgo_root() / "generate-realizations/percentiles_rebadging"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
+
+    output_path = tmp_path / "output.nc"
+
+    args = [input_path, "--realizations-count", "12", "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
 
 
 @pytest.mark.slow
 def test_percentiles_reordering(tmp_path):
-    """
-    Test use of ECC to convert one set of percentiles to another set of
-    percentiles, and then reorder the ensemble using the raw ensemble
-    realizations
-    """
-    kgo_dir = acc.kgo_root() / "percentiles-to-realizations/percentiles_reordering"
+    """Test percentile to realization conversion with reordering"""
+    kgo_dir = acc.kgo_root() / "generate-realizations/percentiles_reordering"
     kgo_path = kgo_dir / "kgo.nc"
     forecast_path = kgo_dir / "raw_forecast.nc"
     percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        "--sampling-method",
-        "quantile",
         "--realizations-count",
         "12",
         "--random-seed",
@@ -69,52 +78,39 @@ def test_percentiles_reordering(tmp_path):
 
 
 @pytest.mark.slow
-def test_percentiles_rebadging(tmp_path):
-    """
-    Test use of ECC to convert one set of percentiles to another set of
-    percentiles, and then rebadge the percentiles to be ensemble realizations
-    """
-    kgo_dir = acc.kgo_root() / "percentiles-to-realizations/percentiles_rebadging"
+def test_probabilities(tmp_path):
+    """Test basic probabilities to realization conversion"""
+    kgo_dir = acc.kgo_root() / "generate-realizations/probabilities_12_realizations"
     kgo_path = kgo_dir / "kgo.nc"
-    percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        "--sampling-method",
-        "quantile",
-        "--realizations-count",
-        "12",
-        percentiles_path,
-        "--output",
-        output_path,
-    ]
+    args = [input_path, "--realizations-count", "12", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
 @pytest.mark.slow
-def test_percentiles_rebadging_numbers(tmp_path):
-    """Test rebadging with specified realization numbers"""
-    kgo_dir = (
-        acc.kgo_root()
-        / "percentiles-to-realizations/percentiles_rebadging_extra_option"
-    )
+def test_probabilities_reordering(tmp_path):
+    """Test probabilities to realization conversion with reordering"""
+    kgo_dir = acc.kgo_root() / "generate-realizations/probabilities_reordering"
     kgo_path = kgo_dir / "kgo.nc"
-    input_dir = kgo_dir / "../percentiles_rebadging"
-    percentiles_path = input_dir / "multiple_percentiles_wind_cube.nc"
+    raw_path = kgo_dir / "raw_ens.nc"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        percentiles_path,
-        "--output",
-        output_path,
-        "--sampling-method",
-        "quantile",
-        "--realizations-count",
-        "12",
-        "--realizations",
-        ",".join(str(n) for n in range(100, 112)),
-    ]
+    args = ["--random-seed", "0", input_path, raw_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_realizations(tmp_path):
+    """Test basic null realization to realization conversion"""
+    kgo_dir = acc.kgo_root() / "generate-realizations/probabilities_12_realizations"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_path
+    output_path = tmp_path / "output.nc"
+    args = [input_path, "--realizations-count", "12", "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, input_path)
 
 
 @pytest.mark.slow
@@ -125,19 +121,38 @@ def test_ecc_bounds_warning(tmp_path):
     Data in this input exceeds the ECC bounds and so tests ecc_bounds_warning
     functionality.
     """
-    kgo_dir = acc.kgo_root() / "percentiles-to-realizations/ecc_bounds_warning"
+    kgo_dir = acc.kgo_root() / "generate-realizations/ecc_bounds_warning"
     kgo_path = kgo_dir / "kgo.nc"
-    percentiles_path = kgo_dir / "multiple_percentiles_wind_cube_out_of_bounds.nc"
+    input_path = kgo_dir / "multiple_percentiles_wind_cube_out_of_bounds.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        "--sampling-method",
-        "quantile",
+        input_path,
         "--realizations-count",
         "5",
         "--ignore-ecc-bounds",
-        percentiles_path,
         "--output",
         output_path,
     ]
-    run_cli(args)
+    with pytest.warns(UserWarning, match="Forecast values exist that fall outside"):
+        run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_error_no_realizations_count(tmp_path):
+    """Test a helpful error is raised if wrong args are set"""
+    kgo_dir = acc.kgo_root() / "generate-realizations/probabilities_12_realizations"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, "--output", output_path]
+    with pytest.raises(ValueError, match=".*realizations_count or raw_cube.*"):
+        run_cli(args)
+
+
+def test_invalid_dataset(tmp_path):
+    """Test unhandlable conversion failure"""
+    input_dir = acc.kgo_root() / "generate-realizations/invalid/"
+    input_path = input_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, "--output", output_path]
+    with pytest.raises(ValueError, match=".*Unable to convert.*"):
+        run_cli(args)

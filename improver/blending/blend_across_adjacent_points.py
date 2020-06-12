@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,6 @@ from cf_units import Unit
 from improver import PostProcessingPlugin
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.blending.weights import ChooseDefaultWeightsTriangular
-from improver.utilities.cube_checker import check_cube_coordinates
 
 
 class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
@@ -157,9 +156,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
         weights = self.WeightsPlugin(cube, self.coord, self.central_point)
         blended_cube = self.BlendingPlugin(cube, weights)
 
-        # With one threshold dimension (such as for low cloud), the threshold
-        # axis is demoted to a scalar co-ordinate by BlendingPlugin. This line
-        # promotes threshold to match the dimensions of central_point_cube.
-        blended_cube = check_cube_coordinates(central_point_cube, blended_cube)
+        # Copy the metadata of the central cube
         blended_cube = central_point_cube.copy(blended_cube.data)
+
         return blended_cube

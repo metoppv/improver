@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,12 +42,13 @@ from improver.metadata.probabilistic import (
     find_percentile_coordinate,
     find_threshold_coordinate,
     in_vicinity_name_format,
+    is_probability,
 )
 
-from ..metadata.test_amend import create_cube_with_threshold
-from ..set_up_test_cubes import set_up_probability_cube
-from ..wind_calculations.wind_gust_diagnostic.test_WindGustDiagnostic import (
-    create_cube_with_percentile_coord,
+from ..set_up_test_cubes import (
+    set_up_percentile_cube,
+    set_up_probability_cube,
+    set_up_variable_cube,
 )
 
 
@@ -57,13 +58,15 @@ class Test_in_vicinity_name_format(unittest.TestCase):
 
     def setUp(self):
         """Set up test cube"""
-        self.cube = create_cube_with_threshold()
-        self.cube.long_name = "probability_of_X_rate_above_threshold"
+        data = np.ones((3, 3, 3), dtype=np.float32)
+        threshold_points = np.array([276, 277, 278], dtype=np.float32)
+        self.cube = set_up_probability_cube(data, threshold_points)
+        self.cube.rename("probability_of_X_above_threshold")
 
     def test_in_vicinity_name_format(self):
         """Test that 'in_vicinity' is added correctly to the name for both
         above and below threshold cases"""
-        correct_name_above = "probability_of_X_rate_in_vicinity_above_threshold"
+        correct_name_above = "probability_of_X_in_vicinity_above_threshold"
         new_name_above = in_vicinity_name_format(self.cube.name())
         self.cube.rename("probability_of_X_below_threshold")
         correct_name_below = "probability_of_X_in_vicinity_below_threshold"
@@ -135,6 +138,36 @@ class Test_extract_diagnostic_name(unittest.TestCase):
             extract_diagnostic_name("lwe_precipitation_rate")
 
 
+class Test_is_probability(IrisTest):
+    """Test the is_probability function"""
+
+    def setUp(self):
+        """Set up test data"""
+        self.data = np.ones((3, 3, 3), dtype=np.float32)
+        self.threshold_points = np.array([276, 277, 278], dtype=np.float32)
+        self.prob_cube = set_up_probability_cube(self.data, self.threshold_points)
+
+    def test_true(self):
+        """Test a probability cube evaluates as true"""
+        result = is_probability(self.prob_cube)
+        self.assertTrue(result)
+
+    def test_scalar_threshold_coord(self):
+        """Test a probability cube with a single threshold evaluates as true"""
+        cube = iris.util.squeeze(self.prob_cube[0])
+        result = is_probability(cube)
+        self.assertTrue(result)
+
+    def test_false(self):
+        """Test cube that does not contain thresholded probabilities
+        evaluates as false"""
+        cube = set_up_variable_cube(
+            self.data, name="probability_of_rain_at_surface", units="1"
+        )
+        result = is_probability(cube)
+        self.assertFalse(result)
+
+
 class Test_find_threshold_coordinate(IrisTest):
     """Test the find_threshold_coordinate function"""
 
@@ -189,16 +222,9 @@ class Test_find_percentile_coordinate(IrisTest):
 
     def setUp(self):
         """Create a wind-speed and wind-gust cube with percentile coord."""
-        data = np.zeros((2, 2, 2, 2))
-        self.wg_perc = 50.0
-        self.ws_perc = 95.0
-        gust = "wind_speed_of_gust"
-        self.cube_wg = create_cube_with_percentile_coord(
-            data=data,
-            perc_values=[self.wg_perc, 90.0],
-            perc_name="percentile",
-            standard_name=gust,
-        )
+        data = np.zeros((2, 3, 3), dtype=np.float32)
+        percentiles = np.array([50.0, 90.0], dtype=np.float32)
+        self.cube_wg = set_up_percentile_cube(data, percentiles)
 
     def test_basic(self):
         """Test that the function returns a Coord."""
@@ -208,13 +234,9 @@ class Test_find_percentile_coordinate(IrisTest):
 
     def test_fails_if_data_is_not_cube(self):
         """Test it raises a Type Error if cube is not a cube."""
-        msg = (
-            "Expecting data to be an instance of "
-            "iris.cube.Cube but is"
-            " {}.".format(type(self.wg_perc))
-        )
+        msg = "Expecting data to be an instance of iris.cube.Cube "
         with self.assertRaisesRegex(TypeError, msg):
-            find_percentile_coordinate(self.wg_perc)
+            find_percentile_coordinate(50.0)
 
     def test_fails_if_no_perc_coord(self):
         """Test it raises an Error if there is no percentile coord."""

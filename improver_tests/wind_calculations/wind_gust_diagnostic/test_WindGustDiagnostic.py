@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the windgust_diagnostic.WindGustDiagnostic plugin."""
 import unittest
+from datetime import datetime
 
 import iris
 import numpy as np
@@ -42,34 +43,31 @@ from iris.tests import IrisTest
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 
+from ...set_up_test_cubes import add_coordinate, set_up_percentile_cube
 
-def create_cube_with_percentile_coord(
-    data=None, standard_name=None, perc_values=None, perc_name="percentile", units=None
-):
-    """Create a cube with percentile coord."""
+
+def create_wind_percentile_cube(data=None, perc_values=None, name="wind_speed_of_gust"):
+    """Create a cube with percentile coordinate and two time slices"""
     if perc_values is None:
         perc_values = [50.0]
     if data is None:
-        data = np.zeros((len(perc_values), 2, 2, 2))
+        data = np.zeros((len(perc_values), 2, 2, 2), dtype=np.float32)
         data[:, 0, :, :] = 1.0
         data[:, 1, :, :] = 2.0
-    if standard_name is None:
-        standard_name = "wind_speed"
-    if units is None:
-        units = "m s^-1"
 
-    cube = Cube(data, standard_name=standard_name, units=units)
-    cube.add_dim_coord(
-        DimCoord(np.linspace(-45.0, 45.0, 2), "latitude", units="degrees"), 2
+    data_times = [datetime(2015, 11, 19, 0, 30), datetime(2015, 11, 19, 1, 30)]
+    perc_cube = set_up_percentile_cube(
+        data[:, 0, :, :],
+        perc_values,
+        name=name,
+        units="m s-1",
+        time=data_times[0],
+        frt=datetime(2015, 11, 18, 21),
     )
-    cube.add_dim_coord(
-        DimCoord(np.linspace(120, 180, 2), "longitude", units="degrees"), 3
+    cube = add_coordinate(
+        perc_cube, data_times, "time", is_datetime=True, order=[1, 0, 2, 3]
     )
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord([402192.5, 402193.5], "time", units=tunit), 1)
-    cube.add_dim_coord(DimCoord(perc_values, long_name=perc_name, units="%"), 0)
+    cube.data = data
     return cube
 
 
@@ -101,7 +99,7 @@ class Test_add_metadata(IrisTest):
 
     def setUp(self):
         """Create a cube."""
-        self.cube_wg = create_cube_with_percentile_coord()
+        self.cube_wg = create_wind_percentile_cube()
 
     def test_basic(self):
         """Test that the function returns a Cube. """
@@ -138,12 +136,11 @@ class Test_extract_percentile_data(IrisTest):
 
     def setUp(self):
         """Create a wind-speed and wind-gust cube with percentile coord."""
-        data = np.zeros((2, 2, 2, 2))
+        data = np.zeros((2, 2, 2, 2), dtype=np.float32)
         self.wg_perc = 50.0
         self.ws_perc = 95.0
-        gust = "wind_speed_of_gust"
-        self.cube_wg = create_cube_with_percentile_coord(
-            data=data, perc_values=[self.wg_perc, 90.0], standard_name=gust
+        self.cube_wg = create_wind_percentile_cube(
+            data=data, perc_values=[self.wg_perc, 90.0]
         )
 
     def test_basic(self):
@@ -205,19 +202,18 @@ class Test_process(IrisTest):
     def setUp(self):
         """Create a wind-speed and wind-gust cube with percentile coord."""
         self.ws_perc = 95.0
-        data_ws = np.zeros((1, 2, 2, 2))
+        data_ws = np.zeros((1, 2, 2, 2), dtype=np.float32)
         data_ws[0, 0, :, :] = 2.5
         data_ws[0, 1, :, :] = 2.0
-        self.cube_ws = create_cube_with_percentile_coord(
-            data=data_ws, perc_values=[self.ws_perc]
+        self.cube_ws = create_wind_percentile_cube(
+            data=data_ws, perc_values=[self.ws_perc], name="wind_speed"
         )
-        data_wg = np.zeros((1, 2, 2, 2))
+        data_wg = np.zeros((1, 2, 2, 2), dtype=np.float32)
         data_wg[0, 0, :, :] = 3.0
         data_wg[0, 1, :, :] = 1.5
         self.wg_perc = 50.0
-        gust = "wind_speed_of_gust"
-        self.cube_wg = create_cube_with_percentile_coord(
-            data=data_wg, perc_values=[self.wg_perc], standard_name=gust
+        self.cube_wg = create_wind_percentile_cube(
+            data=data_wg, perc_values=[self.wg_perc]
         )
 
     def test_basic(self):
@@ -229,22 +225,13 @@ class Test_process(IrisTest):
     def test_raises_error_for_mismatching_perc_coords(self):
         """Test raises an error for mismatching perc coords. """
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
-        data_wg = np.zeros((1, 2, 2, 2))
-        data_wg[0, 0, :, :] = 3.0
-        data_wg[0, 1, :, :] = 1.5
-        gust = "wind_speed_of_gust"
-        cube_wg = create_cube_with_percentile_coord(
-            data=data_wg,
-            perc_values=[self.wg_perc],
-            standard_name=gust,
-            perc_name="percentile_dummy",
-        )
+        self.cube_wg.coord("percentile").rename("percentile_dummy")
         msg = (
             "Percentile coord of wind-gust data"
             "does not match coord of wind-speed data"
         )
         with self.assertRaisesRegex(ValueError, msg):
-            plugin(cube_wg, self.cube_ws)
+            plugin(self.cube_wg, self.cube_ws)
 
     def test_raises_error_for_no_time_coord(self):
         """Test raises Value Error if cubes have no time coordinate """
@@ -259,38 +246,46 @@ class Test_process(IrisTest):
 
     def test_raises_error_points_mismatch_and_no_bounds(self):
         """Test raises Value Error if points mismatch and no bounds """
-        cube_wg = self.cube_wg
-        cube_wg.coord("time").points = [402192.5, 402194.5]
+        # offset times by half an hour (in seconds)
+        self.cube_wg.coord("time").points = self.cube_wg.coord("time").points + 30 * 60
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = "Could not match time coordinate"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin(cube_wg, self.cube_ws)
+            plugin(self.cube_wg, self.cube_ws)
 
     def test_raises_error_points_mismatch_and_bounds(self):
         """Test raises Value Error if both points and bounds mismatch """
-        cube_wg = self.cube_wg
-        cube_wg.coord("time").points = [402192.0, 402193.0]
-        cube_wg.coord("time").bounds = [[402191.0, 402192.0], [402192.0, 402193.0]]
+        # offset by 4 hours (in seconds)
+        self.cube_wg.coord("time").points = (
+            self.cube_wg.coord("time").points + 4 * 60 * 60
+        )
+        times = self.cube_wg.coord("time").points
+        self.cube_wg.coord("time").bounds = [
+            [times[0] - 3600, times[0]],
+            [times[1] - 3600, times[1]],
+        ]
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         msg = "Could not match time coordinate"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin(cube_wg, self.cube_ws)
+            plugin(self.cube_wg, self.cube_ws)
 
-    def test_no_raises_error_if_ws_point_in_bounds(self):
+    def test_no_error_if_ws_point_in_bounds(self):
         """Test raises no Value Error if wind-speed point in bounds """
-        cube_wg = self.cube_wg
-        cube_wg.coord("time").points = [402192.0, 402193.0]
-        cube_wg.coord("time").bounds = [[402191.5, 402192.5], [402192.5, 402193.5]]
-
+        self.cube_wg.coord("time").points = self.cube_wg.coord("time").points + 30 * 60
+        times = self.cube_wg.coord("time").points
+        self.cube_wg.coord("time").bounds = [
+            [times[0] - 3600, times[0]],
+            [times[1] - 3600, times[1]],
+        ]
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
-        result = plugin(cube_wg, self.cube_ws)
+        result = plugin(self.cube_wg, self.cube_ws)
         self.assertIsInstance(result, Cube)
 
     def test_returns_wind_gust_diagnostic(self):
         """Test that the plugin returns a Cube. """
         plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
         result = plugin(self.cube_wg, self.cube_ws)
-        expected_data = np.zeros((2, 2, 2))
+        expected_data = np.zeros((2, 2, 2), dtype=np.float32)
         expected_data[0, :, :] = 3.0
         expected_data[1, :, :] = 2.0
         self.assertArrayAlmostEqual(result.data, expected_data)

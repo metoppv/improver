@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -46,32 +46,70 @@ from ...set_up_test_cubes import (
 )
 
 
-def build_coefficients_cube(data, template):
-    """Make a cube of coefficients with expected metadata"""
-    index = iris.coords.Coord(np.arange(4), long_name="coefficient_index")
-    name = iris.coords.Coord(
-        ["gamma", "delta", "alpha", "beta"], long_name="coefficient_name"
-    )
-    coefficients = iris.cube.Cube(
-        data,
-        long_name="emos_coefficients",
-        dim_coords_and_dims=[(index, 0)],
-        aux_coords_and_dims=[(name, 0)],
-    )
+def build_coefficients_cubelist(template, coeff_values, predictor="mean"):
+    """Make a cubelist of coefficients with expected metadata
+
+    Args:
+        template (iris.cube.Cube):
+            Cube containing information about the time,
+            forecast_reference_time, forecast_period, x coordinate and
+            y coordinate that will be used within the EMOS coefficient cube.
+        coeff_values (numpy.ndarray or list):
+            The values of the coefficients. These values will be used as the
+            cube data.
+        predictor (str):
+            Choice of predictor of location parameter. Either the ensemble mean
+            "mean" or ensemble realizations ("realizations") are supported.
+
+    Returns:
+        cubelist (iris.cube.CubeList) - The resulting EMOS
+            coefficients cubelist.
+
+    """
+    dim_coords_and_dims = []
+    aux_coords_and_dims = []
+
+    if predictor.lower() == "realizations":
+        coeff_values = [
+            coeff_values[0],
+            coeff_values[1:-2],
+            coeff_values[-2],
+            coeff_values[-1],
+        ]
 
     # add spatial and temporal coords from forecast to be calibrated
-    for coord in ["time", "forecast_period", "forecast_reference_time"]:
-        coefficients.add_aux_coord(template.coord(coord).copy())
+    for coord in ["forecast_period", "forecast_reference_time"]:
+        aux_coords_and_dims.append((template.coord(coord).copy(), None))
 
     for coord in [template.coord(axis="x"), template.coord(axis="y")]:
         bounds = [min(coord.points), max(coord.points)]
         point = np.median(bounds)
         new_coord = coord.copy(points=[point], bounds=[bounds])
-        coefficients.add_aux_coord(new_coord)
+        aux_coords_and_dims.append((new_coord, None))
 
-    coefficients.attributes["diagnostic_standard_name"] = "air_temperature"
+    attributes = {
+        "diagnostic_standard_name": "air_temperature",
+    }
 
-    return coefficients
+    coeff_names = ["alpha", "beta", "gamma", "delta"]
+    cubelist = iris.cube.CubeList([])
+    for optimised_coeff, coeff_name in zip(coeff_values, coeff_names):
+        coeff_units = "1"
+        if coeff_name in ["alpha", "gamma"]:
+            coeff_units = template.units
+        if predictor.lower() == "realizations" and coeff_name == "beta":
+            dim_coords_and_dims.append((template.coord("realization").copy(), 0))
+        cube = iris.cube.Cube(
+            optimised_coeff,
+            long_name=f"emos_coefficient_{coeff_name}",
+            units=coeff_units,
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims,
+            attributes=attributes,
+        )
+        cubelist.append(cube)
+
+    return cubelist
 
 
 class Test_process(IrisTest):
@@ -115,7 +153,7 @@ class Test_process(IrisTest):
             attributes=attributes,
         )
 
-        self.coefficients = build_coefficients_cube([0, 1, 0, 1], self.realizations)
+        self.coefficients = build_coefficients_cubelist(self.realizations, [0, 1, 0, 1])
 
     def test_null_percentiles(self):
         """Test effect of "neutral" emos coefficients in percentile space
@@ -167,7 +205,8 @@ class Test_process(IrisTest):
 
     def test_bias(self):
         """Test emos coefficients that correct a bias"""
-        self.coefficients.data = [0, 1, 1, 1]
+        # update the "alpha" value
+        self.coefficients[0].data = 1
         expected_mean = np.mean(self.percentiles.data + 1.0)
         expected_data = np.array(
             [
@@ -182,7 +221,8 @@ class Test_process(IrisTest):
 
     def test_spread(self):
         """Test emos coefficients that correct underspread"""
-        self.coefficients.data = [1, 1, 0, 1]
+        # update the "gamma" value
+        self.coefficients[2].data = 1
         expected_mean = np.mean(self.percentiles.data)
         expected_data = np.array(
             [
@@ -208,7 +248,8 @@ class Test_process(IrisTest):
         land_sea_mask = set_up_variable_cube(
             land_sea_data, name="land_binary_mask", units="1"
         )
-        self.coefficients.data = [1, 1, 0, 1]
+        # update the "gamma" value
+        self.coefficients[2].data = 1
         expected_data_slice = np.array(
             [
                 [9.7121525, 9.7121525, 10.2],

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -147,7 +147,7 @@ def test_invalid_nonlin_lin(tmp_path):
         run_cli(args)
 
 
-@pytest.mark.xfail(reason="takes ~5 minutes to run")
+@pytest.mark.xfail(run=False, reason="takes ~5 minutes to run")
 def test_percentile(tmp_path):
     """Test percentile blending"""
     kgo_dir = acc.kgo_root() / "weighted_blending/percentiles"
@@ -165,7 +165,6 @@ def test_percentile(tmp_path):
         "--output",
         output_path,
     ]
-    pytest.fail()
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -345,7 +344,7 @@ def test_weights_dict(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.xfail(reason="takes ~5 minutes to run")
+@pytest.mark.xfail(run=False, reason="takes ~5 minutes to run")
 def test_percentile_weights_dict(tmp_path):
     """Test percentile blending with weights dictionary"""
     kgo_dir = acc.kgo_root() / "weighted_blending/percentile_weights_from_dict"
@@ -370,7 +369,6 @@ def test_percentile_weights_dict(tmp_path):
         "--output",
         output_path,
     ]
-    pytest.fail()
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

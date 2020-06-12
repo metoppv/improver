@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -60,6 +60,7 @@ class BasicThreshold(PostProcessingPlugin):
         fuzzy_bounds=None,
         threshold_units=None,
         comparison_operator=">",
+        each_threshold_func=(),
     ):
         """
         Set up for processing an in-or-out of threshold field, including the
@@ -112,6 +113,9 @@ class BasicThreshold(PostProcessingPlugin):
                 evaluate data < threshold. When using fuzzy thresholds, there
                 is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
+            each_threshold_func (callable or sequence of callables):
+                Callable or sequence of callables to apply to each threshold
+                cube before concatenating.
 
         Raises:
             ValueError: If a threshold of 0.0 is requested when using a fuzzy
@@ -214,6 +218,10 @@ class BasicThreshold(PostProcessingPlugin):
         )
         self.comparison_operator_string = comparison_operator
         self._decode_comparison_operator_string()
+
+        if callable(each_threshold_func):
+            each_threshold_func = (each_threshold_func,)
+        self.each_threshold_func = each_threshold_func
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -369,6 +377,10 @@ class BasicThreshold(PostProcessingPlugin):
             if np.ma.is_masked(cube.data):
                 cube.data[input_cube.data.mask] = input_cube.data[input_cube.data.mask]
             cube = self._add_threshold_coord(cube, threshold)
+
+            for func in self.each_threshold_func:
+                cube = func(cube)
+
             thresholded_cubes.append(cube)
 
         (cube,) = thresholded_cubes.concatenate()

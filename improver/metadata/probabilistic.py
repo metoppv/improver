@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -102,6 +102,16 @@ def extract_diagnostic_name(cube_name):
             "Input {} is not a valid probability cube name".format(cube_name)
         )
     return diagnostic_name
+
+
+def is_probability(cube):
+    """Determines whether an iris.cube.Cube contains probability data at
+    a range of thresholds"""
+    try:
+        find_threshold_coordinate(cube)
+    except CoordinateNotFoundError:
+        return False
+    return True
 
 
 def find_threshold_coordinate(cube):

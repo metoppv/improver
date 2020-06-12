@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -725,6 +725,19 @@ class Test_process(IrisTest):
 
     def test_values(self):
         """Test velocity values are as expected (in m/s)"""
+        ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+        self.assertAlmostEqual(np.mean(ucube.data), -2.1719084)
+        self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)
+
+    def test_values_perturbation(self):
+        """Test velocity values are as expected when input cubes are presented
+        as an older extrapolation forecast and recent observation"""
+        # make cube 1 into a forecast with a 15 minute forecast period
+        self.cube1.coord("time").points = self.cube2.coord("time").points
+        self.cube1.coord("forecast_reference_time").points = (
+            self.cube1.coord("forecast_reference_time").points - 15 * 60
+        )
+        self.cube1.coord("forecast_period").points = [15 * 60]
         ucube, vcube = self.plugin.process(self.cube1, self.cube2, boxsize=3)
         self.assertAlmostEqual(np.mean(ucube.data), -2.1719084)
         self.assertAlmostEqual(np.mean(vcube.data), 2.1719084)

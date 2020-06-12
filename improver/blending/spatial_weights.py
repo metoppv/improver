@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -62,8 +62,6 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
            range of the effect is controlled by the supplied fuzzy_length
         3. Multiplies the fuzzy spatial weights by the one dimensional weights
            supplied to the plugin.
-        4. Normalises the weights along the coordinate that will be collapsed
-           when blending is carried out using these weights.
     """
 
     def __init__(self, fuzzy_length=10):
@@ -217,51 +215,6 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         return result
 
     @staticmethod
-    def normalised_masked_weights(weights_cube, blend_coord):
-        """
-        Normalise spatial weights along dimension associated with the
-        blend_coord. If for a given point the sum of the weights along
-        the blend_coord is zero then the returned normalised weight for
-        that point will also be zero. This correspsonds to the case where
-        there is missing data for that point for all slices along the
-        blend_coord.
-
-        Args:
-            weights_cube (iris.cube.Cube):
-                A cube with spatial weights and any other leading dimension.
-                This cube must have a coordinate matching the name given by
-                blend_coord which corresponds to the dimension along
-                which the normalisation is needed.
-            blend_coord (str):
-                The string that will match to a coordinate in both input cube.
-                This coordinate corresponds to the dimension along which the
-                normalisation is needed.
-
-        Returns:
-            iris.cube.Cube:
-                A cube with the same dimensions as the input cube, but with
-                the weights normalised along the blend_coord dimension.
-                The blend_coord will be the leading dimension on the
-                output cube.
-        """
-        summed_weights = collapsed(weights_cube, blend_coord, iris.analysis.SUM)
-
-        result = iris.cube.CubeList()
-        # Slice over blend_coord so the dimensions match.
-        for weight_slice in weights_cube.slices_over(blend_coord):
-            # Only divide where the sum of weights are positive. Setting
-            # the out keyword args sets the default value for where
-            # the sum of the weights are zero.
-            normalised_data = np.divide(
-                weight_slice.data,
-                summed_weights.data,
-                out=np.zeros_like(weight_slice.data),
-                where=(summed_weights.data > 0),
-            )
-            result.append(weight_slice.copy(data=normalised_data))
-        return result.merge_cube()
-
-    @staticmethod
     def create_template_slice(cube_to_collapse, blend_coord):
         """
         Create a template cube from a slice of the cube we are collapsing.
@@ -362,7 +315,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                A cube containing normalised spatial weights based on the
+                A cube containing non-normalised spatial weights based on the
                 cube_to_collapsemask and the one_dimensional weights supplied.
                 Contains the dimensions, blend_coord, y, x.
         """
@@ -372,5 +325,4 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         final_weights = self.multiply_weights(
             weights_from_mask, one_dimensional_weights_cube, blend_coord
         )
-        final_weights = self.normalised_masked_weights(final_weights, blend_coord)
         return final_weights

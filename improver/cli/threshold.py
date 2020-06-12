@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -140,29 +140,32 @@ def process(
         thresholds = [np.float32(x) for x in threshold_values]
         fuzzy_bounds = None
 
-    result_no_collapse_coord = BasicThreshold(
+    each_threshold_func_list = []
+
+    if vicinity is not None:
+        # smooth thresholded occurrences over local vicinity
+        each_threshold_func_list.append(OccurrenceWithinVicinity(vicinity))
+
+    if collapse_coord is not None:
+        # Take a weighted mean across realizations with equal weights
+        each_threshold_func_list.append(
+            WeightAndBlend(collapse_coord, "linear", y0val=1.0, ynval=1.0)
+        )
+
+    result = BasicThreshold(
         thresholds,
         fuzzy_factor=fuzzy_factor,
         fuzzy_bounds=fuzzy_bounds,
         threshold_units=threshold_units,
         comparison_operator=comparison_operator,
+        each_threshold_func=each_threshold_func_list,
     )(cube)
 
     if vicinity is not None:
-        # smooth thresholded occurrences over local vicinity
-        result_no_collapse_coord = OccurrenceWithinVicinity(vicinity)(
-            result_no_collapse_coord
-        )
-        new_cube_name = in_vicinity_name_format(result_no_collapse_coord.name())
-        result_no_collapse_coord.rename(new_cube_name)
-
-    if collapse_coord is None:
-        return result_no_collapse_coord
+        result.rename(in_vicinity_name_format(result.name()))
 
     # Raise warning if result_no_collapse_coord is masked array
-    if np.ma.isMaskedArray(result_no_collapse_coord.data):
-        warnings.warn("Collapse-coord option not fully tested with " "masked data.")
-    # Take a weighted mean across realizations with equal weights
-    plugin = WeightAndBlend(collapse_coord, "linear", y0val=1.0, ynval=1.0)
+    if collapse_coord is not None and np.ma.isMaskedArray(result.data):
+        warnings.warn("Collapse-coord option not fully tested with masked data.")
 
-    return plugin(result_no_collapse_coord)
+    return result

@@ -21,7 +21,7 @@ jobs:
     - name: conda activate
       run:  echo "::add-path::/usr/share/miniconda/envs/improver/bin"
     - name: sphinx-build
-      run: make -C doc html
+      run: make -C doc html SPHINXOPTS="-W --keep-going"
     - name: pytest unit-tests & cov-report
       run: pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
     - name: codacy-coverage

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -408,17 +408,10 @@ class CollapseMaskedNeighbourhoodCoordinate(BasePlugin):
         yname = cube.coord(axis="y").name()
         xname = cube.coord(axis="x").name()
 
-        renormalize = True
-        if self.weights.shape == cube.shape:
-            weights = self.renormalize_weights(cube)
-            renormalize = False
-
         # Loop over any extra dimensions
+        weights = self.weights.data
         cubelist = iris.cube.CubeList([])
         for slice_3d in cube.slices([self.coord_masked, yname, xname]):
-            if renormalize:
-                weights = self.renormalize_weights(slice_3d)
-                renormalize = False
             collapsed_slice = collapsed(
                 slice_3d, self.coord_masked, iris.analysis.MEAN, weights=weights
             )

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@ Unit tests for the utilities within the `ensemble_calibration_utilities`
 module.
 
 """
+import datetime
 import unittest
 
 import iris
@@ -42,15 +43,19 @@ from iris.util import squeeze
 from numpy.testing import assert_array_equal
 
 from improver.calibration.utilities import (
+    check_forecast_consistency,
     check_predictor,
     convert_cube_data_to_2d,
     create_unified_frt_coord,
     filter_non_matching_cubes,
     flatten_ignoring_masked_data,
+    forecast_coords_match,
+    get_frt_hours,
     merge_land_and_sea,
 )
+from improver.metadata.constants.time_types import TIME_COORDS
 
-from ...set_up_test_cubes import set_up_percentile_cube
+from ...set_up_test_cubes import set_up_percentile_cube, set_up_variable_cube
 from ..ensemble_calibration.helper_functions import SetupCubes, set_up_temperature_cube
 from ..reliability_calibration.test_AggregateReliabilityCalibrationTables import (
     Test_Aggregation,
@@ -570,6 +575,137 @@ class Test_merge_land_and_sea(IrisTest):
             expected_cube.xml(checksum=True), self.percentiles_land.xml(checksum=True)
         )
         self.assertEqual(self.percentiles_land.data.dtype, np.float32)
+
+
+class Test_forecast_coords_match(IrisTest):
+
+    """Test for function that tests if forecast period and the hour of the
+     forecast_reference_time coordinate match between two cubes."""
+
+    def setUp(self):
+        """Set-up testing."""
+        self.data = np.ones((3, 3), dtype=np.float32)
+        self.ref_cube = set_up_variable_cube(
+            self.data,
+            frt=datetime.datetime(2017, 11, 10, 1, 0),
+            time=datetime.datetime(2017, 11, 10, 4, 0),
+        )
+        self.message = "The following coordinates of the two cubes do not match"
+
+    def test_match(self):
+        """Test returns None when cubes time coordinates match."""
+        self.assertIsNone(forecast_coords_match(self.ref_cube, self.ref_cube.copy()))
+
+    def test_forecast_period_mismatch(self):
+        """Test an error is raised when the forecast period mismatches."""
+        self.adjusted_cube = set_up_variable_cube(
+            self.data,
+            frt=datetime.datetime(2017, 11, 10, 1, 0),
+            time=datetime.datetime(2017, 11, 10, 5, 0),
+        )
+
+        with self.assertRaisesRegex(ValueError, self.message):
+            forecast_coords_match(self.ref_cube, self.adjusted_cube)
+
+    def test_frt_hour_mismatch(self):
+        """Test an error is raised when the forecast_reference_time mismatches"""
+        self.adjusted_cube = set_up_variable_cube(
+            self.data,
+            frt=datetime.datetime(2017, 11, 10, 2, 0),
+            time=datetime.datetime(2017, 11, 10, 5, 0),
+        )
+
+        with self.assertRaisesRegex(ValueError, self.message):
+            forecast_coords_match(self.ref_cube, self.adjusted_cube)
+
+
+class Test_get_frt_hours(IrisTest):
+
+    """Test the get_frt_hours function."""
+
+    def test_single_value(self):
+        """Test that the expected forecast reference time hour value is
+        returned in a set."""
+
+        frt = iris.coords.DimCoord(
+            [0],
+            standard_name="forecast_reference_time",
+            units=TIME_COORDS["forecast_reference_time"].units,
+        )
+        result = get_frt_hours(frt)
+        self.assertEqual(result, set([0]))
+
+    def test_multiple_values(self):
+        """Test that the expected forecast reference time hour values are
+        returned in a set."""
+        expected = np.array([0, 1, 4], dtype=np.float32)
+        frt = iris.coords.DimCoord(
+            expected * 3600,
+            standard_name="forecast_reference_time",
+            units=TIME_COORDS["forecast_reference_time"].units,
+        )
+        result = get_frt_hours(frt)
+        self.assertEqual(result, set(expected))
+
+
+class Test_check_forecast_consistency(IrisTest):
+
+    """Test the check_forecast_consistency function."""
+
+    def setUp(self):
+        """Set-up cubes for testing."""
+        self.forecast1 = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32),
+            frt=datetime.datetime(2017, 11, 10, 1, 0),
+            time=datetime.datetime(2017, 11, 10, 4, 0),
+        )
+        forecast2 = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32),
+            frt=datetime.datetime(2017, 11, 11, 1, 0),
+            time=datetime.datetime(2017, 11, 11, 4, 0),
+        )
+        self.forecasts = iris.cube.CubeList([self.forecast1, forecast2]).merge_cube()
+
+    def test_matching_forecasts(self):
+        """Test case in which forecasts share frt hour and forecast period
+        values. No result is expected in this case, hence there is no value
+        comparison; the test is the absence of an exception."""
+
+        check_forecast_consistency(self.forecasts)
+
+    def test_mismatching_frt_hours(self):
+        """Test case in which forecast reference time hours differ."""
+        forecast2 = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32),
+            frt=datetime.datetime(2017, 11, 11, 2, 0),
+            time=datetime.datetime(2017, 11, 11, 4, 0),
+        )
+        forecasts = iris.cube.CubeList([self.forecast1, forecast2]).merge_cube()
+
+        msg = (
+            "Forecasts have been provided with differing hours for the "
+            "forecast reference time {1, 2}"
+        )
+
+        with self.assertRaisesRegex(ValueError, msg):
+            check_forecast_consistency(forecasts)
+
+    def test_mismatching_forecast_periods(self):
+        """Test case in which the forecast periods differ."""
+        forecast2 = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32),
+            frt=datetime.datetime(2017, 11, 11, 1, 0),
+            time=datetime.datetime(2017, 11, 11, 5, 0),
+        )
+        forecasts = iris.cube.CubeList([self.forecast1, forecast2]).merge_cube()
+
+        msg = (
+            "Forecasts have been provided with differing forecast periods "
+            "\[10800 14400\]"
+        )
+
+        with self.assertRaisesRegex(ValueError, msg):
+            check_forecast_consistency(forecasts)
 
 
 if __name__ == "__main__":

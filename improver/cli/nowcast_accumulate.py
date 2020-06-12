@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,8 +38,10 @@ ACCUMULATION_FIDELITY = 1
 
 # Creates the value_converter that clize needs.
 inputadvection = cli.create_constrained_inputcubelist_converter(
-    ["precipitation_advection_x_velocity", "grid_eastward_wind"],
-    ["precipitation_advection_y_velocity", "grid_northward_wind"],
+    lambda cube: cube.name()
+    in ["precipitation_advection_x_velocity", "grid_eastward_wind"],
+    lambda cube: cube.name()
+    in ["precipitation_advection_y_velocity", "grid_northward_wind"],
 )
 
 

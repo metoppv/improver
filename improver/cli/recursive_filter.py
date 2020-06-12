@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@
 from improver import cli
 
 input_smoothing_coefficients = cli.create_constrained_inputcubelist_converter(
-    "smoothing_coefficient_x", "smoothing_coefficient_y"
+    "smoothing_coefficient_x", "smoothing_coefficient_y",
 )
 
 

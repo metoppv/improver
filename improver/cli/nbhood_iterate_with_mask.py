@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -47,7 +47,6 @@ def process(
     lead_times: cli.comma_separated_list = None,
     area_sum=False,
     remask=False,
-    collapse_dimension=False,
 ):
     """Runs neighbourhooding processing iterating over a coordinate by mask.
 
@@ -63,8 +62,8 @@ def process(
     There is also an option to re-mask the output dataset, so that after
     neighbourhood processing non-zero values are only present for unmasked
     grid points.
-    There is an alternative option of collapsing the dimension that we gain
-    using this processing using a weighted average.
+    If weights are given the masking dimension that we gain will be collapsed
+    using a weighted average.
 
     Args:
         cube (iris.cube.Cube):
@@ -95,21 +94,13 @@ def process(
             Otherwise the original un-neighbourhood processed mask
             is not applied. Therefore, the neighbourhood processing may result
             in values being present in area that were originally masked.
-        collapse_dimension (bool):
-            Include this option to collapse the dimension from the mask, by
-            doing a weighted mean using the weights provided. This is only
-            suitable when the result is left unmasked, so there is data to
-            weight between the points in the coordinate we are collapsing.
 
     Returns:
         iris.cube.Cube:
             A cube after being fully processed.
     """
     from improver.nbhood import radius_by_lead_time
-    from improver.nbhood.use_nbhood import (
-        ApplyNeighbourhoodProcessingWithAMask,
-        CollapseMaskedNeighbourhoodCoordinate,
-    )
+    from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
 
     sum_or_fraction = "sum" if area_sum else "fraction"
 
@@ -119,13 +110,9 @@ def process(
         coord_for_masking,
         radius_or_radii,
         lead_times=lead_times,
+        collapse_weights=weights,
         sum_or_fraction=sum_or_fraction,
         re_mask=remask,
     )(cube, mask)
 
-    # Collapse with the masking dimension.
-    if collapse_dimension:
-        result = CollapseMaskedNeighbourhoodCoordinate(coord_for_masking, weights)(
-            result
-        )
     return result

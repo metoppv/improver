@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -598,6 +598,15 @@ class Test_process(IrisTest):
         plugin = Threshold(2.0, fuzzy_factor=self.fuzzy_factor, comparison_operator="<")
         with self.assertRaisesRegex(ValueError, msg):
             plugin(self.cube)
+
+    def test_each_threshold_func(self):
+        """Test user supplied func is applied on each threshold cube."""
+        # Need to copy the cube as we're adjusting the data.
+        plugin = Threshold(
+            2.0, each_threshold_func=lambda cube: cube.rename("new_name") or cube
+        )
+        result = plugin(self.cube)
+        self.assertTrue("new_name" in result.name())
 
 
 class Test__init__(IrisTest):

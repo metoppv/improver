@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2019 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,8 @@
 
 import pytest
 
+from improver.constants import LOOSE_TOLERANCE
+
 from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
@@ -50,7 +52,7 @@ def test_basic(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "--output", output_path]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, rtol=LOOSE_TOLERANCE)
 
 
 def test_multilevel(tmp_path):
@@ -64,7 +66,7 @@ def test_multilevel(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "--convergence-condition", "0.005", "--output", output_path]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, rtol=LOOSE_TOLERANCE)
 
 
 def test_global(tmp_path):
@@ -78,4 +80,4 @@ def test_global(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "--output", output_path]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, rtol=LOOSE_TOLERANCE)
