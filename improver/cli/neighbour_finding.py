@@ -222,7 +222,7 @@ def process(
         result = NeighbourSelection(**kwargs)(*fargs)
 
     enforce_coordinate_ordering(
-        result, ["spot_index", "neighbour_selection_method", "grid_attributes"]
+        result, ["neighbour_selection_method", "grid_attributes", "spot_index"]
     )
 
     return result

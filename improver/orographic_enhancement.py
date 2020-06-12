@@ -53,7 +53,7 @@ from improver.utilities.cube_manipulation import (
     sort_coord_in_cube,
 )
 from improver.utilities.spatial import (
-    DifferenceBetweenAdjacentGridSquares,
+    GradientBetweenAdjacentGridSquares,
     number_of_grid_cells_to_distance,
 )
 
@@ -149,12 +149,12 @@ class OrographicEnhancement(BasePlugin):
         # before calculating each gradient (as done in STEPS)
         topo_smx = uniform_filter1d(self.topography.data, 3, axis=ydim)
         topo_smx_cube = self.topography.copy(data=topo_smx)
-        gradx, _ = DifferenceBetweenAdjacentGridSquares(gradient=True)(topo_smx_cube)
+        gradx, _ = GradientBetweenAdjacentGridSquares(regrid=True)(topo_smx_cube)
         gradx.units = "1"
 
         topo_smy = uniform_filter1d(self.topography.data, 3, axis=xdim)
         topo_smy_cube = self.topography.copy(data=topo_smy)
-        _, grady = DifferenceBetweenAdjacentGridSquares(gradient=True)(topo_smy_cube)
+        _, grady = GradientBetweenAdjacentGridSquares(regrid=True)(topo_smy_cube)
         grady.units = "1"
 
         return gradx, grady
