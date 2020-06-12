@@ -104,6 +104,23 @@ class CombinerTest(IrisTest):
             frt=datetime(2015, 11, 18, 22),
         )
 
+        cube_list = iris.cube.CubeList([])
+        for threshold in [1.0, 2.0]:
+            cube = iris.util.squeeze(self.cube3.copy())
+            cube.coord("lwe_thickness_of_precipitation_amount").points = np.array(
+                [threshold]
+            )
+            cube_list.append(cube)
+        self.cube4 = cube_list.merge_cube()
+        cube_list = iris.cube.CubeList([])
+        for point in np.arange(3):
+            cube = self.cube4.copy()
+            cube.add_aux_coord(
+                iris.coords.DimCoord(np.array([point]), standard_name="realization")
+            )
+            cube_list.append(cube.copy())
+        self.cube4 = cube_list.merge_cube()
+
 
 class Test__get_expanded_coord_names(CombinerTest):
     """Test method to determine coordinates for expansion"""
@@ -235,6 +252,29 @@ class Test_process(CombinerTest):
         msg = "Expecting 2 or more cubes in cube_list"
         cubelist = iris.cube.CubeList([self.cube1])
         with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(cubelist, "new_cube_name")
+
+    def test_broadcast_coord(self):
+        """Test that plugin broadcasts to a coord"""
+        plugin = CubeCombiner("*", broadcast_to_coords=["threshold"])
+        cube = self.cube4[:, 0, ...].copy()
+        cube.data = np.ones_like(cube.data)
+        cube.remove_coord("lwe_thickness_of_precipitation_amount")
+        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
+        result = plugin.process(cubelist, "new_cube_name")
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.name(), "new_cube_name")
+        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
+        self.assertArrayAlmostEqual(result.data, self.cube4.data)
+
+    def test_error_broadcast_coord(self):
+        """Test that plugin throws an error if the broadcast coord already exists"""
+        plugin = CubeCombiner("*", broadcast_to_coords=["threshold"])
+        cube = self.cube4[:, 0, ...].copy()
+        cube.data = np.ones_like(cube.data)
+        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
+        msg = "Cannot broadcast to coord threshold as it already exists as an AuxCoord"
+        with self.assertRaisesRegex(TypeError, msg):
             plugin.process(cubelist, "new_cube_name")
 
     def test_multiply_preserves_bounds(self):

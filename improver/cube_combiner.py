@@ -34,7 +34,10 @@ import numpy as np
 
 import iris
 from improver import BasePlugin
-from improver.utilities.cube_manipulation import expand_bounds, enforce_coordinate_ordering
+from improver.utilities.cube_manipulation import (
+    expand_bounds,
+    enforce_coordinate_ordering,
+)
 from improver.metadata.probabilistic import find_threshold_coordinate
 from iris.exceptions import CoordinateNotFoundError
 from iris.coords import DimCoord
@@ -94,7 +97,7 @@ class CubeCombiner(BasePlugin):
 
     def _check_dimensions_match(self, cube_list):
         """
-        Check all coordinate dimensions on the input cubes are equal
+        Check all coordinate dimensions on the input cubes are equal or broadcastable
 
         Args:
             cube_list (iris.cube.CubeList or list):
@@ -106,13 +109,29 @@ class CubeCombiner(BasePlugin):
         ref_coords = cube_list[0].coords(dim_coords=True)
         for cube in cube_list[1:]:
             coords = cube.coords(dim_coords=True)
-            compare = [a == b for a, b in zip(coords, ref_coords)]
+            compare = [
+                (a == b) or self._coords_are_broadcastable(a, b)
+                for a, b in zip(coords, ref_coords)
+            ]
             if not np.all(compare):
                 msg = (
                     "Cannot combine cubes with different dimensions:\n"
                     "{} and {}".format(repr(cube_list[0]), repr(cube))
                 )
                 raise ValueError(msg)
+
+    @staticmethod
+    def _coords_are_broadcastable(coord1, coord2):
+        """
+        Broadcastable coords will differ only in length, so create a copy of one with
+        the points and bounds of the other and compare. Also ensure length of at least
+        one of the coords is 1.
+        """
+        coord_copy = coord1.copy(coord2.points, bounds=coord2.bounds)
+
+        return (coord_copy == coord2) and (
+            (len(coord1.points) == 1) or (len(coord2.points) == 1)
+        )
 
     @staticmethod
     def _get_expanded_coord_names(cube_list):
@@ -164,7 +183,7 @@ class CubeCombiner(BasePlugin):
         for coord in self.broadcast_coords:
             for cube in cube_list:
                 try:
-                    if coord == 'threshold':
+                    if coord == "threshold":
                         target_coord = find_threshold_coordinate(cube)
                     else:
                         target_coord = cube.coord(coord)
@@ -173,25 +192,34 @@ class CubeCombiner(BasePlugin):
                 except CoordinateNotFoundError:
                     continue
             else:
-                raise CoordinateNotFoundError(f"{self.broadcast_coords} not found in {cube_list}")
+                raise CoordinateNotFoundError(
+                    f"{self.broadcast_coords} not found in {cube_list}"
+                )
             new_list = CubeList([])
             for cube in cube_list:
                 try:
-                    cube.coord(target_coord)
+                    found_coord = cube.coord(target_coord)
                 except CoordinateNotFoundError:
                     new_coord = DimCoord(
-                            [0],
-                            standard_name=target_coord.standard_name,
-                            long_name=target_coord.long_name,
-                            var_name=target_coord.var_name,
-                            units=target_coord.units,
-                            bounds=None,
-                            attributes=target_coord.attributes,
-                            coord_system=target_coord.coord_system,
-                        )
+                        [0],
+                        standard_name=target_coord.standard_name,
+                        long_name=target_coord.long_name,
+                        var_name=target_coord.var_name,
+                        units=target_coord.units,
+                        bounds=None,
+                        attributes=target_coord.attributes,
+                        coord_system=target_coord.coord_system,
+                    )
                     cube.add_aux_coord(new_coord, None)
                     cube = iris.util.new_axis(cube, new_coord)
-                    enforce_coordinate_ordering(cube, [d.name() for d in target_cube.coords(dim_coords=True)])
+                    enforce_coordinate_ordering(
+                        cube, [d.name() for d in target_cube.coords(dim_coords=True)]
+                    )
+                else:
+                    if found_coord not in cube.dim_coords:
+                        raise TypeError(
+                            f"Cannot broadcast to coord {coord} as it already exists as an AuxCoord"
+                        )
                 new_list.append(cube)
             cube_list = new_list
         return cube_list
@@ -238,7 +266,7 @@ class CubeCombiner(BasePlugin):
 
         if self.broadcast_coords:
             cube_list = self._setup_coord_broadcast(cube_list)
-        #self._check_dimensions_match(cube_list)
+        self._check_dimensions_match(cube_list)
 
         # perform operation (add, subtract, min, max, multiply) cumulatively
         result = cube_list[0].copy()
