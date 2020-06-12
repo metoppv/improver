@@ -711,7 +711,7 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
         new_dims = new_dims_end
 
     # transpose cube using new coordinate order
-    if new_dims != list(range(len(new_dims))):
+    if new_dims != sorted(new_dims):
         cube.transpose(new_dims)
     return
 
