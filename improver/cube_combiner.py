@@ -32,7 +32,6 @@
 
 import iris
 import numpy as np
-from iris.coords import DimCoord
 from iris.cube import CubeList
 from iris.exceptions import CoordinateNotFoundError
 
