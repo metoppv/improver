@@ -209,11 +209,8 @@ class StandardiseMetadata(BasePlugin):
         Returns:
             iris.cube.Cube
         """
-        # standard metadata updates
         cube = self._collapse_scalar_dimensions(cube)
-        self._standardise_dtypes_and_units(cube)
 
-        # optional metadata updates
         if new_name:
             cube.rename(new_name)
         if new_units:
@@ -222,6 +219,10 @@ class StandardiseMetadata(BasePlugin):
             self._remove_scalar_coords(cube, coords_to_remove)
         if attributes_dict:
             amend_attributes(cube, attributes_dict)
+
+        # this must be done after unit conversion as if the input is an integer
+        # field, unit conversion outputs the new data as float64
+        self._standardise_dtypes_and_units(cube)
 
         return cube
 
