@@ -167,7 +167,7 @@ class CubeCombiner(BasePlugin):
                     expanded_coords.append(coord)
         return expanded_coords
 
-    def _setup_coord_broadcast(self, cube_list):
+    def _setup_coords_for_broadcast(self, cube_list):
         """
         Adds a scalar DimCoord to any subsequent cube in cube_list so that they all include all of
         the coords specified in self.broadcast_coords in the right order.
@@ -194,16 +194,7 @@ class CubeCombiner(BasePlugin):
                 try:
                     found_coord = cube.coord(target_coord)
                 except CoordinateNotFoundError:
-                    new_coord = DimCoord(
-                        [0],
-                        standard_name=target_coord.standard_name,
-                        long_name=target_coord.long_name,
-                        var_name=target_coord.var_name,
-                        units=target_coord.units,
-                        bounds=None,
-                        attributes=target_coord.attributes,
-                        coord_system=target_coord.coord_system,
-                    )
+                    new_coord = target_coord.copy([0], bounds=None)
                     cube.add_aux_coord(new_coord, None)
                     cube = iris.util.new_axis(cube, new_coord)
                     enforce_coordinate_ordering(
@@ -259,7 +250,7 @@ class CubeCombiner(BasePlugin):
             raise ValueError(msg)
 
         if self.broadcast_coords:
-            cube_list = self._setup_coord_broadcast(cube_list)
+            cube_list = self._setup_coords_for_broadcast(cube_list)
         self._check_dimensions_match(cube_list)
 
         # perform operation (add, subtract, min, max, multiply) cumulatively

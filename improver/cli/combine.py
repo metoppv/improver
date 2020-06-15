@@ -64,7 +64,8 @@ def process(
         check_metadata (bool):
             If True, warn on metadata mismatch between inputs.
         broadcast_to_coord (str):
-            Name of coord to broadcast one of the input cubes to prior to combining - must exist on the other input cube.
+            Name of coord to broadcast one of the input cubes to prior to combining -
+            must exist on the first input cube.
 
     Returns:
         result (iris.cube.Cube):

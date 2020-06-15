@@ -40,7 +40,11 @@ from iris.tests import IrisTest
 
 from improver.cube_combiner import CubeCombiner
 
-from ..set_up_test_cubes import set_up_probability_cube, set_up_variable_cube
+from ..set_up_test_cubes import (
+    set_up_probability_cube,
+    set_up_variable_cube,
+    add_coordinate,
+)
 
 
 class Test__init__(IrisTest):
@@ -105,22 +109,18 @@ class CombinerTest(IrisTest):
             frt=datetime(2015, 11, 18, 22),
         )
 
-        cube_list = iris.cube.CubeList([])
-        for threshold in [1.0, 2.0]:
-            cube = iris.util.squeeze(self.cube3.copy())
-            cube.coord("lwe_thickness_of_precipitation_amount").points = np.array(
-                [threshold]
-            )
-            cube_list.append(cube)
-        self.cube4 = cube_list.merge_cube()
-        cube_list = iris.cube.CubeList([])
-        for point in np.arange(3):
-            cube = self.cube4.copy()
-            cube.add_aux_coord(
-                iris.coords.DimCoord(np.array([point]), standard_name="realization")
-            )
-            cube_list.append(cube.copy())
-        self.cube4 = cube_list.merge_cube()
+        data = np.full((2, 2, 2), 0.1, dtype=np.float32)
+        self.cube4 = set_up_probability_cube(
+            data,
+            np.array([1.0, 2.0], dtype=np.float32),
+            variable_name="lwe_thickness_of_precipitation_amount",
+            time=datetime(2015, 11, 19, 1),
+            time_bounds=(datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 1)),
+            frt=datetime(2015, 11, 18, 22),
+        )
+        self.cube4 = add_coordinate(
+            iris.util.squeeze(self.cube4), np.arange(3), "realization", coord_units="1"
+        )
 
 
 class Test__get_expanded_coord_names(CombinerTest):
