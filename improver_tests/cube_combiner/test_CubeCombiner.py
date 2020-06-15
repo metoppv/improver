@@ -41,9 +41,9 @@ from iris.tests import IrisTest
 from improver.cube_combiner import CubeCombiner
 
 from ..set_up_test_cubes import (
+    add_coordinate,
     set_up_probability_cube,
     set_up_variable_cube,
-    add_coordinate,
 )
 
 
