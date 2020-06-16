@@ -151,7 +151,7 @@ def test_compare_vars_renamed(dummy_nc):
         messages_reported.append(message)
 
     compare.compare_vars(
-        "root", actual_ds, expected_ds, 0.0, 0.0, [], message_collector
+        "root", actual_ds, expected_ds, 0.0, 0.0, [], None, message_collector
     )
     assert len(messages_reported) == 1
     assert DEWPOINT in messages_reported[0]
@@ -171,7 +171,7 @@ def test_compare_groups_renamed(dummy_nc):
         messages_reported.append(message)
 
     compare.compare_datasets(
-        "grp", actual_ds, expected_ds, 0.0, 0.0, [DEWPOINT], message_collector
+        "grp", actual_ds, expected_ds, 0.0, 0.0, [DEWPOINT], None, message_collector
     )
     assert len(messages_reported) == 1
     assert SCALARS in messages_reported[0]
@@ -190,12 +190,12 @@ def test_compare_netcdf_attrs(dummy_nc):
         messages_reported.append(message)
 
     # Check that attributes initially match - message_collector is not called
-    compare.compare_attributes("root", actual_ds, expected_ds, message_collector)
+    compare.compare_attributes("root", actual_ds, expected_ds, None, message_collector)
     assert len(messages_reported) == 0
 
     # Check modifying a simple attribute
     actual_ds.setncattr("float_number", 3.2)
-    compare.compare_attributes("root", actual_ds, expected_ds, message_collector)
+    compare.compare_attributes("root", actual_ds, expected_ds, None, message_collector)
     assert len(messages_reported) == 1
     assert "float_number" in messages_reported[0]
     assert "3.2" in messages_reported[0]
@@ -208,7 +208,7 @@ def test_compare_netcdf_attrs(dummy_nc):
     # Check modifying an array attribute
     actual_ds[CAT].setncattr("additional_numbers", np.linspace(0.0, 0.8, 11))
     compare.compare_attributes(
-        "root", actual_ds[CAT], expected_ds[CAT], message_collector
+        "root", actual_ds[CAT], expected_ds[CAT], None, message_collector
     )
     assert len(messages_reported) == 1
     assert "additional_numbers" in messages_reported[0]
@@ -219,7 +219,9 @@ def test_compare_netcdf_attrs(dummy_nc):
 
     # Check adding another attribute
     actual_ds.setncattr("extra", "additional")
-    compare.compare_attributes("longer name", actual_ds, expected_ds, message_collector)
+    compare.compare_attributes(
+        "longer name", actual_ds, expected_ds, None, message_collector
+    )
     assert len(messages_reported) == 1
     assert "longer name" in messages_reported[0]
     # The difference message should mention the attribute which was added
@@ -231,7 +233,7 @@ def test_compare_netcdf_attrs(dummy_nc):
 
     # Check removing an attribute
     actual_ds.delncattr("float_number")
-    compare.compare_attributes("root", actual_ds, expected_ds, message_collector)
+    compare.compare_attributes("root", actual_ds, expected_ds, None, message_collector)
     assert len(messages_reported) == 1
     assert "float_number" in messages_reported[0]
     actual_ds.setncattr("float_number", 3.2)
@@ -242,10 +244,51 @@ def test_compare_netcdf_attrs(dummy_nc):
 
     # Check changing attribute type from int to float
     actual_ds.setncattr("whole_number", 4.0)
-    compare.compare_attributes("root", actual_ds, expected_ds, message_collector)
+    compare.compare_attributes("root", actual_ds, expected_ds, None, message_collector)
     assert len(messages_reported) == 1
     for part in ("int", "float", "whole_number"):
         assert part in messages_reported[0]
+
+
+def test_ignore_netcdf_attrs(dummy_nc):
+    """Check that changes to ignored attributes are ignored."""
+    actual_nc, expected_nc = dummy_nc
+    expected_ds = nc.Dataset(expected_nc, mode="r")
+    actual_ds = nc.Dataset(actual_nc, mode="a")
+
+    messages_reported = []
+
+    def message_collector(message):
+        messages_reported.append(message)
+
+    # Check modifying a simple attribute
+    actual_ds.setncattr("float_number", 3.2)
+    compare.compare_attributes(
+        "root", actual_ds, expected_ds, ["float_number"], message_collector,
+    )
+    assert len(messages_reported) == 0
+
+    # Reset attribute back to original value
+    actual_ds.setncattr("float_number", 1.5)
+    messages_reported = []
+
+    # Check adding another attribute
+    actual_ds.setncattr("extra", "additional")
+    compare.compare_attributes(
+        "longer name", actual_ds, expected_ds, ["extra"], message_collector,
+    )
+    assert len(messages_reported) == 0
+
+    # Remove added attribute
+    actual_ds.delncattr("extra")
+    messages_reported = []
+
+    # Check removing an attribute
+    actual_ds.delncattr("float_number")
+    compare.compare_attributes(
+        "root", actual_ds, expected_ds, ["float_number"], message_collector,
+    )
+    assert len(messages_reported) == 0
 
 
 def test_compare_data_floats_equal(dummy_nc):
@@ -501,7 +544,7 @@ def test_compare_data_type(dummy_nc, tchange):
         messages_reported.append(message)
 
     compare.compare_vars(
-        "root", actual_ds, expected_ds, 0.0, 0.0, None, message_collector
+        "root", actual_ds, expected_ds, 0.0, 0.0, None, None, message_collector
     )
     assert len(messages_reported) == 1
     assert "type" in messages_reported[0]

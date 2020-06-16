@@ -62,3 +62,14 @@ def test_different(capsys):
     assert "different dimension size" in captured.out
     assert "different variables" in captured.out
     assert "different data" in captured.out
+
+
+def test_ignored_attributes(capsys):
+    """Ensure attribute differences are not reported if explicity excluded."""
+    kgo_dir = acc.kgo_root()
+    a_file = kgo_dir / "spot-extract/inputs/all_methods_uk.nc"
+    b_file = kgo_dir / "spot-extract/inputs/all_methods_global.nc"
+    args = [a_file, b_file, "--ignored-attributes=model_grid_hash"]
+    run_cli(args)
+    captured = capsys.readouterr()
+    assert "different attribute value" not in captured.out
