@@ -49,11 +49,18 @@ def process(
     Compare two netcdf files
 
     Args:
-        actual: path to output data netcdf file
-        desired: path to desired/known good data netcdf file
-        rtol: relative tolerance for data in variables
-        atol: absolute tolerance for data in variables
-        ignored_attributes: list of attributes to ignore in the comparison
+        actual:
+            Path to output data netcdf file
+        desired:
+            Path to desired/known good data netcdf file
+        rtol:
+            Relative tolerance for data in variables
+        atol:
+            Absolute tolerance for data in variables
+        ignored_attributes:
+            List of attributes to ignore in the comparison. This option allows for
+            attributes such as "history" to be ignored, where such attributes often
+            vary between files without indicating any differences in the data.
 
     Returns:
         None

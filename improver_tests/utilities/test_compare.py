@@ -272,21 +272,6 @@ def test_ignore_netcdf_attrs(dummy_nc):
     actual_ds.setncattr("float_number", 1.5)
     messages_reported = []
 
-    # Check modifying an array attribute
-    actual_ds[CAT].setncattr("additional_numbers", np.linspace(0.0, 0.8, 11))
-    compare.compare_attributes(
-        "root",
-        actual_ds[CAT],
-        expected_ds[CAT],
-        ["additional_numbers"],
-        message_collector,
-    )
-    assert len(messages_reported) == 0
-
-    # Reset attribute back to original value
-    actual_ds[CAT].setncattr("additional_numbers", np.linspace(0.0, 1.0, 11))
-    messages_reported = []
-
     # Check adding another attribute
     actual_ds.setncattr("extra", "additional")
     compare.compare_attributes(
@@ -304,10 +289,6 @@ def test_ignore_netcdf_attrs(dummy_nc):
         "root", actual_ds, expected_ds, ["float_number"], message_collector,
     )
     assert len(messages_reported) == 0
-
-    # Reset attribute back to original value
-    actual_ds.setncattr("float_number", 1.5)
-    messages_reported = []
 
 
 def test_compare_data_floats_equal(dummy_nc):
