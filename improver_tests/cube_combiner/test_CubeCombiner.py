@@ -262,7 +262,9 @@ class Test_process(CombinerTest):
         cube.data = np.ones_like(cube.data)
         cube.remove_coord("lwe_thickness_of_precipitation_amount")
         cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
-        result = plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["threshold"])
+        result = plugin.process(
+            cubelist, "new_cube_name", broadcast_to_coords=["threshold"]
+        )
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, self.cube4.data)
