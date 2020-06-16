@@ -61,16 +61,13 @@ class CubeCombiner(BasePlugin):
         "mean": np.add,
     }  # mean is calculated in two steps: sum and normalise
 
-    def __init__(self, operation, broadcast_to_coords=None, warnings_on=False):
+    def __init__(self, operation, warnings_on=False):
         """
         Create a CubeCombiner plugin
 
         Args:
             operation (str):
                 Operation (+, - etc) to apply to the incoming cubes.
-            broadcast_to_coords (list):
-                Specifies a list of coord names that exist only on the first cube that
-                the other cube(s) need(s) broadcasting to prior to the combine.
             warnings_on (bool):
                 If True output warnings for mismatching metadata.
 
@@ -84,7 +81,7 @@ class CubeCombiner(BasePlugin):
             msg = "Unknown operation {}".format(operation)
             raise ValueError(msg)
         self.operation = operation
-        self.broadcast_coords = broadcast_to_coords
+        self.broadcast_coords = None
         self.warnings_on = warnings_on
 
     def __repr__(self):
@@ -201,6 +198,9 @@ class CubeCombiner(BasePlugin):
                     )
                 else:
                     if found_coord not in cube.dim_coords:
+                        # We don't expect the coord to already exist in a scalar form as
+                        # this would indicate that the broadcast-from cube is only valid
+                        # for part of the new dimension and therefore should be rejected.
                         raise TypeError(
                             f"Cannot broadcast to coord {coord} as it already exists as an AuxCoord"
                         )
@@ -208,7 +208,13 @@ class CubeCombiner(BasePlugin):
             cube_list = new_list
         return cube_list
 
-    def process(self, cube_list, new_diagnostic_name, use_midpoint=False):
+    def process(
+        self,
+        cube_list,
+        new_diagnostic_name,
+        broadcast_to_coords=None,
+        use_midpoint=False,
+    ):
         """
         Combine data and metadata from a list of input cubes into a single
         cube, using the specified operation to combine the cube data.  The
@@ -232,6 +238,9 @@ class CubeCombiner(BasePlugin):
                 List of cubes to combine.
             new_diagnostic_name (str):
                 New name for the combined diagnostic.
+            broadcast_to_coords (list):
+                Specifies a list of coord names that exist only on the first cube that
+                the other cube(s) need(s) broadcasting to prior to the combine.
             use_midpoint (bool):
                 Determines the nature of the points and bounds for expanded
                 coordinates.  If False, the upper bound of the coordinate is
@@ -248,6 +257,7 @@ class CubeCombiner(BasePlugin):
             msg = "Expecting 2 or more cubes in cube_list"
             raise ValueError(msg)
 
+        self.broadcast_coords = broadcast_to_coords
         if self.broadcast_coords:
             cube_list = self._setup_coords_for_broadcast(cube_list)
         self._check_dimensions_match(cube_list)
