@@ -257,46 +257,46 @@ class Test_process(CombinerTest):
 
     def test_broadcast_coord(self):
         """Test that plugin broadcasts to a coord"""
-        plugin = CubeCombiner("*", broadcast_to_coords=["threshold"])
+        plugin = CubeCombiner("*")
         cube = self.cube4[:, 0, ...].copy()
         cube.data = np.ones_like(cube.data)
         cube.remove_coord("lwe_thickness_of_precipitation_amount")
         cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
-        result = plugin.process(cubelist, "new_cube_name")
+        result = plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["threshold"])
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, self.cube4.data)
 
     def test_error_broadcast_coord_wrong_order(self):
         """Test that plugin throws an error if the broadcast coord is not on the first cube"""
-        plugin = CubeCombiner("*", broadcast_to_coords=["threshold"])
+        plugin = CubeCombiner("*")
         cube = self.cube4[:, 0, ...].copy()
         cube.data = np.ones_like(cube.data)
         cube.remove_coord("lwe_thickness_of_precipitation_amount")
         cubelist = iris.cube.CubeList([cube, self.cube4.copy()])
         msg = "threshold not found in "
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            plugin.process(cubelist, "new_cube_name")
+            plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["threshold"])
 
     def test_error_broadcast_coord_not_found(self):
         """Test that plugin throws an error if the broadcast coord is not present anywhere"""
-        plugin = CubeCombiner("*", broadcast_to_coords=["kittens"])
+        plugin = CubeCombiner("*")
         cube = self.cube4[:, 0, ...].copy()
         cube.data = np.ones_like(cube.data)
         cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
         msg = "kittens not found in "
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            plugin.process(cubelist, "new_cube_name")
+            plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["kittens"])
 
     def test_error_broadcast_coord_is_auxcoord(self):
         """Test that plugin throws an error if the broadcast coord already exists"""
-        plugin = CubeCombiner("*", broadcast_to_coords=["threshold"])
+        plugin = CubeCombiner("*")
         cube = self.cube4[:, 0, ...].copy()
         cube.data = np.ones_like(cube.data)
         cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
         msg = "Cannot broadcast to coord threshold as it already exists as an AuxCoord"
         with self.assertRaisesRegex(TypeError, msg):
-            plugin.process(cubelist, "new_cube_name")
+            plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["threshold"])
 
     def test_multiply_preserves_bounds(self):
         """Test specific case for precipitation type, where multiplying a
