@@ -31,22 +31,19 @@
 """Unit tests for the convection.DiagnoseConvectivePrecipitation plugin."""
 
 
-import unittest
 import datetime
+import unittest
+
+import numpy as np
 
 import iris
-import numpy as np
 from cf_units import Unit
+from improver.convection import DiagnoseConvectivePrecipitation
+from improver_tests.set_up_test_cubes import (add_coordinate,
+                                              set_up_variable_cube)
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
-
-from improver.convection import DiagnoseConvectivePrecipitation
-
-from improver_tests.set_up_test_cubes import (
-    add_coordinate,
-    set_up_variable_cube,
-)
 
 # Fraction to convert from mm/hr to m/s.
 # m/s are SI units, however, mm/hr values are easier to handle.
@@ -71,6 +68,8 @@ def set_up_precipitation_rate_cube():
 
 # This is the new cube I set up using set_up_variable_cube
 def set_up_cube():
+    """Creates a standard cube which can be used within the
+    tests."""
     coord_points = np.array([0.0, 2000.0, 4000.0, 6000.0])
     timestep = np.array([402192.5])
     cube = set_up_variable_cube(
@@ -86,7 +85,7 @@ def set_up_cube():
         timestep,
         "time",
     )
-    cube = iris.util.new_axis(cube, 'time')   
+    cube = iris.util.new_axis(cube, 'time')
     cube.transpose([1, 0, 2, 3])
     return cube
 
@@ -311,22 +310,22 @@ class Test__calculate_convective_ratio(IrisTest):
         time2 = datetime.datetime(2015, 11, 19, 3)
         time3 = datetime.datetime(2015, 11, 19, 6)
         precip = set_up_variable_cube(
-            np.ones((1, 4, 4), dtype = np.float32),
+            np.ones((1, 4, 4), dtype=np.float32),
             "lwe_precipitation_rate",
             "m s-1",
             "equalarea",
-            time = time2,
-            frt = time1,
+            time=time2,
+            frt=time1,
         )
-        
+
         # This sets up the time coordinate, and leads to forecast_periods that are
-        # correct but set up in seconds rather than hours in the original cube. 
+        # correct but set up in seconds rather than hours in the original cube.
         precip = add_coordinate(
             precip,
             [time2, time3],
             "time",
-            order = [1, 0, 2, 3],
-            is_datetime = True,
+            order=[1, 0, 2, 3],
+            is_datetime=True,
         )
 
         # This converts the forecast_period to the correct points and hours, but this
@@ -341,9 +340,9 @@ class Test__calculate_convective_ratio(IrisTest):
         # raised. "ValueError: 'time' is not in list" (It suggests this is in
         # improver.utilities.cube_manipulation.ConcatenateCubes. However this doesn't
         # raise this ValueError. So it doesn't seem to be within IMPROVER)
-        cubelist2 = lower_higher_threshold_cubelist(
-            precip.copy(), precip.copy(), self.lower_threshold, self.higher_threshold
-        )
+#        cubelist2 = lower_higher_threshold_cubelist(
+#            precip.copy(), precip.copy(), self.lower_threshold, self.higher_threshold
+#        )
 
         cubelist = lower_higher_threshold_cubelist(
             cube.copy(), cube.copy(), self.lower_threshold, self.higher_threshold

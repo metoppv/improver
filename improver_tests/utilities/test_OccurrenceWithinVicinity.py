@@ -32,22 +32,18 @@
 
 import unittest
 
-import iris
 import numpy as np
-from cf_units import Unit
-from iris.coords import DimCoord
+
+import iris
+from improver.utilities.spatial import OccurrenceWithinVicinity
+from improver_tests.set_up_test_cubes import (add_coordinate,
+                                              set_up_variable_cube)
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.utilities.spatial import OccurrenceWithinVicinity
-
-from improver_tests.set_up_test_cubes import (
-    add_coordinate,
-    set_up_variable_cube,
-)
-
 
 def set_up_cube():
+    """Sets up a standard cube for the tests."""
     timestep = np.array([402192.5])
     cube = set_up_variable_cube(
         np.zeros((1, 5, 5), dtype=np.float32),
@@ -60,7 +56,7 @@ def set_up_cube():
         timestep,
         "time",
     )
-    cube = iris.util.new_axis(cube, 'time')   
+    cube = iris.util.new_axis(cube, 'time')
     cube.transpose([1, 0, 2, 3])
     return cube
 
@@ -128,7 +124,7 @@ class Test_maximum_within_vicinity(IrisTest):
         cube.data = data
         cube = cube[0, 0, :, :]
         cube.coord('projection_y_coordinate').points = self.grid_values
-        cube.coord('projection_x_coordinate').points = self.grid_values        
+        cube.coord('projection_x_coordinate').points = self.grid_values
         result = OccurrenceWithinVicinity(self.distance).maximum_within_vicinity(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -152,7 +148,7 @@ class Test_maximum_within_vicinity(IrisTest):
         cube.data = data
         cube = cube[0, 0, :, :]
         cube.coord('projection_y_coordinate').points = self.grid_values
-        cube.coord('projection_x_coordinate').points = self.grid_values 
+        cube.coord('projection_x_coordinate').points = self.grid_values
         distance = 4000.0
         result = OccurrenceWithinVicinity(distance).maximum_within_vicinity(cube)
         self.assertIsInstance(result, Cube)
@@ -196,7 +192,7 @@ class Test_process(IrisTest):
         """Set up distance."""
         self.distance = 2000
         self.coords = np.array([0.0, 2000.0, 4000.0, 6000.0])
-        self.timesteps = np.array([402192.5, 402195.5], dtype = np.float32)
+        self.timesteps = np.array([402192.5, 402195.5], dtype=np.float32)
 
     def test_with_multiple_realizations_and_times(self):
         """Test for multiple realizations and times, so that multiple
@@ -237,7 +233,7 @@ class Test_process(IrisTest):
         data[0, 0, 2, 1] = 1.0
         data[1, 1, 1, 3] = 1.0
         cube = set_up_variable_cube(
-            np.zeros((2, 4, 4), dtype = np.float32),
+            np.zeros((2, 4, 4), dtype=np.float32),
             "lwe_precipitation_rate",
             "m s-1",
             "equalarea",
@@ -246,7 +242,7 @@ class Test_process(IrisTest):
             cube,
             self.timesteps,
             "time",
-            order = [1, 0, 2, 3],
+            order=[1, 0, 2, 3],
         )
         cube.data = data
         cube.coord('projection_y_coordinate').points = self.coords
@@ -276,11 +272,11 @@ class Test_process(IrisTest):
                 ],
             ]
         )
-        data = np.zeros((2, 4, 4), dtype = np.float32)
+        data = np.zeros((2, 4, 4), dtype=np.float32)
         data[0, 2, 1] = 1.0
         data[1, 1, 3] = 1.0
         cube = set_up_variable_cube(
-            np.zeros((2, 4, 4), dtype = np.float32),
+            np.zeros((2, 4, 4), dtype=np.float32),
             "lwe_precipitation_rate",
             "m s-1",
             "equalarea",
@@ -311,11 +307,11 @@ class Test_process(IrisTest):
                 ],
             ]
         )
-        data = np.zeros((2, 4, 4), dtype = np.float32)
-        data[ 0, 2, 1] = 1.0
+        data = np.zeros((2, 4, 4), dtype=np.float32)
+        data[0, 2, 1] = 1.0
         data[1, 1, 3] = 1.0
         cube = set_up_variable_cube(
-            np.zeros((4, 4), dtype = np.float32),
+            np.zeros((4, 4), dtype=np.float32),
             "lwe_precipitation_rate",
             "m s-1",
             "equalarea",
@@ -345,7 +341,7 @@ class Test_process(IrisTest):
                 [1.0, 1.0, 1.0, 0.0],
             ]
         )
-        data = np.zeros((4, 4), dtype = np.float32)
+        data = np.zeros((4, 4), dtype=np.float32)
         data[2, 1] = 1.0
         cube = set_up_variable_cube(
             data,

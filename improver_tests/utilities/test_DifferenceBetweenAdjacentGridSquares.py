@@ -32,17 +32,16 @@
 
 import unittest
 
-import iris
 import numpy as np
-from cf_units import Unit
-from iris.coords import AuxCoord, CellMethod, DimCoord
-from iris.cube import Cube
-from iris.tests import IrisTest
 from numpy import ma
 
-from improver_tests.set_up_test_cubes import set_up_variable_cube
-
+import iris
+from cf_units import Unit
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
+from improver_tests.set_up_test_cubes import set_up_variable_cube
+from iris.coords import CellMethod
+from iris.cube import Cube
+from iris.tests import IrisTest
 
 
 class Test_create_difference_cube(IrisTest):
@@ -131,8 +130,8 @@ class Test_calculate_difference(IrisTest):
     def test_missing_data(self):
         """Test that the result is as expected when data is missing."""
         data = np.array([[1, 2, 3], [np.nan, 4, 6], [5, 10, 15]],
-            dtype=np.float32)
-        self.cube.data = data     
+                        dtype=np.float32)
+        self.cube.data = data
         expected = np.array([[np.nan, 2, 3], [np.nan, 6, 9]])
         result = self.plugin.calculate_difference(
             self.cube, self.cube.coord(axis="y").name()
