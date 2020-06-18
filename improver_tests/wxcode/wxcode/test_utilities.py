@@ -57,7 +57,10 @@ from improver.wxcode.utilities import (
     weather_code_attributes,
 )
 
-from ...calibration.ensemble_calibration.helper_functions import set_up_cube
+from improver_tests.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
 
 
 def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=43):
@@ -241,9 +244,20 @@ class Test_weather_code_attributes(IrisTest):
         """Set up cube """
         data = np.array(
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6], dtype=np.int32
-        ).reshape((2, 1, 3, 3))
-        self.cube = set_up_cube(
-            data, "weather_code", "1", realizations=np.array([0, 1], dtype=np.int32)
+        ).reshape((2, 3, 3))
+        cube = set_up_variable_cube(
+            data,
+            "weather_code",
+            "1",
+        )
+        date_times = [datetime.datetime(2017, 11, 19, 0, 30),
+            datetime.datetime(2017, 11, 19, 1, 30)]
+        self.cube = add_coordinate(
+            cube,
+            date_times,
+            "time",
+            is_datetime=True,
+            order = [1, 0, 2, 3],
         )
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
