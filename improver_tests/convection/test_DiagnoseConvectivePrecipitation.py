@@ -125,11 +125,11 @@ def apply_threshold(cube, threshold):
 
 
 def lower_higher_threshold_cubelist(
-    lower_cube, higher_cube, lower_threshold, higher_threshold
+    cube, lower_threshold, higher_threshold
 ):
     """Apply low and high thresholds and put into a cube list."""
-    lower_cube = apply_threshold(lower_cube, lower_threshold)
-    higher_cube = apply_threshold(higher_cube, higher_threshold)
+    lower_cube = apply_threshold(cube.copy(), lower_threshold)
+    higher_cube = apply_threshold(cube.copy(), higher_threshold)
     return iris.cube.CubeList([lower_cube, higher_cube])
 
 
@@ -172,8 +172,7 @@ class Test__calculate_convective_ratio(IrisTest):
         self.lower_cube = self.cube.copy()
         self.higher_cube = self.cube.copy()
         self.cubelist = lower_higher_threshold_cubelist(
-            self.lower_cube,
-            self.higher_cube,
+            self.cube,
             self.lower_threshold,
             self.higher_threshold,
         )
@@ -223,7 +222,7 @@ class Test__calculate_convective_ratio(IrisTest):
         cube = set_up_cube()
         cube.data = data
         cubelist = lower_higher_threshold_cubelist(
-            cube.copy(), cube.copy(), self.lower_threshold, self.higher_threshold
+            cube, self.lower_threshold, self.higher_threshold
         )
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold,
@@ -239,7 +238,7 @@ class Test__calculate_convective_ratio(IrisTest):
         lower_threshold = 5 * mm_hr_to_m_s
         higher_threshold = 0.001 * mm_hr_to_m_s
         cubelist = lower_higher_threshold_cubelist(
-            self.cube.copy(), self.cube.copy(), lower_threshold, higher_threshold
+            self.cube, lower_threshold, higher_threshold
         )
         msg = "A value of infinity was found"
         with self.assertRaisesRegex(ValueError, msg):
@@ -256,7 +255,7 @@ class Test__calculate_convective_ratio(IrisTest):
         lower_threshold = 5 * mm_hr_to_m_s
         higher_threshold = 0.001 * mm_hr_to_m_s
         cubelist = lower_higher_threshold_cubelist(
-            self.cube.copy(), self.cube.copy(), lower_threshold, higher_threshold
+            self.cube, lower_threshold, higher_threshold
         )
         radii = 4000.0
         msg = "A value of greater than 1.0 was found"
@@ -328,25 +327,15 @@ class Test__calculate_convective_ratio(IrisTest):
             is_datetime=True,
         )
 
-        # This converts the forecast_period to the correct points and hours, but this
-        # doesn't seem to make a difference to whether it works.
-#        precip.coord('forecast_period').points = lead_times
-#        precip.coord('forecast_period').units = 'hours'
-        print (precip.coord('forecast_period'))
         precip.coord('projection_y_coordinate').points = coord_points
         precip.coord('projection_x_coordinate').points = coord_points
 
-        # If cubelist2 is used with DiagnoseConvectivePrecipitation a ValueError is
-        # raised. "ValueError: 'time' is not in list" (It suggests this is in
-        # improver.utilities.cube_manipulation.ConcatenateCubes. However this doesn't
-        # raise this ValueError. So it doesn't seem to be within IMPROVER)
-#        cubelist2 = lower_higher_threshold_cubelist(
-#            precip.copy(), precip.copy(), self.lower_threshold, self.higher_threshold
-#        )
+        precip.data = cube.data.astype(np.float32)
 
         cubelist = lower_higher_threshold_cubelist(
-            cube.copy(), cube.copy(), self.lower_threshold, self.higher_threshold
+            precip, self.lower_threshold, self.higher_threshold
         )
+
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold,
             self.higher_threshold,
