@@ -91,7 +91,7 @@ class Test__rescale_shape_parameters(IrisTest):
     def test_truncated_at_zero(self):
         """Test scaling shape parameters implying a truncation at zero."""
         expected = [np.array([1.0, 0, -0.5]), np.array([np.inf, np.inf, np.inf])]
-        shape_parameters = [0, np.inf]
+        shape_parameters = np.array([0, np.inf], dtype=np.float32)
         plugin = Plugin(distribution="truncnorm", shape_parameters=shape_parameters)
         plugin._rescale_shape_parameters(self.location_parameter, self.scale_parameter)
         self.assertArrayAlmostEqual(plugin.shape_parameters, expected)
@@ -99,7 +99,7 @@ class Test__rescale_shape_parameters(IrisTest):
     def test_discrete_shape_parameters(self):
         """Test scaling discrete shape parameters."""
         expected = [np.array([-3, -2.666667, -2.5]), np.array([7, 4, 2.5])]
-        shape_parameters = [-4, 6]
+        shape_parameters = np.array([-4, 6], dtype=np.float32)
         plugin = Plugin(distribution="truncnorm", shape_parameters=shape_parameters)
         plugin._rescale_shape_parameters(self.location_parameter, self.scale_parameter)
         self.assertArrayAlmostEqual(plugin.shape_parameters, expected)
@@ -107,7 +107,7 @@ class Test__rescale_shape_parameters(IrisTest):
     def test_alternative_distribution(self):
         """Test specifying a distribution other than truncated normal. In
         this instance, no rescaling is applied."""
-        shape_parameters = [0, np.inf]
+        shape_parameters = np.array([0, np.inf], dtype=np.float32)
         plugin = Plugin(distribution="norm", shape_parameters=shape_parameters)
         plugin._rescale_shape_parameters(self.location_parameter, self.scale_parameter)
         self.assertArrayEqual(plugin.shape_parameters, shape_parameters)

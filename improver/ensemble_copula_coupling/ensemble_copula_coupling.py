@@ -696,7 +696,7 @@ class ConvertLocationAndScaleParameters:
         Args:
             distribution (str):
                 Name of a distribution supported by scipy.stats.
-            shape_parameters (list or None):
+            shape_parameters (numpy.ndarray or None):
                 For use with distributions in scipy.stats (e.g. truncnorm) that
                 require the specification of shape parameters to be able to
                 define the shape of the distribution. For the truncated normal
@@ -761,7 +761,7 @@ calculate_truncated_normal_crps`,
 
         """
         if self.distribution.name == "truncnorm":
-            if self.shape_parameters:
+            if any(self.shape_parameters):
                 rescaled_values = []
                 for value in self.shape_parameters:
                     rescaled_values.append(

@@ -253,7 +253,10 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             "realization", iris.analysis.VARIANCE
         )
         current_forecast_variance.data = current_forecast_variance.data + 1
-        plugin = Plugin(distribution="truncnorm", shape_parameters=[0, np.inf])
+        plugin = Plugin(
+            distribution="truncnorm",
+            shape_parameters=np.array([0, np.inf], dtype=np.float32),
+        )
         result = plugin._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor,
             current_forecast_variance,

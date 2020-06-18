@@ -64,8 +64,9 @@ def process(
             same domain as the historic forecasts and truth (where land points
             are set to one and sea points are set to zero).
         distribution (str):
-            The distribution that will be used for calibration. This will be
-            dependant upon the input phenomenon.
+            The distribution that will be used for minimising the
+            Continuous Ranked Probability Score when estimating the EMOS
+            coefficients. This will be dependent upon the input phenomenon.
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on historical truth cubes.

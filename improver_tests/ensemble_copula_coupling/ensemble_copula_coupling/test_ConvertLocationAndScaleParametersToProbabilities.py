@@ -242,7 +242,10 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         distribution."""
 
         expected = (np.ones((3, 3, 3)) * [0.8914245, 0.5942867, 0.2971489]).T
-        plugin = Plugin(distribution="truncnorm", shape_parameters=[0, np.inf])
+        plugin = Plugin(
+            distribution="truncnorm",
+            shape_parameters=np.array([0, np.inf], dtype=np.float32),
+        )
         result = plugin._location_and_scale_parameters_to_probabilities(
             self.location_parameter_values,
             self.scale_parameter_values,

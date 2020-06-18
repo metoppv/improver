@@ -41,18 +41,16 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_gaussian(tmp_path):
-    """Test diagnostic with assumed gaussian distribution"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
+def test_normal(tmp_path):
+    """Test diagnostic with assumed normal distribution"""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
-    emos_est_path = kgo_dir / "gaussian_coefficients.nc"
+    emos_est_path = kgo_dir / "normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         emos_est_path,
-        "--distribution",
-        "norm",
         "--random-seed",
         "0",
         "--output",
@@ -62,22 +60,18 @@ def test_gaussian(tmp_path):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
-def test_truncated_gaussian(tmp_path):
-    """Test diagnostic with assumed truncated gaussian distribution"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/truncated_gaussian"
+def test_truncated_normal(tmp_path):
+    """Test diagnostic with assumed truncated normal distribution"""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/truncated_normal"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
-    emos_est_path = kgo_dir / "truncated_gaussian_coefficients.nc"
+    emos_est_path = kgo_dir / "truncated_normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         emos_est_path,
-        "--distribution",
-        "truncnorm",
         "--random-seed",
         "0",
-        "--shape-parameters",
-        "0,inf",
         "--output",
         output_path,
     ]
@@ -89,16 +83,14 @@ def test_realizations_input_land_sea(tmp_path):
     """Test realizations as input with a land sea mask"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/land_sea"
     kgo_path = kgo_dir / "realizations_kgo.nc"
-    input_path = kgo_dir / "../gaussian/input.nc"
-    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
+    input_path = kgo_dir / "../normal/input.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
     land_sea_path = kgo_dir / "landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         emos_est_path,
         land_sea_path,
-        "--distribution",
-        "norm",
         "--random-seed",
         "0",
         "--output",
@@ -112,14 +104,12 @@ def test_realizations_as_predictor(tmp_path):
     """Implementation of test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/realizations"
     kgo_path = kgo_dir / "realizations_kgo.nc"
-    input_path = kgo_dir / "../gaussian/input.nc"
+    input_path = kgo_dir / "../normal/input.nc"
     emos_est_path = kgo_dir / "realizations_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         emos_est_path,
-        "--distribution",
-        "norm",
         "--predictor",
         "realizations",
         "--random-seed",
@@ -136,13 +126,11 @@ def test_probabilities(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/probabilities"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
-    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         emos_est_path,
-        "--distribution",
-        "norm",
         "--realizations-count",
         "18",
         "--output",
@@ -157,15 +145,13 @@ def test_probabilities_input_land_sea(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/land_sea"
     kgo_path = kgo_dir / "probabilities_kgo.nc"
     input_path = kgo_dir / "../probabilities/input.nc"
-    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
     land_sea_path = kgo_dir / "landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         emos_est_path,
         land_sea_path,
-        "--distribution",
-        "norm",
         "--realizations-count",
         "18",
         "--output",
@@ -179,13 +165,11 @@ def test_probabilities_error(tmp_path):
     """Test using probabilities as input without num_realizations"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/probabilities"
     input_path = kgo_dir / "input.nc"
-    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         emos_est_path,
-        "--distribution",
-        "norm",
         "--output",
         output_path,
     ]
@@ -198,13 +182,11 @@ def test_percentiles(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/percentiles"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
-    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         emos_est_path,
-        "--distribution",
-        "norm",
         "--realizations-count",
         "18",
         "--output",
@@ -219,15 +201,13 @@ def test_percentiles_input_land_sea(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/land_sea"
     kgo_path = kgo_dir / "percentiles_kgo.nc"
     input_path = kgo_dir / "../percentiles/input.nc"
-    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
     land_sea_path = kgo_dir / "landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         emos_est_path,
         land_sea_path,
-        "--distribution",
-        "norm",
         "--realizations-count",
         "18",
         "--output",
@@ -241,13 +221,11 @@ def test_percentiles_error(tmp_path):
     """Test using percentiles as input"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/percentiles"
     input_path = kgo_dir / "input.nc"
-    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         emos_est_path,
-        "--distribution",
-        "norm",
         "--output",
         output_path,
     ]
@@ -259,13 +237,11 @@ def test_rebadged_percentiles(tmp_path):
     """Test using realizations rebadged as percentiles as input"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/percentiles"
     kgo_path = kgo_dir / "kgo.nc"
-    emos_est_path = kgo_dir / "../gaussian/gaussian_coefficients.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [
         kgo_dir / "../rebadged_percentiles/input.nc",
         emos_est_path,
-        "--distribution",
-        "norm",
         "--realizations-count",
         "18",
         "--output",
@@ -287,13 +263,11 @@ def test_rebadged_percentiles(tmp_path):
 
 def test_no_coefficients(tmp_path):
     """Test no coefficients provided"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
-        "--distribution",
-        "norm",
         "--random-seed",
         "0",
         "--output",
@@ -312,14 +286,12 @@ def test_no_coefficients(tmp_path):
 
 def test_wrong_coefficients(tmp_path):
     """Test wrong coefficients provided"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         input_path,
-        "--distribution",
-        "norm",
         "--random-seed",
         "0",
         "--output",
@@ -333,16 +305,14 @@ def test_wrong_coefficients(tmp_path):
 
 def test_wrong_land_sea_mask(tmp_path):
     """Test wrong land_sea_mask provided"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
-    emos_est_path = kgo_dir / "gaussian_coefficients.nc"
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
+    emos_est_path = kgo_dir / "normal_coefficients.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         emos_est_path,
         input_path,
-        "--distribution",
-        "norm",
         "--random-seed",
         "0",
         "--output",
@@ -354,13 +324,11 @@ def test_wrong_land_sea_mask(tmp_path):
 
 def test_wrong_forecast_coefficients(tmp_path):
     """Test forecast cube being a coefficients cube"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/gaussian"
-    emos_est_path = kgo_dir / "gaussian_coefficients.nc"
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
+    emos_est_path = kgo_dir / "normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [
         emos_est_path,
-        "--distribution",
-        "norm",
         "--random-seed",
         "0",
         "--output",
