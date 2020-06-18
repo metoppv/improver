@@ -36,8 +36,7 @@ import numpy as np
 
 import iris
 from improver.utilities.spatial import OccurrenceWithinVicinity
-from improver_tests.set_up_test_cubes import (add_coordinate,
-                                              set_up_variable_cube)
+from improver_tests.set_up_test_cubes import add_coordinate, set_up_variable_cube
 from iris.cube import Cube
 from iris.tests import IrisTest
 
@@ -50,13 +49,9 @@ def set_up_cube():
         "lwe_precipitation_rate",
         "m s-1",
         "equalarea",
-        )
-    cube = add_coordinate(
-        cube,
-        timestep,
-        "time",
     )
-    cube = iris.util.new_axis(cube, 'time')
+    cube = add_coordinate(cube, timestep, "time",)
+    cube = iris.util.new_axis(cube, "time")
     cube.transpose([1, 0, 2, 3])
     return cube
 
@@ -99,8 +94,8 @@ class Test_maximum_within_vicinity(IrisTest):
         cube = set_up_cube()
         cube.data = data
         cube = cube[0, 0, :, :]
-        cube.coord('projection_y_coordinate').points = self.grid_values
-        cube.coord('projection_x_coordinate').points = self.grid_values
+        cube.coord("projection_y_coordinate").points = self.grid_values
+        cube.coord("projection_x_coordinate").points = self.grid_values
         result = OccurrenceWithinVicinity(self.distance).maximum_within_vicinity(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -123,8 +118,8 @@ class Test_maximum_within_vicinity(IrisTest):
         cube = set_up_cube()
         cube.data = data
         cube = cube[0, 0, :, :]
-        cube.coord('projection_y_coordinate').points = self.grid_values
-        cube.coord('projection_x_coordinate').points = self.grid_values
+        cube.coord("projection_y_coordinate").points = self.grid_values
+        cube.coord("projection_x_coordinate").points = self.grid_values
         result = OccurrenceWithinVicinity(self.distance).maximum_within_vicinity(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -147,8 +142,8 @@ class Test_maximum_within_vicinity(IrisTest):
         cube = set_up_cube()
         cube.data = data
         cube = cube[0, 0, :, :]
-        cube.coord('projection_y_coordinate').points = self.grid_values
-        cube.coord('projection_x_coordinate').points = self.grid_values
+        cube.coord("projection_y_coordinate").points = self.grid_values
+        cube.coord("projection_x_coordinate").points = self.grid_values
         distance = 4000.0
         result = OccurrenceWithinVicinity(distance).maximum_within_vicinity(cube)
         self.assertIsInstance(result, Cube)
@@ -175,8 +170,8 @@ class Test_maximum_within_vicinity(IrisTest):
         cube = set_up_cube()
         cube.data = masked_data
         cube = cube[0, 0, :, :]
-        cube.coord('projection_y_coordinate').points = self.grid_values
-        cube.coord('projection_x_coordinate').points = self.grid_values
+        cube.coord("projection_y_coordinate").points = self.grid_values
+        cube.coord("projection_x_coordinate").points = self.grid_values
         result = OccurrenceWithinVicinity(self.distance).maximum_within_vicinity(cube)
         self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.data, np.ma.core.MaskedArray)
@@ -238,15 +233,10 @@ class Test_process(IrisTest):
             "m s-1",
             "equalarea",
         )
-        cube = add_coordinate(
-            cube,
-            self.timesteps,
-            "time",
-            order=[1, 0, 2, 3],
-        )
+        cube = add_coordinate(cube, self.timesteps, "time", order=[1, 0, 2, 3],)
         cube.data = data
-        cube.coord('projection_y_coordinate').points = self.coords
-        cube.coord('projection_x_coordinate').points = self.coords
+        cube.coord("projection_y_coordinate").points = self.coords
+        cube.coord("projection_x_coordinate").points = self.coords
         orig_shape = cube.data.copy().shape
         result = OccurrenceWithinVicinity(self.distance)(cube)
         self.assertIsInstance(result, Cube)
@@ -282,8 +272,8 @@ class Test_process(IrisTest):
             "equalarea",
         )
         cube.data = data
-        cube.coord('projection_y_coordinate').points = self.coords
-        cube.coord('projection_x_coordinate').points = self.coords
+        cube.coord("projection_y_coordinate").points = self.coords
+        cube.coord("projection_x_coordinate").points = self.coords
         result = OccurrenceWithinVicinity(self.distance)(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
@@ -315,14 +305,10 @@ class Test_process(IrisTest):
             "lwe_precipitation_rate",
             "m s-1",
             "equalarea",
-            )
-        cube = add_coordinate(
-            cube,
-            self.timesteps,
-            "time",
         )
-        cube.coord('projection_y_coordinate').points = self.coords
-        cube.coord('projection_x_coordinate').points = self.coords
+        cube = add_coordinate(cube, self.timesteps, "time",)
+        cube.coord("projection_y_coordinate").points = self.coords
+        cube.coord("projection_x_coordinate").points = self.coords
         cube.data = data
         orig_shape = cube.data.shape
         result = OccurrenceWithinVicinity(self.distance)(cube)
@@ -344,13 +330,10 @@ class Test_process(IrisTest):
         data = np.zeros((4, 4), dtype=np.float32)
         data[2, 1] = 1.0
         cube = set_up_variable_cube(
-            data,
-            "lwe_precipitation_rate",
-            "m s-1",
-            "equalarea",
+            data, "lwe_precipitation_rate", "m s-1", "equalarea",
         )
-        cube.coord('projection_y_coordinate').points = self.coords
-        cube.coord('projection_x_coordinate').points = self.coords
+        cube.coord("projection_y_coordinate").points = self.coords
+        cube.coord("projection_x_coordinate").points = self.coords
         cube = iris.util.squeeze(cube)
         orig_shape = cube.data.shape
         result = OccurrenceWithinVicinity(self.distance)(cube)

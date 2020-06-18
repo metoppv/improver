@@ -39,8 +39,7 @@ import numpy as np
 import iris
 from cf_units import Unit
 from improver.convection import DiagnoseConvectivePrecipitation
-from improver_tests.set_up_test_cubes import (add_coordinate,
-                                              set_up_variable_cube)
+from improver_tests.set_up_test_cubes import add_coordinate, set_up_variable_cube
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -53,68 +52,22 @@ mm_hr_to_m_s = 2.7778e-7
 def set_up_precipitation_rate_cube():
     """Create a cube with metadata and values suitable for
     precipitation rate."""
-    data = np.zeros((1, 1, 4, 4))
-    # Convert from mm/hr to m/s.
-    data[0, 0, 0, :] = 2.0 * mm_hr_to_m_s
-    data[0, 0, 1, :] = 4.0 * mm_hr_to_m_s
-    data[0, 0, 2, :] = 8.0 * mm_hr_to_m_s
-    data[0, 0, 3, :] = 16.0 * mm_hr_to_m_s
-    data[0, 0, 0, 2] = 0.0
-    data[0, 0, 2, 1] = 0.0
-    data[0, 0, 3, 0] = 0.0
-    precip_cube = set_up_cube()
-    precip_cube.data = data
-    return precip_cube
-
-# This is the new cube I set up using set_up_variable_cube
-def set_up_cube():
-    """Creates a standard cube which can be used within the
-    tests."""
+    data = np.zeros((1, 4, 4))
+    data[0, 0, :] = 2.0
+    data[0, 1, :] = 4.0
+    data[0, 2, :] = 8.0
+    data[0, 3, :] = 16.0
+    data[0, 0, 2] = 0.0
+    data[0, 2, 1] = 0.0
+    data[0, 3, 0] = 0.0
+    precip_cube = set_up_variable_cube(
+        data.astype(np.float32), "lwe_precipitation_rate", "mm h-1", "equalarea",
+    )
+    precip_cube.convert_units("m s-1")
     coord_points = np.array([0.0, 2000.0, 4000.0, 6000.0])
-    timestep = np.array([402192.5])
-    cube = set_up_variable_cube(
-        np.ones((1, 4, 4), dtype=np.float32),
-        "lwe_precipitation_rate",
-        "m s-1",
-        "equalarea",
-        )
-    cube.coord('projection_y_coordinate').points = coord_points
-    cube.coord('projection_x_coordinate').points = coord_points
-    cube = add_coordinate(
-        cube,
-        timestep,
-        "time",
-    )
-    cube = iris.util.new_axis(cube, 'time')
-    cube.transpose([1, 0, 2, 3])
-    return cube
-
-# This is the original set_up_cube which I changed so that I could
-# have a look at the original cube and see what was different.
-def make_cube(
-    data,
-    phenomenon_standard_name,
-    phenomenon_units,
-    realizations=np.array([0]),
-    timesteps=np.array([402192.5]),
-    y_dimension_values=np.array([0.0, 2000.0, 4000.0, 6000.0]),
-    x_dimension_values=np.array([0.0, 2000.0, 4000.0, 6000.0]),
-):
-    """Create a cube containing the required realizations, timesteps,
-    y-dimension values and x-dimension values."""
-    cube = Cube(data, standard_name=phenomenon_standard_name, units=phenomenon_units)
-    cube.add_dim_coord(DimCoord(realizations, "realization", units="1"), 0)
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    cube.add_dim_coord(DimCoord(timesteps, "time", units=tunit), 1)
-    cube.add_dim_coord(
-        DimCoord(y_dimension_values, "projection_y_coordinate", units="m"), 2
-    )
-    cube.add_dim_coord(
-        DimCoord(x_dimension_values, "projection_x_coordinate", units="m"), 3
-    )
-    return cube
+    precip_cube.coord("projection_y_coordinate").points = coord_points
+    precip_cube.coord("projection_x_coordinate").points = coord_points
+    return precip_cube
 
 
 def apply_threshold(cube, threshold):
@@ -124,9 +77,7 @@ def apply_threshold(cube, threshold):
     return cube
 
 
-def lower_higher_threshold_cubelist(
-    cube, lower_threshold, higher_threshold
-):
+def lower_higher_threshold_cubelist(cube, lower_threshold, higher_threshold):
     """Apply low and high thresholds and put into a cube list."""
     lower_cube = apply_threshold(cube.copy(), lower_threshold)
     higher_cube = apply_threshold(cube.copy(), higher_threshold)
@@ -172,9 +123,7 @@ class Test__calculate_convective_ratio(IrisTest):
         self.lower_cube = self.cube.copy()
         self.higher_cube = self.cube.copy()
         self.cubelist = lower_higher_threshold_cubelist(
-            self.cube,
-            self.lower_threshold,
-            self.higher_threshold,
+            self.cube, self.lower_threshold, self.higher_threshold,
         )
         self.threshold_list = [self.lower_threshold, self.higher_threshold]
 
@@ -185,12 +134,10 @@ class Test__calculate_convective_ratio(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [0.0, 0.0, 0.0, 0.0],
-                        [0.2, 0.28571429, 0.28571429, 0.4],
-                        [0.5, 0.57142857, 0.625, 0.66666667],
-                        [1.0, 1.0, 1.0, 1.0],
-                    ]
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.2, 0.28571429, 0.28571429, 0.4],
+                    [0.5, 0.57142857, 0.625, 0.66666667],
+                    [1.0, 1.0, 1.0, 1.0],
                 ]
             ]
         )
@@ -206,21 +153,9 @@ class Test__calculate_convective_ratio(IrisTest):
         """If there is no precipitation, then the convective ratio will try
         to do a 0/0 division, which will result in NaN values. Check that
         the output array works as intended."""
-        expected = np.array(
-            [
-                [
-                    [
-                        [np.nan, np.nan, np.nan, np.nan],
-                        [np.nan, np.nan, np.nan, np.nan],
-                        [np.nan, np.nan, np.nan, np.nan],
-                        [np.nan, np.nan, np.nan, np.nan],
-                    ]
-                ]
-            ]
-        )
-        data = np.zeros((1, 1, 4, 4))
-        cube = set_up_cube()
-        cube.data = data
+        cube = set_up_precipitation_rate_cube()
+        cube.data = np.zeros(cube.shape)
+        expected = np.full(cube.shape, np.nan)
         cubelist = lower_higher_threshold_cubelist(
             cube, self.lower_threshold, self.higher_threshold
         )
@@ -288,54 +223,39 @@ class Test__calculate_convective_ratio(IrisTest):
                 ]
             ]
         )
-        data = np.full((1, 2, 4, 4), 1.0 * mm_hr_to_m_s)
-        data[0, 0, 1, 1] = 20.0 * mm_hr_to_m_s
-        data[0, 1, 1, 1] = 20.0 * mm_hr_to_m_s
-        lead_times = [3, 6]
-        coord_points = np.array([0.0, 2000.0, 4000.0, 6000.0])
-        radii = [2000.0, 4000.0]
 
-        # The original cube from the original unit test
-        cube = make_cube(
-            data,
-            "lwe_precipitation_rate",
-            "m s-1",
-            timesteps=np.array([402192.5, 402195.5]),
-        )
-        cube.add_aux_coord(AuxCoord(lead_times, "forecast_period", units="hours"), 1)
-
-        # The new times for the new cube (with lead times [3, 6])
-        time1 = datetime.datetime(2015, 11, 19, 0)
-        time2 = datetime.datetime(2015, 11, 19, 3)
-        time3 = datetime.datetime(2015, 11, 19, 6)
+        # Set up a cube with 3 and 6 hour forecast periods
         precip = set_up_variable_cube(
             np.ones((1, 4, 4), dtype=np.float32),
             "lwe_precipitation_rate",
-            "m s-1",
+            "mm h-1",
             "equalarea",
-            time=time2,
-            frt=time1,
+            time=datetime.datetime(2015, 11, 19, 3),
+            frt=datetime.datetime(2015, 11, 19, 0),
         )
-
-        # This sets up the time coordinate, and leads to forecast_periods that are
-        # correct but set up in seconds rather than hours in the original cube.
         precip = add_coordinate(
             precip,
-            [time2, time3],
+            [datetime.datetime(2015, 11, 19, 3), datetime.datetime(2015, 11, 19, 6)],
             "time",
             order=[1, 0, 2, 3],
             is_datetime=True,
         )
+        coord_points = np.array([0.0, 2000.0, 4000.0, 6000.0])
+        precip.coord("projection_y_coordinate").points = coord_points
+        precip.coord("projection_x_coordinate").points = coord_points
 
-        precip.coord('projection_y_coordinate').points = coord_points
-        precip.coord('projection_x_coordinate').points = coord_points
-
-        precip.data = cube.data.astype(np.float32)
+        data = np.full((1, 2, 4, 4), 1.0)
+        data[0, 0, 1, 1] = 20.0
+        data[0, 1, 1, 1] = 20.0
+        precip.data = data.astype(np.float32)
+        precip.convert_units("m s-1")
 
         cubelist = lower_higher_threshold_cubelist(
             precip, self.lower_threshold, self.higher_threshold
         )
 
+        lead_times = [3, 6]
+        radii = [2000.0, 4000.0]
         result = DiagnoseConvectivePrecipitation(
             self.lower_threshold,
             self.higher_threshold,
@@ -350,12 +270,10 @@ class Test__calculate_convective_ratio(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [0.0, 0.0, np.nan, 0.0],
-                        [0.0, 0.0, 0.0, 0.0],
-                        [1.0, np.nan, 1.0, 1.0],
-                        [np.nan, 1.0, 1.0, 1.0],
-                    ]
+                    [0.0, 0.0, np.nan, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                    [1.0, np.nan, 1.0, 1.0],
+                    [np.nan, 1.0, 1.0, 1.0],
                 ]
             ]
         )
@@ -374,12 +292,10 @@ class Test__calculate_convective_ratio(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [0.0, 0.0, 0.0, 0.0],
-                        [0.2, 0.0, 0.25, 0.2],
-                        [0.666667, 0.75, 0.75, 0.8],
-                        [1.0, 1.0, 1.0, 1.0],
-                    ]
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.2, 0.0, 0.25, 0.2],
+                    [0.666667, 0.75, 0.75, 0.8],
+                    [1.0, 1.0, 1.0, 1.0],
                 ]
             ]
         )
@@ -413,23 +329,19 @@ class Test_absolute_differences_between_adjacent_grid_squares(IrisTest):
         expected_x = np.array(
             [
                 [
-                    [
-                        [0.000000e00, 5.555600e-07, 5.555600e-07],
-                        [0.000000e00, 0.000000e00, 0.000000e00],
-                        [2.222240e-06, 2.222240e-06, 0.000000e00],
-                        [4.444480e-06, 0.000000e00, 0.000000e00],
-                    ]
+                    [0.000000e00, 5.555600e-07, 5.555600e-07],
+                    [0.000000e00, 0.000000e00, 0.000000e00],
+                    [2.222240e-06, 2.222240e-06, 0.000000e00],
+                    [4.444480e-06, 0.000000e00, 0.000000e00],
                 ]
             ]
         )
         expected_y = np.array(
             [
                 [
-                    [
-                        [5.555600e-07, 5.555600e-07, 1.111120e-06, 5.555600e-07],
-                        [1.111120e-06, 1.111120e-06, 1.111120e-06, 1.111120e-06],
-                        [2.222240e-06, 4.444480e-06, 2.222240e-06, 2.222240e-06],
-                    ]
+                    [5.555600e-07, 5.555600e-07, 1.111120e-06, 5.555600e-07],
+                    [1.111120e-06, 1.111120e-06, 1.111120e-06, 1.111120e-06],
+                    [2.222240e-06, 4.444480e-06, 2.222240e-06, 2.222240e-06],
                 ]
             ]
         )
@@ -461,12 +373,10 @@ class Test_iterate_over_threshold(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [0.0, 0.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, 0.0],
-                        [1.0, 0.0, 1.0, 1.0],
-                        [0.0, 1.0, 1.0, 1.0],
-                    ]
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                    [1.0, 0.0, 1.0, 1.0],
+                    [0.0, 1.0, 1.0, 1.0],
                 ]
             ]
         )
@@ -485,12 +395,10 @@ class Test_iterate_over_threshold(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [0.0, 0.0, 0.0, 0.0],
-                        [0.166667, 0.166667, 0.166667, 0.166667],
-                        [1.0, 0.0, 1.0, 1.0],
-                        [0.0, 1.0, 1.0, 1.0],
-                    ]
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.166667, 0.166667, 0.166667, 0.166667],
+                    [1.0, 0.0, 1.0, 1.0],
+                    [0.0, 1.0, 1.0, 1.0],
                 ]
             ]
         )
@@ -504,8 +412,8 @@ class Test_iterate_over_threshold(IrisTest):
             fuzzy_factor=fuzzy_factor,
         ).iterate_over_threshold(cubelist, self.higher_threshold)
         self.assertIsInstance(result, iris.cube.CubeList)
-        self.assertArrayAlmostEqual(result[0].data, expected)
-        self.assertArrayAlmostEqual(result[1].data, expected)
+        self.assertArrayAlmostEqual(result[0].data, expected, decimal=4)
+        self.assertArrayAlmostEqual(result[1].data, expected, decimal=4)
 
     def test_below_threshold(self):
         """Test an example where the points below the specified threshold
@@ -513,12 +421,10 @@ class Test_iterate_over_threshold(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0],
-                        [0.0, 1.0, 0.0, 0.0],
-                        [1.0, 0.0, 0.0, 0.0],
-                    ]
+                    [1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [1.0, 0.0, 0.0, 0.0],
                 ]
             ]
         )
@@ -557,28 +463,26 @@ class Test_sum_differences_between_adjacent_grid_squares(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [0.0, 2.0, 1.0, 0.0],
-                        [2.0, 2.0, 0.0, 1.0],
-                        [1.0, 2.0, 3.0, 3.0],
-                        [1.0, 2.0, 1.0, 1.0],
-                    ]
+                    [0.0, 2.0, 1.0, 0.0],
+                    [2.0, 2.0, 0.0, 1.0],
+                    [1.0, 2.0, 3.0, 3.0],
+                    [1.0, 2.0, 1.0, 1.0],
                 ]
             ]
         )
         # Set up threshold_cube_x.
         threshold_cube_x_data = np.array(
-            [[[[0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]]]
+            [[[0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]]
         )
         threshold_cube_x = self.cube.copy()
-        threshold_cube_x = threshold_cube_x[:, :, :, :-1]
+        threshold_cube_x = threshold_cube_x[:, :, :-1]
         threshold_cube_x.data = threshold_cube_x_data
         # Set up threshold_cube_y.
         threshold_cube_y_data = np.array(
-            [[[[0.0, 1.0, 0.0, 0.0], [1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 1.0, 1.0]]]]
+            [[[0.0, 1.0, 0.0, 0.0], [1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 1.0, 1.0]]]
         )
         threshold_cube_y = self.cube.copy()
-        threshold_cube_y = threshold_cube_y[:, :, :-1, :]
+        threshold_cube_y = threshold_cube_y[:, :-1, :]
         threshold_cube_y.data = threshold_cube_y_data
         thresholded_cube = iris.cube.CubeList([threshold_cube_x, threshold_cube_y])
         result = DiagnoseConvectivePrecipitation(
@@ -602,7 +506,7 @@ class Test_sum_differences_between_adjacent_grid_squares(IrisTest):
                 [1.0, 2.0, 1.0, 1.0],
             ]
         )
-        cube = self.cube[0, 0, :, :]
+        cube = self.cube[0, :, :]
         # Set up threshold_cube_x.
         threshold_cube_x_data = np.array(
             [[0.0, 1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]
@@ -646,12 +550,10 @@ class Test_process(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [0.0, 0.0, 0.0, 0.0],
-                        [0.357143, 0.318182, 0.272727, 0.214286],
-                        [0.6, 0.571429, 0.526316, 0.454545],
-                        [0.818182, 0.8, 0.769231, 0.714286],
-                    ]
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.357143, 0.318182, 0.272727, 0.214286],
+                    [0.6, 0.571429, 0.526316, 0.454545],
+                    [0.818182, 0.8, 0.769231, 0.714286],
                 ]
             ]
         )
@@ -671,12 +573,10 @@ class Test_process(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [0.0, 0.0, 0.0, 0.0],
-                        [0.2, 0.28571429, 0.28571429, 0.4],
-                        [0.5, 0.57142857, 0.625, 0.66666667],
-                        [1.0, 1.0, 1.0, 1.0],
-                    ]
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.2, 0.28571429, 0.28571429, 0.4],
+                    [0.5, 0.57142857, 0.625, 0.66666667],
+                    [1.0, 1.0, 1.0, 1.0],
                 ]
             ]
         )
