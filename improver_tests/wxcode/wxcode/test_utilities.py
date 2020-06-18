@@ -56,11 +56,7 @@ from improver.wxcode.utilities import (
     update_daynight,
     weather_code_attributes,
 )
-
-from improver_tests.set_up_test_cubes import (
-    add_coordinate,
-    set_up_variable_cube,
-)
+from improver_tests.set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=43):

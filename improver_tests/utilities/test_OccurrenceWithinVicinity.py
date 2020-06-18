@@ -32,13 +32,13 @@
 
 import unittest
 
-import numpy as np
-
 import iris
-from improver.utilities.spatial import OccurrenceWithinVicinity
-from improver_tests.set_up_test_cubes import add_coordinate, set_up_variable_cube
+import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
+
+from improver.utilities.spatial import OccurrenceWithinVicinity
+from improver_tests.set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 class Test__repr__(IrisTest):

@@ -34,15 +34,15 @@
 import datetime
 import unittest
 
-import numpy as np
-
 import iris
+import numpy as np
 from cf_units import Unit
-from improver.convection import DiagnoseConvectivePrecipitation
-from improver_tests.set_up_test_cubes import add_coordinate, set_up_variable_cube
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
+
+from improver.convection import DiagnoseConvectivePrecipitation
+from improver_tests.set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 # Fraction to convert from mm/hr to m/s.
 # m/s are SI units, however, mm/hr values are easier to handle.

@@ -32,15 +32,15 @@
 
 import unittest
 
-import numpy as np
-from numpy import ma
-
 import iris
-from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
-from improver_tests.set_up_test_cubes import set_up_variable_cube
+import numpy as np
 from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.tests import IrisTest
+from numpy import ma
+
+from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
+from improver_tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_create_difference_cube(IrisTest):
