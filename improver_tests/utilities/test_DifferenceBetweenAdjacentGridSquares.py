@@ -36,7 +36,6 @@ import numpy as np
 from numpy import ma
 
 import iris
-from cf_units import Unit
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 from improver_tests.set_up_test_cubes import set_up_variable_cube
 from iris.coords import CellMethod
