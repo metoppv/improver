@@ -111,27 +111,16 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up default plugin and test cubes."""
-        self.plugin = ConcatenateCubes()
+        self.plugin = ConcatenateCubes(coords_to_slice_over="realization")
         data = 275.0 * np.ones((3, 3, 3), dtype=np.float32)
-        cube = set_up_variable_cube(
+        cube1 = set_up_variable_cube(
             data, time=dt(2017, 1, 10, 3), frt=dt(2017, 1, 10, 0)
         )
-        # cubes can only be concatenated along an existing dimension;
-        # therefore promote "time" and associated "forecast_period"
-        self.cube = iris.util.new_axis(cube, scalar_coord="time")
-        fp_coord = self.cube.coord("forecast_period").copy()
-        self.cube.remove_coord("forecast_period")
-        self.cube.add_aux_coord(fp_coord, data_dims=(0,))
-
-        # create a cube for 3 hours later from the same forecast cycle
-        self.later_cube = self.cube.copy()
-        self.later_cube.coord("time").points = (
-            self.later_cube.coord("time").points + 3 * 3600
-        )
-        self.later_cube.coord("forecast_period").points = (
-            self.later_cube.coord("forecast_period").points + 3 * 3600
-        )
-        self.cubelist = iris.cube.CubeList([self.cube, self.later_cube])
+        cube2 = cube1.copy(data=data+1.)
+        cube2.coord("realization").points = [0, 4, 5]
+        cube1.coord("realization").points = [1, 2, 3]
+        self.cubelist = iris.cube.CubeList([cube1, cube2])
+        self.cube = cube1.copy()
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
@@ -160,17 +149,18 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(iris.exceptions.ConcatenateError, msg):
             self.plugin.process(cubes)
 
-    def test_cubelist_type_and_data(self):
+    def test_values(self):
         """
         Test that the utility returns an iris.cube.Cube with the expected
-        resulting data, if a CubeList containing non-identical cubes
-        (different values for the time coordinate) is passed in as the input.
+        concatenated coordinate order and expected data
         """
-        data = self.cube.data.copy()
-        expected_result = np.vstack([data, data])
+        data1 = next(self.cubelist[0].slices_over("realization")).data
+        data2 = next(self.cubelist[1].slices_over("realization")).data
+        expected_data = np.array([data2, data1, data1, data1, data2, data2])
         result = self.plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(expected_result, result.data)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayEqual(result.coord("realization").points, np.arange(6))
 
     def test_cubelist_different_number_of_realizations(self):
         """
@@ -178,49 +168,24 @@ class Test_process(IrisTest):
         realizations, if a CubeList containing cubes with different numbers
         of realizations are passed in as the input.
         """
-        cube1 = self.cube.copy()
-
-        cube3 = iris.cube.CubeList([])
-        for cube in cube1.slices_over("realization"):
-            if cube.coord("realization").points == 0:
-                cube2 = cube
-            elif cube.coord("realization").points in [1, 2]:
-                cube3.append(cube)
-        cube3 = cube3.merge_cube()
-
-        cubelist = iris.cube.CubeList([cube2, cube3])
-
-        result = ConcatenateCubes(coords_to_slice_over=["realization"]).process(
-            cubelist
-        )
+        cube1 = next(self.cubelist[1].slices_over("realization"))
+        result = self.plugin.process([cube1, self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.coord("realization").points, [0, 1, 2])
+        self.assertArrayEqual(result.coord("realization").points, np.arange(4))
 
     def test_cubelist_different_number_of_realizations_time(self):
         """
         Test that the utility returns the expected error message, if a
         CubeList containing cubes with different numbers of realizations are
-        passed in as the input, and the slicing done, in order to help the
-        concatenation is only done over time.
+        passed in as the input, but inputs are only sliced over time.
         """
         plugin = ConcatenateCubes(coords_to_slice_over=["time"])
-
-        cube1 = self.cube.copy()
-        cube3 = iris.cube.CubeList([])
-        for cube in cube1.slices_over("realization"):
-            if cube.coord("realization").points == 0:
-                cube2 = cube
-            elif cube.coord("realization").points in [1, 2]:
-                cube3.append(cube)
-        cube3 = cube3.merge_cube()
-
-        cubelist = iris.cube.CubeList([cube2, cube3])
-
+        cube1 = next(self.cubelist[1].slices_over("realization"))
         msg = "failed to concatenate into a single cube"
         with self.assertRaisesRegex(iris.exceptions.ConcatenateError, msg):
-            plugin.process(cubelist)
+            plugin.process([cube1, self.cube])
 
-    def test_cubelist_slice_over_time_only(self):
+    def test_cubelist_concatenate_time(self):
         """
         Test that the utility returns an iris.cube.Cube with the expected
         time and associated forecast period coordinates, if a CubeList
@@ -228,46 +193,35 @@ class Test_process(IrisTest):
         """
         plugin = ConcatenateCubes(coords_to_slice_over=["time"])
 
+        cube2 = self.cube.copy()
+        cube2.coord("time").points = cube2.coord("time").points + 3600
+        cube2.coord("forecast_period").points = (
+            cube2.coord("forecast_period").points - 3600
+        )
+
         expected_time_points = [
-            self.cube.coord("time").points[0],
-            self.later_cube.coord("time").points[0],
+            self.cube.coord("time").points[0], cube2.coord("time").points[0]
         ]
         expected_fp_points = [
             self.cube.coord("forecast_period").points[0],
-            self.later_cube.coord("forecast_period").points[0],
+            cube2.coord("forecast_period").points[0]
         ]
 
-        result = plugin.process(self.cubelist)
+        result = plugin.process([self.cube, cube2])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.coord("time").points, expected_time_points)
-        self.assertArrayAlmostEqual(
+        self.assertArrayEqual(result.coord("time").points, expected_time_points)
+        self.assertArrayEqual(
             result.coord("forecast_period").points, expected_fp_points
         )
-
-    def test_cubelist_slice_over_realization_only(self):
-        """
-        Test that the utility returns an iris.cube.Cube with the expected
-        realization coordinate, if a CubeList containing cubes with different
-        realizations is passed in as the input.
-        """
-        plugin = ConcatenateCubes(coords_to_slice_over=["realization"])
-        result = plugin.process(self.cubelist)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.coord("realization").points, [0, 1, 2])
 
     def test_cubelist_different_var_names(self):
         """
         Test that the utility returns an iris.cube.Cube, if a CubeList
         containing non-identical cubes is passed in as the input.
         """
-        cube1 = self.cube.copy()
-        cube2 = self.later_cube.copy()
-        cube1.coord("time").var_name = "time_0"
-        cube2.coord("time").var_name = "time_1"
-
-        cubelist = iris.cube.CubeList([cube1, cube2])
-
-        result = self.plugin.process(cubelist)
+        self.cubelist[0].coord("time").var_name = "time_0"
+        self.cubelist[1].coord("time").var_name = "time_1"
+        result = self.plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
 
 

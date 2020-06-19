@@ -149,7 +149,7 @@ class ConcatenateCubes(BasePlugin):
         Initialise parameters
 
         Args:
-            coords_to_slice_over (list):
+            coords_to_slice_over (str or list):
                 Dimension coordinates to slice over before concatenation.
                 May cause the dimension order to change from input to output
                 cubes.
@@ -158,7 +158,10 @@ class ConcatenateCubes(BasePlugin):
                 over time, this is automatically associated with forecast period unless
                 otherwise specified.
         """
-        self.coords_to_slice_over = coords_to_slice_over
+        self.coords_to_slice_over = (
+            [coords_to_slice_over] if isinstance(coords_to_slice_over, str)
+             else coords_to_slice_over
+        )
         self.coords_to_associate = coords_to_associate
 
         if self.coords_to_slice_over and self.coords_to_associate is None:
@@ -241,8 +244,8 @@ class ConcatenateCubes(BasePlugin):
 
         # slice over requested coordinates
         if self.coords_to_slice_over:
-            for coord_to_slice_over in self.coords_to_slice_over:
-                cubes = self._slice_over_coordinate(cubes, coord_to_slice_over)
+            for coord in self.coords_to_slice_over:
+                cubes = self._slice_over_coordinate(cubes, coord)
 
         # remove unmatched attributes
         equalise_cube_attributes(cubes, silent=self.silent_attributes)
