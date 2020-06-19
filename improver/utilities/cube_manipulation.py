@@ -198,6 +198,9 @@ class ConcatenateCubes(BasePlugin):
             cubes = iris.cube.CubeList([cubes])
 
         for cube in cubes:
+            # TODO this should be if coord to slice over is a dimension - otherwise
+            # this promotes scalar coordinates for concatenation where it would be
+            # simpler to merge.  Revisit once ECC unit tests have been updated / fixed.
             if cube.coords(coord_to_slice_over):
                 for coord_slice in cube.slices_over(coord_to_slice_over):
                     coord_slice = iris.util.new_axis(coord_slice, coord_to_slice_over)
