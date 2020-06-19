@@ -92,7 +92,7 @@ class Test__slice_over_coordinate(IrisTest):
     def test_association(self):
         """Test that with the default setup, forecast period is associated with
         the new time dimension"""
-        result_cube, = self.plugin._slice_over_coordinate(self.cube, "time")
+        (result_cube,) = self.plugin._slice_over_coordinate(self.cube, "time")
         self.assertEqual(result_cube.coord_dims("time")[0], 0)
         self.assertEqual(result_cube.coord_dims("forecast_period")[0], 0)
 
@@ -116,7 +116,7 @@ class Test_process(IrisTest):
         cube1 = set_up_variable_cube(
             data, time=dt(2017, 1, 10, 3), frt=dt(2017, 1, 10, 0)
         )
-        cube2 = cube1.copy(data=data+1.)
+        cube2 = cube1.copy(data=data + 1.0)
         cube2.coord("realization").points = [0, 4, 5]
         cube1.coord("realization").points = [1, 2, 3]
         self.cubelist = iris.cube.CubeList([cube1, cube2])
@@ -200,11 +200,12 @@ class Test_process(IrisTest):
         )
 
         expected_time_points = [
-            self.cube.coord("time").points[0], cube2.coord("time").points[0]
+            self.cube.coord("time").points[0],
+            cube2.coord("time").points[0],
         ]
         expected_fp_points = [
             self.cube.coord("forecast_period").points[0],
-            cube2.coord("forecast_period").points[0]
+            cube2.coord("forecast_period").points[0],
         ]
 
         result = plugin.process([self.cube, cube2])

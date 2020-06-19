@@ -159,8 +159,9 @@ class ConcatenateCubes(BasePlugin):
                 otherwise specified.
         """
         self.coords_to_slice_over = (
-            [coords_to_slice_over] if isinstance(coords_to_slice_over, str)
-             else coords_to_slice_over
+            [coords_to_slice_over]
+            if isinstance(coords_to_slice_over, str)
+            else coords_to_slice_over
         )
         self.coords_to_associate = coords_to_associate
 
