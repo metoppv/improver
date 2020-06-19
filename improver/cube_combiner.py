@@ -184,7 +184,9 @@ class CubeCombiner(BasePlugin):
                 else:
                     target_coord = target_cube.coord(coord)
             except CoordinateNotFoundError:
-                raise CoordinateNotFoundError(f"{coord} not found in {target_cube}")
+                raise CoordinateNotFoundError(
+                    f"Cannot find coord {coord} in {repr(target_cube)} to broadcast to."
+                )
             new_list = CubeList([])
             for cube in cube_list:
                 try:

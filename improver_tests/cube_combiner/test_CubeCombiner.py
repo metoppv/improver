@@ -276,7 +276,9 @@ class Test_process(CombinerTest):
         cube.data = np.ones_like(cube.data)
         cube.remove_coord("lwe_thickness_of_precipitation_amount")
         cubelist = iris.cube.CubeList([cube, self.cube4.copy()])
-        msg = "threshold not found in "
+        msg = "Cannot find coord threshold in " \
+              "<iris 'Cube' of probability_of_lwe_thickness_of_precipitation_amount_above_threshold / \(1\) " \
+              "\(realization: 3; latitude: 2; longitude: 2\)> to broadcast to"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["threshold"])
 
@@ -286,7 +288,10 @@ class Test_process(CombinerTest):
         cube = self.cube4[:, 0, ...].copy()
         cube.data = np.ones_like(cube.data)
         cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
-        msg = "kittens not found in "
+        msg = "Cannot find coord kittens in " \
+              "<iris 'Cube' of probability_of_lwe_thickness_of_precipitation_amount_above_threshold / \(1\) " \
+              "\(realization: 3; lwe_thickness_of_precipitation_amount: 2; latitude: 2; longitude: 2\)> " \
+              "to broadcast to."
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["kittens"])
 
