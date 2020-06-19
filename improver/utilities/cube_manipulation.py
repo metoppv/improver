@@ -256,35 +256,6 @@ class ConcatenateCubes(BasePlugin):
         return result
 
 
-def concatenate_cubes(
-    cubes_in, coords_to_slice_over=None, coordinates_for_association=None,
-):
-    """
-    Wrapper for the ConcatenateCubes.process method
-
-    Function to concatenate cubes, accounting for differences in the
-    history attribute, and allow promotion of forecast_reference_time
-    and forecast_period coordinates from scalar coordinates to auxiliary
-    coordinates to allow concatenation.
-
-    Args:
-        cubes_in (iris.cube.CubeList or iris.cube.Cube):
-            Cubes to be concatenated.
-        coords_to_slice_over (list):
-            Coordinates to be sliced over.
-        coordinates_for_association (dict):
-            Coordinates to be associated with each slice coord, if applicable.
-
-    Returns:
-        iris.cube.Cube:
-            Concatenated cube.
-    """
-    return ConcatenateCubes(
-        coords_to_slice_over=coords_to_slice_over,
-        coords_to_associate=coordinates_for_association,
-    )(cubes_in)
-
-
 class MergeCubes(BasePlugin):
     """
     Class adding functionality to iris.merge_cubes()
