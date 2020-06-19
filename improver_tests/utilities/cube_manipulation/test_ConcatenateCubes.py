@@ -40,29 +40,12 @@ import numpy as np
 from iris.coords import DimCoord
 from iris.tests import IrisTest
 
-from improver.utilities.cube_manipulation import ConcatenateCubes
+from improver.utilities.cube_manipulation import (
+    ConcatenateCubes,
+    enforce_coordinate_ordering,
+)
 
 from ...set_up_test_cubes import set_up_variable_cube
-
-
-def check_coord_type(cube, coord):
-    """
-    Function to test whether coord is classified as scalar or auxiliary
-
-    Args:
-        cube (iris.cube.Cube):
-            Iris cube containing coordinates to be checked
-        coord (iris.coords.Coord):
-            Coordinate to check
-    """
-    coord_scalar = True
-    coord_aux = False
-    cube_summary = cube.summary()
-    aux_ind = cube_summary.find("Auxiliary")
-    if coord in cube_summary[aux_ind:]:
-        coord_scalar = False
-        coord_aux = True
-    return coord_scalar, coord_aux
 
 
 class Test__init__(IrisTest):
@@ -86,7 +69,7 @@ class Test__slice_over_coordinate(IrisTest):
 
     def setUp(self):
         """Set up default plugin and test cube with dimensions:
-        time (1), realization (3), latitude (3), longitude (3)"""
+        realization (3), latitude (3), longitude (3)"""
         self.plugin = ConcatenateCubes(coords_to_slice_over="time")
         data = 275.0 * np.ones((3, 3, 3), dtype=np.float32)
         self.cube = set_up_variable_cube(
@@ -106,17 +89,21 @@ class Test__slice_over_coordinate(IrisTest):
         result = self.plugin._slice_over_coordinate(self.cube, "time")
         self.assertIsInstance(result, iris.cube.CubeList)
 
+    def test_association(self):
+        """Test that with the default setup, forecast period is associated with
+        the new time dimension"""
+        result_cube, = self.plugin._slice_over_coordinate(self.cube, "time")
+        self.assertEqual(result_cube.coord_dims("time")[0], 0)
+        self.assertEqual(result_cube.coord_dims("forecast_period")[0], 0)
+
     def test_reordering(self):
         """Test that the sliced coordinate is the first dimension in each
         output cube in the list, regardless of input dimension order"""
+        enforce_coordinate_ordering(self.cube, "realization", anchor_start=False)
         plugin = ConcatenateCubes(coords_to_slice_over="realization")
         result = plugin._slice_over_coordinate(self.cube, "realization")
         self.assertEqual(len(result), 3)
-        for i in range(3):
-            dim_coord_names = [
-                coord.name() for coord in result[i].coords(dim_coords=True)
-            ]
-            self.assertEqual(dim_coord_names[0], "realization")
+        self.assertEqual(result[0].coord_dims("realization")[0], 0)
 
 
 class Test_process(IrisTest):
