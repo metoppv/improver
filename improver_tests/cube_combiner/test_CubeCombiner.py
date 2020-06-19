@@ -29,9 +29,11 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the cube_combiner.CubeCombiner plugin."""
+from copy import deepcopy
 import unittest
 from datetime import datetime
 
+from improver_tests import ImproverTest
 import iris
 import numpy as np
 from iris.cube import Cube
@@ -74,7 +76,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class CombinerTest(IrisTest):
+class CombinerTest(ImproverTest):
     """Set up a common set of test cubes for subsequent test classes."""
 
     def setUp(self):
@@ -164,14 +166,16 @@ class Test_process(CombinerTest):
     """Test the plugin combines the cubelist into a cube."""
 
     def test_basic(self):
-        """Test that the plugin returns a Cube. """
+        """Test that the plugin returns a Cube and doesn't modify the inputs."""
         plugin = CubeCombiner("+")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
+        input_copy = deepcopy(cubelist)
         result = plugin.process(cubelist, "new_cube_name")
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "new_cube_name")
         expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
         self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertCubeListEqual(input_copy, cubelist)
 
     def test_mean(self):
         """Test that the plugin calculates the mean correctly. """
@@ -256,18 +260,20 @@ class Test_process(CombinerTest):
             plugin.process(cubelist, "new_cube_name")
 
     def test_broadcast_coord(self):
-        """Test that plugin broadcasts to a coord"""
+        """Test that plugin broadcasts to a coord and doesn't change the inputs."""
         plugin = CubeCombiner("*")
         cube = self.cube4[:, 0, ...].copy()
         cube.data = np.ones_like(cube.data)
         cube.remove_coord("lwe_thickness_of_precipitation_amount")
         cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
+        input_copy = deepcopy(cubelist)
         result = plugin.process(
             cubelist, "new_cube_name", broadcast_to_coords=["threshold"]
         )
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, self.cube4.data)
+        self.assertCubeListEqual(input_copy, cubelist)
 
     def test_error_broadcast_coord_wrong_order(self):
         """Test that plugin throws an error if the broadcast coord is not on the first cube"""
