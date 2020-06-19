@@ -29,11 +29,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the cube_combiner.CubeCombiner plugin."""
-from copy import deepcopy
 import unittest
+from copy import deepcopy
 from datetime import datetime
 
-from improver_tests import ImproverTest
 import iris
 import numpy as np
 from iris.cube import Cube
@@ -41,6 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.cube_combiner import CubeCombiner
+from improver_tests import ImproverTest
 
 from ..set_up_test_cubes import (
     add_coordinate,
