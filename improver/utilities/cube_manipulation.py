@@ -144,9 +144,7 @@ class ConcatenateCubes(BasePlugin):
     time point cube inputs).
     """
 
-    def __init__(
-        self, coords_to_slice_over=None, coords_to_associate=None
-    ):
+    def __init__(self, coords_to_slice_over=None, coords_to_associate=None):
         """
         Initialise parameters
 
@@ -259,9 +257,7 @@ class ConcatenateCubes(BasePlugin):
 
 
 def concatenate_cubes(
-    cubes_in,
-    coords_to_slice_over=None,
-    coordinates_for_association=None,
+    cubes_in, coords_to_slice_over=None, coordinates_for_association=None,
 ):
     """
     Wrapper for the ConcatenateCubes.process method

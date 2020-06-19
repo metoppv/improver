@@ -77,9 +77,7 @@ class Test__init__(IrisTest):
     def test_arguments(self):
         """Test custom arguments"""
         plugin = ConcatenateCubes(coords_to_slice_over=["time"])
-        self.assertDictEqual(
-            plugin.coords_to_associate, {"time": "forecast_period"}
-        )
+        self.assertDictEqual(plugin.coords_to_associate, {"time": "forecast_period"})
         self.assertSequenceEqual(plugin.coords_to_slice_over, ["time"])
 
 
