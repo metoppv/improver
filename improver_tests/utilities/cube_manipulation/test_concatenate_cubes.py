@@ -57,10 +57,17 @@ class Test_concatenate_cubes(IrisTest):
             data, time=datetime(2017, 9, 9, 11), frt=datetime(2017, 9, 9, 6)
         )
         self.cube = iris.util.new_axis(cube, "time")
+        fp_coord = self.cube.coord("forecast_period").copy()
+        self.cube.remove_coord("forecast_period")
+        self.cube.add_aux_coord(fp_coord, data_dims=(0,))
+
         self.cube.transpose([1, 0, 2, 3])
         self.later_cube = self.cube.copy()
         self.later_cube.coord("time").points = (
             self.later_cube.coord("time").points + 3600
+        )
+        self.later_cube.coord("forecast_period").points = (
+            self.later_cube.coord("forecast_period").points - 3600
         )
 
     def test_basic(self):
@@ -161,29 +168,6 @@ class Test_concatenate_cubes(IrisTest):
         result = concatenate_cubes(cubelist, coords_to_slice_over=["realization"])
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord("realization").points, [0, 1, 2])
-
-    def test_cubelist_with_forecast_reference_time_only(self):
-        """
-        Test that the utility returns an iris.cube.Cube with the expected
-        resulting data, if a CubeList containing cubes with different
-        forecast_reference_time coordinates is passed in as the input.
-        This makes sure that the forecast_reference_time from the input cubes
-        is maintained within the output cube, after concatenation.
-        """
-        self.later_cube.coord("forecast_reference_time").points = (
-            self.later_cube.coord("forecast_reference_time").points + 3600
-        )
-        expected_frt_points = [
-            self.cube.coord("forecast_reference_time").points[0],
-            self.later_cube.coord("forecast_reference_time").points[0],
-        ]
-        cubelist = iris.cube.CubeList([self.cube, self.later_cube])
-        result = concatenate_cubes(
-            cubelist, coordinates_for_association=["forecast_reference_time"]
-        )
-        self.assertArrayAlmostEqual(
-            result.coord("forecast_reference_time").points, expected_frt_points
-        )
 
     def test_cubelist_different_var_names(self):
         """

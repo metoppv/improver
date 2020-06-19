@@ -83,7 +83,7 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
         # slice over realization to deal with cases where direct concatenation
         # would result in a non-monotonic coordinate
         lagged_ensemble = concatenate_cubes(
-            cubelist, master_coord="realization", coords_to_slice_over=["realization"]
+            cubelist, coords_to_slice_over=["realization"]
         )
 
         return lagged_ensemble

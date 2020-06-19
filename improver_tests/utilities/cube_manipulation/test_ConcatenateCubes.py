@@ -70,81 +70,17 @@ class Test__init__(IrisTest):
 
     def test_default(self):
         """Test default settings"""
-        plugin = ConcatenateCubes("time")
-        self.assertEqual(plugin.master_coord, "time")
-        self.assertSequenceEqual(plugin.coords_to_associate, ["forecast_period"])
+        plugin = ConcatenateCubes()
+        self.assertFalse(plugin.coords_to_associate)
         self.assertFalse(plugin.coords_to_slice_over)
 
     def test_arguments(self):
         """Test custom arguments"""
-        plugin = ConcatenateCubes(
-            "time",
-            coords_to_associate=["forecast_reference_time"],
-            coords_to_slice_over=["realization"],
+        plugin = ConcatenateCubes(coords_to_slice_over=["time"])
+        self.assertDictEqual(
+            plugin.coords_to_associate, {"time": "forecast_period"}
         )
-        self.assertSequenceEqual(
-            plugin.coords_to_associate, ["forecast_reference_time"]
-        )
-        self.assertSequenceEqual(plugin.coords_to_slice_over, ["realization"])
-
-    def test_fails_unphysical_associations(self):
-        """Test the plugin will not accept time, forecast period and forecast
-        reference time (which describe a two-dimensional space) as all
-        associated with the same dimension"""
-        msg = "cannot all be associated with a single dimension"
-        with self.assertRaisesRegex(ValueError, msg):
-            ConcatenateCubes(
-                "time",
-                coords_to_associate=["forecast_period", "forecast_reference_time"],
-            )
-
-
-class Test__associate_any_coordinate_with_master_coordinate(IrisTest):
-    """Test the _associate_any_coordinate_with_master_coordinate method"""
-
-    def setUp(self):
-        """Set up default plugin and test cube"""
-        self.plugin = ConcatenateCubes("time")
-        data = 275.0 * np.ones((3, 3, 3), dtype=np.float32)
-        cube = set_up_variable_cube(
-            data, time=dt(2017, 1, 10, 3), frt=dt(2017, 1, 10, 0)
-        )
-        # cubes can only be concatenated along an existing dimension;
-        # therefore promote "time"
-        self.cube = iris.util.new_axis(cube, scalar_coord="time")
-
-    def test_forecast_period_association(self):
-        """Test forecast period is correctly promoted to associate with time"""
-        result = self.plugin._associate_any_coordinate_with_master_coordinate(self.cube)
-        scalar, aux = check_coord_type(result, "forecast_period")
-        self.assertFalse(scalar)
-        self.assertTrue(aux)
-
-    def test_forecast_period_not_added(self):
-        """Test auxiliary coordinates aren't added if not originally present"""
-        self.cube.remove_coord("forecast_period")
-        result = self.plugin._associate_any_coordinate_with_master_coordinate(self.cube)
-        self.assertNotIn("forecast_period", result.coords())
-
-    def test_cube_with_latitude_and_height(self):
-        """
-        Test that the utility returns an iris.cube.Cube with a height
-        coordinate, if this coordinate is added to the input cube. This checks
-        that the height coordinate points are not modified.
-        """
-        plugin = ConcatenateCubes("latitude", coords_to_associate=["height"])
-
-        cube = self.cube
-        for latitude_slice in cube.slices_over("latitude"):
-            cube = iris.util.new_axis(latitude_slice, "latitude")
-
-        cube.add_aux_coord(DimCoord([10], "height", units="m"))
-
-        result = plugin._associate_any_coordinate_with_master_coordinate(cube)
-        self.assertArrayAlmostEqual(result.coord("height").points, [10])
-        scalar, aux = check_coord_type(result, "height")
-        self.assertFalse(scalar)
-        self.assertTrue(aux)
+        self.assertSequenceEqual(plugin.coords_to_slice_over, ["time"])
 
 
 class Test__slice_over_coordinate(IrisTest):
@@ -153,14 +89,11 @@ class Test__slice_over_coordinate(IrisTest):
     def setUp(self):
         """Set up default plugin and test cube with dimensions:
         time (1), realization (3), latitude (3), longitude (3)"""
-        self.plugin = ConcatenateCubes("time")
+        self.plugin = ConcatenateCubes(coords_to_slice_over="time")
         data = 275.0 * np.ones((3, 3, 3), dtype=np.float32)
-        cube = set_up_variable_cube(
+        self.cube = set_up_variable_cube(
             data, time=dt(2017, 1, 10, 3), frt=dt(2017, 1, 10, 0)
         )
-        # cubes can only be concatenated along an existing dimension;
-        # therefore promote "time"
-        self.cube = iris.util.new_axis(cube, scalar_coord="time")
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.CubeList when given an
@@ -178,7 +111,8 @@ class Test__slice_over_coordinate(IrisTest):
     def test_reordering(self):
         """Test that the sliced coordinate is the first dimension in each
         output cube in the list, regardless of input dimension order"""
-        result = self.plugin._slice_over_coordinate(self.cube, "realization")
+        plugin = ConcatenateCubes(coords_to_slice_over="realization")
+        result = plugin._slice_over_coordinate(self.cube, "realization")
         self.assertEqual(len(result), 3)
         for i in range(3):
             dim_coord_names = [
@@ -192,14 +126,17 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up default plugin and test cubes."""
-        self.plugin = ConcatenateCubes("time")
+        self.plugin = ConcatenateCubes()
         data = 275.0 * np.ones((3, 3, 3), dtype=np.float32)
         cube = set_up_variable_cube(
             data, time=dt(2017, 1, 10, 3), frt=dt(2017, 1, 10, 0)
         )
         # cubes can only be concatenated along an existing dimension;
-        # therefore promote "time"
+        # therefore promote "time" and associated "forecast_period"
         self.cube = iris.util.new_axis(cube, scalar_coord="time")
+        fp_coord = self.cube.coord("forecast_period").copy()
+        self.cube.remove_coord("forecast_period")
+        self.cube.add_aux_coord(fp_coord, data_dims=(0,))
 
         # create a cube for 3 hours later from the same forecast cycle
         self.later_cube = self.cube.copy()
@@ -227,13 +164,6 @@ class Test_process(IrisTest):
         result = self.plugin.process([self.cube])
         self.assertArrayAlmostEqual(result.data, self.cube.data)
         self.assertEqual(result.metadata, self.cube.metadata)
-
-    def test_missing_master_coord(self):
-        """Test error is raised if the master coordinate is missing"""
-        self.cube.remove_coord("time")
-        msg = "Master coordinate time is not present"
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process([self.cube, self.cube])
 
     def test_identical_cubes(self):
         """
@@ -275,7 +205,7 @@ class Test_process(IrisTest):
 
         cubelist = iris.cube.CubeList([cube2, cube3])
 
-        result = ConcatenateCubes("time", coords_to_slice_over=["realization"]).process(
+        result = ConcatenateCubes(coords_to_slice_over=["realization"]).process(
             cubelist
         )
         self.assertIsInstance(result, iris.cube.Cube)
@@ -288,7 +218,7 @@ class Test_process(IrisTest):
         passed in as the input, and the slicing done, in order to help the
         concatenation is only done over time.
         """
-        plugin = ConcatenateCubes("time", coords_to_slice_over=["time"])
+        plugin = ConcatenateCubes(coords_to_slice_over=["time"])
 
         cube1 = self.cube.copy()
         cube3 = iris.cube.CubeList([])
@@ -311,7 +241,7 @@ class Test_process(IrisTest):
         time and associated forecast period coordinates, if a CubeList
         containing cubes with different timesteps is passed in as the input.
         """
-        plugin = ConcatenateCubes("time", coords_to_slice_over=["time"])
+        plugin = ConcatenateCubes(coords_to_slice_over=["time"])
 
         expected_time_points = [
             self.cube.coord("time").points[0],
@@ -335,7 +265,7 @@ class Test_process(IrisTest):
         realization coordinate, if a CubeList containing cubes with different
         realizations is passed in as the input.
         """
-        plugin = ConcatenateCubes("time", coords_to_slice_over=["realization"])
+        plugin = ConcatenateCubes(coords_to_slice_over=["realization"])
         result = plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.coord("realization").points, [0, 1, 2])
