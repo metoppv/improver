@@ -193,6 +193,7 @@ class CubeCombiner(BasePlugin):
                     found_coord = cube.coord(target_coord)
                 except CoordinateNotFoundError:
                     new_coord = target_coord.copy([0], bounds=None)
+                    cube = cube.copy()
                     cube.add_aux_coord(new_coord, None)
                     cube = iris.util.new_axis(cube, new_coord)
                     enforce_coordinate_ordering(
