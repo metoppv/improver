@@ -42,6 +42,7 @@ def process(
     new_name=None,
     use_midpoint=False,
     check_metadata=False,
+    broadcast_to_threshold=False,
 ):
     r"""Combine input cubes.
 
@@ -62,6 +63,9 @@ def process(
             period).  If True, uses the mid-point.
         check_metadata (bool):
             If True, warn on metadata mismatch between inputs.
+        broadcast_to_threshold (bool):
+            If True, broadcast input cubes to the threshold coord prior to combining -
+            a threshold coord must already exist on the first input cube.
 
     Returns:
         result (iris.cube.Cube):
@@ -74,8 +78,12 @@ def process(
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubes[0].name()
+    broadcast_to_coords = ["threshold"] if broadcast_to_threshold else None
     result = CubeCombiner(operation, warnings_on=check_metadata)(
-        CubeList(cubes), new_name, use_midpoint=use_midpoint
+        CubeList(cubes),
+        new_name,
+        broadcast_to_coords=broadcast_to_coords,
+        use_midpoint=use_midpoint,
     )
 
     return result
