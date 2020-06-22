@@ -59,7 +59,8 @@ def test_basic(tmp_path):
 
 
 def test_longer_interval(tmp_path):
-    """Test optical flow calculation by perturbing model winds"""
+    """Test optical flow calculation by perturbing model winds over a 30 minute
+    time interval"""
     kgo_dir = acc.kgo_root() / "nowcast-feature-branch/optical-flow-from-winds"
     kgo_path = kgo_dir / "kgo_30min.nc"
     input_paths = [
@@ -73,3 +74,20 @@ def test_longer_interval(tmp_path):
     args = [flow_path, oe_path, *input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_too_many_inputs(tmp_path):
+    """Test an error is thrown if too many radar cubes are provided"""
+    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/optical-flow-from-winds"
+    input_paths = [
+        kgo_dir / f"20190101T{hhmm}Z-{RADAR_EXT}.nc"
+        for hhmm in ("0630", "0645", "0700")
+    ]
+    flow_path = (
+        kgo_dir / "20190101T0700Z-PT0000H00M-wind_components_on_pressure_levels.nc"
+    )
+    oe_path = kgo_dir / "20190101T0700Z-PT0000H00M-orographic_enhancement.nc"
+    output_path = tmp_path / "output.nc"
+    args = [flow_path, oe_path, *input_paths, "--output", output_path]
+    with pytest.raises(ValueError, match="Expected 2 radar cubes - got 3"):
+        run_cli(args)

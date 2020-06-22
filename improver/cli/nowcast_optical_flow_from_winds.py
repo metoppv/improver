@@ -48,7 +48,11 @@ def process(
     *cubes: cli.inputcube,
 ):
     """Calculate optical flow components as perturbations from the model
-    steering flow, using input cubes.
+    steering flow.  Advects the older of the two input radar observations to
+    the validity time of the newer observvation, then calculates the velocity
+    required to adjust this forecast to match the observation.  Sums the
+    steering flow and perturbation values to give advection components for
+    extrapolation nowcasting.
 
     Args:
         steering_flow (iris.cube.CubeList):
@@ -56,7 +60,7 @@ def process(
             have names: "grid_eastward_wind" and "grid_northward_wind".
         orographic_enhancement (iris.cube.Cube):
             Cube containing the orographic enhancement fields.
-        cubes (iris.cube.CubeList):
+        cubes (tuple of iris.cube.Cube):
             Two radar precipitation observation cubes.
 
     Returns:
@@ -71,6 +75,9 @@ def process(
     from improver.nowcasting.pysteps_advection import PystepsExtrapolate
     from improver.nowcasting.utilities import ApplyOrographicEnhancement
 
+    if len(cubes) != 2:
+        raise ValueError("Expected 2 radar cubes - got {}".format(len(cubes)))
+
     # cannot sort in place as cubes is tuple...
     cubes = sorted(cubes, key=lambda x: x.coord("time").points[0])
 
@@ -84,13 +91,13 @@ def process(
         cubes[0], *steering_flow, orographic_enhancement
     )[-1]
 
-    # calculate velocity perterbations required to match "forecast" to later cube
+    # calculate velocity perturbations required to match forecast to later cube
     cube_list = ApplyOrographicEnhancement("subtract")(
         [advected_cube, cubes[1]], orographic_enhancement
     )
     perturbations = OpticalFlow()(*cube_list)
 
-    # add perturbations to original flow field
+    # sum perturbations and original flow field to get advection velocities
     for flow, adj in zip(steering_flow, perturbations):
         flow.convert_units(adj.units)
         perturbed_field = np.where(

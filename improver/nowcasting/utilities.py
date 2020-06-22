@@ -247,10 +247,10 @@ class ApplyOrographicEnhancement(BasePlugin):
         Args:
             precip_cube (iris.cube.Cube):
                 Cube containing the input precipitation fields.
-            oe_cubes (iris.cube.Cube or iris.cube.CubeList):
-                Cube or CubeList containing the orographic enhancement fields.
+            oe_cubes (iris.cube.Cube):
+                Cube containing the orographic enhancement fields.
             allowed_time_diff (int):
-                An int in seconds to define a limit to the maximum difference
+                The maximum permitted difference, in integer seconds,
                 between the datetime of the precipitation cube and the time
                 points available within the orographic enhancement cube.
                 If this limit is exceeded, then an error is raised.
@@ -373,8 +373,9 @@ class ApplyOrographicEnhancement(BasePlugin):
         from the input precipitation fields.
 
         Args:
-            precip_cubes (iris.cube.Cube or iris.cube.CubeList):
-                Cube or CubeList containing the input precipitation fields.
+            precip_cubes (iris.cube.Cube or iterable of iris.cube.Cube):
+                Cube or iterable (list, CubeList or tuple) of cubes containing
+                the input precipitation fields.
             orographic_enhancement_cube (iris.cube.Cube):
                 Cube containing the orographic enhancement fields.
 
