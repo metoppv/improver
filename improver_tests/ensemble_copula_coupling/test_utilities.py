@@ -50,7 +50,7 @@ from improver.ensemble_copula_coupling.utilities import (
     restore_non_probabilistic_dimensions,
 )
 
-from ...calibration.ensemble_calibration.helper_functions import (
+from ..calibration.ensemble_calibration.helper_functions import (
     add_forecast_reference_time_and_forecast_period,
     set_up_cube,
     set_up_probability_above_threshold_temperature_cube,

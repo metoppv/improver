@@ -45,7 +45,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 )
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...calibration.ensemble_calibration.helper_functions import (
+from ..calibration.ensemble_calibration.helper_functions import (
     add_forecast_reference_time_and_forecast_period,
     set_up_cube,
     set_up_temperature_cube,
