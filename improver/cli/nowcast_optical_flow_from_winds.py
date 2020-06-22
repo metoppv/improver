@@ -49,7 +49,7 @@ def process(
 ):
     """Calculate optical flow components as perturbations from the model
     steering flow.  Advects the older of the two input radar observations to
-    the validity time of the newer observvation, then calculates the velocity
+    the validity time of the newer observation, then calculates the velocity
     required to adjust this forecast to match the observation.  Sums the
     steering flow and perturbation values to give advection components for
     extrapolation nowcasting.
@@ -68,7 +68,6 @@ def process(
             List of u- and v- advection velocities
     """
     import numpy as np
-    import iris
     from iris.cube import CubeList
 
     from improver.nowcasting.optical_flow import OpticalFlow
