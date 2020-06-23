@@ -81,15 +81,15 @@ def build_spotdata_cube(
             Float or 1d array of site latitudes in degrees
         longitude (float or numpy.ndarray):
             Float or 1d array of site longitudes in degrees
-        wmo_id (str or list):
+        wmo_id (str or list of str):
             String or list of site 5-digit WMO identifiers
-        scalar_coords (list):
+        scalar_coords (list of iris.coords.AuxCoord):
             Optional list of iris.coords.AuxCoord instances
-        neighbour_methods (list):
+        neighbour_methods (list of str):
             Optional list of neighbour method names, e.g. 'nearest'
-        grid_attributes (list):
+        grid_attributes (list of str):
             Optional list of grid attribute names, e.g. x-index, y-index
-        additional_dims (list):
+        additional_dims (list of iris.coords.DimCoord):
             Optional list of additional dimensions to preceed the spot data dimension.
 
     Returns:

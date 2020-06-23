@@ -45,12 +45,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 from improver.utilities.warnings_handler import ManageWarnings
 
 from ..set_up_test_cubes import set_up_variable_cube
-from ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
-
-from ..calibration.ensemble_calibration.helper_functions import (
-    add_forecast_reference_time_and_forecast_period,
-    set_up_spot_temperature_cube,
-)
+from ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
 
 class Test__repr__(IrisTest):
@@ -431,18 +426,16 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             )
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_spot_forecasts_check_data(self):
+    def test_spot_forecasts(self):
         """
         Test that the plugin returns an Iris.cube.Cube matching the expected
         data values when a cube containing mean (location parameter) and
         variance (scale parameter) is passed in. The resulting data values are
         the percentiles, which have been generated for a spot forecast.
         """
-        data = np.reshape(self.expected_percentiles, (3, 1, 9))
-        # TODO
-        cube = add_forecast_reference_time_and_forecast_period(
-            set_up_spot_temperature_cube()
-        )
+        data = np.reshape(self.expected_percentiles, (3, 9))
+        cube = set_up_spot_test_cube()
+
         current_forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE

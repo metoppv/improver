@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import numpy as np
+from iris.coords import DimCoord
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 
 ECC_TEMPERATURE_REALIZATIONS = np.array(
@@ -40,3 +42,32 @@ ECC_TEMPERATURE_REALIZATIONS = np.array(
     ],
     dtype=np.float32,
 )
+
+ECC_SPOT_TEMPERATURES = np.array(
+    [
+        [226.15, 237.4, 248.65, 259.9, 271.15, 282.4, 293.65, 304.9, 316.15],
+        [230.15, 241.4, 252.65, 263.9, 275.15, 286.4, 297.65, 308.9, 320.15],
+        [232.15, 243.4, 254.65, 265.9, 277.15, 288.4, 299.65, 310.9, 322.15],
+    ],
+    dtype=np.float32,
+)
+
+
+def set_up_spot_test_cube():
+    """Use spotdata code to build a test cube with the expected spot metadata,
+    with dummy values for the  coordinates which are not used in ECC tests"""
+    dummy_point_locations = np.arange(9).astype(np.float32)
+    dummy_string_ids = [f"{i}" for i in range(9)]
+    realization_coord = DimCoord(
+        np.arange(3).astype(np.int32), units="1", standard_name="realization"
+    )
+    return build_spotdata_cube(
+        ECC_SPOT_TEMPERATURES,
+        name="screen_temperature",
+        units="Kelvin",
+        altitude=dummy_point_locations,
+        latitude=dummy_point_locations,
+        longitude=dummy_point_locations,
+        wmo_id=dummy_string_ids,
+        additional_dims=[realization_coord],
+    )
