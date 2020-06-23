@@ -45,7 +45,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 )
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ..set_up_test_cubes import set_up_variable_cube, set_up_percentile_cube
+from ..set_up_test_cubes import set_up_percentile_cube, set_up_variable_cube
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
 
 

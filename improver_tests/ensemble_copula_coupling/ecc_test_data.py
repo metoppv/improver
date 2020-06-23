@@ -31,8 +31,8 @@
 
 import numpy as np
 from iris.coords import DimCoord
-from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
 ECC_TEMPERATURE_REALIZATIONS = np.array(
     [
