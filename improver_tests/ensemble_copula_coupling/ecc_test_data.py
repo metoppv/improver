@@ -55,7 +55,7 @@ ECC_SPOT_TEMPERATURES = np.array(
 
 def set_up_spot_test_cube():
     """Use spotdata code to build a test cube with the expected spot metadata,
-    with dummy values for the  coordinates which are not used in ECC tests"""
+    with dummy values for the coordinates which are not used in ECC tests"""
     dummy_point_locations = np.arange(9).astype(np.float32)
     dummy_string_ids = [f"{i}" for i in range(9)]
     realization_coord = DimCoord(
