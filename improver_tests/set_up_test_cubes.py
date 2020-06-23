@@ -293,15 +293,7 @@ def set_up_variable_cube(
 def set_up_percentile_cube(
     data,
     percentiles,
-    name="air_temperature",
-    units="K",
-    spatial_grid="latlon",
-    time=datetime(2017, 11, 10, 4, 0),
-    time_bounds=None,
-    frt=datetime(2017, 11, 10, 0, 0),
-    include_scalar_coords=None,
-    attributes=None,
-    standard_grid_metadata=None,
+    **kwargs,
 ):
     """
     Set up a cube containing percentiles of a variable with:
@@ -317,39 +309,11 @@ def set_up_percentile_cube(
         percentiles (list or numpy.ndarray):
             List of int / float percentile values whose length must match the
             first dimension on the input data cube
-        name (str):
-            Variable standard name
-        units (str):
-            Variable units
-        spatial_grid (str):
-            What type of x/y coordinate values to use.  Default is "latlon",
-            otherwise uses "projection_[x|y]_coordinate".
-        time (datetime.datetime):
-            Single cube validity time
-        time_bounds (Iterable[datetime.datetime]):
-            Lower and upper bound on time point, if required
-        frt (datetime.datetime):
-            Single cube forecast reference time
-        include_scalar_coords (list):
-            List of iris.coords.DimCoord or AuxCoord instances of length 1.
-        attributes (dict):
-            Optional cube attributes.
-        standard_grid_metadata (str):
-            Recognised mosg__model_configuration for which to set up Met
-            Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
-            'gl_det' or 'gl_ens'.
     """
     cube = set_up_variable_cube(
         data,
-        name=name,
-        units=units,
-        spatial_grid=spatial_grid,
-        time=time,
-        frt=frt,
         realizations=percentiles,
-        attributes=attributes,
-        include_scalar_coords=include_scalar_coords,
-        standard_grid_metadata=standard_grid_metadata,
+        **kwargs,
     )
     cube.coord("realization").rename("percentile")
     cube.coord("percentile").units = Unit("%")
@@ -362,13 +326,7 @@ def set_up_probability_cube(
     variable_name="air_temperature",
     threshold_units="K",
     spp__relative_to_threshold="above",
-    spatial_grid="latlon",
-    time=datetime(2017, 11, 10, 4, 0),
-    time_bounds=None,
-    frt=datetime(2017, 11, 10, 0, 0),
-    include_scalar_coords=None,
-    attributes=None,
-    standard_grid_metadata=None,
+    **kwargs,
 ):
     """
     Set up a cube containing probabilities at thresholds with:
@@ -392,26 +350,9 @@ def set_up_probability_cube(
             applies, eg "air_temperature".  NOT name of probability field.
         threshold_units (str):
             Units of the underlying variable / threshold.
-        spatial_grid (str):
-            What type of x/y coordinate values to use.  Default is "latlon",
-            otherwise uses "projection_[x|y]_coordinate".
         spp__relative_to_threshold (str):
             Value of the attribute "spp__relative_to_threshold" which is
             required for IMPROVER probability cubes.
-        time (datetime.datetime):
-            Single cube validity time
-        time_bounds (tuple or list of datetime.datetime instances):
-            Lower and upper bound on time point, if required
-        frt (datetime.datetime):
-            Single cube forecast reference time
-        include_scalar_coords (list):
-            List of iris.coords.DimCoord or AuxCoord instances of length 1.
-        attributes (dict):
-            Optional cube attributes.
-        standard_grid_metadata (str):
-            Recognised mosg__model_configuration for which to set up Met
-            Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
-            'gl_det' or 'gl_ens'.
     """
     # create a "relative to threshold" attribute
     coord_attributes = {"spp__relative_to_threshold": spp__relative_to_threshold}
@@ -431,14 +372,8 @@ def set_up_probability_cube(
         data,
         name=name,
         units="1",
-        spatial_grid=spatial_grid,
-        time=time,
-        frt=frt,
-        time_bounds=time_bounds,
         realizations=thresholds,
-        attributes=attributes,
-        include_scalar_coords=include_scalar_coords,
-        standard_grid_metadata=standard_grid_metadata,
+        **kwargs,
     )
     cube.coord("realization").rename(variable_name)
     cube.coord(variable_name).var_name = "threshold"
