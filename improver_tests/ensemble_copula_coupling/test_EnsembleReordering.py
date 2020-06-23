@@ -555,8 +555,7 @@ class Test_process(IrisTest):
         post_processed_percentiles = self.post_processed_percentiles[:, 0, 0]
         post_processed_percentiles.data = post_processed_percentiles_data
 
-        plugin = Plugin()
-        result = plugin.process(
+        result = Plugin().process(
             post_processed_percentiles, raw_cube, random_ordering=True
         )
 
@@ -613,8 +612,7 @@ class Test_process(IrisTest):
         post_processed_percentiles = self.post_processed_percentiles[:, 0, 0]
         post_processed_percentiles.data = post_processed_percentiles_data
 
-        plugin = Plugin()
-        result = plugin.process(post_processed_percentiles, raw_cube)
+        result = Plugin().process(post_processed_percentiles, raw_cube)
         permutations = [expected_first, expected_second]
         matches = [np.array_equal(aresult, result.data) for aresult in permutations]
         self.assertIn(True, matches)

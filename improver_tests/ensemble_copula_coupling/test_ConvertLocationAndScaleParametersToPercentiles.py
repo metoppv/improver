@@ -107,8 +107,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         variance. The resulting data values are the percentiles, which have
         been generated.
         """
-        plugin = Plugin()
-        result = plugin._location_and_scale_parameters_to_percentiles(
+        result = Plugin()._location_and_scale_parameters_to_percentiles(
             self.location_parameter,
             self.scale_parameter,
             self.temperature_cube,
@@ -131,8 +130,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.location_parameter.data = np.ma.masked_array(
             self.location_parameter.data, mask=mask
         )
-        plugin = Plugin()
-        result = plugin._location_and_scale_parameters_to_percentiles(
+        result = Plugin()._location_and_scale_parameters_to_percentiles(
             self.location_parameter,
             self.scale_parameter,
             self.temperature_cube,
@@ -154,8 +152,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.scale_parameter.data = np.ma.masked_array(
             self.scale_parameter.data, mask=mask
         )
-        plugin = Plugin()
-        result = plugin._location_and_scale_parameters_to_percentiles(
+        result = Plugin()._location_and_scale_parameters_to_percentiles(
             self.location_parameter,
             self.scale_parameter,
             self.temperature_cube,
@@ -181,8 +178,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.scale_parameter.data = np.ma.masked_array(
             self.scale_parameter.data, mask=mask2
         )
-        plugin = Plugin()
-        result = plugin._location_and_scale_parameters_to_percentiles(
+        result = Plugin()._location_and_scale_parameters_to_percentiles(
             self.location_parameter,
             self.scale_parameter,
             self.temperature_cube,
@@ -293,8 +289,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         current_forecast_variance = self.temperature_cube.collapsed(
             "realization", iris.analysis.VARIANCE
         )
-        plugin = Plugin()
-        result = plugin._location_and_scale_parameters_to_percentiles(
+        result = Plugin()._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor,
             current_forecast_variance,
             self.temperature_cube,
@@ -336,8 +331,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         current_forecast_variance = self.temperature_cube.collapsed(
             "realization", iris.analysis.VARIANCE
         )
-        plugin = Plugin()
-        result = plugin._location_and_scale_parameters_to_percentiles(
+        result = Plugin()._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor,
             current_forecast_variance,
             self.temperature_cube,
@@ -383,8 +377,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         current_forecast_variance = self.temperature_cube.collapsed(
             "realization", iris.analysis.VARIANCE
         )
-        plugin = Plugin()
-        result = plugin._location_and_scale_parameters_to_percentiles(
+        result = Plugin()._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor,
             current_forecast_variance,
             self.temperature_cube,
@@ -399,8 +392,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         are requested.
         """
         percentiles = np.linspace(1, 99, num=1000, endpoint=True)
-        plugin = Plugin()
-        result = plugin._location_and_scale_parameters_to_percentiles(
+        result = Plugin()._location_and_scale_parameters_to_percentiles(
             self.location_parameter,
             self.scale_parameter,
             self.temperature_cube,
@@ -415,10 +407,9 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         percentiles if negative probabilities are requested.
         """
         percentiles = [-10, 10]
-        plugin = Plugin()
         msg = "NaNs are present within the result for the"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin._location_and_scale_parameters_to_percentiles(
+            Plugin()._location_and_scale_parameters_to_percentiles(
                 self.location_parameter,
                 self.scale_parameter,
                 self.temperature_cube,
@@ -440,8 +431,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         current_forecast_variance = cube.collapsed(
             "realization", iris.analysis.VARIANCE
         )
-        plugin = Plugin()
-        result = plugin._location_and_scale_parameters_to_percentiles(
+        result = Plugin()._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor,
             current_forecast_variance,
             cube,
