@@ -55,7 +55,7 @@ from improver.calibration.utilities import (
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 
-from ...set_up_test_cubes import set_up_percentile_cube, set_up_variable_cube
+from improver.utilities.set_up_test_cubes import set_up_percentile_cube, set_up_variable_cube
 from ..ensemble_calibration.helper_functions import SetupCubes, set_up_temperature_cube
 from ..reliability_calibration.test_AggregateReliabilityCalibrationTables import (
     Test_Aggregation,

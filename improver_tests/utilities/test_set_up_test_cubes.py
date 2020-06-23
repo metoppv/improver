@@ -45,7 +45,7 @@ from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.temporal import iris_time_to_datetime
 
-from .set_up_test_cubes import (
+from improver.utilities.set_up_test_cubes import (
     add_coordinate,
     construct_scalar_time_coords,
     construct_xy_coords,

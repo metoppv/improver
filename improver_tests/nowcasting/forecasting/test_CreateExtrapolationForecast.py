@@ -38,7 +38,7 @@ from iris.tests import IrisTest
 from improver.nowcasting.forecasting import AdvectField, CreateExtrapolationForecast
 
 from ...nowcasting.forecasting.test_AdvectField import set_up_xy_velocity_cube
-from ...set_up_test_cubes import set_up_variable_cube
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 
 def setup_orographic_enhancement_cube():

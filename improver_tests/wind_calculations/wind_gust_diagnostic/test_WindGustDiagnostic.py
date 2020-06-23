@@ -43,7 +43,7 @@ from iris.tests import IrisTest
 from improver.utilities.warnings_handler import ManageWarnings
 from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 
-from ...set_up_test_cubes import add_coordinate, set_up_percentile_cube
+from improver.utilities.set_up_test_cubes import add_coordinate, set_up_percentile_cube
 
 
 def create_wind_percentile_cube(data=None, perc_values=None, name="wind_speed_of_gust"):

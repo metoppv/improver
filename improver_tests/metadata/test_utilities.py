@@ -43,7 +43,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_create_new_diagnostic_cube(unittest.TestCase):

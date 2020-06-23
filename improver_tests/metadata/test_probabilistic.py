@@ -45,7 +45,7 @@ from improver.metadata.probabilistic import (
     is_probability,
 )
 
-from ..set_up_test_cubes import (
+from improver.utilities.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,

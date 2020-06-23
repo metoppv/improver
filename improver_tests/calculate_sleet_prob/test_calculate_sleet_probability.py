@@ -38,7 +38,7 @@ from iris.tests import IrisTest
 from improver.calculate_sleet_prob import calculate_sleet_probability
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ..set_up_test_cubes import set_up_probability_cube
+from improver.utilities.set_up_test_cubes import set_up_probability_cube
 
 
 class Test_calculate_sleet_probability(IrisTest):

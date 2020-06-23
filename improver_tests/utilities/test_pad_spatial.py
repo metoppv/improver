@@ -46,7 +46,7 @@ from improver.utilities.pad_spatial import (
     remove_halo_from_cube,
 )
 
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_pad_coord(IrisTest):

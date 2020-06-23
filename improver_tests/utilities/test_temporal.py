@@ -51,7 +51,7 @@ from improver.utilities.temporal import (
 )
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
+from improver.utilities.set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 class Test_cycletime_to_datetime(IrisTest):

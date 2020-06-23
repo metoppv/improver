@@ -42,7 +42,7 @@ from improver.metadata.utilities import generate_mandatory_attributes
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.mathematical_operations import Integration, fast_linear_fit
 
-from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
+from improver.utilities.set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 def _set_up_height_cube(height_points, ascending=True):

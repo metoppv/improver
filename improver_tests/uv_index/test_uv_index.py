@@ -38,7 +38,7 @@ from iris.tests import IrisTest
 
 from improver.uv_index import calculate_uv_index
 
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_uv_index(IrisTest):

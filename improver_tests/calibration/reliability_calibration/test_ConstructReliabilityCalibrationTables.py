@@ -41,7 +41,7 @@ from improver.calibration.reliability_calibration import (
     ConstructReliabilityCalibrationTables as Plugin,
 )
 from improver.utilities.cube_manipulation import MergeCubes
-from improver_tests.set_up_test_cubes import set_up_probability_cube
+from improver.utilities.set_up_test_cubes import set_up_probability_cube
 
 
 class Test_Setup(unittest.TestCase):

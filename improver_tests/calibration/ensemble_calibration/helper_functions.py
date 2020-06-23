@@ -45,7 +45,7 @@ from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.probabilistic import extract_diagnostic_name
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...set_up_test_cubes import set_up_variable_cube
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate"]
 WARNING_TYPES = [UserWarning]
@@ -524,7 +524,7 @@ def _create_historic_forecasts(
     provided, and assuming that there will be one forecast per day at the
     same hour of the day.
 
-    Please see improver.tests.set_up_test_cubes.set_up_variable_cube for the
+    Please see improver.utilities.set_up_test_cubes.set_up_variable_cube for the
     supported keyword arguments.
 
     Args:
@@ -540,7 +540,7 @@ def _create_historic_forecasts(
             Datetime to define the initial forecast reference time. This will
             be incremented in days up to the defined number_of_days.
         standard_grid_metadata (str):
-            Please see improver.tests.set_up_test_cubes.set_up_variable_cube.
+            Please see improver.utilities.set_up_test_cubes.set_up_variable_cube.
         number_of_days(int):
             Number of days to increment when constructing a cubelist of the
             historic forecasts.
@@ -570,7 +570,7 @@ def _create_truth(data, time_dt, number_of_days=5, **kwargs):
     Function to create truth cubes, based on the input cube, and assuming that
     there will be one forecast per day at the same hour of the day.
 
-    Please see improver.tests.set_up_test_cubes.set_up_variable_cube for the
+    Please see improver.utilities.set_up_test_cubes.set_up_variable_cube for the
     other supported keyword arguments.
 
     Args:
@@ -583,7 +583,7 @@ def _create_truth(data, time_dt, number_of_days=5, **kwargs):
             Datetime to define the initial validity time. This will be
             incremented in days up to the defined number_of_days.
         standard_grid_metadata (str):
-            Please see improver.tests.set_up_test_cubes.set_up_variable_cube.
+            Please see improver.utilities.set_up_test_cubes.set_up_variable_cube.
         number_of_days(int):
             Number of days to increment when constructing a cubelist of the
             historic forecasts.

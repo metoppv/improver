@@ -43,7 +43,7 @@ from improver.calibration.reliability_calibration import (
     ConstructReliabilityCalibrationTables as CalPlugin,
 )
 from improver.utilities.warnings_handler import ManageWarnings
-from improver_tests.set_up_test_cubes import set_up_probability_cube
+from improver.utilities.set_up_test_cubes import set_up_probability_cube
 
 
 class Test_ReliabilityCalibrate(unittest.TestCase):

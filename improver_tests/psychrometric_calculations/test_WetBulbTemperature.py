@@ -42,7 +42,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     WetBulbTemperature,
 )
 
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_psychrometric_variables(IrisTest):

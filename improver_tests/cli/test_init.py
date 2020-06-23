@@ -49,7 +49,7 @@ from improver.cli import (
     with_output,
 )
 
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 
 def dummy_function(first, second=0, third=2):

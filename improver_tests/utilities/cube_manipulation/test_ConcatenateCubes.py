@@ -42,7 +42,7 @@ from iris.tests import IrisTest
 
 from improver.utilities.cube_manipulation import ConcatenateCubes
 
-from ...set_up_test_cubes import set_up_variable_cube
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 
 def check_coord_type(cube, coord):

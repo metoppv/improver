@@ -43,7 +43,7 @@ from netCDF4 import Dataset
 from improver.utilities.load import load_cube
 from improver.utilities.save import _order_cell_methods, save_netcdf
 
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 
 def set_up_test_cube():

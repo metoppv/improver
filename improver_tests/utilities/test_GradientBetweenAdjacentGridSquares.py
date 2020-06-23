@@ -37,7 +37,7 @@ from iris.cube import Cube
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 
 @pytest.fixture(name="wind_speed")
