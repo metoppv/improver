@@ -39,6 +39,7 @@ from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
 
+from improver.utilities.set_up_test_cubes import add_coordinate, set_up_variable_cube
 from improver.utilities.temporal import (
     cycletime_to_datetime,
     cycletime_to_number,
@@ -50,8 +51,6 @@ from improver.utilities.temporal import (
     iris_time_to_datetime,
 )
 from improver.utilities.warnings_handler import ManageWarnings
-
-from improver.utilities.set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 class Test_cycletime_to_datetime(IrisTest):

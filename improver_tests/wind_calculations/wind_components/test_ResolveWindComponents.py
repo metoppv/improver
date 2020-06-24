@@ -39,9 +39,8 @@ from iris.coord_systems import OSGB
 from iris.coords import DimCoord
 from iris.tests import IrisTest
 
-from improver.wind_calculations.wind_components import ResolveWindComponents
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
+from improver.wind_calculations.wind_components import ResolveWindComponents
 
 RAD_TO_DEG = 180.0 / np.pi
 

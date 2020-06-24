@@ -47,7 +47,6 @@ from improver.utilities.cube_extraction import (
     is_complex_parsing_required,
     parse_constraint_list,
 )
-
 from improver.utilities.set_up_test_cubes import set_up_probability_cube
 
 

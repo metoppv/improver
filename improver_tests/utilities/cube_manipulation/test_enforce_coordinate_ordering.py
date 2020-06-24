@@ -40,7 +40,6 @@ from iris.tests import IrisTest
 
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-
 from improver.utilities.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,

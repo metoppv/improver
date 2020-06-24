@@ -42,7 +42,6 @@ from iris.tests import IrisTest
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.load import load_cube, load_cubelist
 from improver.utilities.save import save_netcdf
-
 from improver.utilities.set_up_test_cubes import (
     add_coordinate,
     set_up_percentile_cube,

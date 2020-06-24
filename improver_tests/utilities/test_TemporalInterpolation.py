@@ -38,9 +38,8 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
-from improver.utilities.temporal_interpolation import TemporalInterpolation
-
 from improver.utilities.set_up_test_cubes import add_coordinate, set_up_variable_cube
+from improver.utilities.temporal_interpolation import TemporalInterpolation
 
 
 class Test__init__(IrisTest):

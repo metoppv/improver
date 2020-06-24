@@ -36,7 +36,6 @@ from iris.cube import Cube
 from numpy.ma import MaskedArray
 
 from improver.nowcasting.utilities import FillRadarHoles
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 

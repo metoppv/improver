@@ -38,7 +38,6 @@ import iris
 import numpy as np
 
 from improver.utilities.cube_manipulation import strip_var_names
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 

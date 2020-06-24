@@ -41,9 +41,8 @@ from iris.tests import IrisTest
 from improver.constants import DALR
 from improver.lapse_rate import LapseRate
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-from improver.utilities.warnings_handler import ManageWarnings
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__repr__(IrisTest):

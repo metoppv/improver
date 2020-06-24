@@ -43,7 +43,6 @@ from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.orographic_enhancement import OrographicEnhancement
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-
 from improver.utilities.set_up_test_cubes import construct_scalar_time_coords
 
 # UKPP projection

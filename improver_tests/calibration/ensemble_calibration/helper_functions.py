@@ -43,9 +43,8 @@ from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.probabilistic import extract_diagnostic_name
-from improver.utilities.warnings_handler import ManageWarnings
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate"]
 WARNING_TYPES = [UserWarning]

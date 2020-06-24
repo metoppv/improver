@@ -38,9 +38,8 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import generate_optical_flow_components
-from improver.utilities.warnings_handler import ManageWarnings
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_generate_optical_flow_components(IrisTest):

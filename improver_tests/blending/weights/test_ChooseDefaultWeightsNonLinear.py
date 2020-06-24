@@ -40,7 +40,6 @@ from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseDefaultWeightsNonLinear as NonLinearWeights
-
 from improver.utilities.set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 

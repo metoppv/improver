@@ -42,7 +42,6 @@ from iris.exceptions import ConcatenateError
 from iris.tests import IrisTest
 
 from improver.utilities.cube_manipulation import concatenate_cubes
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 

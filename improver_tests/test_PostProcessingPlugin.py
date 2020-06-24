@@ -35,7 +35,6 @@ import unittest
 import numpy as np
 
 from improver import PostProcessingPlugin
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 

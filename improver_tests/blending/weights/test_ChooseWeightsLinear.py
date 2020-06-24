@@ -41,7 +41,6 @@ from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseWeightsLinear
 from improver.metadata.forecast_times import forecast_period_coord
-
 from improver.utilities.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,

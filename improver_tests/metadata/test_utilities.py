@@ -42,7 +42,6 @@ from improver.metadata.utilities import (
     generate_hash,
     generate_mandatory_attributes,
 )
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 

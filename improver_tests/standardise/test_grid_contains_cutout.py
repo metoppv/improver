@@ -35,9 +35,8 @@ import unittest
 import numpy as np
 
 from improver.standardise import grid_contains_cutout
-from improver.utilities.spatial import calculate_grid_spacing
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.spatial import calculate_grid_spacing
 
 
 class Test_grid_contains_cutout(unittest.TestCase):

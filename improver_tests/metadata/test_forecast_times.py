@@ -46,9 +46,8 @@ from improver.metadata.forecast_times import (
     rebadge_forecasts_as_latest_cycle,
     unify_cycletime,
 )
-from improver.utilities.warnings_handler import ManageWarnings
-
 from improver.utilities.set_up_test_cubes import add_coordinate, set_up_variable_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_forecast_period_coord(IrisTest):

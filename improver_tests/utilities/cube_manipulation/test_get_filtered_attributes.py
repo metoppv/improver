@@ -38,7 +38,6 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.utilities.cube_manipulation import get_filtered_attributes
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 

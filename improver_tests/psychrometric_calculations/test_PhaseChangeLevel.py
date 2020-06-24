@@ -42,7 +42,6 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     PhaseChangeLevel,
 )
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-
 from improver.utilities.set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 

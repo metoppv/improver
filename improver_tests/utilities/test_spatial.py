@@ -43,6 +43,7 @@ from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
 
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import (
     calculate_grid_spacing,
     check_if_grid_is_equal_area,
@@ -53,7 +54,6 @@ from improver.utilities.spatial import (
 )
 
 from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
-from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_common_functions(IrisTest):

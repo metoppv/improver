@@ -38,7 +38,6 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.nowcasting.utilities import ExtendRadarMask
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 

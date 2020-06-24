@@ -38,8 +38,10 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.cube_combiner import CubeCombiner
-
-from improver.utilities.set_up_test_cubes import set_up_probability_cube, set_up_variable_cube
+from improver.utilities.set_up_test_cubes import (
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 
 
 class Test__init__(IrisTest):

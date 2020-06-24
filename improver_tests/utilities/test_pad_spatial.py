@@ -45,7 +45,6 @@ from improver.utilities.pad_spatial import (
     remove_cube_halo,
     remove_halo_from_cube,
 )
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 

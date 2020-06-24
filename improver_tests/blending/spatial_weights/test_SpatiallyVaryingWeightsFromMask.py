@@ -44,9 +44,8 @@ from iris.util import squeeze
 
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.utilities.warnings_handler import ManageWarnings
-
 from improver.utilities.set_up_test_cubes import set_up_probability_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__repr__(IrisTest):

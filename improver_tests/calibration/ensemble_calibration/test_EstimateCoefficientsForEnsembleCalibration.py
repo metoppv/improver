@@ -49,9 +49,9 @@ from improver.calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration as Plugin,
 )
 from improver.metadata.utilities import generate_mandatory_attributes
+from improver.utilities.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
-from improver.utilities.set_up_test_cubes import set_up_variable_cube
 from .helper_functions import (
     EnsembleCalibrationAssertions,
     SetupCubes,

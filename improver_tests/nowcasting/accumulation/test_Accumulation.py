@@ -39,9 +39,8 @@ from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.nowcasting.accumulation import Accumulation
-from improver.utilities.warnings_handler import ManageWarnings
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class rate_cube_set_up(IrisTest):

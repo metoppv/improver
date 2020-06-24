@@ -48,7 +48,6 @@ from improver.cli import (
     unbracket,
     with_output,
 )
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 

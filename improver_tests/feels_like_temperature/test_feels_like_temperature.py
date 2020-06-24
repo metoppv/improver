@@ -40,7 +40,6 @@ from improver.feels_like_temperature import (
     _calculate_wind_chill,
     calculate_feels_like_temperature,
 )
-
 from improver.utilities.set_up_test_cubes import set_up_variable_cube
 
 
