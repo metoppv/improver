@@ -44,6 +44,7 @@ from iris.tests import IrisTest
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations as Plugin,
 )
+
 from ..set_up_test_cubes import set_up_percentile_cube
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
 
@@ -57,7 +58,7 @@ class Test_process(IrisTest):
         """Set up temperature percentile cube for testing"""
         self.cube = set_up_percentile_cube(
             np.sort(ECC_TEMPERATURE_REALIZATIONS, axis=0),
-            np.array([10, 50, 90], dtype=np.float32)
+            np.array([10, 50, 90], dtype=np.float32),
         )
 
     def test_basic(self):

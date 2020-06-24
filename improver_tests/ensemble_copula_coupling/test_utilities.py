@@ -57,6 +57,8 @@ from ..calibration.ensemble_calibration.helper_functions import (
     set_up_spot_temperature_cube,
     set_up_temperature_cube,
 )
+from ..set_up_test_cubes import set_up_variable_cube
+from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
 
 class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
@@ -156,68 +158,38 @@ class Test_create_cube_with_percentiles(IrisTest):
 
     def setUp(self):
         """Set up temperature cube."""
-        current_temperature_forecast_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_temperature_cube()
-        )
-
-        self.cube_data = current_temperature_forecast_cube.data
-
-        current_temperature_spot_forecast_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_spot_temperature_cube()
-        )
-        self.cube_spot_data = current_temperature_spot_forecast_cube.data
-
-        cube = next(current_temperature_forecast_cube.slices_over("realization"))
-        cube.remove_coord("realization")
-        self.current_temperature_forecast_cube = cube
-
-        for cube in current_temperature_spot_forecast_cube.slices_over("realization"):
-            cube.remove_coord("realization")
-            break
-        self.current_temperature_spot_forecast_cube = cube
+        self.cube = set_up_variable_cube(ECC_TEMPERATURE_REALIZATIONS[0])
+        self.cube_data = ECC_TEMPERATURE_REALIZATIONS
 
     def test_basic(self):
-        """Test that the plugin returns an Iris.cube.Cube."""
-        cube = self.current_temperature_forecast_cube
+        """Test that the plugin returns an Iris.cube.Cube with suitable units."""
         cube_data = self.cube_data + 2
         percentiles = [10, 50, 90]
-        result = create_cube_with_percentiles(percentiles, cube, cube_data)
+        result = create_cube_with_percentiles(percentiles, self.cube, cube_data)
         self.assertIsInstance(result, Cube)
-
-    def test_resulting_cube_units(self):
-        """Test that the plugin returns a cube of suitable units."""
-        cube = self.current_temperature_forecast_cube
-        cube_data = self.cube_data + 2
-        percentiles = [10, 50, 90]
-        result = create_cube_with_percentiles(percentiles, cube, cube_data)
-        self.assertEqual(result.units, cube.units)
+        self.assertEqual(result.units, self.cube.units)
 
     def test_changed_cube_units(self):
         """Test that the plugin returns a cube with chosen units."""
-        cube = self.current_temperature_forecast_cube
         cube_data = self.cube_data + 2
         percentiles = [10, 50, 90]
         result = create_cube_with_percentiles(
-            percentiles, cube, cube_data, cube_unit="1"
+            percentiles, self.cube, cube_data, cube_unit="1"
         )
         self.assertEqual(result.units, Unit("1"))
 
     def test_many_percentiles(self):
+        """Test that the plugin returns an Iris.cube.Cube with many percentiles.
         """
-        Test that the plugin returns an Iris.cube.Cube with many
-        percentiles.
-        """
-        cube = self.current_temperature_forecast_cube
         percentiles = np.linspace(0, 100, 100)
         cube_data = np.zeros(
             [
                 len(percentiles),
-                len(cube.coord("time").points),
-                len(cube.coord("latitude").points),
-                len(cube.coord("longitude").points),
+                len(self.cube.coord("latitude").points),
+                len(self.cube.coord("longitude").points),
             ]
         )
-        result = create_cube_with_percentiles(percentiles, cube, cube_data)
+        result = create_cube_with_percentiles(percentiles, self.cube, cube_data)
         self.assertEqual(cube_data.shape, result.data.shape)
 
     def test_incompatible_percentiles(self):
@@ -225,29 +197,26 @@ class Test_create_cube_with_percentiles(IrisTest):
         Test that the plugin fails if the percentile values requested
         are not numbers.
         """
-        cube = self.current_temperature_forecast_cube
         percentiles = ["cat", "dog", "elephant"]
         cube_data = np.zeros(
             [
                 len(percentiles),
-                len(cube.coord("time").points),
-                len(cube.coord("latitude").points),
-                len(cube.coord("longitude").points),
+                len(self.cube.coord("latitude").points),
+                len(self.cube.coord("longitude").points),
             ]
         )
         msg = "could not convert string to float"
         with self.assertRaisesRegex(ValueError, msg):
-            create_cube_with_percentiles(percentiles, cube, cube_data)
+            create_cube_with_percentiles(percentiles, self.cube, cube_data)
 
     def test_percentile_points(self):
         """
         Test that the plugin returns an Iris.cube.Cube
         with a percentile coordinate with the desired points.
         """
-        cube = self.current_temperature_forecast_cube
         cube_data = self.cube_data + 2
         percentiles = [10, 50, 90]
-        result = create_cube_with_percentiles(percentiles, cube, cube_data)
+        result = create_cube_with_percentiles(percentiles, self.cube, cube_data)
         self.assertIsInstance(result.coord("percentile"), DimCoord)
         self.assertArrayAlmostEqual(result.coord("percentile").points, percentiles)
 
@@ -257,10 +226,13 @@ class Test_create_cube_with_percentiles(IrisTest):
         coordinate and that the percentile dimension has the expected points
         for an input spot forecast.
         """
-        cube = self.current_temperature_spot_forecast_cube
-        cube_data = self.cube_spot_data + 2
+        cube = set_up_spot_test_cube()
+        spot_data = cube.data.copy() + 2
+        spot_cube = next(cube.slices_over("realization"))
+        spot_cube.remove_coord("realization")
+
         percentiles = [10, 50, 90]
-        result = create_cube_with_percentiles(percentiles, cube, cube_data)
+        result = create_cube_with_percentiles(percentiles, spot_cube, spot_data)
         self.assertIsInstance(result, Cube)
         self.assertIsInstance(result.coord("percentile"), DimCoord)
         self.assertArrayAlmostEqual(result.coord("percentile").points, percentiles)
@@ -268,53 +240,47 @@ class Test_create_cube_with_percentiles(IrisTest):
     def test_percentile_length_too_short(self):
         """
         Test that the plugin raises the default ValueError, if the number
-        of percentiles is fewer than the length of the zeroth dimension within
-        the cube.
+        of percentiles is fewer than the length of the zeroth dimension of the
+        required cube data.
         """
-        cube = self.current_temperature_forecast_cube
         cube_data = self.cube_data + 2
         percentiles = [10, 50]
-        msg = "Unequal lengths"
+        msg = "Require data with shape"
         with self.assertRaisesRegex(ValueError, msg):
-            create_cube_with_percentiles(percentiles, cube, cube_data)
+            create_cube_with_percentiles(percentiles, self.cube, cube_data)
 
     def test_percentile_length_too_long(self):
         """
         Test that the plugin raises the default ValueError, if the number
-        of percentiles exceeds the length of the zeroth dimension within
-        the cube.
+        of percentiles exceeds the length of the zeroth dimension of the
+        required data.
         """
-        cube = self.current_temperature_forecast_cube
-        cube = cube[0, :, :, :]
-        cube_data = self.cube_data + 2
+        cube_data = self.cube_data[0, :, :] + 2
         percentiles = [10, 50, 90]
-        msg = "Unequal lengths"
+        msg = "Require data with shape"
         with self.assertRaisesRegex(ValueError, msg):
-            create_cube_with_percentiles(percentiles, cube, cube_data)
+            create_cube_with_percentiles(percentiles, self.cube, cube_data)
 
     def test_metadata_copy(self):
         """
         Test that the metadata dictionaries within the input cube, are
         also present on the output cube.
         """
-        cube = self.current_temperature_forecast_cube
-        cube.attributes = {"source": "ukv"}
+        self.cube.attributes = {"source": "ukv"}
         cube_data = self.cube_data + 2
         percentiles = [10, 50, 90]
-        result = create_cube_with_percentiles(percentiles, cube, cube_data)
-        self.assertDictEqual(cube.metadata._asdict(), result.metadata._asdict())
+        result = create_cube_with_percentiles(percentiles, self.cube, cube_data)
+        self.assertDictEqual(self.cube.metadata._asdict(), result.metadata._asdict())
 
     def test_coordinate_copy(self):
         """
         Test that the coordinates within the input cube, are
         also present on the output cube.
         """
-        cube = self.current_temperature_forecast_cube
-        cube.attributes = {"source": "ukv"}
         cube_data = self.cube_data + 2
         percentiles = [10, 50, 90]
-        result = create_cube_with_percentiles(percentiles, cube, cube_data)
-        for coord in cube.coords():
+        result = create_cube_with_percentiles(percentiles, self.cube, cube_data)
+        for coord in self.cube.coords():
             if coord not in result.coords():
                 msg = "Coordinate: {} not found in cube {}".format(coord, result)
                 raise CoordinateNotFoundError(msg)

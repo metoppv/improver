@@ -158,31 +158,27 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data, cube_uni
             template cube.
 
     """
-    percentile_coord = iris.coords.DimCoord(
-        np.float32(percentiles), long_name="percentile", units=unit.Unit("%")
-    )
+    # create cube with new percentile dimension
+    cubes = iris.cube.CubeList([])
+    for point in percentiles:
+        cube = template_cube.copy()
+        cube.add_aux_coord(
+            iris.coords.AuxCoord(
+                np.float32(point), long_name="percentile", units=unit.Unit("%")
+            )
+        )
+        cubes.append(cube)
+    result = cubes.merge_cube()
 
-    metadata_dict = copy.deepcopy(template_cube.metadata._asdict())
-    result = iris.cube.Cube(cube_data, **metadata_dict)
+    # if percentile is single-valued, promote new coordinate to dimension
+    if len(percentiles) == 1:
+        result = iris.util.new_axis(result, result.coord("percentile"))
+
+    # replace data and units
+    result.data = cube_data
     if cube_unit is not None:
         result.units = cube_unit
-    result.add_dim_coord(percentile_coord, 0)
 
-    # For the dimension coordinates, the dimensions are incremented by one,
-    # as the percentile coordinate has been added as the zeroth coordinate.
-    # The dimension associated with the auxiliary and derived coordinates
-    # has also been incremented by one.
-    for coord in template_cube.dim_coords:
-        (dim,) = template_cube.coord_dims(coord)
-        result.add_dim_coord(coord.copy(), dim + 1)
-    for coord in template_cube.aux_coords:
-        dims = template_cube.coord_dims(coord)
-        dims = tuple([dim + 1 for dim in dims])
-        result.add_aux_coord(coord.copy(), dims)
-    for coord in template_cube.derived_coords:
-        dims = template_cube.coord_dims(coord)
-        dims = tuple([dim + 1 for dim in dims])
-        result.add_aux_coord(coord.copy(), dims)
     return result
 
 
