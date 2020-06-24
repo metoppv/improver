@@ -475,15 +475,6 @@ def set_up_spot_cube(data, phenomenon_standard_name, phenomenon_units):
     return cube
 
 
-def set_up_spot_temperature_cube():
-    """Create a cube with metadata and values suitable for air temperature."""
-    data = np.tile(np.linspace(-45.0, 45.0, 9), 3).reshape(3, 1, 9) + 273.15
-    data[0] -= 2
-    data[1] += 2
-    data[2] += 4
-    return set_up_spot_cube(data.astype(np.float32), "air_temperature", "K")
-
-
 def set_up_wind_speed_cube():
     """Create a cube with metadata and values suitable for wind speed."""
     data = np.tile(np.linspace(0, 60, 9), 3).reshape(3, 1, 3, 3)

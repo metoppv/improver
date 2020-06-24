@@ -43,6 +43,7 @@ ECC_TEMPERATURE_REALIZATIONS = np.array(
     dtype=np.float32,
 )
 
+
 ECC_SPOT_TEMPERATURES = np.array(
     [
         [226.15, 237.4, 248.65, 259.9, 271.15, 282.4, 293.65, 304.9, 316.15],
@@ -53,14 +54,22 @@ ECC_SPOT_TEMPERATURES = np.array(
 )
 
 
-def set_up_spot_test_cube():
+def set_up_spot_test_cube(type="realization"):
     """Use spotdata code to build a test cube with the expected spot metadata,
     with dummy values for the coordinates which are not used in ECC tests"""
     dummy_point_locations = np.arange(9).astype(np.float32)
     dummy_string_ids = [f"{i}" for i in range(9)]
-    realization_coord = DimCoord(
-        np.arange(3).astype(np.int32), units="1", standard_name="realization"
-    )
+    if type == "realization":
+        add_coord = DimCoord(
+            np.arange(3).astype(np.int32), standard_name="realization", units="1"
+        )
+    elif type == "percentile":
+        add_coord = DimCoord(
+            np.array([10, 50, 90], dtype = np.float32),
+            long_name="percentile",
+            units="%",
+        )
+
     return build_spotdata_cube(
         ECC_SPOT_TEMPERATURES,
         name="screen_temperature",
@@ -69,5 +78,5 @@ def set_up_spot_test_cube():
         latitude=dummy_point_locations,
         longitude=dummy_point_locations,
         wmo_id=dummy_string_ids,
-        additional_dims=[realization_coord],
+        additional_dims=[add_coord],
     )
