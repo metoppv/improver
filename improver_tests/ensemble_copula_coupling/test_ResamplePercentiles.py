@@ -42,13 +42,12 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 )
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ..set_up_test_cubes import set_up_percentile_cube, set_up_variable_cube
-from .ecc_test_data import set_up_spot_test_cube
-
 from ..calibration.ensemble_calibration.helper_functions import (
     add_forecast_reference_time_and_forecast_period,
     set_up_cube,
 )
+from ..set_up_test_cubes import set_up_percentile_cube, set_up_variable_cube
+from .ecc_test_data import set_up_spot_test_cube
 
 
 class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
@@ -71,7 +70,7 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
             np.sort(data.astype(np.float32), axis=0),
             np.array([10, 50, 90], dtype=np.float32),
             name="air_temperature",
-            units="degC"
+            units="degC",
         )
 
     def test_basic(self):
@@ -208,7 +207,7 @@ class Test__interpolate_percentiles(IrisTest):
             np.sort(data.astype(np.float32), axis=0),
             np.array([10, 50, 90], dtype=np.float32),
             name="air_temperature",
-            units="degC"
+            units="degC",
         )
 
     def test_basic(self):
@@ -261,7 +260,7 @@ class Test__interpolate_percentiles(IrisTest):
             np.array([[[8]], [[10]], [[12]]], dtype=np.float32),
             np.array(percentiles, dtype=np.float32),
             name="air_temperature",
-            units="degC"
+            units="degC",
         )
 
         bounds_pairing = (-40, 50)
@@ -348,14 +347,14 @@ class Test__interpolate_percentiles(IrisTest):
             [
                 [[4.0, 4.625, 5.25], [5.875, 6.5, 7.125], [7.75, 8.375, 9.0]],
                 [
-                        [24.44444444, 24.79166667, 25.13888889],
-                        [25.48611111, 25.83333333, 26.18055556],
-                        [26.52777778, 26.875, 27.22222222],
+                    [24.44444444, 24.79166667, 25.13888889],
+                    [25.48611111, 25.83333333, 26.18055556],
+                    [26.52777778, 26.875, 27.22222222],
                 ],
                 [
-                        [44.88888889, 44.95833333, 45.02777778],
-                        [45.09722222, 45.16666667, 45.23611111],
-                        [45.30555556, 45.375, 45.44444444],
+                    [44.88888889, 44.95833333, 45.02777778],
+                    [45.09722222, 45.16666667, 45.23611111],
+                    [45.30555556, 45.375, 45.44444444],
                 ],
             ],
             dtype=np.float32,
@@ -414,9 +413,9 @@ class Test__interpolate_percentiles(IrisTest):
         data = np.array(
             [
                 [
-                        [-18.0, -17.6875, -17.375],
-                        [-17.0625, -16.75, -16.4375],
-                        [-16.125, -15.8125, -15.5],
+                    [-18.0, -17.6875, -17.375],
+                    [-17.0625, -16.75, -16.4375],
+                    [-16.125, -15.8125, -15.5],
                 ],
                 [[4.25, 4.875, 5.5], [6.125, 6.75, 7.375], [8.0, 8.625, 9.25]],
                 [[4.75, 5.375, 6.0], [6.625, 7.25, 7.875], [8.5, 9.125, 9.75]],
@@ -427,9 +426,9 @@ class Test__interpolate_percentiles(IrisTest):
                 [[7.25, 7.875, 8.5], [9.125, 9.75, 10.375], [11.0, 11.625, 12.25]],
                 [[7.75, 8.375, 9.0], [9.625, 10.25, 10.875], [11.5, 12.125, 12.75]],
                 [
-                        [29.0, 29.3125, 29.625],
-                        [29.9375, 30.25, 30.5625],
-                        [30.875, 31.1875, 31.5],
+                    [29.0, 29.3125, 29.625],
+                    [29.9375, 30.25, 30.5625],
+                    [30.875, 31.1875, 31.5],
                 ],
             ]
         )
@@ -448,7 +447,7 @@ class Test__interpolate_percentiles(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for the percentiles for spot forecasts.
         """
-        spot_percentile_cube = set_up_spot_test_cube(type='percentile')
+        spot_percentile_cube = set_up_spot_test_cube(type="percentile")
         spot_percentile_cube.data = np.tile(np.linspace(5, 10, 3), 9).reshape(3, 9)
 
         data = np.array(

@@ -65,9 +65,7 @@ def set_up_spot_test_cube(type="realization"):
         )
     elif type == "percentile":
         add_coord = DimCoord(
-            np.array([10, 50, 90], dtype = np.float32),
-            long_name="percentile",
-            units="%",
+            np.array([10, 50, 90], dtype=np.float32), long_name="percentile", units="%",
         )
 
     return build_spotdata_cube(
