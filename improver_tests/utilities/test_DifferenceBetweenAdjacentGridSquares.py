@@ -63,7 +63,7 @@ class Test_create_difference_cube(IrisTest):
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord(axis="y").points, expected_y)
-        self.assertArrayAlmostEqual(result.data, self.diff_in_y_array)
+        self.assertArrayEqual(result.data, self.diff_in_y_array)
 
     def test_x_dimension(self):
         """Test differences calculated along the x dimension."""
@@ -75,7 +75,7 @@ class Test_create_difference_cube(IrisTest):
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x)
-        self.assertArrayAlmostEqual(result.data, diff_array)
+        self.assertArrayEqual(result.data, diff_array)
 
     def test_othercoords(self):
         """Test that other coords are transferred properly"""
@@ -105,7 +105,7 @@ class Test_calculate_difference(IrisTest):
             self.cube, self.cube.coord(axis="x").name()
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        self.assertArrayEqual(result, expected)
 
     def test_y_dimension(self):
         """Test differences calculated along the y dimension."""
@@ -114,7 +114,7 @@ class Test_calculate_difference(IrisTest):
             self.cube, self.cube.coord(axis="y").name()
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        self.assertArrayEqual(result, expected)
 
     def test_missing_data(self):
         """Test that the result is as expected when data is missing."""
@@ -161,9 +161,9 @@ class Test_process(IrisTest):
         expected_y = np.array([[1, 2, 3], [3, 6, 9]])
         result = self.plugin.process(self.cube)
         self.assertIsInstance(result[0], Cube)
-        self.assertArrayAlmostEqual(result[0].data, expected_x)
+        self.assertArrayEqual(result[0].data, expected_x)
         self.assertIsInstance(result[1], Cube)
-        self.assertArrayAlmostEqual(result[1].data, expected_y)
+        self.assertArrayEqual(result[1].data, expected_y)
 
     def test_metadata(self):
         """Test the resulting metadata is correct."""
@@ -195,9 +195,9 @@ class Test_process(IrisTest):
         )
         result = self.plugin.process(cube)
         self.assertIsInstance(result[0], iris.cube.Cube)
-        self.assertArrayAlmostEqual(result[0].data, expected_x)
+        self.assertArrayEqual(result[0].data, expected_x)
         self.assertIsInstance(result[1], iris.cube.Cube)
-        self.assertArrayAlmostEqual(result[1].data, expected_y)
+        self.assertArrayEqual(result[1].data, expected_y)
 
 
 if __name__ == "__main__":

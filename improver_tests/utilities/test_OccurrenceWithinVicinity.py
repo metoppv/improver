@@ -31,6 +31,7 @@
 """Unit tests for the utilities.OccurrenceWithinVicinity plugin."""
 
 import unittest
+import datetime
 
 import numpy as np
 from iris.cube import Cube
@@ -58,7 +59,8 @@ class Test_maximum_within_vicinity(IrisTest):
     def setUp(self):
         """Set up distance."""
         self.distance = 2000
-        grid_values = np.arange(0.0, 10000.0, 2000.0)
+        grid_values = np.arange(0.0, 10000.0, 2000.0,
+            dtype=np.float32)
         self.cube = set_up_variable_cube(
             np.zeros((5, 5), dtype=np.float32), spatial_grid="equalarea"
         )
@@ -157,8 +159,10 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up distance."""
         self.distance = 2000
-        coords = np.array([0.0, 2000.0, 4000.0, 6000.0])
-        self.timesteps = np.array([402192.5, 402195.5], dtype=np.float32)
+        coords = np.array([0.0, 2000.0, 4000.0, 6000.0],
+            dtype=np.float32)
+        self.timesteps = [datetime.datetime(2017, 11, 9, 12),
+            datetime.datetime(2017, 11, 9, 15)]
         self.cube = set_up_variable_cube(
             np.zeros((2, 4, 4), dtype=np.float32),
             "lwe_precipitation_rate",
@@ -203,7 +207,13 @@ class Test_process(IrisTest):
                 ],
             ]
         )
-        cube = add_coordinate(self.cube, self.timesteps, "time", order=[1, 0, 2, 3])
+        cube = add_coordinate(
+            self.cube,
+            self.timesteps,
+            "time",
+            order=[1, 0, 2, 3],
+            is_datetime=True,
+        )
         cube.data[0, 0, 2, 1] = 1.0
         cube.data[1, 1, 1, 3] = 1.0
         orig_shape = cube.data.copy().shape
@@ -257,7 +267,12 @@ class Test_process(IrisTest):
             ]
         )
         cube = self.cube[0]
-        cube = add_coordinate(cube, self.timesteps, "time",)
+        cube = add_coordinate(
+            cube,
+            self.timesteps,
+            "time",
+            is_datetime=True,
+        )
         cube.data[0, 2, 1] = 1.0
         cube.data[1, 1, 3] = 1.0
         orig_shape = cube.data.shape
