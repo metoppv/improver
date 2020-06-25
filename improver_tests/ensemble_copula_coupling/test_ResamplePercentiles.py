@@ -64,24 +64,14 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         data[0] -= 1
         data[1] += 1
         data[2] += 3
-        self.realization_cube = set_up_variable_cube(
-            data.astype(np.float32), name="air_temperature", units="degC"
-        )
-        self.percentile_cube = set_up_percentile_cube(
-            np.sort(data.astype(np.float32), axis=0),
-            np.array([10, 50, 90], dtype=np.float32),
-            name="air_temperature",
-            units="degC",
-        )
+        self.forecast_at_percentiles = data.reshape(3, 9)
+        self.percentiles = np.array([10, 50, 90], dtype=np.float32)
+        self.bounds_pairing = (-40, 50)
 
     def test_basic(self):
         """Test that the plugin returns two numpy arrays."""
-        cube = self.percentile_cube
-        percentiles = cube.coord("percentile").points
-        forecast_at_percentiles = cube.data.reshape(3, 9)
-        bounds_pairing = (-40, 50)
         result = Plugin()._add_bounds_to_percentiles_and_forecast_at_percentiles(
-            percentiles, forecast_at_percentiles, bounds_pairing
+            self.percentiles, self.forecast_at_percentiles, self.bounds_pairing
         )
         self.assertIsInstance(result[0], np.ndarray)
         self.assertIsInstance(result[1], np.ndarray)
@@ -91,12 +81,8 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         Test that the plugin returns the expected results for the
         percentiles, where the percentile values have been padded with 0 and 1.
         """
-        cube = self.percentile_cube
-        percentiles = cube.coord("percentile").points
-        forecast_at_percentiles = cube.data.reshape(3, 9)
-        bounds_pairing = (-40, 50)
         result = Plugin()._add_bounds_to_percentiles_and_forecast_at_percentiles(
-            percentiles, forecast_at_percentiles, bounds_pairing
+            self.percentiles, self.forecast_at_percentiles, self.bounds_pairing
         )
         self.assertArrayAlmostEqual(result[0][0], 0)
         self.assertArrayAlmostEqual(result[0][-1], 100)
@@ -107,18 +93,18 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         forecast values, where they've been padded with the values from the
         bounds_pairing.
         """
-        cube = self.percentile_cube
-        percentiles = cube.coord("percentile").points
-        forecast_at_percentiles = cube.data.reshape(3, 9)
-        bounds_pairing = (-40, 50)
         lower_array = np.full(
-            forecast_at_percentiles[:, 0].shape, bounds_pairing[0], dtype=np.float32
+            self.forecast_at_percentiles[:, 0].shape,
+            self.bounds_pairing[0],
+            dtype=np.float32,
         )
         upper_array = np.full(
-            forecast_at_percentiles[:, 0].shape, bounds_pairing[1], dtype=np.float32
+            self.forecast_at_percentiles[:, 0].shape,
+            self.bounds_pairing[1],
+            dtype=np.float32,
         )
         result = Plugin()._add_bounds_to_percentiles_and_forecast_at_percentiles(
-            percentiles, forecast_at_percentiles, bounds_pairing
+            self.percentiles, self.forecast_at_percentiles, self.bounds_pairing
         )
         self.assertArrayAlmostEqual(result[1][:, 0], lower_array)
         self.assertArrayAlmostEqual(result[1][:, -1], upper_array)
@@ -132,11 +118,10 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         """
         forecast_at_percentiles = np.array([[8, 10, 60]])
         percentiles = np.array([5, 70, 95])
-        bounds_pairing = (-40, 50)
         msg = "Forecast values exist that fall outside the expected extrema"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._add_bounds_to_percentiles_and_forecast_at_percentiles(
-                percentiles, forecast_at_percentiles, bounds_pairing
+                percentiles, forecast_at_percentiles, self.bounds_pairing
             )
 
     @ManageWarnings(record=True)
@@ -149,11 +134,10 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         """
         forecast_at_percentiles = np.array([[8, 10, 60]])
         percentiles = np.array([5, 70, 95])
-        bounds_pairing = (-40, 50)
         plugin = Plugin(ecc_bounds_warning=True)
         warning_msg = "Forecast values exist that fall outside the expected extrema"
         plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
-            percentiles, forecast_at_percentiles, bounds_pairing
+            percentiles, forecast_at_percentiles, self.bounds_pairing
         )
         self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
@@ -164,16 +148,17 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         been exceeded and ecc_bounds_warning has been set."""
         forecast_at_percentiles = np.array([[8, 10, 60]])
         percentiles = np.array([5, 70, 95])
-        bounds_pairing = (-40, 50)
         plugin = Plugin(ecc_bounds_warning=True)
         result = plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
-            percentiles, forecast_at_percentiles, bounds_pairing
+            percentiles, forecast_at_percentiles, self.bounds_pairing
         )
         self.assertEqual(
-            np.max(result[1]), max([forecast_at_percentiles.max(), max(bounds_pairing)])
+            np.max(result[1]),
+            max([forecast_at_percentiles.max(), max(self.bounds_pairing)]),
         )
         self.assertEqual(
-            np.min(result[1]), min([forecast_at_percentiles.min(), min(bounds_pairing)])
+            np.min(result[1]),
+            min([forecast_at_percentiles.min(), min(self.bounds_pairing)]),
         )
 
     def test_percentiles_not_ascending(self):
@@ -183,11 +168,10 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         """
         forecast_at_percentiles = np.array([[8, 10, 12]])
         percentiles = np.array([100, 0, -100])
-        bounds_pairing = (-40, 50)
         msg = "The percentiles must be in ascending order"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._add_bounds_to_percentiles_and_forecast_at_percentiles(
-                percentiles, forecast_at_percentiles, bounds_pairing
+                percentiles, forecast_at_percentiles, self.bounds_pairing
             )
 
 
