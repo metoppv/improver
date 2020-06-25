@@ -32,6 +32,7 @@
 Unit tests for the `ensemble_copula_coupling.ResamplePercentiles` class.
 """
 import unittest
+from datetime import datetime
 
 import numpy as np
 from iris.cube import Cube
@@ -42,11 +43,11 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 )
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ..calibration.ensemble_calibration.helper_functions import (
-    add_forecast_reference_time_and_forecast_period,
-    set_up_cube,
+from ..set_up_test_cubes import (
+    add_coordinate,
+    set_up_percentile_cube,
+    set_up_variable_cube,
 )
-from ..set_up_test_cubes import set_up_percentile_cube, set_up_variable_cube
 from .ecc_test_data import set_up_spot_test_cube
 
 
@@ -203,19 +204,19 @@ class Test__interpolate_percentiles(IrisTest):
         data[1] += 1
         data[2] += 3
         self.perc_coord = "percentile"
-        self.percentile_cube = set_up_percentile_cube(
+        self.percentiles = np.array([10, 50, 90], dtype=np.float32)
+        self.cube = set_up_percentile_cube(
             np.sort(data.astype(np.float32), axis=0),
-            np.array([10, 50, 90], dtype=np.float32),
+            self.percentiles,
             name="air_temperature",
             units="degC",
         )
+        self.bounds_pairing = (-40, 50)
 
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube."""
-        percentiles = [10, 50, 90]
-        bounds_pairing = (-40, 50)
         result = Plugin()._interpolate_percentiles(
-            self.percentile_cube, percentiles, bounds_pairing, self.perc_coord
+            self.cube, self.percentiles, self.bounds_pairing, self.perc_coord
         )
         self.assertIsInstance(result, Cube)
 
@@ -225,18 +226,16 @@ class Test__interpolate_percentiles(IrisTest):
         input cubes which have dimensions in a different order.
         """
         # Calculate result for nontransposed cube.
-        percentiles = [10, 50, 90]
-        bounds_pairing = (-40, 50)
         nontransposed_result = Plugin()._interpolate_percentiles(
-            self.percentile_cube, percentiles, bounds_pairing, self.perc_coord
+            self.cube, self.percentiles, self.bounds_pairing, self.perc_coord
         )
 
         # Calculate result for transposed cube.
         # Original cube dimensions are [P, Y, X].
         # Transposed cube dimensions are [X, Y, P].
-        self.percentile_cube.transpose([2, 1, 0])
+        self.cube.transpose([2, 1, 0])
         transposed_result = Plugin()._interpolate_percentiles(
-            self.percentile_cube, percentiles, bounds_pairing, self.perc_coord
+            self.cube, self.percentiles, self.bounds_pairing, self.perc_coord
         )
 
         # Result cube will be [P, X, Y]
@@ -254,18 +253,15 @@ class Test__interpolate_percentiles(IrisTest):
 
         data = np.array([8, 10, 12])
         data = data[:, np.newaxis, np.newaxis]
-
-        percentiles = [10, 50, 90]
         cube = set_up_percentile_cube(
             np.array([[[8]], [[10]], [[12]]], dtype=np.float32),
-            np.array(percentiles, dtype=np.float32),
+            self.percentiles,
             name="air_temperature",
             units="degC",
         )
 
-        bounds_pairing = (-40, 50)
         result = Plugin()._interpolate_percentiles(
-            cube, percentiles, bounds_pairing, self.perc_coord
+            cube, self.percentiles, self.bounds_pairing, self.perc_coord
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -283,9 +279,8 @@ class Test__interpolate_percentiles(IrisTest):
         )
 
         percentiles = [20, 60, 80]
-        bounds_pairing = (-40, 50)
         result = Plugin()._interpolate_percentiles(
-            self.percentile_cube, percentiles, bounds_pairing, self.perc_coord
+            self.cube, percentiles, self.bounds_pairing, self.perc_coord
         )
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -311,29 +306,31 @@ class Test__interpolate_percentiles(IrisTest):
             ]
         )
 
+        cube = set_up_percentile_cube(
+            np.zeros((3, 2, 2), dtype=np.float32),
+            self.percentiles,
+            name="air_temperature",
+            units="degC",
+            time=datetime(2015, 11, 23, 7),
+            frt=datetime(2015, 11, 23, 6),
+        )
+        cube = add_coordinate(
+            cube,
+            [datetime(2015, 11, 23, 7), datetime(2015, 11, 23, 8)],
+            "time",
+            is_datetime=True,
+            order=[1, 0, 2, 3],
+        )
+
         data = np.tile(np.linspace(5, 10, 8), 3).reshape(3, 2, 2, 2)
         data[0] -= 1
         data[1] += 1
         data[2] += 3
-        cube = set_up_cube(
-            data,
-            "air_temperature",
-            "degreesC",
-            timesteps=2,
-            x_dimension_length=2,
-            y_dimension_length=2,
-        )
-        cube.coord("realization").rename(self.perc_coord)
-        cube.coord(self.perc_coord).points = np.array([10, 50, 90])
-        self.percentile_cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=np.array([402295.0, 402296.0]), fp_point=[2.0, 3.0]
-        )
-        cube = self.percentile_cube
+        cube.data = data.astype(np.float32)
+
         percentiles = [20, 60, 80]
-        bounds_pairing = (-40, 50)
-        plugin = Plugin()
-        result = plugin._interpolate_percentiles(
-            cube, percentiles, bounds_pairing, self.perc_coord
+        result = Plugin()._interpolate_percentiles(
+            cube, percentiles, self.bounds_pairing, self.perc_coord
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -360,12 +357,10 @@ class Test__interpolate_percentiles(IrisTest):
             dtype=np.float32,
         )
 
-        cube = next(self.percentile_cube.slices_over(self.perc_coord))
+        cube = next(self.cube.slices_over(self.perc_coord))
 
-        percentiles = [10, 50, 90]
-        bounds_pairing = (-40, 50)
         result = Plugin()._interpolate_percentiles(
-            cube, percentiles, bounds_pairing, self.perc_coord
+            cube, self.percentiles, self.bounds_pairing, self.perc_coord
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -374,35 +369,27 @@ class Test__interpolate_percentiles(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for the percentiles, if there are lots of thresholds.
         """
-        input_forecast_values_1d = np.linspace(10, 20, 30)
-        input_forecast_values = np.tile(input_forecast_values_1d, (3, 3, 1, 1)).T
-
-        data = np.array(
+        expected_data = np.array(
             [
-                [[[11.0, 11.0, 11.0], [11.0, 11.0, 11.0], [11.0, 11.0, 11.0]]],
-                [[[15.0, 15.0, 15.0], [15.0, 15.0, 15.0], [15.0, 15.0, 15.0]]],
-                [[[19.0, 19.0, 19.0], [19.0, 19.0, 19.0], [19.0, 19.0, 19.0]]],
+                [[11.0, 11.0, 11.0], [11.0, 11.0, 11.0], [11.0, 11.0, 11.0]],
+                [[15.0, 15.0, 15.0], [15.0, 15.0, 15.0], [15.0, 15.0, 15.0]],
+                [[19.0, 19.0, 19.0], [19.0, 19.0, 19.0], [19.0, 19.0, 19.0]],
             ]
         )
 
-        percentiles_values = np.linspace(0, 100, 30)
-        cube = add_forecast_reference_time_and_forecast_period(
-            set_up_cube(
-                input_forecast_values,
-                "air_temperature",
-                "1",
-                realizations=np.arange(30),
-            )
+        input_forecast_values_1d = np.linspace(10, 20, 30)
+        input_forecast_values = np.tile(input_forecast_values_1d, (3, 3, 1)).T
+        cube = set_up_percentile_cube(
+            input_forecast_values.astype(np.float32),
+            np.linspace(0, 100, 30).astype(np.float32),
+            name="air_temperature",
+            units="degC",
         )
-        cube.coord("realization").rename(self.perc_coord)
-        cube.coord(self.perc_coord).points = np.array(percentiles_values)
-        percentiles = [10, 50, 90]
-        bounds_pairing = (-40, 50)
-        plugin = Plugin()
-        result = plugin._interpolate_percentiles(
-            cube, percentiles, bounds_pairing, self.perc_coord
+
+        result = Plugin()._interpolate_percentiles(
+            cube, self.percentiles, self.bounds_pairing, self.perc_coord
         )
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_lots_of_percentiles(self):
         """
@@ -433,12 +420,9 @@ class Test__interpolate_percentiles(IrisTest):
             ]
         )
 
-        cube = self.percentile_cube
         percentiles = np.arange(5, 100, 10)
-        bounds_pairing = (-40, 50)
-        plugin = Plugin()
-        result = plugin._interpolate_percentiles(
-            cube, percentiles, bounds_pairing, self.perc_coord
+        result = Plugin()._interpolate_percentiles(
+            self.cube, percentiles, self.bounds_pairing, self.perc_coord
         )
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -458,9 +442,8 @@ class Test__interpolate_percentiles(IrisTest):
             ]
         )
         percentiles = spot_percentile_cube.coord("percentile").points
-        bounds_pairing = (-40, 50)
         result = Plugin()._interpolate_percentiles(
-            spot_percentile_cube, percentiles, bounds_pairing, self.perc_coord
+            spot_percentile_cube, percentiles, self.bounds_pairing, self.perc_coord
         )
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -471,15 +454,17 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up percentile cube."""
-        data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 1, 3, 3)
+        data = np.tile(np.linspace(5, 10, 9), 3).reshape(3, 3, 3)
         data[0] -= 1
         data[1] += 1
         data[2] += 3
-        self.perc_coord = "percentile"
-        cube = set_up_cube(data, "air_temperature", "degreesC")
-        cube.coord("realization").rename(self.perc_coord)
-        cube.coord(self.perc_coord).points = np.array([10, 50, 90])
-        self.percentile_cube = add_forecast_reference_time_and_forecast_period(cube)
+
+        self.percentile_cube = set_up_percentile_cube(
+            data.astype(np.float32),
+            np.array([10, 50, 90], dtype=np.float32),
+            name="air_temperature",
+            units="degC",
+        )
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_percentiles(self):
@@ -489,16 +474,12 @@ class Test_process(IrisTest):
         """
         data = np.array(
             [
-                [[[4.75, 5.375, 6.0], [6.625, 7.25, 7.875], [8.5, 9.125, 9.75]]],
-                [[[6.0, 6.625, 7.25], [7.875, 8.5, 9.125], [9.75, 10.375, 11.0]]],
-                [[[7.25, 7.875, 8.5], [9.125, 9.75, 10.375], [11.0, 11.625, 12.25]]],
+                [[4.75, 5.375, 6.0], [6.625, 7.25, 7.875], [8.5, 9.125, 9.75]],
+                [[6.0, 6.625, 7.25], [7.875, 8.5, 9.125], [9.75, 10.375, 11.0]],
+                [[7.25, 7.875, 8.5], [9.125, 9.75, 10.375], [11.0, 11.625, 12.25]],
             ]
         )
-
-        cube = self.percentile_cube
-        percentiles = [25, 50, 75]
-        plugin = Plugin()
-        result = plugin.process(cube, no_of_percentiles=len(percentiles))
+        result = Plugin().process(self.percentile_cube, no_of_percentiles=3)
         self.assertArrayAlmostEqual(result.data, data)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
@@ -509,15 +490,12 @@ class Test_process(IrisTest):
         """
         data = np.array(
             [
-                [[[4.75, 5.375, 6.0], [6.625, 7.25, 7.875], [8.5, 9.125, 9.75]]],
-                [[[6.0, 6.625, 7.25], [7.875, 8.5, 9.125], [9.75, 10.375, 11.0]]],
-                [[[7.25, 7.875, 8.5], [9.125, 9.75, 10.375], [11.0, 11.625, 12.25]]],
+                [[4.75, 5.375, 6.0], [6.625, 7.25, 7.875], [8.5, 9.125, 9.75]],
+                [[6.0, 6.625, 7.25], [7.875, 8.5, 9.125], [9.75, 10.375, 11.0]],
+                [[7.25, 7.875, 8.5], [9.125, 9.75, 10.375], [11.0, 11.625, 12.25]],
             ]
         )
-
-        cube = self.percentile_cube
-        plugin = Plugin()
-        result = plugin.process(cube)
+        result = Plugin().process(self.percentile_cube)
         self.assertArrayAlmostEqual(result.data, data)
 
 
