@@ -47,7 +47,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...set_up_test_cubes import set_up_probability_cube, add_coordinate
+from ...set_up_test_cubes import add_coordinate, set_up_probability_cube
 from .ecc_test_data import (
     ECC_TEMPERATURE_PROBABILITIES,
     ECC_TEMPERATURE_THRESHOLDS,
