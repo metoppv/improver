@@ -28,6 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""Module defining input data for ECC tests"""
 
 import numpy as np
 from iris.coords import DimCoord
@@ -44,6 +45,19 @@ ECC_TEMPERATURE_REALIZATIONS = np.array(
 )
 
 
+ECC_TEMPERATURE_PROBABILITIES = np.array(
+    [
+        [[1.0, 0.9, 1.0], [0.8, 0.9, 0.5], [0.5, 0.2, 0.0]],
+        [[1.0, 0.5, 1.0], [0.5, 0.5, 0.3], [0.2, 0.0, 0.0]],
+        [[1.0, 0.2, 0.5], [0.2, 0.0, 0.1], [0.0, 0.0, 0.0]],
+    ],
+    dtype=np.float32,
+)
+
+
+ECC_TEMPERATURE_THRESHOLDS = np.array([8, 10, 12], dtype=np.float32)
+
+
 ECC_SPOT_TEMPERATURES = np.array(
     [
         [226.15, 237.4, 248.65, 259.9, 271.15, 282.4, 293.65, 304.9, 316.15],
@@ -54,27 +68,72 @@ ECC_SPOT_TEMPERATURES = np.array(
 )
 
 
+ECC_SPOT_PROBABILITIES = np.array(
+    [
+        [1.0, 0.9, 1.0, 0.8, 0.9, 0.5, 0.5, 0.2, 0.0],
+        [1.0, 0.5, 1.0, 0.5, 0.5, 0.3, 0.2, 0.0, 0.0],
+        [1.0, 0.2, 0.5, 0.2, 0.0, 0.1, 0.0, 0.0, 0.0],
+    ],
+    dtype=np.float32,
+)
+
+
 def set_up_spot_test_cube(type="realization"):
     """Use spotdata code to build a test cube with the expected spot metadata,
-    with dummy values for the coordinates which are not used in ECC tests"""
+    with dummy values for the coordinates which are not used in ECC tests
+
+    Args:
+        type (str):
+            Options "probability", "realization" or "percentile"
+
+    Returns:
+        iris.cube.Cube:
+            Spotdata cube conforming to expected IMPROVER structure
+    """
     dummy_point_locations = np.arange(9).astype(np.float32)
     dummy_string_ids = [f"{i}" for i in range(9)]
+
+    if type == "probability":
+        return _build_spot_probability_cube(dummy_point_locations, dummy_string_ids)
+
     if type == "realization":
-        add_coord = DimCoord(
+        leading_coord = DimCoord(
             np.arange(3).astype(np.int32), standard_name="realization", units="1"
         )
     elif type == "percentile":
-        add_coord = DimCoord(
-            np.array([10, 50, 90], dtype=np.float32), long_name="percentile", units="%",
+        leading_coord = DimCoord(
+            np.array([10, 50, 90], dtype=np.float32), long_name="percentile", units="%"
         )
 
     return build_spotdata_cube(
         ECC_SPOT_TEMPERATURES,
-        name="screen_temperature",
+        name="air_temperature",
         units="Kelvin",
         altitude=dummy_point_locations,
         latitude=dummy_point_locations,
         longitude=dummy_point_locations,
         wmo_id=dummy_string_ids,
-        additional_dims=[add_coord],
+        additional_dims=[leading_coord],
+    )
+
+
+def _build_spot_probability_cube(dummy_point_locations, dummy_string_ids):
+    """Set up a spot cube with an IMPROVER-style threshold coordinate and
+    suitable data"""
+    threshold_coord = DimCoord(
+        ECC_TEMPERATURE_THRESHOLDS,
+        standard_name="air_temperature",
+        var_name="threshold",
+        units="degC",
+        attributes={"spp__relative_to_threshold": "above"},
+    )
+    return build_spotdata_cube(
+        ECC_SPOT_PROBABILITIES,
+        name="probability_of_air_temperature_above_threshold",
+        units="1",
+        altitude=dummy_point_locations,
+        latitude=dummy_point_locations,
+        longitude=dummy_point_locations,
+        wmo_id=dummy_string_ids,
+        additional_dims=[threshold_coord],
     )

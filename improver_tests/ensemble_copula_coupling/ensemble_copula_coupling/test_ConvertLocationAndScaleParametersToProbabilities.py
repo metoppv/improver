@@ -44,12 +44,7 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 from ...set_up_test_cubes import set_up_probability_cube
-
-
-PROBABILITY_TEST_DATA = np.array([
-    [[1., 0.9, 1.], [0.8, 0.9, 0.5], [0.5, 0.2, 0.]],
-    [[1., 0.5, 1.], [0.5, 0.5, 0.3], [0.2, 0., 0.]],
-    [[1., 0.2, 0.5], [0.2, 0., 0.1], [0., 0.,  0.]]], dtype=np.float32)
+from .ecc_test_data import ECC_TEMPERATURE_PROBABILITIES, ECC_TEMPERATURE_THRESHOLDS
 
 
 class Test__repr__(IrisTest):
@@ -72,9 +67,10 @@ class Test__check_template_cube(IrisTest):
 
     def setUp(self):
         """Set up temperature cube."""
-        threshold_points = np.array([8, 10, 12], dtype=np.float32)
         self.cube = set_up_probability_cube(
-            PROBABILITY_TEST_DATA, threshold_points, threshold_units="degC"
+            ECC_TEMPERATURE_PROBABILITIES,
+            ECC_TEMPERATURE_THRESHOLDS,
+            threshold_units="degC",
         )
 
     def test_valid_cube(self):
@@ -116,9 +112,10 @@ class Test__check_unit_compatibility(IrisTest):
 
     def setUp(self):
         """Set up temperature cube."""
-        threshold_points = np.array([8, 10, 12], dtype=np.float32)
         self.template_cube = set_up_probability_cube(
-            PROBABILITY_TEST_DATA, threshold_points, threshold_units="degC"
+            ECC_TEMPERATURE_PROBABILITIES,
+            ECC_TEMPERATURE_THRESHOLDS,
+            threshold_units="degC",
         )
         self.location_parameters = self.template_cube[0, :, :].copy()
         self.location_parameters.units = "Celsius"
@@ -163,7 +160,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         so that the expected output probabilities are 75%, 50%, and 25%."""
         threshold_points = np.array([0.65105, 2.0, 3.34895], dtype=np.float32)
         self.template_cube = set_up_probability_cube(
-            PROBABILITY_TEST_DATA, threshold_points, threshold_units="degC"
+            ECC_TEMPERATURE_PROBABILITIES, threshold_points, threshold_units="degC"
         )
 
         location_parameter_values = np.ones((3, 3)) * 2
@@ -280,7 +277,7 @@ class Test_process(IrisTest):
         """Set up temperature cube."""
         threshold_points = np.array([8.65105, 10.0, 11.34895], dtype=np.float32)
         self.template_cube = set_up_probability_cube(
-            PROBABILITY_TEST_DATA, threshold_points, threshold_units="degC"
+            ECC_TEMPERATURE_PROBABILITIES, threshold_points, threshold_units="degC"
         )
 
         location_parameter_values = np.ones((3, 3)) * 10
