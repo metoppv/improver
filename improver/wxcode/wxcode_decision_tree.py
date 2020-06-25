@@ -231,7 +231,7 @@ def wxcode_decision_tree():
             "condition_combination": "AND",
             "diagnostic_fields": [
                 "probability_of_rainfall_rate_above_threshold",
-                ("probability_of_low_type_cloud_area_fraction_" "above_threshold"),
+                ("probability_of_low_type_cloud_area_fraction_above_threshold"),
             ],
             "diagnostic_thresholds": [(0.03, "mm hr-1"), (0.85, 1)],
             "diagnostic_conditions": ["above", "above"],
@@ -255,7 +255,7 @@ def wxcode_decision_tree():
             "threshold_condition": ">=",
             "condition_combination": "",
             "diagnostic_fields": [
-                ("probability_of_low_type_cloud_area_fraction_" "above_threshold")
+                ("probability_of_low_type_cloud_area_fraction_above_threshold")
             ],
             "diagnostic_thresholds": [(0.85, 1)],
             "diagnostic_conditions": ["above"],
@@ -279,7 +279,7 @@ def wxcode_decision_tree():
             "threshold_condition": ">=",
             "condition_combination": "",
             "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_in_vicinity_" "above_threshold",
+                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold",
             ],
             "diagnostic_thresholds": [(0.1, "mm hr-1")],
             "diagnostic_conditions": ["above"],
@@ -345,7 +345,7 @@ def wxcode_decision_tree():
             "threshold_condition": ">=",
             "condition_combination": "",
             "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_in_vicinity_" "above_threshold"
+                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
             ],
             "diagnostic_thresholds": [(1.0, "mm hr-1")],
             "diagnostic_conditions": ["above"],
@@ -358,7 +358,7 @@ def wxcode_decision_tree():
             "threshold_condition": ">=",
             "condition_combination": "",
             "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_in_vicinity_" "above_threshold"
+                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
             ],
             "diagnostic_thresholds": [(1.0, "mm hr-1")],
             "diagnostic_conditions": ["above"],
@@ -382,7 +382,7 @@ def wxcode_decision_tree():
             "threshold_condition": ">=",
             "condition_combination": "",
             "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_in_vicinity_" "above_threshold"
+                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
             ],
             "diagnostic_thresholds": [(1.0, "mm hr-1")],
             "diagnostic_conditions": ["above"],
@@ -395,7 +395,7 @@ def wxcode_decision_tree():
             "threshold_condition": ">=",
             "condition_combination": "",
             "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_in_vicinity_" "above_threshold"
+                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
             ],
             "diagnostic_thresholds": [(1.0, "mm hr-1")],
             "diagnostic_conditions": ["above"],
