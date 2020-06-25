@@ -33,6 +33,7 @@ Unit tests for the
 `ensemble_copula_coupling.ConvertProbabilitiesToPercentiles` class.
 """
 import unittest
+from datetime import datetime
 
 import cf_units as unit
 import numpy as np
@@ -46,12 +47,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...calibration.ensemble_calibration.helper_functions import (
-    add_forecast_reference_time_and_forecast_period,
-    set_up_probability_above_threshold_temperature_cube,
-    set_up_probability_threshold_cube,
-)
-from ...set_up_test_cubes import set_up_probability_cube
+from ...set_up_test_cubes import set_up_probability_cube, add_coordinate
 from .ecc_test_data import (
     ECC_TEMPERATURE_PROBABILITIES,
     ECC_TEMPERATURE_THRESHOLDS,
@@ -229,27 +225,18 @@ class Test__probabilities_to_percentiles(IrisTest):
         threshold.
         """
         expected = np.array([8.15384615, 9.38461538, 11.6])
-        expected = expected[:, np.newaxis, np.newaxis, np.newaxis]
+        expected = expected[:, np.newaxis, np.newaxis]
 
         data = np.array([0.95, 0.3, 0.05])
-        data = data[:, np.newaxis, np.newaxis, np.newaxis]
+        data = data[:, np.newaxis, np.newaxis]
 
-        self.current_temperature_forecast_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_probability_threshold_cube(
-                data,
-                "air_temperature",
-                "degreesC",
-                forecast_thresholds=[8, 10, 12],
-                y_dimension_length=1,
-                x_dimension_length=1,
-                spp__relative_to_threshold="above",
-            )
+        cube = set_up_probability_cube(
+            data.astype(np.float32), ECC_TEMPERATURE_THRESHOLDS, threshold_units="degC"
         )
-        cube = self.current_temperature_forecast_cube
-        percentiles = [10, 50, 90]
-        bounds_pairing = (-40, 50)
-        plugin = Plugin()
-        result = plugin._probabilities_to_percentiles(cube, percentiles, bounds_pairing)
+
+        result = Plugin()._probabilities_to_percentiles(
+            cube, self.percentiles, self.bounds_pairing
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_simple_check_data_below(self):
@@ -261,30 +248,21 @@ class Test__probabilities_to_percentiles(IrisTest):
         threshold.
         """
         expected = np.array([8.4, 10.61538462, 11.84615385])
-        expected = expected[:, np.newaxis, np.newaxis, np.newaxis]
+        expected = expected[:, np.newaxis, np.newaxis]
 
         data = np.array([0.95, 0.3, 0.05])[::-1]
-        data = data[:, np.newaxis, np.newaxis, np.newaxis]
+        data = data[:, np.newaxis, np.newaxis]
 
-        self.current_temperature_forecast_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_probability_threshold_cube(
-                data,
-                "air_temperature",
-                "degreesC",
-                forecast_thresholds=[8, 10, 12],
-                y_dimension_length=1,
-                x_dimension_length=1,
-                spp__relative_to_threshold="above",
-            )
+        cube = set_up_probability_cube(
+            data.astype(np.float32),
+            ECC_TEMPERATURE_THRESHOLDS,
+            threshold_units="degC",
+            spp__relative_to_threshold="below",
         )
-        cube = self.current_temperature_forecast_cube
-        cube.coord(var_name="threshold").attributes[
-            "spp__relative_to_threshold"
-        ] = "below"
-        percentiles = [10, 50, 90]
-        bounds_pairing = (-40, 50)
-        plugin = Plugin()
-        result = plugin._probabilities_to_percentiles(cube, percentiles, bounds_pairing)
+
+        result = Plugin()._probabilities_to_percentiles(
+            cube, self.percentiles, self.bounds_pairing
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_check_data_multiple_timesteps(self):
@@ -301,7 +279,22 @@ class Test__probabilities_to_percentiles(IrisTest):
             dtype=np.float32,
         )
 
-        data = np.array(
+        cube = set_up_probability_cube(
+            np.zeros((3, 2, 2), dtype=np.float32),
+            ECC_TEMPERATURE_THRESHOLDS,
+            threshold_units="degC",
+            time=datetime(2015, 11, 23, 7),
+            frt=datetime(2015, 11, 23, 6),
+        )
+        cube = add_coordinate(
+            cube,
+            [datetime(2015, 11, 23, 7), datetime(2015, 11, 23, 8)],
+            "time",
+            is_datetime=True,
+            order=[1, 0, 2, 3],
+        )
+
+        cube.data = np.array(
             [
                 [[[0.8, 0.8], [0.7, 0.9]], [[0.8, 0.6], [0.8, 0.6]]],
                 [[[0.6, 0.6], [0.6, 0.6]], [[0.5, 0.4], [0.5, 0.4]]],
@@ -310,23 +303,10 @@ class Test__probabilities_to_percentiles(IrisTest):
             dtype=np.float32,
         )
 
-        cube = set_up_probability_threshold_cube(
-            data,
-            "air_temperature",
-            "degreesC",
-            timesteps=2,
-            x_dimension_length=2,
-            y_dimension_length=2,
-            spp__relative_to_threshold="above",
-        )
-        self.probability_cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=np.array([402295.0, 402296.0]), fp_point=[2.0, 3.0]
-        )
-        cube = self.probability_cube
         percentiles = [20, 60, 80]
-        bounds_pairing = (-40, 50)
-        plugin = Plugin()
-        result = plugin._probabilities_to_percentiles(cube, percentiles, bounds_pairing)
+        result = Plugin()._probabilities_to_percentiles(
+            cube, percentiles, self.bounds_pairing
+        )
         self.assertArrayAlmostEqual(result.data, expected, decimal=5)
 
     @ManageWarnings(record=True)
@@ -337,25 +317,15 @@ class Test__probabilities_to_percentiles(IrisTest):
         increasing.
         """
         data = np.array([0.05, 0.7, 0.95])
-        data = data[:, np.newaxis, np.newaxis, np.newaxis]
-
-        self.current_temperature_forecast_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_probability_threshold_cube(
-                data,
-                "air_temperature",
-                "degreesC",
-                forecast_thresholds=[8, 10, 12],
-                y_dimension_length=1,
-                x_dimension_length=1,
-                spp__relative_to_threshold="above",
-            )
+        data = data[:, np.newaxis, np.newaxis]
+        cube = set_up_probability_cube(
+            data.astype(np.float32), ECC_TEMPERATURE_THRESHOLDS, threshold_units="degC"
         )
-        cube = self.current_temperature_forecast_cube
-        percentiles = [10, 50, 90]
-        bounds_pairing = (-40, 50)
-        plugin = Plugin()
+
         warning_msg = "The probability values used to construct the"
-        plugin._probabilities_to_percentiles(cube, percentiles, bounds_pairing)
+        Plugin()._probabilities_to_percentiles(
+            cube, self.percentiles, self.bounds_pairing
+        )
         self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
     def test_result_cube_has_no_air_temperature_threshold_coordinate(self):
@@ -424,38 +394,30 @@ class Test__probabilities_to_percentiles(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for the percentiles, if there are lots of thresholds.
         """
-        input_probs_1d = np.linspace(1, 0, 30)
-        input_probs = np.tile(input_probs_1d, (3, 3, 1, 1)).T
-
         data = np.array(
             [
-                [[[2.9, 2.9, 2.9], [2.9, 2.9, 2.9], [2.9, 2.9, 2.9]]],
-                [[[14.5, 14.5, 14.5], [14.5, 14.5, 14.5], [14.5, 14.5, 14.5]]],
+                [[2.9, 2.9, 2.9], [2.9, 2.9, 2.9], [2.9, 2.9, 2.9]],
+                [[14.5, 14.5, 14.5], [14.5, 14.5, 14.5], [14.5, 14.5, 14.5]],
                 [
-                    [
-                        [26.099998, 26.099998, 26.099998],
-                        [26.099998, 26.099998, 26.099998],
-                        [26.099998, 26.099998, 26.099998],
-                    ]
+                    [26.099998, 26.099998, 26.099998],
+                    [26.099998, 26.099998, 26.099998],
+                    [26.099998, 26.099998, 26.099998],
                 ],
             ],
             dtype=np.float32,
         )
 
-        temperature_values = np.arange(0, 30)
-        cube = add_forecast_reference_time_and_forecast_period(
-            set_up_probability_threshold_cube(
-                input_probs,
-                "air_temperature",
-                "degreesC",
-                forecast_thresholds=temperature_values,
-                spp__relative_to_threshold="above",
-            )
+        input_probs_1d = np.linspace(1, 0, 30)
+        input_probs = np.tile(input_probs_1d, (3, 3, 1)).T
+        cube = set_up_probability_cube(
+            input_probs.astype(np.float32),
+            np.arange(30).astype(np.float32),
+            threshold_units="degC",
         )
-        percentiles = [10, 50, 90]
-        bounds_pairing = (-40, 50)
-        plugin = Plugin()
-        result = plugin._probabilities_to_percentiles(cube, percentiles, bounds_pairing)
+
+        result = Plugin()._probabilities_to_percentiles(
+            cube, self.percentiles, self.bounds_pairing
+        )
 
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -523,26 +485,26 @@ class Test_process(IrisTest):
     """
 
     def setUp(self):
-        """Set up temperature cube."""
-        self.current_temperature_forecast_cube = add_forecast_reference_time_and_forecast_period(
-            set_up_probability_above_threshold_temperature_cube()
+        """Set up temperature probability cube and expected output percentiles."""
+        self.cube = set_up_probability_cube(
+            ECC_TEMPERATURE_PROBABILITIES,
+            ECC_TEMPERATURE_THRESHOLDS,
+            threshold_units="degC",
         )
 
         self.percentile_25 = np.array(
-            [[[24.0, 8.75, 11.0], [8.33333333, 8.75, -46.0], [-46.0, -66.25, -73.0]]],
+            [[24.0, 8.75, 11.0], [8.33333333, 8.75, -46.0], [-46.0, -66.25, -73.0]],
             dtype=np.float32,
         )
         self.percentile_50 = np.array(
-            [[[36.0, 10.0, 12.0], [10.0, 10.0, 8.0], [8.0, -32.5, -46.0]]],
+            [[36.0, 10.0, 12.0], [10.0, 10.0, 8.0], [8.0, -32.5, -46.0]],
             dtype=np.float32,
         )
         self.percentile_75 = np.array(
             [
-                [
-                    [48.0, 11.66666667, 36.0],
-                    [11.66666667, 11.0, 10.5],
-                    [9.66666667, 1.25, -19.0],
-                ]
+                [48.0, 11.66666667, 36.0],
+                [11.66666667, 11.0, 10.5],
+                [9.66666667, 1.25, -19.0],
             ],
             dtype=np.float32,
         )
@@ -556,9 +518,7 @@ class Test_process(IrisTest):
         expected_data = np.array(
             [self.percentile_25, self.percentile_50, self.percentile_75]
         )
-        cube = self.current_temperature_forecast_cube
-        plugin = Plugin()
-        result = plugin.process(cube, no_of_percentiles=3)
+        result = Plugin().process(self.cube, no_of_percentiles=3)
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
@@ -569,9 +529,7 @@ class Test_process(IrisTest):
         list.
         """
         expected_data = np.array([self.percentile_25])
-        cube = self.current_temperature_forecast_cube
-        plugin = Plugin()
-        result = plugin.process(cube, percentiles=[25])
+        result = Plugin().process(self.cube, percentiles=[25])
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
@@ -581,9 +539,7 @@ class Test_process(IrisTest):
         data values for a specific percentile passed in as a value.
         """
         expected_data = np.array([self.percentile_25])
-        cube = self.current_temperature_forecast_cube
-        plugin = Plugin()
-        result = plugin.process(cube, percentiles=25)
+        result = Plugin().process(self.cube, percentiles=25)
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
@@ -595,10 +551,7 @@ class Test_process(IrisTest):
         expected_data = np.array(
             [self.percentile_25, self.percentile_50, self.percentile_75]
         )
-        cube = self.current_temperature_forecast_cube
-        percentiles = [25, 50, 75]
-        plugin = Plugin()
-        result = plugin.process(cube, percentiles=percentiles)
+        result = Plugin().process(self.cube, percentiles=[25, 50, 75])
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
@@ -610,9 +563,7 @@ class Test_process(IrisTest):
         expected_data = np.array(
             [self.percentile_25, self.percentile_50, self.percentile_75]
         )
-        cube = self.current_temperature_forecast_cube
-        plugin = Plugin()
-        result = plugin.process(cube)
+        result = Plugin().process(self.cube)
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
     def test_check_data_over_specifying_percentiles(self):
@@ -620,15 +571,9 @@ class Test_process(IrisTest):
         Test that the plugin raises a suitable error when both a number and set
         or percentiles are specified.
         """
-        no_of_percentiles = 3
-        percentiles = [25, 50, 75]
-        cube = self.current_temperature_forecast_cube
-        plugin = Plugin()
         msg = "Cannot specify both no_of_percentiles and percentiles"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process(
-                cube, no_of_percentiles=no_of_percentiles, percentiles=percentiles
-            )
+            Plugin().process(self.cube, no_of_percentiles=3, percentiles=[25, 50, 75])
 
 
 if __name__ == "__main__":
