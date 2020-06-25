@@ -43,7 +43,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
-from ..calibration.ensemble_calibration.helper_functions import (
+from ...calibration.ensemble_calibration.helper_functions import (
     set_up_probability_above_threshold_temperature_cube,
 )
 
