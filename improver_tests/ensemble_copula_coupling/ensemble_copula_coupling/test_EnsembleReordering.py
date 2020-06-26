@@ -149,7 +149,7 @@ class Test_rank_ecc(IrisTest):
         forecast_period coordinates.
         """
         self.cube = set_up_variable_cube(ECC_TEMPERATURE_REALIZATIONS)
-        self.cube_3d = self.cube[:, :2, 0].copy()
+        self.cube_2d = self.cube[:, :2, 0].copy()
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -160,6 +160,7 @@ class Test_rank_ecc(IrisTest):
                 [[3, 3, 3], [3, 3, 3], [3, 3, 3]],
             ]
         )
+
         calibrated_data = np.array(
             [
                 [
@@ -244,22 +245,22 @@ class Test_rank_ecc(IrisTest):
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
         self.assertArrayAlmostEqual(result.data, result_data)
 
-    def test_3d_cube(self):
+    def test_2d_cube(self):
         """Test that the plugin returns the correct cube data for a
-        3d input cube."""
+        2d input cube."""
         raw_data = np.array([[1, 1], [3, 2], [2, 3]])
         calibrated_data = np.array([[1, 1], [2, 2], [3, 3]])
         result_data = raw_data.copy()
 
-        raw_cube = self.cube_3d.copy(data=raw_data)
-        calibrated_cube = self.cube_3d.copy(data=calibrated_data)
+        raw_cube = self.cube_2d.copy(data=raw_data)
+        calibrated_cube = self.cube_2d.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
         self.assertArrayAlmostEqual(result.data, result_data)
 
-    def test_3d_cube_masked(self):
+    def test_2d_cube_masked(self):
         """Test that the plugin returns the correct cube data for a
-        3d input cube with a mask applied to each realization."""
+        2d input cube with a mask applied to each realization."""
         mask = np.array([[True, False], [True, False], [True, False]])
         raw_data = np.array([[1, 9], [3, 5], [2, 7]])
         calibrated_data = np.ma.MaskedArray(
@@ -269,17 +270,17 @@ class Test_rank_ecc(IrisTest):
             [[np.nan, 10], [np.nan, 6], [np.nan, 8]], dtype=np.float32
         )
 
-        raw_cube = self.cube_3d.copy(data=raw_data)
-        calibrated_cube = self.cube_3d.copy(data=calibrated_data)
+        raw_cube = self.cube_2d.copy(data=raw_data)
+        calibrated_cube = self.cube_2d.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
         self.assertArrayAlmostEqual(result.data.data, result_data)
         self.assertArrayEqual(result.data.mask, mask)
         self.assertEqual(result.data.dtype, np.float32)
 
-    def test_3d_cube_masked_nans(self):
+    def test_2d_cube_masked_nans(self):
         """Test that the plugin returns the correct cube data for a
-        3d input cube with a mask applied to each realization, and there are
+        2d input cube with a mask applied to each realization, and there are
         nans under the mask."""
         mask = np.array([[True, False], [True, False], [True, False]])
         raw_data = np.array([[1, 9], [3, 5], [2, 7]])
@@ -290,18 +291,18 @@ class Test_rank_ecc(IrisTest):
             [[np.nan, 10], [np.nan, 6], [np.nan, 8]], dtype=np.float32
         )
 
-        raw_cube = self.cube_3d.copy(data=raw_data)
-        calibrated_cube = self.cube_3d.copy(data=calibrated_data)
+        raw_cube = self.cube_2d.copy(data=raw_data)
+        calibrated_cube = self.cube_2d.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
         self.assertArrayAlmostEqual(result.data.data, result_data)
         self.assertArrayEqual(result.data.mask, mask)
         self.assertEqual(result.data.dtype, np.float32)
 
-    def test_3d_cube_tied_values(self):
+    def test_2d_cube_tied_values(self):
         """
         Test that the plugin returns the correct cube data for a
-        3d input cube, when there are tied values witin the
+        2d input cube, when there are tied values witin the
         raw ensemble realizations. As there are two possible options for the
         result data, as the tie is decided randomly, both possible result
         data options are checked.
@@ -314,18 +315,18 @@ class Test_rank_ecc(IrisTest):
         result_data_first = np.array([[1, 1], [3, 2], [2, 3]])
         result_data_second = np.array([[1, 1], [3, 3], [2, 2]])
 
-        raw_cube = self.cube_3d.copy(data=raw_data)
-        calibrated_cube = self.cube_3d.copy(data=calibrated_data)
+        raw_cube = self.cube_2d.copy(data=raw_data)
+        calibrated_cube = self.cube_2d.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
         permutations = [result_data_first, result_data_second]
         matches = [np.array_equal(aresult, result.data) for aresult in permutations]
         self.assertIn(True, matches)
 
-    def test_3d_cube_tied_values_random_seed(self):
+    def test_2d_cube_tied_values_random_seed(self):
         """
         Test that the plugin returns the correct cube data for a
-        3d input cube, when there are tied values witin the
+        2d input cube, when there are tied values witin the
         raw ensemble realizations. The random seed is specified to ensure that
         only one option, out of the two possible options will be returned.
         """
@@ -333,16 +334,16 @@ class Test_rank_ecc(IrisTest):
         calibrated_data = np.array([[1, 1], [2, 2], [3, 3]])
         result_data = np.array([[1, 1], [3, 2], [2, 3]])
 
-        raw_cube = self.cube_3d.copy(data=raw_data)
-        calibrated_cube = self.cube_3d.copy(data=calibrated_data)
+        raw_cube = self.cube_2d.copy(data=raw_data)
+        calibrated_cube = self.cube_2d.copy(data=calibrated_data)
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube, random_seed=0)
         self.assertArrayAlmostEqual(result.data, result_data)
 
-    def test_2d_cube(self):
+    def test_1d_cube(self):
         """
         Test that the plugin returns the correct cube data for a
-        2d input cube.
+        1d input cube.
         """
         raw_data = np.array([3, 2, 1])
         calibrated_data = np.array([1, 2, 3])
@@ -355,10 +356,10 @@ class Test_rank_ecc(IrisTest):
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
         self.assertArrayAlmostEqual(result.data, result_data)
 
-    def test_2d_cube_random_ordering(self):
+    def test_1d_cube_random_ordering(self):
         """
         Test that the plugin returns the correct cube data for a
-        2d input cube, if random ordering is selected.
+        1d input cube, if random ordering is selected.
 
         Random ordering does not use the ordering from the raw ensemble,
         and instead just orders the input values randomly.
@@ -409,10 +410,10 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
-    def test_2d_cube_random_ordering(self):
+    def test_1d_cube_random_ordering(self):
         """
         Test that the plugin returns the correct cube data for a
-        2d input cube, if random ordering is selected.
+        1d input cube, if random ordering is selected.
         """
         raw_data = np.array([3, 2, 1])
 
@@ -434,10 +435,10 @@ class Test_process(IrisTest):
         self.assertIn(True, matches)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
-    def test_2d_cube_recycling_raw_ensemble_realizations(self):
+    def test_1d_cube_recycling_raw_ensemble_realizations(self):
         """
         Test that the plugin returns the correct cube data for a
-        2d input cube, if the number of raw ensemble realizations is fewer
+        1d input cube, if the number of raw ensemble realizations is fewer
         than the number of percentiles required, and therefore, raw
         ensemble realization recycling is required.
 

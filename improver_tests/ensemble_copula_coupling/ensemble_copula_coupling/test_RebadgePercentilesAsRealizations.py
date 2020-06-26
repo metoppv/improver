@@ -80,9 +80,7 @@ class Test_process(IrisTest):
     def test_number_of_realizations(self):
         """Check the values for the realization coordinate generated without
         specifying the ensemble_realization_numbers argument."""
-        plen = len(self.cube.coord("percentile").points)
         result = Plugin().process(self.cube)
-        self.assertEqual(len(result.coord("realization").points), plen)
         self.assertArrayAlmostEqual(
             result.coord("realization").points, np.array([0, 1, 2])
         )

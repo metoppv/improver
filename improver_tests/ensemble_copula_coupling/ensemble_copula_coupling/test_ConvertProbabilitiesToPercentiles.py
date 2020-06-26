@@ -39,6 +39,7 @@ import cf_units as unit
 import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -331,13 +332,16 @@ class Test__probabilities_to_percentiles(IrisTest):
     def test_result_cube_has_no_air_temperature_threshold_coordinate(self):
         """
         Test that the plugin returns a cube with coordinates that
-        do not include the air_temperature_threshold coordinate.
+        do not include a threshold-type coordinate.
         """
         result = Plugin()._probabilities_to_percentiles(
             self.cube, self.percentiles, self.bounds_pairing
         )
-        for coord in result.coords():
-            self.assertNotEqual(coord.name(), "threshold")
+        try:
+            threshold_coord = find_threshold_coordinate(result)
+        except CoordinateNotFoundError:
+            threshold_coord = None
+        self.assertIsNone(threshold_coord)
 
     def test_check_data(self):
         """
@@ -407,8 +411,7 @@ class Test__probabilities_to_percentiles(IrisTest):
             dtype=np.float32,
         )
 
-        input_probs_1d = np.linspace(1, 0, 30)
-        input_probs = np.tile(input_probs_1d, (3, 3, 1)).T
+        input_probs = np.tile(np.linspace(1, 0, 30), (3, 3, 1)).T
         cube = set_up_probability_cube(
             input_probs.astype(np.float32),
             np.arange(30).astype(np.float32),

@@ -69,7 +69,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
     def setUp(self):
         """Set up temperature cube."""
         self.temperature_cube = set_up_variable_cube(ECC_TEMPERATURE_REALIZATIONS)
-        self.expected_percentiles = np.array(
+        self.data = np.array(
             [
                 [
                     [225.568115, 236.818115, 248.068115],
@@ -99,7 +99,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.percentiles = [10, 50, 90]
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_values(self):
+    def test_check_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube matching the expected
         data values when a cubes containing location and scale parameters are
@@ -114,7 +114,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             self.percentiles,
         )
         self.assertIsInstance(result, Cube)
-        np.testing.assert_allclose(result.data, self.expected_percentiles, rtol=1.0e-4)
+        np.testing.assert_allclose(result.data, self.data, rtol=1.0e-4)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_masked_location_parameter(self):
@@ -124,9 +124,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         """
         mask = np.array([[1, 0, 0], [0, 0, 0], [0, 1, 0]])
         expected_mask = np.broadcast_to(mask, (3, 3, 3))
-        expected_data = np.ma.masked_array(
-            self.expected_percentiles, mask=expected_mask
-        )
+        expected_data = np.ma.masked_array(self.data, mask=expected_mask)
         self.location_parameter.data = np.ma.masked_array(
             self.location_parameter.data, mask=mask
         )
@@ -417,7 +415,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             )
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_spot_forecasts(self):
+    def test_spot_forecasts_check_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube matching the expected
         data values when a cube containing mean (location parameter) and

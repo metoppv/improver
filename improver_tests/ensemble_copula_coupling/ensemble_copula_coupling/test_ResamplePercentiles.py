@@ -232,13 +232,12 @@ class Test__interpolate_percentiles(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         forecast values at each percentile.
         """
-        expected = np.array([8, 10, 12])
-        expected = expected[:, np.newaxis, np.newaxis]
-
         data = np.array([8, 10, 12])
         data = data[:, np.newaxis, np.newaxis]
+        expected = data.copy()
+
         cube = set_up_percentile_cube(
-            np.array([[[8]], [[10]], [[12]]], dtype=np.float32),
+            data.astype(np.float32),
             self.percentiles,
             name="air_temperature",
             units="degC",
@@ -361,8 +360,7 @@ class Test__interpolate_percentiles(IrisTest):
             ]
         )
 
-        input_forecast_values_1d = np.linspace(10, 20, 30)
-        input_forecast_values = np.tile(input_forecast_values_1d, (3, 3, 1)).T
+        input_forecast_values = np.tile(np.linspace(10, 20, 30), (3, 3, 1)).T
         cube = set_up_percentile_cube(
             input_forecast_values.astype(np.float32),
             np.linspace(0, 100, 30).astype(np.float32),
@@ -442,7 +440,6 @@ class Test_process(IrisTest):
         data[0] -= 1
         data[1] += 1
         data[2] += 3
-
         self.percentile_cube = set_up_percentile_cube(
             data.astype(np.float32),
             np.array([10, 50, 90], dtype=np.float32),
