@@ -43,10 +43,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 )
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...set_up_test_cubes import (
-    add_coordinate,
-    set_up_percentile_cube,
-)
+from ...set_up_test_cubes import add_coordinate, set_up_percentile_cube
 from .ecc_test_data import set_up_spot_test_cube
 
 
