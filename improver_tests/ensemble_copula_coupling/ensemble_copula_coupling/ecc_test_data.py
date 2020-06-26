@@ -78,12 +78,12 @@ ECC_SPOT_PROBABILITIES = np.array(
 )
 
 
-def set_up_spot_test_cube(type="realization"):
+def set_up_spot_test_cube(cube_type="realization"):
     """Use spotdata code to build a test cube with the expected spot metadata,
     with dummy values for the coordinates which are not used in ECC tests
 
     Args:
-        type (str):
+        cube_type (str):
             Options "probability", "realization" or "percentile"
 
     Returns:
@@ -93,14 +93,14 @@ def set_up_spot_test_cube(type="realization"):
     dummy_point_locations = np.arange(9).astype(np.float32)
     dummy_string_ids = [f"{i}" for i in range(9)]
 
-    if type == "probability":
+    if cube_type == "probability":
         return _build_spot_probability_cube(dummy_point_locations, dummy_string_ids)
 
-    if type == "realization":
+    if cube_type == "realization":
         leading_coord = DimCoord(
             np.arange(3).astype(np.int32), standard_name="realization", units="1"
         )
-    elif type == "percentile":
+    elif cube_type == "percentile":
         leading_coord = DimCoord(
             np.array([10, 50, 90], dtype=np.float32), long_name="percentile", units="%"
         )

@@ -46,7 +46,6 @@ from improver.utilities.warnings_handler import ManageWarnings
 from ...set_up_test_cubes import (
     add_coordinate,
     set_up_percentile_cube,
-    set_up_variable_cube,
 )
 from .ecc_test_data import set_up_spot_test_cube
 
@@ -413,7 +412,7 @@ class Test__interpolate_percentiles(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for the percentiles for spot forecasts.
         """
-        spot_percentile_cube = set_up_spot_test_cube(type="percentile")
+        spot_percentile_cube = set_up_spot_test_cube(cube_type="percentile")
         spot_percentile_cube.data = np.tile(np.linspace(5, 10, 3), 9).reshape(3, 9)
 
         data = np.array(

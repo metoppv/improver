@@ -144,9 +144,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         """
         mask = np.array([[0, 0, 0], [0, 0, 0], [1, 0, 1]])
         expected_mask = np.broadcast_to(mask, (3, 3, 3))
-        expected_data = np.ma.masked_array(
-            self.expected_percentiles, mask=expected_mask
-        )
+        expected_data = np.ma.masked_array(self.data, mask=expected_mask)
         self.scale_parameter.data = np.ma.masked_array(
             self.scale_parameter.data, mask=mask
         )
@@ -167,9 +165,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         mask1 = np.array([[0, 1, 0], [0, 0, 0], [0, 0, 0]])
         mask2 = np.array([[0, 0, 0], [1, 0, 0], [0, 0, 0]])
         expected_mask = np.broadcast_to(mask1 + mask2, (3, 3, 3))
-        expected_data = np.ma.masked_array(
-            self.expected_percentiles, mask=expected_mask
-        )
+        expected_data = np.ma.masked_array(self.data, mask=expected_mask)
         self.location_parameter.data = np.ma.masked_array(
             self.location_parameter.data, mask=mask1
         )
@@ -422,7 +418,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         variance (scale parameter) is passed in. The resulting data values are
         the percentiles, which have been generated for a spot forecast.
         """
-        data = np.reshape(self.expected_percentiles, (3, 9))
+        data = np.reshape(self.data, (3, 9))
         cube = set_up_spot_test_cube()
 
         current_forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)

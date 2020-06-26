@@ -474,7 +474,7 @@ class Test__probabilities_to_percentiles(IrisTest):
             dtype=np.float32,
         )
 
-        cube = set_up_spot_test_cube(type="probability")
+        cube = set_up_spot_test_cube(cube_type="probability")
         result = Plugin()._probabilities_to_percentiles(
             cube, self.percentiles, self.bounds_pairing
         )
