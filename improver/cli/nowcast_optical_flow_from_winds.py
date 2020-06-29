@@ -67,41 +67,16 @@ def process(
         iris.cube.CubeList:
             List of u- and v- advection velocities
     """
-    import numpy as np
     from iris.cube import CubeList
-
-    from improver.nowcasting.optical_flow import OpticalFlow
-    from improver.nowcasting.pysteps_advection import PystepsExtrapolate
-    from improver.nowcasting.utilities import ApplyOrographicEnhancement
+    from improver.nowcasting.optical_flow import (
+        generate_advection_velocities_from_winds,
+    )
 
     if len(cubes) != 2:
         raise ValueError("Expected 2 radar cubes - got {}".format(len(cubes)))
 
-    # cannot sort in place as cubes is tuple...
-    cubes = sorted(cubes, key=lambda x: x.coord("time").points[0])
-
-    lead_time_seconds = (
-        cubes[1].coord("time").cell(0).point - cubes[0].coord("time").cell(0).point
-    ).total_seconds()
-    lead_time_minutes = int(lead_time_seconds / 60)
-
-    # advect earlier cube forward to match time of later cube, using steering flow
-    advected_cube = PystepsExtrapolate(lead_time_minutes, lead_time_minutes)(
-        cubes[0], *steering_flow, orographic_enhancement
-    )[-1]
-
-    # calculate velocity perturbations required to match forecast to later cube
-    cube_list = ApplyOrographicEnhancement("subtract")(
-        [advected_cube, cubes[1]], orographic_enhancement
+    advection_velocities = generate_advection_velocities_from_winds(
+        CubeList(cubes), steering_flow, orographic_enhancement
     )
-    perturbations = OpticalFlow()(*cube_list)
 
-    # sum perturbations and original flow field to get advection velocities
-    for flow, adj in zip(steering_flow, perturbations):
-        flow.convert_units(adj.units)
-        perturbed_field = np.where(
-            np.isfinite(adj.data), adj.data + flow.data, flow.data
-        )
-        adj.data = perturbed_field.astype(adj.dtype)
-
-    return CubeList(perturbations)
+    return advection_velocities

@@ -44,6 +44,8 @@ from iris.exceptions import (
 from scipy import ndimage, signal
 
 from improver import BasePlugin
+from improver.nowcasting.pysteps_advection import PystepsExtrapolate
+from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import collapsed
 from improver.utilities.spatial import (
@@ -103,6 +105,97 @@ def generate_optical_flow_components(
     v_mean = _calculate_time_average(v_cubes, time_coord)
 
     return u_mean, v_mean
+
+
+def generate_advection_velocities_as_perturbations(
+    current_obs, previous_forecast, previous_advection, orographic_enhancement
+):
+    """Generate advection velocities as perturbations from the velocities used
+    to generate the previous forecast
+
+    Args:
+        current_obs (iris.cube.Cube):
+            Latest radar observation at a single time
+        previous_forecast (iris.cube.Cube):
+            Forecast generated from a previous time step, for this validity time
+        previous_advection (iris.cube.CubeList):
+            u- and v- advection components used to generate the previous forecast
+        orographic_enhancement (iris.cube.Cube):
+            Field containing orographic enhancement data valid for this time
+
+    Returns:
+        iris.cube.CubeList:
+            u- and v- advection velocities
+    """
+    # check that validity times on the forecast and observation match
+    if current_obs.coord("time").cell(0) != previous_forecast.coord("time").cell(0):
+        raise ValueError("Forecast validity time must match input observation")
+
+    # subtract orographic enhancement
+    cube_list = ApplyOrographicEnhancement("subtract")(
+        [previous_forecast, current_obs], orographic_enhancement
+    )
+
+    # calculate optical flow velocity perturbations from previous nowcast to
+    # current observation
+    ofc_plugin = OpticalFlow(iterations=100)
+    perturbations = ofc_plugin(*cube_list, boxsize=30)
+
+    # adjust previous advection components by perturbation values to generate
+    # new components
+    for prev, adj in zip(previous_advection, perturbations):
+        prev.convert_units(adj.units)
+        adj.data += prev.data
+
+    return iris.cube.CubeList(perturbations)
+
+
+def generate_advection_velocities_from_winds(
+    cubes, background_flow, orographic_enhancement
+):
+    """Generate advection velocities as perturbations from a non-zero background
+    flow
+
+    Args:
+        cubes (iris.cube.CubeList):
+            Two rainfall observations separated by a time difference
+        background_flow (iris.cube.CubeList):
+            u- and v-components of a non-zero background flow field
+        orographic_enhancement (iris.cube.Cube):
+            Field containing orographic enhancement data valid for both
+            input cube times
+
+        Returns:
+        iris.cube.CubeList:
+            u- and v- advection velocities
+    """
+    cubes.sort(key=lambda x: x.coord("time").points[0])
+
+    lead_time_seconds = (
+        cubes[1].coord("time").cell(0).point - cubes[0].coord("time").cell(0).point
+    ).total_seconds()
+    lead_time_minutes = int(lead_time_seconds / 60)
+
+    # advect earlier cube forward to match time of later cube, using steering flow
+    advected_cube = PystepsExtrapolate(lead_time_minutes, lead_time_minutes)(
+        cubes[0], *background_flow, orographic_enhancement
+    )[-1]
+
+    # calculate velocity perturbations required to match forecast to later cube
+    cube_list = ApplyOrographicEnhancement("subtract")(
+        [advected_cube, cubes[1]], orographic_enhancement
+    )
+    perturbations = OpticalFlow()(*cube_list)
+
+    # sum perturbations and original flow field to get advection velocities
+    for flow, adj in zip(background_flow, perturbations):
+        flow.convert_units(adj.units)
+        perturbed_field = np.where(
+            np.isfinite(adj.data), adj.data + flow.data, flow.data
+        )
+        adj.data = perturbed_field.astype(adj.dtype)
+
+    return iris.cube.CubeList(perturbations)
 
 
 def check_input_coords(cube, require_time=False):

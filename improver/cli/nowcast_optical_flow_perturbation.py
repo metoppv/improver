@@ -74,36 +74,18 @@ def process(
             List of the umean and vmean cubes.
 
     """
-    import iris
-    from iris.cube import CubeList
+    from iris import Constraint
+    from improver.nowcasting.optical_flow import (
+        generate_advection_velocities_as_perturbations,
+    )
 
-    from improver.nowcasting.optical_flow import OpticalFlow
-    from improver.nowcasting.utilities import ApplyOrographicEnhancement
-
-    # extract forecast at required lead time (expected in seconds)
     previous_forecast.coord("forecast_period").convert_units("seconds")
     previous_forecast = previous_forecast.extract(
-        iris.Constraint(forecast_period=60 * forecast_period)
+        Constraint(forecast_period=60 * forecast_period)
     )
 
-    # check that validity times on the forecast and observation match
-    if current_obs.coord("time").cell(0) != previous_forecast.coord("time").cell(0):
-        raise ValueError("Forecast validity time must match input observation")
-
-    # subtract orographic enhancement
-    cube_list = ApplyOrographicEnhancement("subtract")(
-        [previous_forecast, current_obs], orographic_enhancement
+    advection_velocities = generate_advection_velocities_as_perturbations(
+        current_obs, previous_forecast, previous_advection, orographic_enhancement
     )
 
-    # calculate optical flow velocity perturbations from previous nowcast to
-    # current observation
-    ofc_plugin = OpticalFlow(iterations=100)
-    advection_perturbations = ofc_plugin(*cube_list, boxsize=30)
-
-    # adjust previous advection components by perturbation values to generate
-    # new components
-    for prev, adj in zip(previous_advection, advection_perturbations):
-        prev.convert_units(adj.units)
-        adj.data += prev.data
-
-    return CubeList(advection_perturbations)
+    return advection_velocities
