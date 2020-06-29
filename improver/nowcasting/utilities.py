@@ -239,7 +239,7 @@ class ApplyOrographicEnhancement(BasePlugin):
 
     @staticmethod
     def _select_orographic_enhancement_cube(
-        precip_cube, oe_cubes, allowed_time_diff=1800
+        precip_cube, oe_cube, allowed_time_diff=1800
     ):
         """Select the orographic enhancement cube with the required time
         coordinate.
@@ -247,10 +247,11 @@ class ApplyOrographicEnhancement(BasePlugin):
         Args:
             precip_cube (iris.cube.Cube):
                 Cube containing the input precipitation fields.
-            oe_cubes (iris.cube.Cube or iris.cube.CubeList):
-                Cube or CubeList containing the orographic enhancement fields.
+            oe_cube (iris.cube.Cube):
+                Cube containing orographic enhancement fields at one or
+                more times.
             allowed_time_diff (int):
-                An int in seconds to define a limit to the maximum difference
+                The maximum permitted difference, in integer seconds,
                 between the datetime of the precipitation cube and the time
                 points available within the orographic enhancement cube.
                 If this limit is exceeded, then an error is raised.
@@ -258,15 +259,15 @@ class ApplyOrographicEnhancement(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                Cube containing the orographic enhancement fields at the
+                Cube containing the orographic enhancement field at the
                 required time.
 
         """
         (time_point,) = iris_time_to_datetime(precip_cube.coord("time").copy())
-        oe_cube = extract_nearest_time_point(
-            oe_cubes, time_point, allowed_dt_difference=allowed_time_diff
+        oe_cube_slice = extract_nearest_time_point(
+            oe_cube, time_point, allowed_dt_difference=allowed_time_diff
         )
-        return oe_cube
+        return oe_cube_slice
 
     def _apply_orographic_enhancement(self, precip_cube, oe_cube):
         """Combine the precipitation rate cube and the orographic enhancement
@@ -367,8 +368,9 @@ class ApplyOrographicEnhancement(BasePlugin):
         from the input precipitation fields.
 
         Args:
-            precip_cubes (iris.cube.Cube or iris.cube.CubeList):
-                Cube or CubeList containing the input precipitation fields.
+            precip_cubes (iris.cube.Cube or iterable of iris.cube.Cube):
+                Cube or iterable (list, CubeList or tuple) of cubes containing
+                the input precipitation fields.
             orographic_enhancement_cube (iris.cube.Cube):
                 Cube containing the orographic enhancement fields.
 
