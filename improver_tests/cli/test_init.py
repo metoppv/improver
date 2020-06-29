@@ -45,6 +45,7 @@ from improver.cli import (
     inputcube,
     inputjson,
     maybe_coerce_with,
+    run_main,
     unbracket,
     with_output,
 )
@@ -348,6 +349,21 @@ def test_import_cli():
         '"rogue numpy import via improver.cli"'
     )
     subprocess.run([sys.executable, "-c", script], check=True)  # nosec
+
+
+def test_help_no_stderr():
+    """Test if help writes to sys.stderr."""
+    import contextlib
+    import io
+
+    buffer = io.StringIO()
+    with contextlib.redirect_stderr(buffer):
+        try:
+            run_main(["improver", "help"])
+        except SystemExit:
+            pass
+    result = buffer.getvalue()
+    assert not result, "unexpected output on STDERR:\n" + result
 
 
 if __name__ == "__main__":

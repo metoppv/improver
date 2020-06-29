@@ -57,9 +57,6 @@ def process(
     The smoothing_coefficient can be set on a grid square by grid-square basis
     for the x and y directions separately (using two arrays of
     smoothing_coefficients of the same dimensionality as the domain).
-    Smoothing coefficients can be generated using
-    :func:`~improver.utilities.ancillary_creation.OrographicSmoothingCoefficients`
-    and :func:`~improver.cli.generate_orographic_smoothing_coefficients`.
 
     Args:
         cube (iris.cube.Cube):
