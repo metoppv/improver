@@ -34,56 +34,13 @@ import unittest
 
 import iris
 import numpy as np
-from cf_units import Unit
-from iris.coords import AuxCoord, CellMethod, DimCoord
+from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.tests import IrisTest
 from numpy import ma
 
 from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
-
-
-def set_up_cube(
-    data,
-    phenomenon_standard_name,
-    phenomenon_units,
-    realizations=np.array([0]),
-    timesteps=1,
-    y_dimension_length=3,
-    x_dimension_length=3,
-):
-    """Create a cube containing multiple realizations."""
-    coord_placer = 0
-    cube = Cube(data, standard_name=phenomenon_standard_name, units=phenomenon_units)
-    if len(realizations) > 1:
-        realizations = DimCoord(realizations, "realization")
-        cube.add_dim_coord(realizations, coord_placer)
-        coord_placer = 1
-    else:
-        cube.add_aux_coord(AuxCoord(realizations, "realization", units="1"))
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-    cube.add_aux_coord(
-        AuxCoord(np.linspace(402192.5, 402292.5, timesteps), "time", units=tunit)
-    )
-    cube.add_dim_coord(
-        DimCoord(
-            np.linspace(0, 10000, y_dimension_length),
-            "projection_y_coordinate",
-            units="m",
-        ),
-        coord_placer,
-    )
-    cube.add_dim_coord(
-        DimCoord(
-            np.linspace(0, 10000, x_dimension_length),
-            "projection_x_coordinate",
-            units="m",
-        ),
-        coord_placer + 1,
-    )
-    return cube
+from improver_tests.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_create_difference_cube(IrisTest):
@@ -94,7 +51,7 @@ class Test_create_difference_cube(IrisTest):
         """Set up cube."""
         data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
         self.diff_in_y_array = np.array([[1, 2, 3], [3, 6, 9]])
-        self.cube = set_up_cube(data, "wind_speed", "m s-1")
+        self.cube = set_up_variable_cube(data, "wind_speed", "m s-1", "equalarea",)
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
     def test_y_dimension(self):
@@ -106,7 +63,7 @@ class Test_create_difference_cube(IrisTest):
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord(axis="y").points, expected_y)
-        self.assertArrayAlmostEqual(result.data, self.diff_in_y_array)
+        self.assertArrayEqual(result.data, self.diff_in_y_array)
 
     def test_x_dimension(self):
         """Test differences calculated along the x dimension."""
@@ -118,7 +75,7 @@ class Test_create_difference_cube(IrisTest):
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x)
-        self.assertArrayAlmostEqual(result.data, diff_array)
+        self.assertArrayEqual(result.data, diff_array)
 
     def test_othercoords(self):
         """Test that other coords are transferred properly"""
@@ -138,7 +95,7 @@ class Test_calculate_difference(IrisTest):
     def setUp(self):
         """Set up cube."""
         data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
-        self.cube = set_up_cube(data, "wind_speed", "m s-1")
+        self.cube = set_up_variable_cube(data, "wind_speed", "m s-1", "equalarea",)
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
     def test_x_dimension(self):
@@ -148,7 +105,7 @@ class Test_calculate_difference(IrisTest):
             self.cube, self.cube.coord(axis="x").name()
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        self.assertArrayEqual(result, expected)
 
     def test_y_dimension(self):
         """Test differences calculated along the y dimension."""
@@ -157,15 +114,15 @@ class Test_calculate_difference(IrisTest):
             self.cube, self.cube.coord(axis="y").name()
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
+        self.assertArrayEqual(result, expected)
 
     def test_missing_data(self):
         """Test that the result is as expected when data is missing."""
-        data = np.array([[1, 2, 3], [np.nan, 4, 6], [5, 10, 15]])
-        cube = set_up_cube(data, "wind_speed", "m s-1")
+        data = np.array([[1, 2, 3], [np.nan, 4, 6], [5, 10, 15]], dtype=np.float32)
+        self.cube.data = data
         expected = np.array([[np.nan, 2, 3], [np.nan, 6, 9]])
         result = self.plugin.calculate_difference(
-            cube, self.cube.coord(axis="y").name()
+            self.cube, self.cube.coord(axis="y").name()
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
@@ -175,10 +132,10 @@ class Test_calculate_difference(IrisTest):
         data = ma.array(
             [[1, 2, 3], [2, 4, 6], [5, 10, 15]], mask=[[0, 0, 0], [1, 0, 0], [0, 0, 0]]
         )
-        cube = set_up_cube(data, "wind_speed", "m s-1")
+        self.cube.data = data
         expected = ma.array([[1, 2, 3], [3, 6, 9]], mask=[[1, 0, 0], [1, 0, 0]])
         result = self.plugin.calculate_difference(
-            cube, self.cube.coord(axis="y").name()
+            self.cube, self.cube.coord(axis="y").name()
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayEqual(result, expected)
@@ -192,7 +149,9 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up cube."""
         data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
-        self.cube = set_up_cube(data, "wind_speed", "m s-1")
+        self.cube = set_up_variable_cube(
+            data, "wind_speed", "m s-1", "equalarea", realizations=np.array([1, 2]),
+        )
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
     def test_basic(self):
@@ -202,9 +161,9 @@ class Test_process(IrisTest):
         expected_y = np.array([[1, 2, 3], [3, 6, 9]])
         result = self.plugin.process(self.cube)
         self.assertIsInstance(result[0], Cube)
-        self.assertArrayAlmostEqual(result[0].data, expected_x)
+        self.assertArrayEqual(result[0].data, expected_x)
         self.assertIsInstance(result[1], Cube)
-        self.assertArrayAlmostEqual(result[1].data, expected_y)
+        self.assertArrayEqual(result[1].data, expected_y)
 
     def test_metadata(self):
         """Test the resulting metadata is correct."""
@@ -231,12 +190,14 @@ class Test_process(IrisTest):
         )
         expected_x = np.array([[[1, 1], [2, 2], [5, 5]], [[1, 1], [0, 4], [5, 10]]])
         expected_y = np.array([[[1, 2, 3], [3, 6, 9]], [[1, 0, 3], [3, 8, 14]]])
-        cube = set_up_cube(data, "wind_speed", "m s-1", realizations=np.array([1, 2]))
+        cube = set_up_variable_cube(
+            data, "wind_speed", "m s-1", "equalarea", realizations=np.array([1, 2]),
+        )
         result = self.plugin.process(cube)
         self.assertIsInstance(result[0], iris.cube.Cube)
-        self.assertArrayAlmostEqual(result[0].data, expected_x)
+        self.assertArrayEqual(result[0].data, expected_x)
         self.assertIsInstance(result[1], iris.cube.Cube)
-        self.assertArrayAlmostEqual(result[1].data, expected_y)
+        self.assertArrayEqual(result[1].data, expected_y)
 
 
 if __name__ == "__main__":

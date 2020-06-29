@@ -607,6 +607,44 @@ class Test_process(IrisTest):
         result = plugin(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
+    def test_radii_varying_with_lead_time_multiple_realizations(self):
+        """Test that a cube is returned for the following conditions:
+        1. The radius varies wtih lead time.
+        2. The cube contains multiple realizations."""
+        cube = set_up_cube(
+            zero_point_indices=((1, 0, 7, 7), (1, 1, 7, 7), (1, 2, 7, 7)),
+            num_time_points=3,
+            num_realization_points=2,
+        )
+        time_points = cube.coord("time").points
+        lead_times = [2, 3, 4]
+        radii = [5600, 7600, 9500]
+        cube = add_forecast_reference_time_and_forecast_period(
+            cube, time_point=time_points, fp_point=lead_times
+        )
+        expected = np.ones_like(cube.data)
+        expected[1, 0, 6:9, 6:9] = (
+            [0.91666667, 0.875, 0.91666667],
+            [0.875, 0.83333333, 0.875],
+            [0.91666667, 0.875, 0.91666667],
+        )
+        expected[1, 1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
+        expected[1, 2, 4:11, 4:11] = (
+            [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
+            [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
+            [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
+            [0.9825, 0.97, 0.9625, 0.96, 0.9625, 0.97, 0.9825],
+            [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
+            [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
+            [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
+        )
+        neighbourhood_method = CircularNeighbourhood()
+        plugin = NBHood(neighbourhood_method, radii, lead_times)
+        result = plugin(cube)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayEqual(result[0].data, expected[0])
+        self.assertArrayAlmostEqual(result[1].data, expected[1])
+
     def test_radii_varying_with_lead_time_with_interpolation(self):
         """Test that a cube is returned for the following conditions:
         1. The radius varies with lead time.
