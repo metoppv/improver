@@ -614,8 +614,9 @@ class Test_process(IrisTest):
         cube = set_up_cube(
             zero_point_indices=((1, 0, 7, 7), (1, 1, 7, 7), (1, 2, 7, 7)),
             num_time_points=3,
-            num_realization_points=2)
-        time_points = cube.coord('time').points
+            num_realization_points=2,
+        )
+        time_points = cube.coord("time").points
         lead_times = [2, 3, 4]
         radii = [5600, 7600, 9500]
         cube = add_forecast_reference_time_and_forecast_period(
