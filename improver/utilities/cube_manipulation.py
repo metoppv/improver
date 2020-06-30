@@ -324,7 +324,9 @@ class MergeCubes(BasePlugin):
                 )
                 raise ValueError(msg)
 
-    def process(self, cubes_in, check_time_bounds_ranges=False):
+    def process(
+        self, cubes_in, check_time_bounds_ranges=False, slice_over_realization=False
+    ):
         """
         Function to merge cubes, accounting for differences in attributes,
         coordinates and cell methods.  Note that cubes with different sets
@@ -345,6 +347,10 @@ class MergeCubes(BasePlugin):
                 through merging for eg precipitation accumulations, where we
                 want to make sure that the bounds match so that we are not eg
                 combining 1 hour with 3 hour accumulations.
+            slice_over_realization (bool):
+                Options to combine cubes with different realization dimensions.
+                These cannot always be concatenated directly as this can create a
+                non-monotonic realization coordinate.
 
         Returns:
             iris.cube.Cube:
@@ -364,7 +370,11 @@ class MergeCubes(BasePlugin):
         # create copies of input cubes so as not to modify in place
         cubelist = iris.cube.CubeList([])
         for cube in cubes_in:
-            cubelist.append(cube.copy())
+            if slice_over_realization:
+                for slice in cube.slices_over("realization"):
+                    cubelist.append(slice.copy())
+            else:
+                cubelist.append(cube.copy())
 
         # equalise cube attributes, cell methods and coordinate names
         equalise_cube_attributes(cubelist, silent=self.silent_attributes)
@@ -377,6 +387,10 @@ class MergeCubes(BasePlugin):
         # check time bounds if required
         if check_time_bounds_ranges:
             self._check_time_bounds_ranges(result)
+
+        # re-promote scalar realization if required
+        if slice_over_realization and len(result.coord("realization").points) == 1:
+            result = iris.util.new_axis(result, "realization")
 
         return result
 
