@@ -200,7 +200,7 @@ class Test_rank_ecc(IrisTest):
         calibrated_cube = raw_cube.copy()
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
-        self.assertArrayAlmostEqual(result.data, calibrated_data)
+        self.assertArrayAlmostEqual(result.data, calibrated_cube.data)
 
     def test_unordered_data(self):
         """
