@@ -356,13 +356,14 @@ def test_help_no_stderr():
     import contextlib
     import io
 
-    buffer = io.StringIO()
-    with contextlib.redirect_stderr(buffer):
+    stderr = io.StringIO()
+    stdout = io.StringIO()
+    with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
         try:
             run_main(["improver", "help"])
         except SystemExit:
             pass
-    result = buffer.getvalue()
+    result = stderr.getvalue()
     assert not result, "unexpected output on STDERR:\n" + result
 
 
