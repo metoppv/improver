@@ -173,7 +173,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         self.assertEqual(result.name(), "air_temperature")
 
     def test_unknown_thresholding(self):
-        """Test that the plugin returns an Iris.cube.Cube."""
+        """Test an error is raised for "between thresholds" probability cubes"""
         self.cube.coord(var_name="threshold").attributes[
             "spp__relative_to_threshold"
         ] = "between"

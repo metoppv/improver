@@ -196,10 +196,8 @@ class Test_rank_ecc(IrisTest):
                 [[3, 3, 3], [3, 3, 3], [3, 3, 3]],
             ]
         )
-
-        calibrated_data = raw_data
         raw_cube = self.cube.copy(data=raw_data)
-        calibrated_cube = self.cube.copy(data=calibrated_data)
+        calibrated_cube = raw_cube.copy()
 
         result = Plugin().rank_ecc(calibrated_cube, raw_cube)
         self.assertArrayAlmostEqual(result.data, calibrated_data)
