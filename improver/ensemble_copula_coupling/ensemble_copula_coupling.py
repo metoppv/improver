@@ -1209,7 +1209,7 @@ class EnsembleReordering(BasePlugin):
                 raw_forecast_realization.coord("realization").points = index
                 raw_forecast_realizations_extended.append(raw_forecast_realization)
             raw_forecast_realizations = ConcatenateCubes(
-                coords_to_slice_over=["realization", "time"]
+                coords_to_slice_over=["realization"]
             )(raw_forecast_realizations_extended)
         return raw_forecast_realizations
 
