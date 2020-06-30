@@ -131,23 +131,15 @@ def generate_advection_velocities_as_perturbations(
     if current_obs.coord("time").cell(0) != previous_forecast.coord("time").cell(0):
         raise ValueError("Forecast validity time must match input observation")
 
-    # subtract orographic enhancement
+    # calculate velocity perturbations required to match forecast to observation
     cube_list = ApplyOrographicEnhancement("subtract")(
         [previous_forecast, current_obs], orographic_enhancement
     )
+    perturbations = OpticalFlow(iterations=100)(*cube_list, boxsize=30)
 
-    # calculate optical flow velocity perturbations from previous nowcast to
-    # current observation
-    ofc_plugin = OpticalFlow(iterations=100)
-    perturbations = ofc_plugin(*cube_list, boxsize=30)
-
-    # adjust previous advection components by perturbation values to generate
-    # new components
-    for prev, adj in zip(previous_advection, perturbations):
-        prev.convert_units(adj.units)
-        adj.data += prev.data
-
-    return iris.cube.CubeList(perturbations)
+    # sum perturbations and previous advection to get advection velocities
+    total_advection = _perturb_background_flow(previous_advection, perturbations)
+    return total_advection
 
 
 def generate_advection_velocities_from_winds(
@@ -181,21 +173,35 @@ def generate_advection_velocities_from_winds(
         cubes[0], *background_flow, orographic_enhancement
     )[-1]
 
-    # calculate velocity perturbations required to match forecast to later cube
+    # calculate velocity perturbations required to match forecast to observation
     cube_list = ApplyOrographicEnhancement("subtract")(
         [advected_cube, cubes[1]], orographic_enhancement
     )
     perturbations = OpticalFlow()(*cube_list)
 
     # sum perturbations and original flow field to get advection velocities
-    for flow, adj in zip(background_flow, perturbations):
+    total_advection = _perturb_background_flow(background_flow, perturbations)
+    return total_advection
+
+
+def _perturb_background_flow(background, adjustment):
+    """Add a background flow to a flow adjustment field.  The returned cubelist
+    has the units of the adjustment field.
+
+    Args:
+        background (list of iris.cube.Cube)
+        adjustment (list of iris.cube.Cube)
+
+    Returns:
+        iris.cube.CubeList
+    """
+    for flow, adj in zip(background, adjustment):
         flow.convert_units(adj.units)
         perturbed_field = np.where(
             np.isfinite(adj.data), adj.data + flow.data, flow.data
         )
         adj.data = perturbed_field.astype(adj.dtype)
-
-    return iris.cube.CubeList(perturbations)
+    return iris.cube.CubeList(adjustment)
 
 
 def check_input_coords(cube, require_time=False):
