@@ -38,27 +38,12 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import (
-    generate_advection_velocities_as_perturbations
+    generate_advection_velocities_as_perturbations,
 )
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...set_up_test_cubes import add_coordinate, set_up_variable_cube
-
-
-def set_up_test_cube(data, name, units, time):
-    """Template for cube metadata with set coordinate spacing"""
-    coord_points = 2000 * np.arange(30, dtype=np.float32)  # in metres
-    cube = set_up_variable_cube(
-        data,
-        name=name,
-        units=units,
-        spatial_grid="equalarea",
-        time=time,
-        frt=time,
-    )
-    cube.coord(axis="x").points = coord_points
-    cube.coord(axis="y").points = coord_points
-    return cube
+from ...set_up_test_cubes import add_coordinate
+from . import set_up_test_cube
 
 
 class Test_generate_advection_velocities_as_perturbations(IrisTest):
@@ -73,19 +58,19 @@ class Test_generate_advection_velocities_as_perturbations(IrisTest):
             np.zeros(shape, dtype=np.float32),
             name="lwe_precipitation_rate",
             units="m s-1",
-            time=datetime(2018, 2, 20, 4, 15)
+            time=datetime(2018, 2, 20, 4, 15),
         )
         self.forecast = self.obs.copy()
         self.forecast.coord("forecast_reference_time").points = (
-            self.forecast.coord("forecast_reference_time").points - 15*60
+            self.forecast.coord("forecast_reference_time").points - 15 * 60
         )
-        self.forecast.coord("forecast_period").points = [15*60]
-        
+        self.forecast.coord("forecast_period").points = [15 * 60]
+
         wind_u = set_up_test_cube(
             np.ones(shape, dtype=np.float32),
             name="precipitation_advection_y_velocity",
             units="m s-1",
-            time=datetime(2018, 2, 20, 4, 0)
+            time=datetime(2018, 2, 20, 4, 0),
         )
         wind_v = wind_u.copy()
         wind_v.rename("precipitation_advection_y_velocity")
@@ -99,7 +84,7 @@ class Test_generate_advection_velocities_as_perturbations(IrisTest):
         )
         time_points = []
         for i in range(3):
-            time_points.append(datetime(2018, 2, 20, 3+i))
+            time_points.append(datetime(2018, 2, 20, 3 + i))
         self.orogenh = add_coordinate(orogenh, time_points, "time", is_datetime=True)
 
     @ManageWarnings(ignored_messages=["No non-zero data in input fields"])
@@ -113,7 +98,7 @@ class Test_generate_advection_velocities_as_perturbations(IrisTest):
         self.assertEqual(result[1].name(), "precipitation_advection_y_velocity")
 
     @ManageWarnings(ignored_messages=["No non-zero data in input fields"])
-    def test_times(self):
+    def test_time(self):
         """Test output time coordinates are as expected"""
         current_time = self.obs.coord("time").points[0]
         result = generate_advection_velocities_as_perturbations(
