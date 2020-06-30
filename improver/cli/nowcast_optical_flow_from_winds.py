@@ -29,63 +29,54 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate optical flow advection velocities as perturbations
-from a previous estimate"""
+"""Script to calculate optical flow components as perturbations from model
+steering flow"""
 
 from improver import cli
 
 # Creates the value_converter that clize needs.
-inputadvection = cli.create_constrained_inputcubelist_converter(
-    "precipitation_advection_x_velocity", "precipitation_advection_y_velocity",
+inputflow = cli.create_constrained_inputcubelist_converter(
+    "grid_eastward_wind", "grid_northward_wind",
 )
 
 
 @cli.clizefy
 @cli.with_output
 def process(
-    current_obs: cli.inputcube,
-    previous_forecast: cli.inputcube,
-    previous_advection: inputadvection,
+    steering_flow: inputflow,
     orographic_enhancement: cli.inputcube,
-    *,
-    forecast_period=15,
+    *cubes: cli.inputcube,
 ):
-    """Calculate optical flow components as a perturbation from the previous
-    advection components, using the difference between a current observation
-    and forecast from the previous time step.
+    """Calculate optical flow components as perturbations from the model
+    steering flow.  Advects the older of the two input radar observations to
+    the validity time of the newer observation, then calculates the velocity
+    required to adjust this forecast to match the observation.  Sums the
+    steering flow and perturbation values to give advection components for
+    extrapolation nowcasting.
 
     Args:
-        current_obs (iris.cube.Cube):
-            Cube containing latest radar observation
-        previous_forecast (iris.cube.Cube):
-            Cube containing advection nowcast for this time, created at an
-            earlier timestep
-        previous_advection (iris.cube.CubeList):
-            Advection velocities in the x- and y- directions used to generate
-            the previous forecast
+        steering_flow (iris.cube.CubeList):
+            Model steering flow as u- and v- wind components.  These must
+            have names: "grid_eastward_wind" and "grid_northward_wind".
         orographic_enhancement (iris.cube.Cube):
-            Cube containing orographic enhancement for this timestep
-        forecast_period (int):
-            Forecast period of previous forecast, in minutes.  Used to extract
-            a forecast from a cube that may contain multiple lead times.
+            Cube containing the orographic enhancement fields.
+        cubes (tuple of iris.cube.Cube):
+            Two radar precipitation observation cubes.
 
     Returns:
         iris.cube.CubeList:
-            List of the umean and vmean cubes.
-
+            List of u- and v- advection velocities
     """
-    from iris import Constraint
+    from iris.cube import CubeList
     from improver.nowcasting.optical_flow import (
-        generate_advection_velocities_as_perturbations,
+        generate_advection_velocities_from_winds,
     )
 
-    previous_forecast.coord("forecast_period").convert_units("seconds")
-    previous_forecast = previous_forecast.extract(
-        Constraint(forecast_period=60 * forecast_period)
-    )
+    if len(cubes) != 2:
+        raise ValueError("Expected 2 radar cubes - got {}".format(len(cubes)))
 
-    advection_velocities = generate_advection_velocities_as_perturbations(
-        current_obs, previous_forecast, previous_advection, orographic_enhancement
+    advection_velocities = generate_advection_velocities_from_winds(
+        CubeList(cubes), steering_flow, orographic_enhancement
     )
 
     return advection_velocities
