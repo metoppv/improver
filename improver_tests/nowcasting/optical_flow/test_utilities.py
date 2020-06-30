@@ -39,8 +39,8 @@ from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import (
-    check_input_coords,
     _perturb_background_flow,
+    check_input_coords,
 )
 
 from ...set_up_test_cubes import set_up_variable_cube
