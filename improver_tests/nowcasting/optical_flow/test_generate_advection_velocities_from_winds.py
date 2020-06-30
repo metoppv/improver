@@ -108,6 +108,19 @@ class Test_generate_advection_velocities_from_winds(IrisTest):
             self.assertIsInstance(cube, iris.cube.Cube)
             self.assertEqual(cube.coord("time").points[0], current_time)
 
+    @ManageWarnings(ignored_messages=["No non-zero data in input fields"])    
+    def test_input_sort(self):
+        """Test output time coordinates are correct if the inputs are in the wrong
+        order"""
+        current_time = self.cubes[1].coord("time").points[0]
+        reversed_cubelist = iris.cube.CubeList([self.cubes[1], self.cubes[0]])
+        result = generate_advection_velocities_from_winds(
+            reversed_cubelist, self.steering_flow, self.orogenh
+        )
+        for cube in result:
+            self.assertIsInstance(cube, iris.cube.Cube)
+            self.assertEqual(cube.coord("time").points[0], current_time)
+
 
 if __name__ == "__main__":
     unittest.main()
