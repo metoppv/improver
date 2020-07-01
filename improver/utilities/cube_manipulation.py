@@ -97,8 +97,7 @@ def equalise_cube_attributes(cubes, silent=None):
 
     TODO replace this function with the iris version once it is promoted into
     the standard iris package.  At that time, the silent_attributes member of
-    the MergeCubes and ConcatenateCubes classes becomes obsolete and should be
-    removed.
+    MergeCubes becomes obsolete and should be removed.
     """
     if silent is None:
         silent = []
@@ -132,135 +131,6 @@ def strip_var_names(cubes):
             if coord.var_name != "threshold":
                 coord.var_name = None
     return cubes
-
-
-class ConcatenateCubes(BasePlugin):
-    """
-    Class adding functionality to iris.concatenate_cubes().
-
-    Accounts for differences in attributes and allows promotion of scalar
-    coordinates to be associated with the dimension over which concatenation
-    is to be performed (eg can promote forecast_period to auxiliary for single
-    time point cube inputs).
-    """
-
-    def __init__(self, coords_to_slice_over=None, coords_to_associate=None):
-        """
-        Initialise parameters
-
-        Args:
-            coords_to_slice_over (str or list):
-                Dimension coordinates to slice over before concatenation.
-                May cause the dimension order to change from input to output
-                cubes.
-            coords_to_associate (dict):
-                Coordinates to be associated with each slice coord.  If slicing over
-                over time, this is automatically associated with forecast period unless
-                otherwise specified.
-        """
-        self.coords_to_slice_over = (
-            [coords_to_slice_over]
-            if isinstance(coords_to_slice_over, str)
-            else coords_to_slice_over
-        )
-        self.coords_to_associate = coords_to_associate
-
-        if self.coords_to_slice_over and self.coords_to_associate is None:
-            self.coords_to_associate = {}
-            if "time" in self.coords_to_slice_over:
-                self.coords_to_associate["time"] = "forecast_period"
-
-        # List of attributes to remove silently if unmatched
-        self.silent_attributes = ["history", "title", "mosg__grid_version"]
-
-    def _slice_over_coordinate(self, cubes, coord_to_slice_over):
-        """
-        Function slices over the requested coordinate in each cube within a
-        cubelist. The sliced coordinate is promoted into a one-point dimension
-        to help concatenation. If the coord_to_slice_over is not found on a
-        cube, the cube is added to the list in its original form.
-
-        If there are coordinates to associate with the new dimension (eg forecast
-        period, if slicing over time), promotes these to auxiliary coordinates.
-
-        Args:
-            cubes (iris.cube.Cube or iris.cube.CubeList):
-                Cubes to be concatenated.
-            coord_to_slice_over (str or iris.coords.Coord):
-                Coordinate instance or name of coordinate to slice over.
-
-        Returns:
-            iris.cube.CubeList:
-                CubeList containing sliced cubes.
-        """
-        sliced_by_coord_cubelist = iris.cube.CubeList([])
-        if isinstance(cubes, iris.cube.Cube):
-            cubes = iris.cube.CubeList([cubes])
-
-        for cube in cubes:
-            # TODO this should be if coord to slice over is a dimension - otherwise
-            # this promotes scalar coordinates for concatenation where it would be
-            # simpler to merge.  Revisit once ECC unit tests have been updated / fixed.
-            if cube.coords(coord_to_slice_over):
-                for coord_slice in cube.slices_over(coord_to_slice_over):
-                    coord_slice = iris.util.new_axis(coord_slice, coord_to_slice_over)
-                    if coord_to_slice_over in self.coords_to_associate:
-                        coord_to_associate = coord_slice.coord(
-                            self.coords_to_associate[coord_to_slice_over]
-                        ).copy()
-                        coord_slice.remove_coord(coord_to_associate)
-                        coord_slice.add_aux_coord(coord_to_associate, data_dims=(0,))
-                    sliced_by_coord_cubelist.append(coord_slice)
-            else:
-                sliced_by_coord_cubelist.append(cube)
-
-        return sliced_by_coord_cubelist
-
-    def process(self, cubes_in):
-        """
-        Processes a list of cubes to ensure compatibility before calling the
-        iris.cube.CubeList.concatenate_cube() method. Removes mismatched
-        attributes, strips var_names from the cube and coordinates, and slices
-        over any requested dimensions to avoid coordinate mismatch errors (eg
-        for concatenating cubes with differently numbered realizations).
-
-        If the input is a single Cube or CubeList of length 1, the input cube
-        is returned unmodified.
-
-        Args:
-            cubes_in (iris.cube.CubeList or iris.cube.Cube):
-                Cube or list of cubes to be concatenated
-
-        Returns:
-            iris.cube.Cube
-        """
-        # if input is a single cube or list of length 1, return unchanged
-        if isinstance(cubes_in, iris.cube.Cube):
-            return cubes_in
-
-        if len(cubes_in) == 1:
-            return cubes_in[0]
-
-        # create copies of input cubes so as not to modify in place
-        cubes = iris.cube.CubeList([])
-        for cube in cubes_in:
-            cubes.append(cube.copy())
-
-        # slice over requested coordinates
-        if self.coords_to_slice_over:
-            for coord in self.coords_to_slice_over:
-                cubes = self._slice_over_coordinate(cubes, coord)
-
-        # remove unmatched attributes
-        equalise_cube_attributes(cubes, silent=self.silent_attributes)
-
-        # remove cube variable names
-        strip_var_names(cubes)
-
-        # concatenate cube
-        result = cubes.concatenate_cube()
-
-        return result
 
 
 class MergeCubes(BasePlugin):
