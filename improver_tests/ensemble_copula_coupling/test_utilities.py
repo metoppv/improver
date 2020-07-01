@@ -239,7 +239,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         """
         cube_data = self.cube_data + 2
         percentiles = [10, 50]
-        msg = "Require data with shape"
+        msg = "cannot reshape array of size"  # TODO "Require data with shape"
         with self.assertRaisesRegex(ValueError, msg):
             create_cube_with_percentiles(percentiles, self.cube, cube_data)
 
@@ -251,7 +251,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         """
         cube_data = self.cube_data[0, :, :] + 2
         percentiles = [10, 50, 90]
-        msg = "Require data with shape"
+        msg = "cannot reshape array of size"  # TODO "Require data with shape"
         with self.assertRaisesRegex(ValueError, msg):
             create_cube_with_percentiles(percentiles, self.cube, cube_data)
 

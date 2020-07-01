@@ -531,7 +531,7 @@ class Test_process(IrisTest):
         data values for a specific percentile passes in as a single realization
         list.
         """
-        expected_data = np.array([self.percentile_25])
+        expected_data = np.array(self.percentile_25)
         result = Plugin().process(self.cube, percentiles=[25])
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
@@ -541,7 +541,7 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values for a specific percentile passed in as a value.
         """
-        expected_data = np.array([self.percentile_25])
+        expected_data = np.array(self.percentile_25)
         result = Plugin().process(self.cube, percentiles=25)
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 

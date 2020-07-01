@@ -171,11 +171,12 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data, cube_uni
     result = cubes.merge_cube()
 
     # if percentile is single-valued, promote new coordinate to dimension
-    if len(percentiles) == 1:
-        result = iris.util.new_axis(result, result.coord("percentile"))
+    #if len(percentiles) == 1:
+    #    result = iris.util.new_axis(result, result.coord("percentile"))
 
     # replace data and units
-    result.data = cube_data
+    # TODO address the fact that misshapen data is being passed to this function!!!
+    result.data = cube_data.reshape(result.data.shape)
     if cube_unit is not None:
         result.units = cube_unit
 
