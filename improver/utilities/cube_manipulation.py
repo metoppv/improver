@@ -241,8 +241,8 @@ class MergeCubes(BasePlugin):
         cubelist = iris.cube.CubeList([])
         for cube in cubes_in:
             if slice_over_realization:
-                for slice in cube.slices_over("realization"):
-                    cubelist.append(slice.copy())
+                for real_slice in cube.slices_over("realization"):
+                    cubelist.append(real_slice.copy())
             else:
                 cubelist.append(cube.copy())
 
