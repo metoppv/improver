@@ -258,10 +258,6 @@ class MergeCubes(BasePlugin):
         if check_time_bounds_ranges:
             self._check_time_bounds_ranges(result)
 
-        # re-promote scalar realization coordinate if required
-        if slice_over_realization and len(result.coord("realization").points) == 1:
-            result = iris.util.new_axis(result, "realization")
-
         return result
 
 

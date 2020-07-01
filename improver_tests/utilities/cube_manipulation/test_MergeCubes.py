@@ -284,8 +284,8 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.coord("realization").points, np.arange(6))
 
     def test_slice_over_realization_scalar(self):
-        """Test that a single-valued realization coordinate is returned as a
-        dimension when the slice_over_realization argument is set"""
+        """Demostrate behaviour with a single-valued realization coordinate
+        when the slicing option is set"""
         data = 275 * np.ones((1, 3, 3), dtype=np.float32)
         cube1 = set_up_variable_cube(
             data, time=dt(2015, 11, 23, 7), frt=dt(2015, 11, 23, 6)
@@ -293,9 +293,11 @@ class Test_process(IrisTest):
         cube2 = set_up_variable_cube(
             data, time=dt(2015, 11, 23, 8), frt=dt(2015, 11, 23, 6)
         )
-        expected_dims = ["realization", "time", "latitude", "longitude"]
+        expected_dims = ["time", "latitude", "longitude"]
         result = self.plugin([cube1, cube2], slice_over_realization=True)
+        result_coords = [coord.name() for coord in result.coords()]
         result_dims = [coord.name() for coord in result.coords(dim_coords=True)]
+        self.assertIn("realization", result_coords)
         self.assertSequenceEqual(result_dims, expected_dims)
 
 
