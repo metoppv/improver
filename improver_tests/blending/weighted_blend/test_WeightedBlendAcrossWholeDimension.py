@@ -598,6 +598,34 @@ class Test_weighted_mean(Test_weighted_blend):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
+    def test_collapse_dims_with_weights(self):
+        """Test function matches when the blend coordinate is first or second."""
+
+        coord = "forecast_reference_time"
+
+        # Create a new axis.
+        new_cube = add_coordinate(self.cube, [0.5], "height", coord_units="m")
+        new_cube = iris.util.new_axis(new_cube, "height")
+
+        plugin = WeightedBlendAcrossWholeDimension(coord)
+
+        result_blend_coord_second = plugin.weighted_mean(new_cube, self.weights1d)
+
+        # Reorder the axis to move the blending coordinate to the front.
+        order = np.array([1, 0, 2, 3])
+        new_cube.transpose(order)
+        result_blend_coord_first = plugin.weighted_mean(new_cube, self.weights1d)
+
+        expected = np.full((2, 2), 1.5)
+
+        self.assertIsInstance(result_blend_coord_first, iris.cube.Cube)
+        self.assertIsInstance(result_blend_coord_second, iris.cube.Cube)
+        self.assertArrayAlmostEqual(
+            result_blend_coord_first.data, result_blend_coord_second.data
+        )
+        self.assertArrayAlmostEqual(result_blend_coord_first.data, expected)
+
 
 class Test_process(Test_weighted_blend):
 
@@ -743,6 +771,29 @@ class Test_process(Test_weighted_blend):
         expected_result_array = np.ones((2, 2, 2)) * 0.3
         expected_result_array[1, :, :] = 0.5
 
+        expected_frt = int(self.cube.coord("forecast_reference_time").points[-1])
+        expected_forecast_period = int(self.cube.coord("forecast_period").points[-1])
+
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        self.assertEqual(result.attributes, self.expected_attributes)
+        self.assertEqual(result.coord("time").points, expected_frt)
+        self.assertEqual(
+            result.coord("forecast_period").points, expected_forecast_period
+        )
+
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
+    def test_threshold_cube_with_promoted_dimension_weighted_mean(self):
+        """Test weighted_mean method works with an additional promoted dimension with size 1."""
+        coord = "forecast_reference_time"
+        plugin = WeightedBlendAcrossWholeDimension(coord)
+
+        # Set up an input cube with one threshold as a dimension coordinate
+        input_cube = self.cube_threshold[0]
+        input_cube = iris.util.new_axis(input_cube, "precipitation_amount")
+
+        result = plugin(input_cube, self.weights1d)
+
+        expected_result_array = np.ones((1, 2, 2)) * 0.3
         expected_frt = int(self.cube.coord("forecast_reference_time").points[-1])
         expected_forecast_period = int(self.cube.coord("forecast_period").points[-1])
 

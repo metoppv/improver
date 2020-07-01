@@ -222,7 +222,6 @@ class SquareNeighbourhood:
                 self.re_mask,
             )
             result_slices.append(cube_slice)
-
         neighbourhood_averaged_cube = result_slices.merge_cube()
 
         neighbourhood_averaged_cube.cell_methods = original_methods

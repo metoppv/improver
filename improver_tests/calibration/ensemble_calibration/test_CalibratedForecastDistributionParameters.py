@@ -63,7 +63,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             "Collapsing a non-contiguous coordinate.",
             "invalid escape sequence",
             "can't resolve package from",
-            "The statsmodels can not be imported",
+            "The statsmodels module cannot be imported",
         ],
         warning_types=[UserWarning, DeprecationWarning, ImportWarning, ImportWarning],
     )
@@ -80,20 +80,19 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         # Set up a coefficients cube when using the ensemble mean as the
         # predictor.
         estimator = EstimateCoefficientsForEnsembleCalibration(
-            "gaussian", desired_units="Celsius"
+            "norm", desired_units="Celsius"
         )
         self.coeffs_from_mean = estimator.create_coefficients_cubelist(
-            self.expected_mean_predictor_gaussian,
-            self.current_temperature_forecast_cube,
+            self.expected_mean_predictor_norm, self.current_temperature_forecast_cube,
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
         # predictor and the coefficients have been estimated using statsmodels.
         estimator = EstimateCoefficientsForEnsembleCalibration(
-            "gaussian", desired_units="Celsius", predictor="realizations"
+            "norm", desired_units="Celsius", predictor="realizations"
         )
         self.coeffs_from_statsmodels_realizations = estimator.create_coefficients_cubelist(
-            self.expected_realizations_gaussian_statsmodels,
+            self.expected_realizations_norm_statsmodels,
             self.current_temperature_forecast_cube,
         )
 
@@ -101,10 +100,10 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         # predictor and the coefficients have been estimated without using
         # statsmodels.
         estimator = EstimateCoefficientsForEnsembleCalibration(
-            "gaussian", desired_units="Celsius", predictor="realizations"
+            "norm", desired_units="Celsius", predictor="realizations"
         )
         self.coeffs_from_no_statsmodels_realizations = estimator.create_coefficients_cubelist(
-            self.expected_realizations_gaussian_no_statsmodels,
+            self.expected_realizations_norm_no_statsmodels,
             self.current_temperature_forecast_cube,
         )
 

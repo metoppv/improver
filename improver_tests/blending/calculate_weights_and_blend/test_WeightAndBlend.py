@@ -264,8 +264,8 @@ class Test__update_spatial_weights(IrisTest):
         """Test weights are fuzzified as expected"""
         expected_data = np.array(
             [
-                np.broadcast_to([0.5, 0.5, 0.6666667, 1.0, 1.0], (5, 5)),
-                np.broadcast_to([0.5, 0.5, 0.3333333, 0.0, 0.0], (5, 5)),
+                np.broadcast_to([0.5, 0.5, 0.5, 0.5, 0.5], (5, 5)),
+                np.broadcast_to([0.5, 0.5, 0.25, 0.0, 0.0], (5, 5)),
             ],
             dtype=np.float32,
         )

@@ -148,7 +148,17 @@ class Test_process(IrisTest):
         cube.data = cube.data.astype(np.float64)
         result = self.plugin.process(cube)
         self.assertEqual(result.data.dtype, np.float32)
-        self.assertArrayAlmostEqual(self.cube.data, result.data, decimal=4)
+        self.assertArrayAlmostEqual(result.data, self.cube.data, decimal=4)
+
+    def test_float_deescalation_with_unit_change(self):
+        """Covers the bug where unit conversion from an integer input field causes
+        float64 escalation"""
+        cube = set_up_variable_cube(
+            np.ones((5, 5), dtype=np.int16), name="rainrate", units="mm h-1"
+        )
+        result = self.plugin.process(cube, new_units="m s-1")
+        self.assertEqual(cube.dtype, np.float32)
+        self.assertEqual(result.data.dtype, np.float32)
 
 
 if __name__ == "__main__":

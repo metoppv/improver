@@ -30,16 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the cube_combiner.CubeCombiner plugin."""
 import unittest
+from copy import deepcopy
 from datetime import datetime
 
 import iris
 import numpy as np
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.cube_combiner import CubeCombiner
+from improver_tests import ImproverTest
 
-from ..set_up_test_cubes import set_up_probability_cube, set_up_variable_cube
+from ..set_up_test_cubes import (
+    add_coordinate,
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 
 
 class Test__init__(IrisTest):
@@ -69,7 +76,7 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class CombinerTest(IrisTest):
+class CombinerTest(ImproverTest):
     """Set up a common set of test cubes for subsequent test classes."""
 
     def setUp(self):
@@ -102,6 +109,19 @@ class CombinerTest(IrisTest):
             time=datetime(2015, 11, 19, 1),
             time_bounds=(datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 1)),
             frt=datetime(2015, 11, 18, 22),
+        )
+
+        data = np.full((2, 2, 2), 0.1, dtype=np.float32)
+        self.cube4 = set_up_probability_cube(
+            data,
+            np.array([1.0, 2.0], dtype=np.float32),
+            variable_name="lwe_thickness_of_precipitation_amount",
+            time=datetime(2015, 11, 19, 1),
+            time_bounds=(datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 1)),
+            frt=datetime(2015, 11, 18, 22),
+        )
+        self.cube4 = add_coordinate(
+            iris.util.squeeze(self.cube4), np.arange(3), "realization", coord_units="1"
         )
 
 
@@ -146,14 +166,16 @@ class Test_process(CombinerTest):
     """Test the plugin combines the cubelist into a cube."""
 
     def test_basic(self):
-        """Test that the plugin returns a Cube. """
+        """Test that the plugin returns a Cube and doesn't modify the inputs."""
         plugin = CubeCombiner("+")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
+        input_copy = deepcopy(cubelist)
         result = plugin.process(cubelist, "new_cube_name")
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "new_cube_name")
         expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
         self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertCubeListEqual(input_copy, cubelist)
 
     def test_mean(self):
         """Test that the plugin calculates the mean correctly. """
@@ -236,6 +258,62 @@ class Test_process(CombinerTest):
         cubelist = iris.cube.CubeList([self.cube1])
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cubelist, "new_cube_name")
+
+    def test_broadcast_coord(self):
+        """Test that plugin broadcasts to a coord and doesn't change the inputs."""
+        plugin = CubeCombiner("*")
+        cube = self.cube4[:, 0, ...].copy()
+        cube.data = np.ones_like(cube.data)
+        cube.remove_coord("lwe_thickness_of_precipitation_amount")
+        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
+        input_copy = deepcopy(cubelist)
+        result = plugin.process(
+            cubelist, "new_cube_name", broadcast_to_coords=["threshold"]
+        )
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.name(), "new_cube_name")
+        self.assertArrayAlmostEqual(result.data, self.cube4.data)
+        self.assertCubeListEqual(input_copy, cubelist)
+
+    def test_error_broadcast_coord_wrong_order(self):
+        """Test that plugin throws an error if the broadcast coord is not on the first cube"""
+        plugin = CubeCombiner("*")
+        cube = self.cube4[:, 0, ...].copy()
+        cube.data = np.ones_like(cube.data)
+        cube.remove_coord("lwe_thickness_of_precipitation_amount")
+        cubelist = iris.cube.CubeList([cube, self.cube4.copy()])
+        msg = (
+            "Cannot find coord threshold in "
+            "<iris 'Cube' of probability_of_lwe_thickness_of_precipitation_amount_above_threshold / \(1\) "
+            "\(realization: 3; latitude: 2; longitude: 2\)> to broadcast to"
+        )
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["threshold"])
+
+    def test_error_broadcast_coord_not_found(self):
+        """Test that plugin throws an error if the broadcast coord is not present anywhere"""
+        plugin = CubeCombiner("*")
+        cube = self.cube4[:, 0, ...].copy()
+        cube.data = np.ones_like(cube.data)
+        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
+        msg = (
+            "Cannot find coord kittens in "
+            "<iris 'Cube' of probability_of_lwe_thickness_of_precipitation_amount_above_threshold / \(1\) "
+            "\(realization: 3; lwe_thickness_of_precipitation_amount: 2; latitude: 2; longitude: 2\)> "
+            "to broadcast to."
+        )
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["kittens"])
+
+    def test_error_broadcast_coord_is_auxcoord(self):
+        """Test that plugin throws an error if the broadcast coord already exists"""
+        plugin = CubeCombiner("*")
+        cube = self.cube4[:, 0, ...].copy()
+        cube.data = np.ones_like(cube.data)
+        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
+        msg = "Cannot broadcast to coord threshold as it already exists as an AuxCoord"
+        with self.assertRaisesRegex(TypeError, msg):
+            plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["threshold"])
 
     def test_multiply_preserves_bounds(self):
         """Test specific case for precipitation type, where multiplying a

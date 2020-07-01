@@ -43,9 +43,8 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
-from ...calibration.ensemble_calibration.helper_functions import (
-    set_up_probability_above_threshold_temperature_cube,
-)
+from ...set_up_test_cubes import set_up_probability_cube
+from .ecc_test_data import ECC_TEMPERATURE_PROBABILITIES, ECC_TEMPERATURE_THRESHOLDS
 
 
 class Test__repr__(IrisTest):
@@ -68,39 +67,40 @@ class Test__check_template_cube(IrisTest):
 
     def setUp(self):
         """Set up temperature cube."""
-        self.cube = set_up_probability_above_threshold_temperature_cube()
+        self.cube = set_up_probability_cube(
+            ECC_TEMPERATURE_PROBABILITIES,
+            ECC_TEMPERATURE_THRESHOLDS,
+            threshold_units="degC",
+        )
 
     def test_valid_cube(self):
         """Pass in a valid cube that raises no exception. Cube should be
         unchanged by being passed into the function."""
-        cube = iris.util.squeeze(self.cube)
-        expected = iris.util.squeeze(self.cube.copy())
+        cube = self.cube.copy()
         Plugin()._check_template_cube(cube)
-        self.assertEqual(expected, cube)
+        self.assertEqual(cube, self.cube)
 
     def test_valid_cube_reordered(self):
         """Pass in a cube with the expected dimensions, but with threshold not
         the leading dimension. Check that threshold is moved to be leading."""
-        cube = iris.util.squeeze(self.cube)
-        enforce_coordinate_ordering(cube, "latitude")
+        enforce_coordinate_ordering(self.cube, "latitude")
         expected = ["air_temperature", "latitude", "longitude"]
-        Plugin()._check_template_cube(cube)
-        result = [coord.name() for coord in cube.coords(dim_coords=True)]
+        Plugin()._check_template_cube(self.cube)
+        result = [coord.name() for coord in self.cube.coords(dim_coords=True)]
         self.assertListEqual(expected, result)
 
     def test_fail_on_cube_with_additional_dim_coord(self):
         """Pass in a cube with an additional dimensional coordinate. This will
         raise an exception."""
-
+        cube = iris.util.new_axis(self.cube, "time")
         msg = "ConvertLocationAndScaleParametersToProbabilities expects a " "cube with"
         with self.assertRaisesRegex(ValueError, msg):
-            Plugin()._check_template_cube(self.cube)
+            Plugin()._check_template_cube(cube)
 
     def test_fail_with_missing_spatial_coordinate(self):
         """Pass in a cube with a missing spatial coordinate. This will raise an
         exception."""
-
-        cube = self.cube[:, 0, :, 0]
+        cube = self.cube[:, :, 0]
         msg = "The cube does not contain the expected"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._check_template_cube(cube)
@@ -112,8 +112,11 @@ class Test__check_unit_compatibility(IrisTest):
 
     def setUp(self):
         """Set up temperature cube."""
-        self.template_cube = set_up_probability_above_threshold_temperature_cube()
-        self.template_cube = iris.util.squeeze(self.template_cube)
+        self.template_cube = set_up_probability_cube(
+            ECC_TEMPERATURE_PROBABILITIES,
+            ECC_TEMPERATURE_THRESHOLDS,
+            threshold_units="degC",
+        )
         self.location_parameters = self.template_cube[0, :, :].copy()
         self.location_parameters.units = "Celsius"
         self.scale_parameters = self.template_cube[0, :, :].copy()
@@ -153,14 +156,13 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
     """Test the _location_and_scale_parameters_to_probabilities function."""
 
     def setUp(self):
-        """Set up temperature cube."""
-        self.template_cube = set_up_probability_above_threshold_temperature_cube()
-        self.template_cube = iris.util.squeeze(self.template_cube)
+        """Set up a probability of temperature, scale and location parameter cubes
+        so that the expected output probabilities are 75%, 50%, and 25%."""
+        threshold_points = np.array([0.65105, 2.0, 3.34895], dtype=np.float32)
+        self.template_cube = set_up_probability_cube(
+            ECC_TEMPERATURE_PROBABILITIES, threshold_points, threshold_units="degC"
+        )
 
-        # Thresholds such that we obtain probabilities of 75%, 50%, and 25% for
-        # the location and scale parameter values set here.
-        threshold_coord = find_threshold_coordinate(self.template_cube)
-        threshold_coord.points = [0.65105, 2.0, 3.34895]
         location_parameter_values = np.ones((3, 3)) * 2
         scale_parameter_values = np.ones((3, 3)) * 4
         self.expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
@@ -240,9 +242,11 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         """Test that the expected probabilities are returned for a cube in
         which they are calculated above the thresholds using a truncated normal
         distribution."""
-
         expected = (np.ones((3, 3, 3)) * [0.8914245, 0.5942867, 0.2971489]).T
-        plugin = Plugin(distribution="truncnorm", shape_parameters=[0, np.inf])
+        plugin = Plugin(
+            distribution="truncnorm",
+            shape_parameters=np.array([0, np.inf], dtype=np.float32),
+        )
         result = plugin._location_and_scale_parameters_to_probabilities(
             self.location_parameter_values,
             self.scale_parameter_values,
@@ -253,7 +257,6 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
     def test_threshold_below_cube(self):
         """Test that the expected probabilites are returned for a cube in which
         they are calculated below the thresholds."""
-
         self.template_cube.coord(var_name="threshold").attributes[
             "spp__relative_to_threshold"
         ] = "below"
@@ -272,11 +275,11 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up temperature cube."""
-        self.template_cube = set_up_probability_above_threshold_temperature_cube()
-        self.template_cube = iris.util.squeeze(self.template_cube)
+        threshold_points = np.array([8.65105, 10.0, 11.34895], dtype=np.float32)
+        self.template_cube = set_up_probability_cube(
+            ECC_TEMPERATURE_PROBABILITIES, threshold_points, threshold_units="degC"
+        )
 
-        threshold_coord = find_threshold_coordinate(self.template_cube)
-        threshold_coord.points = [8.65105, 10.0, 11.34895]
         location_parameter_values = np.ones((3, 3)) * 10
         scale_parameter_values = np.ones((3, 3)) * 4
         self.location_parameter_values = self.template_cube[0, :, :].copy(
@@ -290,7 +293,6 @@ class Test_process(IrisTest):
 
     def test_metadata_matches_template(self):
         """Test that the returned cube's metadata matches the template cube."""
-
         result = Plugin().process(
             self.location_parameter_values,
             self.scale_parameter_values,
@@ -302,7 +304,6 @@ class Test_process(IrisTest):
     def test_template_data_disregarded(self):
         """Test that the returned cube does not contain data from the template
         cube."""
-
         self.template_cube.data = np.ones((3, 3, 3))
         result = Plugin().process(
             self.location_parameter_values,

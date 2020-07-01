@@ -74,7 +74,7 @@ def _check_metadata(cube):
         raise ValueError("{} has unknown units".format(cube.name()))
 
 
-def save_netcdf(cubelist, filename):
+def save_netcdf(cubelist, filename, compression_level=1):
     """Save the input Cube or CubeList as a NetCDF file and check metadata
     where required for integrity.
 
@@ -87,6 +87,9 @@ def save_netcdf(cubelist, filename):
             Cube or list of cubes to be saved
         filename (str):
             Filename to save input cube(s)
+        compression_level (int):
+            1-9 to specify compression level, or 0 to not compress (default compress
+            with complevel 1)
 
     Raises:
         warning if cubelist contains cubes of varying dimensions.
@@ -130,15 +133,20 @@ def save_netcdf(cubelist, filename):
         if key not in global_keys
     }
 
+    if compression_level not in range(10):
+        raise ValueError(
+            "Compression level must be an integer value between 0 and 9 (0 to disable compression)"
+        )
+
     # save atomically by writing to a temporary file and then renaming
     ftmp = str(filename) + ".tmp"
     iris.fileformats.netcdf.save(
         cubelist,
         ftmp,
         local_keys=local_keys,
-        complevel=1,
+        complevel=compression_level,
         shuffle=True,
-        zlib=True,
+        zlib=compression_level > 0,
         chunksizes=chunksizes,
     )
     os.rename(ftmp, filename)
