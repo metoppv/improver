@@ -279,7 +279,6 @@ class ResamplePercentiles(BasePlugin):
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
-        # TODO this is a problem
         forecast_at_percentiles_data = restore_non_probabilistic_dimensions(
             forecast_at_interpolated_percentiles,
             forecast_at_percentiles,
@@ -555,7 +554,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
-        # TODO this is a problem
         forecast_at_percentiles = restore_non_probabilistic_dimensions(
             forecast_at_percentiles,
             forecast_probabilities,

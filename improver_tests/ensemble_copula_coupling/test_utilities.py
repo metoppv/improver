@@ -239,7 +239,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         """
         cube_data = self.cube_data + 2
         percentiles = [10, 50]
-        msg = "cannot reshape array of size"  # TODO "Require data with shape"
+        msg = "Require data with shape"
         with self.assertRaisesRegex(ValueError, msg):
             create_cube_with_percentiles(percentiles, self.cube, cube_data)
 
@@ -251,7 +251,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         """
         cube_data = self.cube_data[0, :, :] + 2
         percentiles = [10, 50, 90]
-        msg = "cannot reshape array of size"  # TODO "Require data with shape"
+        msg = "Require data with shape"
         with self.assertRaisesRegex(ValueError, msg):
             create_cube_with_percentiles(percentiles, self.cube, cube_data)
 
@@ -417,24 +417,16 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
         The array contents is also checked.
         """
         expected = np.array(
-            [
-                [
-                    [226.15, 237.4, 248.65],
-                    [259.9, 271.15, 282.4],
-                    [293.65, 304.9, 316.15],
-                ]
-            ],
+            [[226.15, 237.4, 248.65], [259.9, 271.15, 282.4], [293.65, 304.9, 316.15],],
             dtype=np.float32,
         )
 
         cube = self.current_temperature_forecast_cube
         cube_slice = next(cube.slices_over("percentile"))
-        plen = len(cube_slice.coord("percentile").points)
         reshaped_array = restore_non_probabilistic_dimensions(
-            cube_slice.data, cube_slice, "percentile", plen
+            cube_slice.data, cube_slice, "percentile", 1
         )
-        self.assertEqual(reshaped_array.shape[0], plen)
-        self.assertEqual(reshaped_array.shape, (1, 3, 3))
+        self.assertEqual(reshaped_array.shape, (3, 3))
         self.assertArrayAlmostEqual(reshaped_array, expected)
 
     def test_percentile_is_dimension_coordinate_multiple_timesteps(self):
@@ -444,10 +436,8 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
         """
         expected = np.array(
             [
-                [
-                    [[4.0, 4.71428571], [5.42857143, 6.14285714]],
-                    [[6.85714286, 7.57142857], [8.28571429, 9.0]],
-                ]
+                [[4.0, 4.71428571], [5.42857143, 6.14285714]],
+                [[6.85714286, 7.57142857], [8.28571429, 9.0]],
             ]
         )
 
@@ -469,9 +459,8 @@ class Test_restore_non_probabilistic_dimensions(IrisTest):
             )
         percentile_cube = cubelist.merge_cube()
         percentile_cube.transpose([1, 0, 2, 3])
-        plen = 1
         reshaped_array = restore_non_probabilistic_dimensions(
-            percentile_cube[0].data, percentile_cube, "percentile", plen
+            percentile_cube[0].data, percentile_cube, "percentile", 1
         )
         self.assertArrayAlmostEqual(reshaped_array, expected)
 

@@ -170,13 +170,8 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data, cube_uni
         cubes.append(cube)
     result = cubes.merge_cube()
 
-    # if percentile is single-valued, promote new coordinate to dimension
-    #if len(percentiles) == 1:
-    #    result = iris.util.new_axis(result, result.coord("percentile"))
-
     # replace data and units
-    # TODO address the fact that misshapen data is being passed to this function!!!
-    result.data = cube_data.reshape(result.data.shape)
+    result.data = cube_data
     if cube_unit is not None:
         result.units = cube_unit
 
@@ -307,5 +302,11 @@ def restore_non_probabilistic_dimensions(
             input_probabilistic_dimension_name, original_cube
         )
         raise CoordinateNotFoundError(msg)
-    shape_to_reshape_to = [output_probabilistic_dimension_length] + shape_to_reshape_to
+
+    # ensure single-valued probabilistic coordinates remain scalar
+    if output_probabilistic_dimension_length > 1:
+        shape_to_reshape_to = [
+            output_probabilistic_dimension_length
+        ] + shape_to_reshape_to
+
     return array_to_reshape.reshape(shape_to_reshape_to)
