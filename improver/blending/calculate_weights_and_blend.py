@@ -31,6 +31,7 @@
 """Plugin to calculate blend weights and blend data across a dimension"""
 
 import warnings
+
 import numpy as np
 
 from improver import BasePlugin
