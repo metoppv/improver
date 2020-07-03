@@ -134,7 +134,7 @@ def construct_xy_coords(
 
 def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
     """
-    Creates arrays for 
+    Creates arrays for constructing x and y DimCoords.
 
     Args:
         ypoints (int):
@@ -148,7 +148,7 @@ def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
 
     Returns:
         y_coord, x_coord (tuple):
-            Tuple of iris.coords.DimCoord instances
+            Tuple of numpy.ndarrays
     """
     y_points_array = [domain_corner[1] + i * grid_spacing for i in range(ypoints)]
     x_points_array = [domain_corner[0] + i * grid_spacing for i in range(xpoints)]
