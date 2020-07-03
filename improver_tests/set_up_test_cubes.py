@@ -141,10 +141,10 @@ def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
             Number of grid points required along the y-axis
         xpoints (int):
             Number of grid points required along the x-axis
-        domain_corner (str):
-            Bottom left corner of domain grid (degrees or m)
-        grid_spacing ():
-            Resolution of grid (degrees or m)
+        domain_corner (list of int or float):
+            Bottom left corner of grid domain (degrees or m)
+        grid_spacing (int or float):
+            Grid resolution (degrees or m)
 
     Returns:
         y_coord, x_coord (tuple):
@@ -288,7 +288,6 @@ def set_up_variable_cube(
             Grid resolution (degrees or m).
         domain_corner (list of int or float):
             Bottom left corner of grid domain (degrees or m).
-
     """
     # construct spatial dimension coordimates
     ypoints = data.shape[-2]
