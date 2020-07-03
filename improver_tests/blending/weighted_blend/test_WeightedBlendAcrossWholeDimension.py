@@ -204,6 +204,19 @@ class Test_check_percentile_coord(Test_weighted_blend):
 
     """Test the percentile coord checking function."""
 
+    def test_basic(self):
+        """Tests the basic use of check_percentile_coord"""
+        expected = DimCoord(
+            np.array([0.0, 20.0], dtype="float32"),
+            standard_name=None,
+            units="%",
+            long_name="percentile",
+        )
+        cube = percentile_cube()
+        cube = cube[:2]
+        x = WeightedBlendAcrossWholeDimension.check_percentile_coord(cube)
+        self.assertEqual(x, expected)
+
     def test_fails_perc_coord_not_dim(self):
         """Test it raises a Value Error if percentile coord not a dim."""
         coord = "forecast_reference_time"
@@ -233,17 +246,24 @@ class Test_check_compatible_time_points(Test_weighted_blend):
 
     """Test the time point compatibility checking function."""
 
+    def test_basic(self):
+        """Test that no errors are raised when calling check_compatible_time_point"""
+        coord = "time"
+        plugin = WeightedBlendAcrossWholeDimension(coord)
+        plugin.check_compatible_time_points(self.cube)
+
     def test_unmatched_validity_time_exception(self):
         """Test that a ValueError is raised if the validity time of the
         slices over the blending coordinate differ. We should only be blending
         data at equivalent times unless we are triangular time blending."""
         self.cube.remove_coord("time")
         self.cube.coord("forecast_reference_time").rename("time")
+        cube = self.cube[:2]
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord)
         msg = "Attempting to blend data for different validity times."
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.check_compatible_time_points(self.cube)
+            plugin.check_compatible_time_points(cube)
 
     def test_unmatched_validity_time_exemption(self):
         """Test that no ValueError is raised for unmatched validity times if
@@ -345,6 +365,16 @@ class Test_shape_weights(Test_weighted_blend):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.shape_weights(self.cube, self.weights1d)
 
+    def test_incompatible_weights_and_data_cubes_shape(self):
+        """Test an exception is raised if the weights cube and the data cube
+        have incompatible shapes."""
+
+        coord = "forecast_reference_time"
+        plugin = WeightedBlendAcrossWholeDimension(coord)
+        msg = "Weights cube is not a compatible shape"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.shape_weights(self.cube[:1], self.weights1d)
+
 
 class Test_percentile_weights(Test_weighted_blend):
 
@@ -443,6 +473,19 @@ class Test_check_weights(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(coord)
         plugin.check_weights(self.weights3d.data, 0)
 
+    def test_weights_sum_to_1_but_with_a_zero_weight(self):
+        """Test that if a weights cube is provided which is zero or properly
+        normalised,  i.e. the weights sum to one over the blending
+        dimension, no exception is raised."""
+        weights = [
+            [[0, 0.3], [0.2, 0.4]],
+            [[0, 0.3], [0.2, 0.4]],
+            [[0, 0.4], [0.6, 0.2]],
+        ]
+        coord = "forecast_reference_time"
+        plugin = WeightedBlendAcrossWholeDimension(coord)
+        plugin.check_weights(weights, 0)
+
     def test_weights_do_not_sum_to_1_error(self):
         """Test that if a weights cube is provided which is not properly
         normalised, i.e. the weights do not sum to one over the blending
@@ -472,6 +515,21 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         result = plugin.percentile_weighted_mean(perc_cube, self.weights1d, perc_coord)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA)
+
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
+    def test_with_weights__perc_as_float64(self):
+        """Test function when a data cube and a weights cube are provided. But with
+        a cood that is float64"""
+
+        perc_cube = percentile_cube()
+        coord = "forecast_reference_time"
+        plugin = WeightedBlendAcrossWholeDimension(coord)
+        perc_coord = perc_cube.coord("percentile")
+        perc_coord.points = perc_coord.points.astype(np.float64)
+        result = plugin.percentile_weighted_mean(perc_cube, self.weights1d, perc_coord)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA)
+        self.assertEqual(result.coord("percentile").points.dtype, np.float32)
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_spatially_varying_weights(self):
@@ -571,6 +629,20 @@ class Test_weighted_mean(Test_weighted_blend):
         self.assertArrayAlmostEqual(result.data, expected)
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
+    def test_with_weights_boundry(self):
+        """Test function when a data cube and a weights cube are provided."""
+
+        coord = "forecast_reference_time"
+        plugin = WeightedBlendAcrossWholeDimension(coord)
+        cube = self.cube
+        weights = self.weights1d
+        result = plugin.weighted_mean(cube, weights)
+        expected = np.full((2, 2), 1.5)
+
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_spatially_varying_weights(self):
         """Test function when a data cube and a multi dimensional weights cube
         are provided. This tests spatially varying weights, where each x-y
@@ -648,6 +720,17 @@ class Test_process(Test_weighted_blend):
         self.assertEqual(
             result.coord("forecast_period").points, expected_forecast_period
         )
+
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
+    def test_perc(self):
+        """Test that the plugin returns a percentile cube"""
+        coord = "forecast_reference_time"
+        cube = percentile_cube()
+        cube.attributes = self.cube.attributes
+        plugin = WeightedBlendAcrossWholeDimension(coord)
+        result = plugin(cube)
+
+        self.assertIn("percentile", [x.name() for x in result.dim_coords])
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_specific_cycletime(self):
