@@ -49,7 +49,9 @@ from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import forecast_period_coord
 
 
-def construct_xy_coords(ypoints, xpoints, spatial_grid):
+def construct_xy_coords(
+    ypoints, xpoints, spatial_grid, grid_spacing=None, domain_corner=None
+):
     """
     Construct x/y spatial dimension coordinates
 
@@ -60,40 +62,66 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
             Number of grid points required along the x-axis
         spatial_grid (str):
             Specifier to produce either a "latlon" or "equalarea" grid
+        grid_spacing (int or float):
+            Grid resolution (degrees or m).
+        domain_corner (list of int or float):
+            Bottom left corner of grid domain (degrees or m).
 
     Returns:
         y_coord, x_coord (tuple):
             Tuple of iris.coords.DimCoord instances
     """
+    msg = "Grid spacing required to setup grid from domain corner."
+
+    if grid_spacing is not None:
+        if domain_corner is None:
+            x_start = 0 - ((xpoints - 1) * grid_spacing) / 2
+            y_start = 0 - ((ypoints - 1) * grid_spacing) / 2
+            domain_corner = [x_start, y_start]
+
+        y_array, x_array = _create_y_x_arrays(
+            ypoints, xpoints, domain_corner, grid_spacing
+        )
+    elif domain_corner is not None and grid_spacing is None:
+        raise ValueError(msg)
+
     if spatial_grid == "latlon":
         # make a lat-lon grid including the UK area
+        if domain_corner is None and grid_spacing is None:
+            coord_bnds = {"x": [-20, 20], "y": [40, 80]}
+            y_array = np.linspace(
+                coord_bnds["y"][0], coord_bnds["y"][1], ypoints, dtype=np.float32
+            )
+            x_array = np.linspace(
+                coord_bnds["x"][0], coord_bnds["x"][1], xpoints, dtype=np.float32
+            )
+
         y_coord = DimCoord(
-            np.linspace(40.0, 80.0, ypoints, dtype=np.float32),
-            "latitude",
-            units="degrees",
-            coord_system=GLOBAL_GRID_CCRS,
+            y_array, "latitude", units="degrees", coord_system=GLOBAL_GRID_CCRS,
         )
         x_coord = DimCoord(
-            np.linspace(-20.0, 20.0, xpoints, dtype=np.float32),
-            "longitude",
-            units="degrees",
-            coord_system=GLOBAL_GRID_CCRS,
+            x_array, "longitude", units="degrees", coord_system=GLOBAL_GRID_CCRS,
         )
+
     elif spatial_grid == "equalarea":
         # use UK eastings and northings on standard grid
         # round grid spacing to nearest integer to avoid precision issues
-        grid_spacing = np.around(1000000.0 / ypoints)
-        y_points_array = [-100000 + i * grid_spacing for i in range(ypoints)]
-        x_points_array = [-400000 + i * grid_spacing for i in range(xpoints)]
+        if domain_corner is None and grid_spacing is None:
+            domain_corner = [-400000, -100000]
+            grid_spacing = np.around(1000000.0 / ypoints)
+
+            y_array, x_array = _create_y_x_arrays(
+                ypoints, xpoints, domain_corner, grid_spacing
+            )
 
         y_coord = DimCoord(
-            np.array(y_points_array, dtype=np.float32),
+            y_array,
             "projection_y_coordinate",
             units="metres",
             coord_system=STANDARD_GRID_CCRS,
         )
         x_coord = DimCoord(
-            np.array(x_points_array, dtype=np.float32),
+            x_array,
             "projection_x_coordinate",
             units="metres",
             coord_system=STANDARD_GRID_CCRS,
@@ -102,6 +130,32 @@ def construct_xy_coords(ypoints, xpoints, spatial_grid):
         raise ValueError("Grid type {} not recognised".format(spatial_grid))
 
     return y_coord, x_coord
+
+
+def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
+    """
+    Creates arrays for 
+
+    Args:
+        ypoints (int):
+            Number of grid points required along the y-axis
+        xpoints (int):
+            Number of grid points required along the x-axis
+        domain_corner (str):
+            Bottom left corner of domain grid (degrees or m)
+        grid_spacing ():
+            Resolution of grid (degrees or m)
+
+    Returns:
+        y_coord, x_coord (tuple):
+            Tuple of iris.coords.DimCoord instances
+    """
+    y_points_array = [domain_corner[1] + i * grid_spacing for i in range(ypoints)]
+    x_points_array = [domain_corner[0] + i * grid_spacing for i in range(xpoints)]
+    y_array = np.array(y_points_array, dtype=np.float32)
+    x_array = np.array(x_points_array, dtype=np.float32)
+
+    return y_array, x_array
 
 
 def _create_time_point(time):
@@ -191,6 +245,8 @@ def set_up_variable_cube(
     include_scalar_coords=None,
     attributes=None,
     standard_grid_metadata=None,
+    grid_spacing=None,
+    domain_corner=None,
 ):
     """
     Set up a cube containing a single variable field with:
@@ -228,11 +284,22 @@ def set_up_variable_cube(
             Recognised mosg__model_configuration for which to set up Met
             Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
             'gl_det' or 'gl_ens'.
+        grid_spacing (int or float):
+            Grid resolution (degrees or m).
+        domain_corner (list of int or float):
+            Bottom left corner of grid domain (degrees or m).
+
     """
     # construct spatial dimension coordimates
     ypoints = data.shape[-2]
     xpoints = data.shape[-1]
-    y_coord, x_coord = construct_xy_coords(ypoints, xpoints, spatial_grid)
+    y_coord, x_coord = construct_xy_coords(
+        ypoints,
+        xpoints,
+        spatial_grid,
+        grid_spacing=grid_spacing,
+        domain_corner=domain_corner,
+    )
 
     # construct realization dimension for 3D data, and dim_coords list
     ndims = len(data.shape)
