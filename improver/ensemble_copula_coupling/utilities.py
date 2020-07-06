@@ -140,9 +140,7 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data, cube_uni
             Ensemble percentiles. There should be the same number of
             percentiles as the first dimension of cube_data.
         template_cube (iris.cube.Cube):
-            Cube to copy all coordinates from.
-            The template_cube does not contain any existing percentile
-            coordinate. Metadata is also copied from this cube.
+            Cube to copy metadata from.
         cube_data (numpy.ndarray):
             Data to insert into the template cube.
             The shape of the cube_data, excluding the dimension associated with
@@ -151,14 +149,13 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data, cube_uni
             For example, template_cube shape is (3, 3, 3), whilst the cube_data
             is (10, 3, 3, 3), where there are 10 percentiles.
         cube_unit (cf_units.Unit):
-            The units of the data within the cube
+            The units of the data within the cube, if different from those of
+            the template_cube.
 
     Returns:
         iris.cube.Cube:
-            Cube containing a percentile coordinate as the zeroth dimension
-            coordinate in addition to the coordinates and metadata from the
-            template cube.
-
+            Cube containing a percentile coordinate as the leading dimension (or
+            scalar percentile coordinate if single-valued)
     """
     # create cube with new percentile dimension
     cubes = iris.cube.CubeList([])
