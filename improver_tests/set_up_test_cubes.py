@@ -373,6 +373,8 @@ def set_up_percentile_cube(
         percentiles (list or numpy.ndarray):
             List of int / float percentile values whose length must match the
             first dimension on the input data cube
+        **kwargs:
+            Additional keyword arguments passed to 'set_up_variable_cube' function
     """
     cube = set_up_variable_cube(data, realizations=percentiles, **kwargs,)
     cube.coord("realization").rename("percentile")
@@ -413,6 +415,8 @@ def set_up_probability_cube(
         spp__relative_to_threshold (str):
             Value of the attribute "spp__relative_to_threshold" which is
             required for IMPROVER probability cubes.
+        **kwargs:
+            Additional keyword arguments passed to 'set_up_variable_cube' function
     """
     # create a "relative to threshold" attribute
     coord_attributes = {"spp__relative_to_threshold": spp__relative_to_threshold}
