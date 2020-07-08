@@ -517,9 +517,9 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA)
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_with_weights__perc_as_float64(self):
+    def test_with_weights_perc_as_float64(self):
         """Test function when a data cube and a weights cube are provided. But with
-        a cood that is float64"""
+        a percentile cood that is float64"""
 
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
@@ -623,20 +623,6 @@ class Test_weighted_mean(Test_weighted_blend):
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord)
         result = plugin.weighted_mean(self.cube, self.weights1d)
-        expected = np.full((2, 2), 1.5)
-
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_with_weights_boundry(self):
-        """Test function when a data cube and a weights cube are provided."""
-
-        coord = "forecast_reference_time"
-        plugin = WeightedBlendAcrossWholeDimension(coord)
-        cube = self.cube
-        weights = self.weights1d
-        result = plugin.weighted_mean(cube, weights)
         expected = np.full((2, 2), 1.5)
 
         self.assertIsInstance(result, iris.cube.Cube)
