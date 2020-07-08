@@ -55,7 +55,7 @@ from .set_up_test_cubes import (
 )
 
 
-class test_construct_xy_coords(IrisTest):
+class Test_construct_xy_coords(IrisTest):
     """Test the construct_xy_coords method"""
 
     def test_lat_lon(self):
@@ -143,7 +143,7 @@ class test_construct_xy_coords(IrisTest):
             construct_xy_coords(3, 3, "equalarea", domain_corner=[0, 0])
 
 
-class test_construct_scalar_time_coords(IrisTest):
+class Test_construct_scalar_time_coords(IrisTest):
     """Test the construct_scalar_time_coords method"""
 
     def test_basic(self):
@@ -223,7 +223,7 @@ class test_construct_scalar_time_coords(IrisTest):
             )
 
 
-class test_set_up_variable_cube(IrisTest):
+class Test_set_up_variable_cube(IrisTest):
     """Test the set_up_variable_cube base function"""
 
     def setUp(self):
@@ -480,7 +480,7 @@ class test_set_up_variable_cube(IrisTest):
             )
 
 
-class test_set_up_percentile_cube(IrisTest):
+class Test_set_up_percentile_cube(IrisTest):
     """Test the set_up_percentile_cube function"""
 
     def setUp(self):
@@ -515,7 +515,7 @@ class test_set_up_percentile_cube(IrisTest):
         self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
 
 
-class test_set_up_probability_cube(IrisTest):
+class Test_set_up_probability_cube(IrisTest):
     """Test the set_up_probability_cube function"""
 
     def setUp(self):
@@ -580,7 +580,7 @@ class test_set_up_probability_cube(IrisTest):
         self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
 
 
-class test_add_coordinate(IrisTest):
+class Test_add_coordinate(IrisTest):
     """Test the add_coordinate utility"""
 
     def setUp(self):
