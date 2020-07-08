@@ -116,7 +116,7 @@ class Test_construct_xy_coords(IrisTest):
         self.assertEqual(len(x_coord.points), 3)
 
     def test_equal_area_grid_spacing(self):
-        """Test latitude and longitude point values created around 0,0 with
+        """Test projection_y_coordinate and projection_x_coordinate point values created around 0,0 with
         provided grid spacing"""
         y_coord, x_coord = construct_xy_coords(3, 3, "equalarea", grid_spacing=1)
         self.assertArrayEqual(x_coord.points, [-1.0, 0.0, 1.0])
@@ -127,7 +127,7 @@ class Test_construct_xy_coords(IrisTest):
         self.assertArrayEqual(y_coord.points, [-1.5, -0.5, 0.5, 1.5])
 
     def test_equal_area_grid_spacing_domain_corner(self):
-        """Test latitude and longitude point values start at domain corner
+        """Test projection_y_coordinate and projection_x_coordinate point values start at domain corner
         with provided grid spacing"""
         y_coord, x_coord = construct_xy_coords(
             3, 3, "equalarea", grid_spacing=2, domain_corner=[15, 12]
