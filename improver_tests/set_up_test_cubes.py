@@ -63,9 +63,9 @@ def construct_xy_coords(
         spatial_grid (str):
             Specifier to produce either a "latlon" or "equalarea" grid
         grid_spacing (int or float):
-            Grid resolution (degrees or m).
+            Grid resolution (degrees or metres).
         domain_corner (list of int or float):
-            Bottom left corner of grid domain (degrees or m).
+            Bottom left corner of grid domain [y,x] (degrees or metres).
 
     Returns:
         y_coord, x_coord (tuple):
@@ -75,9 +75,9 @@ def construct_xy_coords(
 
     if grid_spacing is not None:
         if domain_corner is None:
-            x_start = 0 - ((xpoints - 1) * grid_spacing) / 2
             y_start = 0 - ((ypoints - 1) * grid_spacing) / 2
-            domain_corner = [x_start, y_start]
+            x_start = 0 - ((xpoints - 1) * grid_spacing) / 2
+            domain_corner = [y_start, x_start]
 
         y_array, x_array = _create_y_x_arrays(
             ypoints, xpoints, domain_corner, grid_spacing
@@ -107,7 +107,7 @@ def construct_xy_coords(
         # use UK eastings and northings on standard grid
         # round grid spacing to nearest integer to avoid precision issues
         if domain_corner is None and grid_spacing is None:
-            domain_corner = [-400000, -100000]
+            domain_corner = [-100000, -400000]
             grid_spacing = np.around(1000000.0 / ypoints)
 
             y_array, x_array = _create_y_x_arrays(
@@ -134,7 +134,7 @@ def construct_xy_coords(
 
 def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
     """
-    Creates arrays for constructing x and y DimCoords.
+    Creates arrays for constructing y and x DimCoords.
 
     Args:
         ypoints (int):
@@ -142,16 +142,16 @@ def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
         xpoints (int):
             Number of grid points required along the x-axis
         domain_corner (list of int or float):
-            Bottom left corner of grid domain (degrees or m)
+            Bottom left corner of grid domain [y,x] (degrees or metres)
         grid_spacing (int or float):
-            Grid resolution (degrees or m)
+            Grid resolution (degrees or metres)
 
     Returns:
         y_coord, x_coord (tuple):
             Tuple of numpy.ndarrays
     """
-    y_points_array = [domain_corner[1] + i * grid_spacing for i in range(ypoints)]
-    x_points_array = [domain_corner[0] + i * grid_spacing for i in range(xpoints)]
+    y_points_array = [domain_corner[0] + i * grid_spacing for i in range(ypoints)]
+    x_points_array = [domain_corner[1] + i * grid_spacing for i in range(xpoints)]
     y_array = np.array(y_points_array, dtype=np.float32)
     x_array = np.array(x_points_array, dtype=np.float32)
 
@@ -285,9 +285,9 @@ def set_up_variable_cube(
             Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
             'gl_det' or 'gl_ens'.
         grid_spacing (int or float):
-            Grid resolution (degrees or m).
+            Grid resolution (degrees or metres).
         domain_corner (list of int or float):
-            Bottom left corner of grid domain (degrees or m).
+            Bottom left corner of grid domain [y,x] (degrees or metres).
     """
     # construct spatial dimension coordimates
     ypoints = data.shape[-2]
