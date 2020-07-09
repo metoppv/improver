@@ -46,6 +46,7 @@ from improver.utilities.compare import compare_netcdfs
 
 RECREATE_DIR_ENVVAR = "RECREATE_KGO"
 ACC_TEST_DIR_ENVVAR = "IMPROVER_ACC_TEST_DIR"
+IGNORE_CHECKSUMS = "IMPROVER_IGNORE_CHECKSUMS"
 ACC_TEST_DIR_MISSING = pathlib.Path("/dev/null")
 DEFAULT_CHECKSUM_FILE = pathlib.Path(__file__).parent / "SHA256SUMS"
 IGNORED_ATTRIBUTES = ["history", "Conventions"]
@@ -67,7 +68,8 @@ def run_cli(cli_name, verbose=True):
     """
 
     def run_function(args):
-        verify_checksums(args)
+        if not checksum_ignore():
+            verify_checksums(args)
         cli.main("improver", cli_name, *args, verbose=verbose)
 
     return run_function
@@ -222,6 +224,11 @@ def verify_checksums(cli_arglist):
             verify_checksum(arg_glob)
 
 
+def checksum_ignore():
+    """True if CHECKSUMs should be checked"""
+    return os.getenv(IGNORE_CHECKSUMS, "false").lower() == "true"
+
+
 def kgo_recreate():
     """True if KGO should be re-created"""
     return RECREATE_DIR_ENVVAR in os.environ
@@ -365,7 +372,8 @@ def compare(
         if recreate:
             recreate_if_needed(output_path, kgo_path)
         raise AssertionError(message)
-    verify_checksum(kgo_path)
+    if not checksum_ignore():
+        verify_checksum(kgo_path)
 
 
 # Pytest decorator to skip tests if KGO is not available for use

@@ -185,10 +185,12 @@ function improver_test_cli {
         VERBOSE_OPT='-v'
     fi
 
-    pytest $CLISUBTEST/acceptance/test_checksums.py -k test_kgo_checksums
-    echo_ok "Acceptance test data checksums validated"
+    if [[ ! ${IMPROVER_IGNORE_CHECKSUMS:-} = "true" ]]; then
+      pytest $CLISUBTEST/acceptance/test_checksums.py -k test_kgo_checksums
+      echo_ok "Acceptance test data checksums validated"
+    fi
 
-    pytest -m acc ${VERBOSE_OPT:-}
+    pytest -m acc ${VERBOSE_OPT:-} -k "not test_checksums"
 
     echo_ok "CLI tests"
 }
