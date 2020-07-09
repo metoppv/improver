@@ -360,7 +360,6 @@ class Test_restore_non_percentile_dimensions(IrisTest):
         reshaped_array = restore_non_percentile_dimensions(
             self.input_data, next(self.cube.slices_over("percentile")), plen
         )
-        self.assertEqual(reshaped_array.shape[0], plen)
         self.assertEqual(reshaped_array.shape, self.cube.data.shape)
         self.assertArrayAlmostEqual(reshaped_array, self.cube.data)
 
