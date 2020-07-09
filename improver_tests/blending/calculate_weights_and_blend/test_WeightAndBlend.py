@@ -352,6 +352,17 @@ class Test_process(IrisTest):
         result = self.plugin_cycle.process([self.ukv_cube, self.ukv_cube_latest])
         self.assertIsInstance(result, iris.cube.Cube)
 
+    @ManageWarnings(record=True)
+    def test_masked_blending_warning(self, warning_list=None):
+        """Test a warning is raised if blending masked data with non-spatial
+        weights."""
+        ukv_cube = self.ukv_cube.copy(
+            data=np.ma.masked_where(self.ukv_cube.data < 0.5, self.ukv_cube.data)
+        )
+        self.plugin_cycle.process([ukv_cube, self.ukv_cube_latest])
+        message = "Blending masked data without spatial weights"
+        self.assertTrue(any(message in str(item) for item in warning_list))
+
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_cycle_blend_linear(self):
         """Test plugin produces correct cycle blended output with equal
