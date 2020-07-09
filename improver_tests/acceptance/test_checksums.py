@@ -58,8 +58,6 @@ def test_kgo_checksums():
         for path in data_paths:
             acc.verify_checksum(path)
     except Exception as e:
-        if acc.kgo_recreate():
-            recreate_checksum_file(data_paths)
         raise e
 
 
@@ -80,7 +78,7 @@ def recreate_checksum_file(kgo_paths, checksum_path=None):
         checksum_path = acc.DEFAULT_CHECKSUM_FILE
     kgo_root = acc.kgo_root()
     new_checksum_lines = []
-    for path in sorted(kgo_paths):
+    for path in sorted(kgo_paths, key=lambda cell: cell.as_posix()):
         checksum = acc.calculate_checksum(path)
         rel_path = path.relative_to(kgo_root)
         new_checksum_lines.append(f"{checksum}  ./{rel_path}\n")

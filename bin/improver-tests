@@ -158,6 +158,20 @@ function improver_test_unit {
     echo_ok "Unit tests"
 }
 
+function improver_test_recreate_checksums {
+    # Recreate checksums for acceptance test data.
+    LC_FORMER=${LC_ALL:-}
+    export LC_ALL=C
+    cd $IMPROVER_ACC_TEST_DIR
+    find . -not -path '*/\.*' \( -type f -o -type l \) -print0 | \
+    sort -zu | xargs -0 sha256sum > $CLISUBTEST/acceptance/SHA256SUMS
+    cd -
+    export LC_ALL=$LC_FORMER
+
+    echo_ok "Checksums recreated"
+}
+
+
 function improver_test_cli {
     # CLI testing.
 
@@ -170,6 +184,10 @@ function improver_test_cli {
     if [[ -n $DEBUG_OPT ]]; then
         VERBOSE_OPT='-v'
     fi
+
+    pytest $CLISUBTEST/acceptance/test_checksums.py -k test_kgo_checksums
+    echo_ok "Acceptance test data checksums validated"
+
     pytest -m acc ${VERBOSE_OPT:-}
 
     echo_ok "CLI tests"
@@ -231,7 +249,7 @@ for arg in "$@"; do
         print_usage
         exit 0
         ;;
-        black|isort|pylint|pylintE|licence|doc|unit|cli)
+        black|isort|pylint|pylintE|licence|doc|unit|cli|recreate_checksums)
         SUBTESTS="$SUBTESTS $arg"
         ;;
         $cli_tasks)
