@@ -34,7 +34,7 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
-from improver.utilities.cube_manipulation import ConcatenateCubes
+from improver.utilities.cube_manipulation import MergeCubes
 
 
 class GenerateTimeLaggedEnsemble(BasePlugin):
@@ -82,8 +82,6 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
 
         # slice over realization to deal with cases where direct concatenation
         # would result in a non-monotonic coordinate
-        lagged_ensemble = ConcatenateCubes(coords_to_slice_over=["realization"])(
-            cubelist
-        )
+        lagged_ensemble = MergeCubes()(cubelist, slice_over_realization=True)
 
         return lagged_ensemble

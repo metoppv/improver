@@ -275,6 +275,31 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.process([cube1, cube2], check_time_bounds_ranges=True)
 
+    def test_slice_over_realization(self):
+        """Test merging of cubes with different realization coordinates"""
+        data = 275 * np.ones((3, 3, 3), dtype=np.float32)
+        cube1 = set_up_variable_cube(data, realizations=np.array([1, 2, 3]))
+        cube2 = set_up_variable_cube(data, realizations=np.array([0, 4, 5]))
+        result = self.plugin([cube1, cube2], slice_over_realization=True)
+        self.assertArrayEqual(result.coord("realization").points, np.arange(6))
+
+    def test_slice_over_realization_scalar(self):
+        """Demonstrate behaviour with a single-valued realization coordinate
+        when the slicing option is set"""
+        data = 275 * np.ones((1, 3, 3), dtype=np.float32)
+        cube1 = set_up_variable_cube(
+            data, time=dt(2015, 11, 23, 7), frt=dt(2015, 11, 23, 6)
+        )
+        cube2 = set_up_variable_cube(
+            data, time=dt(2015, 11, 23, 8), frt=dt(2015, 11, 23, 6)
+        )
+        expected_dims = ["time", "latitude", "longitude"]
+        result = self.plugin([cube1, cube2], slice_over_realization=True)
+        result_coords = [coord.name() for coord in result.coords()]
+        result_dims = [coord.name() for coord in result.coords(dim_coords=True)]
+        self.assertIn("realization", result_coords)
+        self.assertSequenceEqual(result_dims, expected_dims)
+
 
 if __name__ == "__main__":
     unittest.main()

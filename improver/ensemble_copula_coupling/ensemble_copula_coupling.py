@@ -58,7 +58,7 @@ from improver.utilities.cube_checker import (
     check_for_x_and_y_axes,
 )
 from improver.utilities.cube_manipulation import (
-    ConcatenateCubes,
+    MergeCubes,
     enforce_coordinate_ordering,
     get_dim_coord_names,
 )
@@ -1208,9 +1208,9 @@ class EnsembleReordering(BasePlugin):
                 raw_forecast_realization = raw_forecast_realizations.extract(constr)
                 raw_forecast_realization.coord("realization").points = index
                 raw_forecast_realizations_extended.append(raw_forecast_realization)
-            raw_forecast_realizations = ConcatenateCubes(
-                coords_to_slice_over=["realization"]
-            )(raw_forecast_realizations_extended)
+            raw_forecast_realizations = MergeCubes()(
+                raw_forecast_realizations_extended, slice_over_realization=True
+            )
         return raw_forecast_realizations
 
     @staticmethod
