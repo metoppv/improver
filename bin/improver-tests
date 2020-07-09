@@ -209,8 +209,12 @@ Optional arguments:
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
                     Valid names are: black, isort, pylint, pylintE, licence,
-                    doc, unit, cli. black, isort, pylintE, licence, doc, unit,
-                    and cli are the default tests.
+                    doc, unit, cli, and recreate_checksums. The default tests
+                    are black, isort, pylintE, licence, doc, unit,
+                    and cli.
+                    Using recreate_checksums will regenerate the
+                    test data checksum file which is used as part of the cli
+                    tests.
 __USAGE__
 }
 
