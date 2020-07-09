@@ -42,7 +42,7 @@ from cf_units import Unit, date2num
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
+from improver.grids import GRID_COORD_ATTRIBUTES
 from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants.mo_attributes import MOSG_GRID_DEFINITION
 from improver.metadata.constants.time_types import TIME_COORDS
@@ -71,63 +71,33 @@ def construct_xy_coords(
         y_coord, x_coord (tuple):
             Tuple of iris.coords.DimCoord instances
     """
-    msg = "Grid spacing required to setup grid from domain corner."
+    if spatial_grid not in GRID_COORD_ATTRIBUTES.keys():
+        raise ValueError("Grid type {} not recognised".format(spatial_grid))
 
-    if grid_spacing is not None:
+    if grid_spacing is None:
         if domain_corner is None:
-            y_start = 0 - ((ypoints - 1) * grid_spacing) / 2
-            x_start = 0 - ((xpoints - 1) * grid_spacing) / 2
-            domain_corner = [y_start, x_start]
-
+            y_array, x_array = _default_grid(ypoints, xpoints, spatial_grid)
+        else:
+            raise ValueError("Grid spacing required to setup grid from domain corner.")
+    else:
+        if domain_corner is None:
+            domain_corner = _set_domain_corner(ypoints, xpoints, grid_spacing)
         y_array, x_array = _create_y_x_arrays(
             ypoints, xpoints, domain_corner, grid_spacing
         )
-    elif domain_corner is not None and grid_spacing is None:
-        raise ValueError(msg)
 
-    if spatial_grid == "latlon":
-        # make a lat-lon grid including the UK area
-        if domain_corner is None and grid_spacing is None:
-            coord_bnds = {"x": [-20, 20], "y": [40, 80]}
-            y_array = np.linspace(
-                coord_bnds["y"][0], coord_bnds["y"][1], ypoints, dtype=np.float32
-            )
-            x_array = np.linspace(
-                coord_bnds["x"][0], coord_bnds["x"][1], xpoints, dtype=np.float32
-            )
-
-        y_coord = DimCoord(
-            y_array, "latitude", units="degrees", coord_system=GLOBAL_GRID_CCRS,
-        )
-        x_coord = DimCoord(
-            x_array, "longitude", units="degrees", coord_system=GLOBAL_GRID_CCRS,
-        )
-
-    elif spatial_grid == "equalarea":
-        # use UK eastings and northings on standard grid
-        # round grid spacing to nearest integer to avoid precision issues
-        if domain_corner is None and grid_spacing is None:
-            domain_corner = [-100000, -400000]
-            grid_spacing = np.around(1000000.0 / ypoints)
-
-            y_array, x_array = _create_y_x_arrays(
-                ypoints, xpoints, domain_corner, grid_spacing
-            )
-
-        y_coord = DimCoord(
-            y_array,
-            "projection_y_coordinate",
-            units="metres",
-            coord_system=STANDARD_GRID_CCRS,
-        )
-        x_coord = DimCoord(
-            x_array,
-            "projection_x_coordinate",
-            units="metres",
-            coord_system=STANDARD_GRID_CCRS,
-        )
-    else:
-        raise ValueError("Grid type {} not recognised".format(spatial_grid))
+    y_coord = DimCoord(
+        y_array,
+        GRID_COORD_ATTRIBUTES[spatial_grid]["yname"],
+        units=GRID_COORD_ATTRIBUTES[spatial_grid]["units"],
+        coord_system=GRID_COORD_ATTRIBUTES[spatial_grid]["coord_system"],
+    )
+    x_coord = DimCoord(
+        x_array,
+        GRID_COORD_ATTRIBUTES[spatial_grid]["xname"],
+        units=GRID_COORD_ATTRIBUTES[spatial_grid]["units"],
+        coord_system=GRID_COORD_ATTRIBUTES[spatial_grid]["coord_system"],
+    )
 
     return y_coord, x_coord
 
@@ -147,7 +117,7 @@ def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
             Grid resolution (degrees or metres)
 
     Returns:
-        y_coord, x_coord (tuple):
+        y_array, x_array (tuple):
             Tuple of numpy.ndarrays
     """
     y_points_array = [domain_corner[0] + i * grid_spacing for i in range(ypoints)]
@@ -155,6 +125,66 @@ def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
     y_array = np.array(y_points_array, dtype=np.float32)
     x_array = np.array(x_points_array, dtype=np.float32)
 
+    return y_array, x_array
+
+
+def _set_domain_corner(ypoints, xpoints, grid_spacing):
+    """
+    Set domain corner when none provided.
+
+    Args:
+        ypoints (int):
+            Number of grid points required along the y-axis
+        xpoints (int):
+            Number of grid points required along the x-axis
+        grid_spacing (int or float):
+            Grid resolution (degrees or metres).
+
+    Returns:
+        domain_corner (list of int or float):
+            [y,x] values of the bottom left corner of the domain
+    """
+    y_start = 0 - ((ypoints - 1) * grid_spacing) / 2
+    x_start = 0 - ((xpoints - 1) * grid_spacing) / 2
+    domain_corner = [y_start, x_start]
+
+    return domain_corner
+
+
+def _default_grid(ypoints, xpoints, spatial_grid):
+    """
+    Create default grid.
+
+    Args:
+        ypoints (int):
+            Number of grid points required along the y-axis
+        xpoints (int):
+            Number of grid points required along the x-axis
+        spatial_grid (str):
+            Specifier to produce either a "latlon" or "equalarea" grid
+
+    Returns:
+        y_array, x_array (tuple):
+            Tuple of numpy.ndarrays
+    """
+    if spatial_grid == "latlon":
+        # make a lat-lon grid including the UK area
+        coord_bnds = {"x": [-20, 20], "y": [40, 80]}
+        y_array = np.linspace(
+            coord_bnds["y"][0], coord_bnds["y"][1], ypoints, dtype=np.float32
+        )
+        x_array = np.linspace(
+            coord_bnds["x"][0], coord_bnds["x"][1], xpoints, dtype=np.float32
+        )
+    elif spatial_grid == "equalarea":
+        # use UK eastings and northings on standard grid
+        # round grid spacing to nearest integer to avoid precision issues
+        domain_corner = [-100000, -400000]
+        grid_spacing = np.around(1000000.0 / ypoints)
+
+        y_array, x_array = _create_y_x_arrays(
+            ypoints, xpoints, domain_corner, grid_spacing
+        )
     return y_array, x_array
 
 

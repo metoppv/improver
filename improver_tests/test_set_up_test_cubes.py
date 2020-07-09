@@ -142,6 +142,13 @@ class Test_construct_xy_coords(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             construct_xy_coords(3, 3, "equalarea", domain_corner=[0, 0])
 
+    def test_unknown_spatial_grid(self):
+        """Test error raised if spatial_grid unknown"""
+        spatial_grid = "unknown"
+        msg = "Grid type {} not recognised".format(spatial_grid)
+        with self.assertRaisesRegex(ValueError, msg):
+            construct_xy_coords(3, 3, spatial_grid, domain_corner=[0, 0])
+
 
 class Test_construct_scalar_time_coords(IrisTest):
     """Test the construct_scalar_time_coords method"""
