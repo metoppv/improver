@@ -237,8 +237,8 @@ def insert_lower_and_upper_endpoint_to_1d_array(array_1d, low_endpoint, high_end
         numpy.ndarray:
             1d array of values padded with the low_endpoint and high_endpoint.
     """
-    if len(array_1d.shape) != 1:
-        raise ValueError("Expected 1D input, got {}".format(len(array_1d.shape)))
+    if array_1d.ndim != 1:
+        raise ValueError("Expected 1D input, got {}".format(array_1d.ndim))
     lower_array = np.array([low_endpoint])
     upper_array = np.array([high_endpoint])
     array_1d = np.concatenate((lower_array, array_1d, upper_array))
