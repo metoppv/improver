@@ -395,26 +395,21 @@ class Test_restore_non_percentile_dimensions(IrisTest):
             ]
         )
 
-        data = np.tile(np.linspace(5, 10, 8), 3).reshape(3, 2, 2, 2)
-        data[0] -= 1
-        data[1] += 1
-        data[2] += 3
-
         cubelist = CubeList([])
         for i, hour in enumerate([7, 8]):
             cubelist.append(
                 set_up_percentile_cube(
-                    data[:, i, :, :].astype(np.float32),
-                    np.array([10, 50, 90], dtype=np.float32),
+                    np.array([expected[i, :, :]], dtype=np.float32),
+                    np.array([50], dtype=np.float32),
                     units="degC",
                     time=datetime(2015, 11, 23, hour),
                     frt=datetime(2015, 11, 23, 6),
                 )
             )
         percentile_cube = cubelist.merge_cube()
-        percentile_cube.transpose([1, 0, 2, 3])
+
         reshaped_array = restore_non_percentile_dimensions(
-            percentile_cube[0].data.flatten(),
+            percentile_cube.data.flatten(),
             next(percentile_cube.slices_over("percentile")),
             1,
         )
