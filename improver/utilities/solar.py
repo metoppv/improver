@@ -33,9 +33,9 @@
 import datetime as dt
 
 import cf_units as unit
+import iris
 import numpy as np
 
-import iris
 from improver import BasePlugin
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 
