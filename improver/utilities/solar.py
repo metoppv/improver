@@ -35,9 +35,9 @@ import datetime as dt
 import cf_units as unit
 import numpy as np
 
+import iris
 from improver import BasePlugin
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
-from improver.utilities.temporal import iris_time_to_datetime
 
 
 def calc_solar_declination(day_of_year):
@@ -224,11 +224,11 @@ class DayNightMask(BasePlugin):
                 will be ignored although they might appear as attributes
                 on the cube as it is extracted from the first slice.
         """
-        daynight_mask = next(
-            cube.slices(
-                [cube.coord("time"), cube.coord(axis="y"), cube.coord(axis="x")]
-            )
-        ).copy()
+        slice_coords = [cube.coord(axis="y"), cube.coord(axis="x")]
+        if cube.coord("time") in cube.coords(dim_coords=True):
+            slice_coords.insert(0, cube.coord("time"))
+
+        daynight_mask = next(cube.slices(slice_coords)).copy()
         daynight_mask.rename("day_night_mask")
         daynight_mask.units = unit.Unit("1")
         daynight_mask.data = np.ones(daynight_mask.data.shape, dtype="int") * self.night
@@ -292,9 +292,10 @@ class DayNightMask(BasePlugin):
                 on the cube as it is extracted from the first slice.
         """
         daynight_mask = self._create_daynight_mask(cube)
-        dtvalues = iris_time_to_datetime(daynight_mask.coord("time"))
-        for i, dtval in enumerate(dtvalues):
-            mask_cube = daynight_mask[i]
+
+        modified_masks = iris.cube.CubeList()
+        for mask_cube in daynight_mask.slices_over("time"):
+            dtval = mask_cube.coord("time").cell(0).point
             day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days
             dtval = dtval + dt.timedelta(seconds=dtval.second)
             utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
@@ -308,5 +309,5 @@ class DayNightMask(BasePlugin):
                 mask_cube = self._daynight_lat_lon_cube(
                     mask_cube, day_of_year, utc_hour
                 )
-            daynight_mask.data[i, ::] = mask_cube.data
-        return daynight_mask
+            modified_masks.append(mask_cube)
+        return modified_masks.merge_cube()
