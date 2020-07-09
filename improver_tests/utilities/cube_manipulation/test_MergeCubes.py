@@ -284,7 +284,7 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.coord("realization").points, np.arange(6))
 
     def test_slice_over_realization_scalar(self):
-        """Demostrate behaviour with a single-valued realization coordinate
+        """Demonstrate behaviour with a single-valued realization coordinate
         when the slicing option is set"""
         data = 275 * np.ones((1, 3, 3), dtype=np.float32)
         cube1 = set_up_variable_cube(
