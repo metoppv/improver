@@ -63,8 +63,8 @@ def concatenate_2d_array_with_2d_array_endpoints(array_2d, low_endpoint, high_en
             2d array of values after padding with the low_endpoint and
             high_endpoint.
     """
-    if len(array_2d.shape) != 2:
-        raise ValueError("Expected 2D input, got {}".format(len(array_2d.shape)))
+    if array_2d.ndim != 2:
+        raise ValueError("Expected 2D input, got {}".format(array_2d.ndim))
     lower_array = np.full((array_2d.shape[0], 1), low_endpoint, dtype=array_2d.dtype)
     upper_array = np.full((array_2d.shape[0], 1), high_endpoint, dtype=array_2d.dtype)
     array_2d = np.concatenate((lower_array, array_2d, upper_array), axis=1)
