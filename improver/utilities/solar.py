@@ -237,7 +237,8 @@ class DayNightMask(BasePlugin):
             for crd in cube.coords(dim_coords=True)
             if crd not in template.coords(dim_coords=True)
         ]
-        [template.remove_coord(crd) for crd in demoted_coords]
+        for crd in demoted_coords:
+            template.remove_coord(crd)
         attributes = generate_mandatory_attributes([template])
         title_attribute = {"title": "Day-Night mask"}
         data = np.ones(template.data.shape, dtype="int") * self.night

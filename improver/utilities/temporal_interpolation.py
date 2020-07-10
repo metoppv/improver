@@ -355,7 +355,7 @@ class TemporalInterpolation(BasePlugin):
         daynight_mask = daynightplugin(interpolated_cube)
         index = daynight_mask.data == daynightplugin.night
         interpolated_cube.data[..., index] = 0.0
-        return iris.cube.CubeList([c for c in interpolated_cube.slices_over("time")])
+        return iris.cube.CubeList(list(interpolated_cube.slices_over("time")))
 
     def process(self, cube_t0, cube_t1):
         """
