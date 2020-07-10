@@ -65,7 +65,8 @@ def construct_xy_coords(
         grid_spacing (int or float):
             Grid resolution (degrees or metres).
         domain_corner (list of int or float):
-            Bottom left corner of grid domain [y,x] (degrees or metres).
+            Bottom left corner of grid domain [y,x] (degrees or metres). If not
+            provided, a grid is created centred around (0,0).
 
     Returns:
         y_coord, x_coord (tuple):
