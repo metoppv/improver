@@ -32,11 +32,14 @@
 
 import datetime as dt
 
-import cf_units as unit
 import iris
 import numpy as np
 
 from improver import BasePlugin
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 
 
@@ -228,10 +231,25 @@ class DayNightMask(BasePlugin):
         if cube.coord("time") in cube.coords(dim_coords=True):
             slice_coords.insert(0, cube.coord("time"))
 
-        daynight_mask = next(cube.slices(slice_coords)).copy()
-        daynight_mask.rename("day_night_mask")
-        daynight_mask.units = unit.Unit("1")
-        daynight_mask.data = np.ones(daynight_mask.data.shape, dtype="int") * self.night
+        template = next(cube.slices(slice_coords))
+        demoted_coords = [
+            crd
+            for crd in cube.coords(dim_coords=True)
+            if crd not in template.coords(dim_coords=True)
+        ]
+        [template.remove_coord(crd) for crd in demoted_coords]
+        attributes = generate_mandatory_attributes([template])
+        title_attribute = {"title": "Day-Night mask"}
+        data = np.ones(template.data.shape, dtype="int") * self.night
+        daynight_mask = create_new_diagnostic_cube(
+            "day_night_mask",
+            1,
+            template,
+            attributes,
+            optional_attributes=title_attribute,
+            data=data,
+            dtype=np.int,
+        )
         return daynight_mask
 
     def _daynight_lat_lon_cube(self, mask_cube, day_of_year, utc_hour):

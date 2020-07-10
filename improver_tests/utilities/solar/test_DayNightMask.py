@@ -71,6 +71,8 @@ class Test__create_daynight_mask(IrisTest):
     def setUp(self):
         """Set up the cube for testing."""
         self.cube = set_up_cube()
+        self.cube.attributes["institution"] = "Met Office"
+        self.cube.attributes["title"] = "A model field"
 
     def test_basic_daynight_mask(self):
         """ Test this create a blank mask cube"""
@@ -80,6 +82,8 @@ class Test__create_daynight_mask(IrisTest):
         self.assertEqual(result.units, unit.Unit("1"))
         self.assertEqual(result.data.min(), DayNightMask().night)
         self.assertEqual(result.data.max(), DayNightMask().night)
+        self.assertEqual(result.attributes["title"], "Day-Night mask")
+        self.assertEqual(result.attributes["institution"], "Met Office")
 
 
 class Test__daynight_lat_lon_cube(IrisTest):

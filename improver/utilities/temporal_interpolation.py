@@ -351,18 +351,11 @@ class TemporalInterpolation(BasePlugin):
                 A list of cubes interpolated to the desired times.
 
         """
-        interpolated_cubes = iris.cube.CubeList()
         daynightplugin = DayNightMask()
         daynight_mask = daynightplugin(interpolated_cube)
-
-        for cslice, mslice in zip(
-            interpolated_cube.slices_over("time"), daynight_mask.slices_over("time")
-        ):
-            index = mslice.data == daynightplugin.night
-            cslice.data[..., index] = 0.0
-            interpolated_cubes.append(cslice)
-
-        return interpolated_cubes
+        index = daynight_mask.data == daynightplugin.night
+        interpolated_cube.data[..., index] = 0.0
+        return iris.cube.CubeList([c for c in interpolated_cube.slices_over("time")])
 
     def process(self, cube_t0, cube_t1):
         """
