@@ -64,8 +64,8 @@ def construct_xy_coords(
             Specifier to produce either a "latlon" or "equalarea" grid
         grid_spacing (Optional[int or float]):
             Grid resolution (degrees for latlon or metres for equalarea).
-        domain_corner (Optional[List[int] or List[float]]):
-            Bottom left corner of grid domain [y,x] (degrees for latlon or metres for equalarea). If not
+        domain_corner (Optional[Tuple[int, int] or Tuple[float, float]]):
+            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea). If not
             provided, a grid is created centred around (0,0).
 
     Returns:
@@ -112,8 +112,8 @@ def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
             Number of grid points required along the y-axis
         xpoints (int):
             Number of grid points required along the x-axis
-        domain_corner (List[int] or List[float]):
-            Bottom left corner of grid domain [y,x] (degrees for latlon or metres for equalarea)
+        domain_corner (Tuple[int, int] or Tuple[float, float]):
+            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea)
         grid_spacing (int or float):
             Grid resolution (degrees for latlon or metres for equalarea)
 
@@ -142,14 +142,13 @@ def _set_domain_corner(ypoints, xpoints, grid_spacing):
             Grid resolution (degrees for latlon or metres for equalarea).
 
     Returns:
-        List[int] or List[float]:
-            [y,x] values of the bottom left corner of the domain
+        Tuple[int, int] or Tuple[float, float]:
+            (y,x) values of the bottom left corner of the domain
     """
     y_start = 0 - ((ypoints - 1) * grid_spacing) / 2
     x_start = 0 - ((xpoints - 1) * grid_spacing) / 2
-    domain_corner = [y_start, x_start]
 
-    return domain_corner
+    return y_start, x_start
 
 
 def _default_grid(ypoints, xpoints, spatial_grid):
@@ -321,8 +320,8 @@ def set_up_variable_cube(
             'gl_det' or 'gl_ens'.
         grid_spacing (Optional[int or float]):
             Grid resolution (degrees for latlon or metres for equalarea).
-        domain_corner (Optional[List[int] or List[float]]):
-            Bottom left corner of grid domain [y,x] (degrees for latlon or metres for equalarea).
+        domain_corner (Optional[Tuple[int, int] or Tuple[float, float]]):
+            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
 
     Returns:
         iris.cube.Cube:

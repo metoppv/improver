@@ -91,7 +91,7 @@ class Test_construct_xy_coords(IrisTest):
         """Test latitude and longitude point values start at domain corner
         with provided grid spacing"""
         y_coord, x_coord = construct_xy_coords(
-            3, 3, "latlon", grid_spacing=2, domain_corner=[15, 12]
+            3, 3, "latlon", grid_spacing=2, domain_corner=(15, 12)
         )
         self.assertArrayEqual(x_coord.points, [12.0, 14.0, 16.0])
         self.assertArrayEqual(y_coord.points, [15.0, 17.0, 19.0])
@@ -101,7 +101,7 @@ class Test_construct_xy_coords(IrisTest):
         not provided"""
         msg = "Grid spacing required to setup grid from domain corner."
         with self.assertRaisesRegex(ValueError, msg):
-            construct_xy_coords(3, 3, "latlon", domain_corner=[0, 0])
+            construct_xy_coords(3, 3, "latlon", domain_corner=(0, 0))
 
     def test_proj_xy(self):
         """Test coordinates created for an equal area grid"""
@@ -130,7 +130,7 @@ class Test_construct_xy_coords(IrisTest):
         """Test projection_y_coordinate and projection_x_coordinate point values start at domain corner
         with provided grid spacing"""
         y_coord, x_coord = construct_xy_coords(
-            3, 3, "equalarea", grid_spacing=2, domain_corner=[15, 12]
+            3, 3, "equalarea", grid_spacing=2, domain_corner=(15, 12)
         )
         self.assertArrayEqual(x_coord.points, [12.0, 14.0, 16.0])
         self.assertArrayEqual(y_coord.points, [15.0, 17.0, 19.0])
@@ -140,14 +140,14 @@ class Test_construct_xy_coords(IrisTest):
         not provided"""
         msg = "Grid spacing required to setup grid from domain corner."
         with self.assertRaisesRegex(ValueError, msg):
-            construct_xy_coords(3, 3, "equalarea", domain_corner=[0, 0])
+            construct_xy_coords(3, 3, "equalarea", domain_corner=(0, 0))
 
     def test_unknown_spatial_grid(self):
         """Test error raised if spatial_grid unknown"""
         spatial_grid = "unknown"
         msg = "Grid type {} not recognised".format(spatial_grid)
         with self.assertRaisesRegex(ValueError, msg):
-            construct_xy_coords(3, 3, spatial_grid, domain_corner=[0, 0])
+            construct_xy_coords(3, 3, spatial_grid, domain_corner=(0, 0))
 
 
 class Test_construct_scalar_time_coords(IrisTest):
@@ -413,7 +413,7 @@ class Test_set_up_variable_cube(IrisTest):
     def test_latlon_domain_corner_grid_spacing(self):
         """Test ability to set up lat-lon grid from domain corner with grid spacing"""
         grid_spacing = 1
-        domain_corner = [-17, -10]
+        domain_corner = (-17, -10)
         result = set_up_variable_cube(
             self.data,
             spatial_grid="latlon",
@@ -438,7 +438,7 @@ class Test_set_up_variable_cube(IrisTest):
     def test_equalarea_domain_corner_grid_spacing(self):
         """Test ability to set up equalarea grid from domain corner with grid spacing"""
         grid_spacing = 1
-        domain_corner = [1100, 300]
+        domain_corner = (1100, 300)
         result = set_up_variable_cube(
             self.data,
             spatial_grid="equalarea",
@@ -468,7 +468,7 @@ class Test_set_up_variable_cube(IrisTest):
 
     def test_latlon_domain_corner(self):
         """Test error raised if attempt to make latlon grid providing domain corner but not grid spacing"""
-        domain_corner = [-17, -10]
+        domain_corner = (-17, -10)
         with self.assertRaisesRegex(
             ValueError, "Grid spacing required to setup grid from domain corner."
         ):
@@ -478,7 +478,7 @@ class Test_set_up_variable_cube(IrisTest):
 
     def test_equalarea_domain_corner(self):
         """Test error raised if attempt to make equalarea grid providing domain corner but not grid spacing"""
-        domain_corner = [1100, 300]
+        domain_corner = (1100, 300)
         with self.assertRaisesRegex(
             ValueError, "Grid spacing required to setup grid from domain corner."
         ):
