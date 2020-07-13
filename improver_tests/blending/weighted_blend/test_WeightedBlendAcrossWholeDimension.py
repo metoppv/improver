@@ -477,14 +477,15 @@ class Test_check_weights(Test_weighted_blend):
         """Test that if a weights cube is provided which is zero or properly
         normalised,  i.e. the weights sum to one over the blending
         dimension, no exception is raised."""
-        weights = [
-            [[0, 0.3], [0.2, 0.4]],
-            [[0, 0.3], [0.2, 0.4]],
-            [[0, 0.4], [0.6, 0.2]],
-        ]
+        weights = np.array(
+            [[[0, 0.3], [0.2, 0.4]], [[0, 0.3], [0.2, 0.4]], [[0, 0.4], [0.6, 0.2]]]
+        )
         coord = "forecast_reference_time"
         plugin = WeightedBlendAcrossWholeDimension(coord)
-        plugin.check_weights(weights, 0)
+        try:
+            plugin.check_weights(weights, 0)
+        except ValueError:
+            self.fail("Error testing check_weights")
 
     def test_weights_do_not_sum_to_1_error(self):
         """Test that if a weights cube is provided which is not properly
@@ -519,7 +520,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_weights_perc_as_float64(self):
         """Test function when a data cube and a weights cube are provided. But with
-        a percentile cood that is float64"""
+        a percentile coord that is float64"""
 
         perc_cube = percentile_cube()
         coord = "forecast_reference_time"
