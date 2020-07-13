@@ -195,7 +195,7 @@ def _create_time_point(time):
 
     Args:
         time (datetime.datetime)
-    
+
     Returns:
         Any:
             Returns coordinate point as datatype specified in TIME_COORDS["time"]
