@@ -162,10 +162,10 @@ function improver_test_recreate_checksums {
     # Recreate checksums for acceptance test data.
     LC_FORMER=${LC_ALL:-}
     export LC_ALL=C
-    cd $IMPROVER_ACC_TEST_DIR
+    pushd $IMPROVER_ACC_TEST_DIR > /dev/null
     find . -not -path '*/\.*' \( -type f -o -type l \) -print0 | \
     sort -zu | xargs -0 sha256sum > $CLISUBTEST/acceptance/SHA256SUMS
-    cd -
+    popd > /dev/null
     export LC_ALL=$LC_FORMER
 
     echo_ok "Checksums recreated"
@@ -186,11 +186,11 @@ function improver_test_cli {
     fi
 
     if [[ ! ${IMPROVER_IGNORE_CHECKSUMS:-} = "true" ]]; then
-      pytest $CLISUBTEST/acceptance/test_checksums.py -k test_kgo_checksums
+      pytest $CLISUBTEST/acceptance/test_checksums.py
       echo_ok "Acceptance test data checksums validated"
     fi
 
-    pytest -m acc ${VERBOSE_OPT:-} -k "not test_checksums"
+    pytest -m acc -m "not checksum" ${VERBOSE_OPT:-}
 
     echo_ok "CLI tests"
 }
