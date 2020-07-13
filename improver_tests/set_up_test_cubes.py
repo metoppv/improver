@@ -62,15 +62,15 @@ def construct_xy_coords(
             Number of grid points required along the x-axis
         spatial_grid (str):
             Specifier to produce either a "latlon" or "equalarea" grid
-        grid_spacing (int or float):
+        grid_spacing (Optional[int or float]):
             Grid resolution (degrees for latlon or metres for equalarea).
-        domain_corner (list of int or float):
+        domain_corner (Optional[List[int] or List[float]]):
             Bottom left corner of grid domain [y,x] (degrees for latlon or metres for equalarea). If not
             provided, a grid is created centred around (0,0).
 
     Returns:
-        y_coord, x_coord (tuple):
-            Tuple of iris.coords.DimCoord instances
+        Tuple[iris.coords.DimCoord, iris.coords.DimCoord]:
+            Tuple containing y and x iris.coords.DimCoords
     """
     if spatial_grid not in GRID_COORD_ATTRIBUTES.keys():
         raise ValueError("Grid type {} not recognised".format(spatial_grid))
@@ -112,14 +112,14 @@ def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
             Number of grid points required along the y-axis
         xpoints (int):
             Number of grid points required along the x-axis
-        domain_corner (list of int or float):
+        domain_corner (List[int] or List[float]):
             Bottom left corner of grid domain [y,x] (degrees for latlon or metres for equalarea)
         grid_spacing (int or float):
             Grid resolution (degrees for latlon or metres for equalarea)
 
     Returns:
-        y_array, x_array (tuple):
-            Tuple of numpy.ndarrays
+        Tuple[numpy.ndarray, numpy.ndarray]:
+            Tuple containing arrays of y and x coordinate values
     """
     y_points_array = [domain_corner[0] + i * grid_spacing for i in range(ypoints)]
     x_points_array = [domain_corner[1] + i * grid_spacing for i in range(xpoints)]
@@ -131,7 +131,7 @@ def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
 
 def _set_domain_corner(ypoints, xpoints, grid_spacing):
     """
-    Set domain corner when none provided.
+    Set domain corner to create a grid around 0,0.
 
     Args:
         ypoints (int):
@@ -142,7 +142,7 @@ def _set_domain_corner(ypoints, xpoints, grid_spacing):
             Grid resolution (degrees for latlon or metres for equalarea).
 
     Returns:
-        domain_corner (list of int or float):
+        List[int] or List[float]:
             [y,x] values of the bottom left corner of the domain
     """
     y_start = 0 - ((ypoints - 1) * grid_spacing) / 2
@@ -165,8 +165,8 @@ def _default_grid(ypoints, xpoints, spatial_grid):
             Specifier to produce either a "latlon" or "equalarea" grid
 
     Returns:
-        y_array, x_array (tuple):
-            Tuple of numpy.ndarrays
+        Tuple[numpy.ndarray, numpy.ndarray]:
+            Tuple containing arrays of y and x coordinate values
     """
     if spatial_grid == "latlon":
         # make a lat-lon grid including the UK area
@@ -195,6 +195,10 @@ def _create_time_point(time):
 
     Args:
         time (datetime.datetime)
+    
+    Returns:
+        Any:
+            Returns coordinate point as datatype specified in TIME_COORDS["time"]
     """
     coord_spec = TIME_COORDS["time"]
     point = date2num(time, coord_spec.units, coord_spec.calendar)
@@ -208,13 +212,13 @@ def construct_scalar_time_coords(time, time_bounds, frt):
     Args:
         time (datetime.datetime):
             Single time point
-        time_bounds (tuple or list of datetime.datetime instances or None):
+        time_bounds (Tuple[datetime.datetime, datetime.datetime] or List[datetime.datetime] or None):
             Lower and upper bound on time point, if required
         frt (datetime.datetime):
             Single forecast reference time point
 
     Returns:
-        list of Tuple[iris.coord.DimCoord, bool]:
+        List[Tuple[iris.coord.DimCoord, bool]]:
             List of iris.coords.DimCoord instances with the associated "None"
             dimension (format required by iris.cube.Cube initialisation).
     """
@@ -291,34 +295,38 @@ def set_up_variable_cube(
         data (numpy.ndarray):
             2D (y-x ordered) or 3D (realization-y-x ordered) array of data
             to put into the cube.
-        name (str):
+        name (Optional[str]):
             Variable name (standard / long)
-        units (str):
+        units (Optional[str]):
             Variable units
-        spatial_grid (str):
+        spatial_grid (Optional[str]):
             What type of x/y coordinate values to use.  Permitted values are
             "latlon" or "equalarea".
-        time (datetime.datetime):
+        time (Optional[datetime.datetime]):
             Single cube validity time
-        time_bounds (tuple or list of datetime.datetime instances):
+        time_bounds (Optional[Tuple[datetime.datetime, datetime.datetime] or List[datetime.datetime]]):
             Lower and upper bound on time point, if required
-        frt (datetime.datetime):
+        frt (Optional[datetime.datetime]):
             Single cube forecast reference time
-        realizations (list or numpy.ndarray):
+        realizations (Optional[List[numpy.ndarray]]):
             List of forecast realizations.  If not present, taken from the
             leading dimension of the input data array (if 3D).
-        include_scalar_coords (list):
+        include_scalar_coords (Optional[List[iris.coords.DimCoord] or List[iris.coords.AuxCoord]]):
             List of iris.coords.DimCoord or AuxCoord instances of length 1.
-        attributes (dict):
+        attributes (Optional[Dict[Any]]):
             Optional cube attributes.
-        standard_grid_metadata (str):
+        standard_grid_metadata (Optional[str]):
             Recognised mosg__model_configuration for which to set up Met
             Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
             'gl_det' or 'gl_ens'.
-        grid_spacing (int or float):
+        grid_spacing (Optional[int or float]):
             Grid resolution (degrees for latlon or metres for equalarea).
-        domain_corner (list of int or float):
+        domain_corner (Optional[List[int] or List[float]]):
             Bottom left corner of grid domain [y,x] (degrees for latlon or metres for equalarea).
+    
+    Returns:
+        iris.cube.Cube:
+            Cube containing a single variable field
     """
     # construct spatial dimension coordimates
     ypoints = data.shape[-2]
@@ -401,11 +409,15 @@ def set_up_percentile_cube(
     Args:
         data (numpy.ndarray):
             3D (percentile-y-x ordered) array of data to put into the cube
-        percentiles (list or numpy.ndarray):
+        percentiles (List[int] or List[float] or numpy.ndarray):
             List of int / float percentile values whose length must match the
             first dimension on the input data cube
         **kwargs:
             Additional keyword arguments passed to 'set_up_variable_cube' function
+    
+    Returns:
+        iris.cube.Cube:
+            Cube containing percentiles
     """
     cube = set_up_variable_cube(data, realizations=percentiles, **kwargs,)
     cube.coord("realization").rename("percentile")
@@ -435,19 +447,23 @@ def set_up_probability_cube(
     Args:
         data (numpy.ndarray):
             3D (threshold-y-x ordered) array of data to put into the cube
-        thresholds (list or numpy.ndarray):
+        thresholds (List[int] or List[float] or numpy.ndarray):
             List of int / float threshold values whose length must match the
             first dimension on the input data cube
-        variable_name (str):
+        variable_name (Optional[str]):
             Name of the underlying variable to which the probability field
             applies, eg "air_temperature".  NOT name of probability field.
-        threshold_units (str):
+        threshold_units (Optional[str]):
             Units of the underlying variable / threshold.
-        spp__relative_to_threshold (str):
+        spp__relative_to_threshold (Optional[str]):
             Value of the attribute "spp__relative_to_threshold" which is
             required for IMPROVER probability cubes.
         **kwargs:
             Additional keyword arguments passed to 'set_up_variable_cube' function
+    
+    Returns:
+        iris.cube.Cube:
+            Cube containing probabilities at thresholds
     """
     # create a "relative to threshold" attribute
     coord_attributes = {"spp__relative_to_threshold": spp__relative_to_threshold}
@@ -491,26 +507,26 @@ def add_coordinate(
     Args:
         incube (iris.cube.Cube):
             Cube to be duplicated.
-        coord_points (list or numpy.ndarray):
+        coord_points (List[Any] or numpy.ndarray):
             Values for the coordinate.
         coord_name (str):
             Long name of the coordinate to be added.
-        coord_units (str):
+        coord_units (Optional[str]):
             Coordinate unit required.
-        dtype (type):
+        dtype (Optional[type]):
             Datatype for coordinate points.
-        order (list):
+        order (Optional[List[int]]):
             Optional list of integers to reorder the dimensions on the new
             merged cube.  For example, if the new coordinate is required to
             be in position 1 on a 4D cube, use order=[1, 0, 2, 3] to swap the
             new coordinate position with that of the original leading
             coordinate.
-        is_datetime (bool):
+        is_datetime (Optional[bool]):
             If "true", the leading coordinate points have been given as a
             list of datetime objects and need converting.  In this case the
             "coord_units" argument is overridden and the time points provided
             in seconds.  The "dtype" argument is overridden and set to int64.
-        attributes (dict):
+        attributes (Optional[Dict[Any]]):
             Optional coordinate attributes.
 
     Returns:
