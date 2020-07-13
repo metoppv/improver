@@ -340,26 +340,15 @@ class Test_restore_non_percentile_dimensions(IrisTest):
         points_data = [self.cube.data[i].flatten() for i in range(3)]
         self.input_data = np.array(points_data)
 
-    def test_basic(self):
+    def test_percentile_is_dimension_coordinate(self):
         """
-        Basic test that the result is a numpy array with the expected contents.
+        Test the result is an array with the expected shape and contents.
         """
         plen = len(self.cube.coord("percentile").points)
         reshaped_array = restore_non_percentile_dimensions(
             self.input_data, next(self.cube.slices_over("percentile")), plen
         )
         self.assertIsInstance(reshaped_array, np.ndarray)
-
-    def test_percentile_is_dimension_coordinate(self):
-        """
-        Test that the result have the expected size for the
-        probabilistic dimension and is generally of the expected size.
-        The array contents is also checked.
-        """
-        plen = len(self.cube.coord("percentile").points)
-        reshaped_array = restore_non_percentile_dimensions(
-            self.input_data, next(self.cube.slices_over("percentile")), plen
-        )
         self.assertEqual(reshaped_array.shape, self.cube.data.shape)
         self.assertArrayAlmostEqual(reshaped_array, self.cube.data)
 
