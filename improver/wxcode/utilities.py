@@ -128,7 +128,6 @@ def update_daynight(cubewx):
         CoordinateNotFoundError : cube must have time coordinate.
 
     """
-    import iris
     import numpy as np
     from iris.exceptions import CoordinateNotFoundError
     import improver.utilities.solar as solar
@@ -136,11 +135,8 @@ def update_daynight(cubewx):
     if not cubewx.coords("time"):
         msg = "cube must have time coordinate "
         raise CoordinateNotFoundError(msg)
-    time_dim = cubewx.coord_dims("time")
-    if not time_dim:
-        cubewx_daynight = iris.util.new_axis(cubewx.copy(), "time")
-    else:
-        cubewx_daynight = cubewx.copy()
+
+    cubewx_daynight = cubewx.copy()
     daynightplugin = solar.DayNightMask()
     daynight_mask = daynightplugin(cubewx_daynight)
 
@@ -156,8 +152,6 @@ def update_daynight(cubewx):
             cubewx_daynight.data[index] - 1,
         )
 
-    if not time_dim:
-        cubewx_daynight = iris.util.squeeze(cubewx_daynight)
     return cubewx_daynight
 
 
