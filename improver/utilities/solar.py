@@ -241,7 +241,7 @@ class DayNightMask(BasePlugin):
             template.remove_coord(crd)
         attributes = generate_mandatory_attributes([template])
         title_attribute = {"title": "Day-Night mask"}
-        data = np.ones(template.data.shape, dtype="int") * self.night
+        data = np.full(template.data.shape, self.night, dtype=np.int32)
         daynight_mask = create_new_diagnostic_cube(
             "day_night_mask",
             1,
@@ -249,7 +249,7 @@ class DayNightMask(BasePlugin):
             attributes,
             optional_attributes=title_attribute,
             data=data,
-            dtype=np.int,
+            dtype=np.int32,
         )
         return daynight_mask
 

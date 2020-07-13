@@ -377,6 +377,7 @@ class Test_update_daynight(IrisTest):
         )
         result = update_daynight(cube)
         self.assertArrayEqual(result.data, expected_result)
+        self.assertEqual(result.shape, (16, 16))
 
     def test_wxcode_time_as_scalar(self):
         """ Test code works if time is a scalar not a dimension """

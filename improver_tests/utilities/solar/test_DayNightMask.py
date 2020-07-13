@@ -84,6 +84,7 @@ class Test__create_daynight_mask(IrisTest):
         self.assertEqual(result.data.max(), DayNightMask().night)
         self.assertEqual(result.attributes["title"], "Day-Night mask")
         self.assertEqual(result.attributes["institution"], "Met Office")
+        self.assertEqual(result.dtype, np.int32)
 
 
 class Test__daynight_lat_lon_cube(IrisTest):
@@ -134,8 +135,8 @@ class Test_process(IrisTest):
         self.cube = set_up_cube()
         x_points = np.linspace(-30000, 0, 16)
         self.cube.coord("projection_x_coordinate").points = x_points
-        dtval = self.cube.coord("time").points[0]
-        self.cube.coord("time").points = np.array(dtval + 7.5 + 24.0)
+        self.dtval = self.cube.coord("time").points[0]
+        self.cube.coord("time").points = np.array(self.dtval + 7.5 + 24.0)
         # Lat lon cube
         self.cube_lat_lon = set_up_cube_lat_long()
         lon_points = np.linspace(-8, 7, 16)
@@ -172,6 +173,42 @@ class Test_process(IrisTest):
             ]
         )
         self.assertArrayEqual(result.data, expected_result)
+
+    def test_time_as_dimension(self):
+        """Test day_night mask for a cube with multiple times."""
+        cube1 = self.cube.copy()
+        cube1.coord("time").points = np.array(self.dtval + 7.5 + 30.0)
+        cubes = iris.cube.CubeList(
+            [iris.util.squeeze(self.cube), iris.util.squeeze(cube1)]
+        )
+        cube = cubes.merge_cube()
+
+        result = DayNightMask().process(cube)
+        expected_result = np.array(
+            [
+                [
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                ],
+                np.ones((16, 16)),
+            ]
+        )
+        self.assertArrayEqual(result.data, expected_result)
+        self.assertEqual(result.shape, cube.shape)
 
     def test_basic_lat_lon(self):
         """Test day_night mask with lat lon data."""
