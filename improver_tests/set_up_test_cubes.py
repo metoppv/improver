@@ -63,9 +63,9 @@ def construct_xy_coords(
         spatial_grid (str):
             Specifier to produce either a "latlon" or "equalarea" grid
         grid_spacing (int or float):
-            Grid resolution (degrees or metres).
+            Grid resolution (degrees for latlon or metres for equalarea).
         domain_corner (list of int or float):
-            Bottom left corner of grid domain [y,x] (degrees or metres). If not
+            Bottom left corner of grid domain [y,x] (degrees for latlon or metres for equalarea). If not
             provided, a grid is created centred around (0,0).
 
     Returns:
@@ -113,9 +113,9 @@ def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
         xpoints (int):
             Number of grid points required along the x-axis
         domain_corner (list of int or float):
-            Bottom left corner of grid domain [y,x] (degrees or metres)
+            Bottom left corner of grid domain [y,x] (degrees for latlon or metres for equalarea)
         grid_spacing (int or float):
-            Grid resolution (degrees or metres)
+            Grid resolution (degrees for latlon or metres for equalarea)
 
     Returns:
         y_array, x_array (tuple):
@@ -139,7 +139,7 @@ def _set_domain_corner(ypoints, xpoints, grid_spacing):
         xpoints (int):
             Number of grid points required along the x-axis
         grid_spacing (int or float):
-            Grid resolution (degrees or metres).
+            Grid resolution (degrees for latlon or metres for equalarea).
 
     Returns:
         domain_corner (list of int or float):
@@ -316,9 +316,9 @@ def set_up_variable_cube(
             Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
             'gl_det' or 'gl_ens'.
         grid_spacing (int or float):
-            Grid resolution (degrees or metres).
+            Grid resolution (degrees for latlon or metres for equalarea).
         domain_corner (list of int or float):
-            Bottom left corner of grid domain [y,x] (degrees or metres).
+            Bottom left corner of grid domain [y,x] (degrees for latlon or metres for equalarea).
     """
     # construct spatial dimension coordimates
     ypoints = data.shape[-2]
