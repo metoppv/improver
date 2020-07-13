@@ -323,7 +323,7 @@ def set_up_variable_cube(
             Grid resolution (degrees for latlon or metres for equalarea).
         domain_corner (Optional[List[int] or List[float]]):
             Bottom left corner of grid domain [y,x] (degrees for latlon or metres for equalarea).
-    
+
     Returns:
         iris.cube.Cube:
             Cube containing a single variable field
@@ -414,7 +414,7 @@ def set_up_percentile_cube(
             first dimension on the input data cube
         **kwargs:
             Additional keyword arguments passed to 'set_up_variable_cube' function
-    
+
     Returns:
         iris.cube.Cube:
             Cube containing percentiles
@@ -460,7 +460,7 @@ def set_up_probability_cube(
             required for IMPROVER probability cubes.
         **kwargs:
             Additional keyword arguments passed to 'set_up_variable_cube' function
-    
+
     Returns:
         iris.cube.Cube:
             Cube containing probabilities at thresholds
