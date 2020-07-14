@@ -49,11 +49,11 @@ from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import forecast_period_coord
 
 
-def construct_xy_coords(
+def construct_yx_coords(
     ypoints, xpoints, spatial_grid, grid_spacing=None, domain_corner=None
 ):
     """
-    Construct x/y spatial dimension coordinates
+    Construct y/x spatial dimension coordinates
 
     Args:
         ypoints (int):
@@ -83,7 +83,7 @@ def construct_xy_coords(
     else:
         if domain_corner is None:
             domain_corner = _set_domain_corner(ypoints, xpoints, grid_spacing)
-        y_array, x_array = _create_y_x_arrays(
+        y_array, x_array = _create_yx_arrays(
             ypoints, xpoints, domain_corner, grid_spacing
         )
 
@@ -103,7 +103,7 @@ def construct_xy_coords(
     return y_coord, x_coord
 
 
-def _create_y_x_arrays(ypoints, xpoints, domain_corner, grid_spacing):
+def _create_yx_arrays(ypoints, xpoints, domain_corner, grid_spacing):
     """
     Creates arrays for constructing y and x DimCoords.
 
@@ -182,7 +182,7 @@ def _default_grid(ypoints, xpoints, spatial_grid):
         domain_corner = [-100000, -400000]
         grid_spacing = np.around(1000000.0 / ypoints)
 
-        y_array, x_array = _create_y_x_arrays(
+        y_array, x_array = _create_yx_arrays(
             ypoints, xpoints, domain_corner, grid_spacing
         )
     return y_array, x_array
@@ -330,7 +330,7 @@ def set_up_variable_cube(
     # construct spatial dimension coordimates
     ypoints = data.shape[-2]
     xpoints = data.shape[-1]
-    y_coord, x_coord = construct_xy_coords(
+    y_coord, x_coord = construct_yx_coords(
         ypoints,
         xpoints,
         spatial_grid,

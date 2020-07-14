@@ -48,19 +48,19 @@ from improver.utilities.temporal import iris_time_to_datetime
 from .set_up_test_cubes import (
     add_coordinate,
     construct_scalar_time_coords,
-    construct_xy_coords,
+    construct_yx_coords,
     set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
 )
 
 
-class Test_construct_xy_coords(IrisTest):
-    """Test the construct_xy_coords method"""
+class Test_construct_yx_coords(IrisTest):
+    """Test the construct_yx_coords method"""
 
     def test_lat_lon(self):
         """Test coordinates created for a lat-lon grid"""
-        y_coord, x_coord = construct_xy_coords(4, 3, "latlon")
+        y_coord, x_coord = construct_yx_coords(4, 3, "latlon")
         self.assertEqual(y_coord.name(), "latitude")
         self.assertEqual(x_coord.name(), "longitude")
         for crd in [y_coord, x_coord]:
@@ -72,25 +72,25 @@ class Test_construct_xy_coords(IrisTest):
 
     def test_lat_lon_values(self):
         """Test latitude and longitude point values are as expected"""
-        y_coord, x_coord = construct_xy_coords(3, 3, "latlon")
+        y_coord, x_coord = construct_yx_coords(3, 3, "latlon")
         self.assertArrayAlmostEqual(x_coord.points, [-20.0, 0.0, 20.0])
         self.assertArrayAlmostEqual(y_coord.points, [40.0, 60.0, 80.0])
 
     def test_lat_lon_grid_spacing(self):
         """Test latitude and longitude point values created around 0,0 with
         provided grid spacing"""
-        y_coord, x_coord = construct_xy_coords(3, 3, "latlon", grid_spacing=1)
+        y_coord, x_coord = construct_yx_coords(3, 3, "latlon", grid_spacing=1)
         self.assertArrayEqual(x_coord.points, [-1.0, 0.0, 1.0])
         self.assertArrayEqual(y_coord.points, [-1.0, 0.0, 1.0])
 
-        y_coord, x_coord = construct_xy_coords(4, 4, "latlon", grid_spacing=1)
+        y_coord, x_coord = construct_yx_coords(4, 4, "latlon", grid_spacing=1)
         self.assertArrayEqual(x_coord.points, [-1.5, -0.5, 0.5, 1.5])
         self.assertArrayEqual(y_coord.points, [-1.5, -0.5, 0.5, 1.5])
 
     def test_lat_lon_grid_spacing_domain_corner(self):
         """Test latitude and longitude point values start at domain corner
         with provided grid spacing"""
-        y_coord, x_coord = construct_xy_coords(
+        y_coord, x_coord = construct_yx_coords(
             3, 3, "latlon", grid_spacing=2, domain_corner=(15, 12)
         )
         self.assertArrayEqual(x_coord.points, [12.0, 14.0, 16.0])
@@ -101,11 +101,11 @@ class Test_construct_xy_coords(IrisTest):
         not provided"""
         msg = "Grid spacing required to setup grid from domain corner."
         with self.assertRaisesRegex(ValueError, msg):
-            construct_xy_coords(3, 3, "latlon", domain_corner=(0, 0))
+            construct_yx_coords(3, 3, "latlon", domain_corner=(0, 0))
 
     def test_proj_xy(self):
         """Test coordinates created for an equal area grid"""
-        y_coord, x_coord = construct_xy_coords(4, 3, "equalarea")
+        y_coord, x_coord = construct_yx_coords(4, 3, "equalarea")
         self.assertEqual(y_coord.name(), "projection_y_coordinate")
         self.assertEqual(x_coord.name(), "projection_x_coordinate")
         for crd in [y_coord, x_coord]:
@@ -118,18 +118,18 @@ class Test_construct_xy_coords(IrisTest):
     def test_equal_area_grid_spacing(self):
         """Test projection_y_coordinate and projection_x_coordinate point values created around 0,0 with
         provided grid spacing"""
-        y_coord, x_coord = construct_xy_coords(3, 3, "equalarea", grid_spacing=1)
+        y_coord, x_coord = construct_yx_coords(3, 3, "equalarea", grid_spacing=1)
         self.assertArrayEqual(x_coord.points, [-1.0, 0.0, 1.0])
         self.assertArrayEqual(y_coord.points, [-1.0, 0.0, 1.0])
 
-        y_coord, x_coord = construct_xy_coords(4, 4, "equalarea", grid_spacing=1)
+        y_coord, x_coord = construct_yx_coords(4, 4, "equalarea", grid_spacing=1)
         self.assertArrayEqual(x_coord.points, [-1.5, -0.5, 0.5, 1.5])
         self.assertArrayEqual(y_coord.points, [-1.5, -0.5, 0.5, 1.5])
 
     def test_equal_area_grid_spacing_domain_corner(self):
         """Test projection_y_coordinate and projection_x_coordinate point values start at domain corner
         with provided grid spacing"""
-        y_coord, x_coord = construct_xy_coords(
+        y_coord, x_coord = construct_yx_coords(
             3, 3, "equalarea", grid_spacing=2, domain_corner=(15, 12)
         )
         self.assertArrayEqual(x_coord.points, [12.0, 14.0, 16.0])
@@ -140,14 +140,14 @@ class Test_construct_xy_coords(IrisTest):
         not provided"""
         msg = "Grid spacing required to setup grid from domain corner."
         with self.assertRaisesRegex(ValueError, msg):
-            construct_xy_coords(3, 3, "equalarea", domain_corner=(0, 0))
+            construct_yx_coords(3, 3, "equalarea", domain_corner=(0, 0))
 
     def test_unknown_spatial_grid(self):
         """Test error raised if spatial_grid unknown"""
         spatial_grid = "unknown"
         msg = "Grid type {} not recognised".format(spatial_grid)
         with self.assertRaisesRegex(ValueError, msg):
-            construct_xy_coords(3, 3, spatial_grid, domain_corner=(0, 0))
+            construct_yx_coords(3, 3, spatial_grid, domain_corner=(0, 0))
 
 
 class Test_construct_scalar_time_coords(IrisTest):
