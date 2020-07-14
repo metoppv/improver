@@ -46,3 +46,19 @@ STANDARD_GRID_CCRS = LambertAzimuthalEqualArea(
     false_northing=0.0,
     ellipsoid=ELLIPSOID,
 )
+
+# Metadata for different spatial grids
+GRID_COORD_ATTRIBUTES = {
+    "latlon": {
+        "xname": "longitude",
+        "yname": "latitude",
+        "units": "degrees",
+        "coord_system": GLOBAL_GRID_CCRS,
+    },
+    "equalarea": {
+        "xname": "projection_x_coordinate",
+        "yname": "projection_y_coordinate",
+        "units": "metres",
+        "coord_system": STANDARD_GRID_CCRS,
+    },
+}

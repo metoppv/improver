@@ -45,7 +45,7 @@ from improver.utilities.temporal import iris_time_to_datetime
 
 from ...set_up_test_cubes import (
     construct_scalar_time_coords,
-    construct_xy_coords,
+    construct_yx_coords,
     set_up_variable_cube,
 )
 
@@ -93,7 +93,7 @@ class Test_SpotLapseRateAdjust(IrisTest):
         diagnostic_cube_hash = create_coordinate_hash(self.lapse_rate_cube)
 
         # Set up neighbour and spot diagnostic cubes
-        y_coord, x_coord = construct_xy_coords(3, 3, "equalarea")
+        y_coord, x_coord = construct_yx_coords(3, 3, "equalarea")
         y_coord = y_coord.points
         x_coord = x_coord.points
 
