@@ -111,10 +111,11 @@ def _create_yx_arrays(ypoints, xpoints, domain_corner, grid_spacing):
         Tuple[numpy.ndarray, numpy.ndarray]:
             Tuple containing arrays of y and x coordinate values
     """
-    y_points_array = [domain_corner[0] + i * grid_spacing for i in range(ypoints)]
-    x_points_array = [domain_corner[1] + i * grid_spacing for i in range(xpoints)]
-    y_array = np.array(y_points_array, dtype=np.float32)
-    x_array = np.array(x_points_array, dtype=np.float32)
+    y_stop = domain_corner[0] + (grid_spacing * ypoints)
+    x_stop = domain_corner[1] + (grid_spacing * xpoints)
+
+    y_array = np.arange(domain_corner[0], y_stop, grid_spacing, dtype=np.float32)
+    x_array = np.arange(domain_corner[1], x_stop, grid_spacing, dtype=np.float32)
 
     return y_array, x_array
 
