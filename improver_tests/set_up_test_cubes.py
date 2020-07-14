@@ -62,9 +62,9 @@ def construct_yx_coords(
             Number of grid points required along the x-axis
         spatial_grid (str):
             Specifier to produce either a "latlon" or "equalarea" grid
-        grid_spacing (Optional[int or float]):
+        grid_spacing (Optional[float]):
             Grid resolution (degrees for latlon or metres for equalarea).
-        domain_corner (Optional[Tuple[int, int] or Tuple[float, float]]):
+        domain_corner (Optional[Tuple[float, float]]):
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea). If not
             provided, a grid is created centred around (0,0).
 
@@ -107,16 +107,6 @@ def _create_yx_arrays(ypoints, xpoints, domain_corner, grid_spacing):
     """
     Creates arrays for constructing y and x DimCoords.
 
-    Args:
-        ypoints (int):
-            Number of grid points required along the y-axis
-        xpoints (int):
-            Number of grid points required along the x-axis
-        domain_corner (Tuple[int, int] or Tuple[float, float]):
-            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea)
-        grid_spacing (int or float):
-            Grid resolution (degrees for latlon or metres for equalarea)
-
     Returns:
         Tuple[numpy.ndarray, numpy.ndarray]:
             Tuple containing arrays of y and x coordinate values
@@ -133,16 +123,8 @@ def _set_domain_corner(ypoints, xpoints, grid_spacing):
     """
     Set domain corner to create a grid around 0,0.
 
-    Args:
-        ypoints (int):
-            Number of grid points required along the y-axis
-        xpoints (int):
-            Number of grid points required along the x-axis
-        grid_spacing (int or float):
-            Grid resolution (degrees for latlon or metres for equalarea).
-
     Returns:
-        Tuple[int, int] or Tuple[float, float]:
+        Tuple[float, float]:
             (y,x) values of the bottom left corner of the domain
     """
     y_start = 0 - ((ypoints - 1) * grid_spacing) / 2
@@ -154,14 +136,6 @@ def _set_domain_corner(ypoints, xpoints, grid_spacing):
 def _default_grid(ypoints, xpoints, spatial_grid):
     """
     Create default grid.
-
-    Args:
-        ypoints (int):
-            Number of grid points required along the y-axis
-        xpoints (int):
-            Number of grid points required along the x-axis
-        spatial_grid (str):
-            Specifier to produce either a "latlon" or "equalarea" grid
 
     Returns:
         Tuple[numpy.ndarray, numpy.ndarray]:
@@ -192,9 +166,6 @@ def _create_time_point(time):
     """Returns a coordinate point with appropriate units and datatype
     from a datetime.datetime instance.
 
-    Args:
-        time (datetime.datetime)
-
     Returns:
         Any:
             Returns coordinate point as datatype specified in TIME_COORDS["time"]
@@ -211,7 +182,7 @@ def construct_scalar_time_coords(time, time_bounds, frt):
     Args:
         time (datetime.datetime):
             Single time point
-        time_bounds (Tuple[datetime.datetime, datetime.datetime] or List[datetime.datetime] or None):
+        time_bounds (Sequence[datetime.datetime] or None):
             Lower and upper bound on time point, if required
         frt (datetime.datetime):
             Single forecast reference time point
@@ -303,7 +274,7 @@ def set_up_variable_cube(
             "latlon" or "equalarea".
         time (Optional[datetime.datetime]):
             Single cube validity time
-        time_bounds (Optional[Tuple[datetime.datetime, datetime.datetime] or List[datetime.datetime]]):
+        time_bounds (Optional[Sequence[datetime.datetime]]):
             Lower and upper bound on time point, if required
         frt (Optional[datetime.datetime]):
             Single cube forecast reference time
@@ -318,9 +289,9 @@ def set_up_variable_cube(
             Recognised mosg__model_configuration for which to set up Met
             Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
             'gl_det' or 'gl_ens'.
-        grid_spacing (Optional[int or float]):
+        grid_spacing (Optional[float]):
             Grid resolution (degrees for latlon or metres for equalarea).
-        domain_corner (Optional[Tuple[int, int] or Tuple[float, float]]):
+        domain_corner (Optional[Tuple[float, float]]):
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
 
     Returns:
@@ -408,7 +379,7 @@ def set_up_percentile_cube(
     Args:
         data (numpy.ndarray):
             3D (percentile-y-x ordered) array of data to put into the cube
-        percentiles (List[int] or List[float] or numpy.ndarray):
+        percentiles (List[float] or numpy.ndarray):
             List of int / float percentile values whose length must match the
             first dimension on the input data cube
         **kwargs:
@@ -446,7 +417,7 @@ def set_up_probability_cube(
     Args:
         data (numpy.ndarray):
             3D (threshold-y-x ordered) array of data to put into the cube
-        thresholds (List[int] or List[float] or numpy.ndarray):
+        thresholds (List[float] or numpy.ndarray):
             List of int / float threshold values whose length must match the
             first dimension on the input data cube
         variable_name (Optional[str]):
