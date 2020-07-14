@@ -47,6 +47,7 @@ below:
 * Aaron Hopkinson (Met Office, UK)
 * Kathryn Howard (Met Office, UK)
 * Tim Hume (Bureau of Meteorology, Australia)
+* Katharine Hurst (Met Office, UK) 
 * Simon Jackson (Met Office, UK)
 * Caroline Jones (Met Office, UK)
 * Bruno P. Kinoshita (NIWA, NZ)
