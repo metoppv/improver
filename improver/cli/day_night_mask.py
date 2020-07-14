@@ -38,7 +38,7 @@ from improver import cli
 @cli.with_output
 def process(day_night_mask: cli.inputcube):
     """Generates a daynight mask for the provided cube.
-       
+
         Create blank daynight mask cube
 
         Args:

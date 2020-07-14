@@ -39,7 +39,6 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-#@pytest.mark.slow
 def test_basic_uk(tmp_path):
     """Test UK day night mask operation"""
     kgo_dir = acc.kgo_root() / "day_night_mask/uk_basic"
