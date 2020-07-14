@@ -86,8 +86,8 @@ def test_global(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     params = [
         "rainfall_rate_above",
-        "snowfall_rate_above",
-        "visibility_at_screen_level_below",
+        "lwe_snowfall_rate_above",
+        "visibility_in_air_below",
         "cloud_area_fraction_above",
         "low_type_cloud_area_fraction_above",
         "lwe_precipitation_rate_above",
