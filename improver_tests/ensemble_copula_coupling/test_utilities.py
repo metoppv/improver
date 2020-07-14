@@ -330,51 +330,42 @@ class Test_restore_non_percentile_dimensions(IrisTest):
     """Test the restore_non_percentile_dimensions."""
 
     def setUp(self):
-        """Set up temperature cube."""
-        self.cube = set_up_percentile_cube(
-            np.sort(ECC_TEMPERATURE_REALIZATIONS, axis=0),
-            np.array([10, 50, 90], dtype=np.float32),
-        )
+        """Set up template cube and temperature data."""
+        self.cube = set_up_variable_cube(282 * np.ones((3, 3), dtype=np.float32))
         # function is designed to reshape an input data array with dimensions of
         # "percentiles x points" - generate suitable input data
-        points_data = [self.cube.data[i].flatten() for i in range(3)]
+        self.expected_data = np.sort(ECC_TEMPERATURE_REALIZATIONS, axis=0)
+        points_data = [self.expected_data[i].flatten() for i in range(3)]
         self.input_data = np.array(points_data)
 
-    def test_percentile_is_dimension_coordinate(self):
+    def test_multiple_percentiles(self):
         """
         Test the result is an array with the expected shape and contents.
         """
-        plen = len(self.cube.coord("percentile").points)
         reshaped_array = restore_non_percentile_dimensions(
-            self.input_data, next(self.cube.slices_over("percentile")), plen
+            self.input_data, self.cube, 3
         )
         self.assertIsInstance(reshaped_array, np.ndarray)
-        self.assertEqual(reshaped_array.shape, self.cube.data.shape)
-        self.assertArrayAlmostEqual(reshaped_array, self.cube.data)
+        self.assertArrayAlmostEqual(reshaped_array, self.expected_data)
 
-    def test_percentile_is_not_dimension_coordinate(self):
+    def test_single_percentile(self):
         """
-        Test the array size and contents if the percentile coordinate is not a
-        dimension coordinate on the input cube.
+        Test the array size and contents if the percentile coordinate is scalar.
         """
         expected = np.array(
             [[226.15, 237.4, 248.65], [259.9, 271.15, 282.4], [293.65, 304.9, 316.15]],
             dtype=np.float32,
         )
-
-        cube_slice = next(self.cube.slices_over("percentile"))
         reshaped_array = restore_non_percentile_dimensions(
-            cube_slice.data.flatten(), cube_slice, 1
+            self.input_data[0], self.cube, 1
         )
-        self.assertEqual(reshaped_array.shape, (3, 3))
         self.assertArrayAlmostEqual(reshaped_array, expected)
 
-    def test_percentile_is_dimension_coordinate_multiple_timesteps(self):
+    def test_multiple_timesteps(self):
         """
-        Test that the data has been reshaped correctly when the percentile coordinate
-        is a dimension of an input cube with multiple timesteps.  The array contents
-        are also checked.  The output cube has only a single percentile, which is
-        therefore demoted to a scalar coordinate.
+        Test that the data has been reshaped correctly when there are multiple timesteps.
+        The array contents are also checked.  The output cube has only a single percentile,
+        which is therefore demoted to a scalar coordinate.
         """
         expected = np.array(
             [

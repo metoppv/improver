@@ -64,7 +64,7 @@ def concatenate_2d_array_with_2d_array_endpoints(array_2d, low_endpoint, high_en
             high_endpoint.
     """
     if array_2d.ndim != 2:
-        raise ValueError("Expected 2D input, got {}".format(array_2d.ndim))
+        raise ValueError("Expected 2D input, got {}D input".format(array_2d.ndim))
     lower_array = np.full((array_2d.shape[0], 1), low_endpoint, dtype=array_2d.dtype)
     upper_array = np.full((array_2d.shape[0], 1), high_endpoint, dtype=array_2d.dtype)
     array_2d = np.concatenate((lower_array, array_2d, upper_array), axis=1)
@@ -238,7 +238,7 @@ def insert_lower_and_upper_endpoint_to_1d_array(array_1d, low_endpoint, high_end
             1d array of values padded with the low_endpoint and high_endpoint.
     """
     if array_1d.ndim != 1:
-        raise ValueError("Expected 1D input, got {}".format(array_1d.ndim))
+        raise ValueError("Expected 1D input, got {}D input".format(array_1d.ndim))
     lower_array = np.array([low_endpoint])
     upper_array = np.array([high_endpoint])
     array_1d = np.concatenate((lower_array, array_1d, upper_array))
