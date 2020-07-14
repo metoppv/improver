@@ -158,6 +158,20 @@ function improver_test_unit {
     echo_ok "Unit tests"
 }
 
+function improver_test_recreate_checksums {
+    # Recreate checksums for acceptance test data.
+    LC_FORMER=${LC_ALL:-}
+    export LC_ALL=C
+    pushd $IMPROVER_ACC_TEST_DIR > /dev/null
+    find . -not -path '*/\.*' \( -type f -o -type l \) -print0 | \
+    sort -zu | xargs -0 sha256sum > $CLISUBTEST/acceptance/SHA256SUMS
+    popd > /dev/null
+    export LC_ALL=$LC_FORMER
+
+    echo_ok "Checksums recreated"
+}
+
+
 function improver_test_cli {
     # CLI testing.
 
@@ -170,7 +184,13 @@ function improver_test_cli {
     if [[ -n $DEBUG_OPT ]]; then
         VERBOSE_OPT='-v'
     fi
-    pytest -m acc ${VERBOSE_OPT:-}
+
+    if [[ ! ${IMPROVER_IGNORE_CHECKSUMS:-} = "true" ]]; then
+      pytest $CLISUBTEST/acceptance/test_checksums.py
+      echo_ok "Acceptance test data checksums validated"
+    fi
+
+    pytest -m acc -m "not checksum" ${VERBOSE_OPT:-}
 
     echo_ok "CLI tests"
 }
@@ -189,8 +209,12 @@ Optional arguments:
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
                     Valid names are: black, isort, pylint, pylintE, licence,
-                    doc, unit, cli. black, isort, pylintE, licence, doc, unit,
-                    and cli are the default tests.
+                    doc, unit, cli, and recreate_checksums. The default tests
+                    are black, isort, pylintE, licence, doc, unit,
+                    and cli.
+                    Using recreate_checksums will regenerate the
+                    test data checksum file which is used as part of the cli
+                    tests.
 __USAGE__
 }
 
@@ -231,7 +255,7 @@ for arg in "$@"; do
         print_usage
         exit 0
         ;;
-        black|isort|pylint|pylintE|licence|doc|unit|cli)
+        black|isort|pylint|pylintE|licence|doc|unit|cli|recreate_checksums)
         SUBTESTS="$SUBTESTS $arg"
         ;;
         $cli_tasks)

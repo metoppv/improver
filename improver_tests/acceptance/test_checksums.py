@@ -40,6 +40,7 @@ from . import acceptance as acc
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 
 
+@pytest.mark.checksum
 def test_kgo_checksums():
     """Bulk check of all KGO checksums independent of other tests"""
     kgo_root = acc.kgo_root()
@@ -58,33 +59,4 @@ def test_kgo_checksums():
         for path in data_paths:
             acc.verify_checksum(path)
     except Exception as e:
-        if acc.kgo_recreate():
-            recreate_checksum_file(data_paths)
         raise e
-
-
-def recreate_checksum_file(kgo_paths, checksum_path=None):
-    """
-    Recreate the KGO checksum file.
-    The checksum file is in plain text format as produced by the sha256sum
-    tool, with paths relative to the KGO root directory.
-
-    Args:
-        kgo_paths (Sequence[pathlib.Path]): Absolute path to each KGO data
-            file to include in the checksum file. Paths should be inside
-            the KGO root directory.
-        checksum_path (Optional[pathlib.Path]): Path to checksum file.
-            Default is provided by DEFAULT_CHECKSUM_FILE constant.
-    """
-    if checksum_path is None:
-        checksum_path = acc.DEFAULT_CHECKSUM_FILE
-    kgo_root = acc.kgo_root()
-    new_checksum_lines = []
-    for path in sorted(kgo_paths):
-        checksum = acc.calculate_checksum(path)
-        rel_path = path.relative_to(kgo_root)
-        new_checksum_lines.append(f"{checksum}  ./{rel_path}\n")
-    with open(checksum_path, mode="w") as checksum_file:
-        checksum_file.writelines(new_checksum_lines)
-    print(f"Checksum file {checksum_path} recreated")
-    print("This test and any others with checksum failures should now pass when re-run")
