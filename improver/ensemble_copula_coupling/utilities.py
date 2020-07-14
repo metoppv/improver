@@ -63,6 +63,8 @@ def concatenate_2d_array_with_2d_array_endpoints(array_2d, low_endpoint, high_en
             2d array of values after padding with the low_endpoint and
             high_endpoint.
     """
+    if array_2d.ndim != 2:
+        raise ValueError("Expected 2D input, got {}D input".format(array_2d.ndim))
     lower_array = np.full((array_2d.shape[0], 1), low_endpoint, dtype=array_2d.dtype)
     upper_array = np.full((array_2d.shape[0], 1), high_endpoint, dtype=array_2d.dtype)
     array_2d = np.concatenate((lower_array, array_2d, upper_array), axis=1)
@@ -121,7 +123,7 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
         )
         percentiles = sorted(list(percentiles))
     else:
-        msg = "The {} sampling option is not yet implemented.".format(sampling)
+        msg = "Unrecognised sampling option '{}'".format(sampling)
         raise ValueError(msg)
     return [item * 100 for item in percentiles]
 
@@ -138,9 +140,7 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data, cube_uni
             Ensemble percentiles. There should be the same number of
             percentiles as the first dimension of cube_data.
         template_cube (iris.cube.Cube):
-            Cube to copy all coordinates from.
-            The template_cube does not contain any existing percentile
-            coordinate. Metadata is also copied from this cube.
+            Cube to copy metadata from.
         cube_data (numpy.ndarray):
             Data to insert into the template cube.
             The shape of the cube_data, excluding the dimension associated with
@@ -149,14 +149,13 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data, cube_uni
             For example, template_cube shape is (3, 3, 3), whilst the cube_data
             is (10, 3, 3, 3), where there are 10 percentiles.
         cube_unit (cf_units.Unit):
-            The units of the data within the cube
+            The units of the data within the cube, if different from those of
+            the template_cube.
 
     Returns:
         iris.cube.Cube:
-            Cube containing a percentile coordinate as the zeroth dimension
-            coordinate in addition to the coordinates and metadata from the
-            template cube.
-
+            Cube containing a percentile coordinate as the leading dimension (or
+            scalar percentile coordinate if single-valued)
     """
     # create cube with new percentile dimension
     cubes = iris.cube.CubeList([])
@@ -169,10 +168,6 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data, cube_uni
         )
         cubes.append(cube)
     result = cubes.merge_cube()
-
-    # if percentile is single-valued, promote new coordinate to dimension
-    if len(percentiles) == 1:
-        result = iris.util.new_axis(result, result.coord("percentile"))
 
     # replace data and units
     result.data = cube_data
@@ -242,6 +237,8 @@ def insert_lower_and_upper_endpoint_to_1d_array(array_1d, low_endpoint, high_end
         numpy.ndarray:
             1d array of values padded with the low_endpoint and high_endpoint.
     """
+    if array_1d.ndim != 1:
+        raise ValueError("Expected 1D input, got {}D input".format(array_1d.ndim))
     lower_array = np.array([low_endpoint])
     upper_array = np.array([high_endpoint])
     array_1d = np.concatenate((lower_array, array_1d, upper_array))
@@ -250,11 +247,8 @@ def insert_lower_and_upper_endpoint_to_1d_array(array_1d, low_endpoint, high_end
     return array_1d
 
 
-def restore_non_probabilistic_dimensions(
-    array_to_reshape,
-    original_cube,
-    input_probabilistic_dimension_name,
-    output_probabilistic_dimension_length,
+def restore_non_percentile_dimensions(
+    array_to_reshape, original_cube, n_percentiles,
 ):
     """
     Reshape a 2d array, so that it has the dimensions of the original cube,
@@ -262,17 +256,15 @@ def restore_non_probabilistic_dimensions(
 
     Args:
         array_to_reshape (numpy.ndarray):
-            The array that requires reshaping.
+            The array that requires reshaping.  This has dimensions "percentiles"
+            by "points", where "points" is a flattened array of all the other
+            original dimensions that needs reshaping.
         original_cube (iris.cube.Cube):
-            Cube containing the desired shape to be reshaped to, apart from the
-            probabilistic dimension, for example,
-            [probabilistic_dimension, time, y, x].
-        input_probabilistic_dimension_name (str):
-            Name of the dimension within the original cube, which represents
-            the probabilistic dimension.
-        output_probabilistic_dimension_length (int):
-            Length of the probabilistic dimension, which will be used to create
-            the shape to which the array_to_reshape will be reshaped to.
+            Cube slice containing the desired shape to be reshaped to, apart from
+            the probabilistic dimension.  This would typically be expected to be
+            either [time, y, x] or [y, x].
+        n_percentiles (int):
+            Length of the required probabilistic dimension ("percentiles").
 
     Returns:
         numpy.ndarray:
@@ -285,26 +277,6 @@ def restore_non_probabilistic_dimensions(
             not a coordinate on the original_cube.
     """
     shape_to_reshape_to = list(original_cube.shape)
-    if original_cube.coords(input_probabilistic_dimension_name, dim_coords=True):
-        if original_cube.coord_dims(input_probabilistic_dimension_name)[0] == 0:
-            pat_coord_position = original_cube.coord_dims(
-                input_probabilistic_dimension_name
-            )
-            shape_to_reshape_to.pop(pat_coord_position[0])
-        else:
-            msg = (
-                "The {} coordinate is a dimension coordinate but is not "
-                "the first dimension coordinate in the cube: {}.\n"
-                "The enforce_coordinate_ordering function may be "
-                "useful. ".format(input_probabilistic_dimension_name, original_cube)
-            )
-            raise ValueError(msg)
-    elif original_cube.coords(input_probabilistic_dimension_name, dim_coords=False):
-        pass
-    else:
-        msg = "A {} coordinate is not available on the {} cube.".format(
-            input_probabilistic_dimension_name, original_cube
-        )
-        raise CoordinateNotFoundError(msg)
-    shape_to_reshape_to = [output_probabilistic_dimension_length] + shape_to_reshape_to
+    if n_percentiles > 1:
+        shape_to_reshape_to = [n_percentiles] + shape_to_reshape_to
     return array_to_reshape.reshape(shape_to_reshape_to)
