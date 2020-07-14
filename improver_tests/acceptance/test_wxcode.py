@@ -90,6 +90,7 @@ def test_global(tmp_path):
         "visibility_at_screen_level_below",
         "cloud_area_fraction_above",
         "low_type_cloud_area_fraction_above",
+        "lwe_precipitation_rate_above",
     ]
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc" for p in params]
     output_path = tmp_path / "output.nc"

@@ -75,15 +75,14 @@ def wxcode_decision_tree_global():
         "heavy_precipitation": {
             "succeed": "heavy_precipitation_cloud",
             "fail": "light_precipitation",
-            "probability_thresholds": [0.5, 0.5],
+            "probability_thresholds": [0.5],
             "threshold_condition": ">=",
-            "condition_combination": "OR",
+            "condition_combination": "",
             "diagnostic_fields": [
-                "probability_of_rainfall_rate_above_threshold",
-                "probability_of_lwe_snowfall_rate_above_threshold",
+                "probability_of_lwe_precipitation_rate_above_threshold"
             ],
-            "diagnostic_thresholds": [(1.0, "mm hr-1"), (1.0, "mm hr-1")],
-            "diagnostic_conditions": ["above", "above"],
+            "diagnostic_thresholds": [(1.0, "mm hr-1")],
+            "diagnostic_conditions": ["above"],
         },
         "heavy_precipitation_cloud": {
             "succeed": "heavy_sleet_continuous",
@@ -182,15 +181,14 @@ def wxcode_decision_tree_global():
         "light_precipitation": {
             "succeed": "light_precipitation_cloud",
             "fail": "drizzle_mist",
-            "probability_thresholds": [0.5, 0.5],
+            "probability_thresholds": [0.5],
             "threshold_condition": ">=",
-            "condition_combination": "OR",
+            "condition_combination": "",
             "diagnostic_fields": [
-                "probability_of_rainfall_rate_above_threshold",
-                "probability_of_lwe_snowfall_rate_above_threshold",
+                "probability_of_lwe_precipitation_rate_above_threshold"
             ],
-            "diagnostic_thresholds": [(0.1, "mm hr-1"), (0.1, "mm hr-1")],
-            "diagnostic_conditions": ["above", "above"],
+            "diagnostic_thresholds": [(0.1, "mm hr-1")],
+            "diagnostic_conditions": ["above"],
         },
         "light_precipitation_cloud": {
             "succeed": "light_sleet_continuous",

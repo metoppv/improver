@@ -199,7 +199,7 @@ class Test_WXCode(IrisTest):
         self.uk_no_lightning = [name for name in names if "lightning" not in name]
         self.gbl = [
             name
-            for name in self.uk_no_lightning[:-1]
+            for name in self.uk_no_lightning
             if "vicinity" not in name and "sleet" not in name
         ]
 
@@ -921,12 +921,14 @@ class Test_process(Test_WXCode):
         )
         data_cld_low = np.zeros((1, 3, 3), dtype=np.float32)
         data_vis = np.zeros((2, 3, 3), dtype=np.float32)
+        data_precip = np.max(np.array([data_snow, data_rain]), axis=0)
         cubes = self.cubes.extract(self.gbl)
         cubes[0].data = data_snow
         cubes[1].data = data_rain
         cubes[2].data = data_cloud
         cubes[3].data = data_cld_low
         cubes[4].data = data_vis
+        cubes[5].data = data_precip
         result = plugin.process(cubes)
         self.assertArrayEqual(result.data, self.expected_wxcode_alternate)
 
