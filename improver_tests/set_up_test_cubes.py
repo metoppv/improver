@@ -41,7 +41,6 @@ import numpy as np
 from cf_units import Unit, date2num
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
-from sigtools.wrappers import decorator
 
 from improver.grids import GRID_COORD_ATTRIBUTES
 from improver.metadata.check_datatypes import check_mandatory_standards
