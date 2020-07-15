@@ -32,6 +32,8 @@
 """Script to generate a daynight mask from UV index map over UK."""
 
 from improver import cli
+import numpy as np
+import numpy.ma as ma
 
 
 @cli.clizefy
@@ -55,5 +57,8 @@ def process(day_night_mask: cli.inputcube):
     """
     from improver.utilities.solar import DayNightMask
 
-    result = DayNightMask()(day_night_mask)
-    return result
+    mask = DayNightMask()(day_night_mask).data
+    # masking night values from the data.
+    mask = np.broadcast_to(mask, day_night_mask.shape)
+    day_night_mask.data = ma.masked_where(mask < 1, day_night_mask.data)
+    return day_night_mask
