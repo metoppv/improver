@@ -73,8 +73,8 @@ class Test_construct_yx_coords(IrisTest):
     def test_lat_lon_values(self):
         """Test latitude and longitude point values are as expected"""
         y_coord, x_coord = construct_yx_coords(3, 3, "latlon")
-        self.assertArrayAlmostEqual(x_coord.points, [-20.0, 0.0, 20.0])
-        self.assertArrayAlmostEqual(y_coord.points, [40.0, 60.0, 80.0])
+        self.assertArrayAlmostEqual(x_coord.points, [-2.0, 0.0, 2.0])
+        self.assertArrayAlmostEqual(y_coord.points, [-2.0, 0.0, 2.0])
 
     def test_lat_lon_grid_spacing(self):
         """Test latitude and longitude point values created around 0,0 with
