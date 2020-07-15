@@ -65,6 +65,15 @@ class Test_RecursiveFilter(IrisTest):
 
     """Test class for the RecursiveFilter tests, setting up cubes."""
 
+    def _mean_points(self, points):
+        """Create an array of the mean of adjacent points in original array"""
+        mean_points = []
+        for i in range(0, len(points) - 1):
+            point = (points[i] + points[i + 1]) / 2
+            mean_points.append(point)
+
+        return np.array(mean_points, dtype=np.float32)
+
     def setUp(self):
         """Create test cubes."""
 
@@ -87,18 +96,21 @@ class Test_RecursiveFilter(IrisTest):
             data, name="precipitation_amount", units="kg m^-2 s^-1"
         )
 
-        mean_x_points = np.array([-15.0, -5.0, 5.0, 15.0], dtype=np.float32)
-        mean_y_points = np.array([45.0, 55.0, 65.0, 75.0], dtype=np.float32)
-
         # Generate x smoothing_coefficients_cube with correct dimensions 5 x 4
         self.smoothing_coefficients_cube_x = set_up_variable_cube(
             np.full((5, 4), 0.5, dtype=np.float32), name="smoothing_coefficient_x"
+        )
+        mean_x_points = self._mean_points(
+            self.smoothing_coefficients_cube_x.coord(axis="y").points
         )
         self.smoothing_coefficients_cube_x.coord(axis="x").points = mean_x_points
 
         # Generate y smoothing_coefficients_cube with correct dimensions 5 x 4
         self.smoothing_coefficients_cube_y = set_up_variable_cube(
             np.full((4, 5), 0.5, dtype=np.float32), name="smoothing_coefficient_y"
+        )
+        mean_y_points = self._mean_points(
+            self.smoothing_coefficients_cube_y.coord(axis="x").points
         )
         self.smoothing_coefficients_cube_y.coord(axis="y").points = mean_y_points
 
