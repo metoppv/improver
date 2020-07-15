@@ -31,9 +31,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to generate a daynight mask from UV index map over UK."""
 
-from improver import cli
 import numpy as np
 import numpy.ma as ma
+
+from improver import cli
 
 
 @cli.clizefy
