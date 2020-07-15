@@ -41,6 +41,7 @@ import numpy as np
 from cf_units import Unit, date2num
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
+from sigtools.wrappers import decorator
 
 from improver.grids import GRID_COORD_ATTRIBUTES
 from improver.metadata.check_datatypes import check_mandatory_standards
@@ -49,6 +50,51 @@ from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import forecast_period_coord
 
 
+@decorator
+def default_grid_wrapper(wrapped, *args, **kwargs):
+    """
+    Create default domain_corner and grid_spacing values to pass to wrapped function.
+
+    Returns:
+        Result of calling wrapped.
+    """
+    if ("domain_corner" not in kwargs and "grid_spacing" not in kwargs) or (
+        "domain_corner" in kwargs
+        and "grid_spacing" in kwargs
+        and kwargs["domain_corner"] is None
+        and kwargs["grid_spacing"] is None
+    ):
+        if len(args) > 0:
+            ypoints = args[0]
+            xpoints = args[1]
+            spatial_grid = args[2]
+        elif "data" in kwargs:
+            ypoints = kwargs["ypoints"]
+            xpoints = kwargs["xpoints"]
+            spatial_grid = kwargs["spatial_grid"]
+
+        # Use default grid settings to set domain_corner and grid_spacing
+        if "spatial_grid" is None or spatial_grid == "latlon":
+            coord_bnds = {"x": [-20, 20], "y": [40, 80]}
+            domain_corner = (40, -20)
+            if ypoints > 1:
+                grid_spacing = np.around(40 / (ypoints - 1))
+            else:
+                grid_spacing = 40
+            kwargs["domain_corner"] = domain_corner
+            kwargs["grid_spacing"] = grid_spacing
+        if spatial_grid == "equalarea":
+            # use UK eastings and northings on standard grid
+            # round grid spacing to nearest integer to avoid precision issues
+            domain_corner = [-100000, -400000]
+            grid_spacing = np.around(1000000.0 / ypoints)
+            kwargs["domain_corner"] = domain_corner
+            kwargs["grid_spacing"] = grid_spacing
+
+    return wrapped(*args, **kwargs)
+
+
+@default_grid_wrapper
 def construct_yx_coords(
     ypoints, xpoints, spatial_grid, grid_spacing=None, domain_corner=None
 ):
@@ -76,16 +122,11 @@ def construct_yx_coords(
         raise ValueError("Grid type {} not recognised".format(spatial_grid))
 
     if grid_spacing is None:
-        if domain_corner is None:
-            y_array, x_array = _default_grid(ypoints, xpoints, spatial_grid)
-        else:
-            raise ValueError("Grid spacing required to setup grid from domain corner.")
-    else:
-        if domain_corner is None:
-            domain_corner = _set_domain_corner(ypoints, xpoints, grid_spacing)
-        y_array, x_array = _create_yx_arrays(
-            ypoints, xpoints, domain_corner, grid_spacing
-        )
+        raise ValueError("Grid spacing required to setup grid from domain corner.")
+
+    if domain_corner is None:
+        domain_corner = _set_domain_corner(ypoints, xpoints, grid_spacing)
+    y_array, x_array = _create_yx_arrays(ypoints, xpoints, domain_corner, grid_spacing)
 
     y_coord = DimCoord(
         y_array,
