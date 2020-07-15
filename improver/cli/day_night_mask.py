@@ -29,37 +29,34 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to generate a daynight mask from UV index map over UK."""
-
-import numpy as np
-import numpy.ma as ma
+"""Script to mask night values within the input cube."""
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(day_night_mask: cli.inputcube):
-    """Generates a daynight mask for the provided cube.
+def process(cube: cli.inputcube):
 
-        Create blank daynight mask cube
+    """Masks night values from input cube to generate day only output.
+       Mask is broadcast to the shape of the input cube.
+       
+       Args:
+           cube (iris.cube.Cube):
+               Cube to be masked.
 
-        Args:
-            cube (iris.cube.Cube):
-                cube with the times and coordinates required for mask
-
-        Returns:
-            iris.cube.Cube:
-                Blank daynight mask cube. The resulting cube will be the
-                same shape as the time, y, and x coordinate, other coordinates
-                will be ignored although they might appear as attributes
-                on the cube as it is extracted from the first slice.
+       Returns:
+           iris.cube.Cube:
+	       Input cube with all night values masked out.
 
     """
-    from improver.utilities.solar import DayNightMask
 
-    mask = DayNightMask()(day_night_mask).data
+    from improver.utilities.solar import DayNightMask
+    import numpy as np
+    import numpy.ma as ma
+
+    mask = DayNightMask()(cube).data
     # masking night values from the data.
-    mask = np.broadcast_to(mask, day_night_mask.shape)
-    day_night_mask.data = ma.masked_where(mask < 1, day_night_mask.data)
-    return day_night_mask
+    mask = np.broadcast_to(mask, cube.shape)
+    cube.data = ma.masked_where(mask == DayNightMask().night, cube.data)
+    return cube
