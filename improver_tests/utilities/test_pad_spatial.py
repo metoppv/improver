@@ -154,7 +154,7 @@ class Test_create_cube_with_halo(IrisTest):
 
     def test_basic(self):
         """Test function returns a cube with expected metadata"""
-        halo_size_km = 162.0
+        halo_size_km = 2.0
         result = create_cube_with_halo(self.cube, 1000.0 * halo_size_km)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "grid_with_halo")
@@ -163,7 +163,7 @@ class Test_create_cube_with_halo(IrisTest):
     def test_values(self):
         """Test coordinate values with standard halo radius (rounds down to 1
         grid cell)"""
-        halo_size_km = 162.0
+        halo_size_km = 2.0
 
         x_min = self.cube.coord(axis="x").points[0] - self.grid_spacing
         x_max = self.cube.coord(axis="x").points[-1] + self.grid_spacing
@@ -496,7 +496,7 @@ class Test_remove_cube_halo(IrisTest):
 
     def test_basic(self):
         """Test function returns a cube with expected attributes and shape"""
-        halo_size_km = 162.0
+        halo_size_km = 2.0
         result = remove_cube_halo(self.cube, 1000.0 * halo_size_km)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.attributes["history"], self.attrs["history"])
@@ -506,7 +506,7 @@ class Test_remove_cube_halo(IrisTest):
 
     def test_values(self):
         """Test function returns a cube with expected shape and data"""
-        halo_size_km = 162.0
+        halo_size_km = 2.0
         self.cube_1d.data[0, 2, :] = np.arange(0, 11)
         self.cube_1d.data[0, :, 2] = np.arange(0, 11)
         result = remove_cube_halo(self.cube_1d, 1000.0 * halo_size_km)
