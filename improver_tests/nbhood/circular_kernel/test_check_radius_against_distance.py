@@ -59,7 +59,7 @@ class Test_check_radius_against_distance(IrisTest):
     def test_passes(self):
         """Test no exception raised when the distance is smaller than the
         corner-to-corner distance of the domain."""
-        distance = 6100
+        distance = 4000
         check_radius_against_distance(self.cube, distance)
 
 
