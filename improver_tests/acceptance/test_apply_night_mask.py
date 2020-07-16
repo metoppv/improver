@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the day-night-mask CLI"""
+"""Tests for the apply-night-mask CLI"""
 
 import pytest
 
@@ -40,8 +40,8 @@ run_cli = acc.run_cli(CLI)
 
 
 def test_basic_uk(tmp_path):
-    """Test UK day night mask operation"""
-    kgo_dir = acc.kgo_root() / "day_night_mask/uk_basic"
+    """Test UK day night mask operation (single scalar realization)"""
+    kgo_dir = acc.kgo_root() / "apply-night-mask/uk_basic"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [kgo_dir / "input.nc", "--output", output_path]
@@ -50,8 +50,8 @@ def test_basic_uk(tmp_path):
 
 
 def test_basic_global(tmp_path):
-    """Test global day night mask operation"""
-    kgo_dir = acc.kgo_root() / "day_night_mask/global_basic"
+    """Test global day night mask operation (multiple realizations)"""
+    kgo_dir = acc.kgo_root() / "apply-night-mask/global_basic"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [kgo_dir / "input.nc", "--output", output_path]

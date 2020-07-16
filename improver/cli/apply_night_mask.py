@@ -37,26 +37,26 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube):
-
     """Masks night values from input cube to generate day only output.
-       Mask is broadcast to the shape of the input cube.
-       
-       Args:
-           cube (iris.cube.Cube):
-               Cube to be masked.
 
-       Returns:
-           iris.cube.Cube:
-	       Input cube with all night values masked out.
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be masked.
+
+    Returns:
+        iris.cube.Cube:
+	    Input cube with all night values masked out.
 
     """
 
-    from improver.utilities.solar import DayNightMask
     import numpy as np
     import numpy.ma as ma
 
+    from improver.utilities.solar import DayNightMask
+
     mask = DayNightMask()(cube).data
-    # masking night values from the data.
+    # Broadcast mask to shape of input cube to account for additional dimensions.
     mask = np.broadcast_to(mask, cube.shape)
+    # masking night values from the data.
     cube.data = ma.masked_where(mask == DayNightMask().night, cube.data)
     return cube

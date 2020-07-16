@@ -28,6 +28,10 @@ b4b7b5810cd993538d771f1fee7578568481dfc6b3203aed6eb73f3e58c42079  ./apply-lapse-
 62830b46a0d7e958ea7322df73b33b2ba29084f6cd48d37be080316833f22290  ./apply-lapse-rate/realizations/enukx_orography.nc
 4f1a335894cb8a79425144fa3ca200449794046102fb8bf4316734fd0458e736  ./apply-lapse-rate/realizations/enukx_temperature.nc
 6fabae563cd4b8b8c30aa8cac63daf9ac3bcf899f6c8326bbf97c90364e5abbf  ./apply-lapse-rate/realizations/kgo.nc
+abb612a42deaaee46ad5574fe0da845a4e367ecba42b9cf3bb80b6c0a308a398  ./apply-night-mask/global_basic/input.nc
+7aa7a963c38c0f608ee3e1e07f837b577a54bd672799bea9802b29253baf32bc  ./apply-night-mask/global_basic/kgo.nc
+dbcf3d3c6e348919740992e1ee221ab9149a6f38c331b6d7a85f1315352068f9  ./apply-night-mask/uk_basic/input.nc
+394e6bec41c089c08ceb8b8960eb0fa9267251fa057d7e32726cbacc290b8c49  ./apply-night-mask/uk_basic/kgo.nc
 d45b0d66f47dc40f67df5a6ffc5a338aa33959cd1928a3078d2f303c21fd0539  ./apply-reliability-calibration/basic/collapsed_table.nc
 429c6278c294b2106de8982a81df2f494f533639384092d444a16da9fff3ec23  ./apply-reliability-calibration/basic/forecast.nc
 d54ddf4cfe900310c7ede345cb56dad6100ef1ac8aaa40d97fe17f69ed7bdb93  ./apply-reliability-calibration/basic/kgo.nc
@@ -74,10 +78,6 @@ d15752239edb3fb26904b600f1705ea97ac8c637090033f16ddeb86052eed5b4  ./construct-re
 5e403ecf836c3f36abd10414821bda43159db968ce4a850e435040ac92692ae2  ./create-grid-with-halo/basic/kgo.nc
 6d020470d2e67897744dfe6d7ba4e1ad6c0872535d3096599a627b2d216f2428  ./create-grid-with-halo/basic/source_grid.nc
 6980a3d925413b3608a60da7f95fa636b377661c8027fff739e5ac05a9fa4315  ./create-grid-with-halo/halo_size/kgo.nc
-abb612a42deaaee46ad5574fe0da845a4e367ecba42b9cf3bb80b6c0a308a398  ./day_night_mask/global_basic/input.nc
-7aa7a963c38c0f608ee3e1e07f837b577a54bd672799bea9802b29253baf32bc  ./day_night_mask/global_basic/kgo.nc
-dbcf3d3c6e348919740992e1ee221ab9149a6f38c331b6d7a85f1315352068f9  ./day_night_mask/uk_basic/input.nc
-394e6bec41c089c08ceb8b8960eb0fa9267251fa057d7e32726cbacc290b8c49  ./day_night_mask/uk_basic/kgo.nc
 d84aaed836c80f55e11207c8618d556b8aaca0c9dfd4320a3ea88387de71670c  ./estimate-emos-coefficients/combined_input/historic_forecast.json
 eeda3b2a092f3bc78bf7dc8cc22efd5e885f94b8b8e04ccc4740978dfc79e04d  ./estimate-emos-coefficients/combined_input/truth.json
 32e3ac8b263d0d3a808d819db046e5fbf5b11c0b264ec34d7acc19f81db71df3  ./estimate-emos-coefficients/landmask.nc
