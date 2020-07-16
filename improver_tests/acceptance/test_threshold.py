@@ -154,7 +154,9 @@ def test_threshold_units_fuzzy(tmp_path):
 
 
 def test_collapse_realization(tmp_path):
-    """Test thresholding with collapsing realizations"""
+    """Test thresholding with collapsing realizations. Ensure that in this case,
+    using unmasked data, that no warning is raised in relation to collapsing the
+    coordinate."""
     kgo_dir = acc.kgo_root() / "threshold/coord_collapse"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "../basic/input.nc"
@@ -168,7 +170,37 @@ def test_collapse_realization(tmp_path):
         "--collapse-coord",
         "realization",
     ]
-    run_cli(args)
+    with pytest.warns(None) as record:
+        run_cli(args)
+    for msg in record:
+        assert "Blending masked data without spatial" not in str(msg.message)
+    acc.compare(output_path, kgo_path)
+
+
+def test_collapse_realization_masked_data(tmp_path):
+    """Test thresholding and collapsing realizations using non-spatial weights,
+    where the data being thresholded is masked. This will result in a warning being
+    raised as such a collapse has not been fully tested when not using spatial
+    weights."""
+    kgo_dir = acc.kgo_root() / "threshold/masked_collapse"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-values",
+        "500",
+        "--collapse-coord",
+        "realization",
+    ]
+    with pytest.warns(
+        UserWarning,
+        match="Blending masked data without spatial "
+        "weights has not been fully tested.",
+    ):
+        run_cli(args)
     acc.compare(output_path, kgo_path)
 
 

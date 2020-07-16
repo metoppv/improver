@@ -104,12 +104,7 @@ def process(
     Raises:
         ValueError: If threshold_config and threshold_values are both set
         ValueError: If threshold_config is used for fuzzy thresholding
-
-     Warns:
-        UserWarning: If collapsing coordinates with a masked array
-
     """
-    import warnings
     import numpy as np
 
     from improver.blending.calculate_weights_and_blend import WeightAndBlend
@@ -163,9 +158,5 @@ def process(
 
     if vicinity is not None:
         result.rename(in_vicinity_name_format(result.name()))
-
-    # Raise warning if result_no_collapse_coord is masked array
-    if collapse_coord is not None and np.ma.isMaskedArray(result.data):
-        warnings.warn("Collapse-coord option not fully tested with masked data.")
 
     return result

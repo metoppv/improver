@@ -47,9 +47,10 @@ from improver.ensemble_copula_coupling.utilities import (
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
-    restore_non_probabilistic_dimensions,
+    restore_non_percentile_dimensions,
 )
 from improver.metadata.probabilistic import (
+    extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,
 )
@@ -58,7 +59,7 @@ from improver.utilities.cube_checker import (
     check_for_x_and_y_axes,
 )
 from improver.utilities.cube_manipulation import (
-    ConcatenateCubes,
+    MergeCubes,
     enforce_coordinate_ordering,
     get_dim_coord_names,
 )
@@ -279,10 +280,9 @@ class ResamplePercentiles(BasePlugin):
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
-        forecast_at_percentiles_data = restore_non_probabilistic_dimensions(
+        forecast_at_percentiles_data = restore_non_percentile_dimensions(
             forecast_at_interpolated_percentiles,
-            forecast_at_percentiles,
-            percentile_coord_name,
+            next(forecast_at_percentiles.slices_over(percentile_coord_name)),
             len(desired_percentiles),
         )
 
@@ -554,20 +554,14 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
-        forecast_at_percentiles = restore_non_probabilistic_dimensions(
+        forecast_at_percentiles = restore_non_percentile_dimensions(
             forecast_at_percentiles,
-            forecast_probabilities,
-            threshold_coord.name(),
+            next(forecast_probabilities.slices_over(threshold_coord)),
             len(percentiles),
         )
 
         template_cube = next(forecast_probabilities.slices_over(threshold_coord.name()))
-        template_cube.rename(template_cube.name().replace("probability_of_", ""))
-        template_cube.rename(
-            template_cube.name()
-            .replace("_above_threshold", "")
-            .replace("_below_threshold", "")
-        )
+        template_cube.rename(extract_diagnostic_name(template_cube.name()))
         template_cube.remove_coord(threshold_coord.name())
 
         percentile_cube = create_cube_with_percentiles(
@@ -632,13 +626,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             )
 
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
-
-        phenom_name = (
-            forecast_probabilities.name()
-            .replace("probability_of_", "")
-            .replace("_above_threshold", "")
-            .replace("_below_threshold", "")
-        )
+        phenom_name = extract_diagnostic_name(forecast_probabilities.name())
 
         if no_of_percentiles is None:
             no_of_percentiles = len(
@@ -721,6 +709,11 @@ calculate_truncated_normal_crps`,
             raise AttributeError(msg)
 
         if shape_parameters is None:
+            if self.distribution.name == "truncnorm":
+                raise ValueError(
+                    "For the truncated normal distribution, "
+                    "shape parameters must be specified."
+                )
             shape_parameters = []
         self.shape_parameters = shape_parameters
 
@@ -761,19 +754,10 @@ calculate_truncated_normal_crps`,
 
         """
         if self.distribution.name == "truncnorm":
-            if any(self.shape_parameters):
-                rescaled_values = []
-                for value in self.shape_parameters:
-                    rescaled_values.append(
-                        (value - location_parameter) / scale_parameter
-                    )
-                self.shape_parameters = rescaled_values
-            else:
-                msg = (
-                    "For the truncated normal distribution, "
-                    "shape parameters must be specified."
-                )
-                raise ValueError(msg)
+            rescaled_values = []
+            for value in self.shape_parameters:
+                rescaled_values.append((value - location_parameter) / scale_parameter)
+            self.shape_parameters = rescaled_values
 
 
 class ConvertLocationAndScaleParametersToPercentiles(
@@ -1208,9 +1192,9 @@ class EnsembleReordering(BasePlugin):
                 raw_forecast_realization = raw_forecast_realizations.extract(constr)
                 raw_forecast_realization.coord("realization").points = index
                 raw_forecast_realizations_extended.append(raw_forecast_realization)
-            raw_forecast_realizations = ConcatenateCubes(
-                coords_to_slice_over=["realization"]
-            )(raw_forecast_realizations_extended)
+            raw_forecast_realizations = MergeCubes()(
+                raw_forecast_realizations_extended, slice_over_realization=True
+            )
         return raw_forecast_realizations
 
     @staticmethod

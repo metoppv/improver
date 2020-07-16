@@ -58,6 +58,12 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.distribution, stats.truncnorm)
         self.assertEqual(plugin.shape_parameters, [0, np.inf])
 
+    def test_error_shape_parameters_required(self):
+        """Test error is raised when shape parameters are needed"""
+        msg = "shape parameters must be specified"
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin(distribution="truncnorm")
+
     def test_invalid_distribution(self):
         """Test for an invalid distribution."""
         msg = "The distribution requested"
@@ -111,16 +117,6 @@ class Test__rescale_shape_parameters(IrisTest):
         plugin = Plugin(distribution="norm", shape_parameters=shape_parameters)
         plugin._rescale_shape_parameters(self.location_parameter, self.scale_parameter)
         self.assertArrayEqual(plugin.shape_parameters, shape_parameters)
-
-    def test_no_shape_parameters_exception(self):
-        """Test raising an exception when shape parameters are not specified
-        for the truncated normal distribution."""
-        plugin = Plugin(distribution="truncnorm")
-        msg = "For the truncated normal distribution"
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin._rescale_shape_parameters(
-                self.location_parameter, self.scale_parameter
-            )
 
 
 if __name__ == "__main__":

@@ -48,10 +48,10 @@ from improver.ensemble_copula_coupling.utilities import (
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
-    restore_non_probabilistic_dimensions,
+    restore_non_percentile_dimensions,
 )
 
-from ...set_up_test_cubes import set_up_percentile_cube, set_up_variable_cube
+from ..set_up_test_cubes import set_up_percentile_cube, set_up_variable_cube
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
 
@@ -60,43 +60,24 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
     """Test the concatenate_2d_array_with_2d_array_endpoints."""
 
     def test_basic(self):
-        """
-        Basic test that the result is a numpy array with the expected contents.
-        """
+        """Test that result is a numpy array with the expected contents."""
         expected = np.array([[0, 20, 50, 80, 100]])
         input_array = np.array([[20, 50, 80]])
         result = concatenate_2d_array_with_2d_array_endpoints(input_array, 0, 100)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
 
-    def test_another_example(self):
-        """
-        Another basic test that the result is a numpy array with the
-        expected contents.
-        """
-        expected = np.array(
-            [[-100, -40, 200, 1000, 10000], [-100, -40, 200, 1000, 10000]]
-        )
-        input_array = np.array([[-40, 200, 1000], [-40, 200, 1000]])
-        result = concatenate_2d_array_with_2d_array_endpoints(input_array, -100, 10000)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
-
     def test_1d_input(self):
-        """
-        Test that a 1d input array results in the expected error.
-        """
+        """Test 1D input results in the expected error"""
         input_array = np.array([-40, 200, 1000])
-        msg = "all the input arrays must have same number of dimensions"
+        msg = "Expected 2D input"
         with self.assertRaisesRegex(ValueError, msg):
             concatenate_2d_array_with_2d_array_endpoints(input_array, -100, 10000)
 
     def test_3d_input(self):
-        """
-        Test that a 3d input array results in the expected error.
-        """
+        """Test 3D input results in expected error"""
         input_array = np.array([[[-40, 200, 1000]]])
-        msg = "all the input arrays must have same number of dimensions"
+        msg = "Expected 2D input"
         with self.assertRaisesRegex(ValueError, msg):
             concatenate_2d_array_with_2d_array_endpoints(input_array, -100, 10000)
 
@@ -141,7 +122,7 @@ class Test_choose_set_of_percentiles(IrisTest):
         if an unknown sampling option is selected.
         """
         no_of_percentiles = 3
-        msg = "The unknown sampling option is not yet implemented"
+        msg = "Unrecognised sampling option"
         with self.assertRaisesRegex(ValueError, msg):
             choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
 
@@ -329,177 +310,89 @@ class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
     """Test the insert_lower_and_upper_endpoint_to_1d_array."""
 
     def test_basic(self):
-        """
-        Basic test that the result is a numpy array with the expected contents.
-        """
+        """Test that the result is a numpy array with the expected contents."""
         expected = [0, 20, 50, 80, 100]
-        percentiles = [20, 50, 80]
+        percentiles = np.array([20, 50, 80])
         result = insert_lower_and_upper_endpoint_to_1d_array(percentiles, 0, 100)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
 
-    def test_another_example(self):
-        """
-        Another basic test that the result is a numpy array with the
-        expected contents.
-        """
-        expected = [-100, -40, 200, 1000, 10000]
-        percentiles = [-40, 200, 1000]
-        result = insert_lower_and_upper_endpoint_to_1d_array(percentiles, -100, 10000)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
-
     def test_2d_example(self):
-        """
-        Another basic test that the result is a numpy array with the
-        expected contents.
-        """
+        """Test 2D input results in expected error"""
         percentiles = np.array([[-40, 200, 1000], [-40, 200, 1000]])
-        msg = "all the input arrays must have same number of dimensions"
+        msg = "Expected 1D input"
         with self.assertRaisesRegex(ValueError, msg):
             insert_lower_and_upper_endpoint_to_1d_array(percentiles, -100, 10000)
 
 
-class Test_restore_non_probabilistic_dimensions(IrisTest):
+class Test_restore_non_percentile_dimensions(IrisTest):
 
-    """Test the restore_non_probabilistic_dimensions."""
+    """Test the restore_non_percentile_dimensions."""
 
     def setUp(self):
-        """Set up temperature cube."""
-        self.current_temperature_forecast_cube = set_up_percentile_cube(
-            np.sort(ECC_TEMPERATURE_REALIZATIONS, axis=0),
-            np.array([10, 50, 90], dtype=np.float32),
-        )
+        """Set up template cube and temperature data."""
+        self.cube = set_up_variable_cube(282 * np.ones((3, 3), dtype=np.float32))
+        # function is designed to reshape an input data array with dimensions of
+        # "percentiles x points" - generate suitable input data
+        self.expected_data = np.sort(ECC_TEMPERATURE_REALIZATIONS, axis=0)
+        points_data = [self.expected_data[i].flatten() for i in range(3)]
+        self.input_data = np.array(points_data)
 
-    def test_basic(self):
+    def test_multiple_percentiles(self):
         """
-        Basic test that the result is a numpy array with the expected contents.
+        Test the result is an array with the expected shape and contents.
         """
-        cube = self.current_temperature_forecast_cube
-        plen = len(cube.coord("percentile").points)
-        reshaped_array = restore_non_probabilistic_dimensions(
-            cube.data, cube, "percentile", plen
+        reshaped_array = restore_non_percentile_dimensions(
+            self.input_data, self.cube, 3
         )
         self.assertIsInstance(reshaped_array, np.ndarray)
+        self.assertArrayAlmostEqual(reshaped_array, self.expected_data)
 
-    def test_percentile_is_dimension_coordinate(self):
+    def test_single_percentile(self):
         """
-        Test that the result have the expected size for the
-        probabilistic dimension and is generally of the expected size.
-        The array contents is also checked.
-        """
-        cube = self.current_temperature_forecast_cube
-        plen = len(cube.coord("percentile").points)
-        reshaped_array = restore_non_probabilistic_dimensions(
-            cube.data, cube, "percentile", plen
-        )
-        self.assertEqual(reshaped_array.shape[0], plen)
-        self.assertEqual(reshaped_array.shape, cube.data.shape)
-        self.assertArrayAlmostEqual(reshaped_array, cube.data)
-
-    def test_if_percentile_is_not_first_dimension_coordinate(self):
-        """
-        Test that the result have the expected size for the
-        probabilistic dimension and is generally of the expected size.
-        The array contents is also checked.
-        """
-        cube = self.current_temperature_forecast_cube
-        cube.transpose([2, 1, 0])
-        plen = len(cube.coord("percentile").points)
-        msg = "coordinate is a dimension coordinate but is not"
-        with self.assertRaisesRegex(ValueError, msg):
-            restore_non_probabilistic_dimensions(cube.data, cube, "percentile", plen)
-
-    def test_percentile_is_not_dimension_coordinate(self):
-        """
-        Test the array size, if the percentile coordinate is not a dimension
-        coordinate on the cube.
-        The array contents is also checked.
+        Test the array size and contents if the percentile coordinate is scalar.
         """
         expected = np.array(
-            [
-                [
-                    [226.15, 237.4, 248.65],
-                    [259.9, 271.15, 282.4],
-                    [293.65, 304.9, 316.15],
-                ]
-            ],
+            [[226.15, 237.4, 248.65], [259.9, 271.15, 282.4], [293.65, 304.9, 316.15]],
             dtype=np.float32,
         )
-
-        cube = self.current_temperature_forecast_cube
-        cube_slice = next(cube.slices_over("percentile"))
-        plen = len(cube_slice.coord("percentile").points)
-        reshaped_array = restore_non_probabilistic_dimensions(
-            cube_slice.data, cube_slice, "percentile", plen
+        reshaped_array = restore_non_percentile_dimensions(
+            self.input_data[0], self.cube, 1
         )
-        self.assertEqual(reshaped_array.shape[0], plen)
-        self.assertEqual(reshaped_array.shape, (1, 3, 3))
         self.assertArrayAlmostEqual(reshaped_array, expected)
 
-    def test_percentile_is_dimension_coordinate_multiple_timesteps(self):
+    def test_multiple_timesteps(self):
         """
-        Test that the data has been reshaped correctly when multiple timesteps
-        are in the cube. The array contents is also checked.
+        Test that the data has been reshaped correctly when there are multiple timesteps.
+        The array contents are also checked.  The output cube has only a single percentile,
+        which is therefore demoted to a scalar coordinate.
         """
         expected = np.array(
             [
-                [
-                    [[4.0, 4.71428571], [5.42857143, 6.14285714]],
-                    [[6.85714286, 7.57142857], [8.28571429, 9.0]],
-                ]
+                [[4.0, 4.71428571], [5.42857143, 6.14285714]],
+                [[6.85714286, 7.57142857], [8.28571429, 9.0]],
             ]
         )
-
-        data = np.tile(np.linspace(5, 10, 8), 3).reshape(3, 2, 2, 2)
-        data[0] -= 1
-        data[1] += 1
-        data[2] += 3
 
         cubelist = CubeList([])
         for i, hour in enumerate([7, 8]):
             cubelist.append(
                 set_up_percentile_cube(
-                    data[:, i, :, :].astype(np.float32),
-                    np.array([10, 50, 90], dtype=np.float32),
+                    np.array([expected[i, :, :]], dtype=np.float32),
+                    np.array([50], dtype=np.float32),
                     units="degC",
                     time=datetime(2015, 11, 23, hour),
                     frt=datetime(2015, 11, 23, 6),
                 )
             )
         percentile_cube = cubelist.merge_cube()
-        percentile_cube.transpose([1, 0, 2, 3])
-        plen = 1
-        reshaped_array = restore_non_probabilistic_dimensions(
-            percentile_cube[0].data, percentile_cube, "percentile", plen
+
+        reshaped_array = restore_non_percentile_dimensions(
+            percentile_cube.data.flatten(),
+            next(percentile_cube.slices_over("percentile")),
+            1,
         )
         self.assertArrayAlmostEqual(reshaped_array, expected)
-
-    def test_percentile_is_dimension_coordinate_flattened_data(self):
-        """
-        Test the array size, if a flattened input array is used as the input.
-        The array contents is also checked.
-        """
-        cube = self.current_temperature_forecast_cube
-        flattened_data = cube.data.flatten()
-        plen = len(cube.coord("percentile").points)
-        reshaped_array = restore_non_probabilistic_dimensions(
-            flattened_data, cube, "percentile", plen
-        )
-        self.assertEqual(reshaped_array.shape[0], plen)
-        self.assertEqual(reshaped_array.shape, (3, 3, 3))
-        self.assertArrayAlmostEqual(reshaped_array, cube.data)
-
-    def test_missing_coordinate(self):
-        """
-        Basic test that the result is a numpy array with the expected contents.
-        The array contents is also checked.
-        """
-        cube = self.current_temperature_forecast_cube
-        plen = len(cube.coord("percentile").points)
-        msg = "coordinate is not available"
-        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            restore_non_probabilistic_dimensions(cube.data, cube, "nonsense", plen)
 
 
 if __name__ == "__main__":

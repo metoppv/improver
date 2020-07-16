@@ -45,7 +45,7 @@ from improver.utilities.cube_checker import (
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,
 )
-from improver.utilities.cube_manipulation import ConcatenateCubes, MergeCubes
+from improver.utilities.cube_manipulation import MergeCubes
 
 
 class BaseNeighbourhoodProcessing(PostProcessingPlugin):
@@ -198,9 +198,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
             cubes_real.append(cube_new)
 
         if len(cubes_real) > 1:
-            combined_cube = ConcatenateCubes(coords_to_slice_over=["realization"])(
-                cubes_real
-            )
+            combined_cube = MergeCubes()(cubes_real, slice_over_realization=True)
         else:
             combined_cube = cubes_real[0]
 

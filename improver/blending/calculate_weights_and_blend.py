@@ -30,6 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to calculate blend weights and blend data across a dimension"""
 
+import warnings
+
+import numpy as np
+
 from improver import BasePlugin
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.blending.weighted_blend import (
@@ -202,6 +206,9 @@ class WeightAndBlend(BasePlugin):
             attributes_dict (dict or None):
                 Changes to cube attributes to be applied after blending
 
+         Warns:
+            UserWarning: If blending masked data without spatial weights.
+                         This has not been fully tested.
         """
         # Prepare cubes for weighted blending, including creating model_id and
         # model_configuration coordinates for multi-model blending. The merged
@@ -239,6 +246,12 @@ class WeightAndBlend(BasePlugin):
             weights = self._calculate_blending_weights(cube)
             if spatial_weights:
                 weights = self._update_spatial_weights(cube, weights, fuzzy_length)
+            elif np.ma.is_masked(cube.data):
+                # Raise warning if blending masked arrays using non-spatial weights.
+                warnings.warn(
+                    "Blending masked data without spatial weights has not been"
+                    " fully tested."
+                )
 
             # blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
