@@ -101,6 +101,7 @@ class Test_construct_yx_coords(IrisTest):
         not provided"""
         y_coord, x_coord = construct_yx_coords(3, 3, "latlon", domain_corner=(0, 0))
         self.assertArrayEqual(x_coord.points, [0.0, 10.0, 20.0])
+        self.assertArrayEqual(y_coord.points, [0.0, 10.0, 20.0])
 
     def test_proj_xy(self):
         """Test coordinates created for an equal area grid"""
