@@ -104,74 +104,8 @@ class GenerateTimezoneMask(BasePlugin):
                 )
                 raise ValueError(msg)
 
-    def get_timezone(self, latitude, longitude):
-        """
-        Args:
-            latitude, longitude (float):
-                The latitude and longitude for which a timezone should be identified.
-        Returns:
-            str or None:
-                The string representation of the timezone for a point if the
-                point has a defined timezone (land), e.g. "America/Chicago",
-                otherwise return None.
-        """
-        point_tz = self.tf.certain_timezone_at(lng=longitude, lat=latitude)
-        return point_tz
-
-    def calculate_offset(self, point_tz):
-        """
-        Calculates the offset in seconds from UTC for a given timezone, either
-        with or without consideration of daylights savings.
-
-        Args:
-            point_tz (str):
-                The string representation of the timezone for a point
-                e.g. "America/Chicago",
-        Returns:
-            int:
-                Timezone offset from UTC in seconds.
-        """
-        target = timezone(point_tz)
-        offset = target.utcoffset(self.time)
-
-        dst = 0
-        if self.ignore_dst:
-            dst = target.dst(self.time)
-            # The timezone for Ireland does not capture DST:
-            # https://github.com/regebro/tzlocal/issues/80
-            if point_tz == "Europe/Dublin":
-                dst = timezone("Europe/London").dst(self.time)
-
-        return int((offset - dst).total_seconds())
-
-    def calculate_tz_offsets(self, coordinate_pairs):
-        """
-        Loop over all the coordinates provided and for each calculate the
-        offset from UTC in seconds.
-
-        Args:
-            coordinate_pairs (numpy.array):
-                A numpy array containing all the pairs of coordinates that describe
-                the y-x points in the grid. This array is 2-dimensional, being
-                2 by the product of the grid's y-x dimension lengths.
-        Returns:
-            numpy.array:
-                A 1-dimensional array of grid offsets with a length equal
-                to the product of the grid's y-x dimension lengths.
-        """
-        grid_offsets = []
-        for ii, (latitude, longitude) in enumerate(coordinate_pairs.T):
-            point_tz = self.get_timezone(latitude, longitude)
-
-            if point_tz is None:
-                grid_offsets.append(3600 * longitude / 15)
-            else:
-                grid_offsets.append(self.calculate_offset(point_tz))
-
-        return np.array(grid_offsets)
-
     @staticmethod
-    def get_coordinate_pairs(cube):
+    def _get_coordinate_pairs(cube):
         """
         Create an array containing all the pairs of coordinates that describe
         y-x points in the grid.
@@ -200,7 +134,73 @@ class GenerateTimezoneMask(BasePlugin):
 
         return np.array([yy.flatten(), xx.flatten()])
 
-    def group_timezones(self, timezone_mask):
+    def _calculate_tz_offsets(self, coordinate_pairs):
+        """
+        Loop over all the coordinates provided and for each calculate the
+        offset from UTC in seconds.
+
+        Args:
+            coordinate_pairs (numpy.array):
+                A numpy array containing all the pairs of coordinates that describe
+                the y-x points in the grid. This array is 2-dimensional, being
+                2 by the product of the grid's y-x dimension lengths.
+        Returns:
+            numpy.array:
+                A 1-dimensional array of grid offsets with a length equal
+                to the product of the grid's y-x dimension lengths.
+        """
+        grid_offsets = []
+        for ii, (latitude, longitude) in enumerate(coordinate_pairs.T):
+            point_tz = self._get_timezone(latitude, longitude)
+
+            if point_tz is None:
+                grid_offsets.append(3600 * longitude / 15)
+            else:
+                grid_offsets.append(self._calculate_offset(point_tz))
+
+        return np.array(grid_offsets)
+
+    def _get_timezone(self, latitude, longitude):
+        """
+        Args:
+            latitude, longitude (float):
+                The latitude and longitude for which a timezone should be identified.
+        Returns:
+            str or None:
+                The string representation of the timezone for a point if the
+                point has a defined timezone (land), e.g. "America/Chicago",
+                otherwise return None.
+        """
+        point_tz = self.tf.certain_timezone_at(lng=longitude, lat=latitude)
+        return point_tz
+
+    def _calculate_offset(self, point_tz):
+        """
+        Calculates the offset in seconds from UTC for a given timezone, either
+        with or without consideration of daylights savings.
+
+        Args:
+            point_tz (str):
+                The string representation of the timezone for a point
+                e.g. "America/Chicago",
+        Returns:
+            int:
+                Timezone offset from UTC in seconds.
+        """
+        target = timezone(point_tz)
+        offset = target.utcoffset(self.time)
+
+        dst = 0
+        if self.ignore_dst:
+            dst = target.dst(self.time)
+            # The timezone for Ireland does not capture DST:
+            # https://github.com/regebro/tzlocal/issues/80
+            if point_tz == "Europe/Dublin":
+                dst = timezone("Europe/London").dst(self.time)
+
+        return int((offset - dst).total_seconds())
+
+    def _group_timezones(self, timezone_mask):
         """
         If the ancillary will be used with data that is not available at hourly
         intervals, the masks can be grouped to match the intervals of the data.
@@ -247,8 +247,8 @@ class GenerateTimezoneMask(BasePlugin):
                 A timezone mask cube.
         """
         self._set_time(cube)
-        coordinate_pairs = self.get_coordinate_pairs(cube)
-        grid_offsets = self.calculate_tz_offsets(coordinate_pairs)
+        coordinate_pairs = self._get_coordinate_pairs(cube)
+        grid_offsets = self._calculate_tz_offsets(coordinate_pairs)
         # Model data is hourly, so we need offsets at hourly fidelity
         grid_offsets = np.around(grid_offsets / 3600).astype(np.int32)
 
@@ -271,7 +271,7 @@ class GenerateTimezoneMask(BasePlugin):
             timezone_mask.append(tz_slice)
 
         if self.groupings:
-            timezone_mask = self.group_timezones(timezone_mask)
+            timezone_mask = self._group_timezones(timezone_mask)
 
         timezone_mask = timezone_mask.merge_cube()
         return timezone_mask
