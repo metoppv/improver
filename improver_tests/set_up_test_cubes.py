@@ -76,13 +76,10 @@ def construct_yx_coords(
         raise ValueError("Grid type {} not recognised".format(spatial_grid))
 
     if grid_spacing is None:
-        if domain_corner is None:
-            if spatial_grid == "equalarea":
-                grid_spacing = 2000
-            elif spatial_grid == "latlon":
-                grid_spacing = 2
-        else:
-            raise ValueError("Grid spacing required to setup grid from domain corner.")
+        if spatial_grid == "latlon":
+            grid_spacing = 10
+        elif spatial_grid == "equalarea":
+            grid_spacing = 2000
 
     if domain_corner is None:
         domain_corner = _set_domain_corner(ypoints, xpoints, grid_spacing)

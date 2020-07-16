@@ -283,7 +283,7 @@ class Test_generate_hash(unittest.TestCase):
         cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
         hash_input = cube.coord("latitude")
         result = generate_hash(hash_input)
-        expected = "69d1ae620d150ea3945bb8a69b0a2662787a42a2ef63bc64b565a4cbf5ad3a4f"
+        expected = "68fa646ab98ab7a994e07cc1e4e42f080f6d3b9b8b70166cd0be176290391b15"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -317,7 +317,7 @@ class Test_create_coordinate_hash(unittest.TestCase):
 
         hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
         result = create_coordinate_hash(hash_input)
-        expected = "9fe703e6a4783faa1b719a1fab3e3228a07d6a84356f92ffe2e6f2bc8c610d05"
+        expected = "54812a6fed0f92fe75d180d63a6bd6c916407ea1e7e5fd32a5f20f86ea997fac"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
