@@ -63,7 +63,8 @@ def construct_yx_coords(
         spatial_grid (str):
             Specifier to produce either a "latlon" or "equalarea" grid
         grid_spacing (Optional[float]):
-            Grid resolution (degrees for latlon or metres for equalarea).
+            Grid resolution (degrees for latlon or metres for equalarea). If not provided, defaults to 10 degrees
+            for "latlon" grid or 2000 metres for "equalarea" grid
         domain_corner (Optional[Tuple[float, float]]):
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea). If not
             provided, a grid is created centred around (0,0).
@@ -76,10 +77,7 @@ def construct_yx_coords(
         raise ValueError("Grid type {} not recognised".format(spatial_grid))
 
     if grid_spacing is None:
-        if spatial_grid == "latlon":
-            grid_spacing = 10
-        elif spatial_grid == "equalarea":
-            grid_spacing = 2000
+        grid_spacing = GRID_COORD_ATTRIBUTES[spatial_grid]["default_grid_spacing"]
 
     if domain_corner is None:
         domain_corner = _set_domain_corner(ypoints, xpoints, grid_spacing)
