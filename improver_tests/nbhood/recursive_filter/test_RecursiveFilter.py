@@ -48,12 +48,7 @@ from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 
 def _mean_points(points):
     """Create an array of the mean of adjacent points in original array"""
-    mean_points = []
-    for i in range(0, len(points) - 1):
-        point = (points[i] + points[i + 1]) / 2
-        mean_points.append(point)
-
-    return np.array(mean_points, dtype=np.float32)
+    return np.array((points[:-1] + points[1:]) / 2, dtype=np.float32)
 
 
 class Test__repr__(IrisTest):
