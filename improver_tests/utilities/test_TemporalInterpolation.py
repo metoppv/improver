@@ -44,7 +44,7 @@ from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 def _grid_params(spatial_grid, npoints):
-    # Domain corner and grid spacing that tests were written for
+    # Set domain corner and grid spacing
     domain_corner = None
     grid_spacing = None
     if spatial_grid == "latlon":

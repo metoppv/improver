@@ -69,7 +69,7 @@ def set_up_masked_cubes():
     # 5x5 matrix results in grid spacing of 200 km
     base_data = np.ones((5, 5), dtype=np.float32)
 
-    # Calculate grid spacing that tests were written for
+    # Calculate grid spacing
     grid_spacing = np.around(1000000.0 / 5)
 
     # set up a UKV cube with some rain
