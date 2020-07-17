@@ -43,6 +43,19 @@ from improver.utilities.temporal_interpolation import TemporalInterpolation
 from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
+def _grid_params(spatial_grid, npoints):
+    # Domain corner and grid spacing that tests were written for
+    domain_corner = None
+    grid_spacing = None
+    if spatial_grid == "latlon":
+        domain_corner = (40, -20)
+        grid_spacing = 40 / (npoints - 1)
+    elif spatial_grid == "equalarea":
+        domain_corner = (-100000, -400000)
+        grid_spacing = np.around(1000000.0 / npoints)
+    return domain_corner, grid_spacing
+
+
 class Test__init__(IrisTest):
 
     """Test the __init__ method."""
@@ -189,9 +202,7 @@ class Test_enforce_time_coords_dtype(IrisTest):
         time_end = datetime.datetime(2017, 11, 1, 9)
         self.npoints = 10
 
-        # Domain corner and grid spacing that tests were written for
-        domain_corner = (-100000, -400000)
-        grid_spacing = np.around(1000000.0 / self.npoints)
+        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
 
         data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
         cube_time_0 = set_up_variable_cube(
@@ -331,11 +342,10 @@ class Test_calc_lats_lons(IrisTest):
         time_end = datetime.datetime(2017, 11, 1, 9)
         self.npoints = 3
 
-        # Domain corner and grid spacing that tests were written for
-        equalarea_domain_corner = (-100000, -400000)
-        equalarea_grid_spacing = np.around(1000000.0 / self.npoints)
-        latlon_domain_corner = (40, -20)
-        latlon_grid_spacing = 40 / (self.npoints - 1)
+        equalarea_domain_corner, equalarea_grid_spacing = _grid_params(
+            "equalarea", self.npoints
+        )
+        latlon_domain_corner, latlon_grid_spacing = _grid_params("latlon", self.npoints)
 
         data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
         cube_time_0 = set_up_variable_cube(
@@ -432,9 +442,7 @@ class Test_solar_interpolation(IrisTest):
             ]
         )
 
-        # Domain corner and grid spacing that tests were written for
-        domain_corner = (40, -20)
-        grid_spacing = 40 / (self.npoints - 1)
+        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
 
         data_time_0 = np.zeros((self.npoints, self.npoints), dtype=np.float32)
         data_time_1 = np.ones((self.npoints, self.npoints), dtype=np.float32)
@@ -557,9 +565,7 @@ class Test_daynight_interpolation(IrisTest):
             ]
         )
 
-        # Domain corner and grid spacing that tests were written for
-        domain_corner = (40, -20)
-        grid_spacing = 40 / (self.npoints - 1)
+        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
 
         data_time_mid = np.ones((self.npoints, self.npoints), dtype=np.float32) * 4
 
@@ -641,9 +647,7 @@ class Test_process(IrisTest):
         self.time_1 = datetime.datetime(2017, 11, 1, 9)
         self.npoints = 10
 
-        # Domain corner and grid spacing that tests were written for
-        domain_corner = (40, -20)
-        grid_spacing = 40 / (self.npoints - 1)
+        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
 
         data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
         data_time_1 = np.ones((self.npoints, self.npoints), dtype=np.float32) * 7
