@@ -30,27 +30,35 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the GenerateTimezoneMask plugin."""
 
-import pytest
 from datetime import datetime
-import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import iris
+import numpy as np
+import pytest
+import pytz
 from iris.cube import Cube, CubeList
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from improver.generate_ancillaries.generate_timezone_mask import GenerateTimezoneMask
+
 from ..set_up_test_cubes import set_up_variable_cube
+
+GLOBAL_ATTRIBUTES = {
+    "title": "MOGREPS-G Model Forecast on Global 20 km Standard Grid",
+    "source": "Met Office Unified Model",
+    "institution": "Met Office",
+}
+
+UK_ATTRIBUTES = {
+    "title": "MOGREPS-UK Model Forecast on UK 2 km Standard Grid",
+    "source": "Met Office Unified Model",
+    "institution": "Met Office",
+}
 
 
 @pytest.fixture
 def global_grid() -> Cube:
     """Global grid template"""
-
-    attributes = {
-        "title": "MOGREPS-G Model Forecast on Global 20 km Standard Grid",
-        "source": "Met Office Unified Model",
-        "institution": "Met Office",
-    }
 
     data = np.zeros((19, 37), dtype=np.float32)
     cube = set_up_variable_cube(
@@ -58,7 +66,7 @@ def global_grid() -> Cube:
         name="template",
         grid_spacing=10,
         domain_corner=(-90, -180),
-        attributes=attributes,
+        attributes=GLOBAL_ATTRIBUTES,
     )
     return cube
 
@@ -67,12 +75,6 @@ def global_grid() -> Cube:
 def uk_grid() -> Cube:
     """UK grid template"""
 
-    attributes = {
-        "title": "MOGREPS-UK Model Forecast on UK 2 km Standard Grid",
-        "source": "Met Office Unified Model",
-        "institution": "Met Office",
-    }
-
     data = np.zeros((21, 22), dtype=np.float32)
     cube = set_up_variable_cube(
         data,
@@ -80,7 +82,7 @@ def uk_grid() -> Cube:
         spatial_grid="equalarea",
         grid_spacing=96900.0,
         domain_corner=(-1036000.0, -1158000.0),
-        attributes=attributes,
+        attributes=UK_ATTRIBUTES,
     )
     return cube
 
@@ -108,23 +110,33 @@ def test__set_time(uk_grid):
     """Test time is set correctly from either the cube or user."""
 
     # Set by the cube time coordinate
-    expected = datetime(2017, 11, 10, 4)
+    expected = datetime(2017, 11, 10, 4, tzinfo=pytz.utc)
     plugin = GenerateTimezoneMask()
     plugin(uk_grid)
     assert plugin.time == expected
 
     # Set by the user provided argument
-    expected = datetime(2020, 7, 16, 15)
-    plugin = GenerateTimezoneMask(time="20200716T1500")
+    expected = datetime(2020, 7, 16, 15, tzinfo=pytz.utc)
+    plugin = GenerateTimezoneMask(time="20200716T1500Z")
     plugin(uk_grid)
     assert plugin.time == expected
+
+    # Check an exception is raised if no time information is provided
+    uk_grid.remove_coord("time")
+    plugin = GenerateTimezoneMask()
+    msg = (
+        "The input cube does not contain a 'time' coordinate. "
+        "As such a time must be provided by the user."
+    )
+    with pytest.raises(ValueError, match=msg):
+        plugin(uk_grid)
 
 
 @pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
 def test__get_coordinate_pairs(request, grid_fixture):
-    """Test that a selection of elements are as expected in what is returned
-    by the _get_coordinate_pairs function. Tests are for both a native lat-long
-    grid and for an equal areas grid that must be transformed."""
+    """Test that a selection of the points returned by _get_coordinate_pairs
+    have the expected values. Tests are for both a native lat-long grid and for
+    an equal areas grid that must be transformed."""
 
     sample_points = [0, 10, -1]
     expected_data = {
@@ -154,6 +166,8 @@ def test__get_coordinate_pairs_exception(global_grid):
 
 def test__calculate_tz_offsets():
     """
+    Test that the expected offsets are returned for several timezones, with and
+    without daylights savings.
 
     These test also cover the functionality of _calculate_offset.
     """
@@ -167,7 +181,7 @@ def test__calculate_tz_offsets():
     expected = [-5 * 3600, 0, 10 * 3600]
 
     # Northern hemisphere winter
-    time = datetime(2020, 1, 1, 12)
+    time = datetime(2020, 1, 1, 12, tzinfo=pytz.utc)
     plugin = GenerateTimezoneMask(time=time)
     result = plugin._calculate_tz_offsets(coordinate_pairs)
     assert_array_equal(result, expected)
@@ -178,7 +192,7 @@ def test__calculate_tz_offsets():
     assert result.dtype == np.int32
 
     # Southern hemisphere winter
-    time = datetime(2020, 7, 1, 12)
+    time = datetime(2020, 7, 1, 12, tzinfo=pytz.utc)
     plugin = GenerateTimezoneMask(time=time)
     result = plugin._calculate_tz_offsets(coordinate_pairs)
     assert_array_equal(result, expected)
@@ -188,25 +202,57 @@ def test__calculate_tz_offsets():
 
     # Northern hemisphere winter
     expected = [-5 * 3600, 0, 11 * 3600]
-    time = datetime(2020, 1, 1, 12)
+    time = datetime(2020, 1, 1, 12, tzinfo=pytz.utc)
     plugin = GenerateTimezoneMask(ignore_dst=False, time=time)
     result = plugin._calculate_tz_offsets(coordinate_pairs)
     assert_array_equal(result, expected)
 
     # Southern hemisphere winter
     expected = [-4 * 3600, 1 * 3600, 10 * 3600]
-    time = datetime(2020, 7, 1, 12)
+    time = datetime(2020, 7, 1, 12, tzinfo=pytz.utc)
     plugin = GenerateTimezoneMask(ignore_dst=False, time=time)
     result = plugin._calculate_tz_offsets(coordinate_pairs)
     assert_array_equal(result, expected)
 
 
+@pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
+def test__create_template_cube(request, grid_fixture):
+    """Test the construction of a template cube slice, checking the shape
+    data types, and attributes."""
+
+    grid = request.getfixturevalue(grid_fixture)
+    time = datetime(2020, 1, 1, 12, tzinfo=pytz.utc)
+
+    expected = {
+        "global_grid": {"shape": (19, 37), "attributes": GLOBAL_ATTRIBUTES},
+        "uk_grid": {"shape": (21, 22), "attributes": UK_ATTRIBUTES},
+    }
+
+    for ignore_dst in [True, False]:
+
+        # Set expected includes_daylights_savings attribute
+        expected[grid_fixture]["attributes"]["includes_daylights_savings"] = str(
+            not ignore_dst
+        )
+
+        plugin = GenerateTimezoneMask(ignore_dst=ignore_dst, time=time)
+        result = plugin._create_template_cube(grid)
+
+        assert result.name() == "timezone_mask"
+        assert result.units == 1
+        assert result.coord("time").points[0] == time.timestamp()
+        assert result.coord("time").dtype == np.int64
+        assert result.shape == expected[grid_fixture]["shape"]
+        assert result.dtype == np.int32
+        assert result.attributes == expected[grid_fixture]["attributes"]
+
+
 def test__group_timezones(timezone_mask):
-    """
-    Group the 4 UTC offset masks into groups.
-    """
-    # Split the 4 offsets first in equal sized groups, then test unequally
-    # sized groups
+    """Test the grouping of different UTC offsets into larger groups using a
+    user provided specification. The input cube list contains cubes corresponding
+    to 4 UTC offsets. Two tests are run, grouping these first into equal sized
+    groups, and then into unequally sized groups."""
+
     groupings = [{0: [0, 1], 1: [2, 3]}, {0: [0, 2], 1: [3]}]
 
     for groups in groupings:
@@ -225,35 +271,26 @@ def test__group_timezones(timezone_mask):
 
 @pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
 def test_process(request, grid_fixture):
-    """Test that the process method returns cubes that take the expected form.
-    Note that the time set by the user is effectively local time at every
-    grid point, but the cube stores the time information in UTC.
+    """Test that the process method returns cubes that take the expected form
+    for different grids and different dates.
 
-    For UK users this means that despite the time test below setting a time of
-    1500, as it falls within British summer time (BST), the cube time is shown
-    as 1400.
-
-    EEEEEEEKKKKKKKK timezone hell. I need the test to work regardless of the
-    local timezone. Come back to this with a clearer mind.
-
-    """
+    The output data is checked in the acceptance tests as a resonably large
+    number of data points are required to reliably check it, making it
+    cumbersome to do here."""
 
     expected = {
         "global_grid": {"shape": (27, 19, 37), "min": -12, "max": 14},
         "uk_grid": {"shape": (4, 21, 22), "min": -2, "max": 1},
     }
-    expected_times = [1510286400, 1594908000]
-    times = [None, "20200716T1500"]
+    expected_times = [1510286400, 1594911600]
+    times = [None, "20200716T1500Z"]
 
     grid = request.getfixturevalue(grid_fixture)
 
     for time, expected_time in zip(times, expected_times):
         result = GenerateTimezoneMask(time=time)(grid)
 
-        print(result)
-        assert result.name() == "timezone_mask"
-        assert result.units == 1
-        assert result.coord('time').points[0] == expected_time
+        assert result.coord("time").points[0] == expected_time
         assert result.shape == expected[grid_fixture]["shape"]
         assert result.coord("UTC_offset").points.min() == expected[grid_fixture]["min"]
         assert result.coord("UTC_offset").points.max() == expected[grid_fixture]["max"]

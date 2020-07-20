@@ -30,24 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating timezone masks."""
 
+from datetime import datetime
+
 import iris
 import numpy as np
-
+import pytz
 from cf_units import Unit
-from datetime import datetime, timedelta
+from iris.exceptions import CoordinateNotFoundError
 from pytz import timezone
 from timezonefinder import TimezoneFinder
-from iris.exceptions import CoordinateNotFoundError
 
+from improver import BasePlugin
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_manipulation import collapsed
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
-
-from improver import BasePlugin
 
 
 class GenerateTimezoneMask(BasePlugin):
@@ -68,10 +67,9 @@ class GenerateTimezoneMask(BasePlugin):
                 If True, find and use the UTC offset to a grid point ignoring
                 daylights savings.
             time (str):
-                A datetime specified in the format YYYYMMDDTHHMM at which to
-                calculate the mask. If daylights savings are ignored this will
-                have no impact on the resulting masks. This is the local time
-                at each grid point at which the masks should be valid.
+                A datetime specified in the format YYYYMMDDTHHMMZ at which to
+                calculate the mask (UTC). If daylights savings are ignored this
+                will have no impact on the resulting masks.
             groupings (dict):
                 A dictionary specifying how timezones should be grouped if so
                 desired. This dictionary takes the form::
@@ -79,7 +77,8 @@ class GenerateTimezoneMask(BasePlugin):
                     {0: [-12, -5], 1:[-4, 4], 2: [5, 12]}
 
                 The numbers in the lists denote the inclusive limits of the
-                groups.
+                groups. This is of use if data is not available at hourly
+                intervals.
         """
         self.tf = TimezoneFinder()
         self.time = time
@@ -89,7 +88,7 @@ class GenerateTimezoneMask(BasePlugin):
     def _set_time(self, cube):
         """
         Set self.time to a datetime object specifying the date and time for
-        which the masks should be created.
+        which the masks should be created. self.time is set in UTC.
 
         Args:
             cube (iris.cube.Cube):
@@ -97,10 +96,12 @@ class GenerateTimezoneMask(BasePlugin):
                 has not been explicitly provided by the user.
         """
         if self.time:
-            self.time = datetime.strptime(self.time, "%Y%m%dT%H%M")
+            self.time = datetime.strptime(self.time, "%Y%m%dT%H%MZ")
+            self.time = pytz.utc.localize(self.time)
         else:
             try:
                 self.time = cube.coord("time").cell(0).point
+                self.time = pytz.utc.localize(self.time)
             except CoordinateNotFoundError:
                 msg = (
                     "The input cube does not contain a 'time' coordinate. "
@@ -176,7 +177,7 @@ class GenerateTimezoneMask(BasePlugin):
         Returns:
             str or None:
                 The string representation of the timezone for a point if the
-                point has a defined timezone (land), e.g. "America/Chicago",
+                point has a defined timezone, e.g. "America/Chicago",
                 otherwise return None.
         """
         point_tz = self.tf.certain_timezone_at(lng=longitude, lat=latitude)
@@ -195,25 +196,26 @@ class GenerateTimezoneMask(BasePlugin):
             int:
                 Timezone offset from UTC in seconds.
         """
+        # The timezone for Ireland does not capture DST:
+        # https://github.com/regebro/tzlocal/issues/80
+        if point_tz == "Europe/Dublin":
+            point_tz = "Europe/London"
+
         target = timezone(point_tz)
-        offset = target.utcoffset(self.time)
+        local = self.time.astimezone(target)
+        offset = local.utcoffset()
 
-        dst = timedelta(0)
         if self.ignore_dst:
-            dst = target.dst(self.time)
-            # The timezone for Ireland does not capture DST:
-            # https://github.com/regebro/tzlocal/issues/80
-            if point_tz == "Europe/Dublin":
-                dst = timezone("Europe/London").dst(self.time)
+            offset -= local.dst()
 
-        return int((offset - dst).total_seconds())
+        return int(offset.total_seconds())
 
     def _create_template_cube(self, cube):
         """
         Create a template cube to store the timezone masks. This cube has only
         one scalar coordinate which is time, denoting when it is valid; this is
         only relevant if using daylights savings. The attribute
-        includes_daylights_savings is added to indicate this.
+        includes_daylights_savings is set to indicate this.
 
         Args:
             cube (iris.cube.Cube):
@@ -292,7 +294,9 @@ class GenerateTimezoneMask(BasePlugin):
         self._set_time(cube)
         coordinate_pairs = self._get_coordinate_pairs(cube)
         grid_offsets = self._calculate_tz_offsets(coordinate_pairs)
-        # Model data is hourly, so we need offsets at hourly fidelity
+
+        # Model data is hourly, so we need offsets at hourly fidelity. This
+        # rounds non-integer hour timezone offsets to the nearest hour.
         grid_offsets = np.around(grid_offsets / 3600).astype(np.int32)
 
         # Reshape the flattened array back into the original cube shape.
@@ -300,6 +304,7 @@ class GenerateTimezoneMask(BasePlugin):
 
         template_cube = self._create_template_cube(cube)
 
+        # Find the limits of UTC offset within the domain.
         min_offset = grid_offsets.min()
         max_offset = grid_offsets.max()
 
