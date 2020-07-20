@@ -156,6 +156,7 @@ class Test_save_netcdf(IrisTest):
         )
 
         data = Dataset(self.filepath, mode="r")
+        # pylint: disable=unsubscriptable-object
         lsd = data.variables["air_temperature"].least_significant_digit
         self.assertEqual(lsd, 1)
 
@@ -169,6 +170,7 @@ class Test_save_netcdf(IrisTest):
         )
 
         data = Dataset(self.filepath, mode="r")
+        # pylint: disable=unsubscriptable-object
         lsd = data.variables["air_temperature"].least_significant_digit
         self.assertEqual(lsd, 3)
 

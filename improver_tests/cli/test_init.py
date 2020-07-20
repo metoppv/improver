@@ -184,6 +184,15 @@ class Test_with_output(unittest.TestCase):
         m.assert_called_with(4, "foo", 0, None)
         self.assertEqual(result, None)
 
+    @patch("improver.utilities.save.save_netcdf")
+    def test_with_output_with_least_significant_figure(self, m):
+        """Tests that save_netcdf is called with object and string and compression_level=0 """
+        # pylint disable is needed as it can't see the wrappers output kwarg.
+        # pylint: disable=E1123
+        result = wrapped_with_output(2, output="foo", compression_level=0, least_significant_digit=2)
+        m.assert_called_with(4, "foo", 0, 2)
+        self.assertEqual(result, None)
+
 
 def setup_for_mock():
     """Function that returns a CubeList of wind_speed and wind_from_direction
