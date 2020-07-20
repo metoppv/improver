@@ -163,7 +163,7 @@ class Test_with_output(unittest.TestCase):
         # pylint disable is needed as it can't see the wrappers output kwarg.
         # pylint: disable=E1123
         result = wrapped_with_output(2, output="foo")
-        m.assert_called_with(4, "foo", 1)
+        m.assert_called_with(4, "foo", 1, None)
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")
@@ -172,7 +172,7 @@ class Test_with_output(unittest.TestCase):
         # pylint disable is needed as it can't see the wrappers output kwarg.
         # pylint: disable=E1123
         result = wrapped_with_output(2, output="foo", compression_level=9)
-        m.assert_called_with(4, "foo", 9)
+        m.assert_called_with(4, "foo", 9, None)
         self.assertEqual(result, None)
 
     @patch("improver.utilities.save.save_netcdf")
@@ -181,7 +181,7 @@ class Test_with_output(unittest.TestCase):
         # pylint disable is needed as it can't see the wrappers output kwarg.
         # pylint: disable=E1123
         result = wrapped_with_output(2, output="foo", compression_level=0)
-        m.assert_called_with(4, "foo", 0)
+        m.assert_called_with(4, "foo", 0, None)
         self.assertEqual(result, None)
 
 
