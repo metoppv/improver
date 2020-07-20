@@ -40,13 +40,12 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.cube_combiner import CubeCombiner
-from improver_tests import ImproverTest
-
-from ..set_up_test_cubes import (
+from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver_tests import ImproverTest
 
 
 class Test__init__(IrisTest):

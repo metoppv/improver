@@ -44,8 +44,7 @@ from improver.metadata.probabilistic import (
     in_vicinity_name_format,
     is_probability,
 )
-
-from ..set_up_test_cubes import (
+from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,

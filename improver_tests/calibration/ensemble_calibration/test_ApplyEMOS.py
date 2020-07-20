@@ -37,13 +37,12 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import ApplyEMOS
-from improver.utilities.cube_manipulation import get_dim_coord_names
-
-from ...set_up_test_cubes import (
+from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver.utilities.cube_manipulation import get_dim_coord_names
 
 
 def build_coefficients_cubelist(template, coeff_values, predictor="mean"):

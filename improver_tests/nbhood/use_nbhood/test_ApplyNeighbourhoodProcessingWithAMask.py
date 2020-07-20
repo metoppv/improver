@@ -37,8 +37,7 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
-
-from ...set_up_test_cubes import (
+from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
     set_up_variable_cube,

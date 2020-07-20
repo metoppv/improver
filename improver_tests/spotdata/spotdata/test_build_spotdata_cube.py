@@ -38,8 +38,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-
-from ...set_up_test_cubes import construct_scalar_time_coords
+from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
 
 
 class Test_build_spotdata_cube(IrisTest):

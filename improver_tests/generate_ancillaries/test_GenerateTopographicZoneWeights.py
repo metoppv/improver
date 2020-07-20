@@ -41,9 +41,8 @@ from iris.tests import IrisTest
 from improver.generate_ancillaries.generate_topographic_zone_weights import (
     GenerateTopographicZoneWeights,
 )
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
-
-from ..set_up_test_cubes import set_up_variable_cube
 
 
 def set_up_orography_cube(data):

@@ -39,8 +39,7 @@ from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.standardise import StandardiseMetadata
-
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_process(IrisTest):

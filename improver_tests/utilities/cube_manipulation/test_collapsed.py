@@ -37,9 +37,8 @@ import unittest
 import iris
 import numpy as np
 
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import collapsed
-
-from ...set_up_test_cubes import set_up_variable_cube
 
 
 class Test_collapsed(unittest.TestCase):

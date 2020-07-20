@@ -37,9 +37,8 @@ from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.standardise import RegridLandSea
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
-
-from ..set_up_test_cubes import set_up_variable_cube
 
 # The warning messages are internal to the iris.analysis module v2.2.0
 IGNORED_MESSAGES = ["Using a non-tuple sequence for multidimensional indexing"]

@@ -41,7 +41,7 @@ from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 from improver.psychrometric_calculations.precip_phase_probability import (
     PrecipPhaseProbability,
 )
-from improver_tests.set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 class Test__init__(IrisTest):

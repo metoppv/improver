@@ -44,8 +44,8 @@ from iris.tests import IrisTest
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations as Plugin,
 )
+from improver.synthetic_data.set_up_test_cubes import set_up_percentile_cube
 
-from ..set_up_test_cubes import set_up_percentile_cube
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
 
 

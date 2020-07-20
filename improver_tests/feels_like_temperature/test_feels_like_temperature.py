@@ -40,8 +40,7 @@ from improver.feels_like_temperature import (
     _calculate_wind_chill,
     calculate_feels_like_temperature,
 )
-
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 class Test__calculate_apparent_temperature(IrisTest):
