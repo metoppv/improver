@@ -71,7 +71,7 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up input cubes and landmask"""
         # Set domain_corner to define a lat/lon grid which overlaps and completely covers the UK standard grid,
-        # using 15.9,-2.5 as centre (as equalarea grid is configured)
+        # using 54.9,-2.5 as centre (as equalarea grid is configured)
         domain_corner = (54.9 - 15, -2.5 - 15)
         self.cube = set_up_variable_cube(
             282 * np.ones((15, 15), dtype=np.float32),
