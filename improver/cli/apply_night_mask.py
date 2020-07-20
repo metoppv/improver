@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to mask night values within the input cube."""
+"""Script to set night values to zero within the input cube."""
 
 from improver import cli
 
@@ -45,7 +45,7 @@ def process(cube: cli.inputcube):
 
     Returns:
         iris.cube.Cube:
-	    Input cube with all night values masked out.
+            Input cube with all night values masked out.
 
     """
 
@@ -57,6 +57,6 @@ def process(cube: cli.inputcube):
     mask = DayNightMask()(cube).data
     # Broadcast mask to shape of input cube to account for additional dimensions.
     mask = np.broadcast_to(mask, cube.shape)
-    # masking night values from the data.
-    cube.data = ma.masked_where(mask == DayNightMask().night, cube.data)
+    # setting night values to zero.
+    cube.data = ma.where(mask == DayNightMask().night, 0, cube.data)
     return cube
