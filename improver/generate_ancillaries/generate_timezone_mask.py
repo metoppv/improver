@@ -159,7 +159,7 @@ class GenerateTimezoneMask(BasePlugin):
                 to the product of the grid's y-x dimension lengths.
         """
         grid_offsets = []
-        for ii, (latitude, longitude) in enumerate(coordinate_pairs.T):
+        for latitude, longitude in coordinate_pairs.T:
             point_tz = self._get_timezone(latitude, longitude)
 
             if point_tz is None:
