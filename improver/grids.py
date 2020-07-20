@@ -54,11 +54,13 @@ GRID_COORD_ATTRIBUTES = {
         "yname": "latitude",
         "units": "degrees",
         "coord_system": GLOBAL_GRID_CCRS,
+        "default_grid_spacing": 10,
     },
     "equalarea": {
         "xname": "projection_x_coordinate",
         "yname": "projection_y_coordinate",
         "units": "metres",
         "coord_system": STANDARD_GRID_CCRS,
+        "default_grid_spacing": 2000,
     },
 }

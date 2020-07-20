@@ -63,7 +63,8 @@ def construct_yx_coords(
         spatial_grid (str):
             Specifier to produce either a "latlon" or "equalarea" grid
         grid_spacing (Optional[float]):
-            Grid resolution (degrees for latlon or metres for equalarea).
+            Grid resolution (degrees for latlon or metres for equalarea). If not provided, defaults to 10 degrees
+            for "latlon" grid or 2000 metres for "equalarea" grid
         domain_corner (Optional[Tuple[float, float]]):
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea). If not
             provided, a grid is created centred around (0,0).
@@ -76,16 +77,11 @@ def construct_yx_coords(
         raise ValueError("Grid type {} not recognised".format(spatial_grid))
 
     if grid_spacing is None:
-        if domain_corner is None:
-            y_array, x_array = _default_grid(ypoints, xpoints, spatial_grid)
-        else:
-            raise ValueError("Grid spacing required to setup grid from domain corner.")
-    else:
-        if domain_corner is None:
-            domain_corner = _set_domain_corner(ypoints, xpoints, grid_spacing)
-        y_array, x_array = _create_yx_arrays(
-            ypoints, xpoints, domain_corner, grid_spacing
-        )
+        grid_spacing = GRID_COORD_ATTRIBUTES[spatial_grid]["default_grid_spacing"]
+
+    if domain_corner is None:
+        domain_corner = _set_domain_corner(ypoints, xpoints, grid_spacing)
+    y_array, x_array = _create_yx_arrays(ypoints, xpoints, domain_corner, grid_spacing)
 
     y_coord = DimCoord(
         y_array,
@@ -111,11 +107,11 @@ def _create_yx_arrays(ypoints, xpoints, domain_corner, grid_spacing):
         Tuple[numpy.ndarray, numpy.ndarray]:
             Tuple containing arrays of y and x coordinate values
     """
-    y_stop = domain_corner[0] + (grid_spacing * ypoints)
-    x_stop = domain_corner[1] + (grid_spacing * xpoints)
+    y_stop = domain_corner[0] + (grid_spacing * (ypoints - 1))
+    x_stop = domain_corner[1] + (grid_spacing * (xpoints - 1))
 
-    y_array = np.arange(domain_corner[0], y_stop, grid_spacing, dtype=np.float32)
-    x_array = np.arange(domain_corner[1], x_stop, grid_spacing, dtype=np.float32)
+    y_array = np.linspace(domain_corner[0], y_stop, ypoints, dtype=np.float32)
+    x_array = np.linspace(domain_corner[1], x_stop, xpoints, dtype=np.float32)
 
     return y_array, x_array
 
@@ -132,35 +128,6 @@ def _set_domain_corner(ypoints, xpoints, grid_spacing):
     x_start = 0 - ((xpoints - 1) * grid_spacing) / 2
 
     return y_start, x_start
-
-
-def _default_grid(ypoints, xpoints, spatial_grid):
-    """
-    Create default grid.
-
-    Returns:
-        Tuple[numpy.ndarray, numpy.ndarray]:
-            Tuple containing arrays of y and x coordinate values
-    """
-    if spatial_grid == "latlon":
-        # make a lat-lon grid including the UK area
-        coord_bnds = {"x": [-20, 20], "y": [40, 80]}
-        y_array = np.linspace(
-            coord_bnds["y"][0], coord_bnds["y"][1], ypoints, dtype=np.float32
-        )
-        x_array = np.linspace(
-            coord_bnds["x"][0], coord_bnds["x"][1], xpoints, dtype=np.float32
-        )
-    elif spatial_grid == "equalarea":
-        # use UK eastings and northings on standard grid
-        # round grid spacing to nearest integer to avoid precision issues
-        domain_corner = [-100000, -400000]
-        grid_spacing = np.around(1000000.0 / ypoints)
-
-        y_array, x_array = _create_yx_arrays(
-            ypoints, xpoints, domain_corner, grid_spacing
-        )
-    return y_array, x_array
 
 
 def _create_time_point(time):

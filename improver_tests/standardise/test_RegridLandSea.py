@@ -70,10 +70,15 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up input cubes and landmask"""
+        # Set domain_corner to define a lat/lon grid which overlaps and completely covers the UK standard grid,
+        # using 54.9,-2.5 as centre (as equalarea grid is configured)
+        domain_corner = (54.9 - 15, -2.5 - 15)
         self.cube = set_up_variable_cube(
             282 * np.ones((15, 15), dtype=np.float32),
             spatial_grid="latlon",
             standard_grid_metadata="gl_det",
+            domain_corner=domain_corner,
+            grid_spacing=2,
         )
 
         # set up dummy landmask on source grid
@@ -115,12 +120,12 @@ class Test_process(IrisTest):
     def test_access_regrid_with_landmask(self):
         """Test the AdjustLandSeaPoints module is correctly called when using
         landmask arguments. Diagnosed by identifiable error."""
-        msg = "Distance of 10000m gives zero cell extent"
+        msg = "Distance of 1000m gives zero cell extent"
         with self.assertRaisesRegex(ValueError, msg):
             RegridLandSea(
                 regrid_mode="nearest-with-mask",
                 landmask=self.landmask,
-                landmask_vicinity=10000,
+                landmask_vicinity=1000,
             )(self.cube, self.target_grid)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
