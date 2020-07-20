@@ -149,6 +149,32 @@ class Test_save_netcdf(IrisTest):
         with self.assertRaises(ValueError):
             save_netcdf(self.cube, self.filepath, compression_level=10)
 
+    def test_least_significant_digit_1_no_compression(self):
+        """ Test setting the least significant digit to 1 with no compression """
+        save_netcdf(
+            self.cube, self.filepath, compression_level=0, least_significant_digit=1
+        )
+
+        data = Dataset(self.filepath, mode="r")
+        lsd = data.variables["air_temperature"].least_significant_digit
+        self.assertEqual(lsd, 1)
+
+        data_cube = load_cube(self.filepath)
+        self.assertArrayAlmostEqual(data_cube.data, self.cube.data, decimal=1)
+
+    def test_least_significant_digit_3_compression_3(self):
+        """ Test setting the least significant digit to 3 with compression level 3 """
+        save_netcdf(
+            self.cube, self.filepath, compression_level=3, least_significant_digit=3
+        )
+
+        data = Dataset(self.filepath, mode="r")
+        lsd = data.variables["air_temperature"].least_significant_digit
+        self.assertEqual(lsd, 3)
+
+        data_cube = load_cube(self.filepath)
+        self.assertArrayAlmostEqual(data_cube.data, self.cube.data, decimal=3)
+
     def test_basic_cube_list(self):
         """
         Test functionality for saving iris.cube.CubeList

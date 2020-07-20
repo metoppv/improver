@@ -74,7 +74,7 @@ def _check_metadata(cube):
         raise ValueError("{} has unknown units".format(cube.name()))
 
 
-def save_netcdf(cubelist, filename, compression_level=1):
+def save_netcdf(cubelist, filename, compression_level=1, least_significant_digit=None):
     """Save the input Cube or CubeList as a NetCDF file and check metadata
     where required for integrity.
 
@@ -90,7 +90,11 @@ def save_netcdf(cubelist, filename, compression_level=1):
         compression_level (int):
             1-9 to specify compression level, or 0 to not compress (default compress
             with complevel 1)
-
+        least_significant_digit (int):
+            If specified, the data will be quantized to a number of significant digits, see
+            http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml
+            for details. When used with `compression level`, this will result in lossy
+            compression.
     Raises:
         warning if cubelist contains cubes of varying dimensions.
     """
@@ -148,5 +152,6 @@ def save_netcdf(cubelist, filename, compression_level=1):
         shuffle=True,
         zlib=compression_level > 0,
         chunksizes=chunksizes,
+        least_significant_digit=least_significant_digit,
     )
     os.rename(ftmp, filename)
