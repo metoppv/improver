@@ -38,8 +38,7 @@ from iris.cube import CubeList
 from iris.tests import IrisTest
 
 from improver.metadata.check_datatypes import check_mandatory_standards, check_units
-
-from ..set_up_test_cubes import (
+from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,

@@ -41,7 +41,7 @@ from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 from improver.psychrometric_calculations.precip_phase_probability import (
     PrecipPhaseProbability,
 )
-from improver_tests.set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 class Test__init__(IrisTest):
@@ -69,8 +69,8 @@ class Test_process(IrisTest):
         middle realization gives both not-snow and not-rain because both the
         20th percentile is <= zero and the 80th percentile is >= zero."""
 
-        # cubes for testing have a grid-length of 333333m.
-        self.plugin = PrecipPhaseProbability(radius=350000.0)
+        # cubes for testing have a grid-length of 2000m.
+        self.plugin = PrecipPhaseProbability(radius=2100.0)
         self.mandatory_attributes = {
             "title": "mandatory title",
             "source": "mandatory_source",

@@ -43,9 +43,11 @@ from iris.util import squeeze
 
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.nowcasting.lightning import NowcastLightning as Plugin
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 from improver.utilities.cube_checker import find_dimension_coordinate_mismatch
-
-from ...set_up_test_cubes import set_up_probability_cube, set_up_variable_cube
 
 
 def set_up_lightning_test_cubes(

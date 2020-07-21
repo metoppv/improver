@@ -41,9 +41,12 @@ from iris.tests import IrisTest
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ResamplePercentiles as Plugin,
 )
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_percentile_cube,
+)
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ..set_up_test_cubes import add_coordinate, set_up_percentile_cube
 from .ecc_test_data import set_up_spot_test_cube
 
 

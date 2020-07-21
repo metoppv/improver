@@ -49,8 +49,7 @@ from improver.cli import (
     unbracket,
     with_output,
 )
-
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 def dummy_function(first, second=0, third=2):

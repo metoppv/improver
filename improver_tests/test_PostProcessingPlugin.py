@@ -35,8 +35,8 @@ import unittest
 import numpy as np
 
 from improver import PostProcessingPlugin
-
-from .set_up_test_cubes import set_up_variable_cube
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 class DummyPlugin(PostProcessingPlugin):
@@ -68,6 +68,13 @@ class Test_process(unittest.TestCase):
     def test_title_preserved(self):
         """Test title is preserved if it contains 'Post-Processed'"""
         expected_title = "IMPROVER Post-Processed Multi-Model Blend"
+        self.cube.attributes["title"] = expected_title
+        result = self.plugin(self.cube)
+        self.assertEqual(result.attributes["title"], expected_title)
+
+    def test_title_mandatory_attribute_default(self):
+        """Test title is preserved if it is the same as mandatory_attribute['title']"""
+        expected_title = MANDATORY_ATTRIBUTE_DEFAULTS["title"]
         self.cube.attributes["title"] = expected_title
         result = self.plugin(self.cube)
         self.assertEqual(result.attributes["title"], expected_title)

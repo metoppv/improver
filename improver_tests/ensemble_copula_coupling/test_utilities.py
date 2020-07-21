@@ -50,8 +50,11 @@ from improver.ensemble_copula_coupling.utilities import (
     insert_lower_and_upper_endpoint_to_1d_array,
     restore_non_percentile_dimensions,
 )
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_percentile_cube,
+    set_up_variable_cube,
+)
 
-from ..set_up_test_cubes import set_up_percentile_cube, set_up_variable_cube
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
 

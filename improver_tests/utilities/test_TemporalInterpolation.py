@@ -38,9 +38,24 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
 from improver.utilities.temporal_interpolation import TemporalInterpolation
 
-from ..set_up_test_cubes import add_coordinate, set_up_variable_cube
+
+def _grid_params(spatial_grid, npoints):
+    # Set domain corner and grid spacing
+    domain_corner = None
+    grid_spacing = None
+    if spatial_grid == "latlon":
+        domain_corner = (40, -20)
+        grid_spacing = 40 / (npoints - 1)
+    elif spatial_grid == "equalarea":
+        domain_corner = (-100000, -400000)
+        grid_spacing = np.around(1000000.0 / npoints)
+    return domain_corner, grid_spacing
 
 
 class Test__init__(IrisTest):
@@ -188,8 +203,17 @@ class Test_enforce_time_coords_dtype(IrisTest):
         time_mid = datetime.datetime(2017, 11, 1, 6)
         time_end = datetime.datetime(2017, 11, 1, 9)
         self.npoints = 10
+
+        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
+
         data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
-        cube_time_0 = set_up_variable_cube(data_time_0, time=time_start, frt=time_start)
+        cube_time_0 = set_up_variable_cube(
+            data_time_0,
+            time=time_start,
+            frt=time_start,
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
+        )
         cube_times = add_coordinate(
             cube_time_0.copy(),
             [time_start, time_mid, time_end],
@@ -319,13 +343,30 @@ class Test_calc_lats_lons(IrisTest):
         time_mid = datetime.datetime(2017, 11, 1, 6)
         time_end = datetime.datetime(2017, 11, 1, 9)
         self.npoints = 3
+
+        equalarea_domain_corner, equalarea_grid_spacing = _grid_params(
+            "equalarea", self.npoints
+        )
+        latlon_domain_corner, latlon_grid_spacing = _grid_params("latlon", self.npoints)
+
         data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
-        cube_time_0 = set_up_variable_cube(data_time_0, time=time_start, frt=time_start)
+        cube_time_0 = set_up_variable_cube(
+            data_time_0,
+            time=time_start,
+            frt=time_start,
+            domain_corner=latlon_domain_corner,
+            grid_spacing=latlon_grid_spacing,
+        )
         self.cube = add_coordinate(
             cube_time_0, [time_start, time_mid, time_end], "time", is_datetime=True
         )
         cube_time_0_equalarea = set_up_variable_cube(
-            data_time_0, time=time_start, frt=time_start, spatial_grid="equalarea"
+            data_time_0,
+            time=time_start,
+            frt=time_start,
+            spatial_grid="equalarea",
+            domain_corner=equalarea_domain_corner,
+            grid_spacing=equalarea_grid_spacing,
         )
         self.cube_equalarea = add_coordinate(
             cube_time_0_equalarea,
@@ -403,35 +444,61 @@ class Test_solar_interpolation(IrisTest):
             ]
         )
 
+        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
+
         data_time_0 = np.zeros((self.npoints, self.npoints), dtype=np.float32)
         data_time_1 = np.ones((self.npoints, self.npoints), dtype=np.float32)
         data_time_mid = np.ones((self.npoints, self.npoints), dtype=np.float32)
         cube_time_0 = set_up_variable_cube(
-            data_time_0, time=self.time_0, frt=self.time_0
+            data_time_0,
+            time=self.time_0,
+            frt=self.time_0,
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
         )
         cube_time_1 = set_up_variable_cube(
-            data_time_1, time=self.time_1, frt=self.time_0
+            data_time_1,
+            time=self.time_1,
+            frt=self.time_0,
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
         )
         cubes = iris.cube.CubeList([cube_time_0, cube_time_1])
         self.cube = cubes.merge_cube()
         interp_cube = set_up_variable_cube(
-            data_time_mid, time=self.time_mid, frt=self.time_0
+            data_time_mid,
+            time=self.time_mid,
+            frt=self.time_0,
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
         )
         self.interpolated_cube = iris.util.new_axis(interp_cube, "time")
         data_time_0_ens = np.zeros((3, self.npoints, self.npoints), dtype=np.float32)
         data_time_1_ens = np.ones((3, self.npoints, self.npoints), dtype=np.float32)
         data_time_mid_ens = np.ones((3, self.npoints, self.npoints), dtype=np.float32)
         cube_time_0_ens = set_up_variable_cube(
-            data_time_0_ens, time=self.time_0, frt=self.time_0, realizations=[0, 1, 2]
+            data_time_0_ens,
+            time=self.time_0,
+            frt=self.time_0,
+            realizations=[0, 1, 2],
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
         )
         cube_time_1_ens = set_up_variable_cube(
-            data_time_1_ens, time=self.time_1, frt=self.time_0, realizations=[0, 1, 2]
+            data_time_1_ens,
+            time=self.time_1,
+            frt=self.time_0,
+            realizations=[0, 1, 2],
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
         )
         interp_cube_ens = set_up_variable_cube(
             data_time_mid_ens,
             time=self.time_mid,
             frt=self.time_0,
             realizations=[0, 1, 2],
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
         )
         self.interpolated_cube_ens = iris.util.new_axis(interp_cube_ens, "time")
         cubes_ens = iris.cube.CubeList([cube_time_0_ens, cube_time_1_ens])
@@ -500,10 +567,16 @@ class Test_daynight_interpolation(IrisTest):
             ]
         )
 
+        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
+
         data_time_mid = np.ones((self.npoints, self.npoints), dtype=np.float32) * 4
 
         interp_cube = set_up_variable_cube(
-            data_time_mid, time=self.time_mid, frt=self.time_0
+            data_time_mid,
+            time=self.time_mid,
+            frt=self.time_0,
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
         )
         self.interpolated_cube = iris.util.new_axis(interp_cube, "time")
 
@@ -515,6 +588,8 @@ class Test_daynight_interpolation(IrisTest):
             time=self.time_mid,
             frt=self.time_0,
             realizations=[0, 1, 2],
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
         )
         self.interpolated_cube_ens = iris.util.new_axis(interp_cube_ens, "time")
 
@@ -573,13 +648,24 @@ class Test_process(IrisTest):
         self.time_extra = datetime.datetime(2017, 11, 1, 6)
         self.time_1 = datetime.datetime(2017, 11, 1, 9)
         self.npoints = 10
+
+        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
+
         data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
         data_time_1 = np.ones((self.npoints, self.npoints), dtype=np.float32) * 7
         self.cube_time_0 = set_up_variable_cube(
-            data_time_0, time=self.time_0, frt=self.time_0
+            data_time_0,
+            time=self.time_0,
+            frt=self.time_0,
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
         )
         self.cube_time_1 = set_up_variable_cube(
-            data_time_1, time=self.time_1, frt=self.time_0
+            data_time_1,
+            time=self.time_1,
+            frt=self.time_0,
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
         )
 
     def test_return_type(self):

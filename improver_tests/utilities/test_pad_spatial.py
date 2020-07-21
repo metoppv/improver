@@ -37,6 +37,7 @@ import numpy as np
 from iris.coords import DimCoord
 from iris.tests import IrisTest
 
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.pad_spatial import (
     _create_cube_with_padded_data,
     create_cube_with_halo,
@@ -45,8 +46,6 @@ from improver.utilities.pad_spatial import (
     remove_cube_halo,
     remove_halo_from_cube,
 )
-
-from ..set_up_test_cubes import set_up_variable_cube
 
 
 class Test_pad_coord(IrisTest):
@@ -151,11 +150,11 @@ class Test_create_cube_with_halo(IrisTest):
             attributes=attrs,
         )
         self.grid_spacing = np.diff(self.cube.coord(axis="x").points)[0]
+        self.halo_size_m = 2000.0
 
     def test_basic(self):
         """Test function returns a cube with expected metadata"""
-        halo_size_km = 162.0
-        result = create_cube_with_halo(self.cube, 1000.0 * halo_size_km)
+        result = create_cube_with_halo(self.cube, self.halo_size_m)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "grid_with_halo")
         self.assertFalse(result.attributes)
@@ -163,8 +162,6 @@ class Test_create_cube_with_halo(IrisTest):
     def test_values(self):
         """Test coordinate values with standard halo radius (rounds down to 1
         grid cell)"""
-        halo_size_km = 162.0
-
         x_min = self.cube.coord(axis="x").points[0] - self.grid_spacing
         x_max = self.cube.coord(axis="x").points[-1] + self.grid_spacing
         expected_x_points = np.arange(x_min, x_max + 1, self.grid_spacing)
@@ -172,7 +169,7 @@ class Test_create_cube_with_halo(IrisTest):
         y_max = self.cube.coord(axis="y").points[-1] + self.grid_spacing
         expected_y_points = np.arange(y_min, y_max + 1, self.grid_spacing)
 
-        result = create_cube_with_halo(self.cube, 1000.0 * halo_size_km)
+        result = create_cube_with_halo(self.cube, self.halo_size_m)
         self.assertSequenceEqual(result.data.shape, (13, 13))
         self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_points)
         self.assertArrayAlmostEqual(result.coord(axis="y").points, expected_y_points)
@@ -493,11 +490,11 @@ class Test_remove_cube_halo(IrisTest):
             attributes=self.attrs,
         )
         self.grid_spacing = np.diff(self.cube.coord(axis="x").points)[0]
+        self.halo_size_m = 2000.0
 
     def test_basic(self):
         """Test function returns a cube with expected attributes and shape"""
-        halo_size_km = 162.0
-        result = remove_cube_halo(self.cube, 1000.0 * halo_size_km)
+        result = remove_cube_halo(self.cube, self.halo_size_m)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.attributes["history"], self.attrs["history"])
         self.assertEqual(result.attributes["title"], self.attrs["title"])
@@ -506,10 +503,9 @@ class Test_remove_cube_halo(IrisTest):
 
     def test_values(self):
         """Test function returns a cube with expected shape and data"""
-        halo_size_km = 162.0
         self.cube_1d.data[0, 2, :] = np.arange(0, 11)
         self.cube_1d.data[0, :, 2] = np.arange(0, 11)
-        result = remove_cube_halo(self.cube_1d, 1000.0 * halo_size_km)
+        result = remove_cube_halo(self.cube_1d, self.halo_size_m)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertSequenceEqual(result.data.shape, (1, 9, 9))
         self.assertArrayEqual(result.data[0, 1, :], np.arange(1, 10))

@@ -40,9 +40,11 @@ from iris.tests import IrisTest
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
 from improver.blending.weighted_blend import MergeCubesForWeightedBlending
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 from improver.utilities.warnings_handler import ManageWarnings
-
-from ...set_up_test_cubes import set_up_probability_cube, set_up_variable_cube
 
 MODEL_WEIGHTS = {
     "nc_det": {"forecast_period": [0, 4, 8], "weights": [1, 0, 0], "units": "hours"},
@@ -69,6 +71,9 @@ def set_up_masked_cubes():
     # 5x5 matrix results in grid spacing of 200 km
     base_data = np.ones((5, 5), dtype=np.float32)
 
+    # Calculate grid spacing
+    grid_spacing = np.around(1000000.0 / 5)
+
     # set up a UKV cube with some rain
     rain_data = np.array([0.9 * base_data, 0.5 * base_data, 0 * base_data])
     ukv_cube = set_up_probability_cube(
@@ -80,6 +85,7 @@ def set_up_masked_cubes():
         frt=cycletime,
         spatial_grid="equalarea",
         standard_grid_metadata="uk_det",
+        grid_spacing=grid_spacing,
     )
 
     # set up a masked nowcast cube with more rain
@@ -95,6 +101,7 @@ def set_up_masked_cubes():
         frt=cycletime,
         spatial_grid="equalarea",
         attributes={"mosg__model_configuration": "nc_det"},
+        grid_spacing=grid_spacing,
     )
 
     return iris.cube.CubeList([ukv_cube, nowcast_cube])

@@ -37,9 +37,8 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
-
-from ..set_up_test_cubes import set_up_variable_cube
 
 
 class Test_process(IrisTest):

@@ -39,13 +39,12 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.metadata.constants.time_types import TIME_COORDS
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-
-from ...set_up_test_cubes import (
+from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class Test_enforce_coordinate_ordering(IrisTest):

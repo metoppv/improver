@@ -42,8 +42,7 @@ from improver.metadata.utilities import (
     generate_hash,
     generate_mandatory_attributes,
 )
-
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_create_new_diagnostic_cube(unittest.TestCase):
@@ -283,7 +282,7 @@ class Test_generate_hash(unittest.TestCase):
         cube = set_up_variable_cube(np.ones((3, 3)).astype(np.float32))
         hash_input = cube.coord("latitude")
         result = generate_hash(hash_input)
-        expected = "62267c5827656790244ef2f26b708a1be5dcb491e4ae36b9db9b47c2aaaadf7e"
+        expected = "68fa646ab98ab7a994e07cc1e4e42f080f6d3b9b8b70166cd0be176290391b15"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 
@@ -317,7 +316,7 @@ class Test_create_coordinate_hash(unittest.TestCase):
 
         hash_input = set_up_variable_cube(np.zeros((3, 3)).astype(np.float32))
         result = create_coordinate_hash(hash_input)
-        expected = "b26ca16d28f6e06ea4573fd745f55750c6dd93a06891f1b4ff0c6cd50585ac08"
+        expected = "54812a6fed0f92fe75d180d63a6bd6c916407ea1e7e5fd32a5f20f86ea997fac"
         self.assertIsInstance(result, str)
         self.assertEqual(result, expected)
 

@@ -38,12 +38,17 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.nbhood.recursive_filter import RecursiveFilter
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.pad_spatial import pad_cube_with_halo
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...set_up_test_cubes import set_up_variable_cube
 from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
+
+
+def _mean_points(points):
+    """Create an array of the mean of adjacent points in original array"""
+    return np.array((points[:-1] + points[1:]) / 2, dtype=np.float32)
 
 
 class Test__repr__(IrisTest):
@@ -87,18 +92,21 @@ class Test_RecursiveFilter(IrisTest):
             data, name="precipitation_amount", units="kg m^-2 s^-1"
         )
 
-        mean_x_points = np.array([-15.0, -5.0, 5.0, 15.0], dtype=np.float32)
-        mean_y_points = np.array([45.0, 55.0, 65.0, 75.0], dtype=np.float32)
-
         # Generate x smoothing_coefficients_cube with correct dimensions 5 x 4
         self.smoothing_coefficients_cube_x = set_up_variable_cube(
             np.full((5, 4), 0.5, dtype=np.float32), name="smoothing_coefficient_x"
+        )
+        mean_x_points = _mean_points(
+            self.smoothing_coefficients_cube_x.coord(axis="y").points
         )
         self.smoothing_coefficients_cube_x.coord(axis="x").points = mean_x_points
 
         # Generate y smoothing_coefficients_cube with correct dimensions 5 x 4
         self.smoothing_coefficients_cube_y = set_up_variable_cube(
             np.full((4, 5), 0.5, dtype=np.float32), name="smoothing_coefficient_y"
+        )
+        mean_y_points = _mean_points(
+            self.smoothing_coefficients_cube_y.coord(axis="x").points
         )
         self.smoothing_coefficients_cube_y.coord(axis="y").points = mean_y_points
 
