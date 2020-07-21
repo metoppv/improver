@@ -149,8 +149,20 @@ class Test_save_netcdf(IrisTest):
         with self.assertRaises(ValueError):
             save_netcdf(self.cube, self.filepath, compression_level=10)
 
+    def _stats_diff(self, data):
+        """ Calculates the difference between the min, mean, median and max for the reference data and the calculated data"""
+        stats_func = lambda data: np.array(
+            [np.min(data), np.mean(data), np.median(data), np.max(data)]
+        )
+        return stats_func(self.cube.data) - stats_func(data)
+
     def test_least_significant_digit_1_no_compression(self):
         """ Test setting the least significant digit to 1 with no compression """
+
+        stats_func = lambda data: np.array(
+            [np.min(data), np.mean(data), np.median(data), np.max(data)]
+        )
+
         save_netcdf(
             self.cube, self.filepath, compression_level=0, least_significant_digit=1
         )
@@ -162,6 +174,8 @@ class Test_save_netcdf(IrisTest):
 
         data_cube = load_cube(self.filepath)
         self.assertArrayAlmostEqual(data_cube.data, self.cube.data, decimal=1)
+        with self.assertRaises(AssertionError):
+            self.assertArrayEqual(self._stats_diff(data_cube.data), np.zeros(4))
 
     def test_least_significant_digit_3_compression_3(self):
         """ Test setting the least significant digit to 3 with compression level 3 """
@@ -176,6 +190,8 @@ class Test_save_netcdf(IrisTest):
 
         data_cube = load_cube(self.filepath)
         self.assertArrayAlmostEqual(data_cube.data, self.cube.data, decimal=3)
+        with self.assertRaises(AssertionError):
+            self.assertArrayEqual(self._stats_diff(data_cube.data), np.zeros(4))
 
     def test_basic_cube_list(self):
         """
