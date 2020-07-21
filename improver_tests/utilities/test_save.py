@@ -158,11 +158,6 @@ class Test_save_netcdf(IrisTest):
 
     def test_least_significant_digit_1_no_compression(self):
         """ Test setting the least significant digit to 1 with no compression """
-
-        stats_func = lambda data: np.array(
-            [np.min(data), np.mean(data), np.median(data), np.max(data)]
-        )
-
         save_netcdf(
             self.cube, self.filepath, compression_level=0, least_significant_digit=1
         )
