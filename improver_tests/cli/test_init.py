@@ -158,8 +158,8 @@ class Test_with_output(unittest.TestCase):
 
     @patch("improver.utilities.save.save_netcdf")
     def test_with_output(self, m):
-        """Tests that save_netcdf is called with object and string and default
-        compression_level=1"""
+        """Tests that save_netcdf is called with object and string, default
+        compression_level=1 and default least_significant_digit=None"""
         # pylint disable is needed as it can't see the wrappers output kwarg.
         # pylint: disable=E1123
         result = wrapped_with_output(2, output="foo")
@@ -168,7 +168,7 @@ class Test_with_output(unittest.TestCase):
 
     @patch("improver.utilities.save.save_netcdf")
     def test_with_output_compression_level(self, m):
-        """Tests that save_netcdf is called with object and string and compression_level=9"""
+        """Tests that save_netcdf is called with object and string, compression_level=9 and default least_significant_digit=None"""
         # pylint disable is needed as it can't see the wrappers output kwarg.
         # pylint: disable=E1123
         result = wrapped_with_output(2, output="foo", compression_level=9)
@@ -177,7 +177,7 @@ class Test_with_output(unittest.TestCase):
 
     @patch("improver.utilities.save.save_netcdf")
     def test_with_output_no_compression(self, m):
-        """Tests that save_netcdf is called with object and string and compression_level=0 """
+        """Tests that save_netcdf is called with object and string, compression_level=0 and default least_significant_digit=None"""
         # pylint disable is needed as it can't see the wrappers output kwarg.
         # pylint: disable=E1123
         result = wrapped_with_output(2, output="foo", compression_level=0)
