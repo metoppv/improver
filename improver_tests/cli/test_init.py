@@ -186,7 +186,7 @@ class Test_with_output(unittest.TestCase):
 
     @patch("improver.utilities.save.save_netcdf")
     def test_with_output_with_least_significant_figure(self, m):
-        """Tests that save_netcdf is called with object and string and compression_level=0 """
+        """Tests that save_netcdf is called with object and string, compression_level=0 and least_significant_digit=2 """
         # pylint disable is needed as it can't see the wrappers output kwarg.
         # pylint: disable=E1123
         result = wrapped_with_output(
