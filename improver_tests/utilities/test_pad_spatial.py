@@ -37,6 +37,7 @@ import numpy as np
 from iris.coords import DimCoord
 from iris.tests import IrisTest
 
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.pad_spatial import (
     _create_cube_with_padded_data,
     create_cube_with_halo,
@@ -45,8 +46,6 @@ from improver.utilities.pad_spatial import (
     remove_cube_halo,
     remove_halo_from_cube,
 )
-
-from ..set_up_test_cubes import set_up_variable_cube
 
 
 class Test_pad_coord(IrisTest):

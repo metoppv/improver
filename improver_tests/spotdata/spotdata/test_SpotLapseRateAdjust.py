@@ -40,14 +40,13 @@ from improver.constants import DALR
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-from improver.utilities.temporal import iris_time_to_datetime
-
-from ...set_up_test_cubes import (
+from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
     construct_yx_coords,
     set_up_variable_cube,
 )
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.temporal import iris_time_to_datetime
 
 
 class Test_SpotLapseRateAdjust(IrisTest):

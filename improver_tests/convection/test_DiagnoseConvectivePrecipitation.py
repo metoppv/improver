@@ -42,7 +42,10 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.convection import DiagnoseConvectivePrecipitation
-from improver_tests.set_up_test_cubes import add_coordinate, set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
 
 # Fraction to convert from mm/hr to m/s.
 # m/s are SI units, however, mm/hr values are easier to handle.

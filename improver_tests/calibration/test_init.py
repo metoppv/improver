@@ -37,7 +37,7 @@ import iris
 import numpy as np
 
 from improver.calibration import split_forecasts_and_truth
-from improver_tests.set_up_test_cubes import (
+from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )

@@ -39,6 +39,7 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.utilities.cube_extraction import (
     apply_extraction,
     create_constraint,
@@ -47,8 +48,6 @@ from improver.utilities.cube_extraction import (
     is_complex_parsing_required,
     parse_constraint_list,
 )
-
-from ..set_up_test_cubes import set_up_probability_cube
 
 
 def islambda(function):

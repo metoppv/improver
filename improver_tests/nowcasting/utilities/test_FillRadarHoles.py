@@ -36,8 +36,7 @@ from iris.cube import Cube
 from numpy.ma import MaskedArray
 
 from improver.nowcasting.utilities import FillRadarHoles
-
-from ...set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 @pytest.fixture(name="rainrate")

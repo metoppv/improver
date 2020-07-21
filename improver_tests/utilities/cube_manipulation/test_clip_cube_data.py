@@ -38,9 +38,8 @@ import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import clip_cube_data
-
-from ...set_up_test_cubes import set_up_variable_cube
 
 
 class Test_clip_cube_data(IrisTest):

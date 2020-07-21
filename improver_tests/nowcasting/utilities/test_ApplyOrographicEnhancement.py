@@ -40,8 +40,7 @@ from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
-
-from ...set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 MIN_PRECIP_RATE_MMH = ApplyOrographicEnhancement("add").min_precip_rate_mmh
 

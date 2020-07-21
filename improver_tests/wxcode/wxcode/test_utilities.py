@@ -46,6 +46,10 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.grids import ELLIPSOID, STANDARD_GRID_CCRS
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.wxcode.utilities import (
@@ -56,7 +60,6 @@ from improver.wxcode.utilities import (
     update_daynight,
     weather_code_attributes,
 )
-from improver_tests.set_up_test_cubes import add_coordinate, set_up_variable_cube
 
 
 def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=43):

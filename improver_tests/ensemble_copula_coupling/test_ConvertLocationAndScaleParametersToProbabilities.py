@@ -41,9 +41,9 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToProbabilities as Plugin,
 )
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
-from ..set_up_test_cubes import set_up_probability_cube
 from .ecc_test_data import ECC_TEMPERATURE_PROBABILITIES, ECC_TEMPERATURE_THRESHOLDS
 
 

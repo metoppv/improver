@@ -40,8 +40,10 @@ from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseDefaultWeightsLinear as LinearWeights
-
-from ...set_up_test_cubes import add_coordinate, set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
 
 
 class Test__init__(IrisTest):
