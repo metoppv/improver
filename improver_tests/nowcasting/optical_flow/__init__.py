@@ -32,7 +32,7 @@
 
 import numpy as np
 
-from ...set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 def set_up_test_cube(data, name, units, time, gridsize=30):
@@ -49,10 +49,13 @@ def set_up_test_cube(data, name, units, time, gridsize=30):
     Returns:
         iris.cube.Cube
     """
-    coord_points = 2000 * np.arange(gridsize, dtype=np.float32)  # in metres
-    cube = set_up_variable_cube(
-        data, name=name, units=units, spatial_grid="equalarea", time=time, frt=time,
+    return set_up_variable_cube(
+        data,
+        name=name,
+        units=units,
+        spatial_grid="equalarea",
+        time=time,
+        frt=time,
+        grid_spacing=2000,
+        domain_corner=(0, 0),
     )
-    cube.coord(axis="x").points = coord_points
-    cube.coord(axis="y").points = coord_points
-    return cube

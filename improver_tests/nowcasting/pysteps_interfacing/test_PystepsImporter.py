@@ -36,8 +36,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.nowcasting.pysteps_interfacing import PystepsImporter
-
-from ...set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 class Test__init__(IrisTest):
@@ -62,6 +61,7 @@ class Test_process_cube(IrisTest):
             name="rainfall_rate",
             units="m s-1",
             spatial_grid="equalarea",
+            grid_spacing=2000,
             attributes={"institution": "Met Office"},
         )
         self.precip_data_mmh = 0.36 * np.ones((5, 5), dtype=np.float32)
@@ -100,12 +100,12 @@ class Test_process_cube(IrisTest):
             "transform": None,
             "institution": "Met Office",
             "projection": projection,
-            "xpixelsize": 200000.0,
-            "x1": -400000.0,
-            "x2": 400000.0,
-            "ypixelsize": 200000.0,
-            "y1": -100000.0,
-            "y2": 700000.0,
+            "xpixelsize": 2000.0,
+            "x1": -4000.0,
+            "x2": 4000.0,
+            "ypixelsize": 2000.0,
+            "y1": -4000.0,
+            "y2": 4000.0,
             "yorigin": "lower",
         }
 

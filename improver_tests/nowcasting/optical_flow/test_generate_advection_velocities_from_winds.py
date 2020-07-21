@@ -38,9 +38,9 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import generate_advection_velocities_from_winds
+from improver.synthetic_data.set_up_test_cubes import add_coordinate
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ...set_up_test_cubes import add_coordinate
 from . import set_up_test_cube
 
 

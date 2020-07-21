@@ -42,8 +42,8 @@ from improver.nowcasting.optical_flow import (
     _perturb_background_flow,
     check_input_coords,
 )
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
-from ...set_up_test_cubes import set_up_variable_cube
 from ..forecasting.test_AdvectField import set_up_xy_velocity_cube
 
 
