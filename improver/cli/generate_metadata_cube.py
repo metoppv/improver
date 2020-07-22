@@ -43,7 +43,6 @@ def process(
     time="20171110T0400Z",
     frt="20171110T0400Z",
     ensemble_members=8,
-    realizations=None,
     attributes=None,
     resolution=None,
     domain_corner: cli.comma_separated_list = None,
@@ -64,8 +63,6 @@ def process(
             Single cube forecast reference time. Datetime string of format YYYYMMDDTHHMMZ.
         ensemble_members (Optional[int]):
             Number of ensemble members.
-        realizations (Optional[csv]):
-            CSV list of realization input data.
         attributes (Optional[str]):
             JSON file of additional metadata attributes.
         resolution (Optional[float]):
@@ -74,8 +71,8 @@ def process(
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
         npoints (Optional[int]):
             Number of points along a single axis.
-        height_levels (Optional[int]):
-            Number of altitude/pressure levels.
+        height_levels (Optional[List[float]]):
+            List of altitude/pressure levels.
     
     Returns:
         iris.cube.Cube:
@@ -92,13 +89,15 @@ def process(
     if resolution is not None:
         resolution = float(resolution)
 
+    if height_levels is not None:
+        height_levels = [float(h) for h in height_levels]
+
     return generate_metadata(
         name,
         spatial_grid=spatial_grid,
         time=time,
         frt=frt,
         ensemble_members=ensemble_members,
-        realizations=realizations,
         attributes=attributes,
         resolution=resolution,
         domain_corner=domain_corner,

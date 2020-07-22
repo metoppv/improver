@@ -62,7 +62,6 @@ def generate_metadata(
     time="20171110T0400Z",
     frt="20171110T0400Z",
     ensemble_members=8,
-    realizations=None,
     attributes=None,
     resolution=None,
     domain_corner=None,
@@ -93,8 +92,8 @@ def generate_metadata(
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
         npoints (Optional[int]):
             Number of points along a single axis.
-        height_levels (Optional[int]):
-            Number of altitude/pressure levels.
+        height_levels (Optional[List[float]]):
+            List of altitude/pressure levels.
 
     Returns:
         iris.cube.Cube:
@@ -115,11 +114,7 @@ def generate_metadata(
         elif spatial_grid == "equalarea":
             resolution = 2000
 
-    data = None
-    if realizations is None:
-        data = _create_data_array(ensemble_members, npoints, height_levels)
-    else:
-        data = realizations
+    data = _create_data_array(ensemble_members, npoints, height_levels)
 
     standard_grid_metadata = None
     if ensemble_members > 1:
@@ -139,7 +134,7 @@ def generate_metadata(
         time=time,
         # time_bounds=None,
         frt=frt,
-        realizations=realizations,
+        # realizations=realizations,
         # include_scalar_coords=None,
         attributes=attributes,
         standard_grid_metadata=standard_grid_metadata,
