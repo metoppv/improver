@@ -260,13 +260,28 @@ def test__group_timezones(timezone_mask):
         result = plugin._group_timezones(timezone_mask)
 
         assert len(result) == len(groups)
-        for group, cube in zip(groups.values(), result):
+        for group, cube in zip(list(groups.values()), result):
             assert cube.coord("UTC_offset").points[0] == group[-1]
             # A single UTC_offset point has no bounds, hence this try-except
             try:
                 assert_array_equal(cube.coord("UTC_offset").bounds[0], group)
             except TypeError:
                 pass
+
+
+def test__group_timezones_empty_group(timezone_mask):
+    """Test the grouping of different UTC offsets into larger groups in a case
+    for which a specified group contains no data."""
+
+    groups = {0: [0, 1], 1: [2, 3], 2: [4, 10]}
+
+    plugin = GenerateTimezoneMask(groupings=groups)
+    result = plugin._group_timezones(timezone_mask)
+
+    assert len(result) == 2
+    for group, cube in zip(list(groups.values())[:-1], result):
+        assert cube.coord("UTC_offset").points[0] == group[-1]
+        assert_array_equal(cube.coord("UTC_offset").bounds[0], group)
 
 
 @pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])

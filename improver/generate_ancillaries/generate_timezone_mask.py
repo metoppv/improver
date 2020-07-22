@@ -266,6 +266,8 @@ class GenerateTimezoneMask(BasePlugin):
                 UTC_offset=lambda cell: group[0] <= cell <= group[-1]
             )
             subset = timezone_mask.extract(constraint)
+            if not subset:
+                continue
             subset = subset.merge_cube()
             if subset.coord("UTC_offset").shape[0] > 1:
                 offset_max = subset.coord("UTC_offset").points.max()
@@ -285,8 +287,8 @@ class GenerateTimezoneMask(BasePlugin):
             cube (iris.cube.Cube):
                 A cube with the desired grid. If no 'time' is specified in
                 the plugin configuration the time on this cube will be used
-                for determining the UTC offsets (this is only relevant if
-                daylights savings times are being included).
+                for determining the validity time of the calculated UTC offsets
+                (this is only relevant if daylights savings times are being included).
         Returns:
             iris.cube.Cube:
                 A timezone mask cube.
