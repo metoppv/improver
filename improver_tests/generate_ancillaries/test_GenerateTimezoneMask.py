@@ -262,11 +262,12 @@ def test__group_timezones(timezone_mask):
         assert len(result) == len(groups)
         for group, cube in zip(list(groups.values()), result):
             assert cube.coord("UTC_offset").points[0] == group[-1]
-            # A single UTC_offset point has no bounds, hence this try-except
-            try:
+            assert cube.coord("UTC_offset").bounds is not None
+            if len(group) > 1:
                 assert_array_equal(cube.coord("UTC_offset").bounds[0], group)
-            except TypeError:
-                pass
+            else:
+                assert cube.coord("UTC_offset").bounds[0][0] == group[0]
+                assert cube.coord("UTC_offset").bounds[0][-1] == group[0]
 
 
 def test__group_timezones_empty_group(timezone_mask):

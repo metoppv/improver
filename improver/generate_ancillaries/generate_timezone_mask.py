@@ -273,6 +273,9 @@ class GenerateTimezoneMask(BasePlugin):
                 offset_max = subset.coord("UTC_offset").points.max()
                 subset = collapsed(subset, "UTC_offset", iris.analysis.MIN)
                 subset.coord("UTC_offset").points = [offset_max]
+            else:
+                point, = subset.coord('UTC_offset').points
+                subset.coord('UTC_offset').bounds = [point, point]
             grouped_timezone_masks.append(subset)
         return grouped_timezone_masks
 
