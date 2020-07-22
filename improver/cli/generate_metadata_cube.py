@@ -73,7 +73,7 @@ def process(
             Number of points along a single axis.
         height_levels (Optional[List[float]]):
             List of altitude/pressure levels.
-    
+
     Returns:
         iris.cube.Cube:
             Output of generate_metadata()

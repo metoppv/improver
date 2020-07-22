@@ -33,7 +33,6 @@
 import numpy as np
 from iris.std_names import STD_NAMES
 
-from improver.metadata.constants.mo_attributes import MOSG_GRID_DEFINITION
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.temporal import cycletime_to_datetime
 
@@ -101,7 +100,7 @@ def generate_metadata(
     """
     units = _get_unit(name)
 
-    if spatial_grid != "latlon" and spatial_grid != "equalarea":
+    if spatial_grid not in ("latlon", "equalarea"):
         raise ValueError(
             "Spatial grid {} not supported. Choose either latlon or equalarea.".format(
                 spatial_grid
