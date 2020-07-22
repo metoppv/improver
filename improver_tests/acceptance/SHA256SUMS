@@ -28,6 +28,10 @@ b4b7b5810cd993538d771f1fee7578568481dfc6b3203aed6eb73f3e58c42079  ./apply-lapse-
 62830b46a0d7e958ea7322df73b33b2ba29084f6cd48d37be080316833f22290  ./apply-lapse-rate/realizations/enukx_orography.nc
 4f1a335894cb8a79425144fa3ca200449794046102fb8bf4316734fd0458e736  ./apply-lapse-rate/realizations/enukx_temperature.nc
 6fabae563cd4b8b8c30aa8cac63daf9ac3bcf899f6c8326bbf97c90364e5abbf  ./apply-lapse-rate/realizations/kgo.nc
+15bddae27ff2c8d1e46e90a3ecfd9becd8ebbbc9d1e3974ccfc145790a7ef592  ./apply-night-mask/global_basic/input.nc
+3fd42cca343388ddb110c8b1c1eacf878d2e4f4d7ff9dad7e79f61fceb328695  ./apply-night-mask/global_basic/kgo.nc
+6564fd98afbed70eb278f8fc33fbba7bc2d3e621dc64c91e691d846ba89b707b  ./apply-night-mask/uk_basic/input.nc
+24903d364a70212cddcf200a1434c78ed7d3574577529ece721ffe5f161f191d  ./apply-night-mask/uk_basic/kgo.nc
 d45b0d66f47dc40f67df5a6ffc5a338aa33959cd1928a3078d2f303c21fd0539  ./apply-reliability-calibration/basic/collapsed_table.nc
 429c6278c294b2106de8982a81df2f494f533639384092d444a16da9fff3ec23  ./apply-reliability-calibration/basic/forecast.nc
 d54ddf4cfe900310c7ede345cb56dad6100ef1ac8aaa40d97fe17f69ed7bdb93  ./apply-reliability-calibration/basic/kgo.nc
