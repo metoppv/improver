@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to set night values to zero within the input cube."""
+"""Script to set night values to zero for UV index."""
 
 from improver import cli
 
@@ -37,15 +37,15 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube):
-    """Masks night values from input cube to generate day only output.
+    """Sets night values to zero for UV index.
 
     Args:
         cube (iris.cube.Cube):
-            Cube to be masked.
+            Cube that will have night values set to zero.
 
     Returns:
         iris.cube.Cube:
-            Input cube with all night values masked out.
+            Input cube with all night values set to zero.
 
     """
 

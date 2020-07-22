@@ -40,7 +40,7 @@ run_cli = acc.run_cli(CLI)
 
 
 def test_basic_uk(tmp_path):
-    """Test UK day night mask operation (multiple realizations)"""
+    """Test UK apply night mask operation (multiple realizations)"""
     kgo_dir = acc.kgo_root() / "apply-night-mask/uk_basic"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
@@ -50,7 +50,7 @@ def test_basic_uk(tmp_path):
 
 
 def test_basic_global(tmp_path):
-    """Test global day night mask operation (multiple realizations)"""
+    """Test global apply night mask operation (multiple realizations)"""
     kgo_dir = acc.kgo_root() / "apply-night-mask/global_basic"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
