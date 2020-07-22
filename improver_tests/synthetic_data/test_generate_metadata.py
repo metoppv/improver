@@ -42,32 +42,38 @@ from improver.utilities.temporal import iris_time_to_datetime
 
 @pytest.fixture(name="default_data")
 def default_data_fixture(npoints=10000):
+    """ Default data array """
     return np.zeros((8, npoints, npoints), dtype=int)
 
 
 @pytest.fixture(name="default_resolution_latlon")
 def default_resolution_latlon_fixture():
+    """ Default resolution for lat/lon grid """
     return 0.02
 
 
 @pytest.fixture(name="default_resolution_equalarea")
 def default_resolution_equalarea_fixture():
+    """ Default resolution for equal area grid """
     return 2000
 
 
 @pytest.fixture(name="default_npoints")
 def default_npoints_fixture():
+    """ Default npoints """
     return 71
 
 
 @pytest.fixture(name="default_ensemble_members")
 def default_ensemble_members_fixture():
+    """ Default ensemble members """
     return 8
 
 
 def test_default_cube(
-    default_resolution_latlon, default_npoints, default_ensemble_members,
+    default_resolution_latlon, default_npoints, default_ensemble_members
 ):
+    """ Tests default cube generated """
     cube = generate_metadata("air_pressure")
 
     assert isinstance(cube, iris.cube.Cube)
@@ -93,13 +99,15 @@ def test_default_cube(
 
 
 def test_unknown_output_variable():
+    """ Tests error raised if output variable name not in iris.std_names.STD_NAMES """
     name = "humidity"
 
     with pytest.raises(KeyError):
         generate_metadata(name)
 
 
-def test_set_npoints(default_ensemble_members,):
+def test_set_npoints(default_ensemble_members):
+    """ Tests cube generated with specified npoints and the rest default values """
     npoints = 500
 
     cube = generate_metadata("air_pressure", npoints=npoints)
@@ -122,9 +130,8 @@ def test_set_npoints(default_ensemble_members,):
     )
 
 
-def test_set_time(
-    default_resolution_latlon, default_npoints, default_ensemble_members,
-):
+def test_set_time(default_resolution_latlon, default_npoints, default_ensemble_members):
+    """ Tests cube generated with specified time and the rest default values """
     cube = generate_metadata("air_pressure", time="20200101T0000Z")
 
     assert isinstance(cube, iris.cube.Cube)
@@ -149,9 +156,8 @@ def test_set_time(
     )
 
 
-def test_set_frt(
-    default_resolution_latlon, default_npoints, default_ensemble_members,
-):
+def test_set_frt(default_resolution_latlon, default_npoints, default_ensemble_members):
+    """ Tests cube generated with specified frt and the rest default values """
     cube = generate_metadata("air_pressure", frt="20170101T0000Z")
 
     assert isinstance(cube, iris.cube.Cube)
@@ -176,9 +182,8 @@ def test_set_frt(
     )
 
 
-def test_set_resolution(
-    default_npoints, default_ensemble_members,
-):
+def test_set_resolution(default_npoints, default_ensemble_members):
+    """ Tests cube generated with specified resolution and the rest default values """
     resolution = 5
     cube = generate_metadata("air_pressure", resolution=resolution)
 
@@ -199,7 +204,8 @@ def test_set_resolution(
     assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
 
 
-def test_set_ensemble_members(default_npoints,):
+def test_set_ensemble_members(default_npoints):
+    """ Tests cube generated with specified number of ensemble members and the rest default values """
     ensemble_members = 4
 
     cube = generate_metadata("air_pressure", ensemble_members=ensemble_members)
@@ -219,7 +225,8 @@ def test_set_ensemble_members(default_npoints,):
     assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
 
 
-def test_disable_ensemble(default_npoints,):
+def test_disable_ensemble(default_npoints):
+    """ Tests cube generated without realizations dimension and the rest default values """
     cube = generate_metadata("air_pressure", ensemble_members=0)
 
     assert isinstance(cube, iris.cube.Cube)
@@ -236,9 +243,8 @@ def test_disable_ensemble(default_npoints,):
     assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
 
 
-def test_set_spatial_grid(
-    default_npoints, default_ensemble_members,
-):
+def test_set_spatial_grid(default_npoints, default_ensemble_members):
+    """ Tests cube generated with equal area grid and the rest default values """
     spatial_grid = "equalarea"
 
     cube = generate_metadata("air_pressure", spatial_grid=spatial_grid)
@@ -259,9 +265,8 @@ def test_set_spatial_grid(
 
 
 @pytest.mark.xfail
-def test_set_altitude_levels(
-    default_npoints, default_ensemble_members,
-):
+def test_set_altitude_levels(default_npoints, default_ensemble_members):
+    """ Tests cube generated with specified height levels as an additional dimension and the rest default values """
     height_levels = 3
 
     cube = generate_metadata("air_pressure", height_levels=height_levels)
