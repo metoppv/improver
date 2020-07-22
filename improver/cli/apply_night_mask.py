@@ -50,7 +50,6 @@ def process(cube: cli.inputcube):
     """
 
     import numpy as np
-    import numpy.ma as ma
 
     from improver.utilities.solar import DayNightMask
 
@@ -58,5 +57,5 @@ def process(cube: cli.inputcube):
     # Broadcast mask to shape of input cube to account for additional dimensions.
     mask = np.broadcast_to(mask, cube.shape)
     # setting night values to zero.
-    cube.data = ma.where(mask == DayNightMask().night, 0, cube.data)
+    cube.data = np.where(mask == DayNightMask().night, 0, cube.data)
     return cube
