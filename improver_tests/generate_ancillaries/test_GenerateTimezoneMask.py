@@ -40,8 +40,7 @@ from iris.cube import Cube, CubeList
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from improver.generate_ancillaries.generate_timezone_mask import GenerateTimezoneMask
-
-from ..set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 GLOBAL_ATTRIBUTES = {
     "title": "MOGREPS-G Model Forecast on Global 20 km Standard Grid",
