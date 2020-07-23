@@ -233,27 +233,23 @@ def _create_dimension_coord(coord_array, data, i, coord_name, coord_units):
 def _get_dimension_coords(data, y_coord, x_coord, realizations, height_levels):
     """ Create array of all dimension coordinates """
     ndims = len(data.shape)
-    if ndims == 4:
-        realization_coord = _create_dimension_coord(
-            realizations, data, 0, "realization", "1"
-        )
-        height_coord = _create_dimension_coord(height_levels, data, 1, "height", "m")
-        dim_coords = [
-            (realization_coord, 0),
-            (height_coord, 1),
-            (y_coord, 2),
-            (x_coord, 3),
-        ]
-    elif ndims == 3:
-        if height_levels is None:
-            leading_coord = _create_dimension_coord(
+    dim_coords = []
+    if ndims in (2, 3, 4):
+        if (height_levels is not None and ndims == 4) or (
+            height_levels is None and ndims == 3
+        ):
+            realization_coord = _create_dimension_coord(
                 realizations, data, 0, "realization", "1"
             )
-        else:
-            leading_coord = _create_dimension_coord(height_levels, data, 0, "height", "m")
-        dim_coords = [(leading_coord, 0), (y_coord, 1), (x_coord, 2)]
-    elif ndims == 2:
-        dim_coords = [(y_coord, 0), (x_coord, 1)]
+            dim_coords.append((realization_coord, 0))
+        if height_levels is not None and ndims in (3, 4):
+            i = len(dim_coords)
+            height_coord = _create_dimension_coord(
+                height_levels, data, i, "height", "m"
+            )
+            dim_coords.append((height_coord, i))
+        dim_coords.append((y_coord, len(dim_coords)))
+        dim_coords.append((x_coord, len(dim_coords)))
     else:
         raise ValueError(
             "Expected 2 to 4 dimensions on input data: got {}".format(ndims)
@@ -337,7 +333,9 @@ def set_up_variable_cube(
         domain_corner=domain_corner,
     )
 
-    dim_coords = _get_dimension_coords(data, y_coord, x_coord, realizations, height_levels)
+    dim_coords = _get_dimension_coords(
+        data, y_coord, x_coord, realizations, height_levels
+    )
 
     # construct list of aux_coords_and_dims
     scalar_coords = construct_scalar_time_coords(time, time_bounds, frt)
