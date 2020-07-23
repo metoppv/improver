@@ -56,8 +56,8 @@ UK_ATTRIBUTES = {
 }
 
 
-@pytest.fixture
-def global_grid() -> Cube:
+@pytest.fixture(name="global_grid")
+def global_grid_fixture() -> Cube:
     """Global grid template"""
 
     data = np.zeros((19, 37), dtype=np.float32)
@@ -71,8 +71,8 @@ def global_grid() -> Cube:
     return cube
 
 
-@pytest.fixture
-def uk_grid() -> Cube:
+@pytest.fixture(name="uk_grid")
+def uk_grid_fixture() -> Cube:
     """UK grid template"""
 
     data = np.zeros((21, 22), dtype=np.float32)
@@ -87,8 +87,8 @@ def uk_grid() -> Cube:
     return cube
 
 
-@pytest.fixture
-def timezone_mask() -> CubeList:
+@pytest.fixture(name="timezone_mask")
+def timezone_mask_fixture() -> CubeList:
     """A timezone mask cubelist"""
 
     data = np.zeros((19, 37), dtype=np.float32)
@@ -148,10 +148,10 @@ def test__get_coordinate_pairs(request, grid_fixture):
     result = GenerateTimezoneMask()._get_coordinate_pairs(grid)
 
     assert isinstance(result, np.ndarray)
-    assert result.shape == (2, np.product(grid.shape))
+    assert result.shape == (np.product(grid.shape), 2)
     for i, ii in enumerate(sample_points):
         assert_array_almost_equal(
-            result[:, ii], expected_data[grid_fixture][i], decimal=3
+            result[ii, :], expected_data[grid_fixture][i], decimal=3
         )
 
 
@@ -172,9 +172,10 @@ def test__calculate_tz_offsets():
     These test also cover the functionality of _calculate_offset.
     """
     pytest.importorskip("timezonefinder")
+    pytest.importorskip("numba")
 
     # New York, London, and Melbourne
-    coordinate_pairs = np.array([[41, 51.5, -37.9], [-74, 0, 145]])
+    coordinate_pairs = np.array([[41, -74], [51.5, 0], [-37.9, 145]])
 
     # Test ignoring daylights savings, so the result should be consistent
     # regardless of the date.
@@ -216,7 +217,8 @@ def test__calculate_tz_offsets():
 
 
 @pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
-def test__create_template_cube(request, grid_fixture):
+@pytest.mark.parametrize("ignore_dst", [True, False])
+def test__create_template_cube(request, grid_fixture, ignore_dst):
     """Test the construction of a template cube slice, checking the shape
     data types, and attributes."""
 
@@ -228,85 +230,129 @@ def test__create_template_cube(request, grid_fixture):
         "uk_grid": {"shape": (21, 22), "attributes": UK_ATTRIBUTES},
     }
 
-    for ignore_dst in [True, False]:
+    # Set expected includes_daylights_savings attribute
+    expected[grid_fixture]["attributes"]["includes_daylights_savings"] = str(
+        not ignore_dst
+    )
 
-        # Set expected includes_daylights_savings attribute
-        expected[grid_fixture]["attributes"]["includes_daylights_savings"] = str(
-            not ignore_dst
-        )
+    plugin = GenerateTimezoneMask(ignore_dst=ignore_dst, time=time)
+    result = plugin._create_template_cube(grid)
 
-        plugin = GenerateTimezoneMask(ignore_dst=ignore_dst, time=time)
-        result = plugin._create_template_cube(grid)
-
-        assert result.name() == "timezone_mask"
-        assert result.units == 1
-        assert result.coord("time").points[0] == time.timestamp()
-        assert result.coord("time").dtype == np.int64
-        assert result.shape == expected[grid_fixture]["shape"]
-        assert result.dtype == np.int32
-        assert result.attributes == expected[grid_fixture]["attributes"]
+    assert result.name() == "timezone_mask"
+    assert result.units == 1
+    assert result.coord("time").points[0] == time.timestamp()
+    assert result.coord("time").dtype == np.int64
+    assert result.shape == expected[grid_fixture]["shape"]
+    assert result.dtype == np.int32
+    assert result.attributes == expected[grid_fixture]["attributes"]
 
 
-def test__group_timezones(timezone_mask):
+@pytest.mark.parametrize("groups", ({0: [0, 1], 3: [2, 3]}, {0: [0, 2], 3: [3]}))
+def test__group_timezones(timezone_mask, groups):
     """Test the grouping of different UTC offsets into larger groups using a
     user provided specification. The input cube list contains cubes corresponding
     to 4 UTC offsets. Two tests are run, grouping these first into equal sized
     groups, and then into unequally sized groups."""
 
-    groupings = [{0: [0, 1], 1: [2, 3]}, {0: [0, 2], 1: [3]}]
+    plugin = GenerateTimezoneMask(groupings=groups)
+    result = plugin._group_timezones(timezone_mask)
 
-    for groups in groupings:
-        plugin = GenerateTimezoneMask(groupings=groups)
-        result = plugin._group_timezones(timezone_mask)
-
-        assert len(result) == len(groups)
-        for group, cube in zip(list(groups.values()), result):
-            assert cube.coord("UTC_offset").points[0] == group[-1]
-            assert cube.coord("UTC_offset").bounds is not None
-            if len(group) > 1:
-                assert_array_equal(cube.coord("UTC_offset").bounds[0], group)
-            else:
-                assert cube.coord("UTC_offset").bounds[0][0] == group[0]
-                assert cube.coord("UTC_offset").bounds[0][-1] == group[0]
+    assert len(result) == len(groups)
+    for (offset, group), cube in zip(groups.items(), result):
+        assert cube.coord("UTC_offset").points[0] == offset
+        assert cube.coord("UTC_offset").bounds is not None
+        if len(group) > 1:
+            assert_array_equal(cube.coord("UTC_offset").bounds[0], group)
+        else:
+            assert cube.coord("UTC_offset").bounds[0][0] == group[0]
+            assert cube.coord("UTC_offset").bounds[0][-1] == group[0]
 
 
 def test__group_timezones_empty_group(timezone_mask):
     """Test the grouping of different UTC offsets into larger groups in a case
     for which a specified group contains no data."""
 
-    groups = {0: [0, 1], 1: [2, 3], 2: [4, 10]}
+    groups = {0: [0, 1], 3: [2, 3], 6: [4, 10]}
 
     plugin = GenerateTimezoneMask(groupings=groups)
     result = plugin._group_timezones(timezone_mask)
 
     assert len(result) == 2
-    for group, cube in zip(list(groups.values())[:-1], result):
-        assert cube.coord("UTC_offset").points[0] == group[-1]
+    for (offset, group), cube in zip(list(groups.items())[:-1], result):
+        assert cube.coord("UTC_offset").points[0] == offset
         assert_array_equal(cube.coord("UTC_offset").bounds[0], group)
 
 
+@pytest.fixture(name="process_expected")
+def process_expected_fixture() -> callable:
+    """Returns expected results for parameterized process tests."""
+
+    def _make_expected(time, grid) -> dict:
+
+        data_indices = {"global_grid": (12, 2), "uk_grid": (2, 10)}
+
+        expected = {
+            None: {
+                "global_grid": {
+                    "shape": (27, 19, 37),
+                    "min": -12,
+                    "max": 14,
+                    "data": np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1]),
+                },
+                "uk_grid": {
+                    "shape": (4, 21, 22),
+                    "min": -2,
+                    "max": 1,
+                    "data": np.array([1, 1, 0, 0, 0, 1]),
+                },
+                "expected_time": 1510286400,
+            },
+            "20200716T1500Z": {
+                "global_grid": {
+                    "shape": (27, 19, 37),
+                    "min": -12,
+                    "max": 14,
+                    "data": np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
+                },
+                "uk_grid": {
+                    "shape": (5, 21, 22),
+                    "min": -2,
+                    "max": 2,
+                    "data": np.array([1, 1, 1, 1, 0, 1]),
+                },
+                "expected_time": 1594911600,
+            },
+        }
+
+        return (
+            expected[time][grid],
+            expected[time]["expected_time"],
+            data_indices[grid],
+        )
+
+    return _make_expected
+
+
+@pytest.mark.parametrize("time", [None, "20200716T1500Z"])
 @pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
-def test_process(request, grid_fixture):
+def test_process(request, grid_fixture, time, process_expected):
     """Test that the process method returns cubes that take the expected form
     for different grids and different dates.
 
-    The output data is checked in the acceptance tests as a resonably large
-    number of data points are required to reliably check it, making it
-    cumbersome to do here."""
+    The output data is primarily checked in the acceptance tests as a reasonably
+    large number of data points are required to reliably check it. Here we check
+    only a small sample."""
 
-    expected = {
-        "global_grid": {"shape": (27, 19, 37), "min": -12, "max": 14},
-        "uk_grid": {"shape": (4, 21, 22), "min": -2, "max": 1},
-    }
-    expected_times = [1510286400, 1594911600]
-    times = [None, "20200716T1500Z"]
+    pytest.importorskip("timezonefinder")
+    pytest.importorskip("numba")
 
+    expected, expected_time, index = process_expected(time, grid_fixture)
     grid = request.getfixturevalue(grid_fixture)
 
-    for time, expected_time in zip(times, expected_times):
-        result = GenerateTimezoneMask(time=time)(grid)
+    result = GenerateTimezoneMask(time=time, ignore_dst=False)(grid)
 
-        assert result.coord("time").points[0] == expected_time
-        assert result.shape == expected[grid_fixture]["shape"]
-        assert result.coord("UTC_offset").points.min() == expected[grid_fixture]["min"]
-        assert result.coord("UTC_offset").points.max() == expected[grid_fixture]["max"]
+    assert result.coord("time").points[0] == expected_time
+    assert result.shape == expected["shape"]
+    assert result.coord("UTC_offset").points.min() == expected["min"]
+    assert result.coord("UTC_offset").points.max() == expected["max"]
+    assert_array_equal(result.data[index][::4], expected["data"])

@@ -38,7 +38,6 @@ import pytz
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 from pytz import timezone
-from timezonefinder import TimezoneFinder
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -63,14 +62,14 @@ class GenerateTimezoneMask(BasePlugin):
         Configure plugin options to generate the desired ancillary.
 
         Args:
-            ignore_dst (bool):
+            ignore_dst (Optional[bool]):
                 If True, find and use the UTC offset to a grid point ignoring
                 daylights savings.
-            time (str):
+            time (Optional[str]):
                 A datetime specified in the format YYYYMMDDTHHMMZ at which to
                 calculate the mask (UTC). If daylights savings are ignored this
                 will have no impact on the resulting masks.
-            groupings (dict):
+            groupings (Optional[Dict[int, List[int, int]]]):
                 A dictionary specifying how timezones should be grouped if so
                 desired. This dictionary takes the form::
 
@@ -80,6 +79,8 @@ class GenerateTimezoneMask(BasePlugin):
                 groups. This is of use if data is not available at hourly
                 intervals.
         """
+        from timezonefinder import TimezoneFinder
+
         self.tf = TimezoneFinder()
         self.time = time
         self.ignore_dst = ignore_dst
@@ -141,12 +142,26 @@ class GenerateTimezoneMask(BasePlugin):
                     raise ValueError(msg)
             yy, xx = np.meshgrid(latitudes, longitudes, indexing="ij")
 
-        return np.array([yy.flatten(), xx.flatten()])
+        return np.stack([yy.flatten(), xx.flatten()], axis=1)
 
     def _calculate_tz_offsets(self, coordinate_pairs):
         """
         Loop over all the coordinates provided and for each calculate the
         offset from UTC in seconds.
+
+        TimezoneFinder returns a string representation of the timezone for a
+        point if it is defined, e.g. "America/Chicago", otherwise it returns
+        None.
+
+        For points without a national timezone (point_tz = None), usually over
+        the sea, the nautical timezone offset is calculated which is based upon
+        longitude. These are 15 degree wide bands of longitude, centred on the
+        Greenwich meridian; note that the bands corresponding to UTC -/+ 12
+        hours are only 7.5 degrees wide. Here longitudes are enforced between
+        -180 and 180 degrees so the timezone offset can be calculated as:
+
+            offset in hours   = np.around(longitude / 15)
+            offset in seconds = 3600 * np.around(longitude / 15)
 
         Args:
             coordinate_pairs (numpy.array):
@@ -159,29 +174,15 @@ class GenerateTimezoneMask(BasePlugin):
                 to the product of the grid's y-x dimension lengths.
         """
         grid_offsets = []
-        for latitude, longitude in coordinate_pairs.T:
-            point_tz = self._get_timezone(latitude, longitude)
+        for latitude, longitude in coordinate_pairs:
+            point_tz = self.tf.certain_timezone_at(lng=longitude, lat=latitude)
 
             if point_tz is None:
-                grid_offsets.append(3600 * longitude / 15)
+                grid_offsets.append(3600 * np.around(longitude / 15))
             else:
                 grid_offsets.append(self._calculate_offset(point_tz))
 
         return np.array(grid_offsets, dtype=np.int32)
-
-    def _get_timezone(self, latitude, longitude):
-        """
-        Args:
-            latitude, longitude (float):
-                The latitude and longitude for which a timezone should be identified.
-        Returns:
-            str or None:
-                The string representation of the timezone for a point if the
-                point has a defined timezone, e.g. "America/Chicago",
-                otherwise return None.
-        """
-        point_tz = self.tf.certain_timezone_at(lng=longitude, lat=latitude)
-        return point_tz
 
     def _calculate_offset(self, point_tz):
         """
@@ -249,7 +250,17 @@ class GenerateTimezoneMask(BasePlugin):
         intervals, the masks can be grouped to match the intervals of the data.
         For example, 3-hourly interval data might group UTC offsets:
 
-            [-12, -11], [-10, -9, -8], [-7, -6, -5], etc.
+            {12: [-12, -11], 9: [-10, -9, -8], 6: [-7, -6, -5], etc.}
+
+        The dictionary specifying the groupings has a key, which provides the
+        UTC offset to be used for the group. The list contains the UTC offsets
+        that should be grouped together.
+
+        The grouped UTC_offset cubes are collapsed together over the UTC_offset
+        coordinate using iris.analysis.MIN. This means all the unmasked (0)
+        points in each cube are preserved as the dimension is collapsed,
+        enlarging the unmasked region to include all unmaksed points from all
+        the cubes.
 
         Args:
             timezone_mask (iris.cube.CubeList):
@@ -261,7 +272,7 @@ class GenerateTimezoneMask(BasePlugin):
                 different UTC offset cubes to create larger masked regions.
         """
         grouped_timezone_masks = iris.cube.CubeList()
-        for group in self.groupings.values():
+        for offset, group in self.groupings.items():
             constraint = iris.Constraint(
                 UTC_offset=lambda cell: group[0] <= cell <= group[-1]
             )
@@ -270,12 +281,11 @@ class GenerateTimezoneMask(BasePlugin):
                 continue
             subset = subset.merge_cube()
             if subset.coord("UTC_offset").shape[0] > 1:
-                offset_max = subset.coord("UTC_offset").points.max()
                 subset = collapsed(subset, "UTC_offset", iris.analysis.MIN)
-                subset.coord("UTC_offset").points = [offset_max]
+                subset.coord("UTC_offset").points = [offset]
             else:
-                point, = subset.coord('UTC_offset').points
-                subset.coord('UTC_offset').bounds = [point, point]
+                (point,) = subset.coord("UTC_offset").points
+                subset.coord("UTC_offset").bounds = [point, point]
             grouped_timezone_masks.append(subset)
         return grouped_timezone_masks
 
@@ -294,7 +304,10 @@ class GenerateTimezoneMask(BasePlugin):
                 (this is only relevant if daylights savings times are being included).
         Returns:
             iris.cube.Cube:
-                A timezone mask cube.
+                A timezone mask cube with a leading UTC_offset dimension. Each
+                UTC_offset slice contains a field of ones (masked out) and zeros
+                (masked in) that correspond to the grid points whose local times
+                are at the relevant UTC_offset.
         """
         self._set_time(cube)
         coordinate_pairs = self._get_coordinate_pairs(cube)
