@@ -46,7 +46,6 @@ def _get_unit(name):
 
 
 def _create_data_array(ensemble_members, npoints, height_levels):
-    data = None
     if ensemble_members > 1:
         data = np.zeros((ensemble_members, npoints, npoints), dtype=int)
     else:
@@ -81,10 +80,8 @@ def generate_metadata(
             Single cube forecast reference time. Datetime string of format YYYYMMDDTHHMMZ.
         ensemble_members (Optional[int]):
             Number of ensemble members.
-        realizations (Optional[csv]):
-            CSV list of realization input data.
-        attributes (Optional[str]):
-            JSON file of additional metadata attributes.
+        attributes (Optional[Dict]):
+            Dictionary of additional metadata attributes.
         resolution (Optional[float]):
             Resolution of grid (metres or degrees).
         domain_corner (Optional[Tuple[float, float]]):
@@ -115,7 +112,6 @@ def generate_metadata(
 
     data = _create_data_array(ensemble_members, npoints, height_levels)
 
-    standard_grid_metadata = None
     if ensemble_members > 1:
         standard_grid_metadata = "uk_ens"
     else:
@@ -139,6 +135,7 @@ def generate_metadata(
         standard_grid_metadata=standard_grid_metadata,
         grid_spacing=resolution,
         domain_corner=domain_corner,
+        height_levels=height_levels,
     )
 
     return metadata_cube

@@ -37,13 +37,13 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    name,
     *,
+    name,
     spatial_grid="latlon",
     time="20171110T0400Z",
     frt="20171110T0400Z",
     ensemble_members=8,
-    attributes=None,
+    attributes: cli.inputjson = None,
     resolution=None,
     domain_corner: cli.comma_separated_list = None,
     npoints=71,
@@ -63,8 +63,8 @@ def process(
             Single cube forecast reference time. Datetime string of format YYYYMMDDTHHMMZ.
         ensemble_members (Optional[int]):
             Number of ensemble members.
-        attributes (Optional[str]):
-            JSON file of additional metadata attributes.
+        attributes (Optional[Dict]):
+            Dictionary of additional metadata attributes.
         resolution (Optional[float]):
             Resolution of grid (metres or degrees).
         domain_corner (Optional[Tuple[float, float]]):
