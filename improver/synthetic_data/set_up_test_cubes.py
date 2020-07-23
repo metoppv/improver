@@ -206,6 +206,30 @@ def construct_scalar_time_coords(time, time_bounds, frt):
     return coord_dims
 
 
+def _create_dimension_coord(coord_array, data, i, coord_name, coord_units):
+    """
+    Creates dimension coordinate from coord_array if not None, otherwise creating an array of integers with an interval of 1
+    """
+    if coord_array is not None:
+        if len(coord_array) != data.shape[i]:
+            raise ValueError(
+                "Cannot generate {} {}s from data of shape "
+                "{}".format(len(coord_array), coord_name, data.shape)
+            )
+        coord_array = np.array(coord_array)
+        if issubclass(coord_array.dtype.type, np.integer):
+            # expect integer coord_array
+            coord_array = coord_array.astype(np.int32)
+        else:
+            # option needed for realizations percentile & probability cube setup and heights coordinate
+            coord_array = coord_array.astype(np.float32)
+    else:
+        coord_array = np.arange(data.shape[i]).astype(np.int32)
+    dim_coord = DimCoord(coord_array, coord_name, units=coord_units)
+
+    return dim_coord
+
+
 def set_up_variable_cube(
     data,
     name="air_temperature",
@@ -220,11 +244,13 @@ def set_up_variable_cube(
     standard_grid_metadata=None,
     grid_spacing=None,
     domain_corner=None,
+    height_levels=None,
 ):
     """
     Set up a cube containing a single variable field with:
     - x/y spatial dimensions (equal area or lat / lon)
     - optional leading "realization" dimension
+    - optional "height" dimension
     - "time", "forecast_reference_time" and "forecast_period" scalar coords
     - option to specify additional scalar coordinates
     - configurable attributes
@@ -261,6 +287,8 @@ def set_up_variable_cube(
             Grid resolution (degrees for latlon or metres for equalarea).
         domain_corner (Optional[Tuple[float, float]]):
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
+        height_levels (Optional[List[float]]):
+            List of altitude/pressure levels.
 
     Returns:
         iris.cube.Cube:
@@ -279,29 +307,30 @@ def set_up_variable_cube(
 
     # construct realization dimension for 3D data, and dim_coords list
     ndims = len(data.shape)
-    if ndims == 3:
-        if realizations is not None:
-            if len(realizations) != data.shape[0]:
-                raise ValueError(
-                    "Cannot generate {} realizations from data of shape "
-                    "{}".format(len(realizations), data.shape)
-                )
-            realizations = np.array(realizations)
-            if issubclass(realizations.dtype.type, np.integer):
-                # expect integer realizations
-                realizations = realizations.astype(np.int32)
-            else:
-                # option needed for percentile & probability cube setup
-                realizations = realizations.astype(np.float32)
+    if ndims == 4:
+        realization_coord = _create_dimension_coord(
+            realizations, data, 0, "realization", "1"
+        )
+        height_coord = _create_dimension_coord(height_levels, data, 1, "height", "m")
+        dim_coords = [
+            (realization_coord, 0),
+            (height_coord, 1),
+            (y_coord, 2),
+            (x_coord, 3),
+        ]
+    elif ndims == 3:
+        if height_levels is None:
+            new_coord = _create_dimension_coord(
+                realizations, data, 0, "realization", "1"
+            )
         else:
-            realizations = np.arange(data.shape[0]).astype(np.int32)
-        realization_coord = DimCoord(realizations, "realization", units="1")
-        dim_coords = [(realization_coord, 0), (y_coord, 1), (x_coord, 2)]
+            new_coord = _create_dimension_coord(height_levels, data, 0, "height", "m")
+        dim_coords = [(new_coord, 0), (y_coord, 1), (x_coord, 2)]
     elif ndims == 2:
         dim_coords = [(y_coord, 0), (x_coord, 1)]
     else:
         raise ValueError(
-            "Expected 2 or 3 dimensions on input data: got {}".format(ndims)
+            "Expected 2 to 4 dimensions on input data: got {}".format(ndims)
         )
 
     # construct list of aux_coords_and_dims

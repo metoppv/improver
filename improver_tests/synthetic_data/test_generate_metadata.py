@@ -40,10 +40,9 @@ from improver.synthetic_data.generate_metadata import generate_metadata
 from improver.utilities.temporal import iris_time_to_datetime
 
 
-@pytest.fixture(name="default_data")
-def default_data_fixture(npoints=10000):
+def _data(npoints, ensemble_members):
     """ Default data array """
-    return np.zeros((8, npoints, npoints), dtype=int)
+    return np.zeros((ensemble_members, npoints, npoints), dtype=int)
 
 
 @pytest.fixture(name="default_resolution_latlon")
@@ -264,10 +263,9 @@ def test_set_spatial_grid(default_npoints, default_ensemble_members):
     assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
 
 
-@pytest.mark.xfail
-def test_set_altitude_levels(default_npoints, default_ensemble_members):
+def test_set_height_levels(default_npoints, default_ensemble_members):
     """ Tests cube generated with specified height levels as an additional dimension and the rest default values """
-    height_levels = 3
+    height_levels = [3]
 
     cube = generate_metadata("air_pressure", height_levels=height_levels)
 
@@ -279,14 +277,14 @@ def test_set_altitude_levels(default_npoints, default_ensemble_members):
     assert cube.ndim == 4
     assert cube.shape == (
         default_ensemble_members,
-        height_levels,
+        len(height_levels),
         default_npoints,
         default_npoints,
     )
 
     assert cube.coords()[0].name() == "realization"
     assert cube.coords()[1].name() == "height"
-    assert cube.coords()[2].name() == "projection_y_coordinate"
-    assert cube.coords()[3].name() == "projection_x_coordinate"
+    assert cube.coords()[2].name() == "latitude"
+    assert cube.coords()[3].name() == "longitude"
 
     assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)

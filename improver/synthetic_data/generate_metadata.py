@@ -38,6 +38,7 @@ from improver.utilities.temporal import cycletime_to_datetime
 
 
 def _get_unit(name):
+    """ Get output variable unit of measurement from iris.std_names.STD_NAMES """
     try:
         units = STD_NAMES[name]["canonical_units"]
         return units
@@ -46,12 +47,20 @@ def _get_unit(name):
 
 
 def _create_data_array(ensemble_members, npoints, height_levels):
-    if ensemble_members > 1:
-        data = np.zeros((ensemble_members, npoints, npoints), dtype=int)
-    else:
-        data = np.zeros((npoints, npoints), dtype=int)
+    """ Create data array of specified shape filled with zeros """
+    if height_levels is not None:
+        nheights = len(height_levels)
 
-    return data
+        if ensemble_members > 1:
+            data_shape = (ensemble_members, nheights, npoints, npoints)
+        else:
+            data_shape = (nheights, npoints, npoints)
+    elif ensemble_members > 1:
+        data_shape = (ensemble_members, npoints, npoints)
+    else:
+        data_shape = (npoints, npoints)
+
+    return np.zeros(data_shape, dtype=int)
 
 
 def generate_metadata(
