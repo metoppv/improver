@@ -238,6 +238,7 @@ class Test_save_netcdf(IrisTest):
 
 @pytest.fixture(name="bitshaving_cube")
 def bitshaving_cube_fixture():
+    """ Sets up a cube with a recurring decimal for bitshaving testing """
     cube = set_up_test_cube()
     # 1/9 fractions are recurring decimal and binary fractions
     # good for checking number of digits remaining after bitshaving
