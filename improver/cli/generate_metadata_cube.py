@@ -39,6 +39,7 @@ from improver import cli
 def process(
     *,
     name,
+    units=None,
     spatial_grid="latlon",
     time="20171110T0400Z",
     frt="20171110T0400Z",
@@ -54,6 +55,8 @@ def process(
     Args:
         name (str):
             Output variable name.
+        units (Optional[str]):
+            Output variable units.
         spatial_grid (Optional[str]):
             What type of x/y coordinate values to use.  Permitted values are
             "latlon" or "equalarea".
@@ -94,6 +97,7 @@ def process(
 
     return generate_metadata(
         name,
+        units=units,
         spatial_grid=spatial_grid,
         time=time,
         frt=frt,

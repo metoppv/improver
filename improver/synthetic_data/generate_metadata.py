@@ -37,13 +37,14 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.temporal import cycletime_to_datetime
 
 
-def _get_unit(name):
-    """ Get output variable unit of measurement from iris.std_names.STD_NAMES """
+def _get_units(name):
+    """ Get output variable units from iris.std_names.STD_NAMES """
     try:
         units = STD_NAMES[name]["canonical_units"]
-        return units
     except KeyError:
-        raise KeyError("Units of {} are not known.".format(name))
+        raise ValueError("Units of {} are not known.".format(name))
+
+    return units
 
 
 def _create_data_array(ensemble_members, npoints, height_levels):
@@ -65,6 +66,7 @@ def _create_data_array(ensemble_members, npoints, height_levels):
 
 def generate_metadata(
     name,
+    units=None,
     spatial_grid="latlon",
     time="20171110T0400Z",
     frt="20171110T0400Z",
@@ -80,6 +82,8 @@ def generate_metadata(
     Args:
         name (str):
             Output variable name.
+        units (Optional[str]):
+            Output variable units.
         spatial_grid (Optional[str]):
             What type of x/y coordinate values to use.  Permitted values are
             "latlon" or "equalarea".
@@ -104,7 +108,8 @@ def generate_metadata(
         iris.cube.Cube:
             Output of set_up_variable_cube()
     """
-    units = _get_unit(name)
+    if units is None:
+        units = _get_units(name)
 
     if spatial_grid not in ("latlon", "equalarea"):
         raise ValueError(
@@ -121,11 +126,6 @@ def generate_metadata(
 
     data = _create_data_array(ensemble_members, npoints, height_levels)
 
-    if ensemble_members > 1:
-        standard_grid_metadata = "uk_ens"
-    else:
-        standard_grid_metadata = "uk_det"
-
     # Convert str time and frt to datetime
     time = cycletime_to_datetime(time)
     frt = cycletime_to_datetime(frt)
@@ -141,7 +141,7 @@ def generate_metadata(
         # realizations=realizations,
         # include_scalar_coords=None,
         attributes=attributes,
-        standard_grid_metadata=standard_grid_metadata,
+        # standard_grid_metadata=standard_grid_metadata,
         grid_spacing=resolution,
         domain_corner=domain_corner,
         height_levels=height_levels,
