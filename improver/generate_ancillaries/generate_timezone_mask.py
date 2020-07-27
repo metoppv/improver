@@ -73,7 +73,7 @@ class GenerateTimezoneMask(BasePlugin):
                 A dictionary specifying how timezones should be grouped if so
                 desired. This dictionary takes the form::
 
-                    {0: [-12, -5], 1:[-4, 4], 2: [5, 12]}
+                    {-9: [-12, -5], 0:[-4, 4], 9: [5, 12]}
 
                 The numbers in the lists denote the inclusive limits of the
                 groups. This is of use if data is not available at hourly
@@ -259,7 +259,7 @@ class GenerateTimezoneMask(BasePlugin):
         The grouped UTC_offset cubes are collapsed together over the UTC_offset
         coordinate using iris.analysis.MIN. This means all the unmasked (0)
         points in each cube are preserved as the dimension is collapsed,
-        enlarging the unmasked region to include all unmaksed points from all
+        enlarging the unmasked region to include all unmasked points from all
         the cubes.
 
         Args:
@@ -273,6 +273,15 @@ class GenerateTimezoneMask(BasePlugin):
         """
         grouped_timezone_masks = iris.cube.CubeList()
         for offset, group in self.groupings.items():
+
+            if not group[0] <= offset <= group[-1]:
+                msg = (
+                    "Defined UTC offset point for timezone group does not "
+                    "fall within the timezone group bounds. Point: {}"
+                    ", Bounds: {}".format(offset, group)
+                )
+                raise ValueError(msg)
+
             constraint = iris.Constraint(
                 UTC_offset=lambda cell: group[0] <= cell <= group[-1]
             )
