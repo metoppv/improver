@@ -36,255 +36,372 @@ import iris
 import numpy as np
 import pytest
 
+from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.synthetic_data.generate_metadata import generate_metadata
-from improver.utilities.temporal import iris_time_to_datetime
+from improver.utilities.temporal import datetime_to_iris_time, iris_time_to_datetime
+
+NAME_DEFAULT = "air_temperature"
+UNITS_DEFAULT = "K"
+SPATIAL_GRID_DEFAULT = "latlon"
+NPOINTS_DEFAULT = 71
+ENSEMBLE_MEMBERS_DEFAULT = 8
+TIME_DEFAULT = datetime(2017, 11, 10, 4, 0)
+FRT_DEFAULT = datetime(2017, 11, 10, 4, 0)
+FORECAST_PERIOD_DEFAULT = [0]
+NDIMS_DEFAULT = 3
+ATTRIBUTES_DEFAULT = {}
 
 
-def _data(npoints, ensemble_members):
-    """ Default data array """
-    return np.zeros((ensemble_members, npoints, npoints), dtype=int)
+def _spatial_grid_defaults(spatial_grid):
+    """ Returns dictionary of coord y,x names, default resolution, units and coord_system for requested spatial grid.
+    
+    Returns:
+        Dict:
+            Dictionary containing spatial grid attributes
+    """
+    coord_dict = {
+        "latlon": {
+            "y": "latitude",
+            "x": "longitude",
+            "resolution": 0.02,
+            "units": "degrees",
+            "coord_system": GLOBAL_GRID_CCRS,
+        },
+        "equalarea": {
+            "y": "projection_y_coordinate",
+            "x": "projection_x_coordinate",
+            "resolution": 2000,
+            "units": "metres",
+            "coord_system": STANDARD_GRID_CCRS,
+        },
+    }
+    return coord_dict[spatial_grid]
 
 
-@pytest.fixture(name="default_resolution_latlon")
-def default_resolution_latlon_fixture():
-    """ Default resolution for lat/lon grid """
-    return 0.02
+def _check_cubes_are_same(cube_result, cube_expected):
+    """ Asserts that cubes are equal """
+    assert cube_result == cube_expected
 
 
-@pytest.fixture(name="default_resolution_equalarea")
-def default_resolution_equalarea_fixture():
-    """ Default resolution for equal area grid """
-    return 2000
+def _check_cube_shape_different(cube):
+    """ Asserts that cube shape has been changed from default but name, units and attributes are unchanged """
+    default_cube = generate_metadata()
+    assert cube.shape != default_cube.shape
+    assert iris.util.describe_diff(cube, default_cube) is None
 
 
-@pytest.fixture(name="default_npoints")
-def default_npoints_fixture():
-    """ Default npoints """
-    return 71
+def test_default():
+    """ Tests default metadata cube generated """
+    cube = generate_metadata()
+
+    assert cube.standard_name == NAME_DEFAULT
+    assert cube.name() == NAME_DEFAULT
+    assert cube.units == UNITS_DEFAULT
+
+    assert cube.ndim == NDIMS_DEFAULT
+    assert cube.shape == (ENSEMBLE_MEMBERS_DEFAULT, NPOINTS_DEFAULT, NPOINTS_DEFAULT)
+
+    spatial_grid_values = _spatial_grid_defaults(SPATIAL_GRID_DEFAULT)
+    assert cube.coords()[0].name() == "realization"
+    assert cube.coords()[1].name() == spatial_grid_values["y"]
+    assert cube.coords()[2].name() == spatial_grid_values["x"]
+
+    for axis in ("y", "x"):
+        assert cube.coord(axis=axis).units == spatial_grid_values["units"]
+        assert cube.coord(axis=axis).coord_system == spatial_grid_values["coord_system"]
+        assert np.diff(cube.coord(axis=axis).points)[0] == pytest.approx(
+            spatial_grid_values["resolution"]
+        )
+
+    assert np.count_nonzero(cube.data) == 0
+
+    assert iris_time_to_datetime(cube.coord("time"))[0] == TIME_DEFAULT
+    assert (
+        iris_time_to_datetime(cube.coord("forecast_reference_time"))[0] == FRT_DEFAULT
+    )
+    assert cube.coord("forecast_period").points == FORECAST_PERIOD_DEFAULT
 
 
-@pytest.fixture(name="default_ensemble_members")
-def default_ensemble_members_fixture():
-    """ Default ensemble members """
-    return 8
+def test_set_name_no_units():
+    """ Tests cube generated with specified name, automatically setting units, and the rest of the values set as default values """
+    name = "air_pressure"
+    cube = generate_metadata(name=name)
 
-
-def test_default_cube(
-    default_resolution_latlon, default_npoints, default_ensemble_members
-):
-    """ Tests default cube generated """
-    cube = generate_metadata("air_pressure")
-
-    assert isinstance(cube, iris.cube.Cube)
-    assert cube.standard_name == "air_pressure"
-    assert cube.name() == "air_pressure"
+    assert cube.standard_name == name
+    assert cube.name() == name
     assert cube.units == "Pa"
 
-    assert cube.ndim == 3
-    assert cube.shape == (default_ensemble_members, default_npoints, default_npoints)
+    # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
+    default_cube = generate_metadata()
+    cube.standard_name = NAME_DEFAULT
+    cube.name = NAME_DEFAULT
+    cube.units = UNITS_DEFAULT
 
-    assert cube.coords()[0].name() == "realization"
-    assert cube.coords()[1].name() == "latitude"
-    assert cube.coords()[2].name() == "longitude"
-
-    assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
-    assert iris_time_to_datetime(cube.coord("forecast_reference_time"))[0] == datetime(
-        2017, 11, 10, 4, 0
-    )
-
-    assert np.diff(cube.coord(axis="x").points)[0] == pytest.approx(
-        default_resolution_latlon
-    )
+    _check_cubes_are_same(cube, default_cube)
 
 
-def test_unknown_output_variable():
-    """ Tests error raised if output variable name not in iris.std_names.STD_NAMES """
-    name = "humidity"
+def test_set_name_units():
+    """ Tests cube generated with specified name and units, and the rest of the values set as default values"""
+    name = "air_pressure"
+    units = "pascal"
+    cube = generate_metadata(name=name, units=units)
 
-    with pytest.raises(KeyError):
+    assert cube.standard_name == name
+    assert cube.name() == name
+    assert cube.units == units
+
+    # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
+    default_cube = generate_metadata()
+    cube.standard_name = NAME_DEFAULT
+    cube.name = NAME_DEFAULT
+    cube.units = UNITS_DEFAULT
+
+    _check_cubes_are_same(cube, default_cube)
+
+
+def test_name_unknown_no_units():
+    """ Tests error raised if output variable name not in iris.std_names.STD_NAMES and no unit provided """
+    name = "temperature"
+    msg = "Units of {} are not known.".format(name)
+
+    with pytest.raises(ValueError, match=msg):
         generate_metadata(name)
 
 
-def test_set_npoints(default_ensemble_members):
-    """ Tests cube generated with specified npoints and the rest default values """
-    npoints = 500
+def test_name_unknown_with_units():
+    """ Tests cube generated with specified name which isn't a CF standard name, specified units, and the rest of the values set as default values"""
+    name = "lapse_rate"
+    units = "K m-1"
+    cube = generate_metadata(name=name, units=units)
 
-    cube = generate_metadata("air_pressure", npoints=npoints)
+    # "lapse_rate" not CF standard so standard_name expected None
+    assert cube.standard_name == None
+    assert cube.name() == name
+    assert cube.units == units
 
-    assert isinstance(cube, iris.cube.Cube)
-    assert cube.standard_name == "air_pressure"
-    assert cube.name() == "air_pressure"
-    assert cube.units == "Pa"
+    # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
+    default_cube = generate_metadata()
+    # Iris.cube.Cube.rename() assigns standard_name if valid
+    cube.rename(NAME_DEFAULT)
+    cube.units = UNITS_DEFAULT
 
-    assert cube.ndim == 3
-    assert cube.shape == (default_ensemble_members, npoints, npoints)
-
-    assert cube.coords()[0].name() == "realization"
-    assert cube.coords()[1].name() == "latitude"
-    assert cube.coords()[2].name() == "longitude"
-
-    assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
-    assert iris_time_to_datetime(cube.coord("forecast_reference_time"))[0] == datetime(
-        2017, 11, 10, 4, 0
-    )
+    _check_cubes_are_same(cube, default_cube)
 
 
-def test_set_time(default_resolution_latlon, default_npoints, default_ensemble_members):
-    """ Tests cube generated with specified time and the rest default values """
-    cube = generate_metadata("air_pressure", time="20200101T0000Z")
+@pytest.mark.parametrize("spatial_grid", ["latlon", "equalarea"])
+def test_set_spatial_grid(spatial_grid):
+    """ Tests different spatial grids used generates cubes with default values for that spatial grid """
+    cube = generate_metadata(spatial_grid=spatial_grid)
 
-    assert isinstance(cube, iris.cube.Cube)
-    assert cube.standard_name == "air_pressure"
-    assert cube.name() == "air_pressure"
-    assert cube.units == "Pa"
-
-    assert cube.ndim == 3
-    assert cube.shape == (default_ensemble_members, default_npoints, default_npoints)
+    expected_spatial_grid_values = _spatial_grid_defaults(spatial_grid)
 
     assert cube.coords()[0].name() == "realization"
-    assert cube.coords()[1].name() == "latitude"
-    assert cube.coords()[2].name() == "longitude"
+    assert cube.coords()[1].name() == expected_spatial_grid_values["y"]
+    assert cube.coords()[2].name() == expected_spatial_grid_values["x"]
 
-    assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2020, 1, 1, 0, 0)
-    assert iris_time_to_datetime(cube.coord("forecast_reference_time"))[0] == datetime(
-        2017, 11, 10, 4, 0
+    for axis in ("y", "x"):
+        assert cube.coord(axis=axis).units == expected_spatial_grid_values["units"]
+        assert (
+            cube.coord(axis=axis).coord_system
+            == expected_spatial_grid_values["coord_system"]
+        )
+        assert np.diff(cube.coord(axis=axis).points)[0] == pytest.approx(
+            expected_spatial_grid_values["resolution"]
+        )
+
+    # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
+    default_cube = generate_metadata()
+
+    if spatial_grid != SPATIAL_GRID_DEFAULT:
+        default_spatial_grid_values = _spatial_grid_defaults(SPATIAL_GRID_DEFAULT)
+        cube.coords()[1].rename(default_spatial_grid_values["y"])
+        cube.coords()[2].rename(default_spatial_grid_values["x"])
+
+        for axis in ("y", "x"):
+            cube.coord(axis=axis).points = default_cube.coord(axis=axis).points
+            cube.coord(axis=axis).units = default_spatial_grid_values["units"]
+            cube.coord(axis=axis).coord_system = default_spatial_grid_values[
+                "coord_system"
+            ]
+
+        _check_cubes_are_same(cube, default_cube)
+    else:
+        _check_cubes_are_same(cube, default_cube)
+
+
+def test_spatial_grid_not_supported():
+    """ Tests error raised if spatial grid not supported """
+    spatial_grid = "other"
+    msg = "Spatial grid {} not supported. Choose either latlon or equalarea.".format(
+        spatial_grid
     )
 
-    assert np.diff(cube.coord(axis="x").points)[0] == pytest.approx(
-        default_resolution_latlon
-    )
+    with pytest.raises(ValueError, match=msg):
+        generate_metadata(spatial_grid=spatial_grid)
 
 
-def test_set_frt(default_resolution_latlon, default_npoints, default_ensemble_members):
-    """ Tests cube generated with specified frt and the rest default values """
-    cube = generate_metadata("air_pressure", frt="20170101T0000Z")
+def test_set_time():
+    """ Tests cube generated with specified time and the rest of the values set as default values """
+    time = datetime(2020, 1, 1, 0, 0)
+    cube = generate_metadata(time=time)
 
-    assert isinstance(cube, iris.cube.Cube)
-    assert cube.standard_name == "air_pressure"
-    assert cube.name() == "air_pressure"
-    assert cube.units == "Pa"
+    assert iris_time_to_datetime(cube.coord("time"))[0] == time
+    assert cube.coord("forecast_period").points > [0]
 
-    assert cube.ndim == 3
-    assert cube.shape == (default_ensemble_members, default_npoints, default_npoints)
+    # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
+    default_cube = generate_metadata()
+    cube.coord("time").points = datetime_to_iris_time(TIME_DEFAULT)
+    cube.coord("forecast_period").points = FORECAST_PERIOD_DEFAULT
 
-    assert cube.coords()[0].name() == "realization"
-    assert cube.coords()[1].name() == "latitude"
-    assert cube.coords()[2].name() == "longitude"
-
-    assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
-    assert iris_time_to_datetime(cube.coord("forecast_reference_time"))[0] == datetime(
-        2017, 1, 1, 0, 0
-    )
-
-    assert np.diff(cube.coord(axis="x").points)[0] == pytest.approx(
-        default_resolution_latlon
-    )
+    _check_cubes_are_same(cube, default_cube)
 
 
-def test_set_resolution(default_npoints, default_ensemble_members):
-    """ Tests cube generated with specified resolution and the rest default values """
+def test_set_frt():
+    """ Tests cube generated with specified forecast reference time and the rest of the values set as default values """
+    frt = datetime(2017, 1, 1, 0, 0)
+    cube = generate_metadata(frt=frt)
+
+    assert iris_time_to_datetime(cube.coord("forecast_reference_time"))[0] == frt
+    assert cube.coord("forecast_period").points > [0]
+
+    # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
+    default_cube = generate_metadata()
+
+    cube.coord("forecast_reference_time").points = datetime_to_iris_time(FRT_DEFAULT)
+    cube.coord("forecast_period").points = FORECAST_PERIOD_DEFAULT
+
+    _check_cubes_are_same(cube, default_cube)
+
+
+def test_set_frt_after_time():
+    """ Tests error raised when forecast reference time after time """
+    frt = datetime(2020, 1, 1, 0, 0)
+    msg = "Cannot set up cube with negative forecast period"
+    with pytest.raises(ValueError, match=msg):
+        generate_metadata(frt=frt)
+
+
+def test_set_resolution():
+    """ Tests cube generated with specified resolution and the rest of the values set as default values """
     resolution = 5
-    cube = generate_metadata("air_pressure", resolution=resolution)
-
-    assert isinstance(cube, iris.cube.Cube)
-    assert cube.standard_name == "air_pressure"
-    assert cube.name() == "air_pressure"
-    assert cube.units == "Pa"
-
-    assert cube.ndim == 3
-    assert cube.shape == (default_ensemble_members, default_npoints, default_npoints)
-
-    assert cube.coords()[0].name() == "realization"
-    assert cube.coords()[1].name() == "latitude"
-    assert cube.coords()[2].name() == "longitude"
+    cube = generate_metadata(resolution=resolution)
 
     assert np.diff(cube.coord(axis="x").points)[0] == resolution
 
-    assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
+    # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
+    default_cube = generate_metadata()
+    for axis in ("y", "x"):
+        cube.coord(axis=axis).points = default_cube.coord(axis=axis).points
+
+    _check_cubes_are_same(cube, default_cube)
 
 
-def test_set_ensemble_members(default_npoints):
-    """ Tests cube generated with specified number of ensemble members and the rest default values """
+def test_set_attributes():
+    """ Tests cube generated with specified attributes and the rest of the values set as default values """
+    attributes = {"source": "IMPROVER"}
+    cube = generate_metadata(attributes=attributes)
+
+    assert cube.attributes == attributes
+
+    # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
+    default_cube = generate_metadata()
+    cube.attributes = ATTRIBUTES_DEFAULT
+
+    _check_cubes_are_same(cube, default_cube)
+
+
+def test_set_domain_corner():
+    """ Tests cube generated with specified domain corner and the rest of the values set as default values """
+    domain_corner = (0, 0)
+    cube = generate_metadata(domain_corner=domain_corner)
+
+    assert cube.coord(axis="y").points[0] == 0
+    assert cube.coord(axis="x").points[0] == 0
+
+    # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
+    default_cube = generate_metadata()
+    cube.coord(axis="y").points = default_cube.coord(axis="y").points
+    cube.coord(axis="x").points = default_cube.coord(axis="x").points
+    _check_cubes_are_same(cube, default_cube)
+
+
+def test_set_npoints():
+    """ Tests cube generated with specified npoints """
+    npoints = 500
+    cube = generate_metadata(npoints=npoints)
+
+    assert cube.shape == (ENSEMBLE_MEMBERS_DEFAULT, npoints, npoints)
+
+    # Assert that cube shape is different from default cube shape but metadata unchanged
+    _check_cube_shape_different(cube)
+
+
+def test_set_ensemble_members():
+    """ Tests cube generated with specified number of ensemble members """
     ensemble_members = 4
-
-    cube = generate_metadata("air_pressure", ensemble_members=ensemble_members)
-
-    assert isinstance(cube, iris.cube.Cube)
-    assert cube.standard_name == "air_pressure"
-    assert cube.name() == "air_pressure"
-    assert cube.units == "Pa"
+    cube = generate_metadata(ensemble_members=ensemble_members)
 
     assert cube.ndim == 3
-    assert cube.shape == (ensemble_members, default_npoints, default_npoints)
+    assert cube.shape == (ensemble_members, NPOINTS_DEFAULT, NPOINTS_DEFAULT)
 
-    assert cube.coords()[0].name() == "realization"
-    assert cube.coords()[1].name() == "latitude"
-    assert cube.coords()[2].name() == "longitude"
-
-    assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
+    # Assert that cube shape is different from default cube shape but metadata unchanged
+    _check_cube_shape_different(cube)
 
 
-def test_disable_ensemble(default_npoints):
-    """ Tests cube generated without realizations dimension and the rest default values """
-    cube = generate_metadata("air_pressure", ensemble_members=0)
-
-    assert isinstance(cube, iris.cube.Cube)
-    assert cube.standard_name == "air_pressure"
-    assert cube.name() == "air_pressure"
-    assert cube.units == "Pa"
+def test_disable_ensemble():
+    """ Tests cube generated without realizations dimension """
+    ensemble_members = 1
+    cube = generate_metadata(ensemble_members=ensemble_members)
 
     assert cube.ndim == 2
-    assert cube.shape == (default_npoints, default_npoints)
+    assert cube.shape == (NPOINTS_DEFAULT, NPOINTS_DEFAULT)
 
-    assert cube.coords()[0].name() == "latitude"
-    assert cube.coords()[1].name() == "longitude"
-
-    assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
+    # Assert that cube shape is different from default cube shape but metadata unchanged
+    _check_cube_shape_different(cube)
 
 
-def test_set_spatial_grid(default_npoints, default_ensemble_members):
-    """ Tests cube generated with equal area grid and the rest default values """
-    spatial_grid = "equalarea"
-
-    cube = generate_metadata("air_pressure", spatial_grid=spatial_grid)
-
-    assert isinstance(cube, iris.cube.Cube)
-    assert cube.standard_name == "air_pressure"
-    assert cube.name() == "air_pressure"
-    assert cube.units == "Pa"
-
-    assert cube.ndim == 3
-    assert cube.shape == (default_ensemble_members, default_npoints, default_npoints)
-
-    assert cube.coords()[0].name() == "realization"
-    assert cube.coords()[1].name() == "projection_y_coordinate"
-    assert cube.coords()[2].name() == "projection_x_coordinate"
-
-    assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
-
-
-def test_set_height_levels(default_npoints, default_ensemble_members):
-    """ Tests cube generated with specified height levels as an additional dimension and the rest default values """
-    height_levels = [3]
-
-    cube = generate_metadata("air_pressure", height_levels=height_levels)
-
-    assert isinstance(cube, iris.cube.Cube)
-    assert cube.standard_name == "air_pressure"
-    assert cube.name() == "air_pressure"
-    assert cube.units == "Pa"
+def test_set_height_levels():
+    """ Tests cube generated with specified height levels as an additional dimension """
+    height_levels = [1.5, 3.0, 4.5]
+    cube = generate_metadata(height_levels=height_levels)
 
     assert cube.ndim == 4
     assert cube.shape == (
-        default_ensemble_members,
+        ENSEMBLE_MEMBERS_DEFAULT,
         len(height_levels),
-        default_npoints,
-        default_npoints,
+        NPOINTS_DEFAULT,
+        NPOINTS_DEFAULT,
     )
 
+    expected_spatial_grid_values = _spatial_grid_defaults(SPATIAL_GRID_DEFAULT)
     assert cube.coords()[0].name() == "realization"
     assert cube.coords()[1].name() == "height"
-    assert cube.coords()[2].name() == "latitude"
-    assert cube.coords()[3].name() == "longitude"
+    assert cube.coords()[2].name() == expected_spatial_grid_values["y"]
+    assert cube.coords()[3].name() == expected_spatial_grid_values["x"]
 
-    assert iris_time_to_datetime(cube.coord("time"))[0] == datetime(2017, 11, 10, 4, 0)
+    assert np.array_equal(cube.coord("height").points, height_levels)
+
+    # Assert that cube shape is different from default cube shape but metadata unchanged
+    _check_cube_shape_different(cube)
+
+
+def test_disable_ensemble_set_height_levels():
+    """ Tests cube generated without realizations dimension but with height dimension """
+    ensemble_members = 1
+    height_levels = [1.5, 3.0, 4.5]
+    cube = generate_metadata(
+        ensemble_members=ensemble_members, height_levels=height_levels
+    )
+
+    assert cube.ndim == 3
+    assert cube.shape == (len(height_levels), NPOINTS_DEFAULT, NPOINTS_DEFAULT,)
+
+    expected_spatial_grid_values = _spatial_grid_defaults(SPATIAL_GRID_DEFAULT)
+    assert cube.coords()[0].name() == "height"
+    assert cube.coords()[1].name() == expected_spatial_grid_values["y"]
+    assert cube.coords()[2].name() == expected_spatial_grid_values["x"]
+
+    assert np.array_equal(cube.coord("height").points, height_levels)
+
+    # Assert that cube shape is different from default cube shape but metadata unchanged
+    _check_cube_shape_different(cube)

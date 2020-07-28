@@ -30,11 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to generate a metadata cube."""
 
+from datetime import datetime
+
 import numpy as np
 from iris.std_names import STD_NAMES
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.temporal import cycletime_to_datetime
 
 
 def _get_units(name):
@@ -65,11 +66,11 @@ def _create_data_array(ensemble_members, npoints, height_levels):
 
 
 def generate_metadata(
-    name,
+    name="air_temperature",
     units=None,
     spatial_grid="latlon",
-    time="20171110T0400Z",
-    frt="20171110T0400Z",
+    time=datetime(2017, 11, 10, 4, 0),
+    frt=datetime(2017, 11, 10, 4, 0),
     ensemble_members=8,
     attributes=None,
     resolution=None,
@@ -87,10 +88,10 @@ def generate_metadata(
         spatial_grid (Optional[str]):
             What type of x/y coordinate values to use.  Permitted values are
             "latlon" or "equalarea".
-        time (Optional[str]):
-            Single cube validity time. Datetime string of format YYYYMMDDTHHMMZ.
-        frt (Optional[str]):
-            Single cube forecast reference time. Datetime string of format YYYYMMDDTHHMMZ.
+        time (Optional[datetime.datetime]):
+            Single cube validity time.
+        frt (Optional[datetime.datetime]):
+            Single cube forecast reference time.
         ensemble_members (Optional[int]):
             Number of ensemble members.
         attributes (Optional[Dict]):
@@ -125,10 +126,6 @@ def generate_metadata(
             resolution = 2000
 
     data = _create_data_array(ensemble_members, npoints, height_levels)
-
-    # Convert str time and frt to datetime
-    time = cycletime_to_datetime(time)
-    frt = cycletime_to_datetime(frt)
 
     metadata_cube = set_up_variable_cube(
         data,

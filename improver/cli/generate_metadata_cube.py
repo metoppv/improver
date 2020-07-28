@@ -38,7 +38,7 @@ from improver import cli
 @cli.with_output
 def process(
     *,
-    name,
+    name="air_temperature",
     units=None,
     spatial_grid="latlon",
     time="20171110T0400Z",
@@ -82,6 +82,7 @@ def process(
             Output of generate_metadata()
     """
     from improver.synthetic_data.generate_metadata import generate_metadata
+    from improver.utilities.temporal import cycletime_to_datetime
 
     if domain_corner is not None:
         try:
@@ -94,6 +95,10 @@ def process(
 
     if height_levels is not None:
         height_levels = [float(h) for h in height_levels]
+
+    # Convert str time and frt to datetime
+    time = cycletime_to_datetime(time)
+    frt = cycletime_to_datetime(frt)
 
     return generate_metadata(
         name,
