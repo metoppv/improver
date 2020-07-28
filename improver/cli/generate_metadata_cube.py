@@ -43,17 +43,17 @@ def process(
     spatial_grid="latlon",
     time="20171110T0400Z",
     frt="20171110T0400Z",
-    ensemble_members=8,
+    ensemble_members: int = 8,
     attributes: cli.inputjson = None,
-    resolution=None,
+    resolution: float = None,
     domain_corner: cli.comma_separated_list = None,
-    npoints=71,
-    height_levels=None,
+    npoints: int = 71,
+    height_levels: cli.comma_separated_list = None,
 ):
     """ Generate a cube with metadata only.
 
     Args:
-        name (str):
+        name (Optional[str]):
             Output variable name.
         units (Optional[str]):
             Output variable units.
@@ -85,13 +85,10 @@ def process(
     from improver.utilities.temporal import cycletime_to_datetime
 
     if domain_corner is not None:
-        try:
-            domain_corner = (float(domain_corner[0]), float(domain_corner[1]))
-        except IndexError:
-            raise TypeError("Domain corner must be a list of length 2")
+        if len(domain_corner) != 2:
+            raise TypeError("Domain corner must be a comma separated list of length 2")
 
-    if resolution is not None:
-        resolution = float(resolution)
+        domain_corner = (float(domain_corner[0]), float(domain_corner[1]))
 
     if height_levels is not None:
         height_levels = [float(h) for h in height_levels]

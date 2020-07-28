@@ -39,15 +39,70 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-# def test_default(tmp_path):
-#     """Test basic metadata cube generation"""
-#     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-#     kgo_path = kgo_dir / "kgo_default.nc"
-#     output_path = tmp_path / "output.nc"
-#     args = [
-#         "air_temperature",
-#         "--output",
-#         f"{output_path}",
-#     ]
-#     run_cli(args)
-#     acc.compare(kgo_path, output_path)
+def test_default(tmp_path):
+    """Test default metadata cube generation"""
+    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
+    kgo_path = kgo_dir / "kgo_default.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_all_options(tmp_path):
+    """Test metadata cube generation setting values for all options"""
+    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
+    kgo_path = kgo_dir / "kgo_all.nc"
+    attributes_path = kgo_dir / "attributes.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--name",
+        "air_pressure",
+        "--units",
+        "pascal",
+        "--spatial-grid",
+        "equalarea",
+        "--time",
+        "20200102T0400Z",
+        "--frt",
+        "20200101T0400Z",
+        "--ensemble-members",
+        "4",
+        "--attributes",
+        attributes_path,
+        "--resolution",
+        "5000",
+        "--domain-corner",
+        "0,0",
+        "--npoints",
+        "50",
+        "--height-levels",
+        "1.5,3.0,4.5,6.0",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_single_height_level(tmp_path):
+    """Test metadata cube generation giving single value (rather than comma separated list) for height levels option"""
+    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
+    kgo_path = kgo_dir / "kgo_single_height_level.nc"
+    output_path = tmp_path / "output.nc"
+    args = ["--height-levels", "1.5", "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_error_invalid_domain_corner(tmp_path):
+    """Test error is raised invalid domain corner is set"""
+    output_path = tmp_path / "output.nc"
+    args = ["--domain-corner", "0", "--output", output_path]
+    with pytest.raises(
+        TypeError, match="Domain corner must be a comma separated list of length 2"
+    ):
+        run_cli(args)
