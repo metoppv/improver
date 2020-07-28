@@ -199,6 +199,7 @@ class Test_construct_scalar_time_coords(IrisTest):
         self.assertEqual(
             iris_time_to_datetime(time_coord)[0], datetime(2017, 12, 1, 14, 0)
         )
+        # pylint: disable=unsubscriptable-object
         self.assertEqual(time_coord.bounds[0][0], time_coord.points[0] - 3600)
         self.assertEqual(time_coord.bounds[0][1], time_coord.points[0])
 
@@ -214,6 +215,7 @@ class Test_construct_scalar_time_coords(IrisTest):
         self.assertEqual(
             iris_time_to_datetime(time_coord)[0], datetime(2017, 12, 1, 14, 0)
         )
+        # pylint: disable=unsubscriptable-object
         self.assertEqual(time_coord.bounds[0][0], time_coord.points[0] - 3600)
         self.assertEqual(time_coord.bounds[0][1], time_coord.points[0])
 
@@ -341,12 +343,60 @@ class Test_set_up_variable_cube(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(self.data_3d, realizations=np.arange(4))
 
+    def test_realizations_from_data_height_levels(self):
+        """ Tests realizations and height coordinates added """
+        height_levels = [1.5, 3.0, 4.5]
+        data_4d = np.array([self.data_3d, self.data_3d])
+        result = set_up_variable_cube(data_4d, height_levels=height_levels)
+        self.assertArrayAlmostEqual(result.data, data_4d)
+        self.assertEqual(result.coord_dims("realization"), (0,))
+        self.assertArrayEqual(result.coord("realization").points, np.array([0, 1]))
+        self.assertEqual(result.coord_dims("height"), (1,))
+        self.assertArrayEqual(result.coord("height").points, np.array(height_levels))
+        self.assertEqual(result.coord_dims("latitude"), (2,))
+        self.assertEqual(result.coord_dims("longitude"), (3,))
+
+    def test_realizations_height_levels(self):
+        """ Tests realizations and height coordinates added """
+        realizations = [0, 3]
+        height_levels = [1.5, 3.0, 4.5]
+        data_4d = np.array([self.data_3d, self.data_3d])
+        result = set_up_variable_cube(
+            data_4d, realizations=realizations, height_levels=height_levels
+        )
+        self.assertArrayAlmostEqual(result.data, data_4d)
+        self.assertEqual(result.coord_dims("realization"), (0,))
+        self.assertArrayEqual(
+            result.coord("realization").points, np.array(realizations)
+        )
+        self.assertEqual(result.coord_dims("height"), (1,))
+        self.assertArrayEqual(result.coord("height").points, np.array(height_levels))
+        self.assertEqual(result.coord_dims("latitude"), (2,))
+        self.assertEqual(result.coord_dims("longitude"), (3,))
+
+    def test_error_no_height_levels_4d_data(self):
+        """ Tests error is raised if 4d data provided but not height_levels """
+        data_4d = np.array([self.data_3d, self.data_3d])
+        msg = "Height levels must be provided if data has 4 dimensions."
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_variable_cube(data_4d)
+
     def test_error_too_many_dimensions(self):
-        """Test error is raised if input cube has more than 3 dimensions"""
+        """Test error is raised if input cube has more than 4 dimensions"""
         data_5d = np.array([[self.data_3d, self.data_3d], [self.data_3d, self.data_3d]])
         msg = "Expected 2 to 4 dimensions on input data: got 5"
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(data_5d)
+
+    def test_error_not_enough_dimensions(self):
+        """Test error is raised if input cube 3 dimensions and both realizations and height_levels provided"""
+        realizations = [0, 3, 4]
+        height_levels = [1.5, 3.0, 4.5]
+        msg = "Input data must have 4 dimensions to add both realization and height coordinates: got 3"
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_variable_cube(
+                self.data_3d, realizations=realizations, height_levels=height_levels
+            )
 
     def test_standard_grid_metadata_uk(self):
         """Test standard grid metadata is added if specified"""

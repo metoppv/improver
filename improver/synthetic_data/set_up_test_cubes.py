@@ -234,26 +234,29 @@ def _get_dimension_coords(data, y_coord, x_coord, realizations, height_levels):
     """ Create array of all dimension coordinates """
     ndims = len(data.shape)
     dim_coords = []
-    if ndims in (2, 3, 4):
-        if (height_levels is not None and ndims == 4) or (
-            height_levels is None and ndims == 3
-        ):
-            realization_coord = _create_dimension_coord(
-                realizations, data, 0, "realization", "1"
-            )
-            dim_coords.append((realization_coord, 0))
-        if height_levels is not None and ndims in (3, 4):
-            i = len(dim_coords)
-            height_coord = _create_dimension_coord(
-                height_levels, data, i, "height", "m"
-            )
-            dim_coords.append((height_coord, i))
-        dim_coords.append((y_coord, len(dim_coords)))
-        dim_coords.append((x_coord, len(dim_coords)))
-    else:
+    if ndims not in (2, 3, 4):
         raise ValueError(
             "Expected 2 to 4 dimensions on input data: got {}".format(ndims)
         )
+    if realizations is not None and height_levels is not None and ndims != 4:
+        raise ValueError(
+            "Input data must have 4 dimensions to add both realization and height coordinates: got {}".format(
+                ndims
+            )
+        )
+    if height_levels is None and ndims == 4:
+        raise ValueError("Height levels must be provided if data has 4 dimensions.")
+    if ndims == 4 or (height_levels is None and ndims == 3):
+        realization_coord = _create_dimension_coord(
+            realizations, data, 0, "realization", "1"
+        )
+        dim_coords.append((realization_coord, 0))
+    if height_levels is not None and ndims in (3, 4):
+        i = len(dim_coords)
+        height_coord = _create_dimension_coord(height_levels, data, i, "height", "m")
+        dim_coords.append((height_coord, i))
+    dim_coords.append((y_coord, len(dim_coords)))
+    dim_coords.append((x_coord, len(dim_coords)))
 
     return dim_coords
 
