@@ -54,7 +54,7 @@ ATTRIBUTES_DEFAULT = {}
 
 def _spatial_grid_defaults(spatial_grid):
     """ Returns dictionary of coord y,x names, default resolution, units and coord_system for requested spatial grid.
-    
+
     Returns:
         Dict:
             Dictionary containing spatial grid attributes
@@ -175,7 +175,7 @@ def test_name_unknown_with_units():
     cube = generate_metadata(name=name, units=units)
 
     # "lapse_rate" not CF standard so standard_name expected None
-    assert cube.standard_name == None
+    assert cube.standard_name is None
     assert cube.name() == name
     assert cube.units == units
 
