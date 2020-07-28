@@ -284,7 +284,7 @@ def with_output(
         compression_level (int):
             Will set the compression level (1 to 9), or disable compression (0).
         least_significant_digit (int):
-            If specified, the data will be quantized to a number of significant digits, see
+            Power of ten of the smallest decimal place in unpacked data that is a reliable value, see
             http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml
             for details. When used with `compression level`, this will result in lossy
             compression.
