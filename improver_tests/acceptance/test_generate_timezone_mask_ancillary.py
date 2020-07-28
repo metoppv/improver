@@ -82,7 +82,7 @@ def test_grouping(tmp_path, grid):
     kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
     kgo_path = kgo_dir / "grouped_kgo.nc"
     input = kgo_dir / "input.nc"
-    groups = kgo_dir / "../group_config.json"
+    groups = kgo_dir / "group_config.json"
     output_path = tmp_path / "output.nc"
     args = [
         input,
