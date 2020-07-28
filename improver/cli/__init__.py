@@ -294,12 +294,6 @@ def with_output(
     from improver.utilities.save import save_netcdf
 
     result = wrapped(*args, **kwargs)
-    # Clize automatically converts args to match the default value, however, the default value for least_significant_digit is None
-    least_significant_digit = (
-        int(least_significant_digit)
-        if least_significant_digit is not None
-        else least_significant_digit
-    )
     if output:
         save_netcdf(result, output, compression_level, least_significant_digit)
         return
