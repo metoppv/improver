@@ -282,17 +282,6 @@ def test__group_timezones_empty_group(timezone_mask):
         assert_array_equal(cube.coord("UTC_offset").bounds[0], group)
 
 
-def test__group_timezones_exception(timezone_mask):
-    """Test that an exception is raised if the key defining the timezone group
-    UTC_offset point is not within the bounds that the group defines."""
-
-    groups = {-3: [-6, -1], 9: [0, 6]}
-
-    plugin = GenerateTimezoneMask(groupings=groups)
-    with pytest.raises(ValueError, match=r"Defined UTC offset point for .*"):
-        plugin._group_timezones(timezone_mask)
-
-
 @pytest.fixture(name="process_expected")
 def process_expected_fixture() -> callable:
     """Returns expected results for parameterized process tests."""

@@ -93,7 +93,7 @@ class GenerateTimezoneMask(BasePlugin):
 
         Args:
             cube (iris.cube.Cube):
-                The cube from which the validity time should be taken is one
+                The cube from which the validity time should be taken if one
                 has not been explicitly provided by the user.
         """
         if self.time:
@@ -122,8 +122,8 @@ class GenerateTimezoneMask(BasePlugin):
         Returns:
             numpy.array:
                 A numpy array containing all the pairs of coordinates that describe
-                the y-x points in the grid. This array is 2-dimensional, being
-                2 by the product of the grid's y-x dimension lengths.
+                the y-x points in the grid. This array is 2-dimensional, with
+                shape (2,  (len(y-points) * len(x-points))).
         """
         if lat_lon_determine(cube) is not None:
             yy, xx = transform_grid_to_lat_lon(cube)
@@ -274,13 +274,8 @@ class GenerateTimezoneMask(BasePlugin):
         grouped_timezone_masks = iris.cube.CubeList()
         for offset, group in self.groupings.items():
 
-            if not group[0] <= offset <= group[-1]:
-                msg = (
-                    "Defined UTC offset point for timezone group does not "
-                    "fall within the timezone group bounds. Point: {}"
-                    ", Bounds: {}".format(offset, group)
-                )
-                raise ValueError(msg)
+            # If offset key comes from a json file it will be a string
+            offset = int(offset)
 
             constraint = iris.Constraint(
                 UTC_offset=lambda cell: group[0] <= cell <= group[-1]
