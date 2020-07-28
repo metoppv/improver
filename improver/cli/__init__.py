@@ -262,7 +262,7 @@ def with_output(
     *args,
     output=None,
     compression_level=1,
-    least_significant_digit=None,
+    least_significant_digit: int = None,
     **kwargs,
 ):
     """Add `output` keyword only argument.
