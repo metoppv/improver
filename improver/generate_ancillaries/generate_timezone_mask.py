@@ -31,13 +31,12 @@
 """Module for generating timezone masks."""
 
 import importlib
+import warnings
 from datetime import datetime
 
-import imp
 import iris
 import numpy as np
 import pytz
-import warnings
 from cf_units import Unit
 from iris.exceptions import CoordinateNotFoundError
 from pytz import timezone
@@ -51,10 +50,12 @@ from improver.utilities.cube_manipulation import collapsed
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 
 try:
-    imp.find_module('numba')
+    importlib.util.find_spec("numba")
 except ImportError:
-    warnings.warn("Module numba unavailable. Note that GenerateTimezoneMask is"
-                  " very slow in the absence of numba.")
+    warnings.warn(
+        "Module numba unavailable. Note that GenerateTimezoneMask is"
+        " very slow in the absence of numba."
+    )
 
 
 class GenerateTimezoneMask(BasePlugin):

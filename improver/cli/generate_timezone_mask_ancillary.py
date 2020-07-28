@@ -54,7 +54,7 @@ def process(
             if daylights savings times are being included).
         ignore_dst (bool):
             If True, find and use the UTC offset to a grid point ignoring
-            daylights savings.
+            daylights savings. Default is True.
         time (str):
             A datetime specified in the format YYYYMMDDTHHMMZ at which to
             calculate the mask (UTC). If daylights savings are ignored this
@@ -63,16 +63,17 @@ def process(
             A dictionary specifying how timezones should be grouped if so
             desired. This dictionary takes the form::
 
-                {0: [-12, -5], 1:[-4, 4], 2: [5, 12]}
+                {-9: [-12, -6], 0: [-5, 5], 6: [6, 12]}
 
-            The numbers in the lists denote the inclusive limits of the
-            groups. This is of use if data is not available at hourly
-            intervals.
+            The keys indicate the UTC offset that should provide the data for a
+            group. The numbers in the lists denote the inclusive limits of the
+            timezones for which that data should be used. This is of use if data
+            is not available at hourly intervals.
 
     Returns:
         iris.cube.Cube:
-            Timezone masks for each timezone found in the grid within the
-            input cube, valid on equivalent grids.
+            A cube containing timezone masks for each timezone found in the
+            grid within the input cube, grouped into larger areas if so desired.
     """
     from improver.generate_ancillaries.generate_timezone_mask import (
         GenerateTimezoneMask,

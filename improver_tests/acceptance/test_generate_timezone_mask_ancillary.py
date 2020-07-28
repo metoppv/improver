@@ -53,9 +53,9 @@ def test_ignoring_dst(tmp_path, time, grid):
 
     kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
     kgo_path = kgo_dir / "ignore_dst_kgo.nc"
-    input = kgo_dir / "input.nc"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input, "--time", f"{time}", "--output", output_path]
+    args = [input_path, "--time", f"{time}", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path, exclude_vars=["time"])
 
@@ -68,9 +68,9 @@ def test_with_dst(tmp_path, time, grid):
 
     kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
     kgo_path = kgo_dir / f"{time}_with_dst_kgo.nc"
-    input = kgo_dir / "input.nc"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input, "--time", f"{time}", "--output", output_path]
+    args = [input_path, "--time", f"{time}", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -81,11 +81,11 @@ def test_grouping(tmp_path, grid):
 
     kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
     kgo_path = kgo_dir / "grouped_kgo.nc"
-    input = kgo_dir / "input.nc"
+    input_path = kgo_dir / "input.nc"
     groups = kgo_dir / "group_config.json"
     output_path = tmp_path / "output.nc"
     args = [
-        input,
+        input_path,
         "--time",
         "20200615T1200Z",
         "--groupings",
