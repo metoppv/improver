@@ -37,6 +37,8 @@ from iris.std_names import STD_NAMES
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
+DEFAULT_RESOLUTION = {"latlon": 0.02, "equalarea": 2000}
+
 
 def _get_units(name):
     """ Get output variable units from iris.std_names.STD_NAMES """
@@ -50,17 +52,16 @@ def _get_units(name):
 
 def _create_data_array(ensemble_members, npoints, height_levels):
     """ Create data array of specified shape filled with zeros """
+    data_shape = []
+
+    if ensemble_members > 1:
+        data_shape.append(ensemble_members)
     if height_levels is not None:
         nheights = len(height_levels)
+        data_shape.append(nheights)
 
-        if ensemble_members > 1:
-            data_shape = (ensemble_members, nheights, npoints, npoints)
-        else:
-            data_shape = (nheights, npoints, npoints)
-    elif ensemble_members > 1:
-        data_shape = (ensemble_members, npoints, npoints)
-    else:
-        data_shape = (npoints, npoints)
+    data_shape.append(npoints)
+    data_shape.append(npoints)
 
     return np.zeros(data_shape, dtype=int)
 
@@ -109,9 +110,6 @@ def generate_metadata(
         iris.cube.Cube:
             Output of set_up_variable_cube()
     """
-    if units is None:
-        units = _get_units(name)
-
     if spatial_grid not in ("latlon", "equalarea"):
         raise ValueError(
             "Spatial grid {} not supported. Choose either latlon or equalarea.".format(
@@ -119,11 +117,11 @@ def generate_metadata(
             )
         )
 
+    if units is None:
+        units = _get_units(name)
+
     if resolution is None:
-        if spatial_grid == "latlon":
-            resolution = 0.02
-        elif spatial_grid == "equalarea":
-            resolution = 2000
+        resolution = DEFAULT_RESOLUTION[spatial_grid]
 
     data = _create_data_array(ensemble_members, npoints, height_levels)
 
