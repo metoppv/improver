@@ -199,6 +199,7 @@ class Test_construct_scalar_time_coords(IrisTest):
         self.assertEqual(
             iris_time_to_datetime(time_coord)[0], datetime(2017, 12, 1, 14, 0)
         )
+        # pylint: disable=unsubscriptable-object
         self.assertEqual(time_coord.bounds[0][0], time_coord.points[0] - 3600)
         self.assertEqual(time_coord.bounds[0][1], time_coord.points[0])
 
@@ -214,6 +215,7 @@ class Test_construct_scalar_time_coords(IrisTest):
         self.assertEqual(
             iris_time_to_datetime(time_coord)[0], datetime(2017, 12, 1, 14, 0)
         )
+        # pylint: disable=unsubscriptable-object
         self.assertEqual(time_coord.bounds[0][0], time_coord.points[0] - 3600)
         self.assertEqual(time_coord.bounds[0][1], time_coord.points[0])
 

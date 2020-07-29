@@ -128,10 +128,7 @@ def process(
             height_levels_cube=None,
         )(wind_speed_slice)
         wind_speed_list.append(result)
-    # TODO: Remove temporary fix for chunking problems when merging cubes
-    max_npoints = max([np.prod(cube.data.shape) for cube in wind_speed_list])
-    while iris._lazy_data._MAX_CHUNK_SIZE < max_npoints:
-        iris._lazy_data._MAX_CHUNK_SIZE *= 2
+
     wind_speed = wind_speed_list.merge_cube()
     non_dim_coords = [x.name() for x in wind_speed.coords(dim_coords=False)]
     if "realization" in non_dim_coords:
