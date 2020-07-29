@@ -385,6 +385,27 @@ def test_set_height_levels():
     _check_cube_shape_different(cube)
 
 
+def test_set_height_levels_single_value():
+    """ Tests cube generated with single height level is demoted from dimension to scalar coordinate """
+    height_levels = [1.5]
+    cube = generate_metadata(height_levels=height_levels)
+
+    assert cube.ndim == 3
+    assert cube.shape == (ENSEMBLE_MEMBERS_DEFAULT, NPOINTS_DEFAULT, NPOINTS_DEFAULT,)
+
+    expected_spatial_grid_values = _spatial_grid_defaults(SPATIAL_GRID_DEFAULT)
+    assert cube.coords()[0].name() == "realization"
+    assert cube.coords()[1].name() == expected_spatial_grid_values["y"]
+    assert cube.coords()[2].name() == expected_spatial_grid_values["x"]
+
+    assert np.array_equal(cube.coord("height").points, height_levels)
+
+    # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
+    default_cube = generate_metadata()
+    cube.remove_coord("height")
+    _check_cubes_are_same(cube, default_cube)
+
+
 def test_disable_ensemble_set_height_levels():
     """ Tests cube generated without realizations dimension but with height dimension """
     ensemble_members = 1

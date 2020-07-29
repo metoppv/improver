@@ -116,7 +116,7 @@ a67f7c879abc799c207d6ba124d245ca1f1939ba4703aa5bdf0c74131aee3a30  ./fill-radar-h
 41538c68750bab3001fe382c83af49a348af597296ca5ce56411a670ee20d248  ./generate-metadata-cube/attributes.json
 aa605dbba0a7fb391a939a94bda8d575f019c71bb988acc88363caa6871495fe  ./generate-metadata-cube/kgo_all.nc
 dbb5bf678920e1923db697324b01230efaba88144bf24ef005578f111a358411  ./generate-metadata-cube/kgo_default.nc
-1b34d9741fb5f3b20b997c41f776d0ee3a49989496e0ef9a7824515f3c7325c1  ./generate-metadata-cube/kgo_single_height_level.nc
+7b11d956fdb49cd305338593822a62b7f04e1fe211978a89ebe894dadf36283a  ./generate-metadata-cube/kgo_single_height_level.nc
 16efd6055878f6492ef97f04dcc83800318502e76a846ef1a4294d1fa5e2328d  ./generate-orographic-smoothing-coefficients/kgo.nc
 24e724477689bf0010f91c442844df3776e30df9c2cfef045dd31e8ad8dee2aa  ./generate-orographic-smoothing-coefficients/orography.nc
 9248922f9ef23d3ef58f188b85b2052eef64f4a8a6eb63b320a598d3becd9f50  ./generate-percentiles/basic/input.nc

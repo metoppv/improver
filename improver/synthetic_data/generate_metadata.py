@@ -34,6 +34,7 @@ from datetime import datetime
 
 import numpy as np
 from iris.std_names import STD_NAMES
+from iris.util import squeeze
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
@@ -138,4 +139,5 @@ def generate_metadata(
         height_levels=height_levels,
     )
 
+    metadata_cube = squeeze(metadata_cube)
     return metadata_cube
