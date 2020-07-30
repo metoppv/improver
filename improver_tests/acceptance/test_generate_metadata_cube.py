@@ -98,6 +98,35 @@ def test_single_height_level(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_height_levels_json(tmp_path):
+    """Test metadata cube generated with height levels from json"""
+    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
+    kgo_path = kgo_dir / "kgo_height_levels_json.nc"
+    height_levels_path = kgo_dir / "height_levels.json"
+    output_path = tmp_path / "output.nc"
+    args = ["--height-levels-json", height_levels_path, "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_both_height_levels_input(tmp_path):
+    """Test metadata cube generated with height_levels input rather than height_levels_json input if both provided"""
+    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
+    kgo_path = kgo_dir / "kgo_single_height_level.nc"
+    height_levels_path = kgo_dir / "height_levels.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--height-levels",
+        "1.5",
+        "--height-levels-json",
+        height_levels_path,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_error_invalid_domain_corner(tmp_path):
     """Test error is raised invalid domain corner is set"""
     output_path = tmp_path / "output.nc"

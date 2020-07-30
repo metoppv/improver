@@ -49,6 +49,7 @@ def process(
     domain_corner: cli.comma_separated_list = None,
     npoints: int = 71,
     height_levels: cli.comma_separated_list = None,
+    height_levels_json: cli.inputjson = None,
 ):
     """ Generate a cube with metadata only.
 
@@ -76,6 +77,8 @@ def process(
             Number of points along a single axis.
         height_levels (Optional[List[float]]):
             List of altitude/pressure levels.
+        height_levels_json (Optional[Dict]):
+            Dictionary containing a list of height levels. If both height_levels and height_levels_json are provided, height_levels is used.
 
     Returns:
         iris.cube.Cube:
@@ -92,6 +95,8 @@ def process(
 
     if height_levels is not None:
         height_levels = [float(h) for h in height_levels]
+    elif height_levels_json is not None:
+        height_levels = height_levels_json["height_levels"]
 
     # Convert str time and frt to datetime
     time = cycletime_to_datetime(time)
