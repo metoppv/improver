@@ -40,8 +40,8 @@ from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
 from improver.synthetic_data.generate_metadata import generate_metadata
 from improver.utilities.temporal import datetime_to_iris_time, iris_time_to_datetime
 
-NAME_DEFAULT = "air_temperature"
-UNITS_DEFAULT = "K"
+NAME_DEFAULT = "air_pressure_at_sea_level"
+UNITS_DEFAULT = "Pa"
 SPATIAL_GRID_DEFAULT = "latlon"
 NPOINTS_DEFAULT = 71
 ENSEMBLE_MEMBERS_DEFAULT = 8

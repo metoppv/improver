@@ -68,7 +68,7 @@ def _create_data_array(ensemble_members, npoints, height_levels):
 
 
 def generate_metadata(
-    name="air_temperature",
+    name="air_pressure_at_sea_level",
     units=None,
     spatial_grid="latlon",
     time=datetime(2017, 11, 10, 4, 0),

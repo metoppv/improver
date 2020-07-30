@@ -38,7 +38,7 @@ from improver import cli
 @cli.with_output
 def process(
     *,
-    name="air_temperature",
+    name="air_pressure_at_sea_level",
     units=None,
     spatial_grid="latlon",
     time="20171110T0400Z",
