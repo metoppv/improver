@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating timezone masks."""
 
-import imp
+import importlib
 from datetime import datetime
 
 import iris
@@ -81,7 +81,7 @@ class GenerateTimezoneMask(BasePlugin):
                 intervals.
         """
         try:
-            imp.find_module("timezonefinder")
+            importlib.util.find_spec("timezonefinder")
         except ImportError as err:
             raise err
         else:
