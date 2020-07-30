@@ -42,6 +42,9 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from improver.generate_ancillaries.generate_timezone_mask import GenerateTimezoneMask
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
+pytest.importorskip("timezonefinder")
+pytest.importorskip("numba")
+
 GLOBAL_ATTRIBUTES = {
     "title": "MOGREPS-G Model Forecast on Global 20 km Standard Grid",
     "source": "Met Office Unified Model",
@@ -157,6 +160,7 @@ def test__get_coordinate_pairs(request, grid_fixture):
 def test__get_coordinate_pairs_exception(global_grid):
     """Test that an exception is raised if longitudes are found outside the
     range -180 to 180."""
+
     global_grid.coord("longitude").points = global_grid.coord("longitude").points + 360
 
     with pytest.raises(ValueError, match=r"TimezoneFinder requires .*"):
@@ -170,8 +174,6 @@ def test__calculate_tz_offsets():
 
     These test also cover the functionality of _calculate_offset.
     """
-    pytest.importorskip("timezonefinder")
-    pytest.importorskip("numba")
 
     # New York, London, and Melbourne
     coordinate_pairs = np.array([[41, -74], [51.5, 0], [-37.9, 145]])
@@ -341,9 +343,6 @@ def test_process(request, grid_fixture, time, process_expected):
     The output data is primarily checked in the acceptance tests as a reasonably
     large number of data points are required to reliably check it. Here we check
     only a small sample."""
-
-    pytest.importorskip("timezonefinder")
-    pytest.importorskip("numba")
 
     expected, expected_time, index = process_expected(time, grid_fixture)
     grid = request.getfixturevalue(grid_fixture)

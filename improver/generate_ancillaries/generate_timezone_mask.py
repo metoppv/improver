@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating timezone masks."""
 
+import importlib
 from datetime import datetime
 
 import iris
@@ -79,7 +80,12 @@ class GenerateTimezoneMask(BasePlugin):
                 groups. This is of use if data is not available at hourly
                 intervals.
         """
-        from timezonefinder import TimezoneFinder
+        try:
+            importlib.util.find_spec("timezonefinder")
+        except ImportError as err:
+            raise err
+        else:
+            from timezonefinder import TimezoneFinder
 
         self.tf = TimezoneFinder()
         self.time = time
