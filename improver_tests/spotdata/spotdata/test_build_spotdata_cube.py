@@ -204,6 +204,7 @@ class Test_build_spotdata_cube(IrisTest):
             neighbour_methods=self.neighbour_methods,
         )
 
+        # pylint: disable=unsubscriptable-object
         self.assertEqual(result.coord("time").points[0], time_coord.points[0])
         self.assertEqual(
             result.coord("forecast_reference_time").points[0], frt_coord.points[0]
