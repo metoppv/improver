@@ -32,18 +32,18 @@
 
 import unittest
 
-import numpy as np
-
 import iris
+import numpy as np
+from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
+from iris.tests import IrisTest
+
 from improver.synthetic_data.set_up_test_cubes import (add_coordinate,
                                                        set_up_variable_cube)
 from improver.utilities.cube_checker import (check_cube_coordinates,
                                              check_for_x_and_y_axes,
                                              find_dimension_coordinate_mismatch,
                                              spatial_coords_match)
-from iris.cube import Cube
-from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
 
 class Test_check_for_x_and_y_axes(IrisTest):
