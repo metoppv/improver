@@ -143,7 +143,7 @@ class Test_load_cube(IrisTest):
         realization_points = np.array([0])
         longitude_points = np.array([0])
         constr1 = iris.Constraint(realization=0)
-        constr2 = iris.Constraint(longitude=lambda cell: -0.1 < cell < 0.1)
+        constr2 = iris.Constraint(longitude=lambda cell: -5.1 < cell < 5.1)
         constr = constr1 & constr2
         result = load_cube(self.filepath, constraints=constr)
         self.assertArrayAlmostEqual(

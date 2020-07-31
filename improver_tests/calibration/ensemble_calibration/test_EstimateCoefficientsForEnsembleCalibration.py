@@ -298,7 +298,6 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         self.expected_x_coord_points = np.median(
             self.historic_forecast.coord(axis="x").points
         )
-        self.historic_forecast.coord(axis="x").guess_bounds()
         self.expected_x_coord_bounds = np.array(
             [
                 [
@@ -310,7 +309,6 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         self.expected_y_coord_points = np.median(
             self.historic_forecast.coord(axis="y").points
         )
-        self.historic_forecast.coord(axis="y").guess_bounds()
         self.expected_y_coord_bounds = np.array(
             [
                 [

@@ -206,6 +206,81 @@ def construct_scalar_time_coords(time, time_bounds, frt):
     return coord_dims
 
 
+def _create_dimension_coord(
+    coord_array, data, i, coord_name, coord_units, attributes=None
+):
+    """
+    Creates dimension coordinate from coord_array if not None, otherwise creating an array of integers with an interval of 1
+    """
+    if coord_array is not None:
+        if len(coord_array) != data.shape[i]:
+            raise ValueError(
+                "Cannot generate {} {}s from data of shape "
+                "{}".format(len(coord_array), coord_name, data.shape)
+            )
+        coord_array = np.array(coord_array)
+        if issubclass(coord_array.dtype.type, np.integer):
+            # expect integer coord_array
+            coord_array = coord_array.astype(np.int32)
+        else:
+            # option needed for realizations percentile & probability cube setup and heights coordinate
+            coord_array = coord_array.astype(np.float32)
+    else:
+        coord_array = np.arange(data.shape[i]).astype(np.int32)
+    if coord_name in iris.std_names.STD_NAMES:
+        dim_coord = DimCoord(
+            coord_array, coord_name, units=coord_units, attributes=attributes
+        )
+    else:
+        dim_coord = DimCoord(
+            coord_array, long_name=coord_name, units=coord_units, attributes=attributes
+        )
+
+    return dim_coord
+
+
+def _get_dimension_coords(
+    data, y_coord, x_coord, realizations, height_levels, pressure
+):
+    """ Create array of all dimension coordinates. These dimensions will be ordered: realization, height/pressure, y, x. """
+    ndims = len(data.shape)
+    dim_coords = []
+    if ndims not in (2, 3, 4):
+        raise ValueError(
+            "Expected 2 to 4 dimensions on input data: got {}".format(ndims)
+        )
+    if realizations is not None and height_levels is not None and ndims != 4:
+        raise ValueError(
+            "Input data must have 4 dimensions to add both realization and height coordinates: got {}".format(
+                ndims
+            )
+        )
+    if height_levels is None and ndims == 4:
+        raise ValueError("Height levels must be provided if data has 4 dimensions.")
+    if ndims == 4 or (height_levels is None and ndims == 3):
+        realization_coord = _create_dimension_coord(
+            realizations, data, 0, "realization", "1"
+        )
+        dim_coords.append((realization_coord, 0))
+    if height_levels is not None and ndims in (3, 4):
+        i = len(dim_coords)
+        coord_name = "height"
+        coord_units = "m"
+        attributes = {"positive": "up"}
+        if pressure:
+            coord_name = "pressure"
+            coord_units = "Pa"
+            attributes["positive"] = "down"
+        height_coord = _create_dimension_coord(
+            height_levels, data, i, coord_name, coord_units, attributes=attributes
+        )
+        dim_coords.append((height_coord, i))
+    dim_coords.append((y_coord, len(dim_coords)))
+    dim_coords.append((x_coord, len(dim_coords)))
+
+    return dim_coords
+
+
 def set_up_variable_cube(
     data,
     name="air_temperature",
@@ -220,11 +295,14 @@ def set_up_variable_cube(
     standard_grid_metadata=None,
     grid_spacing=None,
     domain_corner=None,
+    height_levels=None,
+    pressure=False,
 ):
     """
     Set up a cube containing a single variable field with:
     - x/y spatial dimensions (equal area or lat / lon)
     - optional leading "realization" dimension
+    - optional "height" dimension
     - "time", "forecast_reference_time" and "forecast_period" scalar coords
     - option to specify additional scalar coordinates
     - configurable attributes
@@ -261,6 +339,10 @@ def set_up_variable_cube(
             Grid resolution (degrees for latlon or metres for equalarea).
         domain_corner (Optional[Tuple[float, float]]):
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
+        height_levels (Optional[List[float]]):
+            List of altitude/pressure levels.
+        pressure (Optional[bool]):
+            Flag to indicate whether to make height levels pressure levels.
 
     Returns:
         iris.cube.Cube:
@@ -277,32 +359,9 @@ def set_up_variable_cube(
         domain_corner=domain_corner,
     )
 
-    # construct realization dimension for 3D data, and dim_coords list
-    ndims = len(data.shape)
-    if ndims == 3:
-        if realizations is not None:
-            if len(realizations) != data.shape[0]:
-                raise ValueError(
-                    "Cannot generate {} realizations from data of shape "
-                    "{}".format(len(realizations), data.shape)
-                )
-            realizations = np.array(realizations)
-            if issubclass(realizations.dtype.type, np.integer):
-                # expect integer realizations
-                realizations = realizations.astype(np.int32)
-            else:
-                # option needed for percentile & probability cube setup
-                realizations = realizations.astype(np.float32)
-        else:
-            realizations = np.arange(data.shape[0]).astype(np.int32)
-        realization_coord = DimCoord(realizations, "realization", units="1")
-        dim_coords = [(realization_coord, 0), (y_coord, 1), (x_coord, 2)]
-    elif ndims == 2:
-        dim_coords = [(y_coord, 0), (x_coord, 1)]
-    else:
-        raise ValueError(
-            "Expected 2 or 3 dimensions on input data: got {}".format(ndims)
-        )
+    dim_coords = _get_dimension_coords(
+        data, y_coord, x_coord, realizations, height_levels, pressure
+    )
 
     # construct list of aux_coords_and_dims
     scalar_coords = construct_scalar_time_coords(time, time_bounds, frt)
@@ -326,6 +385,12 @@ def set_up_variable_cube(
         aux_coords_and_dims=scalar_coords,
     )
     cube.rename(name)
+
+    # add bounds on spatial coordinates
+    if ypoints > 1:
+        cube.coord(axis="y").guess_bounds()
+    if xpoints > 1:
+        cube.coord(axis="x").guess_bounds()
 
     # don't allow unit tests to set up invalid cubes
     check_mandatory_standards(cube)
