@@ -31,19 +31,16 @@
 """ Unit tests for DayNightMask class """
 
 import unittest
-
 from datetime import datetime
+
+import numpy as np
+
 import cf_units as unit
 import iris
-import numpy as np
-from iris.tests import IrisTest
-
+from improver.synthetic_data.set_up_test_cubes import (add_coordinate,
+                                                       set_up_variable_cube)
 from improver.utilities.solar import DayNightMask
-
-from improver.synthetic_data.set_up_test_cubes import (
-    add_coordinate,
-    set_up_variable_cube,
-)
+from iris.tests import IrisTest
 
 
 class Test__init__(IrisTest):
