@@ -53,8 +53,6 @@ from improver.utilities.spatial import (
     transform_grid_to_lat_lon,
 )
 
-from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
-
 
 class Test_common_functions(IrisTest):
 
@@ -218,7 +216,14 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
     def setUp(self):
         """Set up the cube."""
         self.DISTANCE = 6100
-        self.cube = set_up_cube()
+        data = np.ones((1, 16, 16), dtype=np.float32)
+        data[:, 7, 7] = 0.0
+        self.cube = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            "equalarea",
+        )
 
     def test_basic_distance_to_grid_cells(self):
         """Test the distance in metres to grid cell conversion along the
@@ -433,7 +438,14 @@ class Test_transform_grid_to_lat_lon(IrisTest):
 
     def setUp(self):
         """Set up the cube."""
-        self.cube = set_up_cube(zero_point_indices=((0, 0, 1, 1),), num_grid_points=2)
+        data = np.ones((1, 2, 2), dtype=np.float32)
+        data[:, 1, 1] = 0.0
+        self.cube = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            "equalarea",
+        )
         self.cube.coord(axis="x").points = np.array([-1158000.0, 924000.0])
         self.cube.coord(axis="y").points = np.array([-1036000.0, 902000.0])
 

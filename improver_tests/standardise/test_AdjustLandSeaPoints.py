@@ -37,14 +37,16 @@ import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
-from iris.util import squeeze
 
 from improver.grids import ELLIPSOID
 from improver.standardise import AdjustLandSeaPoints
 from improver.utilities.spatial import OccurrenceWithinVicinity
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
 
 # The warning messages are internal to the iris.analysis module v2.2.0
 IGNORED_MESSAGES = ["Using a non-tuple sequence for multidimensional indexing"]
@@ -129,17 +131,23 @@ class Test_correct_where_input_true(IrisTest):
         expected behaviour in the function.
         """
         self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.0)
-        cube = squeeze(
-            set_up_cube(num_grid_points=3, zero_point_indices=((0, 0, 1, 1),))
+        data = np.ones((3, 3), dtype=np.float32)
+        data[1, 1] = 0.0
+        cube = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            "equalarea",
         )
         self.plugin.input_land = cube.copy()
         self.plugin.output_land = cube.copy()
         self.plugin.nearest_cube = cube.copy()
         self.plugin.nearest_cube.data[0, 1] = 0.5
         self.plugin.output_cube = self.plugin.nearest_cube.copy()
-        self.move_sea_point = squeeze(
-            set_up_cube(num_grid_points=3, zero_point_indices=((0, 0, 0, 1),))
-        )
+        self.move_sea_point = cube.copy()
+        data_move_sea = np.ones((3, 3), dtype=np.float32)
+        data_move_sea[0, 1] = 0.0
+        self.move_sea_point.data = data_move_sea
 
     def test_basic_sea(self):
         """Test that nothing changes with argument zero (sea)."""
@@ -203,16 +211,22 @@ class Test_correct_where_input_true(IrisTest):
         # point at [4, 4]. The alternative value of 0.5 at [4, 4] should not
         # be selected with a small vicinity_radius.
         self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.0)
-        cube = squeeze(
-            set_up_cube(num_grid_points=5, zero_point_indices=((0, 0, 1, 1),))
+        data = np.ones((5, 5), dtype=np.float32)
+        data[1, 1] = 0.0
+        cube = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            "equalarea",
         )
         self.plugin.output_land = cube.copy()
         self.plugin.nearest_cube = cube.copy()
         self.plugin.nearest_cube.data[4, 4] = 0.5
         self.plugin.output_cube = self.plugin.nearest_cube.copy()
-        self.plugin.input_land = squeeze(
-            set_up_cube(num_grid_points=5, zero_point_indices=((0, 0, 4, 4),))
-        )
+        land_data = np.ones((5, 5), dtype=np.float32)
+        land_data[4, 4] = 0.0
+        self.plugin.input_land = cube.copy()
+        self.plugin.input_land.data = land_data
 
         output_cube = self.plugin.output_cube.copy()
         self.plugin.correct_where_input_true(0)
@@ -248,25 +262,38 @@ class Test_process(IrisTest):
         input_cube: 0. at [1, 1]; 0.5 at [0, 1]; 0.1 at [4, 4]
         These should trigger all the behavior we expect.
         """
+        data_input_land = np.ones((5, 5), dtype=np.float32)
+        data_input_land[0, 1] = 0.0
+        data_input_land[4, 4] = 0.0
+
+        data_output_land = np.ones((5, 5), dtype=np.float32)
+        data_output_land[0, 0] = 0.0
+        data_output_land[1, 1] = 0.0
+
+        data_cube = np.ones((5, 5), dtype=np.float32)
+        data_cube[1, 1] = 0.0
+        data_cube[0, 1] = 0.5
+        data_cube[4, 4] = 0.1
+
         self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.0)
 
-        self.output_land = squeeze(
-            set_up_cube(
-                num_grid_points=5, zero_point_indices=((0, 0, 1, 1), (0, 0, 0, 0))
-            )
+        self.cube = set_up_variable_cube(
+            data_cube,
+            "precipitation_amount",
+            "kg m^-2",
+            "equalarea",
         )
 
-        self.cube = squeeze(
-            set_up_cube(num_grid_points=5, zero_point_indices=((0, 0, 1, 1),))
-        )
-        self.cube.data[0, 1] = 0.5
-        self.cube.data[4, 4] = 0.1
+        cube_x_coord = np.array(np.linspace(-50000.0, -42000.0, 5))
+        cube_y_coord = np.array(np.linspace(0.0, 8000.0, 5))
+        self.cube.coord("projection_x_coordinate").points = cube_x_coord
+        self.cube.coord("projection_y_coordinate").points = cube_y_coord
 
-        self.input_land = squeeze(
-            set_up_cube(
-                num_grid_points=5, zero_point_indices=((0, 0, 0, 1), (0, 0, 4, 4))
-            )
-        )
+        self.output_land = self.cube.copy()
+        self.output_land.data = data_output_land
+
+        self.input_land = self.cube.copy()
+        self.input_land.data = data_input_land
 
         # Lat-lon coords for reprojection
         # These coords result in a 1:1 regridding with the above cubes.
@@ -335,9 +362,9 @@ class Test_process(IrisTest):
     def test_multi_realization(self):
         """Test that the expected changes occur and meta-data are unchanged
         when handling a multi-realization cube."""
-        cube = self.cube.copy()
-        cube.coord("realization").points = [1]
-        cubes = iris.cube.CubeList([self.cube, cube])
+        cube1 = add_coordinate(self.cube, [0], "realization")
+        cube2 = add_coordinate(self.cube, [1], "realization")
+        cubes = iris.cube.CubeList([cube1, cube2])
         cube = cubes.merge_cube()
 
         expected = cube.data.copy()
