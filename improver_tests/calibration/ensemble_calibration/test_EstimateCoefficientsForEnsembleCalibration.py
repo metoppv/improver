@@ -295,6 +295,7 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         self.expected_frt = (
             self.historic_forecast.coord("forecast_reference_time").cell(-1).point
         )
+        self.expected_fp = self.historic_forecast.coord("forecast_period")
         self.expected_x_coord_points = np.median(
             self.historic_forecast.coord(axis="x").points
         )
@@ -336,6 +337,9 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
             self.assertEqual(
                 cube.coord("forecast_reference_time").cell(0).point, self.expected_frt,
             )
+            self.assertEqual(
+                cube.coord("forecast_period"), self.expected_fp,
+            )
             self.assertArrayAlmostEqual(
                 cube.coord(axis="x").points, self.expected_x_coord_points
             )
@@ -351,6 +355,46 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
             self.assertDictEqual(cube.attributes, self.attributes)
 
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
+
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coordinates_from_mean_period_diagnostic(self):
+        """Test that the time coordinates are as expected when the historic
+        forecasts are time-bounded diagnostics, e.g. maximum in hour."""
+
+        fp_bounds = [10800, 14400]
+
+        self.historic_forecast.coord("forecast_period").bounds = fp_bounds
+        expected_fp = self.expected_fp
+        expected_fp.bounds = fp_bounds
+
+        result = self.plugin.create_coefficients_cubelist(
+            self.optimised_coeffs, self.historic_forecast
+        )
+        self.assertEqual(len(result), 4)
+        for cube in result:
+            self.assertEqual(
+                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt,
+            )
+            self.assertEqual(
+                cube.coord("forecast_period"), expected_fp,
+            )
+
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_exception_for_multi_valued_forecast_period(self):
+        """Test that an exception is raised if the forecast_period is multi-
+        valued. This is simply to demonstrate that only single valued
+        forecast periods are expected."""
+
+        fps = [0, 3600, 7200, 10800, 14400]
+        fp_coord = self.historic_forecast.coord("forecast_period").copy(fps)
+        self.historic_forecast.remove_coord("forecast_period")
+        self.historic_forecast.add_aux_coord(fp_coord, 0)
+
+        msg = "too many values to unpack"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.create_coefficients_cubelist(
+                self.optimised_coeffs, self.historic_forecast
+            )
 
     def test_attributes_for_truncnorm(self):
         """Test that the expected attributes are created for a truncated normal

@@ -625,8 +625,11 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         )
 
         # Create forecast period coordinate.
-        fp_point = np.unique(historic_forecasts.coord("forecast_period").points)
-        fp_coord = historic_forecasts.coord("forecast_period").copy(fp_point)
+        (fp_point,) = historic_forecasts.coord("forecast_period").points
+        fp_bounds = historic_forecasts.coord("forecast_period").bounds
+        fp_coord = historic_forecasts.coord("forecast_period").copy(
+            points=fp_point, bounds=fp_bounds
+        )
 
         return [(frt_coord, None), (fp_coord, None)]
 
