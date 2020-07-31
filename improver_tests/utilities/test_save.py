@@ -248,7 +248,7 @@ def bitshaving_cube_fixture():
     return cube
 
 
-@pytest.mark.parametrize("lsd", (0, 2, 5))
+@pytest.mark.parametrize("lsd", (0, 2, 3))
 @pytest.mark.parametrize("compress", (0, 2))
 def test_least_significant_digit(bitshaving_cube, tmp_path, lsd, compress):
     """ Test the least significant digit for bitshaving output files"""
@@ -270,8 +270,8 @@ def test_least_significant_digit(bitshaving_cube, tmp_path, lsd, compress):
     # check that whole numbers are preserved
     assert np.min(abs_diff) == 0.0
     # check that modified data is accurate to the specified number of digits
-    assert np.median(abs_diff) < 10 ** (-1.0 * (lsd + 0.5))
-    assert np.mean(abs_diff) < 10 ** (-1.0 * (lsd + 0.5))
+    assert 0 < np.median(abs_diff) < 10 ** (-1.0 * (lsd + 0.5))
+    assert 0 < np.mean(abs_diff) < 10 ** (-1.0 * (lsd + 0.5))
     assert np.max(abs_diff) < 10 ** (-1.0 * lsd)
 
 

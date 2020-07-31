@@ -288,7 +288,7 @@ def with_output(
             e.g. if least_significant_digit=2, then the data will be quantized to a precision of 0.01 (10**(-2)). See
             http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml
             for details. When used with `compression level`, this will result in lossy
-            compression. 
+            compression.
     Returns:
         Result of calling `wrapped` or None if `output` is given.
     """
