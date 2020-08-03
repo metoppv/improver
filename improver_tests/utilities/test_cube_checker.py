@@ -154,8 +154,6 @@ class Test_check_cube_coordinates(IrisTest):
         """Test that if the new_cube has additional coordinates compared with
         the original cube, if no coordinates are listed as exception
         coordinates, then an exception will be raised."""
-        new_cube = self.cube.copy()
-        cube = iris.util.squeeze(self.cube)
         msg = "The number of dimension coordinates within the new cube"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             check_cube_coordinates(self.squeezed_cube, self.cube)
