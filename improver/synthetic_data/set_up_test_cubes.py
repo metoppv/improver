@@ -48,6 +48,12 @@ from improver.metadata.constants.mo_attributes import MOSG_GRID_DEFINITION
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import forecast_period_coord
 
+DIM_COORD_ATTRIBUTES = {
+    "realization": {"units": "1"},
+    "height": {"units": "m", "attributes": {"positive": "up"}},
+    "pressure": {"units": "Pa", "attributes": {"positive": "down"}},
+}
+
 
 def construct_yx_coords(
     ypoints, xpoints, spatial_grid, grid_spacing=None, domain_corner=None
@@ -258,21 +264,24 @@ def _get_dimension_coords(
     if height_levels is None and ndims == 4:
         raise ValueError("Height levels must be provided if data has 4 dimensions.")
     if ndims == 4 or (height_levels is None and ndims == 3):
+        coord_name = "realization"
+        coord_units = DIM_COORD_ATTRIBUTES[coord_name]["units"]
         realization_coord = _create_dimension_coord(
-            realizations, data, 0, "realization", "1"
+            realizations, data, 0, coord_name, coord_units
         )
         dim_coords.append((realization_coord, 0))
     if height_levels is not None and ndims in (3, 4):
         i = len(dim_coords)
-        coord_name = "height"
-        coord_units = "m"
-        attributes = {"positive": "up"}
         if pressure:
             coord_name = "pressure"
-            coord_units = "Pa"
-            attributes["positive"] = "down"
+        else:
+            coord_name = "height"
+
+        coord_units = DIM_COORD_ATTRIBUTES[coord_name]["units"]
+        coord_attributes = DIM_COORD_ATTRIBUTES[coord_name]["attributes"]
+
         height_coord = _create_dimension_coord(
-            height_levels, data, i, coord_name, coord_units, attributes=attributes
+            height_levels, data, i, coord_name, coord_units, attributes=coord_attributes
         )
         dim_coords.append((height_coord, i))
     dim_coords.append((y_coord, len(dim_coords)))
