@@ -57,7 +57,6 @@ class Test_check_for_x_and_y_axes(IrisTest):
     def setUp(self):
         """Set up a cube."""
         data = np.ones((1, 5, 5), dtype=np.float32)
-        data[:, 2, 2] = 0.0
         self.cube = set_up_variable_cube(
             data, "precipitation_amount", "kg m^-2", "equalarea",
         )
@@ -105,10 +104,10 @@ class Test_check_cube_coordinates(IrisTest):
     def setUp(self):
         """Set up a cube."""
         data = np.ones((1, 16, 16), dtype=np.float32)
-        data[:, 7, 7] = 0.0
         self.cube = set_up_variable_cube(
             data, "precipitation_amount", "kg m^-2", "equalarea",
         )
+        self.squeezed_cube = iris.util.squeeze(self.cube)
 
     def test_basic(self):
         """Test returns iris.cube.Cube."""
@@ -125,39 +124,30 @@ class Test_check_cube_coordinates(IrisTest):
     def test_coord_promotion(self):
         """Test that scalar coordinates in new_cube are promoted to dimension
         coordinates to match the parent cube."""
-        new_cube = iris.util.squeeze(self.cube)
-        result = check_cube_coordinates(self.cube, new_cube)
+        result = check_cube_coordinates(self.cube, self.squeezed_cube)
         self.assertEqual(result.dim_coords, self.cube.dim_coords)
-
-    def test_coord_promotion_only_dim_coords_in_parent(self):
-        """Test that only dimension coordinates in the parent cube are matched
-        when promoting the scalar coordinates in new_cube. Here realization is
-        made into a scalar coordinate on the parent, and so should remain a
-        scalar in new_cube as well."""
-        new_cube = iris.util.squeeze(self.cube)
-        cube = self.cube[0]
-        result = check_cube_coordinates(cube, new_cube)
-        self.assertEqual(result.dim_coords, cube.dim_coords)
+        self.assertEqual(
+            result.coords(dim_coords=False), self.cube.coords(dim_coords=False)
+        )
 
     def test_coord_promotion_and_reordering(self):
         """Test case in which a scalar coordinate are promoted but the order
         must be corrected to match the progenitor cube."""
-        new_cube = iris.util.squeeze(self.cube)
         self.cube.transpose(new_order=[1, 0, 2])
-        result = check_cube_coordinates(self.cube, new_cube)
+        result = check_cube_coordinates(self.cube, self.squeezed_cube)
         self.assertEqual(result.dim_coords, self.cube.dim_coords)
 
     def test_permitted_exception_coordinates(self):
         """Test that if the new_cube is known to have additional coordinates
-        compared with the original cube, these coordinates are listed are
+        compared with the original cube, these coordinates are listed as
         exception_coordinates and handled correctly."""
-        new_cube = self.cube.copy()
-        cube = iris.util.squeeze(self.cube)
         exception_coordinates = ["realization"]
         result = check_cube_coordinates(
-            cube, new_cube, exception_coordinates=exception_coordinates
+            self.squeezed_cube, self.cube, exception_coordinates=exception_coordinates
         )
-        dim_coords = tuple(new_cube.coord("realization")) + cube.dim_coords
+        dim_coords = (
+            tuple(self.cube.coord("realization")) + self.squeezed_cube.dim_coords
+        )
         self.assertEqual(result.dim_coords, dim_coords)
 
     def test_no_permitted_exception_coordinates(self):
@@ -168,30 +158,29 @@ class Test_check_cube_coordinates(IrisTest):
         cube = iris.util.squeeze(self.cube)
         msg = "The number of dimension coordinates within the new cube"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            check_cube_coordinates(cube, new_cube)
+            check_cube_coordinates(self.squeezed_cube, self.cube)
 
     def test_missing_exception_coordinates(self):
         """Test that if the new_cube has additional coordinates compared with
         the original cube, if these coordinates are not listed as exception
         coordinates, then an exception will be raised."""
-        new_cube = self.cube.copy()
-        cube = iris.util.squeeze(self.cube)
         exception_coordinates = ["height"]
         msg = "All permitted exception_coordinates must be on the new_cube."
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             check_cube_coordinates(
-                cube, new_cube, exception_coordinates=exception_coordinates
+                self.squeezed_cube,
+                self.cube,
+                exception_coordinates=exception_coordinates,
             )
 
     def test_coord_promotion_missing_scalar(self):
         """Test case in which a scalar coordinate has been lost from new_cube,
         meaning the cube undergoing checking ends up with different dimension
         coordinates to the progenitor cube. This raises an error."""
-        new_cube = iris.util.squeeze(self.cube)
-        new_cube.remove_coord("realization")
+        self.squeezed_cube.remove_coord("realization")
         msg = "The number of dimension coordinates within the new cube"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            check_cube_coordinates(self.cube, new_cube)
+            check_cube_coordinates(self.cube, self.squeezed_cube)
 
 
 class Test_find_dimension_coordinate_mismatch(IrisTest):
@@ -201,7 +190,6 @@ class Test_find_dimension_coordinate_mismatch(IrisTest):
     def setUp(self):
         """Set up a cube."""
         data = np.ones((2, 16, 16), dtype=np.float32)
-        data[:, 7, 7] = 0.0
         self.cube = set_up_variable_cube(
             data, "precipitation_amount", "kg m^-2", "equalarea",
         )
@@ -216,7 +204,7 @@ class Test_find_dimension_coordinate_mismatch(IrisTest):
         """Test when finding a one-way mismatch, so that the second cube has
         a missing coordinate. This returns an empty list."""
         first_cube = self.cube.copy()
-        second_cube = self.cube.copy()
+        second_cube = next(self.cube.slices_over("realization")).copy()
         second_cube.remove_coord("realization")
         result = find_dimension_coordinate_mismatch(
             first_cube, second_cube, two_way_mismatch=False
@@ -228,9 +216,9 @@ class Test_find_dimension_coordinate_mismatch(IrisTest):
         """Test when finding a one-way mismatch, so that the first cube has
         a missing coordinate. This returns a list with the missing coordinate
         name."""
-        first_cube = self.cube.copy()
-        second_cube = self.cube.copy()
+        first_cube = next(self.cube.slices_over("realization")).copy()
         first_cube.remove_coord("realization")
+        second_cube = self.cube.copy()
         result = find_dimension_coordinate_mismatch(
             first_cube, second_cube, two_way_mismatch=False
         )
@@ -241,10 +229,9 @@ class Test_find_dimension_coordinate_mismatch(IrisTest):
         """Test when finding a two-way mismatch, when the first and second
         cube contain different coordinates."""
         first_cube = self.cube.copy()
-        second_cube = self.cube.copy()
+        second_cube = next(self.cube.slices_over("realization")).copy()
         second_cube.remove_coord("realization")
         second_cube = add_coordinate(second_cube, [10, 20], "height", "m")
-        iris.util.promote_aux_coord_to_dim_coord(second_cube, "height")
         result = find_dimension_coordinate_mismatch(first_cube, second_cube)
         self.assertIsInstance(result, list)
         self.assertListEqual(result, ["height", "realization"])
@@ -256,9 +243,7 @@ class Test_spatial_coords_match(IrisTest):
     def setUp(self):
         """Create two unmatching cubes for spatial comparison."""
         data_a = np.ones((1, 16, 16), dtype=np.float32)
-        data_a[:, 7, 7] = 0.0
         data_b = np.ones((1, 10, 10), dtype=np.float32)
-        data_b[:, 7, 7] = 0.0
         self.cube_a = set_up_variable_cube(
             data_a, "precipitation_amount", "kg m^-2", "equalarea",
         )

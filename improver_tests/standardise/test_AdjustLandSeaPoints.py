@@ -140,10 +140,9 @@ class Test_correct_where_input_true(IrisTest):
         self.plugin.nearest_cube = cube.copy()
         self.plugin.nearest_cube.data[0, 1] = 0.5
         self.plugin.output_cube = self.plugin.nearest_cube.copy()
-        self.move_sea_point = cube.copy()
         data_move_sea = np.ones((3, 3), dtype=np.float32)
         data_move_sea[0, 1] = 0.0
-        self.move_sea_point.data = data_move_sea
+        self.move_sea_point = cube.copy(data=data_move_sea)
 
     def test_basic_sea(self):
         """Test that nothing changes with argument zero (sea)."""
@@ -218,8 +217,7 @@ class Test_correct_where_input_true(IrisTest):
         self.plugin.output_cube = self.plugin.nearest_cube.copy()
         land_data = np.ones((5, 5), dtype=np.float32)
         land_data[4, 4] = 0.0
-        self.plugin.input_land = cube.copy()
-        self.plugin.input_land.data = land_data
+        self.plugin.input_land = cube.copy(data=land_data)
 
         output_cube = self.plugin.output_cube.copy()
         self.plugin.correct_where_input_true(0)
@@ -271,19 +269,16 @@ class Test_process(IrisTest):
         self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.0)
 
         self.cube = set_up_variable_cube(
-            data_cube, "precipitation_amount", "kg m^-2", "equalarea",
+            data_cube,
+            "precipitation_amount",
+            "kg m^-2",
+            "equalarea",
+            grid_spacing=2000,
+            domain_corner=(0, -50000),
         )
 
-        cube_x_coord = np.array(np.linspace(-50000.0, -42000.0, 5))
-        cube_y_coord = np.array(np.linspace(0.0, 8000.0, 5))
-        self.cube.coord("projection_x_coordinate").points = cube_x_coord
-        self.cube.coord("projection_y_coordinate").points = cube_y_coord
-
-        self.output_land = self.cube.copy()
-        self.output_land.data = data_output_land
-
-        self.input_land = self.cube.copy()
-        self.input_land.data = data_input_land
+        self.output_land = self.cube.copy(data=data_output_land)
+        self.input_land = self.cube.copy(data=data_input_land)
 
         # Lat-lon coords for reprojection
         # These coords result in a 1:1 regridding with the above cubes.
@@ -352,11 +347,7 @@ class Test_process(IrisTest):
     def test_multi_realization(self):
         """Test that the expected changes occur and meta-data are unchanged
         when handling a multi-realization cube."""
-        cube1 = add_coordinate(self.cube, [0], "realization")
-        cube2 = add_coordinate(self.cube, [1], "realization")
-        cubes = iris.cube.CubeList([cube1, cube2])
-        cube = cubes.merge_cube()
-
+        cube = add_coordinate(self.cube, [0, 1], "realization", coord_units=1)
         expected = cube.data.copy()
 
         # Output sea-point populated with data from input sea-point:
