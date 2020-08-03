@@ -48,8 +48,11 @@ TIMES = ["20200615T1200Z", "20201215T1200Z"]
 @pytest.mark.parametrize("time", TIMES)
 @pytest.mark.parametrize("grid", GRIDS)
 def test_ignoring_dst(tmp_path, time, grid):
-    """Test masks generated ignoring daylights savings time. The time of year
-    should have no impact on the result."""
+    """Test masks generated ignoring daylight savings time. The time of year
+    should have no impact on the result, which is demonstrated here by use of a
+    common kgo for both summer and winter. The kgo is checked excluding the
+    validity time as this is necessarily different between summer and winter,
+    whilst everything else remains unchanged."""
 
     kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
     kgo_path = kgo_dir / "ignore_dst_kgo.nc"
@@ -63,14 +66,21 @@ def test_ignoring_dst(tmp_path, time, grid):
 @pytest.mark.parametrize("time", TIMES)
 @pytest.mark.parametrize("grid", GRIDS)
 def test_with_dst(tmp_path, time, grid):
-    """Test masks generated including daylights savings time. In this case the
-    time of year should chosen will give different results."""
+    """Test masks generated including daylight savings time. In this case the
+    time of year chosen will give different results."""
 
     kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
     kgo_path = kgo_dir / f"{time}_with_dst_kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "--time", f"{time}", "--output", output_path]
+    args = [
+        input_path,
+        "--time",
+        f"{time}",
+        "--include-dst",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

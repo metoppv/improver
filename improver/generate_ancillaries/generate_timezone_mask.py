@@ -67,18 +67,18 @@ class GenerateTimezoneMask(BasePlugin):
     to generate the masks.
     """
 
-    def __init__(self, ignore_dst=True, time=None, groupings=None):
+    def __init__(self, include_dst=False, time=None, groupings=None):
         """
         Configure plugin options to generate the desired ancillary.
 
         Args:
-            ignore_dst (Optional[bool]):
-                If True, find and use the UTC offset to a grid point ignoring
-                daylights savings.
+            include_dst (Optional[bool]):
+                If True, find and use the UTC offset to a grid point including
+                the effect of daylight savings.
             time (Optional[str]):
                 A datetime specified in the format YYYYMMDDTHHMMZ at which to
-                calculate the mask (UTC). If daylights savings are ignored this
-                will have no impact on the resulting masks.
+                calculate the mask (UTC). If daylight savings are not included
+                this will have no impact on the resulting masks.
             groupings (Optional[Dict[int, List[int, int]]]):
                 A dictionary specifying how timezones should be grouped if so
                 desired. This dictionary takes the form::
@@ -98,7 +98,7 @@ class GenerateTimezoneMask(BasePlugin):
 
         self.tf = TimezoneFinder()
         self.time = time
-        self.ignore_dst = ignore_dst
+        self.include_dst = include_dst
         self.groupings = groupings
 
     def _set_time(self, cube):
@@ -202,7 +202,7 @@ class GenerateTimezoneMask(BasePlugin):
     def _calculate_offset(self, point_tz):
         """
         Calculates the offset in seconds from UTC for a given timezone, either
-        with or without consideration of daylights savings.
+        with or without consideration of daylight savings.
 
         Args:
             point_tz (str):
@@ -221,7 +221,7 @@ class GenerateTimezoneMask(BasePlugin):
         local = self.time.astimezone(target)
         offset = local.utcoffset()
 
-        if self.ignore_dst:
+        if not self.include_dst:
             offset -= local.dst()
 
         return int(offset.total_seconds())
@@ -230,8 +230,8 @@ class GenerateTimezoneMask(BasePlugin):
         """
         Create a template cube to store the timezone masks. This cube has only
         one scalar coordinate which is time, denoting when it is valid; this is
-        only relevant if using daylights savings. The attribute
-        includes_daylights_savings is set to indicate this.
+        only relevant if using daylight savings. The attribute
+        includes_daylight_savings is set to indicate this.
 
         Args:
             cube (iris.cube.Cube):
@@ -253,7 +253,7 @@ class GenerateTimezoneMask(BasePlugin):
         cube.add_aux_coord(time_coord)
 
         attributes = generate_mandatory_attributes([cube])
-        attributes["includes_daylights_savings"] = str(not self.ignore_dst)
+        attributes["includes_daylight_savings"] = str(self.include_dst)
 
         return create_new_diagnostic_cube(
             "timezone_mask", 1, cube, attributes, dtype=np.int32
@@ -320,7 +320,7 @@ class GenerateTimezoneMask(BasePlugin):
                 A cube with the desired grid. If no 'time' is specified in
                 the plugin configuration the time on this cube will be used
                 for determining the validity time of the calculated UTC offsets
-                (this is only relevant if daylights savings times are being included).
+                (this is only relevant if daylight savings times are being included).
         Returns:
             iris.cube.Cube:
                 A timezone mask cube with a leading UTC_offset dimension. Each

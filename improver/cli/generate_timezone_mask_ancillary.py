@@ -37,7 +37,11 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube, *, ignore_dst=True, time=None, groupings: cli.inputjson = None
+    cube: cli.inputcube,
+    *,
+    include_dst=False,
+    time=None,
+    groupings: cli.inputjson = None,
 ):
     """Generate a timezone mask ancillary.
 
@@ -51,14 +55,14 @@ def process(
             A cube with the desired grid. If no 'time' argument is provided
             to the CLI, the time on this cube will be used for determining the
             validity time of the calculated UTC offsets (this is only relevant
-            if daylights savings times are being included).
-        ignore_dst (bool):
-            If True, find and use the UTC offset to a grid point ignoring
-            daylights savings. Default is True.
+            if daylight savings times are being included).
+        include_dst (bool):
+            If set, find and use the UTC offset to a grid point including
+            daylight savings.
         time (str):
             A datetime specified in the format YYYYMMDDTHHMMZ at which to
-            calculate the mask (UTC). If daylights savings are ignored this
-            will have no impact on the resulting masks.
+            calculate the mask (UTC). If daylight savings are not included
+            this will have no impact on the resulting masks.
         groupings (dict):
             A dictionary specifying how timezones should be grouped if so
             desired. This dictionary takes the form::
@@ -74,11 +78,13 @@ def process(
         iris.cube.Cube:
             A cube containing timezone masks for each timezone found in the
             grid within the input cube, grouped into larger areas if so desired.
+            Mask values of 1 indicate that a point is masked out, and values of
+            0 indicate the point is unmasked.
     """
     from improver.generate_ancillaries.generate_timezone_mask import (
         GenerateTimezoneMask,
     )
 
-    return GenerateTimezoneMask(ignore_dst=ignore_dst, time=time, groupings=groupings)(
-        cube
-    )
+    return GenerateTimezoneMask(
+        include_dst=include_dst, time=time, groupings=groupings
+    )(cube)
