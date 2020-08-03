@@ -40,8 +40,10 @@ from iris.tests import IrisTest
 
 from improver.grids import ELLIPSOID
 from improver.standardise import AdjustLandSeaPoints
-from improver.synthetic_data.set_up_test_cubes import (add_coordinate,
-                                                       set_up_variable_cube)
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
 from improver.utilities.spatial import OccurrenceWithinVicinity
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -131,10 +133,7 @@ class Test_correct_where_input_true(IrisTest):
         data = np.ones((3, 3), dtype=np.float32)
         data[1, 1] = 0.0
         cube = set_up_variable_cube(
-            data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data, "precipitation_amount", "kg m^-2", "equalarea",
         )
         self.plugin.input_land = cube.copy()
         self.plugin.output_land = cube.copy()
@@ -211,10 +210,7 @@ class Test_correct_where_input_true(IrisTest):
         data = np.ones((5, 5), dtype=np.float32)
         data[1, 1] = 0.0
         cube = set_up_variable_cube(
-            data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data, "precipitation_amount", "kg m^-2", "equalarea",
         )
         self.plugin.output_land = cube.copy()
         self.plugin.nearest_cube = cube.copy()
@@ -275,10 +271,7 @@ class Test_process(IrisTest):
         self.plugin = AdjustLandSeaPoints(vicinity_radius=2200.0)
 
         self.cube = set_up_variable_cube(
-            data_cube,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data_cube, "precipitation_amount", "kg m^-2", "equalarea",
         )
 
         cube_x_coord = np.array(np.linspace(-50000.0, -42000.0, 5))

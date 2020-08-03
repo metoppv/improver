@@ -31,15 +31,17 @@
 """ Unit tests for DayNightMask class """
 
 import unittest
-
 from datetime import datetime
+
 import cf_units as unit
 import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.synthetic_data.set_up_test_cubes import (add_coordinate,
-                                                       set_up_variable_cube)
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
 from improver.utilities.solar import DayNightMask
 
 
@@ -71,10 +73,7 @@ class Test__create_daynight_mask(IrisTest):
         data = np.ones((1, 16, 16), dtype=np.float32)
         data[:, 7, 7] = 0.0
         self.cube = set_up_variable_cube(
-            data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data, "precipitation_amount", "kg m^-2", "equalarea",
         )
         self.cube.attributes["institution"] = "Met Office"
         self.cube.attributes["title"] = "A model field"
@@ -98,11 +97,7 @@ class Test__daynight_lat_lon_cube(IrisTest):
     def setUp(self):
         """Set up the cube for testing."""
         data = np.ones((16, 16), dtype=np.float32)
-        cube = set_up_variable_cube(
-            data,
-            "precipitation_amount",
-            "kg m^-2",
-        )
+        cube = set_up_variable_cube(data, "precipitation_amount", "kg m^-2",)
         lon_points = np.linspace(-8, 7, 16)
         lon_points_360 = np.linspace(345, 360, 16)
         lat_points = np.linspace(49, 64, 16)
@@ -145,10 +140,7 @@ class Test_process(IrisTest):
         data = np.ones((16, 16), dtype=np.float32)
         data[7, 7] = 0.0
         self.cube = set_up_variable_cube(
-            data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data, "precipitation_amount", "kg m^-2", "equalarea",
         )
         x_points = np.linspace(-30000, 0, 16, dtype=np.float32)
         y_points = np.linspace(0, 30000, 16, dtype=np.float32)
@@ -157,9 +149,7 @@ class Test_process(IrisTest):
         self.cube.coord("time").points = [1448006400]
         # Lat lon cube
         self.cube_lat_lon = set_up_variable_cube(
-            data,
-            "precipitation_amount",
-            "kg m^-2",
+            data, "precipitation_amount", "kg m^-2",
         )
         lon_points = np.linspace(-8, 7, 16)
         lat_points = np.linspace(49, 64, 16)
@@ -198,9 +188,7 @@ class Test_process(IrisTest):
     def test_time_as_dimension(self):
         """Test day_night mask for a cube with multiple times."""
         datetime_points = [datetime(2015, 11, 20, 8, 0), datetime(2015, 11, 20, 14, 0)]
-        cube = add_coordinate(
-            self.cube, datetime_points, "time", is_datetime=True
-        )
+        cube = add_coordinate(self.cube, datetime_points, "time", is_datetime=True)
 
         result = DayNightMask().process(cube)
         expected_result = np.array(

@@ -219,10 +219,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         data = np.ones((1, 16, 16), dtype=np.float32)
         data[:, 7, 7] = 0.0
         self.cube = set_up_variable_cube(
-            data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data, "precipitation_amount", "kg m^-2", "equalarea",
         )
 
     def test_basic_distance_to_grid_cells(self):
@@ -441,10 +438,7 @@ class Test_transform_grid_to_lat_lon(IrisTest):
         data = np.ones((1, 2, 2), dtype=np.float32)
         data[:, 1, 1] = 0.0
         self.cube = set_up_variable_cube(
-            data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data, "precipitation_amount", "kg m^-2", "equalarea",
         )
         self.cube.coord(axis="x").points = np.array([-1158000.0, 924000.0])
         self.cube.coord(axis="y").points = np.array([-1036000.0, 902000.0])
