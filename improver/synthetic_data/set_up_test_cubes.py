@@ -102,6 +102,12 @@ def construct_yx_coords(
         coord_system=GRID_COORD_ATTRIBUTES[spatial_grid]["coord_system"],
     )
 
+    # add bounds on spatial coordinates
+    if ypoints > 1:
+        y_coord.guess_bounds()
+    if xpoints > 1:
+        x_coord.guess_bounds()
+
     return y_coord, x_coord
 
 
@@ -212,66 +218,72 @@ def construct_scalar_time_coords(time, time_bounds, frt):
     return coord_dims
 
 
-def _create_dimension_coord(
-    coord_array, data, i, coord_name, coord_units, attributes=None
-):
+def _create_dimension_coord(coord_array, data_shape, data_length, coord_name, **kwargs):
     """
     Creates dimension coordinate from coord_array if not None, otherwise creating an array of integers with an interval of 1
     """
     if coord_array is not None:
-        if len(coord_array) != data.shape[i]:
+        if len(coord_array) != data_length:
             raise ValueError(
                 "Cannot generate {} {}s from data of shape "
-                "{}".format(len(coord_array), coord_name, data.shape)
+                "{}".format(len(coord_array), coord_name, data_shape)
             )
+
         coord_array = np.array(coord_array)
-        if issubclass(coord_array.dtype.type, np.integer):
-            # expect integer coord_array
-            coord_array = coord_array.astype(np.int32)
-        else:
+
+        if issubclass(coord_array.dtype.type, np.float):
             # option needed for realizations percentile & probability cube setup and heights coordinate
             coord_array = coord_array.astype(np.float32)
     else:
-        coord_array = np.arange(data.shape[i]).astype(np.int32)
+        coord_array = np.arange(data_length).astype(np.int32)
+
     if coord_name in iris.std_names.STD_NAMES:
-        dim_coord = DimCoord(
-            coord_array, coord_name, units=coord_units, attributes=attributes
-        )
+        dim_coord = DimCoord(coord_array, coord_name, **kwargs)
     else:
-        dim_coord = DimCoord(
-            coord_array, long_name=coord_name, units=coord_units, attributes=attributes
-        )
+        dim_coord = DimCoord(coord_array, long_name=coord_name, **kwargs)
 
     return dim_coord
 
 
-def _get_dimension_coords(
+def _construct_dimension_coords(
     data, y_coord, x_coord, realizations, height_levels, pressure
 ):
     """ Create array of all dimension coordinates. These dimensions will be ordered: realization, height/pressure, y, x. """
-    ndims = len(data.shape)
-    dim_coords = []
+    data_shape = data.shape
+    ndims = len(data_shape)
+
     if ndims not in (2, 3, 4):
         raise ValueError(
             "Expected 2 to 4 dimensions on input data: got {}".format(ndims)
         )
+
     if realizations is not None and height_levels is not None and ndims != 4:
         raise ValueError(
             "Input data must have 4 dimensions to add both realization and height coordinates: got {}".format(
                 ndims
             )
         )
+
     if height_levels is None and ndims == 4:
         raise ValueError("Height levels must be provided if data has 4 dimensions.")
+
+    dim_coords = []
+
     if ndims == 4 or (height_levels is None and ndims == 3):
         coord_name = "realization"
         coord_units = DIM_COORD_ATTRIBUTES[coord_name]["units"]
+        coord_length = data_shape[0]
+
         realization_coord = _create_dimension_coord(
-            realizations, data, 0, coord_name, coord_units
+            realizations, data, coord_length, coord_name, units=coord_units
         )
         dim_coords.append((realization_coord, 0))
+
     if height_levels is not None and ndims in (3, 4):
+        # Determine the index of the height coord based on whether a realization coord has been created
         i = len(dim_coords)
+        coord_length = data_shape[i]
+
         if pressure:
             coord_name = "pressure"
         else:
@@ -281,9 +293,15 @@ def _get_dimension_coords(
         coord_attributes = DIM_COORD_ATTRIBUTES[coord_name]["attributes"]
 
         height_coord = _create_dimension_coord(
-            height_levels, data, i, coord_name, coord_units, attributes=coord_attributes
+            height_levels,
+            data_shape,
+            coord_length,
+            coord_name,
+            units=coord_units,
+            attributes=coord_attributes,
         )
         dim_coords.append((height_coord, i))
+
     dim_coords.append((y_coord, len(dim_coords)))
     dim_coords.append((x_coord, len(dim_coords)))
 
@@ -349,9 +367,9 @@ def set_up_variable_cube(
         domain_corner (Optional[Tuple[float, float]]):
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
         height_levels (Optional[List[float]]):
-            List of altitude/pressure levels.
+            List of height levels in metres or pressure levels in Pa.
         pressure (Optional[bool]):
-            Flag to indicate whether to make height levels pressure levels.
+            Flag to indicate whether the height levels are specified as pressure, in Pa. If False, use height in metres.
 
     Returns:
         iris.cube.Cube:
@@ -368,7 +386,7 @@ def set_up_variable_cube(
         domain_corner=domain_corner,
     )
 
-    dim_coords = _get_dimension_coords(
+    dim_coords = _construct_dimension_coords(
         data, y_coord, x_coord, realizations, height_levels, pressure
     )
 
@@ -394,12 +412,6 @@ def set_up_variable_cube(
         aux_coords_and_dims=scalar_coords,
     )
     cube.rename(name)
-
-    # add bounds on spatial coordinates
-    if ypoints > 1:
-        cube.coord(axis="y").guess_bounds()
-    if xpoints > 1:
-        cube.coord(axis="x").guess_bounds()
 
     # don't allow unit tests to set up invalid cubes
     check_mandatory_standards(cube)
