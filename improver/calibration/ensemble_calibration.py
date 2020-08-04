@@ -624,12 +624,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecasts.coord("forecast_reference_time")
         )
 
-        # Create forecast period coordinate.
-        (fp_point,) = historic_forecasts.coord("forecast_period").points
-        fp_bounds = historic_forecasts.coord("forecast_period").bounds
-        fp_coord = historic_forecasts.coord("forecast_period").copy(
-            points=fp_point, bounds=fp_bounds
-        )
+        # Copy the forecast period coordinate.
+        fp_coord = historic_forecasts.coord("forecast_period").copy()
+
+        if fp_coord.shape[0] != 1:
+            msg = (
+                "The forecast period must be the same for all historic forecasts. "
+                "Forecast periods found: {}".format(fp_coord.points)
+            )
+            raise ValueError(msg)
 
         return [(frt_coord, None), (fp_coord, None)]
 

@@ -390,7 +390,7 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         self.historic_forecast.remove_coord("forecast_period")
         self.historic_forecast.add_aux_coord(fp_coord, 0)
 
-        msg = "too many values to unpack"
+        msg = "The forecast period must be the same"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.create_coefficients_cubelist(
                 self.optimised_coeffs, self.historic_forecast
