@@ -30,16 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Module containing plugin to calculate the texture in a field considering edge transitions."""
 
-import numpy as np
 import iris
+import numpy as np
+from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
+from improver.metadata.constants.attributes import (
+    MANDATORY_ATTRIBUTE_DEFAULTS,
+    MANDATORY_ATTRIBUTES,
+)
+from improver.metadata.utilities import create_new_diagnostic_cube
+from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_manipulation import collapsed
-from iris.exceptions import CoordinateNotFoundError
-from improver.nbhood.square_kernel import SquareNeighbourhood
-from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS, MANDATORY_ATTRIBUTES
-from improver.metadata.utilities import create_new_diagnostic_cube
 
 
 class FieldTexture(BasePlugin):
@@ -47,10 +50,10 @@ class FieldTexture(BasePlugin):
 
     Code methodology:
 
-    1) Takes a binary field that has been thresholded at a cloud cover fraction 
-       of interest and looks for the transitions/edges in the field that mark 
-       out a transition from cloudy to non-cloudy grid cell. 
-    2) The transition calculation is then fed into the neighbourhooding code 
+    1) Takes a binary field that has been thresholded at a cloud cover fraction
+       of interest and looks for the transitions/edges in the field that mark
+       out a transition from cloudy to non-cloudy grid cell.
+    2) The transition calculation is then fed into the neighbourhooding code
        (_calculate_ratio) to calculate a ratio for each cell.
     3) The new cube of ratios is then thresholded and the realization coordinates
        are collapsed to generate a mean of the thresholded ratios.
@@ -89,21 +92,34 @@ class FieldTexture(BasePlugin):
         """
 
         data = self._calculate_transitions(cube.data)
-        result_cube = create_new_diagnostic_cube('cell_edge_differences', 1, cube, MANDATORY_ATTRIBUTE_DEFAULTS, data=data)
-        potential_transitions = SquareNeighbourhood(sum_or_fraction='sum').run(cube, radius=radius)
-        potential_transitions.data = np.where(cube.data > 0, potential_transitions.data * 4, 0)
+        result_cube = create_new_diagnostic_cube(
+            "cell_edge_differences", 1, cube, MANDATORY_ATTRIBUTE_DEFAULTS, data=data
+        )
+        potential_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
+            cube, radius=radius
+        )
+        potential_transitions.data = np.where(
+            cube.data > 0, potential_transitions.data * 4, 0
+        )
 
         # Note that where there is no cloud the value is forced to 1. So high values
         # correspond to scattered cloud or no cloud.
 
-        actual_transitions = SquareNeighbourhood(sum_or_fraction='sum').run(result_cube, radius=radius)
+        actual_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
+            result_cube, radius=radius
+        )
         actual_transitions.data = np.where(cube.data > 0, actual_transitions.data, 0)
         ratio = actual_transitions.copy(data=np.ones_like(actual_transitions.data))
-        np.divide(actual_transitions.data, potential_transitions.data, out=ratio.data, where=(potential_transitions.data > 0))
+        np.divide(
+            actual_transitions.data,
+            potential_transitions.data,
+            out=ratio.data,
+            where=(potential_transitions.data > 0),
+        )
         return ratio
 
     def _calculate_transitions(self, data):
-        padded_data = np.pad(data, 1, mode='edge')
+        padded_data = np.pad(data, 1, mode="edge")
         diff_x = np.abs(np.diff(padded_data, axis=1))
         diff_y = np.abs(np.diff(padded_data, axis=0))
         cell_sum_x = diff_x[:, 0:-1] + diff_x[:, 1:]
@@ -120,28 +136,30 @@ class FieldTexture(BasePlugin):
 
         Args:
             input_cube (cube):
-                Input data in cube format with multiple-realizations
+                Input data in cube format with multiple-realizations.
 
         Returns:
             clumpiness (cube):
                 A cube of binary data, where 1 represents sunlight and 0
-                represents cloud
+                represents cloud.
         """
         ratios = iris.cube.CubeList()
 
         try:
-            cslices = input_cube.slices_over('realization')
+            cslices = input_cube.slices_over("realization")
         except CoordinateNotFoundError:
             cslices = [input_cube]
         for cslice in cslices:
             ratios.append(self._calculate_ratio(cslice, self.nbhood_radius))
         ratios = ratios.merge_cube()
         thresholded = BasicThreshold(self.ratio_threshold).process(ratios)
-        thresholded = iris.util.squeeze(collapsed(thresholded, 'realization', iris.analysis.MEAN))
+        thresholded = iris.util.squeeze(
+            collapsed(thresholded, "realization", iris.analysis.MEAN)
+        )
         return thresholded
 
     def process(self, input_cube):
-        """ 
+        """
         Calculates the ratio of actual to potential transitions over a binary
         field and then produces threshold texture outputs.
 
