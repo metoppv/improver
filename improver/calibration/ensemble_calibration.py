@@ -624,8 +624,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecasts.coord("forecast_reference_time")
         )
 
-        # Copy the forecast period coordinate.
-        fp_coord = historic_forecasts.coord("forecast_period").copy()
+        fp_coord = historic_forecasts.coord("forecast_period")
 
         if fp_coord.shape[0] != 1:
             msg = (
