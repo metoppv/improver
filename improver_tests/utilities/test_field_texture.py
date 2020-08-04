@@ -36,7 +36,7 @@ import iris
 from iris.cube import Cube
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.utilities.textural_ratio import FieldTexture
+from improver.utilities.field_texture import FieldTexture
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
@@ -69,7 +69,7 @@ def multi_cloud_fixture():
 
     # convert numpy array into a cube
 
-    input_cube = set_up_variable_cube(cloud_data, name="cloud_data", spatial_grid = "equalarea")
+    input_cube = set_up_variable_cube(cloud_data, name="cloud_data", spatial_grid="equalarea")
     return input_cube
 
 
@@ -92,7 +92,7 @@ def test__calculate_ratio(input_multi_cloud_data):
     )
 
     expected_data = np.float32(expected_data)
-    expected_cube = set_up_variable_cube(expected_data, name="expected_ratio_data", spatial_grid = "equalarea")
+    expected_cube = set_up_variable_cube(expected_data, name="expected_ratio_data", spatial_grid="equalarea")
     nbhood_radius = 10000
     ratio_threshold = 0.4
     plugin = FieldTexture(nbhood_radius, ratio_threshold)
@@ -125,7 +125,7 @@ def test__calculate_clumpiness(input_multi_cloud_data):
     )
 
     expected_data = np.float32(expected_data)
-    expected_cube = set_up_variable_cube(expected_data, name="expected_ratio_data", spatial_grid = "equalarea")
+    expected_cube = set_up_variable_cube(expected_data, name="expected_ratio_data", spatial_grid="equalarea")
     nbhood_radius = 10000
     ratio_threshold = 0.4
     plugin = FieldTexture(nbhood_radius, ratio_threshold)
@@ -137,6 +137,7 @@ def test__calculate_clumpiness(input_multi_cloud_data):
     # Check the actual result matches the expected result to 4 decimal places
 
     np.testing.assert_almost_equal(clumpiness_result.data, expected_cube.data, decimal=4)
+
 
 def test__calculate_transitions(input_multi_cloud_data):
     """Test the transition calculation function"""
@@ -157,7 +158,7 @@ def test__calculate_transitions(input_multi_cloud_data):
         ]
     )
     expected_data = np.float32(expected_data)
-    expected_cube = set_up_variable_cube(expected_data, name="expected_ratio_data", spatial_grid = "equalarea")
+    expected_cube = set_up_variable_cube(expected_data, name="expected_ratio_data", spatial_grid="equalarea")
     # Run the _calculate_transitions function within the plugin with single-realization input cube
     nbhood_radius = 10000
     ratio_threshold = 0.4
@@ -168,3 +169,36 @@ def test__calculate_transitions(input_multi_cloud_data):
     # Check the actual result matches the expected result to 4 decimal places
 
     np.testing.assert_almost_equal(transition_result.data, expected_cube.data, decimal=4)
+
+
+def test_process(input_multi_cloud_data):
+    """Test the whole plugin"""
+
+    expected_data = np.array(
+        [
+            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            [1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            [1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            [1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        ]
+    )
+
+    expected_data = np.float32(expected_data)
+    expected_cube = set_up_variable_cube(expected_data, name="expected_ratio_data", spatial_grid="equalarea")
+    nbhood_radius = 10000
+    ratio_threshold = 0.4
+    plugin = FieldTexture(nbhood_radius, ratio_threshold)
+
+    # Run the _calculate_clumpiness function within the plugin with multi-realization input cube
+
+    field_texture_result = plugin.process(input_multi_cloud_data)
+
+    # Check the actual result matches the expected result to 4 decimal places
+
+    np.testing.assert_almost_equal(field_texture_result.data, expected_cube.data, decimal=4)
