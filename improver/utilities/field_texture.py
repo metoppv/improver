@@ -41,14 +41,19 @@ from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS, MANDATORY_ATTRIBUTES
 from improver.metadata.utilities import create_new_diagnostic_cube
 
+
 class FieldTexture(BasePlugin):
     """Plugin to calculate the texture in a binary field considering edge transitions
 
     Code methodology:
 
-    1) Takes a binary field that has been thresholded at a cloud cover fraction of interest and looks for the transitions/edges in the field that mark out a transition from cloudy to non-cloudy grid cell. 
-    2) The transition calculation is then fed into the neighbourhooding code (_calculate_ratio) to calculate a ratio for each cell.
-    3) The new cube of ratios is then thresholded and the realization coordinates are collapsed to generate a mean of the thresholded ratios.
+    1) Takes a binary field that has been thresholded at a cloud cover fraction 
+       of interest and looks for the transitions/edges in the field that mark 
+       out a transition from cloudy to non-cloudy grid cell. 
+    2) The transition calculation is then fed into the neighbourhooding code 
+       (_calculate_ratio) to calculate a ratio for each cell.
+    3) The new cube of ratios is then thresholded and the realization coordinates
+       are collapsed to generate a mean of the thresholded ratios.
     """
 
     def __init__(self, nbhood_radius, ratio_threshold):
@@ -57,12 +62,11 @@ class FieldTexture(BasePlugin):
 
         Args:
             nbhood_radius (float):
-                A neighbourhood radius of sufficient size to capture the region and
-                all actual transitions, in kilometres.
+                A neighbourhood radius of sufficient size to capture the region
+                and all actual transitions, in metres.
 
             ratio_threshold (float):
-                A threshold to re-normalise values about a sensible value
-        
+                A threshold to re-normalise values about a sensible value.
 
         """
         self.nbhood_radius = nbhood_radius
@@ -74,10 +78,10 @@ class FieldTexture(BasePlugin):
 
         Args:
             cube (cube):
-                Input data in cube format containing a single realization
+                Input data in cube format containing a single realization.
 
             radius (float):
-                Average radius for neighbourhood.
+                Average radius for neighbourhood in metres.
 
         Returns:
             ratio (cube):
@@ -89,7 +93,8 @@ class FieldTexture(BasePlugin):
         potential_transitions = SquareNeighbourhood(sum_or_fraction='sum').run(cube, radius=radius)
         potential_transitions.data = np.where(cube.data > 0, potential_transitions.data * 4, 0)
 
-        # Note that where there is no cloud the value is forced to 1. So high values correspond to scattered cloud or no cloud.
+        # Note that where there is no cloud the value is forced to 1. So high values
+        # correspond to scattered cloud or no cloud.
 
         actual_transitions = SquareNeighbourhood(sum_or_fraction='sum').run(result_cube, radius=radius)
         actual_transitions.data = np.where(cube.data > 0, actual_transitions.data, 0)
@@ -108,10 +113,10 @@ class FieldTexture(BasePlugin):
         print(cell_sum)
         return cell_sum
 
-
     def _calculate_clumpiness(self, input_cube):
         """
-        Calculates a field of cloud texture to use in differentiating solid and more scattered cloud.
+        Calculates a field of cloud texture to use in differentiating solid and
+        more scattered cloud.
 
         Args:
             input_cube (cube):
@@ -119,7 +124,8 @@ class FieldTexture(BasePlugin):
 
         Returns:
             clumpiness (cube):
-                A cube of binary data, where 1 represents sunlight and 0 represents cloud
+                A cube of binary data, where 1 represents sunlight and 0
+                represents cloud
         """
         ratios = iris.cube.CubeList()
 
@@ -134,18 +140,18 @@ class FieldTexture(BasePlugin):
         thresholded = iris.util.squeeze(collapsed(thresholded, 'realization', iris.analysis.MEAN))
         return thresholded
 
-
-    def process(input_cube):
+    def process(self, input_cube):
         """ 
-        Calculates the ratio of actual to potential transitions over a binary field and then produces threshold texture outputs.
+        Calculates the ratio of actual to potential transitions over a binary
+        field and then produces threshold texture outputs.
 
         Args:
             input_cube (cube):
-                Input data in cube formate with multiple-realizations
+                Input data in cube formate with multiple-realizations.
 
         Returns:
             threshold (cube)
-                Mean of the thresholded ratios in cube format
+                Mean of the thresholded ratios in cube format.
         """
 
         thresholded = self._calculate_clumpiness(input_cube)
