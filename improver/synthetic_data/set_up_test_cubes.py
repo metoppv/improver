@@ -275,7 +275,7 @@ def _construct_dimension_coords(
         coord_length = data_shape[0]
 
         realization_coord = _create_dimension_coord(
-            realizations, data, coord_length, coord_name, units=coord_units
+            realizations, data_shape, coord_length, coord_name, units=coord_units
         )
         dim_coords.append((realization_coord, 0))
 
