@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Tests of textural ratio plugin."""
 
-import iris
 import numpy as np
 import pytest
 

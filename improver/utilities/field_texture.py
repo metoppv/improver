@@ -36,9 +36,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.metadata.constants.attributes import (
-    MANDATORY_ATTRIBUTE_DEFAULTS,
-    MANDATORY_ATTRIBUTES,
-)
+    MANDATORY_ATTRIBUTE_DEFAULTS,)
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.threshold import BasicThreshold
@@ -118,7 +116,8 @@ class FieldTexture(BasePlugin):
         )
         return ratio
 
-    def _calculate_transitions(self, data):
+    @staticmethod
+    def _calculate_transitions(data):
         padded_data = np.pad(data, 1, mode="edge")
         diff_x = np.abs(np.diff(padded_data, axis=1))
         diff_y = np.abs(np.diff(padded_data, axis=0))
@@ -126,7 +125,6 @@ class FieldTexture(BasePlugin):
         cell_sum_y = diff_y[0:-1, :] + diff_y[1:, :]
         cell_sum = cell_sum_x[1:-1, :] + cell_sum_y[:, 1:-1]
         cell_sum = np.where(data > 0, cell_sum, 0)
-        print(cell_sum)
         return cell_sum
 
     def _calculate_clumpiness(self, input_cube):
