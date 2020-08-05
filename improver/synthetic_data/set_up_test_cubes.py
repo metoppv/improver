@@ -218,15 +218,15 @@ def construct_scalar_time_coords(time, time_bounds, frt):
     return coord_dims
 
 
-def _create_dimension_coord(coord_array, data_shape, data_length, coord_name, **kwargs):
+def _create_dimension_coord(coord_array, data_length, coord_name, **kwargs):
     """
     Creates dimension coordinate from coord_array if not None, otherwise creating an array of integers with an interval of 1
     """
     if coord_array is not None:
         if len(coord_array) != data_length:
             raise ValueError(
-                "Cannot generate {} {}s from data of shape "
-                "{}".format(len(coord_array), coord_name, data_shape)
+                "Cannot generate {} {}s from data of length "
+                "{}".format(len(coord_array), coord_name, data_length)
             )
 
         coord_array = np.array(coord_array)
@@ -238,7 +238,7 @@ def _create_dimension_coord(coord_array, data_shape, data_length, coord_name, **
         coord_array = np.arange(data_length).astype(np.int32)
 
     if coord_name in iris.std_names.STD_NAMES:
-        dim_coord = DimCoord(coord_array, coord_name, **kwargs)
+        dim_coord = DimCoord(coord_array, standard_name=coord_name, **kwargs)
     else:
         dim_coord = DimCoord(coord_array, long_name=coord_name, **kwargs)
 
@@ -275,7 +275,7 @@ def _construct_dimension_coords(
         coord_length = data_shape[0]
 
         realization_coord = _create_dimension_coord(
-            realizations, data_shape, coord_length, coord_name, units=coord_units
+            realizations, coord_length, coord_name, units=coord_units
         )
         dim_coords.append((realization_coord, 0))
 
@@ -294,7 +294,6 @@ def _construct_dimension_coords(
 
         height_coord = _create_dimension_coord(
             height_levels,
-            data_shape,
             coord_length,
             coord_name,
             units=coord_units,
