@@ -31,18 +31,18 @@
 """ Unit tests for DayNightMask class """
 
 import unittest
+from datetime import datetime
 
 import cf_units as unit
 import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.utilities.solar import DayNightMask
-
-from ...nbhood.nbhood.test_BaseNeighbourhoodProcessing import (
-    set_up_cube,
-    set_up_cube_lat_long,
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
 )
+from improver.utilities.solar import DayNightMask
 
 
 class Test__init__(IrisTest):
@@ -70,9 +70,12 @@ class Test__create_daynight_mask(IrisTest):
 
     def setUp(self):
         """Set up the cube for testing."""
-        self.cube = set_up_cube()
-        self.cube.attributes["institution"] = "Met Office"
-        self.cube.attributes["title"] = "A model field"
+        data = np.ones((1, 16, 16), dtype=np.float32)
+        data[:, 7, 7] = 0.0
+        attributes = {"institution": "Met Office", "title": "A model field"}
+        self.cube = set_up_variable_cube(
+            data, "precipitation_amount", "kg m^-2", "equalarea", attributes=attributes
+        )
 
     def test_basic_daynight_mask(self):
         """ Test this create a blank mask cube"""
@@ -92,16 +95,24 @@ class Test__daynight_lat_lon_cube(IrisTest):
 
     def setUp(self):
         """Set up the cube for testing."""
-        cube = set_up_cube_lat_long()
-        lon_points = np.linspace(-8, 7, 16)
-        lon_points_360 = np.linspace(345, 360, 16)
-        lat_points = np.linspace(49, 64, 16)
-        cube.coord("latitude").points = lat_points
-        cube.coord("longitude").points = lon_points
+        data = np.ones((16, 16), dtype=np.float32)
+        cube = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            grid_spacing=1,
+            domain_corner=(49, -8),
+        )
         self.mask_cube = DayNightMask()._create_daynight_mask(cube)
-        cube_360 = cube.copy()
-        cube_360.coord("longitude").points = lon_points_360
-        self.mask_cube_360 = DayNightMask()._create_daynight_mask(cube_360)
+
+        cube = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            grid_spacing=1,
+            domain_corner=(49, 345),
+        )
+        self.mask_cube_360 = DayNightMask()._create_daynight_mask(cube)
 
     def test_basic_lat_lon_cube(self):
         """ Test this create a blank mask cube"""
@@ -132,22 +143,39 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up the cubes for testing."""
-        self.cube = set_up_cube()
-        x_points = np.linspace(-30000, 0, 16)
-        self.cube.coord("projection_x_coordinate").points = x_points
-        self.dtval = self.cube.coord("time").points[0]
-        self.cube.coord("time").points = np.array(self.dtval + 7.5 + 24.0)
-        # Lat lon cube
-        self.cube_lat_lon = set_up_cube_lat_long()
-        lon_points = np.linspace(-8, 7, 16)
-        lat_points = np.linspace(49, 64, 16)
-        self.cube_lat_lon.coord("latitude").points = lat_points
-        self.cube_lat_lon.coord("longitude").points = lon_points
-        dt = self.cube_lat_lon.coord("time").points[0]
-        self.cube_lat_lon.coord("time").points[0] = dt + 7.5 + 24.0
-        self.cube_lat_lon_360 = self.cube_lat_lon.copy()
-        lon_points_360 = np.linspace(345, 360, 16)
-        self.cube_lat_lon_360.coord("longitude").points = lon_points_360
+        data = np.ones((16, 16), dtype=np.float32)
+        data[7, 7] = 0.0
+        vt = datetime(2015, 11, 20, 8, 0)
+        self.cube = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            "equalarea",
+            grid_spacing=2000,
+            domain_corner=(0, -30000),
+            time=vt,
+            frt=vt,
+        )
+
+        # Lat lon cubes
+        self.cube_lat_lon = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            grid_spacing=1,
+            domain_corner=(49, -8),
+            time=vt,
+            frt=vt,
+        )
+        self.cube_lat_lon_360 = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            grid_spacing=1,
+            domain_corner=(49, 345),
+            time=vt,
+            frt=vt,
+        )
 
     def test_basic_standard_grid_ccrs(self):
         """Test day_night mask with standard_grid_ccrs projection."""
@@ -176,12 +204,8 @@ class Test_process(IrisTest):
 
     def test_time_as_dimension(self):
         """Test day_night mask for a cube with multiple times."""
-        cube1 = self.cube.copy()
-        cube1.coord("time").points = np.array(self.dtval + 7.5 + 30.0)
-        cubes = iris.cube.CubeList(
-            [iris.util.squeeze(self.cube), iris.util.squeeze(cube1)]
-        )
-        cube = cubes.merge_cube()
+        datetime_points = [datetime(2015, 11, 20, 8, 0), datetime(2015, 11, 20, 14, 0)]
+        cube = add_coordinate(self.cube, datetime_points, "time", is_datetime=True)
 
         result = DayNightMask().process(cube)
         expected_result = np.array(
