@@ -46,7 +46,7 @@ from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 class DiagnoseConvectivePrecipitation(BasePlugin):
     """
-    Diagnose convective precipitation by using differences between
+    Diagnose the convective precipitation ratio by using differences between
     adjacent grid squares to help distinguish convective and stratiform
     precipitation. Convective precipitation features would be anticipated
     to have sharp features compared with broader (less sharp) features for
@@ -350,3 +350,74 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         )
 
         return output_cube
+
+
+class ConvectionRatioFromComponents(BasePlugin):
+    """
+    Diagnose the convective precipitation ratio by using differences between
+    convective and dynamic components.
+    """
+
+    def _split_input(self, cubes: list):
+        """
+        Extracts convective and dynamic components from the list as objects on the class
+        """
+        if not isinstance(cubes, iris.cube.CubeList):
+            cubes = iris.cube.CubeList(cubes)
+        self.convective = cubes.extract("convective_precipitation_rate")
+        self.dynamic = cubes.extract("dynamic_precipitation_rate")
+
+    def process(self, cubes: list):
+        """
+        Calculate the convective ratio from the convective and dynamic components as:
+            convective_ratio = convective / (convective + dynamic)
+
+        If convective + dynamic is zero, then the resulting point is masked.
+
+        Args:
+            cubes:
+                Both the convective and dynamic components as iris.cube.Cube in a list
+                with names 'convective_precipitation_rate' and
+                'dynamic_precipitation_rate'
+
+        Returns:
+            iris.cube.Cube:
+                Cube containing the convective ratio.
+        """
+
+        self._split_input(cubes)
+
+        attributes = generate_mandatory_attributes([self.convective])
+        output_cube = create_new_diagnostic_cube(
+            "convective_ratio",
+            "1",
+            self.convective,
+            attributes,
+            data=self._convective_ratio(),
+        )
+
+        return output_cube
+
+    def _convective_ratio(self):
+        """
+        Calculates the convective ratio from the convective and dynamic components,
+        masking data where both are zero. The tolerance for comparing with zero is
+        derived from the units of the convective field. 1e-9 for m s-1, otherwise 1e-6
+        (assuming units are other
+
+        """
+        precipitation = self.convective + self.dynamic
+        if self.convective.units == "m s-1":
+            tolerance = 1e-9
+        elif self.convective.units == "m":
+            tolerance = 1e-6
+        else:
+            raise ValueError(
+                f"Unexpected units in cube {self.convective.name()}. "
+                f"{self.convective.units} not one of 'm' or 'm s-1'"
+            )
+        convective_ratios = np.ma.masked_where(
+            np.isclose(precipitation.data, 0.0, atol=tolerance),
+            self.convective.data / (precipitation.data),
+        )
+        return convective_ratios
