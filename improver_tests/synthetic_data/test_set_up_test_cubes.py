@@ -360,16 +360,28 @@ class Test_set_up_variable_cube(IrisTest):
     def test_error_unmatched_realizations(self):
         """Test error is raised if the realizations provided do not match the
         data dimensions"""
-        msg = "Cannot generate 4 realizations from data of length 3"
+        realizations_len = 4
+        data_len = len(self.data_3d[0])
+        msg = "Cannot generate {} realizations with data of length {}".format(
+            realizations_len, data_len
+        )
         with self.assertRaisesRegex(ValueError, msg):
-            _ = set_up_variable_cube(self.data_3d, realizations=np.arange(4))
+            _ = set_up_variable_cube(
+                self.data_3d, realizations=np.arange(realizations_len)
+            )
 
     def test_error_unmatched_height_levels(self):
         """Test error is raised if the heights provided do not match the
         data dimensions"""
-        msg = "Cannot generate 4 heights from data of length 3"
+        height_levels_len = 4
+        data_len = len(self.data_3d[0])
+        msg = "Cannot generate {} heights with data of length {}".format(
+            height_levels_len, data_len
+        )
         with self.assertRaisesRegex(ValueError, msg):
-            _ = set_up_variable_cube(self.data_3d, height_levels=np.arange(4))
+            _ = set_up_variable_cube(
+                self.data_3d, height_levels=np.arange(height_levels_len)
+            )
 
     def test_realizations_from_data_height_levels(self):
         """ Tests realizations from data and height coordinates added """

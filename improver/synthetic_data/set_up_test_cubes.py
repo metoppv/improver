@@ -225,7 +225,7 @@ def _create_dimension_coord(coord_array, data_length, coord_name, **kwargs):
     if coord_array is not None:
         if len(coord_array) != data_length:
             raise ValueError(
-                "Cannot generate {} {}s from data of length "
+                "Cannot generate {} {}s with data of length "
                 "{}".format(len(coord_array), coord_name, data_length)
             )
 
