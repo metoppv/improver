@@ -148,16 +148,12 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             units="K",
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
-        for axis in ["x", "y"]:
-            self.expected_loc_param_mean_cube.coord(axis=axis).guess_bounds()
         self.expected_scale_param_mean_cube = set_up_variable_cube(
             self.expected_scale_param_mean,
             name="scale_parameter",
             units="Kelvin^2",
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
-        for axis in ["x", "y"]:
-            self.expected_scale_param_mean_cube.coord(axis=axis).guess_bounds()
 
 
 class Test__init__(IrisTest):
