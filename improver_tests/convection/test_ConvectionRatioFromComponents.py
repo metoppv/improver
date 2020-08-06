@@ -160,8 +160,7 @@ def test_bad_name(request):
     grid = request.getfixturevalue("uk_grid")
     grid[0].rename("kittens")
     with assert_raises_regex(
-        ValueError,
-        "Cannot find a cube named 'convective_precipitation_rate' in "
+        ValueError, "Cannot find a cube named 'convective_precipitation_rate' in "
     ):
         ConvectionRatioFromComponents()(grid)
 
@@ -170,8 +169,5 @@ def test_bad_units(request):
     """Test we get a useful error if the input cubes have non-SI units."""
     grid = request.getfixturevalue("uk_grid")
     [c.convert_units("mm h-1") for c in grid]
-    with assert_raises_regex(
-        AssertionError,
-        "Units of 'm s-1' required, not "
-    ):
+    with assert_raises_regex(AssertionError, "Units of 'm s-1' required, not "):
         ConvectionRatioFromComponents()(grid)
