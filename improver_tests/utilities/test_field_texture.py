@@ -40,15 +40,13 @@ NB_RADIUS = 10000
 RATIO_THRESH = 0.4
 
 
-@pytest.fixture(name='multi_cloud_cube')
+@pytest.fixture(name="multi_cloud_cube")
 def multi_cloud_fixture():
     """Multi-realization cloud data cube"""
 
     cloud_data = np.zeros((3, 10, 10), dtype=np.float32)
     cloud_data[:, 1:4, 1:4] = 1.0
-    cube = set_up_variable_cube(
-        cloud_data, name="cloud_data", spatial_grid="equalarea"
-    )
+    cube = set_up_variable_cube(cloud_data, name="cloud_data", spatial_grid="equalarea")
     return cube
 
 
