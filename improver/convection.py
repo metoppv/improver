@@ -364,8 +364,38 @@ class ConvectionRatioFromComponents(BasePlugin):
         """
         if not isinstance(cubes, iris.cube.CubeList):
             cubes = iris.cube.CubeList(cubes)
-        self.convective = cubes.extract("convective_precipitation_rate")
-        self.dynamic = cubes.extract("dynamic_precipitation_rate")
+        assert np.all(
+            [cube.units == "m s-1" for cube in cubes]
+        ), f"Units of 'm s-1' required, not {[c.units for c in cubes]}"
+        try:
+            (self.convective,) = cubes.extract("convective_precipitation_rate")
+        except ValueError:
+            raise ValueError(
+                "Cannot find a cube named 'convective_precipitation_rate' in "
+                f"{[c.name() for c in cubes]}"
+            )
+        try:
+            (self.dynamic,) = cubes.extract("dynamic_precipitation_rate")
+        except ValueError:
+            raise ValueError(
+                "Cannot find a cube named 'dynamic_precipitation_rate' in "
+                f"{[c.name() for c in cubes]}"
+            )
+
+    def _convective_ratio(self):
+        """
+        Calculates the convective ratio from the convective and dynamic components,
+        masking data where both are zero. The tolerance for comparing with zero is
+        derived from the units of the convective field. 1e-9 for m s-1, otherwise 1e-6
+        (assuming units are other
+
+        """
+        precipitation = self.convective + self.dynamic
+        convective_ratios = np.ma.masked_where(
+            np.isclose(precipitation.data, 0.0, atol=1e-9),
+            self.convective.data / precipitation.data,
+        )
+        return convective_ratios
 
     def process(self, cubes: list):
         """
@@ -397,27 +427,3 @@ class ConvectionRatioFromComponents(BasePlugin):
         )
 
         return output_cube
-
-    def _convective_ratio(self):
-        """
-        Calculates the convective ratio from the convective and dynamic components,
-        masking data where both are zero. The tolerance for comparing with zero is
-        derived from the units of the convective field. 1e-9 for m s-1, otherwise 1e-6
-        (assuming units are other
-
-        """
-        precipitation = self.convective + self.dynamic
-        if self.convective.units == "m s-1":
-            tolerance = 1e-9
-        elif self.convective.units == "m":
-            tolerance = 1e-6
-        else:
-            raise ValueError(
-                f"Unexpected units in cube {self.convective.name()}. "
-                f"{self.convective.units} not one of 'm' or 'm s-1'"
-            )
-        convective_ratios = np.ma.masked_where(
-            np.isclose(precipitation.data, 0.0, atol=tolerance),
-            self.convective.data / (precipitation.data),
-        )
-        return convective_ratios
