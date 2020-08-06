@@ -156,13 +156,15 @@ def test_data(request, grid_fixture, data_con_dyn_out):
     assert_equal(result.data.mask, expected_array.mask)
 
 
-def test_bad_name(request):
+@pytest.mark.parametrize(
+    "cube_name", ["convective_precipitation_rate", "dynamic_precipitation_rate"]
+)
+def test_bad_name(request, cube_name):
     """Test we get a useful error if one of the input cubes is incorrectly named."""
     grid = request.getfixturevalue("uk_grid")
-    grid[0].rename("kittens")
-    with assert_raises_regex(
-        ValueError, "Cannot find a cube named 'convective_precipitation_rate' in "
-    ):
+    (cube,) = grid.extract(cube_name)
+    cube.rename("kittens")
+    with assert_raises_regex(ValueError, f"Cannot find a cube named '{cube_name}' in "):
         ConvectionRatioFromComponents()(grid)
 
 
