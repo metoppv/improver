@@ -152,6 +152,7 @@ def test_data(request, grid_fixture, data_con_dyn_out):
     result = ConvectionRatioFromComponents()(grid)
     assert_allclose(result.data, expected_array)
     # assert_allclose doesn't check masks appropriately, so check separately
+    # pylint: disable=no-member
     assert_equal(result.data.mask, expected_array.mask)
 
 
@@ -168,6 +169,6 @@ def test_bad_name(request):
 def test_bad_units(request):
     """Test we get a useful error if the input cubes have non-SI units."""
     grid = request.getfixturevalue("uk_grid")
-    [c.convert_units("mm h-1") for c in grid]
+    _ = [c.convert_units("mm h-1") for c in grid]
     with assert_raises_regex(AssertionError, "Units of 'm s-1' required, not "):
         ConvectionRatioFromComponents()(grid)

@@ -32,7 +32,6 @@
 """Script to calculate the ratio of convective precipitation to total precipitation."""
 
 from improver import cli
-from improver.cli import parameters
 
 
 @cli.clizefy
