@@ -41,7 +41,9 @@ def process(*cubes: cli.inputcube,):
     components.
 
     Calculates the convective ratio as:
+
         ratio = convective_rate / (convective_rate + dynamic_rate)
+
     Then calculates the mean ratio across realizations.
 
     Args:
