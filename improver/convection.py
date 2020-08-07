@@ -397,10 +397,10 @@ class ConvectionRatioFromComponents(BasePlugin):
         """
         Calculates the convective ratio from the convective and dynamic precipitation
         rate components, masking data where both are zero. The tolerance for comparing
-        with zero is is 1e-9 m s-1.
+        with zero is 1e-9 m s-1.
         """
         precipitation = self.convective + self.dynamic
-        with np.errstate(divide="ignore"):
+        with np.errstate(divide="ignore", invalid="ignore"):
             convective_ratios = np.ma.masked_where(
                 np.isclose(precipitation.data, 0.0, atol=1e-9),
                 self.convective.data / precipitation.data,
