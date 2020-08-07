@@ -371,8 +371,6 @@ class ConvectionRatioFromComponents(BasePlugin):
             cubes = iris.cube.CubeList(cubes)
         self.convective = self._get_cube(cubes, "convective_precipitation_rate")
         self.dynamic = self._get_cube(cubes, "dynamic_precipitation_rate")
-        if self.convective is None:
-            raise RuntimeError("self.convective is still undefined!!")
 
     @staticmethod
     def _get_cube(cubes: iris.cube.CubeList, name: str):
