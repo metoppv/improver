@@ -364,8 +364,7 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         fp_bounds = [10800, 14400]
 
         self.historic_forecast.coord("forecast_period").bounds = fp_bounds
-        expected_fp = self.expected_fp
-        expected_fp.bounds = fp_bounds
+        self.expected_fp.bounds = fp_bounds
 
         result = self.plugin.create_coefficients_cubelist(
             self.optimised_coeffs, self.historic_forecast
@@ -376,7 +375,7 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
                 cube.coord("forecast_reference_time").cell(0).point, self.expected_frt,
             )
             self.assertEqual(
-                cube.coord("forecast_period"), expected_fp,
+                cube.coord("forecast_period"), self.expected_fp,
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
