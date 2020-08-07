@@ -374,7 +374,8 @@ class ConvectionRatioFromComponents(BasePlugin):
         if self.convective is None:
             raise RuntimeError("self.convective is still undefined!!")
 
-    def _get_cube(self, cubes: iris.cube.CubeList, name: str):
+    @staticmethod
+    def _get_cube(cubes: iris.cube.CubeList, name: str):
         """
         Get one cube named "name" from the list of cubes and set its units to m s-1.
         """
