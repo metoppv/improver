@@ -61,5 +61,5 @@ def test_too_many_files(tmp_path):
     param_paths = [kgo_dir / f"{p}.nc" for p in ALL_PARAMS + ["kgo.nc"]]
     output_path = tmp_path / "output.nc"
     args = [*param_paths, "--output", output_path]
-    with pytest.raises(OSError):
+    with pytest.raises(IOError):
         run_cli(args)

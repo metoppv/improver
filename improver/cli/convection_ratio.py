@@ -49,7 +49,7 @@ def process(*cubes: cli.inputcube,):
     Args:
         cubes (iris.cube.CubeList):
             Cubes of "convective_precipitation_rate" and "dynamic_precipitation_rate"
-            in "m s-1"
+            in units that can be converted to "m s-1"
 
     Returns:
         iris.cube.Cube:

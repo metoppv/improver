@@ -358,43 +358,54 @@ class ConvectionRatioFromComponents(BasePlugin):
     convective and dynamic components.
     """
 
+    def __init__(self):
+        self.convective = None
+        self.dynamic = None
+
     def _split_input(self, cubes: list):
         """
         Extracts convective and dynamic components from the list as objects on the class
+        and ensures units are m s-1
         """
         if not isinstance(cubes, iris.cube.CubeList):
             cubes = iris.cube.CubeList(cubes)
-        assert np.all(
-            [cube.units == "m s-1" for cube in cubes]
-        ), f"Units of 'm s-1' required, not {[c.units for c in cubes]}"
+        self.convective = self._get_cube(cubes, "convective_precipitation_rate")
+        self.dynamic = self._get_cube(cubes, "dynamic_precipitation_rate")
+        if self.convective is None:
+            raise RuntimeError("self.convective is still undefined!!")
+
+    def _get_cube(self, cubes: iris.cube.CubeList, name: str):
+        """
+        Get one cube named "name" from the list of cubes and set its units to m s-1.
+        """
         try:
-            (self.convective,) = cubes.extract("convective_precipitation_rate")
+            (cube,) = cubes.extract(name)
         except ValueError:
             raise ValueError(
-                "Cannot find a cube named 'convective_precipitation_rate' in "
-                f"{[c.name() for c in cubes]}"
+                f"Cannot find a cube named '{name}' in " f"{[c.name() for c in cubes]}"
             )
-        try:
-            (self.dynamic,) = cubes.extract("dynamic_precipitation_rate")
-        except ValueError:
-            raise ValueError(
-                "Cannot find a cube named 'dynamic_precipitation_rate' in "
-                f"{[c.name() for c in cubes]}"
-            )
+        if cube.units != "m s-1":
+            cube = cube.copy()
+            try:
+                cube.convert_units("m s-1")
+            except ValueError:
+                raise ValueError(
+                    f"Input {name} cube cannot be converted to 'm s-1' from {cube.units}"
+                )
+        return cube
 
     def _convective_ratio(self):
         """
-        Calculates the convective ratio from the convective and dynamic components,
-        masking data where both are zero. The tolerance for comparing with zero is
-        derived from the units of the convective field. 1e-9 for m s-1, otherwise 1e-6
-        (assuming units are other
-
+        Calculates the convective ratio from the convective and dynamic precipitation
+        rate components, masking data where both are zero. The tolerance for comparing
+        with zero is is 1e-9 m s-1.
         """
         precipitation = self.convective + self.dynamic
-        convective_ratios = np.ma.masked_where(
-            np.isclose(precipitation.data, 0.0, atol=1e-9),
-            self.convective.data / precipitation.data,
-        )
+        with np.errstate(divide="ignore"):
+            convective_ratios = np.ma.masked_where(
+                np.isclose(precipitation.data, 0.0, atol=1e-9),
+                self.convective.data / precipitation.data,
+            )
         return convective_ratios
 
     def process(self, cubes: list):

@@ -140,12 +140,16 @@ def test_basic(request, grid_fixture):
     ],
 )
 @pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
-def test_data(request, grid_fixture, data_con_dyn_out):
-    """Test that the data are calculated as expected for a selection of values
-    including either side of the minimum precipitation rate tolerance 1e-9 m s-1"""
+@pytest.mark.parametrize("units", ["m s-1", "mm h-1"])
+def test_data(request, grid_fixture, data_con_dyn_out, units):
+    """Test that the data are calculated as expected for a selection of values on both
+    grids with SI and non-SI units including either side of the minimum precipitation
+    rate tolerance 1e-9 m s-1"""
     grid = request.getfixturevalue(grid_fixture)
     for i in range(2):
         grid[i].data[0, 0] = data_con_dyn_out[i]
+    for cube in grid:
+        cube.convert_units(units)
     expected_array = np.ma.masked_all_like(grid[0].data)
     if np.isfinite(data_con_dyn_out[2]):
         expected_array[0, 0] = data_con_dyn_out[2]
@@ -169,8 +173,12 @@ def test_bad_name(request, cube_name):
 
 
 def test_bad_units(request):
-    """Test we get a useful error if the input cubes have non-SI units."""
+    """Test we get a useful error if the input cubes have units that are not rates."""
     grid = request.getfixturevalue("uk_grid")
-    _ = [c.convert_units("mm h-1") for c in grid]
-    with assert_raises_regex(AssertionError, "Units of 'm s-1' required, not "):
+    for cube in grid:
+        cube.units = "m"
+    with assert_raises_regex(
+        ValueError,
+        "Input convective_precipitation_rate cube cannot be converted to 'm s-1' from ",
+    ):
         ConvectionRatioFromComponents()(grid)
