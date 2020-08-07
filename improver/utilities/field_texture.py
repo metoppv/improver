@@ -65,7 +65,7 @@ class FieldTexture(BasePlugin):
                 textural features.
 
             ratio_threshold (float):
-                A unitless threshold value that defines the ratio value above which
+                A unit-less threshold value that defines the ratio value above which
                 the field is considered clumpy and below which the field is considered
                 more contiguous.
 
@@ -78,14 +78,15 @@ class FieldTexture(BasePlugin):
         Calculates the ratio of each cell using neighbourhooding.
 
         Args:
-            cube (cube):
-                Input data in cube format containing a single realization.
+            cube (iris.cube.Cube):
+                Input data in cube format containing a two-dimensional field
+                of binary data.
 
             radius (float):
-                Average radius for neighbourhood in metres.
+                Radius for neighbourhood in metres.
 
         Returns:
-            ratio (cube):
+            iris.cube.Cube:
                 A ratio between 0 and 1 of actual transitions over potential transitions.
         """
 
@@ -93,6 +94,9 @@ class FieldTexture(BasePlugin):
         result_cube = create_new_diagnostic_cube(
             "cell_edge_differences", 1, cube, MANDATORY_ATTRIBUTE_DEFAULTS, data=data
         )
+        # Use neighbourhooding to find the number of non-zero valued cells within
+        # radius of each grid cell.
+
         potential_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
             cube, radius=radius
         )
@@ -100,8 +104,8 @@ class FieldTexture(BasePlugin):
             cube.data > 0, potential_transitions.data * 4, 0
         )
 
-        # Note that where there is no cloud the value is forced to 1. So high values
-        # correspond to scattered cloud or no cloud.
+        # Note that where there is no smooth field detection the value is forced
+        # to 1. So high values correspond to scattered or no clumpy fields.
 
         actual_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
             result_cube, radius=radius
@@ -118,6 +122,18 @@ class FieldTexture(BasePlugin):
 
     @staticmethod
     def _calculate_transitions(data):
+        """
+        Identifies edges present in the field and calculates the actual
+        transitions.
+
+        Args:
+            data (numpy array):
+                A NumPy array of the input cube for data manipulation.
+
+        Returns:
+            cell_sum (numpy array):
+                A NumPy array containing the transitions for ratio calculation.
+        """
         padded_data = np.pad(data, 1, mode="edge")
         diff_x = np.abs(np.diff(padded_data, axis=1))
         diff_y = np.abs(np.diff(padded_data, axis=0))
@@ -129,11 +145,11 @@ class FieldTexture(BasePlugin):
 
     def process(self, cube):
         """
-        Calculates a field of cloud texture to use in differentiating solid and
-        more scattered cloud.
+        Calculates a field of texture to use in differentiating solid and
+        more scattered features.
 
         Args:
-            cube (cube):
+            cube (iris.cube.Cube):
                 Input data in cube format containing the field for which the
                 texture is to be assessed.
 
