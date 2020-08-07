@@ -75,7 +75,29 @@ class FieldTexture(BasePlugin):
 
     def _calculate_ratio(self, cube, radius):
         """
-        Calculates the ratio of each cell using neighbourhooding.
+        Calculates the ratio of actual to potential value transitions in a
+        neighbourhood about each cell.
+
+        The process is as follows:
+
+            1. For each grid cell find the number of cells of value 1 in a surrounding
+               neighbourhood of a size defined by the arg radius. The potential
+               transitions within that neighbourhood are defined as the number of
+               orthogonal neighbours (up, down, left, right) about cells of value 1.
+               This is 4 times the number of cells of value 1.
+            2. Calculate the number of actual transitions within the neighbourhood,
+               that is the number of cells of value 0 that orthogonally abut cells
+               of value 1.
+            3. Calculate the ratio of actual to potential transitions.
+
+        Ratios approaching 1 indicate that there are many transitions, so the field
+        is highly textured. Ratios close to 0 indicate a smoother field.
+
+        A neighbourhood full of cells of value 1 will return ratios of 0; the
+        diagnostic that has been thresholded to produce the binary field is found
+        everywhere within that neighbourhood, giving a smooth field. At the other
+        extreme, in neighbourhoods in which there are no cells of value 1 the ratio
+        is set to 1.
 
         Args:
             cube (iris.cube.Cube):
@@ -89,14 +111,7 @@ class FieldTexture(BasePlugin):
             iris.cube.Cube:
                 A ratio between 0 and 1 of actual transitions over potential transitions.
         """
-
-        data = self._calculate_transitions(cube.data)
-        result_cube = create_new_diagnostic_cube(
-            "cell_edge_differences", 1, cube, MANDATORY_ATTRIBUTE_DEFAULTS, data=data
-        )
-        # Use neighbourhooding to find the number of non-zero valued cells within
-        # radius of each grid cell.
-
+        # Calculate the potential transitions within neighbourhoods
         potential_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
             cube, radius=radius
         )
@@ -104,34 +119,47 @@ class FieldTexture(BasePlugin):
             cube.data > 0, potential_transitions.data * 4, 0
         )
 
-        # Note that where there is no smooth field detection the value is forced
-        # to 1. So high values correspond to scattered or no clumpy fields.
+        # Calculate the actual transitions for each grid cell of value 1 and
+        # store them in a cube.
+        actual_transitions = potential_transitions.copy(
+            data=self._calculate_transitions(cube.data)
+        )
 
+        # Sum the number of actual transitions within the neighbourhood.
         actual_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
-            result_cube, radius=radius
+            actual_transitions, radius=radius
         )
         actual_transitions.data = np.where(cube.data > 0, actual_transitions.data, 0)
-        ratio = actual_transitions.copy(data=np.ones_like(actual_transitions.data))
+
+        # Calulate the ratio of actual to potential transitions
+        ratio = np.ones_like(actual_transitions.data)
         np.divide(
             actual_transitions.data,
             potential_transitions.data,
-            out=ratio.data,
-            where=(potential_transitions.data > 0),
+            out=ratio,
+            where=(cube.data > 0),
+        )
+
+        # Create a new cube to contain the resulting ratio data
+        ratio = create_new_diagnostic_cube(
+            "cell_edge_differences", 1, cube, MANDATORY_ATTRIBUTE_DEFAULTS, data=ratio,
         )
         return ratio
 
     @staticmethod
     def _calculate_transitions(data):
         """
-        Identifies edges present in the field and calculates the actual
-        transitions.
+        Identifies actual transitions present in a binary field. These transitions
+        are defined as the number of cells of value zero that directly neighbour
+        cells of value 1. The number of transitions is calculated for all cells
+        of value 1. The number of transitions for cells of value 0 is set to 0.
 
         Args:
-            data (numpy array):
+            data (numpy.ndarray):
                 A NumPy array of the input cube for data manipulation.
 
         Returns:
-            cell_sum (numpy array):
+            numpy.ndarray:
                 A NumPy array containing the transitions for ratio calculation.
         """
         padded_data = np.pad(data, 1, mode="edge")
