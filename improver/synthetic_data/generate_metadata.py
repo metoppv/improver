@@ -112,7 +112,7 @@ def generate_metadata(
         percentile (Optional[bool]):
             Flag to indicate whether the leading dimension is percentile values. If True, a percentile cube is created.
         probability (Optional[bool]):
-            Flag to indicate whether the leading dimension is threshold values. If True, a probability cube is created.        
+            Flag to indicate whether the leading dimension is threshold values. If True, a probability cube is created.
         spp__relative_to_threshold (Optional[str]):
             Value of the attribute "spp__relative_to_threshold" which is required for IMPROVER probability cubes.
         attributes (Optional[Dict]):

@@ -56,9 +56,7 @@ def test_variable_cube(tmp_path):
     """Test metadata cube generation creating a variable/realization cube setting values for all options except pressure and dimension json inputs"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
     kgo_path = kgo_dir / "kgo_variable.nc"
-    leading_dimension_path = kgo_dir / "realizations.json"
     attributes_path = kgo_dir / "attributes.json"
-    height_levels_path = kgo_dir / "height_levels.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--name",
@@ -141,7 +139,6 @@ def test_percentile_cube_json(tmp_path):
 def test_percentile_cube_realization_json(tmp_path):
     """Test error raised if json provided without percentiles key"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    kgo_path = kgo_dir / "kgo_percentile.nc"
     realizations_path = kgo_dir / "realizations.json"
     output_path = tmp_path / "output.nc"
     args = [
