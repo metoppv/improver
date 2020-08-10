@@ -141,7 +141,7 @@ def process(
         leading_dimension=leading_dimension,
         percentile=percentile,
         probability=probability,
-        spp__relative_to_threshold="above",
+        spp__relative_to_threshold=spp__relative_to_threshold,
         attributes=attributes,
         resolution=resolution,
         domain_corner=domain_corner,
