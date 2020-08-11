@@ -63,8 +63,18 @@ def _create_time_bounds(time, time_period):
     return (lower_bound, upper_bound)
 
 
-def _create_data_array(nleading_dimension, npoints, nheight_levels):
+def _create_data_array(ensemble_members, leading_dimension, npoints, height_levels):
     """ Create data array of specified shape filled with zeros """
+    if leading_dimension is not None:
+        nleading_dimension = len(leading_dimension)
+    else:
+        nleading_dimension = ensemble_members
+
+    if height_levels is not None:
+        nheight_levels = len(height_levels)
+    else:
+        nheight_levels = None
+
     data_shape = []
 
     if nleading_dimension > 1:
@@ -169,17 +179,7 @@ def generate_metadata(
         resolution = DEFAULT_RESOLUTION[spatial_grid]
 
     # Create ndimensional array of zeros
-    if leading_dimension is not None:
-        nleading_dimension = len(leading_dimension)
-    else:
-        nleading_dimension = ensemble_members
-
-    if height_levels is not None:
-        nheight_levels = len(height_levels)
-    else:
-        nheight_levels = None
-
-    data = _create_data_array(nleading_dimension, npoints, nheight_levels)
+    data = _create_data_array(ensemble_members, leading_dimension, npoints, height_levels)
 
     # Set up requested cube
     if percentile:
