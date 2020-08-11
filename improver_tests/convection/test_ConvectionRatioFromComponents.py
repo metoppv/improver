@@ -52,11 +52,10 @@ UK_ATTRIBUTES = {
 }
 
 
-@pytest.fixture(name="global_grid")
-def global_grid_fixture() -> Cube:
-    """Global grid template"""
+def input_cubes():
+    """Generate input cubes on a Global grid"""
 
-    data = np.zeros((19, 37), dtype=np.float32)
+    data = np.zeros((3, 3), dtype=np.float32)
     cubes = CubeList([])
     cubes.append(
         set_up_variable_cube(
@@ -81,42 +80,10 @@ def global_grid_fixture() -> Cube:
     return cubes
 
 
-@pytest.fixture(name="uk_grid")
-def uk_grid_fixture() -> Cube:
-    """UK grid template"""
-
-    data = np.zeros((21, 22), dtype=np.float32)
-    cubes = CubeList([])
-    cubes.append(
-        set_up_variable_cube(
-            data.copy(),
-            name="convective_precipitation_rate",
-            units="m s-1",
-            spatial_grid="equalarea",
-            grid_spacing=96900.0,
-            domain_corner=(-1036000.0, -1158000.0),
-            attributes=UK_ATTRIBUTES,
-        )
-    )
-    cubes.append(
-        set_up_variable_cube(
-            data.copy(),
-            name="dynamic_precipitation_rate",
-            units="m s-1",
-            spatial_grid="equalarea",
-            grid_spacing=96900.0,
-            domain_corner=(-1036000.0, -1158000.0),
-            attributes=UK_ATTRIBUTES,
-        )
-    )
-    return cubes
-
-
-@pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
-def test_basic(request, grid_fixture):
+def test_basic():
     """Ensure Plugin returns object of correct type and meta-data and that
     no precip => masked array"""
-    grid = request.getfixturevalue(grid_fixture)
+    grid = input_cubes()
     expected_array = np.ma.masked_all_like(grid[0].data)
     result = ConvectionRatioFromComponents()(grid.copy())
     assert isinstance(result, iris.cube.Cube)
@@ -139,13 +106,12 @@ def test_basic(request, grid_fixture):
         (0.9e-9, 0.9e-9, 0.5),
     ],
 )
-@pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
 @pytest.mark.parametrize("units", ["m s-1", "mm h-1"])
-def test_data(request, grid_fixture, data_con_dyn_out, units):
+def test_data(data_con_dyn_out, units):
     """Test that the data are calculated as expected for a selection of values on both
     grids with SI and non-SI units including either side of the minimum precipitation
     rate tolerance 1e-9 m s-1"""
-    grid = request.getfixturevalue(grid_fixture)
+    grid = input_cubes()
     for i in range(2):
         grid[i].data[0, 0] = data_con_dyn_out[i]
     for cube in grid:
@@ -163,18 +129,18 @@ def test_data(request, grid_fixture, data_con_dyn_out, units):
 @pytest.mark.parametrize(
     "cube_name", ["convective_precipitation_rate", "dynamic_precipitation_rate"]
 )
-def test_bad_name(request, cube_name):
+def test_bad_name(cube_name):
     """Test we get a useful error if one of the input cubes is incorrectly named."""
-    grid = request.getfixturevalue("uk_grid")
+    grid = input_cubes()
     (cube,) = grid.extract(cube_name)
     cube.rename("kittens")
     with assert_raises_regex(ValueError, f"Cannot find a cube named '{cube_name}' in "):
         ConvectionRatioFromComponents()(grid)
 
 
-def test_bad_units(request):
+def test_bad_units():
     """Test we get a useful error if the input cubes have units that are not rates."""
-    grid = request.getfixturevalue("uk_grid")
+    grid = input_cubes()
     for cube in grid:
         cube.units = "m"
     with assert_raises_regex(

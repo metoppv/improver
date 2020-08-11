@@ -381,7 +381,7 @@ class ConvectionRatioFromComponents(BasePlugin):
             (cube,) = cubes.extract(name)
         except ValueError:
             raise ValueError(
-                f"Cannot find a cube named '{name}' in " f"{[c.name() for c in cubes]}"
+                f"Cannot find a cube named '{name}' in {[c.name() for c in cubes]}"
             )
         if cube.units != "m s-1":
             cube = cube.copy()
