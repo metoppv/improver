@@ -45,16 +45,16 @@ def process(
     time_period: float = None,
     frt="20171110T0000Z",
     ensemble_members: int = 8,
-    leading_dimension: cli.comma_separated_list = None,
+    leading_dimension: cli.comma_separated_list_of_float = None,
     leading_dimension_json: cli.inputjson = None,
     percentile=False,
     probability=False,
     spp__relative_to_threshold="above",
     attributes: cli.inputjson = None,
     resolution: float = None,
-    domain_corner: cli.comma_separated_list = None,
+    domain_corner: cli.comma_separated_list_of_float = None,
     npoints: int = 71,
-    height_levels: cli.comma_separated_list = None,
+    height_levels: cli.comma_separated_list_of_float = None,
     height_levels_json: cli.inputjson = None,
     pressure=False,
 ):
@@ -108,12 +108,7 @@ def process(
     from improver.synthetic_data.generate_metadata import generate_metadata
     from improver.utilities.temporal import cycletime_to_datetime
 
-    if domain_corner is not None:
-        domain_corner = [float(dc) for dc in domain_corner]
-
-    if leading_dimension is not None:
-        leading_dimension = [float(ld) for ld in leading_dimension]
-    elif leading_dimension_json is not None:
+    if leading_dimension is None and leading_dimension_json is not None:
         if percentile is True:
             leading_dimension = leading_dimension_json["percentiles"]
         elif probability is True:
@@ -121,9 +116,7 @@ def process(
         else:
             leading_dimension = leading_dimension_json["realizations"]
 
-    if height_levels is not None:
-        height_levels = [float(h) for h in height_levels]
-    elif height_levels_json is not None:
+    if height_levels is None and height_levels_json is not None:
         height_levels = height_levels_json["height_levels"]
 
     # Convert str time and frt to datetime

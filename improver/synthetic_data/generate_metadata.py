@@ -55,6 +55,14 @@ def _get_units(name):
     return units
 
 
+def _create_time_bounds(time, time_period):
+    """ Create time bounds using time - time_period as the lower bound and time as the upper bound"""
+    lower_bound = time - timedelta(hours=time_period)
+    upper_bound = time
+
+    return (lower_bound, upper_bound)
+
+
 def _create_data_array(nleading_dimension, npoints, nheight_levels):
     """ Create data array of specified shape filled with zeros """
     data_shape = []
@@ -151,11 +159,10 @@ def generate_metadata(
         units = _get_units(name)
 
     # If time_period specified, create time bounds using time as upper bound
-    time_bounds = None
     if time_period is not None:
-        lower_bound = time - timedelta(hours=time_period)
-        upper_bound = time
-        time_bounds = (lower_bound, upper_bound)
+        time_bounds = _create_time_bounds(time, time_period)
+    else:
+        time_bounds = None
 
     # If resolution not specified, use default for requested spatial grid
     if resolution is None:
