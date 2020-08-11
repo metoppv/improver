@@ -179,7 +179,9 @@ def generate_metadata(
         resolution = DEFAULT_RESOLUTION[spatial_grid]
 
     # Create ndimensional array of zeros
-    data = _create_data_array(ensemble_members, leading_dimension, npoints, height_levels)
+    data = _create_data_array(
+        ensemble_members, leading_dimension, npoints, height_levels
+    )
 
     # Set up requested cube
     if percentile:
