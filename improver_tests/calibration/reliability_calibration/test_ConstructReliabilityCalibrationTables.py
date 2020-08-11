@@ -142,7 +142,11 @@ class Test__init__(unittest.TestCase):
 
     def test_with_arguments(self):
         """Test with specified arguments."""
-        plugin = Plugin(n_probability_bins=4, single_value_limits=False)
+        plugin = Plugin(
+            n_probability_bins=4,
+            single_value_lower_limit=False,
+            single_value_upper_limit=False,
+        )
         self.assertEqual(len(plugin.probability_bins), 4)
         self.assertEqual(plugin.expected_table_shape, (3, 4))
 
@@ -153,7 +157,11 @@ class Test__repr__(unittest.TestCase):
 
     def test_basic(self):
         """Test repr is as expected."""
-        plugin = Plugin(n_probability_bins=2, single_value_limits=False)
+        plugin = Plugin(
+            n_probability_bins=2,
+            single_value_lower_limit=False,
+            single_value_upper_limit=False,
+        )
         self.assertEqual(
             str(plugin),
             "<ConstructReliabilityCalibrationTables: probability_bins: "
@@ -173,13 +181,15 @@ class Test__define_probability_bins(unittest.TestCase):
             [[0.0, 0.24999999], [0.25, 0.49999997], [0.5, 0.74999994], [0.75, 1.0]]
         )
         result = Plugin()._define_probability_bins(
-            n_probability_bins=4, single_value_limits=False
+            n_probability_bins=4,
+            single_value_lower_limit=False,
+            single_value_upper_limit=False,
         )
         assert_allclose(result, expected)
 
     @staticmethod
-    def test_with_single_value_limits():
-        """Test the generation of probability bins with single value end
+    def test_with_both_single_value_limits():
+        """Test the generation of probability bins with both single value end
         bins. The range 0 to 1 will be divided into 2 equally sized bins,
         with 2 end bins holding values approximately equal to 0 and 1."""
         expected = np.array(
@@ -191,19 +201,70 @@ class Test__define_probability_bins(unittest.TestCase):
             ]
         )
         result = Plugin()._define_probability_bins(
-            n_probability_bins=4, single_value_limits=True
+            n_probability_bins=4,
+            single_value_lower_limit=True,
+            single_value_upper_limit=True,
         )
         assert_allclose(result, expected)
 
-    def test_with_single_value_limits_too_few_bins(self):
-        """In this test the single_value_limits are requested whilst also
-        trying to use 2 bins. This would leave no bins to cover the range 0 to
-        1, so an error is raised."""
+    @staticmethod
+    def test_with_lower_single_value_limit():
+        """Test the generation of probability bins with only the lower single value
+        limit bin. The range 0 to 1 will be divided into 4 equally sized bins,
+        with 1 lower bin holding values approximately equal to 0."""
+        expected = np.array(
+            [
+                [0.0000000e00, 1.0000000e-06],
+                [1.0000001e-06, 3.3333331e-01],
+                [3.3333334e-01, 6.6666663e-01],
+                [6.6666669e-01, 1.0000000e00],
+            ],
+            dtype=np.float32,
+        )
 
-        msg = "Cannot use single_value_limits with 2 or fewer probability bins"
+        result = Plugin()._define_probability_bins(
+            n_probability_bins=4,
+            single_value_lower_limit=True,
+            single_value_upper_limit=False,
+        )
+        assert_allclose(result, expected)
+
+    @staticmethod
+    def test_with_upper_single_value_limit():
+        """Test the generation of probability bins with only the upper single value
+        limit bin. The range 0 to 1 will be divided into 4 equally sized bins,
+        with 1 upper bin holding values approximately equal to 1."""
+        expected = np.array(
+            [
+                [0.0, 0.3333333],
+                [0.33333334, 0.6666666],
+                [0.6666667, 0.9999989],
+                [0.999999, 1.0],
+            ],
+            dtype=np.float32,
+        )
+
+        result = Plugin()._define_probability_bins(
+            n_probability_bins=4,
+            single_value_lower_limit=False,
+            single_value_upper_limit=True,
+        )
+        assert_allclose(result, expected)
+
+    def test_with_both_single_value_limits_too_few_bins(self):
+        """In this test both lower and uppper single_value_limits are requested
+        whilst also trying to use 2 bins. This would leave no bins to cover the
+        range 0 to 1, so an error is raised."""
+
+        msg = (
+            "Cannot use both single_value_lower_limit and "
+            "single_value_upper_limit with 2 or fewer probability bins."
+        )
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._define_probability_bins(
-                n_probability_bins=2, single_value_limits=True
+                n_probability_bins=2,
+                single_value_lower_limit=True,
+                single_value_upper_limit=True,
             )
 
 
@@ -216,7 +277,11 @@ class Test__create_probability_bins_coord(unittest.TestCase):
         type."""
         expected_bounds = np.array([[0, 0.5], [0.5, 1]])
         expected_points = np.mean(expected_bounds, axis=1)
-        plugin = Plugin(n_probability_bins=2, single_value_limits=False)
+        plugin = Plugin(
+            n_probability_bins=2,
+            single_value_lower_limit=False,
+            single_value_upper_limit=False,
+        )
         result = plugin._create_probability_bins_coord()
 
         self.assertIsInstance(result, iris.coords.DimCoord)
