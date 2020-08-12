@@ -78,17 +78,17 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
             [
                 [0, 0, 250, 500, 750],  # Observation count
                 [0, 250, 500, 750, 1000],  # Sum of forecast probability
-                [1000, 1000, 1000, 1000, 1000],
+                [1000, 1000, 1000, 1000, 1000],  # Forecast count
             ]
-        )  # Forecast count
+        )
         # Under forecasting exceeding 280K.
         relability_data_1 = np.array(
             [
                 [250, 500, 750, 1000, 1000],  # Observation count
                 [0, 250, 500, 750, 1000],  # Sum of forecast probability
-                [1000, 1000, 1000, 1000, 1000],
+                [1000, 1000, 1000, 1000, 1000],  # Forecast count
             ]
-        )  # Forecast count
+        )
 
         r0 = reliability_cube_format.copy(data=relability_data_0)
         r1 = reliability_cube_format.copy(data=relability_data_1)
@@ -163,9 +163,9 @@ class Test__threshold_coords_equivalent(Test_ReliabilityCalibrate):
             )
 
 
-class Test__ensure_monotonicity(Test_ReliabilityCalibrate):
+class Test__ensure_monotonicity_across_thresholds(Test_ReliabilityCalibrate):
 
-    """Test the _ensure_monotonicity method."""
+    """Test the _ensure_monotonicity_across_thresholds method."""
 
     @ManageWarnings(record=True)
     def test_monotonic_case(self, warning_list=None):
@@ -175,7 +175,7 @@ class Test__ensure_monotonicity(Test_ReliabilityCalibrate):
 
         expected = self.forecast.copy()
 
-        self.plugin._ensure_monotonicity(self.forecast)
+        self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
 
         assert_array_equal(self.forecast.data, expected.data)
         self.assertFalse(warning_list)
@@ -191,7 +191,7 @@ class Test__ensure_monotonicity(Test_ReliabilityCalibrate):
         self.forecast.data[0, 1, 1] = self.forecast.data[1, 1, 1]
         self.forecast.data[1, 1, 1] = switch_val
 
-        self.plugin._ensure_monotonicity(self.forecast)
+        self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
 
         assert_array_equal(self.forecast.data, expected.data)
         warning_msg = "Exceedance probabilities are not decreasing"
@@ -210,7 +210,7 @@ class Test__ensure_monotonicity(Test_ReliabilityCalibrate):
             "spp__relative_to_threshold"
         ] = "below"
 
-        self.plugin._ensure_monotonicity(self.forecast)
+        self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
 
         assert_array_equal(self.forecast.data, expected.data)
         warning_msg = "Below threshold probabilities are not increasing"
@@ -227,23 +227,87 @@ class Test__ensure_monotonicity(Test_ReliabilityCalibrate):
 
         msg = "Cube threshold coordinate does not define whether"
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin._ensure_monotonicity(self.forecast)
+            self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
+
+
+class Test__combine_bin_pair_for_observation_frequency_monotonicity(unittest.TestCase):
+
+    """Test the _combine_bin_pair_for_observation_frequency_monotonicity method"""
+
+    def setUp(self):
+        """Set up forecast count"""
+        self.forecast_count = np.array([1000, 1000, 1000, 1000, 1000], dtype=np.float32)
+        self.forecast_probability_sum = np.array(
+            [0, 250, 500, 750, 1000], dtype=np.float32
+        )
+
+        self.expected_non_monotonic = np.array(
+            [
+                [0, 250, 500, 1750],  # Observation count
+                [0, 250, 500, 1750],  # Sum of forecast probability
+                [1000, 1000, 1000, 2000],  # Forecast count
+            ]
+        )
+
+    def test_monotonic(self):
+        """Test no bin pairs are combined, if all bin pairs are monotonic."""
+        obs_count = np.array([0, 250, 500, 750, 1000], dtype=np.float32)
+        result = Plugin()._combine_bin_pair_for_observation_frequency_monotonicity(
+            obs_count, self.forecast_probability_sum, self.forecast_count
+        )
+        assert_array_equal(
+            result, [obs_count, self.forecast_probability_sum, self.forecast_count]
+        )
+
+    def test_one_non_monotonic_bin_pair(self):
+        """Test one bin pair is combined, if one bin pair is non-monotonic."""
+        obs_count = np.array([0, 250, 500, 1000, 750], dtype=np.float32)
+        result = Plugin()._combine_bin_pair_for_observation_frequency_monotonicity(
+            obs_count, self.forecast_probability_sum, self.forecast_count
+        )
+        assert_array_equal(result, self.expected_non_monotonic)
+
+    def test_two_non_monotonic_bin_pairs(self):
+        """Test one bin pair is combined, if two bin pairs are non-monotonic."""
+        obs_count = np.array([0, 750, 500, 1000, 750], dtype=np.float32)
+        self.expected_non_monotonic[0][1] = 750  # Amend observation count
+        result = Plugin()._combine_bin_pair_for_observation_frequency_monotonicity(
+            obs_count, self.forecast_probability_sum, self.forecast_count
+        )
+        assert_array_equal(result, self.expected_non_monotonic)
+
+
+class Test__assume_constant_observation_frequency(unittest.TestCase):
+    """Test the _assume_constant_observation_frequency method"""
+
+    def test_monotonic(self):
+        """Test no change to observation frequency, if already monotonic."""
+        observation_frequency = np.array([0, 0.25, 0.5, 0.75, 1], dtype=np.float32)
+        result = Plugin()._assume_constant_observation_frequency(observation_frequency)
+        assert_array_equal(result, observation_frequency)
+
+    def test_non_monotonic(self):
+        """Test enforcement of monotonicity for observation frequency."""
+        observation_frequency = np.array([0, 0.25, 0.5, 1, 0.75], dtype=np.float32)
+        expected = np.array([0, 0.25, 0.5, 1, 1], dtype=np.float32)
+        result = Plugin()._assume_constant_observation_frequency(observation_frequency)
+        assert_array_equal(result, expected)
 
 
 class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
 
     """Test the _calculate_reliability_probabilities method."""
 
-    def test_values(self):
-        """Test expected values are returned."""
+    def test_monotonic(self):
+        """Test expected values are returned for monotonic observation count"""
 
         expected_0 = (
-            np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
-            np.array([0.0, 0.0, 0.25, 0.5, 0.75]),
+            np.array([0.0, 0.25, 0.5, 0.75, 1.0]),  # forecast probability
+            np.array([0.0, 0.0, 0.25, 0.5, 0.75]),  # observation frequency
         )
         expected_1 = (
-            np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
-            np.array([0.25, 0.5, 0.75, 1.0, 1.0]),
+            np.array([0.0, 0.25, 0.5, 0.75, 1.0]),  # forecast probability
+            np.array([0.25, 0.5, 0.75, 1.0, 1.0]),  # observation frequency
         )
 
         threshold_0 = self.plugin._calculate_reliability_probabilities(
@@ -255,6 +319,94 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
 
         assert_array_equal(threshold_0, expected_0)
         assert_array_equal(threshold_1, expected_1)
+
+    def test_highest_bin_non_monotonic(self):
+        """Test expected values are returned where the highest observation
+        count bin is non-monotonic."""
+
+        expected = (
+            np.array([0.0, 0.25, 0.5, 0.875]),  # forecast probability
+            np.array([0.0, 0.25, 0.5, 0.875]),  # observation frequency
+        )
+
+        reliability_cube = self.reliability_cube[0].copy()
+        reliability_cube.data = np.array(
+            [
+                [0, 250, 500, 1000, 750],  # Observation count
+                [0, 250, 500, 750, 1000],  # Sum of forecast probability
+                [1000, 1000, 1000, 1000, 1000],  # Forecast count
+            ]
+        )
+
+        threshold = self.plugin._calculate_reliability_probabilities(reliability_cube)
+
+        assert_array_equal(threshold, expected)
+
+    def test_central_bin_non_monotonic(self):
+        """Test expected values are returned where a central observation
+        count bin is non-monotonic."""
+
+        expected = (
+            np.array([0.0, 0.375, 0.75, 1.0]),  # forecast probability
+            np.array([0.0, 0.375, 0.75, 1.0]),  # observation frequency
+        )
+
+        reliability_cube = self.reliability_cube[0].copy()
+        reliability_cube.data = np.array(
+            [
+                [0, 500, 250, 750, 1000],  # Observation count
+                [0, 250, 500, 750, 1000],  # Sum of forecast probability
+                [1000, 1000, 1000, 1000, 1000],  # Forecast count
+            ]
+        )
+
+        threshold = self.plugin._calculate_reliability_probabilities(reliability_cube)
+
+        assert_array_equal(threshold, expected)
+
+    def test_upper_bins_non_monotonic(self):
+        """Test expected values are returned where the upper observation
+        count bins are non-monotonic."""
+
+        expected = (
+            np.array([0.0, 0.25, 0.5, 0.875]),  # forecast probability
+            np.array([0.0, 1.0, 1.0, 1.0]),  # observation frequency
+        )
+
+        reliability_cube = self.reliability_cube[0].copy()
+        reliability_cube.data = np.array(
+            [
+                [0, 1000, 750, 500, 250],  # Observation count
+                [0, 250, 500, 750, 1000],  # Sum of forecast probability
+                [1000, 1000, 1000, 1000, 1000],  # Forecast count
+            ]
+        )
+
+        threshold = self.plugin._calculate_reliability_probabilities(reliability_cube)
+
+        assert_array_equal(threshold, expected)
+
+    def test_lowest_bin_non_monotonic(self):
+        """Test expected values are returned where the lowest observation
+        count bin is non-monotonic."""
+
+        expected = (
+            np.array([0.125, 0.5, 0.75, 1.0]),  # forecast probability
+            np.array([0.5, 0.5, 0.5, 0.75]),  # observation frequency
+        )
+
+        reliability_cube = self.reliability_cube[0].copy()
+        reliability_cube.data = np.array(
+            [
+                [1000, 0, 250, 500, 750],  # Observation count
+                [0, 250, 500, 750, 1000],  # Sum of forecast probability
+                [1000, 1000, 1000, 1000, 1000],  # Forecast count
+            ]
+        )
+
+        threshold = self.plugin._calculate_reliability_probabilities(reliability_cube)
+
+        assert_array_equal(threshold, expected)
 
     def test_insufficient_forecast_count(self):
         """Test that if the forecast count is insufficient the function returns

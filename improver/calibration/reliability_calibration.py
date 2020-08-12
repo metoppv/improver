@@ -531,7 +531,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 "reliability table and forecast cube."
             )
 
-    def _ensure_monotonicity(self, cube):
+    def _ensure_monotonicity_across_thresholds(self, cube):
         """
         Ensures that probabilities change monotonically relative to thresholds
         in the expected order, e.g. exceedance probabilities always remain the
@@ -585,6 +585,86 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             warnings.warn(msg)
             cube.data = np.sort(cube.data, axis=threshold_dim)
 
+    @staticmethod
+    def _sum_pairs(array, lower, upper):
+        """
+        Replace a pair of values in an array with their sum.
+
+        Args:
+            array (numpy.ndarray):
+                Array to be modified.
+            lower (int):
+                Lower index of pair.
+            upper (int):
+                Upper index of pair.
+
+        Returns:
+            numpy.ndarray:
+                Array where a pair of values has been replaced by their sum.
+        """
+        array[lower] = np.sum(array[lower : upper + 1])
+        return np.delete(array, upper)
+
+    def _combine_bin_pair_for_observation_frequency_monotonicity(
+        self, observation_count, forecast_probability_sum, forecast_count
+    ):
+        """
+        Combine a pair of bins when non-monotonicity of the observation
+        frequency is detected. Iterate top-down from the highest forecast
+        probability bin to the lowest probability bin when combining the bins.
+        Only allow a single pair of bins to be combined.
+
+        Args:
+            observation_count (numpy.ndarray):
+                Observation count extracted from reliability table.
+            forecast_probability_sum (numpy.ndarray):
+                Forecast probability sum extracted from reliability table.
+            forecast_count (numpy.ndarray):
+                Forecast count extracted from reliability table.
+
+        Returns:
+            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+                Tuple containing the updated observation count,
+                forecast probability sum and forecast count.
+
+        """
+        observation_frequency = np.array(observation_count / forecast_count)
+        for upper in np.arange(len(observation_frequency) - 1, 0, -1):
+            lower = upper - 1
+            (diff,) = np.diff(
+                [observation_frequency[lower], observation_frequency[upper]]
+            )
+            if diff < 0:
+                forecast_count = self._sum_pairs(forecast_count, lower, upper)
+                observation_count = self._sum_pairs(observation_count, lower, upper)
+                forecast_probability_sum = self._sum_pairs(
+                    forecast_probability_sum, lower, upper
+                )
+                break
+        return observation_count, forecast_probability_sum, forecast_count
+
+    def _assume_constant_observation_frequency(self, observation_frequency):
+        """
+        Iterate through the observation frequency from the lowest probability
+        bin to the highest probability bin. Compare each pair of bins and, if
+        a pair is non-monotonic, replace the value of the upper bin with the
+        value of the lower bin.
+
+        Args:
+            observation_frequency (numpy.ndarray):
+                Observation frequency that will be tested for non-monotonicity.
+
+        Returns:
+            numpy.ndarray:
+                Monotonic observation frequency.
+
+        """
+        for index, lower_bin in enumerate(observation_frequency[:-1]):
+            (diff,) = np.diff([lower_bin, observation_frequency[index + 1]])
+            if diff < 0:
+                observation_frequency[index + 1] = lower_bin
+        return observation_frequency
+
     def _calculate_reliability_probabilities(self, reliability_table):
         """
         Calculates forecast probabilities and observation frequencies from the
@@ -597,13 +677,11 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 calculate the forecast probabilities and observation
                 frequencies.
         Returns:
-            (tuple): tuple containing Nones or:
-                **forecast_probability** (numpy.ndarray):
-                    Forecast probabilities calculated by dividing the sum of
-                    forecast probabilities by the forecast count.
-                **observation_frequency** (numpy.ndarray):
-                    Observation frequency calculated by dividing the
-                    observation count by the forecast count.
+            Optional[Tuple[numpy.ndarray, numpy.ndarray]]:
+                Tuple containing forecast probabilities calculated by dividing
+                the sum of forecast probabilities by the forecast count and
+                observation frequency calculated by dividing the observation
+                count by the forecast count.
         """
         observation_count = reliability_table.extract(
             iris.Constraint(table_row_name="observation_count")
@@ -621,8 +699,20 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         if valid_bins[0].size != forecast_count.size:
             return None, None
 
+        (
+            observation_count,
+            forecast_probability_sum,
+            forecast_count,
+        ) = self._combine_bin_pair_for_observation_frequency_monotonicity(
+            observation_count, forecast_probability_sum, forecast_count
+        )
+
         forecast_probability = np.array(forecast_probability_sum / forecast_count)
         observation_frequency = np.array(observation_count / forecast_count)
+
+        observation_frequency = self._assume_constant_observation_frequency(
+            observation_frequency
+        )
 
         return forecast_probability, observation_frequency
 
@@ -714,7 +804,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             calibrated_cubes.append(forecast_threshold.copy(data=interpolated))
 
         calibrated_forecast = calibrated_cubes.merge_cube()
-        self._ensure_monotonicity(calibrated_forecast)
+        self._ensure_monotonicity_across_thresholds(calibrated_forecast)
 
         if uncalibrated_thresholds:
             msg = (
