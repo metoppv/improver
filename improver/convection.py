@@ -362,7 +362,7 @@ class ConvectionRatioFromComponents(BasePlugin):
         self.convective = None
         self.dynamic = None
 
-    def _split_input(self, cubes: list):
+    def _split_input(self, cubes):
         """
         Extracts convective and dynamic components from the list as objects on the class
         and ensures units are m s-1
@@ -373,9 +373,16 @@ class ConvectionRatioFromComponents(BasePlugin):
         self.dynamic = self._get_cube(cubes, "dynamic_precipitation_rate")
 
     @staticmethod
-    def _get_cube(cubes: iris.cube.CubeList, name: str):
+    def _get_cube(cubes, name):
         """
         Get one cube named "name" from the list of cubes and set its units to m s-1.
+
+        Args:
+            cubes (iris.cube.CubeList):
+            name (str):
+
+        Returns:
+            iris.cube.Cube
         """
         try:
             (cube,) = cubes.extract(name)
@@ -407,7 +414,7 @@ class ConvectionRatioFromComponents(BasePlugin):
             )
         return convective_ratios
 
-    def process(self, cubes: list):
+    def process(self, cubes):
         """
         Calculate the convective ratio from the convective and dynamic components as:
             convective_ratio = convective / (convective + dynamic)
@@ -415,7 +422,7 @@ class ConvectionRatioFromComponents(BasePlugin):
         If convective + dynamic is zero, then the resulting point is masked.
 
         Args:
-            cubes:
+            cubes (List[iris.cube.Cube, iris.cube.Cube]):
                 Both the convective and dynamic components as iris.cube.Cube in a list
                 with names 'convective_precipitation_rate' and
                 'dynamic_precipitation_rate'
