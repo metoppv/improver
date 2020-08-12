@@ -111,7 +111,9 @@ def test_data(data_con_dyn_out, units):
     """Test that the data are calculated as expected for a selection of values on both
     grids with SI and non-SI units including either side of the minimum precipitation
     rate tolerance 1e-9 m s-1. For each parametrized test, ONE grid point is modified
-    (point: [0, 0])."""
+    (point: [0, 0]). Other points remain as zero inputs which gives a masked output.
+    The special expected value of np.inf is used to indicate that the output is expected
+    to be a masked value."""
     grid = input_cubes()
     for i in range(2):
         grid[i].data[0, 0] = data_con_dyn_out[i]
