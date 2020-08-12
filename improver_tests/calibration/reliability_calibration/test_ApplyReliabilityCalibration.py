@@ -134,8 +134,7 @@ class Test__init__(unittest.TestCase):
         """Test an exception is raised if the minimum_bin_fraction value is
         not between 0 and 1 inclusive."""
 
-        msg = ("The minimum_bin_fraction must be between 0 and 1. Value set "
-               f"as 1.5")
+        msg = "The minimum_bin_fraction must be between 0 and 1. Value set as 1.5"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin(minimum_bin_fraction=1.5)
 
@@ -291,9 +290,7 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
         self.reliability_cube.data[0, 2, -1] = 100
 
         plugin = Plugin(minimum_bin_fraction=0.5)
-        result = plugin._calculate_reliability_probabilities(
-            self.reliability_cube[0]
-        )
+        result = plugin._calculate_reliability_probabilities(self.reliability_cube[0])
         assert_array_equal(result, expected)
 
 
