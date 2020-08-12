@@ -98,7 +98,7 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
         self.reliability_cube = reliability_cube.merge_cube()
 
         self.threshold = self.forecast.coord(var_name="threshold")
-        self.plugin = Plugin()
+        self.plugin = Plugin(minimum_bin_fraction=1.0)
         self.plugin.threshold_coord = self.threshold
 
 
@@ -122,13 +122,22 @@ class Test__init__(unittest.TestCase):
         self.assertEqual(plugin.minimum_forecast_count, 100)
         self.assertIsNone(plugin.threshold_coord, None)
 
-    def test_with_invalid_arguments(self):
+    def test_with_invalid_minimum_forecast_count(self):
         """Test an exception is raised if the minimum_forecast_count value is
         less than 1."""
 
         msg = "The minimum_forecast_count must be at least 1"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin(minimum_forecast_count=0)
+
+    def test_with_invalid_minimum_bin_fraction(self):
+        """Test an exception is raised if the minimum_bin_fraction value is
+        not between 0 and 1 inclusive."""
+
+        msg = ("The minimum_bin_fraction must be between 0 and 1. Value set "
+               f"as 1.5")
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin(minimum_bin_fraction=1.5)
 
 
 class Test__repr__(unittest.TestCase):
@@ -268,6 +277,24 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
 
         self.assertIsNone(result[0])
         self.assertIsNone(result[1])
+
+    def test_incomplete_bins_allowed(self):
+        """Test that if the forecast count is insufficient in a single bin, but
+        the minimum_bin_fraction is set to allow this, the function returns the
+        expected values."""
+
+        expected = (
+            np.array([0.0, 0.25, 0.5, 0.75, 10.0]),
+            np.array([0.0, 0.0, 0.25, 0.5, 7.5]),
+        )
+
+        self.reliability_cube.data[0, 2, -1] = 100
+
+        plugin = Plugin(minimum_bin_fraction=0.5)
+        result = plugin._calculate_reliability_probabilities(
+            self.reliability_cube[0]
+        )
+        assert_array_equal(result, expected)
 
 
 class Test__interpolate(unittest.TestCase):
