@@ -110,7 +110,8 @@ def test_basic():
 def test_data(data_con_dyn_out, units):
     """Test that the data are calculated as expected for a selection of values on both
     grids with SI and non-SI units including either side of the minimum precipitation
-    rate tolerance 1e-9 m s-1"""
+    rate tolerance 1e-9 m s-1. For each parametrized test, ONE grid point is modified
+    (point: [0, 0])."""
     grid = input_cubes()
     for i in range(2):
         grid[i].data[0, 0] = data_con_dyn_out[i]
