@@ -33,7 +33,7 @@
 import iris
 import numpy as np
 import pytest
-from iris.cube import Cube, CubeList
+from iris.cube import CubeList
 from numpy.testing import assert_allclose, assert_equal, assert_raises_regex
 
 from improver.convection import ConvectionRatioFromComponents
