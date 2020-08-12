@@ -694,12 +694,6 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             iris.Constraint(table_row_name="sum_of_forecast_probabilities")
         ).data
 
-        # In some bins have insufficient counts, return None to avoid applying
-        # calibration.
-        valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
-        if valid_bins[0].size != forecast_count.size:
-            return None, None
-
         (
             observation_count,
             forecast_probability_sum,
@@ -714,6 +708,12 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         observation_frequency = self._assume_constant_observation_frequency(
             observation_frequency
         )
+
+        # In some bins have insufficient counts, return None to avoid applying
+        # calibration.
+        valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
+        if valid_bins[0].size != forecast_count.size:
+            return None, None
 
         return forecast_probability, observation_frequency
 
