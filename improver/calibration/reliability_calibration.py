@@ -643,7 +643,8 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 break
         return observation_count, forecast_probability_sum, forecast_count
 
-    def _assume_constant_observation_frequency(self, observation_frequency):
+    @staticmethod
+    def _assume_constant_observation_frequency(observation_frequency):
         """
         Iterate through the observation frequency from the lowest probability
         bin to the highest probability bin. Compare each pair of bins and, if

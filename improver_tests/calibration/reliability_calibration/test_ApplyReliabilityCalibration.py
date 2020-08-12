@@ -280,13 +280,15 @@ class Test__combine_bin_pair_for_observation_frequency_monotonicity(unittest.Tes
 class Test__assume_constant_observation_frequency(unittest.TestCase):
     """Test the _assume_constant_observation_frequency method"""
 
-    def test_monotonic(self):
+    @staticmethod
+    def test_monotonic():
         """Test no change to observation frequency, if already monotonic."""
         observation_frequency = np.array([0, 0.25, 0.5, 0.75, 1], dtype=np.float32)
         result = Plugin()._assume_constant_observation_frequency(observation_frequency)
         assert_array_equal(result, observation_frequency)
 
-    def test_non_monotonic(self):
+    @staticmethod
+    def test_non_monotonic():
         """Test enforcement of monotonicity for observation frequency."""
         observation_frequency = np.array([0, 0.25, 0.5, 1, 0.75], dtype=np.float32)
         expected = np.array([0, 0.25, 0.5, 1, 1], dtype=np.float32)
