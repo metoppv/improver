@@ -47,6 +47,9 @@ f7ab20f8ae2f8593ab39f354484a01b122905f5e10a8e4aab516262f6a5a4664  ./blend-adjace
 724144337188a94850aece9becb5a38a4b4f4baef8ad74b44a5a206972519903  ./blend-adjacent-points/time_bounds/20180914T0700Z-PT0004H00M-wind_gust_at_10m_max-PT01H.nc
 2720a5c7bee8542b409ef0c905892daec47d9cfb210b9713e56ad55065b3951b  ./blend-adjacent-points/time_bounds/20180914T0800Z-PT0005H00M-wind_gust_at_10m_max-PT01H.nc
 5b3b15c00cc1203a56cd48f18970323ed26b3b55ef3bf82075148c8a86b2655a  ./blend-adjacent-points/time_bounds/kgo.nc
+44c5013aa2712a578d87b687cfe90388c91b18370badc624c8a85099c3ed8989  ./blend-cycles-and-realizations/basic/0900Z_precip_rate.nc
+9a7011137198b5cd8c0b222942ebc3673ab3764829e6979585fccaae67880a89  ./blend-cycles-and-realizations/basic/1000Z_precip_rate.nc
+1e058c5f72573a4008ea12e8ede033ddf142b11aef0e28307f85ede6ff8dc6d5  ./blend-cycles-and-realizations/basic/kgo.nc
 d5e0180cc33eb4f4b0c86ab5c5ac77fce77eff14734122530395724c1f7b6535  ./combine/accum/20180101T0100Z-PT0001H-rainfall_accumulation.nc
 3d6e33d3ac42b59c7b74e54abe3d7455d57f07f387472f070a0ba493330028b8  ./combine/accum/20180101T0200Z-PT0002H-rainfall_accumulation.nc
 0c848cfbd577f22f9b1cc5f9c6005790d04a720ff32d2ae81e01caa082b3dfb8  ./combine/accum/20180101T0300Z-PT0003H-rainfall_accumulation.nc
@@ -78,6 +81,7 @@ d15752239edb3fb26904b600f1705ea97ac8c637090033f16ddeb86052eed5b4  ./construct-re
 c96b835c7c5888ca42ce94e0b0ba85a98ffdeb5baf1f12b794f1155ee024bd76  ./convection-ratio/basic/convective_precipitation_rate.nc
 534a0b49e6ede4c913c730045f3b17fca59b4093278d3c84014f730893e1a71b  ./convection-ratio/basic/dynamic_precipitation_rate.nc
 925f1451fe824890160fa172946ef4ad4b924fb4e98e4d847205978af6c9876b  ./convection-ratio/basic/kgo.nc
+925f1451fe824890160fa172946ef4ad4b924fb4e98e4d847205978af6c9876b  ./convection-ratio/basic/test.nc
 5e403ecf836c3f36abd10414821bda43159db968ce4a850e435040ac92692ae2  ./create-grid-with-halo/basic/kgo.nc
 6d020470d2e67897744dfe6d7ba4e1ad6c0872535d3096599a627b2d216f2428  ./create-grid-with-halo/basic/source_grid.nc
 6980a3d925413b3608a60da7f95fa636b377661c8027fff739e5ac05a9fa4315  ./create-grid-with-halo/halo_size/kgo.nc
