@@ -605,7 +605,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         array[lower] = np.sum(array[lower : upper + 1])
         return np.delete(array, upper)
 
-    def _combine_bin_pair_for_observation_frequency_monotonicity(
+    def _combine_bin_pair(
         self, observation_count, forecast_probability_sum, forecast_count
     ):
         """
@@ -698,7 +698,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             observation_count,
             forecast_probability_sum,
             forecast_count,
-        ) = self._combine_bin_pair_for_observation_frequency_monotonicity(
+        ) = self._combine_bin_pair(
             observation_count, forecast_probability_sum, forecast_count
         )
 

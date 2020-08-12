@@ -230,7 +230,7 @@ class Test__ensure_monotonicity_across_thresholds(Test_ReliabilityCalibrate):
             self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
 
 
-class Test__combine_bin_pair_for_observation_frequency_monotonicity(unittest.TestCase):
+class Test__combine_bin_pair(unittest.TestCase):
 
     """Test the _combine_bin_pair_for_observation_frequency_monotonicity method"""
 
@@ -241,7 +241,7 @@ class Test__combine_bin_pair_for_observation_frequency_monotonicity(unittest.Tes
             [0, 250, 500, 750, 1000], dtype=np.float32
         )
 
-        self.expected_non_monotonic = np.array(
+        self.expected_enforced_monotonic = np.array(
             [
                 [0, 250, 500, 1750],  # Observation count
                 [0, 250, 500, 1750],  # Sum of forecast probability
@@ -252,7 +252,7 @@ class Test__combine_bin_pair_for_observation_frequency_monotonicity(unittest.Tes
     def test_monotonic(self):
         """Test no bin pairs are combined, if all bin pairs are monotonic."""
         obs_count = np.array([0, 250, 500, 750, 1000], dtype=np.float32)
-        result = Plugin()._combine_bin_pair_for_observation_frequency_monotonicity(
+        result = Plugin()._combine_bin_pair(
             obs_count, self.forecast_probability_sum, self.forecast_count
         )
         assert_array_equal(
@@ -262,19 +262,21 @@ class Test__combine_bin_pair_for_observation_frequency_monotonicity(unittest.Tes
     def test_one_non_monotonic_bin_pair(self):
         """Test one bin pair is combined, if one bin pair is non-monotonic."""
         obs_count = np.array([0, 250, 500, 1000, 750], dtype=np.float32)
-        result = Plugin()._combine_bin_pair_for_observation_frequency_monotonicity(
+        result = Plugin()._combine_bin_pair(
             obs_count, self.forecast_probability_sum, self.forecast_count
         )
-        assert_array_equal(result, self.expected_non_monotonic)
+        assert_array_equal(result, self.expected_enforced_monotonic)
 
     def test_two_non_monotonic_bin_pairs(self):
-        """Test one bin pair is combined, if two bin pairs are non-monotonic."""
+        """Test one bin pair is combined, if two bin pairs are non-monotonic.
+        As only a single bin pair is combined, the resulting observation
+        count will still yield a non-monotonic observation frequency."""
         obs_count = np.array([0, 750, 500, 1000, 750], dtype=np.float32)
-        self.expected_non_monotonic[0][1] = 750  # Amend observation count
-        result = Plugin()._combine_bin_pair_for_observation_frequency_monotonicity(
+        self.expected_enforced_monotonic[0][1] = 750  # Amend observation count
+        result = Plugin()._combine_bin_pair(
             obs_count, self.forecast_probability_sum, self.forecast_count
         )
-        assert_array_equal(result, self.expected_non_monotonic)
+        assert_array_equal(result, self.expected_enforced_monotonic)
 
 
 class Test__assume_constant_observation_frequency(unittest.TestCase):
