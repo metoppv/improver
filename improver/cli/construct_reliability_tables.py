@@ -40,8 +40,8 @@ def process(
     *cubes: cli.inputcube,
     truth_attribute,
     n_probability_bins: int = 5,
-    single_value_lower_limit: bool = True,
-    single_value_upper_limit: bool = True,
+    single_value_lower_limit: bool = False,
+    single_value_upper_limit: bool = False,
 ):
     """Populate reliability tables for use in reliability calibration.
 

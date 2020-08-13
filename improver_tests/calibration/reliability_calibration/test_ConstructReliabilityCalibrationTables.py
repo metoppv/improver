@@ -189,9 +189,9 @@ class Test__define_probability_bins(unittest.TestCase):
 
     @staticmethod
     def test_with_both_single_value_limits():
-        """Test the generation of probability bins with both single value end
-        bins. The range 0 to 1 will be divided into 2 equally sized bins,
-        with 2 end bins holding values approximately equal to 0 and 1."""
+        """Test the generation of probability bins with both upper and lower
+        single value end bins. The range 0 to 1 will be divided into 2 equally
+        sized bins, with 2 end bins holding values approximately equal to 0 and 1."""
         expected = np.array(
             [
                 [0.0000000e00, 1.0000000e-06],
@@ -272,15 +272,34 @@ class Test__create_probability_bins_coord(unittest.TestCase):
 
     """Test the _create_probability_bins_coord method."""
 
-    def test_coordinate(self):
+    def test_coordinate_no_single_value_bins(self):
         """Test the probability_bins coordinate has the expected values and
-        type."""
+        type with no single value lower and upper bins."""
         expected_bounds = np.array([[0, 0.5], [0.5, 1]])
         expected_points = np.mean(expected_bounds, axis=1)
+        plugin = Plugin(n_probability_bins=2,)
+        result = plugin._create_probability_bins_coord()
+
+        self.assertIsInstance(result, iris.coords.DimCoord)
+        assert_allclose(result.points, expected_points)
+        assert_allclose(result.bounds, expected_bounds)
+
+    def test_coordinate_single_value_bins(self):
+        """Test the probability_bins coordinate has the expected values and
+        type when using the single value lower and upper bins."""
+        expected_bounds = np.array(
+            [
+                [0.0000000e00, 1.0000000e-06],
+                [1.0000001e-06, 4.9999997e-01],
+                [5.0000000e-01, 9.9999893e-01],
+                [9.9999899e-01, 1.0000000e00],
+            ]
+        )
+        expected_points = np.mean(expected_bounds, axis=1)
         plugin = Plugin(
-            n_probability_bins=2,
-            single_value_lower_limit=False,
-            single_value_upper_limit=False,
+            n_probability_bins=4,
+            single_value_lower_limit=True,
+            single_value_upper_limit=True,
         )
         result = plugin._create_probability_bins_coord()
 
@@ -361,9 +380,9 @@ class Test__populate_reliability_bins(Test_Setup):
 
         forecast_slice = next(self.forecast_1.slices_over("air_temperature"))
         truth_slice = next(self.truth_1.slices_over("air_temperature"))
-        result = Plugin()._populate_reliability_bins(
-            forecast_slice.data, truth_slice.data
-        )
+        result = Plugin(
+            single_value_lower_limit=True, single_value_upper_limit=True
+        )._populate_reliability_bins(forecast_slice.data, truth_slice.data)
 
         self.assertSequenceEqual(result.shape, self.expected_table_shape)
         assert_array_equal(result, self.expected_table)
@@ -391,7 +410,9 @@ class Test_process(Test_Setup):
         from two forecast/truth pairs."""
 
         expected = np.sum([self.expected_table, self.expected_table], axis=0)
-        result = Plugin().process(self.forecasts, self.truths)
+        result = Plugin(
+            single_value_lower_limit=True, single_value_upper_limit=True
+        ).process(self.forecasts, self.truths)
 
         assert_array_equal(result[0].data, expected)
 

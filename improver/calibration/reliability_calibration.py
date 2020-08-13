@@ -54,8 +54,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
     def __init__(
         self,
         n_probability_bins=5,
-        single_value_lower_limit=True,
-        single_value_upper_limit=True,
+        single_value_lower_limit=False,
+        single_value_upper_limit=False,
     ):
         """
         Initialise class for creating reliability calibration tables. These
