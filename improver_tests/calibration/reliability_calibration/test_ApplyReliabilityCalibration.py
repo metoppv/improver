@@ -283,11 +283,11 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
         expected values."""
 
         expected = (
-            np.array([0.0, 0.25, 0.5, 0.75, 10.0]),
-            np.array([0.0, 0.0, 0.25, 0.5, 7.5]),
+            np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
+            np.array([0.0, 0.0, 0.25, 0.5, 1.0]),
         )
 
-        self.reliability_cube.data[0, 2, -1] = 100
+        self.reliability_cube.data[0, :, -1] = 100
 
         plugin = Plugin(minimum_bin_fraction=0.5)
         result = plugin._calculate_reliability_probabilities(self.reliability_cube[0])
