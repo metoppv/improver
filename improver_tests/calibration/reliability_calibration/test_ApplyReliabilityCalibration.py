@@ -232,7 +232,7 @@ class Test__ensure_monotonicity_across_thresholds(Test_ReliabilityCalibrate):
 
 class Test__combine_bin_pair(unittest.TestCase):
 
-    """Test the _combine_bin_pair_for_observation_frequency_monotonicity method"""
+    """Test the _combine_bin_pair."""
 
     def setUp(self):
         """Set up forecast count"""
