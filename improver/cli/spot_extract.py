@@ -87,7 +87,8 @@ def process(
             data corresponding to those percentiles will be returned. For
             example "25, 50, 75" will result in the 25th, 50th and 75th
             percentiles being returned from a cube of probabilities,
-            percentiles or realizations. Deterministic input data will raise
+            percentiles or realizations. If a realization coord is found, it will be
+            collapsed using equal-weights. Deterministic input data will raise
             a warning message.
             Note that for percentiles inputs, the desired percentile(s) must
             exist in the input cube.
@@ -139,6 +140,7 @@ def process(
     import numpy as np
     from iris.exceptions import CoordinateNotFoundError
 
+    from improver.blending.calculate_weights_and_blend import WeightAndBlend
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         ConvertProbabilitiesToPercentiles,
     )
@@ -165,6 +167,10 @@ def process(
         try:
             perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:
+            if "realization" in cube.dim_coords:
+                cube = WeightAndBlend("realization", "linear", y0val=0.5, ynval=0.5,)(
+                    cube
+                )
             if "probability_of_" in result.name():
                 result = ConvertProbabilitiesToPercentiles(
                     ecc_bounds_warning=ignore_ecc_bounds
