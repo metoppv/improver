@@ -49,6 +49,23 @@ def multi_cloud_fixture():
     cube = set_up_variable_cube(cloud_data, name="cloud_data", spatial_grid="equalarea")
     return cube
 
+@pytest.fixture(name="no_cloud_cube")
+def no_cloud_fixture():
+    """Multi-realization data with no cloud present in the field"""
+    
+    cloud_data = np.zeros((3, 10, 10), dtype=np.float32)
+    cube = set_up_variable_cube(cloud_data, name="cloud_data", spatial_grid="equalarea")
+    return cube
+
+@pytest.fixture(name="all_cloud_cube")
+def all_cloud_fixture():
+    """Multi-realization data with all cloud present in the field"""
+
+    cloud_data = np.zeros((3, 10, 10), dtype=np.float32)
+    cloud_data[:, :, :] = 1.0
+    cube = set_up_variable_cube(cloud_data, name="cloud_data", spatial_grid="equalarea")
+    return cube
+
 
 def test__calculate_ratio(multi_cloud_cube):
     """Test the _calculate_ratio function with one realization of the input cube"""
@@ -69,6 +86,15 @@ def test_process(multi_cloud_cube):
     clumpiness_result = plugin.process(multi_cloud_cube)
     np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
 
+def test_process_error(multi_cloud_cube):
+    """Test the _calculate_clumpiness function with multi realization input cube"""
+
+    expected_data = np.where(multi_cloud_cube.data[0] == 0.0, 2.0, 0.0)
+
+    plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
+    clumpiness_result = plugin.process(multi_cloud_cube)
+    assert(clumpiness_result, 'Incorrect input. Cube should hold binary data only')
+
 
 def test__calculate_transitions(multi_cloud_cube):
     """Test the _calculate_transitions function with single realization input cube"""
@@ -84,5 +110,23 @@ def test__calculate_transitions(multi_cloud_cube):
     plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
     transition_result = plugin._calculate_transitions(multi_cloud_cube[0].data)
     np.testing.assert_almost_equal(
-        transition_result.data, expected_cube.data, decimal=4
-    )
+        transition_result.data, expected_cube.data, decimal=4)
+    
+def test_process_no_cloud(no_cloud_cube):
+    """Test the FieldTexture plugin with multi realization input cube that has no cloud present"""
+
+    expected_data = np.where(no_cloud_cube.data[0] == 0.0, 1.0, 0.0) 
+    
+    plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
+    clumpiness_result = plugin.process(no_cloud_cube)
+    np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
+
+def test_process_all_cloud(all_cloud_cube):
+    """Test the FieldTexture plugin with multi realization input cube that has no cloud present"""
+
+    expected_data = np.where(all_cloud_cube.data[0] == 1.0, 0.0, 0.0)
+
+    plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
+    clumpiness_result = plugin.process(all_cloud_cube)
+    np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
+

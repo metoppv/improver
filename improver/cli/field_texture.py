@@ -58,8 +58,8 @@ def process(
 
     """
 
-    from improver.utilities.field_texture import process
+    from improver.utilities.field_texture import FieldTexture
 
-    field_texture = process()(cube, nbhood_radius, ratio_threshold)
+    field_texture = FieldTexture()(cube, nbhood_radius, ratio_threshold)
 
     return field_texture

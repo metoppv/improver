@@ -186,6 +186,11 @@ class FieldTexture(BasePlugin):
                 A cube containing the mean of the thresholded ratios in cube
                 format.
         """
+
+        for cell in cube.data[:, :]:
+            if ((cell != 0) & (cell != 1)).any():
+                raise ValueError("Incorrect input. Cube should hold binary data only")
+
         ratios = iris.cube.CubeList()
 
         try:
