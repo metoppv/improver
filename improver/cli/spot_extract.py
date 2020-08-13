@@ -48,6 +48,7 @@ def process(
     ignore_ecc_bounds=False,
     new_title: str = None,
     suppress_warnings=False,
+    realization_collapse=False,
 ):
     """Module to run spot data extraction.
 
@@ -103,6 +104,8 @@ def process(
         suppress_warnings (bool):
             Suppress warning output. This option should only be used if it
             is known that warnings will be generated but they are not required.
+        realization_collapse (bool):
+            Triggers equal-weighting blending of the realization coord if required.
 
     Returns:
         iris.cube.Cube:
@@ -151,6 +154,8 @@ def process(
     from improver.spotdata.spot_extraction import SpotExtraction
     from improver.utilities.cube_extraction import extract_subcube
 
+    if realization_collapse:
+        cube = WeightAndBlend("realization", "linear", y0val=0.5, ynval=0.5,)(cube)
     neighbour_selection_method = NeighbourSelection(
         land_constraint=land_constraint, minimum_dz=similar_altitude
     ).neighbour_finding_method_name()
@@ -167,10 +172,6 @@ def process(
         try:
             perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:
-            if "realization" in cube.dim_coords:
-                cube = WeightAndBlend("realization", "linear", y0val=0.5, ynval=0.5,)(
-                    cube
-                )
             if "probability_of_" in result.name():
                 result = ConvertProbabilitiesToPercentiles(
                     ecc_bounds_warning=ignore_ecc_bounds
