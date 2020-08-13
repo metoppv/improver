@@ -238,6 +238,143 @@ class Test__ensure_monotonicity(Test_ReliabilityCalibrate):
             self.plugin._ensure_monotonicity(self.forecast)
 
 
+class Test__combine_undersampled_bins(unittest.TestCase):
+
+    """Test the _combine_undersampled_bins method."""
+
+    def test_no_undersampled_bins(self):
+        """Test no bins are combined when no bins are under-sampled."""
+        obs_count = np.array([0, 250, 500, 750, 1000], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 250, 500, 750, 1000], dtype=np.float32)
+        forecast_count = np.array([1000, 1000, 1000, 1000, 1000], dtype=np.float32)
+
+        result = Plugin()._combine_undersampled_bins(
+            obs_count, forecast_probability_sum, forecast_count
+        )
+
+        assert_array_equal(
+            result, [obs_count, forecast_probability_sum, forecast_count]
+        )
+
+    def test_one_undersampled_bin_at_top(self):
+        """Test when the highest probability bin is under-sampled."""
+        obs_count = np.array([0, 250, 500, 750, 100], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 250, 500, 750, 100], dtype=np.float32)
+        forecast_count = np.array([1000, 1000, 1000, 1000, 100], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 250, 500, 850],  # Observation count
+                [0, 250, 500, 850],  # Sum of forecast probability
+                [1000, 1000, 1000, 1100],  # Forecast count
+            ]
+        )
+        result = Plugin()._combine_undersampled_bins(
+            obs_count, forecast_probability_sum, forecast_count
+        )
+
+        assert_array_equal(result, expected)
+
+    def test_one_undersampled_bin_at_bottom(self):
+        """Test when the lowest probability bin is under-sampled."""
+        obs_count = np.array([0, 250, 500, 750, 1000], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 250, 500, 750, 1000], dtype=np.float32)
+        forecast_count = np.array([100, 1000, 1000, 1000, 1000], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [250, 500, 750, 1000],  # Observation count
+                [250, 500, 750, 1000],  # Sum of forecast probability
+                [1100, 1000, 1000, 1000],  # Forecast count
+            ]
+        )
+        result = Plugin()._combine_undersampled_bins(
+            obs_count, forecast_probability_sum, forecast_count
+        )
+
+        assert_array_equal(result, expected)
+
+    def test_one_undersampled_bin_lower_neighbour(self):
+        """Test for one under-sampled bin that is combined with its lower
+        neighbour."""
+        obs_count = np.array([0, 250, 50, 1500, 1000], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 250, 50, 1500, 1000], dtype=np.float32)
+        forecast_count = np.array([1000, 1000, 100, 2000, 1000], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 300, 1500, 1000],  # Observation count
+                [0, 300, 1500, 1000],  # Sum of forecast probability
+                [1000, 1100, 2000, 1000],  # Forecast count
+            ]
+        )
+        result = Plugin()._combine_undersampled_bins(
+            obs_count, forecast_probability_sum, forecast_count
+        )
+
+        assert_array_equal(result, expected)
+
+    def test_one_undersampled_bin_upper_neighbour(self):
+        """Test for one under-sampled bin that is combined with its upper
+        neighbour."""
+        obs_count = np.array([0, 500, 50, 750, 1000], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 500, 50, 750, 1000], dtype=np.float32)
+        forecast_count = np.array([1000, 2000, 100, 1000, 1000], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 500, 800, 1000],  # Observation count
+                [0, 500, 800, 1000],  # Sum of forecast probability
+                [1000, 2000, 1100, 1000],  # Forecast count
+            ]
+        )
+        result = Plugin()._combine_undersampled_bins(
+            obs_count, forecast_probability_sum, forecast_count
+        )
+
+        assert_array_equal(result, expected)
+
+    def test_two_undersampled_bins(self):
+        """Test when two bins are under-sampled."""
+        obs_count = np.array([0, 12, 250, 75, 250], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 12, 250, 75, 250], dtype=np.float32)
+        forecast_count = np.array([1000, 50, 500, 100, 250], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 262, 325],  # Observation count
+                [0, 262, 325],  # Sum of forecast probability
+                [1000, 550, 350],  # Forecast count
+            ]
+        )
+        result = Plugin()._combine_undersampled_bins(
+            obs_count, forecast_probability_sum, forecast_count
+        )
+
+        assert_array_equal(result, expected)
+
+    def test_two_equal_undersampled_bins(self):
+        """Test when two bins are under-sampled and the under-sampled bins have
+        an equal forecast count."""
+        obs_count = np.array([0, 25, 250, 75, 250], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 25, 250, 75, 250], dtype=np.float32)
+        forecast_count = np.array([1000, 100, 500, 100, 250], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 275, 325],  # Observation count
+                [0, 275, 325],  # Sum of forecast probability
+                [1000, 600, 350],  # Forecast count
+            ]
+        )
+
+        result = Plugin()._combine_undersampled_bins(
+            obs_count, forecast_probability_sum, forecast_count
+        )
+
+        assert_array_equal(result, expected)
+
+
 class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
 
     """Test the _calculate_reliability_probabilities method."""
@@ -263,6 +400,28 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
 
         assert_array_equal(threshold_0, expected_0)
         assert_array_equal(threshold_1, expected_1)
+
+    def test_combine_undersampled_bins(self):
+        """Test expected values are returned when an under-sampled bin is
+        combined with its neighbour."""
+
+        expected = (
+            np.array([0.0, 0.25, 0.72727, 1.0]),  # forecast probability
+            np.array([0.0, 0.25, 0.72727, 1.0]),  # observation frequency
+        )
+
+        reliability_cube = self.reliability_cube[0].copy()
+        reliability_cube.data = np.array(
+            [
+                [0.0, 250.0, 50.0, 750.0, 1000.0],  # Observation count
+                [0.0, 250.0, 50.0, 750.0, 1000.0],  # Sum of forecast probability
+                [1000.0, 1000.0, 100.0, 1000.0, 1000.0],  # Forecast count
+            ]
+        )
+
+        threshold = self.plugin._calculate_reliability_probabilities(reliability_cube)
+
+        assert_allclose(threshold, expected, rtol=1e-5)
 
     def test_insufficient_forecast_count(self):
         """Test that if the forecast count is insufficient the function returns

@@ -620,6 +620,78 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             warnings.warn(msg)
             cube.data = np.sort(cube.data, axis=threshold_dim)
 
+    @staticmethod
+    def _sum_pairs(array, lower, upper):
+        """
+        Replace a pair of values in an array with their sum.
+        Args:
+            array (numpy.ndarray):
+                Array to be modified.
+            lower (int):
+                Lower index of pair.
+            upper (int):
+                Upper index of pair.
+        Returns:
+            numpy.ndarray:
+                Array where a pair of values has been replaced by their sum.
+        """
+        array[lower] = np.sum([array[lower], array[upper]])
+        return np.delete(array, upper)
+
+    def _combine_undersampled_bins(
+        self, observation_count, forecast_probability_sum, forecast_count
+    ):
+        """
+        Combine bins that are under-sampled i.e. that have a lower forecast
+        count than the minimum_forecast_count, so that information from these
+        poorly-sampled bins can contribute to the calibration. If multiple
+        bins are below the minimum forecast count, the bin closest to
+        meeting the minimum_forecast_count criterion is combined with whichever
+        neighbour has the lowest sample count. A new bin is then created by
+        summing the neighbouring pair of bins. This process is repeated for all
+        bins that are below the minimum forecast count criterion.
+
+        Args:
+            observation_count (numpy.ndarray):
+                Observation count extracted from reliability table.
+            forecast_probability_sum (numpy.ndarray):
+                Forecast probability sum extracted from reliability table.
+            forecast_count (numpy.ndarray):
+                Forecast count extracted from reliability table.
+        Returns:
+            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+                Tuple containing the updated observation count,
+                forecast probability sum and forecast count.
+
+        """
+        while any(x < self.minimum_forecast_count for x in forecast_count):
+            forecast_count_copy = forecast_count.copy()
+            forecast_count_copy[forecast_count >= self.minimum_forecast_count] = np.nan
+
+            # Note for multiple occurrences of the maximum,
+            # the index of the first occurrence is returned.
+            index = np.int32(np.nanargmax(forecast_count_copy))
+
+            if index == 0:
+                # Must use higher bin
+                neighbour = index + 1
+            elif index + 1 == len(forecast_count):
+                # Must use lower bin
+                neighbour = index - 1
+            else:
+                if forecast_count[index + 1] > forecast_count[index - 1]:
+                    neighbour = index - 1
+                else:
+                    neighbour = index + 1
+
+            forecast_count = self._sum_pairs(forecast_count, index, neighbour)
+            observation_count = self._sum_pairs(observation_count, index, neighbour)
+            forecast_probability_sum = self._sum_pairs(
+                forecast_probability_sum, index, neighbour
+            )
+
+        return observation_count, forecast_probability_sum, forecast_count
+
     def _calculate_reliability_probabilities(self, reliability_table):
         """
         Calculates forecast probabilities and observation frequencies from the
@@ -649,6 +721,16 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         forecast_probability_sum = reliability_table.extract(
             iris.Constraint(table_row_name="sum_of_forecast_probabilities")
         ).data
+
+        valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
+        if valid_bins[0].size < len(reliability_table.coord("probability_bin").points):
+            (
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+            ) = self._combine_undersampled_bins(
+                observation_count, forecast_probability_sum, forecast_count
+            )
 
         # If the fraction of bins with forecast counts exceeding minimum_forecast_count
         # if less than minimum_bin_fraction, return None to avoid applying calibration
