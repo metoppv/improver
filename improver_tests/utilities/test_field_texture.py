@@ -49,6 +49,21 @@ def multi_cloud_fixture():
     cube = set_up_variable_cube(cloud_data, name="cloud_data", spatial_grid="equalarea")
     return cube
 
+@pytest.fixture(name="no_cloud_cube")
+def no_cloud_fixture():
+    """Multi-realization data with no cloud present in the field"""
+    
+    cloud_data = np.zeros((3, 10, 10), dtype=np.float32)
+    cube = set_up_variable_cube(cloud_data, name="cloud_data", spatial_grid="equalarea")
+    return cube
+
+@pytest.fixture(name="all_cloud_cube")
+def all_cloud_fixture():
+    """Multi-realization data with all cloud present in the field"""
+
+    cloud_data = np.ones((3, 10, 10), dtype=np.float32)
+    cube = set_up_variable_cube(cloud_data, name="cloud_data", spatial_grid="equalarea")
+    return cube
 
 def test__calculate_ratio(multi_cloud_cube):
     """Test the _calculate_ratio function with one realization of the input cube"""
