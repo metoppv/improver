@@ -177,7 +177,9 @@ def generate_advection_velocities_from_winds(
     cube_list = ApplyOrographicEnhancement("subtract")(
         [advected_cube, cubes[1]], orographic_enhancement
     )
-    perturbations = OpticalFlow()(*cube_list)
+    perturbations = OpticalFlow(data_smoothing_radius_km=8.0, iterations=20)(
+        *cube_list, boxsize=18
+    )
 
     # sum perturbations and original flow field to get advection velocities
     total_advection = _perturb_background_flow(background_flow, perturbations)
@@ -255,7 +257,9 @@ class OpticalFlow(BasePlugin):
         Met Office Document.
     """
 
-    def __init__(self, data_smoothing_method="box", iterations=100):
+    def __init__(
+        self, data_smoothing_method="box", data_smoothing_radius_km=14.0, iterations=100
+    ):
         """
         Initialise the class with smoothing parameters for estimating gridded
         u- and v- velocities via optical flow.
@@ -265,9 +269,15 @@ class OpticalFlow(BasePlugin):
                 Smoothing method to be used on input fields before estimating
                 partial derivatives.  Can be square 'box' (as used in STEPS) or
                 circular 'kernel' (used in post-calculation smoothing).
+            data_smoothing_radius (float):
+                The radius, in km, of the kernel used to smooth the input data fields
+                before calculating optical flow.  14 km is suitable for precipitation
+                rate data separated by a 15 minute time step.  If the time step is
+                greater than 15 minutes, this radius is increased by the "process"
+                method.
             iterations (int):
                 Number of iterations to perform in post-calculation smoothing.
-                The value for good convergence is 20 (Bowler et al. 2004).
+                The minimum value for good convergence is 20 (Bowler et al. 2004).
 
         Raises:
             ValueError:
@@ -279,10 +289,7 @@ class OpticalFlow(BasePlugin):
                 "iterations".format(iterations)
             )
 
-        # Set parameters for input data smoothing.  14 km is suitable for input
-        # fields separated by a 15 minute time step - this is updated if
-        # necessary by the "process" function.
-        self.data_smoothing_radius_km = 14.0
+        self.data_smoothing_radius_km = data_smoothing_radius_km
         self.data_smoothing_method = data_smoothing_method
 
         # Set parameters for velocity calculation and "smart smoothing"
