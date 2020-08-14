@@ -61,8 +61,7 @@ def no_cloud_fixture():
 def all_cloud_fixture():
     """Multi-realization data with all cloud present in the field"""
 
-    cloud_data = np.zeros((3, 10, 10), dtype=np.float32)
-    cloud_data[:, :, :] = 1.0
+    cloud_data = np.ones((3, 10, 10), dtype=np.float32)
     cube = set_up_variable_cube(cloud_data, name="cloud_data", spatial_grid="equalarea")
     return cube
 
