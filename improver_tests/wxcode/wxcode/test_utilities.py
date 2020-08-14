@@ -519,6 +519,7 @@ class Test_interrogate_decision_tree(IrisTest):
             (
                 "probability_of_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"
                 "probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+                "probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.1, 1.0\n"
                 "probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.1, 1.0\n"
                 "probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
                 "probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"

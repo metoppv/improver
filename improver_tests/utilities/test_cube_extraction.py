@@ -87,9 +87,9 @@ def set_up_precip_probability_cube():
         variable_name="precipitation_rate",
         threshold_units="m s-1",
         spatial_grid="equalarea",
+        grid_spacing=1,
+        domain_corner=(0, 0),
     )
-    cube.coord(axis="x").points = np.arange(3, dtype=np.float32)
-    cube.coord(axis="y").points = np.arange(3, dtype=np.float32)
 
     return cube
 

@@ -28,32 +28,56 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the construct-reliability-tables CLI."""
+"""Tests for the generate-timezone-mask-ancillary CLI."""
 
 import pytest
 
 from . import acceptance as acc
 
+pytest.importorskip("timezonefinder")
+pytest.importorskip("numba")
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
+GRIDS = ["uk", "global"]
+TIMES = ["20200615T1200Z", "20201215T1200Z"]
 
-def test_no_single_value_bins(tmp_path):
-    """
-    Test construction of reliability tables without the single value lower and
-    upper bins at 0 and 1.
-    """
-    kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
-    kgo_path = kgo_dir / "kgo_without_single_value_bins.nc"
-    history_path = kgo_dir / "forecast*.nc"
-    truth_path = kgo_dir / "truth*.nc"
+
+@pytest.mark.parametrize("time", TIMES)
+@pytest.mark.parametrize("grid", GRIDS)
+def test_ignoring_dst(tmp_path, time, grid):
+    """Test masks generated ignoring daylight savings time. The time of year
+    should have no impact on the result, which is demonstrated here by use of a
+    common kgo for both summer and winter. The kgo is checked excluding the
+    validity time as this is necessarily different between summer and winter,
+    whilst everything else remains unchanged."""
+
+    kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
+    kgo_path = kgo_dir / "ignore_dst_kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, "--time", f"{time}", "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, exclude_vars=["time"])
+
+
+@pytest.mark.parametrize("time", TIMES)
+@pytest.mark.parametrize("grid", GRIDS)
+def test_with_dst(tmp_path, time, grid):
+    """Test masks generated including daylight savings time. In this case the
+    time of year chosen will give different results."""
+
+    kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
+    kgo_path = kgo_dir / f"{time}_with_dst_kgo.nc"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        history_path,
-        truth_path,
-        "--truth-attribute",
-        "mosg__model_configuration=uk_det",
+        input_path,
+        "--time",
+        f"{time}",
+        "--include-dst",
         "--output",
         output_path,
     ]
@@ -61,23 +85,21 @@ def test_no_single_value_bins(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_single_value_bins(tmp_path):
-    """
-    Test construction of reliability tables with the single value lower and
-    upper bins at 0 and 1.
-    """
-    kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
-    kgo_path = kgo_dir / "kgo_single_value_bins.nc"
-    history_path = kgo_dir / "forecast*.nc"
-    truth_path = kgo_dir / "truth*.nc"
+@pytest.mark.parametrize("grid", GRIDS)
+def test_grouping(tmp_path, grid):
+    """Test masks generated with grouping produce the expected output."""
+
+    kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
+    kgo_path = kgo_dir / "grouped_kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    groups = kgo_dir / "group_config.json"
     output_path = tmp_path / "output.nc"
     args = [
-        history_path,
-        truth_path,
-        "--truth-attribute",
-        "mosg__model_configuration=uk_det",
-        "--single-value-lower-limit",
-        "--single-value-upper-limit",
+        input_path,
+        "--time",
+        "20200615T1200Z",
+        "--groupings",
+        groups,
         "--output",
         output_path,
     ]
