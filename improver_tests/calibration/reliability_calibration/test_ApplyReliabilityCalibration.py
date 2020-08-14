@@ -79,7 +79,8 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
                 [0, 0, 250, 500, 750],  # Observation count
                 [0, 250, 500, 750, 1000],  # Sum of forecast probability
                 [1000, 1000, 1000, 1000, 1000],
-            ], dtype=np.float32
+            ],
+            dtype=np.float32,
         )  # Forecast count
         # Under forecasting exceeding 280K.
         relability_data_1 = np.array(
@@ -87,7 +88,8 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
                 [250, 500, 750, 1000, 1000],  # Observation count
                 [0, 250, 500, 750, 1000],  # Sum of forecast probability
                 [1000, 1000, 1000, 1000, 1000],
-            ], dtype=np.float32
+            ],
+            dtype=np.float32,
         )  # Forecast count
 
         r0 = reliability_cube_format.copy(data=relability_data_0)
@@ -245,7 +247,9 @@ class Test__combine_undersampled_bins(unittest.TestCase):
     def setUp(self):
         """Set up monotonic bins as default and plugin for testing."""
         self.obs_count = np.array([0, 250, 500, 750, 1000], dtype=np.float32)
-        self.forecast_probability_sum = np.array([0, 250, 500, 750, 1000], dtype=np.float32)
+        self.forecast_probability_sum = np.array(
+            [0, 250, 500, 750, 1000], dtype=np.float32
+        )
         self.plugin = Plugin()
 
     def test_no_undersampled_bins(self):
@@ -413,7 +417,8 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
                 [0, 250, 50, 750, 1000],  # Observation count
                 [0, 250, 50, 750, 1000],  # Sum of forecast probability
                 [1000, 1000, 100, 1000, 1000],  # Forecast count
-            ], dtype=np.float32
+            ],
+            dtype=np.float32,
         )
 
         result = self.plugin._calculate_reliability_probabilities(reliability_cube)
