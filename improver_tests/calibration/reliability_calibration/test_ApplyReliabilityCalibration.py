@@ -386,7 +386,8 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
     """Test the _calculate_reliability_probabilities method."""
 
     def test_values(self):
-        """Test expected values are returned."""
+        """Test expected values are returned when all bins contain a sample
+        count above the minimum sample count."""
 
         expected_0 = (
             np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
@@ -396,11 +397,11 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
             np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
             np.array([0.25, 0.5, 0.75, 1.0, 1.0]),
         )
-
-        threshold_0 = self.plugin._calculate_reliability_probabilities(
+        plugin = Plugin(minimum_bin_fraction=1.0)
+        threshold_0 = plugin._calculate_reliability_probabilities(
             self.reliability_cube[0]
         )
-        threshold_1 = self.plugin._calculate_reliability_probabilities(
+        threshold_1 = plugin._calculate_reliability_probabilities(
             self.reliability_cube[1]
         )
 
@@ -408,8 +409,14 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
         assert_array_equal(threshold_1, expected_1)
 
     def test_combine_undersampled_bins(self):
-        """Test expected values are returned when an under-sampled bin is
-        combined with its neighbour."""
+        """Test expected values are returned when the forecast count is below
+        the minimum sample count for one bin. This under-sampled bin is
+        combined with its neighbour. The minimum_bin_fraction is set to
+        allow for 80% of the initial bins to have a sufficient sample count."""
+        expected = (
+            np.array([0.0, 0.25, 0.72727, 1.0]),  # forecast probability
+            np.array([0.0, 0.25, 0.72727, 1.0]),  # observation frequency
+        )
 
         reliability_cube = self.reliability_cube[0].copy()
         reliability_cube.data = np.array(
@@ -417,31 +424,13 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
                 [0, 250, 50, 750, 1000],  # Observation count
                 [0, 250, 50, 750, 1000],  # Sum of forecast probability
                 [1000, 1000, 100, 1000, 1000],  # Forecast count
-            ],
-            dtype=np.float32,
+            ], dtype=np.float32
         )
 
-        result = self.plugin._calculate_reliability_probabilities(reliability_cube)
+        plugin = Plugin(minimum_bin_fraction=0.8)
+        result = plugin._calculate_reliability_probabilities(reliability_cube)
 
-        self.assertIsNone(result[0])
-
-        # expected = (
-        #     np.array([0.0, 0.25, 0.72727, 1.0]),  # forecast probability
-        #     np.array([0.0, 0.25, 0.72727, 1.0]),  # observation frequency
-        # )
-        #
-        # reliability_cube = self.reliability_cube[0].copy()
-        # reliability_cube.data = np.array(
-        #     [
-        #         [0, 250, 50, 750, 1000],  # Observation count
-        #         [0, 250, 50, 750, 1000],  # Sum of forecast probability
-        #         [1000, 1000, 100, 1000, 1000],  # Forecast count
-        #     ], dtype=np.float32
-        # )
-        #
-        # result = self.plugin._calculate_reliability_probabilities(reliability_cube)
-        #
-        # assert_allclose(result, expected, rtol=1e-5)
+        assert_allclose(result, expected, rtol=1e-5)
 
     def test_insufficient_forecast_count(self):
         """Test that if the forecast count is insufficient the function returns
@@ -455,22 +444,6 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
 
         self.assertIsNone(result[0])
         self.assertIsNone(result[1])
-
-    def test_incomplete_bins_allowed(self):
-        """Test that if the forecast count is insufficient in a single bin, but
-        the minimum_bin_fraction is set to allow this, the function returns the
-        expected values."""
-
-        expected = (
-            np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
-            np.array([0.0, 0.0, 0.25, 0.5, 1.0]),
-        )
-
-        self.reliability_cube.data[0, :, -1] = 100
-
-        plugin = Plugin(minimum_bin_fraction=0.5)
-        result = plugin._calculate_reliability_probabilities(self.reliability_cube[0])
-        assert_array_equal(result, expected)
 
 
 class Test__interpolate(unittest.TestCase):
