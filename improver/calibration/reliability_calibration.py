@@ -736,7 +736,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         # if less than minimum_bin_fraction, return None to avoid applying calibration
         # to that probability threshold.
         valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
-        if valid_bins[0].size < forecast_count.size * self.minimum_bin_fraction:
+        if valid_bins[0].size < len(reliability_table.coord("probability_bin").points) * self.minimum_bin_fraction:
             return None, None
 
         forecast_probability = np.array(forecast_probability_sum / forecast_count)
