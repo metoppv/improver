@@ -81,7 +81,10 @@ def build_coefficients_cubelist(template, coeff_values, predictor="mean"):
         aux_coords_and_dims.append((template.coord(coord).copy(), None))
 
     for coord in [template.coord(axis="x"), template.coord(axis="y")]:
-        bounds = [min(coord.points), max(coord.points)]
+        coord_diffs = np.diff(coord.points)
+        min_bound = min(coord.points) - (coord_diffs[0] / 2)
+        max_bound = max(coord.points) + (coord_diffs[-1] / 2)
+        bounds = [min_bound, max_bound]
         point = np.median(bounds)
         new_coord = coord.copy(points=[point], bounds=[bounds])
         aux_coords_and_dims.append((new_coord, None))

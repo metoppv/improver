@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the construct-reliability-tables CLI."""
+"""Tests for the convection-ratio CLI"""
 
 import pytest
 
@@ -38,48 +38,28 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
+ALL_PARAMS = [
+    "convective_precipitation_rate",
+    "dynamic_precipitation_rate",
+]
 
-def test_no_single_value_bins(tmp_path):
-    """
-    Test construction of reliability tables without the single value lower and
-    upper bins at 0 and 1.
-    """
-    kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
-    kgo_path = kgo_dir / "kgo_without_single_value_bins.nc"
-    history_path = kgo_dir / "forecast*.nc"
-    truth_path = kgo_dir / "truth*.nc"
+
+def test_basic(tmp_path):
+    """Test basic convection-ratio processing"""
+    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
+    kgo_path = kgo_dir / "kgo.nc"
+    param_paths = [kgo_dir / f"{p}.nc" for p in ALL_PARAMS]
     output_path = tmp_path / "output.nc"
-    args = [
-        history_path,
-        truth_path,
-        "--truth-attribute",
-        "mosg__model_configuration=uk_det",
-        "--output",
-        output_path,
-    ]
+    args = [*param_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-def test_single_value_bins(tmp_path):
-    """
-    Test construction of reliability tables with the single value lower and
-    upper bins at 0 and 1.
-    """
-    kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
-    kgo_path = kgo_dir / "kgo_single_value_bins.nc"
-    history_path = kgo_dir / "forecast*.nc"
-    truth_path = kgo_dir / "truth*.nc"
+def test_too_many_files(tmp_path):
+    """Test convection-ratio rejects more than two files"""
+    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
+    param_paths = [kgo_dir / f"{p}.nc" for p in ALL_PARAMS + ["kgo.nc"]]
     output_path = tmp_path / "output.nc"
-    args = [
-        history_path,
-        truth_path,
-        "--truth-attribute",
-        "mosg__model_configuration=uk_det",
-        "--single-value-lower-limit",
-        "--single-value-upper-limit",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    args = [*param_paths, "--output", output_path]
+    with pytest.raises(IOError):
+        run_cli(args)

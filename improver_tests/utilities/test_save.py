@@ -36,6 +36,7 @@ from tempfile import mkdtemp
 
 import iris
 import numpy as np
+import pytest
 from iris.coords import CellMethod
 from iris.tests import IrisTest
 from netCDF4 import Dataset
@@ -232,6 +233,45 @@ class Test_save_netcdf(IrisTest):
         msg = "has unknown units"
         with self.assertRaisesRegex(ValueError, msg):
             save_netcdf(no_units_cube, self.filepath)
+
+
+@pytest.fixture(name="bitshaving_cube")
+def bitshaving_cube_fixture():
+    """ Sets up a cube with a recurring decimal for bitshaving testing """
+    cube = set_up_test_cube()
+    # 1/9 fractions are recurring decimal and binary fractions
+    # good for checking number of digits remaining after bitshaving
+    cube.data = (
+        np.linspace(1.0 / 9.0, 1.0, 9, dtype=np.float32).reshape((1, 3, 3)) + 273
+    )
+    return cube
+
+
+@pytest.mark.parametrize("lsd", (0, 2, 3))
+@pytest.mark.parametrize("compress", (0, 2))
+def test_least_significant_digit(bitshaving_cube, tmp_path, lsd, compress):
+    """ Test the least significant digit for bitshaving output files"""
+    filepath = tmp_path / "temp.nc"
+    save_netcdf(
+        bitshaving_cube,
+        filepath,
+        compression_level=compress,
+        least_significant_digit=lsd,
+    )
+
+    # check that netcdf metadata has been set
+    data = Dataset(filepath, mode="r")
+    # pylint: disable=unsubscriptable-object
+    assert data.variables["air_temperature"].least_significant_digit == lsd
+
+    file_cube = load_cube(str(filepath))
+    abs_diff = np.abs(bitshaving_cube.data.data - file_cube.data.data)
+    # check that whole numbers are preserved
+    assert np.min(abs_diff) == 0.0
+    # check that modified data is accurate to the specified number of digits
+    assert 0 < np.median(abs_diff) < 10 ** (-1.0 * (lsd + 0.5))
+    assert 0 < np.mean(abs_diff) < 10 ** (-1.0 * (lsd + 0.5))
+    assert np.max(abs_diff) < 10 ** (-1.0 * lsd)
 
 
 class Test__order_cell_methods(IrisTest):

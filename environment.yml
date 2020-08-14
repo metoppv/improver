@@ -25,3 +25,4 @@ dependencies:
     - od
     - sigtools>=2.0
     - clize
+    - timezonefinder==4.2.0

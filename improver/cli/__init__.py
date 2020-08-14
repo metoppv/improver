@@ -257,14 +257,23 @@ def create_constrained_inputcubelist_converter(*constraints):
 
 
 @decorator
-def with_output(wrapped, *args, output=None, compression_level=1, **kwargs):
+def with_output(
+    wrapped,
+    *args,
+    output=None,
+    compression_level=1,
+    least_significant_digit: int = None,
+    **kwargs,
+):
     """Add `output` keyword only argument.
     Add `compression_level` option.
+    Add `least_significant_digit` option.
 
-    This is used to add extra `output` and `compression_level` CLI options. If `output`
+    This is used to add extra `output`, `compression_level` and `least_significant_digit` CLI options. If `output`
     provided, it saves the result of calling `wrapped` to file and returns None, otherwise
     it returns the result. If `compression_level` provided, it compresses the data with the
-    provided compression level (or not, if `compression_level` 0).
+    provided compression level (or not, if `compression_level` 0). If `least_significant_digit`
+    provided, it will quantize the data to a certain number of significant figures.
 
     Args:
         wrapped (obj):
@@ -274,7 +283,12 @@ def with_output(wrapped, *args, output=None, compression_level=1, **kwargs):
             printed instead.
         compression_level (int):
             Will set the compression level (1 to 9), or disable compression (0).
-
+        least_significant_digit (int):
+            If specified will truncate the data to a precision given by 10**(-least_significant_digit),
+            e.g. if least_significant_digit=2, then the data will be quantized to a precision of 0.01 (10**(-2)). See
+            http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml
+            for details. When used with `compression level`, this will result in lossy
+            compression.
     Returns:
         Result of calling `wrapped` or None if `output` is given.
     """
@@ -282,7 +296,7 @@ def with_output(wrapped, *args, output=None, compression_level=1, **kwargs):
 
     result = wrapped(*args, **kwargs)
     if output:
-        save_netcdf(result, output, compression_level)
+        save_netcdf(result, output, compression_level, least_significant_digit)
         return
     return result
 

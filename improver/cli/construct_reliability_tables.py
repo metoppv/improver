@@ -40,7 +40,8 @@ def process(
     *cubes: cli.inputcube,
     truth_attribute,
     n_probability_bins: int = 5,
-    single_value_limits: bool = True,
+    single_value_lower_limit: bool = False,
+    single_value_upper_limit: bool = False,
 ):
     """Populate reliability tables for use in reliability calibration.
 
@@ -64,10 +65,12 @@ def process(
             tables. If single value limits are turned on, these are included in
             this total. If using single_value_limits this value must be at
             least 3.
-        single_value_limits (bool):
-            Mandates that the extrema bins (0 and 1) should be single valued,
-            with a small precision tolerance of 1.0E-6, e.g. 0 to 1.0E-6 for
-            the lowest bin, and 1 - 1.0E-6 to 1 for the highest bin.
+        single_value_lower_limit (bool):
+            Mandates that the lowest bin should be single valued, with a small
+            precision tolerance, defined as 1.0E-6. The bin is thus 0 to 1.0E-6.
+        single_value_upper_limit (bool):
+            Mandates that the highest bin should be single valued, with a small
+            precision tolerance, defined as 1.0E-6. The bin is thus (1 - 1.0E-6) to 1.
 
     Returns:
         iris.cube.Cube:
@@ -82,5 +85,7 @@ def process(
     forecast, truth, _ = split_forecasts_and_truth(cubes, truth_attribute)
 
     return ConstructReliabilityCalibrationTables(
-        n_probability_bins=n_probability_bins, single_value_limits=single_value_limits
+        n_probability_bins=n_probability_bins,
+        single_value_lower_limit=single_value_lower_limit,
+        single_value_upper_limit=single_value_upper_limit,
     )(forecast, truth)

@@ -42,6 +42,7 @@ from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
+from numpy.testing import assert_almost_equal
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import (
@@ -52,8 +53,6 @@ from improver.utilities.spatial import (
     number_of_grid_cells_to_distance,
     transform_grid_to_lat_lon,
 )
-
-from ..nbhood.nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
 
 
 class Test_common_functions(IrisTest):
@@ -218,7 +217,11 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
     def setUp(self):
         """Set up the cube."""
         self.DISTANCE = 6100
-        self.cube = set_up_cube()
+        data = np.ones((1, 16, 16), dtype=np.float32)
+        data[:, 7, 7] = 0.0
+        self.cube = set_up_variable_cube(
+            data, "precipitation_amount", "kg m^-2", "equalarea",
+        )
 
     def test_basic_distance_to_grid_cells(self):
         """Test the distance in metres to grid cell conversion along the
@@ -433,23 +436,29 @@ class Test_transform_grid_to_lat_lon(IrisTest):
 
     def setUp(self):
         """Set up the cube."""
-        self.cube = set_up_cube(zero_point_indices=((0, 0, 1, 1),), num_grid_points=2)
-        self.cube.coord(axis="x").points = np.array([-1158000.0, 924000.0])
-        self.cube.coord(axis="y").points = np.array([-1036000.0, 902000.0])
+        data = np.ones((1, 2, 2), dtype=np.float32)
+        self.cube = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            "equalarea",
+            grid_spacing=2000000,
+            domain_corner=(-1000000, -1000000),
+        )
 
     def test_transform_grid(self):
         """
         Test transformation of grid
         """
         expected_lons = np.array(
-            [-17.11712928, 9.21255933, -24.5099247, 15.27976922]
+            [-15.23434831, 10.23434831, -22.21952954, 17.21952954]
         ).reshape(2, 2)
         expected_lats = np.array(
-            [44.51715281, 44.899873, 61.31885886, 61.9206868]
+            [45.10433161, 45.10433161, 62.57973333, 62.57973333]
         ).reshape(2, 2)
         plugin = transform_grid_to_lat_lon
         result_lats, result_lons = plugin(self.cube)
         self.assertIsInstance(result_lats, np.ndarray)
         self.assertIsInstance(result_lons, np.ndarray)
-        self.assertArrayAlmostEqual(result_lons, expected_lons)
-        self.assertArrayAlmostEqual(result_lats, expected_lats)
+        assert_almost_equal(result_lons, expected_lons)
+        assert_almost_equal(result_lats, expected_lats)
