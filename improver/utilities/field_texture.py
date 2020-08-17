@@ -201,6 +201,8 @@ class FieldTexture(BasePlugin):
             ratios.append(self._calculate_ratio(cslice, self.nbhood_radius))
         ratios = ratios.merge_cube()
         thresholded = BasicThreshold(self.ratio_threshold).process(ratios)
-        field_texture = iris.util.squeeze(collapsed(thresholded, "realization", iris.analysis.MEAN))
-        field_texture.remove_coord('realization')
+        field_texture = iris.util.squeeze(
+            collapsed(thresholded, "realization", iris.analysis.MEAN)
+        )
+        field_texture.remove_coord("realization")
         return field_texture
