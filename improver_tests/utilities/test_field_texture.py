@@ -35,8 +35,8 @@ import numpy as np
 import pytest
 
 from improver.synthetic_data.set_up_test_cubes import (
-    set_up_probability_cube,
     add_coordinate,
+    set_up_probability_cube,
     set_up_variable_cube,
 )
 from improver.utilities.field_texture import FieldTexture
@@ -59,20 +59,16 @@ def multi_cloud_fixture():
         thresholds=[0.8125],
         spatial_grid="equalarea",
     )
-    cube = add_coordinate(
-        cube,
-        [0, 1, 2],
-        "realization",
-        dtype=np.int32
-    )
+    cube = add_coordinate(cube, [0, 1, 2], "realization", dtype=np.int32)
     cube = iris.util.squeeze(cube)
     return cube
+
 
 @pytest.fixture(name="no_cloud_cube")
 def no_cloud_fixture():
     """Set up a multi-realization cube containing no cloud present in the field
         on an equal area grid with 2km grid spacing."""
-    
+
     cloud_area_fraction = np.zeros((1, 10, 10), dtype=np.float32)
     cube = set_up_probability_cube(
         cloud_area_fraction,
@@ -81,14 +77,10 @@ def no_cloud_fixture():
         thresholds=[0.8125],
         spatial_grid="equalarea",
     )
-    cube = add_coordinate(
-        cube,
-        [0, 1, 2],
-        "realization",
-        dtype=np.int32
-    )
+    cube = add_coordinate(cube, [0, 1, 2], "realization", dtype=np.int32)
     cube = iris.util.squeeze(cube)
     return cube
+
 
 @pytest.fixture(name="all_cloud_cube")
 def all_cloud_fixture():
@@ -118,6 +110,7 @@ def test_process(multi_cloud_cube):
     clumpiness_result = plugin.process(multi_cloud_cube)
     np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
 
+
 def test_process_error(multi_cloud_cube):
     """Test the _calculate_clumpiness function with a single realization input
        cube to raise an error."""
@@ -126,7 +119,7 @@ def test_process_error(multi_cloud_cube):
 
     plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
     clumpiness_result = plugin.process(multi_cloud_cube)
-    assert(clumpiness_result, 'Incorrect input. Cube should hold binary data only')
+    assert (clumpiness_result, "Incorrect input. Cube should hold binary data only")
 
 def test__calculate_transitions(multi_cloud_cube):
     """Test the _calculate_transitions function with a numpy array simulating
@@ -138,18 +131,19 @@ def test__calculate_transitions(multi_cloud_cube):
     )
     plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
     transition_result = plugin._calculate_transitions(multi_cloud_cube[0].data)
-    np.testing.assert_almost_equal(
-        transition_result, expected_data, decimal=4)
-    
+    np.testing.assert_almost_equal(transition_result, expected_data, decimal=4)
+
+
 def test_process_no_cloud(no_cloud_cube):
     """Test the FieldTexture plugin with multi realization input cube that has
        no cloud present in the field."""
 
-    expected_data = np.where(no_cloud_cube.data[0] == 0.0, 1.0, 0.0) 
-    
+    expected_data = np.where(no_cloud_cube.data[0] == 0.0, 1.0, 0.0)
+
     plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
     clumpiness_result = plugin.process(no_cloud_cube)
     np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
+
 
 def test_process_all_cloud(all_cloud_cube):
     """Test the FieldTexture plugin with multi realization input cube that has
@@ -161,16 +155,17 @@ def test_process_all_cloud(all_cloud_cube):
     clumpiness_result = plugin.process(all_cloud_cube)
     np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
 
+
 def test_output_metadata(multi_cloud_cube):
     """Test that the metadata of the ouput product has not been manipulated
         unexpectedly and contains all relevant information conforming to
         Improver metadata standards."""
 
-# ----------------- This test is not finished ---------------------------------
+    # ----------------- This test is not finished ---------------------------------
 
     expected_metadata = print(multi_cloud_cube)
- 
+
     plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
     clumpiness_result = plugin.process(multi_cloud_cube)
     output_metadata = print(clumpiness_result)
-    assert output_metadata == expected_metadata, msg
+    assert output_metadata == expected_metadata
