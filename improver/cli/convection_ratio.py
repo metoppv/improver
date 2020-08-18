@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2020 Met Office.
@@ -28,58 +29,41 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the construct-reliability-tables CLI."""
+"""Script to calculate the ratio of convective precipitation to total precipitation."""
 
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver import cli
 
 
-def test_no_single_value_bins(tmp_path):
+@cli.clizefy
+@cli.with_output
+def process(*cubes: cli.inputcube,):
+    """ Calculate the convection ratio from convective and dynamic precipitation rate
+    components.
+
+    Calculates the convective ratio as:
+
+        ratio = convective_rate / (convective_rate + dynamic_rate)
+
+    Then calculates the mean ratio across realizations.
+
+    Args:
+        cubes (iris.cube.CubeList):
+            Cubes of "convective_precipitation_rate" and "dynamic_precipitation_rate"
+            in units that can be converted to "m s-1"
+
+    Returns:
+        iris.cube.Cube:
+            A single cube of convection_ratio.
     """
-    Test construction of reliability tables without the single value lower and
-    upper bins at 0 and 1.
-    """
-    kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
-    kgo_path = kgo_dir / "kgo_without_single_value_bins.nc"
-    history_path = kgo_dir / "forecast*.nc"
-    truth_path = kgo_dir / "truth*.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        history_path,
-        truth_path,
-        "--truth-attribute",
-        "mosg__model_configuration=uk_det",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    from improver.blending.calculate_weights_and_blend import WeightAndBlend
+    from improver.convection import ConvectionRatioFromComponents
+    from iris.coords import CellMethod
 
-
-def test_single_value_bins(tmp_path):
-    """
-    Test construction of reliability tables with the single value lower and
-    upper bins at 0 and 1.
-    """
-    kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
-    kgo_path = kgo_dir / "kgo_single_value_bins.nc"
-    history_path = kgo_dir / "forecast*.nc"
-    truth_path = kgo_dir / "truth*.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        history_path,
-        truth_path,
-        "--truth-attribute",
-        "mosg__model_configuration=uk_det",
-        "--single-value-lower-limit",
-        "--single-value-upper-limit",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    if len(cubes) != 2:
+        raise IOError(f"Expected 2 input cubes, received {len(cubes)}")
+    convection_ratio = ConvectionRatioFromComponents()(cubes)
+    mean_convection_ratio = WeightAndBlend(
+        "realization", "linear", y0val=1.0, ynval=1.0
+    )(convection_ratio)
+    mean_convection_ratio.add_cell_method(CellMethod("mean", "realization"))
+    return mean_convection_ratio

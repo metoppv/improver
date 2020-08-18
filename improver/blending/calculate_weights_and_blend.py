@@ -206,7 +206,11 @@ class WeightAndBlend(BasePlugin):
             attributes_dict (dict or None):
                 Changes to cube attributes to be applied after blending
 
-         Warns:
+        Returns:
+            iris.cube.Cube:
+                Cube of blended data.
+
+        Warns:
             UserWarning: If blending masked data without spatial weights.
                          This has not been fully tested.
         """

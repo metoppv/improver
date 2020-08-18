@@ -51,7 +51,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
     """A plugin for creating and populating reliability calibration tables."""
 
-    def __init__(self, n_probability_bins=5, single_value_limits=True):
+    def __init__(
+        self,
+        n_probability_bins=5,
+        single_value_lower_limit=False,
+        single_value_upper_limit=False,
+    ):
         """
         Initialise class for creating reliability calibration tables. These
         tables include data columns entitled observation_count,
@@ -61,14 +66,18 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             The total number of probability bins required in the reliability
             tables. If single value limits are turned on, these are included in
             this total.
-        single_value_limits (bool):
-            Mandates that the extrema bins (0 and 1) should be single valued,
+        single_value_lower_limit (bool):
+            Mandates that the lowest bin should be single valued,
             with a small precision tolerance, defined as 1.0E-6.
-            This gives bins of 0 to 1.0E-6 and (1 - 1.0E-6) to 1.
+            The bin is thus 0 to 1.0E-6.
+        single_value_upper_limit (bool):
+            Mandates that the highest bin should be single valued,
+            with a small precision tolerance, defined as 1.0E-6.
+            The bin is thus (1 - 1.0E-6) to 1.
         """
         self.single_value_tolerance = 1.0e-6
         self.probability_bins = self._define_probability_bins(
-            n_probability_bins, single_value_limits
+            n_probability_bins, single_value_lower_limit, single_value_upper_limit
         )
         self.table_columns = np.array(
             ["observation_count", "sum_of_forecast_probabilities", "forecast_count"]
@@ -83,13 +92,15 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         result = "<ConstructReliabilityCalibrationTables: " "probability_bins: {}>"
         return result.format(bin_values)
 
-    def _define_probability_bins(self, n_probability_bins, single_value_limits):
+    def _define_probability_bins(
+        self, n_probability_bins, single_value_lower_limit, single_value_upper_limit
+    ):
         """
         Define equally sized probability bins for use in a reliability table.
         The range 0 to 1 is divided into ranges to give n_probability bins.
-        Note that if single_value_limits is True then two bins will be created
-        with values of 0 and 1, each with a width defined by
-        self.single_value_tolerance.
+        If single_value_lower_limit and / or single_value_upper_limit are True,
+        additional bins corresponding to values of 0 and / or 1 will be created,
+        each with a width defined by self.single_value_tolerance.
 
         Args:
             n_probability_bins (int):
@@ -97,11 +108,14 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                 reliability tables. This number includes the extrema bins
                 (equals 0 and equals 1) if single value limits are turned on,
                 in which case the minimum number of bins is 3.
-            single_value_limits (bool):
-                Mandates that the extrema bins (0 and 1) should be single
-                valued with a width of single_value_tolerance. This gives
-                bins of 0 to single_value_tolerance and
-                (1 - single-value_tolerance) to 1.
+            single_value_lower_limit (bool):
+                Mandates that the lowest bin should be single valued,
+                with a small precision tolerance, defined as 1.0E-6.
+                The bin is thus 0 to 1.0E-6.
+            single_value_upper_limit (bool):
+                Mandates that the highest bin should be single valued,
+                with a small precision tolerance, defined as 1.0E-6.
+                The bin is thus (1 - 1.0E-6) to 1.
         Returns:
             numpy.ndarray:
                 An array of 2-element arrays that contain the bounds of the
@@ -109,33 +123,40 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                 adjacent bin boundaries spaced at the smallest representable
                 interval.
         Raises:
-            ValueError: If trying to use single_value_limits with 2 or fewer
-                        probability bins.
+            ValueError: If trying to use both single_value_lower_limit and
+                        single_value_upper_limit with 2 or fewer probability bins.
         """
-        if single_value_limits:
+        if single_value_lower_limit and single_value_upper_limit:
             if n_probability_bins <= 2:
                 msg = (
-                    "Cannot use single_value_limits with 2 or fewer "
+                    "Cannot use both single_value_lower_limit and "
+                    "single_value_upper_limit with 2 or fewer "
                     "probability bins."
                 )
                 raise ValueError(msg)
             n_probability_bins = n_probability_bins - 2
+        elif single_value_lower_limit or single_value_upper_limit:
+            n_probability_bins = n_probability_bins - 1
 
         bin_lower = np.linspace(0, 1, n_probability_bins + 1, dtype=np.float32)
         bin_upper = np.nextafter(bin_lower, 0, dtype=np.float32)
         bin_upper[-1] = 1.0
         bins = np.stack([bin_lower[:-1], bin_upper[1:]], 1).astype(np.float32)
 
-        if single_value_limits:
+        if single_value_lower_limit:
             bins[0, 0] = np.nextafter(self.single_value_tolerance, 1, dtype=np.float32)
+            lowest_bin = np.array([0, self.single_value_tolerance], dtype=np.float32)
+            bins = np.vstack([lowest_bin, bins]).astype(np.float32)
+
+        if single_value_upper_limit:
             bins[-1, 1] = np.nextafter(
                 1.0 - self.single_value_tolerance, 0, dtype=np.float32
             )
-            lowest_bin = np.array([0, self.single_value_tolerance], dtype=np.float32)
             highest_bin = np.array(
                 [1.0 - self.single_value_tolerance, 1], dtype=np.float32
             )
-            bins = np.vstack([lowest_bin, bins, highest_bin]).astype(np.float32)
+            bins = np.vstack([bins, highest_bin]).astype(np.float32)
+
         return bins
 
     def _create_probability_bins_coord(self):
@@ -477,7 +498,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
     The method implemented here is described in Flowerdew J. 2014.
     """
 
-    def __init__(self, minimum_forecast_count=200):
+    def __init__(self, minimum_forecast_count=200, minimum_bin_fraction=0.6):
         """
         Initialise class for applying reliability calibration.
 
@@ -488,6 +509,13 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 table for a forecast threshold includes any bins with
                 insufficient counts that threshold will be returned unchanged.
                 The default value of 200 is that used in Flowerdew 2014.
+            minimum_bin_fraction (float):
+                The minimum fraction of forecast count bins associated with a
+                probability threshold that must exceed minimum_forecast_count
+                for that threshold to be calibrated.
+        Raises:
+            ValueError: If minimum_forecast_count is less than 1.
+            ValueError: If minimum_bin_fraction is not between 0 and 1.
         References:
             Flowerdew J. 2014. Calibrating ensemble reliability whilst
             preserving spatial structure. Tellus, Ser. A Dyn. Meteorol.
@@ -499,7 +527,14 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 "bins in the reliability table are not handled."
             )
 
+        if minimum_bin_fraction < 0 or minimum_bin_fraction > 1:
+            raise ValueError(
+                "The minimum_bin_fraction must be between 0 and 1. Value set "
+                f"as {minimum_bin_fraction}"
+            )
+
         self.minimum_forecast_count = minimum_forecast_count
+        self.minimum_bin_fraction = minimum_bin_fraction
         self.threshold_coord = None
 
     def __repr__(self):
@@ -712,7 +747,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         # In some bins have insufficient counts, return None to avoid applying
         # calibration.
         valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
-        if valid_bins[0].size != forecast_count.size:
+        if valid_bins[0].size < forecast_count.size * self.minimum_bin_fraction:
             return None, None
 
         return forecast_probability, observation_frequency

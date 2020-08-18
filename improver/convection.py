@@ -46,7 +46,7 @@ from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
 
 class DiagnoseConvectivePrecipitation(BasePlugin):
     """
-    Diagnose convective precipitation by using differences between
+    Diagnose the convective precipitation ratio by using differences between
     adjacent grid squares to help distinguish convective and stratiform
     precipitation. Convective precipitation features would be anticipated
     to have sharp features compared with broader (less sharp) features for
@@ -347,6 +347,100 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         attributes = generate_mandatory_attributes([cube])
         output_cube = create_new_diagnostic_cube(
             "convective_ratio", "1", cube, attributes, data=convective_ratios
+        )
+
+        return output_cube
+
+
+class ConvectionRatioFromComponents(BasePlugin):
+    """
+    Diagnose the convective precipitation ratio by using differences between
+    convective and dynamic components.
+    """
+
+    def __init__(self):
+        self.convective = None
+        self.dynamic = None
+
+    def _split_input(self, cubes):
+        """
+        Extracts convective and dynamic components from the list as objects on the class
+        and ensures units are m s-1
+        """
+        if not isinstance(cubes, iris.cube.CubeList):
+            cubes = iris.cube.CubeList(cubes)
+        self.convective = self._get_cube(cubes, "convective_precipitation_rate")
+        self.dynamic = self._get_cube(cubes, "dynamic_precipitation_rate")
+
+    @staticmethod
+    def _get_cube(cubes, name):
+        """
+        Get one cube named "name" from the list of cubes and set its units to m s-1.
+
+        Args:
+            cubes (iris.cube.CubeList):
+            name (str):
+
+        Returns:
+            iris.cube.Cube
+        """
+        try:
+            (cube,) = cubes.extract(name)
+        except ValueError:
+            raise ValueError(
+                f"Cannot find a cube named '{name}' in {[c.name() for c in cubes]}"
+            )
+        if cube.units != "m s-1":
+            cube = cube.copy()
+            try:
+                cube.convert_units("m s-1")
+            except ValueError:
+                raise ValueError(
+                    f"Input {name} cube cannot be converted to 'm s-1' from {cube.units}"
+                )
+        return cube
+
+    def _convective_ratio(self):
+        """
+        Calculates the convective ratio from the convective and dynamic precipitation
+        rate components, masking data where both are zero. The tolerance for comparing
+        with zero is 1e-9 m s-1.
+        """
+        precipitation = self.convective + self.dynamic
+        with np.errstate(divide="ignore", invalid="ignore"):
+            convective_ratios = np.ma.masked_where(
+                np.isclose(precipitation.data, 0.0, atol=1e-9),
+                self.convective.data / precipitation.data,
+            )
+        return convective_ratios
+
+    def process(self, cubes):
+        """
+        Calculate the convective ratio from the convective and dynamic components as:
+            convective_ratio = convective / (convective + dynamic)
+
+        If convective + dynamic is zero, then the resulting point is masked.
+
+        Args:
+            cubes (List[iris.cube.Cube, iris.cube.Cube]):
+                Both the convective and dynamic components as iris.cube.Cube in a list
+                with names 'convective_precipitation_rate' and
+                'dynamic_precipitation_rate'
+
+        Returns:
+            iris.cube.Cube:
+                Cube containing the convective ratio.
+        """
+
+        self._split_input(cubes)
+
+        attributes = generate_mandatory_attributes([self.convective])
+        output_cube = create_new_diagnostic_cube(
+            "convective_ratio",
+            "1",
+            self.convective,
+            attributes,
+            data=self._convective_ratio(),
         )
 
         return output_cube
