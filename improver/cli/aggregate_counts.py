@@ -39,7 +39,9 @@ import numpy as np
 from iris import Constraint
 
 from improver.utilities.load import load_cube
-from improver.utilities.temporal import datetime_to_cycletime
+from improver.utilities.temporal import (
+    datetime_to_cycletime, extract_nearest_time_point
+)
 
 
 def get_counts(obs, fcst, threshold):
@@ -56,7 +58,7 @@ def get_counts(obs, fcst, threshold):
     return hits, misses, false, no_det
 
 
-def main(obs_path, fcst_path, log_path, lead_time_minutes, thresholds_mmh):
+def main(obs_path, fcst_path, log_path, model, thresholds_mmh):
     """
     Args:
         obs_path (str):
@@ -65,26 +67,25 @@ def main(obs_path, fcst_path, log_path, lead_time_minutes, thresholds_mmh):
             Full path to forecast (nowcast or UKV) netcdf file
         log_path (str):
             Directory to write / append log file
-        lead_time_minutes (int)
+        model (str):
+            Source model identifier for output file name
         thresholds_mmh (list of float)
     """
-    # Read radar observation and forecast at appropriate lead time
-    lead_time_seconds = 60 * int(lead_time_minutes)
+    # Read inputs
     obs = load_cube(obs_path)
-    fcst = load_cube(fcst_path, Constraint(forecast_period=lead_time_seconds))
+    all_fcsts = load_cube(fcst_path)
 
-    # Check validity times
+    # Extract required forecast validity time
     obs_time = obs.coord("time").cell(0).point
-    fcst_time = fcst.coord("time").cell(0).point
-    if fcst_time != obs_time:
-        msg = 'Forecast for {} does not match observation at {}'
-        raise ValueError(msg.format(fcst_time, obs_time))
+    fcst = extract_nearest_time_point(all_fcsts, obs_time, allowed_dt_difference=0)
 
-    cycletime = datetime_to_cycletime(obs_time)
-
-    # Calculate hits, misses, false alarms and missed detections for these thresholds
+    # Convert to threshold units
     obs.convert_units('mm h-1')
     fcst.convert_units('mm h-1')
+
+    # Calculate hits, misses, false alarms and missed detections for these thresholds
+    cycletime = datetime_to_cycletime(obs_time)
+    lead_time_minutes = int(fcst.coord("forecast_period").points[0] / 60)
     lines = []
     for threshold in thresholds_mmh:
         hits, misses, false_alarms, no_det = get_counts(obs.data, fcst.data, threshold)
@@ -92,7 +93,7 @@ def main(obs_path, fcst_path, log_path, lead_time_minutes, thresholds_mmh):
         lines.append(line)
 
     # Append line to log file (one per month)
-    fname = os.path.join(log_path, f'{cycletime[:6]}_fp_{lead_time_minutes}min_counts.log')
+    fname = os.path.join(log_path, f'{cycletime[:6]}_{model}_PT{lead_time_minutes}M_counts.log')
     with open(fname, "a") as dtf:
         for line in lines:
             dtf.write(line+'\n')
@@ -100,8 +101,7 @@ def main(obs_path, fcst_path, log_path, lead_time_minutes, thresholds_mmh):
 
 if __name__ == "__main__":
     """Execute with arguments"""
-    args = sys.argv[1:4]
-    args.append(int(sys.argv[4]))
+    args = sys.argv[1:5]
     args.append([float(t) for t in sys.argv[5:]])
     main(*args)
 
