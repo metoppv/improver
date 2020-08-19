@@ -77,7 +77,12 @@ def main(obs_path, fcst_path, log_path, model, thresholds_mmh):
 
     # Extract required forecast validity time
     obs_time = obs.coord("time").cell(0).point
-    fcst = extract_nearest_time_point(all_fcsts, obs_time, allowed_dt_difference=0)
+    try:
+        fcst = extract_nearest_time_point(all_fcsts, obs_time, allowed_dt_difference=0)
+    except ValueError:
+        # we expect the UKV not to have matching 15 minute forcasts; so if a
+        # matching forecast is not available, exit without error
+        return
 
     # Convert to threshold units
     obs.convert_units('mm h-1')
@@ -93,7 +98,7 @@ def main(obs_path, fcst_path, log_path, model, thresholds_mmh):
         lines.append(line)
 
     # Append line to log file (one per month)
-    fname = os.path.join(log_path, f'{cycletime[:6]}_{model}_PT{lead_time_minutes}M_counts.log')
+    fname = os.path.join(log_path, f'{cycletime[:6]}_{model}_counts.log')
     with open(fname, "a") as dtf:
         for line in lines:
             dtf.write(line+'\n')
