@@ -45,15 +45,18 @@ from improver.utilities.temporal import datetime_to_cycletime
 def get_counts(obs, fcst, threshold):
     """Compute counts of hits, misses, false alarms and correct no detections
     at this threshold"""
-    count = np.ones_like(obs)
-    hits = np.sum(count[np.where((obs >= threshold) & (fcst >= threshold))])
-    misses = np.sum(count[np.where((obs >= threshold) & (fcst < threshold))])
-    false = np.sum(count[np.where((obs < threshold) & (fcst >= threshold))])
-    no_det = np.sum(count[np.where((obs < threshold) & (fcst < threshold))])
+    count = np.ones(obs.shape, dtype=np.int32)
+    mask = obs.mask + fcst.mask
+
+    hits = np.sum(count[np.where((obs >= threshold) & (fcst >= threshold) & (~mask))])
+    misses = np.sum(count[np.where((obs >= threshold) & (fcst < threshold) & (~mask))])
+    false = np.sum(count[np.where((obs < threshold) & (fcst >= threshold) & (~mask))])
+    no_det = np.sum(count[np.where((obs < threshold) & (fcst < threshold) & (~mask))])
+
     return hits, misses, false, no_det
 
 
-def main(obs_path, fcst_path, log_path, lead_time_minutes, threshold, threshold_unit='mm h-1'):
+def main(obs_path, fcst_path, log_path, lead_time_minutes, thresholds_mmh):
     """
     Args:
         obs_path (str):
@@ -63,9 +66,7 @@ def main(obs_path, fcst_path, log_path, lead_time_minutes, threshold, threshold_
         log_path (str):
             Directory to write / append log file
         lead_time_minutes (int)
-        threshold (float)
-        threshold_unit (str)
-
+        thresholds_mmh (list of float)
     """
     # Read radar observation and forecast at appropriate lead time
     lead_time_seconds = 60 * int(lead_time_minutes)
@@ -79,27 +80,28 @@ def main(obs_path, fcst_path, log_path, lead_time_minutes, threshold, threshold_
         msg = 'Forecast for {} does not match observation at {}'
         raise ValueError(msg.format(fcst_time, obs_time))
 
-    # For this threshold calculate hits, misses, false alarms and missed detections
-    obs.convert_units(threshold_unit)
-    fcst.convert_units(threshold_unit)
-    hits, misses, false_alarms, no_det = get_counts(obs.data, fcst.data, threshold)
-
-    # Format line
     cycletime = datetime_to_cycletime(obs_time)
-    line = f'{cycletime} {lead_time_minutes} {hits} {misses} {false_alarms} {no_det}'
+
+    # Calculate hits, misses, false alarms and missed detections for these thresholds
+    obs.convert_units('mm h-1')
+    fcst.convert_units('mm h-1')
+    lines = []
+    for threshold in thresholds_mmh:
+        hits, misses, false_alarms, no_det = get_counts(obs.data, fcst.data, threshold)
+        line = f'{cycletime} {lead_time_minutes:3} {threshold:5.3} {hits:6} {misses:6} {false_alarms:6} {no_det:6}'
+        lines.append(line)
 
     # Append line to log file (one per month)
-    fname = os.path.join(log_path, f'{cycletime[:6]}_{threshold}_counts.log')
+    fname = os.path.join(log_path, f'{cycletime[:6]}_fp_{lead_time_minutes}min_counts.log')
     with open(fname, "a") as dtf:
-        dtf.write(line+'\n')
+        for line in lines:
+            dtf.write(line+'\n')
 
 
 if __name__ == "__main__":
     """Execute with arguments"""
     args = sys.argv[1:4]
     args.append(int(sys.argv[4]))
-    args.append(float(sys.argv[5]))
-    if len(sys.argv) > 6:
-        args.append(sys.argv[6])
+    args.append([float(t) for t in sys.argv[5:]])
     main(*args)
 
