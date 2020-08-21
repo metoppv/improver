@@ -43,6 +43,11 @@ from improver.utilities.field_texture import FieldTexture
 NB_RADIUS = 10000
 TEXT_THRESH = 0.4
 DIAG_THRESH = 0.8125
+PLUGIN = FieldTexture(
+    nbhood_radius=NB_RADIUS,
+    textural_threshold=TEXT_THRESH,
+    diagnostic_threshold=DIAG_THRESH,
+)
 
 
 @pytest.fixture(name="multi_cloud_cube")
@@ -105,12 +110,7 @@ def test_full_process(multi_cloud_cube):
     cube.remove_coord("cloud_area_fraction")
     expected_data = np.where(cube.data[0] == 0.0, 1.0, 0.0)
 
-    plugin = FieldTexture(
-        nbhood_radius=NB_RADIUS,
-        textural_threshold=TEXT_THRESH,
-        diagnostic_threshold=DIAG_THRESH,
-    )
-    clumpiness_result = plugin.process(multi_cloud_cube)
+    clumpiness_result = PLUGIN.process(multi_cloud_cube)
     np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
 
 
@@ -121,13 +121,8 @@ def test__calculate_ratio(multi_cloud_cube):
     cube.remove_coord("cloud_area_fraction")
     expected_data = np.where(cube.data[0] == 0.0, 1.0, 0.3333)
 
-    plugin = FieldTexture(
-        nbhood_radius=NB_RADIUS,
-        textural_threshold=TEXT_THRESH,
-        diagnostic_threshold=DIAG_THRESH,
-    )
-    plugin.cube_name = "cloud_area_fraction"
-    ratio_result = plugin._calculate_ratio(cube[0], NB_RADIUS)
+    PLUGIN.cube_name = "cloud_area_fraction"
+    ratio_result = PLUGIN._calculate_ratio(cube[0], NB_RADIUS)
     np.testing.assert_almost_equal(ratio_result.data, expected_data, decimal=4)
 
 
@@ -143,12 +138,7 @@ def test__calculate_transitions(multi_cloud_cube):
         [[2.0, 1.0, 2.0], [1.0, 0.0, 1.0], [2.0, 1.0, 2.0]]
     )
 
-    plugin = FieldTexture(
-        nbhood_radius=NB_RADIUS,
-        textural_threshold=TEXT_THRESH,
-        diagnostic_threshold=DIAG_THRESH,
-    )
-    transition_result = plugin._calculate_transitions(cube[0].data)
+    transition_result = PLUGIN._calculate_transitions(cube[0].data)
     np.testing.assert_almost_equal(transition_result, expected_data, decimal=4)
 
 
@@ -159,12 +149,7 @@ def test_process_single_threshold(single_thresh_cloud_cube):
     single_thresh_cloud_cube = iris.util.squeeze(single_thresh_cloud_cube)
     expected_data = np.where(single_thresh_cloud_cube.data[0] == 0.0, 1.0, 0.0)
 
-    plugin = FieldTexture(
-        nbhood_radius=NB_RADIUS,
-        textural_threshold=TEXT_THRESH,
-        diagnostic_threshold=DIAG_THRESH,
-    )
-    clumpiness_result = plugin.process(single_thresh_cloud_cube)
+    clumpiness_result = PLUGIN.process(single_thresh_cloud_cube)
     np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
 
 
@@ -172,14 +157,9 @@ def test_process_error(multi_cloud_cube):
     """Test the process function with a non-binary input cube to raise an error."""
 
     non_binary_cube = np.where(multi_cloud_cube.data == 0.0, 2.1, 0.0)
-    plugin = FieldTexture(
-        nbhood_radius=NB_RADIUS,
-        textural_threshold=TEXT_THRESH,
-        diagnostic_threshold=DIAG_THRESH,
-    )
 
     with pytest.raises(Exception) as excinfo:
-        plugin.process(non_binary_cube)
+        PLUGIN.process(non_binary_cube)
     assert str(excinfo.value) == "Incorrect input. Cube should hold binary data only"
 
 
@@ -191,12 +171,7 @@ def test_process_no_cloud(no_cloud_cube):
     cube.remove_coord("cloud_area_fraction")
     expected_data = np.ones(cube[0].shape)
 
-    plugin = FieldTexture(
-        nbhood_radius=NB_RADIUS,
-        textural_threshold=TEXT_THRESH,
-        diagnostic_threshold=DIAG_THRESH,
-    )
-    clumpiness_result = plugin.process(no_cloud_cube)
+    clumpiness_result = PLUGIN.process(no_cloud_cube)
     np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
 
 
@@ -208,12 +183,7 @@ def test_process_all_cloud(all_cloud_cube):
     cube.remove_coord("cloud_area_fraction")
     expected_data = np.zeros(cube[0].shape)
 
-    plugin = FieldTexture(
-        nbhood_radius=NB_RADIUS,
-        textural_threshold=TEXT_THRESH,
-        diagnostic_threshold=DIAG_THRESH,
-    )
-    clumpiness_result = plugin.process(all_cloud_cube)
+    clumpiness_result = PLUGIN.process(all_cloud_cube)
     np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
 
 
@@ -227,13 +197,9 @@ def test_output_metadata(multi_cloud_cube):
 
     cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
     cube.remove_coord("cloud_area_fraction")
-    plugin = FieldTexture(
-        nbhood_radius=NB_RADIUS,
-        textural_threshold=TEXT_THRESH,
-        diagnostic_threshold=DIAG_THRESH,
-    )
-    plugin.cube_name = "cloud_area_fraction"
-    ratio = plugin._calculate_ratio(cube[0], NB_RADIUS)
+
+    PLUGIN.cube_name = "cloud_area_fraction"
+    ratio = PLUGIN._calculate_ratio(cube[0], NB_RADIUS)
     ratio_name = ratio.name()
     assert expected_name == ratio_name
 
@@ -241,6 +207,6 @@ def test_output_metadata(multi_cloud_cube):
 
     expected_name = "probability_of_texture_of_cloud_area_fraction_above_threshold"
 
-    process = plugin.process(multi_cloud_cube)
+    process = PLUGIN.process(multi_cloud_cube)
     process_name = process.name()
     assert expected_name == process_name
