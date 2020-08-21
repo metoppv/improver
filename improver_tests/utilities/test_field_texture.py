@@ -42,130 +42,169 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.field_texture import FieldTexture
 
 NB_RADIUS = 10000
-RATIO_THRESH = 0.4
+TEXT_THRESH = 0.4
+DIAG_THRESH = 0.8125
 
 
 @pytest.fixture(name="multi_cloud_cube")
 def multi_cloud_fixture():
-    """Set up a multi-realization cube containing cloud area fraction on an
-        equal area gride with 2km grid spacing."""
+    cloud_area_fraction = np.zeros((3, 10, 10), dtype=np.float32)
+    cloud_area_fraction[:, 1:4, 1:4] = 1.0
+    thresholds = [0.265, 0.415, 0.8125]
+    return cloud_probability_cube(cloud_area_fraction, thresholds)
 
+
+@pytest.fixture(name="single_thresh_cloud_cube")
+def single_thresh_cloud_fixture():
     cloud_area_fraction = np.zeros((1, 10, 10), dtype=np.float32)
     cloud_area_fraction[:, 1:4, 1:4] = 1.0
-    cube = set_up_probability_cube(
-        cloud_area_fraction,
-        variable_name="cloud_area_fraction",
-        threshold_units="1",
-        thresholds=[0.8125],
-        spatial_grid="equalarea",
-    )
-    cube = add_coordinate(cube, [0, 1, 2], "realization", dtype=np.int32)
-    cube = iris.util.squeeze(cube)
-    return cube
+    thresholds = [0.8125]
+    return cloud_probability_cube(cloud_area_fraction, thresholds)
 
 
 @pytest.fixture(name="no_cloud_cube")
 def no_cloud_fixture():
-    """Set up a multi-realization cube containing no cloud present in the field
-        on an equal area grid with 2km grid spacing."""
-
-    cloud_area_fraction = np.zeros((1, 10, 10), dtype=np.float32)
-    cube = set_up_probability_cube(
-        cloud_area_fraction,
-        variable_name="cloud_area_fraction",
-        threshold_units="1",
-        thresholds=[0.8125],
-        spatial_grid="equalarea",
-    )
-    cube = add_coordinate(cube, [0, 1, 2], "realization", dtype=np.int32)
-    cube = iris.util.squeeze(cube)
-    return cube
+    cloud_area_fraction = np.zeros((3, 10, 10), dtype=np.float32)
+    thresholds = [0.265, 0.415, 0.8125]
+    return cloud_probability_cube(cloud_area_fraction, thresholds)
 
 
 @pytest.fixture(name="all_cloud_cube")
 def all_cloud_fixture():
-    """Manipulate an existing multi-realization cube so the field is occupied
-       entirely by cloud."""
+    cloud_area_fraction = np.ones((3, 10, 10), dtype=np.float32)
+    thresholds = [0.265, 0.415, 0.8125]
+    return cloud_probability_cube(cloud_area_fraction, thresholds)
 
-    cloud_data = np.ones((3, 10, 10), dtype=np.float32)
-    cube = set_up_variable_cube(cloud_data, name="cloud_data", spatial_grid="equalarea")
+
+# Set up probability cubes for the pytest fixtures.
+
+
+def cloud_probability_cube(data, thresholds):
+    cube = set_up_probability_cube(
+        data,
+        variable_name="cloud_area_fraction",
+        threshold_units="1",
+        thresholds=thresholds,
+        spatial_grid="equalarea",
+    )
+    cube = add_coordinate(cube, [0, 1, 2], "realization", dtype=np.int32)
     return cube
 
-def test__calculate_ratio(multi_cloud_cube):
-    """Test the _calculate_ratio function with one realization of the input cube"""
 
-    expected_data = np.where(multi_cloud_cube.data[0] == 0.0, 1.0, 0.3333)
-
-    plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
-    ratio_result = plugin._calculate_ratio(multi_cloud_cube[0], NB_RADIUS)
-    np.testing.assert_almost_equal(ratio_result.data, expected_data, decimal=4)
+# Begin the unit tests.
 
 
-def test_process(multi_cloud_cube):
-    """Test the _calculate_clumpiness function with multi realization input cube"""
+def test_full_process(multi_cloud_cube):
+    """Test the process function with multi realization/threshold input cube."""
 
-    expected_data = np.where(multi_cloud_cube.data[0] == 0.0, 1.0, 0.0)
+    cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
+    cube.remove_coord("cloud_area_fraction")
+    expected_data = np.where(cube.data[0] == 0.0, 1.0, 0.0)
 
-    plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
+    plugin = FieldTexture(nbhood_radius=NB_RADIUS, textural_threshold=TEXT_THRESH, diagnostic_threshold=DIAG_THRESH)
     clumpiness_result = plugin.process(multi_cloud_cube)
     np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
 
 
-def test_process_error(multi_cloud_cube):
-    """Test the _calculate_clumpiness function with a single realization input
-       cube to raise an error."""
+def test__calculate_ratio(multi_cloud_cube):
+    """Test the _calculate_ratio function with single realization of the input cube."""
 
-    expected_data = np.where(multi_cloud_cube.data[0] == 0.0, 2.0, 0.0)
+    cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
+    cube.remove_coord("cloud_area_fraction")
+    expected_data = np.where(cube.data[0] == 0.0, 1.0, 0.3333)
 
-    plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
-    clumpiness_result = plugin.process(multi_cloud_cube)
-    assert (clumpiness_result, "Incorrect input. Cube should hold binary data only")
+    plugin = FieldTexture(nbhood_radius=NB_RADIUS, textural_threshold=TEXT_THRESH, diagnostic_threshold=DIAG_THRESH)
+    plugin.cube_name = "cloud_area_fraction"
+    ratio_result = plugin._calculate_ratio(cube[0], NB_RADIUS)
+    np.testing.assert_almost_equal(ratio_result.data, expected_data, decimal=4)
+
 
 def test__calculate_transitions(multi_cloud_cube):
     """Test the _calculate_transitions function with a numpy array simulating
-       the multi-realization input cube."""
+       the input cube."""
+
+    cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
+    cube.remove_coord("cloud_area_fraction")
 
     expected_data = np.zeros((10, 10), dtype=np.float32)
     expected_data[1:4, 1:4] = np.array(
         [[2.0, 1.0, 2.0], [1.0, 0.0, 1.0], [2.0, 1.0, 2.0]]
     )
-    plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
-    transition_result = plugin._calculate_transitions(multi_cloud_cube[0].data)
+
+    plugin = FieldTexture(nbhood_radius=NB_RADIUS, textural_threshold=TEXT_THRESH, diagnostic_threshold=DIAG_THRESH)
+    transition_result = plugin._calculate_transitions(cube[0].data)
     np.testing.assert_almost_equal(transition_result, expected_data, decimal=4)
+
+
+def test_process_single_threshold(single_thresh_cloud_cube):
+    """Test the process function with single threshold version of the multi
+       realization input cube."""
+
+    single_thresh_cloud_cube = iris.util.squeeze(single_thresh_cloud_cube)
+    expected_data = np.where(single_thresh_cloud_cube.data[0] == 0.0, 1.0, 0.0)
+
+    plugin = FieldTexture(nbhood_radius=NB_RADIUS, textural_threshold=TEXT_THRESH, diagnostic_threshold=DIAG_THRESH)
+    clumpiness_result = plugin.process(single_thresh_cloud_cube)
+    np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
+
+
+def test_process_error(multi_cloud_cube):
+    """Test the process function with a non-binary input cube to raise an error."""
+
+    non_binary_cube = np.where(multi_cloud_cube.data == 0.0, 2.1, 0.0)
+    plugin = FieldTexture(nbhood_radius=NB_RADIUS, textural_threshold=TEXT_THRESH, diagnostic_threshold=DIAG_THRESH)
+
+    with pytest.raises(Exception) as excinfo:
+        plugin.process(non_binary_cube)
+    assert str(excinfo.value) == 'Incorrect input. Cube should hold binary data only'
 
 
 def test_process_no_cloud(no_cloud_cube):
     """Test the FieldTexture plugin with multi realization input cube that has
        no cloud present in the field."""
 
-    expected_data = np.where(no_cloud_cube.data[0] == 0.0, 1.0, 0.0)
+    cube = no_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
+    cube.remove_coord("cloud_area_fraction")
+    expected_data = np.ones(cube[0].shape)
 
-    plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
+    plugin = FieldTexture(nbhood_radius=NB_RADIUS, textural_threshold=TEXT_THRESH, diagnostic_threshold=DIAG_THRESH)
     clumpiness_result = plugin.process(no_cloud_cube)
     np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
 
 
 def test_process_all_cloud(all_cloud_cube):
-    """Test the FieldTexture plugin with multi realization input cube that has
+    """Test the process function with multi realization input cube that has
        all cloud occupying the field."""
 
-    expected_data = np.where(all_cloud_cube.data[0] == 1.0, 0.0, 0.0)
+    cube = all_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
+    cube.remove_coord("cloud_area_fraction")
+    expected_data = np.zeros(cube[0].shape)
 
-    plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
+    plugin = FieldTexture(nbhood_radius=NB_RADIUS, textural_threshold=TEXT_THRESH, diagnostic_threshold=DIAG_THRESH)
     clumpiness_result = plugin.process(all_cloud_cube)
     np.testing.assert_almost_equal(clumpiness_result.data, expected_data, decimal=4)
 
 
 def test_output_metadata(multi_cloud_cube):
-    """Test that the metadata of the ouput product has not been manipulated
-        unexpectedly and contains all relevant information conforming to
-        Improver metadata standards."""
+    """Test that the names of the output cubes follow expected conventions
+       after each function in the plugin is called."""
 
-    # ----------------- This test is not finished ---------------------------------
+    # ----------------- After _calculate_ratios function is performed -----------------------
 
-    expected_metadata = print(multi_cloud_cube)
+    expected_name = "texture_of_cloud_area_fraction"
 
-    plugin = FieldTexture(nbhood_radius=NB_RADIUS, ratio_threshold=RATIO_THRESH)
-    clumpiness_result = plugin.process(multi_cloud_cube)
-    output_metadata = print(clumpiness_result)
-    assert output_metadata == expected_metadata
+    cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
+    cube.remove_coord("cloud_area_fraction")
+    plugin = FieldTexture(nbhood_radius=NB_RADIUS, textural_threshold=TEXT_THRESH, diagnostic_threshold=DIAG_THRESH)
+    plugin.cube_name = "cloud_area_fraction"
+    ratio = plugin._calculate_ratio(cube[0], NB_RADIUS)
+    ratio_name = ratio.name()
+    assert expected_name == ratio_name
+
+    # ----------------- After process function is performed -----------------------
+
+    expected_name = "probability_of_texture_of_cloud_area_fraction_above_threshold"
+
+    process = plugin.process(multi_cloud_cube)
+    process_name = process.name()
+    assert expected_name == process_name

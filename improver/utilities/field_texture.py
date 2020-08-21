@@ -28,7 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-""" Module containing plugin to calculate the texture in a field considering edge transitions."""
+""" Module containing plugin to calculate whether or not the input field texture
+    exceeds a given threshold."""
 
 import iris
 import numpy as np
@@ -43,17 +44,21 @@ from improver.utilities.cube_manipulation import collapsed
 
 
 class FieldTexture(BasePlugin):
-    """Plugin to calculate the texture in a binary field considering edge transitions
+    """Plugin to calculate whether or not the input field texture exceeds a
+       given threshold.
 
     1) Takes a binary field that has been thresholded and looks for the transitions/edges
        in the field that mark out a transition.
     2) The transition calculation is then fed into the neighbourhooding code
-       (_calculate_ratio) to calculate a ratio for each cell.
+       (_calculate_ratio) to calculate a ratio for each cell. This is the texture
+       of the input field.
     3) The new cube of ratios is then thresholded and the realization coordinates
-       are collapsed to generate a mean of the thresholded ratios.
+       are collapsed to generate a mean of the thresholded ratios. This gives a binary
+       indication of whether a field is rough (texture values close to 1) or smooth
+       (texture values close to zero).
     """
 
-    def __init__(self, nbhood_radius, ratio_threshold):
+    def __init__(self, nbhood_radius, textural_threshold, diagnostic_threshold):
         """
 
         Args:
@@ -66,12 +71,14 @@ class FieldTexture(BasePlugin):
 
             ratio_threshold (float):
                 A unit-less threshold value that defines the ratio value above which
-                the field is considered clumpy and below which the field is considered
-                more contiguous.
+                the field is considered rough and below which the field is considered
+                smoother.
 
         """
         self.nbhood_radius = nbhood_radius
-        self.ratio_threshold = ratio_threshold
+        self.textural_threshold = textural_threshold
+        self.diagnostic_threshold = diagnostic_threshold
+        self.cube_name = None
 
     def _calculate_ratio(self, cube, radius):
         """
@@ -91,7 +98,7 @@ class FieldTexture(BasePlugin):
             3. Calculate the ratio of actual to potential transitions.
 
         Ratios approaching 1 indicate that there are many transitions, so the field
-        is highly textured. Ratios close to 0 indicate a smoother field.
+        is highly textured (rough). Ratios close to 0 indicate a smoother field.
 
         A neighbourhood full of cells of value 1 will return ratios of 0; the
         diagnostic that has been thresholded to produce the binary field is found
@@ -111,7 +118,7 @@ class FieldTexture(BasePlugin):
             iris.cube.Cube:
                 A ratio between 0 and 1 of actual transitions over potential transitions.
         """
-        # Calculate the potential transitions within neighbourhoods
+        # Calculate the potential transitions within neighbourhoods.
         potential_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
             cube, radius=radius
         )
@@ -131,7 +138,7 @@ class FieldTexture(BasePlugin):
         )
         actual_transitions.data = np.where(cube.data > 0, actual_transitions.data, 0)
 
-        # Calulate the ratio of actual to potential transitions
+        # Calculate the ratio of actual to potential transitions.
         ratio = np.ones_like(actual_transitions.data)
         np.divide(
             actual_transitions.data,
@@ -140,9 +147,9 @@ class FieldTexture(BasePlugin):
             where=(cube.data > 0),
         )
 
-        # Create a new cube to contain the resulting ratio data
+        # Create a new cube to contain the resulting ratio data.
         ratio = create_new_diagnostic_cube(
-            "cell_edge_differences", 1, cube, MANDATORY_ATTRIBUTE_DEFAULTS, data=ratio,
+            "texture_of_{}".format(self.cube_name), 1, cube, MANDATORY_ATTRIBUTE_DEFAULTS, data=ratio,
         )
         return ratio
 
@@ -187,10 +194,19 @@ class FieldTexture(BasePlugin):
                 format.
         """
 
-        for cell in cube.data[:, :]:
-            if ((cell != 0) & (cell != 1)).any():
-                raise ValueError("Incorrect input. Cube should hold binary data only")
+        values = np.unique(cube.data)
+        non_binary = np.where((values != 0) & (values != 1), True, False)
+        if non_binary.any():
+            raise ValueError("Incorrect input. Cube should hold binary data only")
 
+        # Create new cube name for _calculate_ratio method.
+        self.cube_name = cube.coord(var_name='threshold').name()
+
+        # Extract threshold from input data to work with.
+        cube = cube.extract(iris.Constraint(
+            coord_values={self.cube_name:lambda cell: cell == self.diagnostic_threshold})
+        )
+        cube.remove_coord(self.cube_name)
         ratios = iris.cube.CubeList()
 
         try:
@@ -199,10 +215,12 @@ class FieldTexture(BasePlugin):
             cslices = [cube]
         for cslice in cslices:
             ratios.append(self._calculate_ratio(cslice, self.nbhood_radius))
+
         ratios = ratios.merge_cube()
-        thresholded = BasicThreshold(self.ratio_threshold).process(ratios)
+        thresholded = BasicThreshold(self.diagnostic_threshold).process(ratios)
         field_texture = iris.util.squeeze(
             collapsed(thresholded, "realization", iris.analysis.MEAN)
         )
         field_texture.remove_coord("realization")
+
         return field_texture
