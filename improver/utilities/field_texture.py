@@ -149,7 +149,11 @@ class FieldTexture(BasePlugin):
 
         # Create a new cube to contain the resulting ratio data.
         ratio = create_new_diagnostic_cube(
-            "texture_of_{}".format(self.cube_name), 1, cube, MANDATORY_ATTRIBUTE_DEFAULTS, data=ratio,
+            "texture_of_{}".format(self.cube_name),
+            1,
+            cube,
+            MANDATORY_ATTRIBUTE_DEFAULTS,
+            data=ratio,
         )
         return ratio
 
@@ -200,11 +204,15 @@ class FieldTexture(BasePlugin):
             raise ValueError("Incorrect input. Cube should hold binary data only")
 
         # Create new cube name for _calculate_ratio method.
-        self.cube_name = cube.coord(var_name='threshold').name()
+        self.cube_name = cube.coord(var_name="threshold").name()
 
         # Extract threshold from input data to work with.
-        cube = cube.extract(iris.Constraint(
-            coord_values={self.cube_name:lambda cell: cell == self.diagnostic_threshold})
+        cube = cube.extract(
+            iris.Constraint(
+                coord_values={
+                    self.cube_name: lambda cell: cell == self.diagnostic_threshold
+                }
+            )
         )
         cube.remove_coord(self.cube_name)
         ratios = iris.cube.CubeList()
