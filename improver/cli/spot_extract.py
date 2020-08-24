@@ -88,8 +88,7 @@ def process(
             data corresponding to those percentiles will be returned. For
             example "25, 50, 75" will result in the 25th, 50th and 75th
             percentiles being returned from a cube of probabilities,
-            percentiles or realizations. If a realization coord is found, it will be
-            collapsed using equal-weights. Deterministic input data will raise
+            percentiles or realizations. Deterministic input data will raise
             a warning message.
             Note that for percentiles inputs, the desired percentile(s) must
             exist in the input cube.
@@ -106,6 +105,7 @@ def process(
             is known that warnings will be generated but they are not required.
         realization_collapse (bool):
             Triggers equal-weighting blending of the realization coord if required.
+            Use this if a threshold coord is also present on the input cube.
 
     Returns:
         iris.cube.Cube:

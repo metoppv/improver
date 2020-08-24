@@ -41,7 +41,7 @@ from improver import cli
 def process(
     *cubes: cli.inputcube, cycletime: str = None,
 ):
-    """Runs equal-weighted blending.
+    """Runs equal-weighted blending for a specific scenario.
 
     Calculates an equal-weighted blend of input cube data across the realization and
     forecast_reference_time coordinates.
@@ -53,7 +53,7 @@ def process(
             The forecast reference time to be used after blending has been
             applied, in the format YYYYMMDDTHHMMZ. If not provided, the
             blended file takes the latest available forecast reference time
-            from the input datasets supplied.
+            from the input datasets.
 
     Returns:
         iris.cube.Cube:
@@ -63,7 +63,7 @@ def process(
     from iris.cube import CubeList
 
     plugin = WeightAndBlend("realization", "linear", y0val=0.5, ynval=0.5,)
-    cubelist = CubeList([])
+    cubelist = CubeList()
     for cube in cubes:
         cubelist.append(plugin(cube))
 
