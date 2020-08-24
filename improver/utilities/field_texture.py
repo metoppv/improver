@@ -37,6 +37,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.threshold import BasicThreshold
@@ -69,10 +70,14 @@ class FieldTexture(BasePlugin):
                 field's texture. A larger radius should be used for diagnosing larger-scale
                 textural features.
 
-            ratio_threshold (float):
+            textural_threshold (float):
                 A unit-less threshold value that defines the ratio value above which
                 the field is considered rough and below which the field is considered
                 smoother.
+
+            diagnostic_threshold (float):
+                A user defined threshold value related either to cloud or precipitation,
+                used to extract the corresponding dimensional cube (default: 1).
 
         """
         self.nbhood_radius = nbhood_radius
@@ -182,13 +187,13 @@ class FieldTexture(BasePlugin):
         cell_sum = np.where(data > 0, cell_sum, 0)
         return cell_sum
 
-    def process(self, cube):
+    def process(self, input_cube):
         """
         Calculates a field of texture to use in differentiating solid and
         more scattered features.
 
         Args:
-            cube (iris.cube.Cube):
+            input_cube (iris.cube.Cube):
                 Input data in cube format containing the field for which the
                 texture is to be assessed.
 
@@ -198,23 +203,33 @@ class FieldTexture(BasePlugin):
                 format.
         """
 
-        values = np.unique(cube.data)
+        values = np.unique(input_cube.data)
         non_binary = np.where((values != 0) & (values != 1), True, False)
         if non_binary.any():
             raise ValueError("Incorrect input. Cube should hold binary data only")
 
         # Create new cube name for _calculate_ratio method.
-        self.cube_name = cube.coord(var_name="threshold").name()
+        self.cube_name = find_threshold_coordinate(input_cube).name()
 
         # Extract threshold from input data to work with.
-        cube = cube.extract(
+        cube = input_cube.extract(
             iris.Constraint(
                 coord_values={
                     self.cube_name: lambda cell: cell == self.diagnostic_threshold
                 }
             )
         )
-        cube.remove_coord(self.cube_name)
+        try:
+            cube.remove_coord(self.cube_name)
+        except AttributeError:
+            msg = "Threshold {} is not present on coordinate with values {} {}"
+            raise ValueError(
+                msg.format(
+                    self.diagnostic_threshold,
+                    input_cube.coord(self.cube_name).points,
+                    input_cube.coord(self.cube_name).units,
+                )
+            )
         ratios = iris.cube.CubeList()
 
         try:
