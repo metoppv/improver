@@ -33,7 +33,6 @@
 import iris
 import numpy as np
 import pytest
-
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.probabilistic import find_threshold_coordinate
@@ -60,6 +59,18 @@ def multi_cloud_fixture():
     cloud_area_fraction[:, 1:4, 1:4] = 1.0
     thresholds = [0.265, 0.415, 0.8125]
     return cloud_probability_cube(cloud_area_fraction, thresholds)
+
+
+@pytest.fixture(name="thresholded_cloud_cube")
+def thresholded_cloud_fixture():
+    """Cloud data for a single realization at the relevant threshold."""
+    cloud_area_fraction = np.zeros((1, 10, 10), dtype=np.float32)
+    cloud_area_fraction[:, 1:4, 1:4] = 1.0
+    thresholds = [DIAG_THRESH]
+    multi_realization_cube = iris.util.squeeze(
+        cloud_probability_cube(cloud_area_fraction, thresholds)
+    )
+    return next(multi_realization_cube.slices_over("realization"))
 
 
 @pytest.fixture(name="no_cloud_cube")
@@ -107,18 +118,17 @@ def test_full_process(multi_cloud_cube):
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 
-def test__calculate_ratio(multi_cloud_cube):
+def test__calculate_ratio(thresholded_cloud_cube):
     """Test the _calculate_ratio function with single realization of the input cube."""
 
-    cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))[0]
-    expected_data = np.where(cube.data == 0.0, 1.0, 0.3333)
+    expected_data = np.where(thresholded_cloud_cube.data == 0.0, 1.0, 0.3333)
 
     PLUGIN.cube_name = "cloud_area_fraction"
-    result = PLUGIN._calculate_ratio(cube, NB_RADIUS)
+    result = PLUGIN._calculate_ratio(thresholded_cloud_cube, NB_RADIUS)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 
-def test__calculate_transitions(multi_cloud_cube):
+def test__calculate_transitions(thresholded_cloud_cube):
     """Test the _calculate_transitions function with a numpy array simulating
        the input cube."""
 
@@ -127,8 +137,7 @@ def test__calculate_transitions(multi_cloud_cube):
         [[2.0, 1.0, 2.0], [1.0, 0.0, 1.0], [2.0, 1.0, 2.0]]
     )
 
-    cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
-    result = PLUGIN._calculate_transitions(cube[0].data)
+    result = PLUGIN._calculate_transitions(thresholded_cloud_cube.data)
     np.testing.assert_almost_equal(result, expected_data, decimal=4)
 
 
