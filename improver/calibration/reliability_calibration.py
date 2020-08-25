@@ -488,7 +488,7 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
         return result
 
 
-class ManipulateReliabiltiyTable(PostProcessingPlugin):
+class ManipulateReliabilityTable(PostProcessingPlugin):
     """
     A plugin to manipulate the reliability tables to before they are used to
     calibrate a forecast.
@@ -500,7 +500,38 @@ class ManipulateReliabiltiyTable(PostProcessingPlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        return "<ManipulateReliabiltiyTable>"
+        return "<ManipulateReliabilityTable>"
+
+    @staticmethod
+    def _extract_reliability_table_components(reliability_table):
+        """Extract reliability table components from cube
+
+        Args:
+            reliability_table (iris.cube.Cube):
+                A reliability table to be manipulated.
+
+        Returns:
+            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, iris.coord.DimCoord]
+                Tuple containing the updated observation count,
+                forecast probability sum, forecast count and probability bin
+                coordinate.
+        """
+        observation_count = reliability_table.extract(
+            iris.Constraint(table_row_name="observation_count")
+        ).data
+        forecast_probability_sum = reliability_table.extract(
+            iris.Constraint(table_row_name="sum_of_forecast_probabilities")
+        ).data
+        forecast_count = reliability_table.extract(
+            iris.Constraint(table_row_name="forecast_count")
+        ).data
+        probability_bin_coord = reliability_table.coord("probability_bin")
+        return (
+            observation_count,
+            forecast_probability_sum,
+            forecast_count,
+            probability_bin_coord,
+        )
 
     @staticmethod
     def _sum_pairs(array, lower, upper):
@@ -522,14 +553,27 @@ class ManipulateReliabiltiyTable(PostProcessingPlugin):
         array[lower] = np.sum(array[lower : upper + 1])
         return np.delete(array, upper)
 
-    def _create_new_bin_coord(self, reliability_table, lower, upper):
+    @staticmethod
+    def _create_new_bin_coord(probability_bin_coord, lower, upper):
         """
         Create a new probability_bin coordinate by combining two adjacent
         points on the probability_bin coordinate. This matches the combination
         of the data for the two bins.
+
+        Args:
+            probability_bin_coord (iris.coord.DimCoord):
+                Original probability bin coordinate.
+            lower (int):
+                Lower index of pair.
+            upper (int):
+                Upper index of pair.
+
+        Returns:
+            iris.coord.DimCoord:
+                Probability bin coordinate with updated points and bounds where
+                a pair of bins have been combined to create a single bin.
         """
-        bin_coord = reliability_table.coord("probability_bin")
-        old_bounds = bin_coord.bounds
+        old_bounds = probability_bin_coord.bounds
         new_bounds = np.concatenate(
             (
                 old_bounds[0:lower],
@@ -543,7 +587,13 @@ class ManipulateReliabiltiyTable(PostProcessingPlugin):
         )
         return new_bin_coord
 
-    def _combine_bin_pair(self, reliability_table):
+    def _combine_bin_pair(
+        self,
+        observation_count,
+        forecast_probability_sum,
+        forecast_count,
+        probability_bin_coord,
+    ):
         """
         Combine a pair of bins when non-monotonicity of the observation
         frequency is detected. Iterate top-down from the highest forecast
@@ -551,18 +601,21 @@ class ManipulateReliabiltiyTable(PostProcessingPlugin):
         Only allow a single pair of bins to be combined.
 
         Args:
-            reliability_table (iris.cube.Cube):
-                A reliability table to be manipulated.
+            observation_count (numpy.ndarray):
+                Observation count extracted from reliability table.
+            forecast_probability_sum (numpy.ndarray):
+                Forecast probability sum extracted from reliability table.
+            forecast_count (numpy.ndarray):
+                Forecast count extracted from reliability table.
+            probability_bin_coord (iris.coord.DimCoord):
+                Original probability bin coordinate.
+
+        Returns:
+            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, iris.coord.DimCoord]
+                Tuple containing the updated observation count,
+                forecast probability sum, forecast count and probability bin
+                coordinate.
         """
-        observation_count = reliability_table.extract(
-            iris.Constraint(table_row_name="observation_count")
-        ).data
-        forecast_count = reliability_table.extract(
-            iris.Constraint(table_row_name="forecast_count")
-        ).data
-        forecast_probability_sum = reliability_table.extract(
-            iris.Constraint(table_row_name="sum_of_forecast_probabilities")
-        ).data
         observation_frequency = np.array(observation_count / forecast_count)
         for upper in np.arange(len(observation_frequency) - 1, 0, -1):
             lower = upper - 1
@@ -575,31 +628,19 @@ class ManipulateReliabiltiyTable(PostProcessingPlugin):
                 forecast_probability_sum = self._sum_pairs(
                     forecast_probability_sum, lower, upper
                 )
-                new_bin_coord = self._create_new_bin_coord(
-                    reliability_table, lower, upper
+                probability_bin_coord = self._create_new_bin_coord(
+                    probability_bin_coord, lower, upper
                 )
-                reliability_table = reliability_table[..., 0:-1]
-                reliability_table.replace_coord(new_bin_coord)
-                obs_count_cube = reliability_table.extract(
-                    iris.Constraint(table_row_name="observation_count")
-                )
-                obs_count_cube.data = observation_count
-                forecast_count_cube = reliability_table.extract(
-                    iris.Constraint(table_row_name="forecast_count")
-                )
-                forecast_count_cube.data = forecast_count
-                forecast_prob_sum_cube = reliability_table.extract(
-                    iris.Constraint(table_row_name="sum_of_forecast_probabilities")
-                )
-                forecast_prob_sum_cube.data = forecast_probability_sum
-                reliability_table = iris.cube.CubeList(
-                    [obs_count_cube, forecast_prob_sum_cube, forecast_count_cube]
-                ).merge_cube()
-                return reliability_table
-        return reliability_table
+                break
+        return (
+            observation_count,
+            forecast_probability_sum,
+            forecast_count,
+            probability_bin_coord,
+        )
 
     @staticmethod
-    def _assume_constant_observation_frequency(reliability_table):
+    def _assume_constant_observation_frequency(observation_count, forecast_count):
         """
         Iterate through the observation frequency from the lowest probability
         bin to the highest probability bin. Compare each pair of bins and, if
@@ -607,35 +648,66 @@ class ManipulateReliabiltiyTable(PostProcessingPlugin):
         value of the lower bin.
 
         Args:
-            reliability_table (iris.cube.Cube):
-                A reliability table to be manipulated.
+            observation_count (numpy.ndarray):
+                Observation count extracted from reliability table.
+            forecast_count (numpy.ndarray):
+                Forecast count extracted from reliability table.
+
+        Returns:
+            numpy.ndarray:
+                Observation count computed from a monotonic observation frequency.
 
         """
-        observation_count = reliability_table.extract(
-            iris.Constraint(table_row_name="observation_count")
-        ).data
-        forecast_count = reliability_table.extract(
-            iris.Constraint(table_row_name="forecast_count")
-        ).data
-
         observation_frequency = np.array(observation_count / forecast_count)
         for index, lower_bin in enumerate(observation_frequency[:-1]):
             (diff,) = np.diff([lower_bin, observation_frequency[index + 1]])
             if diff < 0:
                 observation_frequency[index + 1] = lower_bin
         observation_count = observation_frequency * forecast_count
+        return observation_count
+
+    @staticmethod
+    def _update_reliability_table(
+        reliability_table,
+        observation_count,
+        forecast_probability_sum,
+        forecast_count,
+        probability_bin_coord,
+    ):
+        """
+        Update the reliability table data and the probability bin coordinate.
+
+        Args:
+            reliability_table (iris.cube.Cube):
+                A reliability table to be manipulated.
+            observation_count (numpy.ndarray):
+                Observation count extracted from reliability table.
+            forecast_probability_sum (numpy.ndarray):
+                Forecast probability sum extracted from reliability table.
+            forecast_count (numpy.ndarray):
+                Forecast count extracted from reliability table.
+            probability_bin_coord (iris.coord.DimCoord):
+                Original probability bin coordinate.
+
+        Returns:
+            iris.cube.Cube
+                Updated reliability table.
+        """
+
+        reliability_table = reliability_table[..., 0:-1]
+        reliability_table.replace_coord(probability_bin_coord)
         obs_count_cube = reliability_table.extract(
             iris.Constraint(table_row_name="observation_count")
         )
-        obs_count_cube.data = observation_count.astype(np.float32)
+        obs_count_cube.data = observation_count
         forecast_count_cube = reliability_table.extract(
             iris.Constraint(table_row_name="forecast_count")
         )
-        forecast_count_cube.data = forecast_count_cube.data.astype(np.float32)
+        forecast_count_cube.data = forecast_count
         forecast_prob_sum_cube = reliability_table.extract(
             iris.Constraint(table_row_name="sum_of_forecast_probabilities")
         )
-        forecast_prob_sum_cube.data = forecast_prob_sum_cube.data.astype(np.float32)
+        forecast_prob_sum_cube.data = forecast_probability_sum
         reliability_table = iris.cube.CubeList(
             [obs_count_cube, forecast_prob_sum_cube, forecast_count_cube]
         ).merge_cube()
@@ -649,12 +721,42 @@ class ManipulateReliabiltiyTable(PostProcessingPlugin):
         Args:
             reliability_table (iris.cube.Cube):
                 A reliability table to be manipulated.
+
+        Returns:
+            iris.cube.CubeList
+                Reliability tables with the monotonicity of the observation
+                frequency enforced.
         """
         threshold_coord = find_threshold_coordinate(reliability_table)
         reliability_table_cubelist = iris.cube.CubeList([])
         for rel_table_slice in reliability_table.slices_over(threshold_coord):
-            rel_table_slice = self._combine_bin_pair(rel_table_slice)
-            self._assume_constant_observation_frequency(rel_table_slice)
+            (
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+                probability_bin_coord,
+            ) = self._extract_reliability_table_components(rel_table_slice)
+            (
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+                probability_bin_coord,
+            ) = self._combine_bin_pair(
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+                probability_bin_coord,
+            )
+            observation_count = self._assume_constant_observation_frequency(
+                observation_count, forecast_count
+            )
+            rel_table_slice = self._update_reliability_table(
+                rel_table_slice,
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+                probability_bin_coord,
+            )
             reliability_table_cubelist.append(rel_table_slice)
 
         return reliability_table_cubelist

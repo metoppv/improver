@@ -37,13 +37,12 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.calibration.reliability_calibration import (
-    ManipulateReliabiltiyTable as Plugin,
+    ManipulateReliabilityTable as Plugin,
 )
 from improver.calibration.reliability_calibration import (
     ConstructReliabilityCalibrationTables as CalPlugin,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_setup(unittest.TestCase):
@@ -68,14 +67,16 @@ class Test_setup(unittest.TestCase):
             iris.analysis.SUM,
         )
         # Over forecasting exceeding 275K.
-        reliability_data_0 = np.array(
-            [
-                [0, 0, 250, 500, 750],  # Observation count
-                [0, 250, 500, 750, 1000],  # Sum of forecast probability
-                [1000, 1000, 1000, 1000, 1000],  # Forecast count
-            ]
+        self.obs_count = np.array([0, 0, 250, 500, 750], dtype=np.float32)
+        self.forecast_probability_sum = np.array(
+            [0, 250, 500, 750, 1000], dtype=np.float32
         )
-        self.reliability_table = reliability_cube_format.copy(data=reliability_data_0)
+        self.forecast_count = np.array([1000, 1000, 1000, 1000, 1000], dtype=np.float32)
+        reliability_data = np.stack(
+            [self.obs_count, self.forecast_probability_sum, self.forecast_count]
+        )
+        self.reliability_table = reliability_cube_format.copy(data=reliability_data)
+        self.probability_bin_coord = self.reliability_table.coord("probability_bin")
         self.expected_enforced_monotonic = np.array(
             [
                 [0, 250, 500, 1750],  # Observation count
@@ -92,7 +93,7 @@ class Test__repr__(unittest.TestCase):
     def test_basic(self):
         """A simple tests for the __repr__ method."""
         result = str(Plugin())
-        msg = "<ManipulateReliabiltiyTable>"
+        msg = "<ManipulateReliabilityTable>"
         self.assertEqual(result, msg)
 
 
@@ -103,17 +104,27 @@ class Test__combine_bin_pair(Test_setup):
     def test_monotonic(self):
         """Test no bin pairs are combined, if all bin pairs are monotonic."""
         obs_count = np.array([0, 250, 500, 750, 1000], dtype=np.float32)
-        result = Plugin()._combine_bin_pair(self.reliability_table)
-        expected_result = self.reliability_table.copy()
-        assert_array_equal(result.data, expected_result.data)
-        self.assertEqual(result.coords(), expected_result.coords())
+        result = Plugin()._combine_bin_pair(
+            obs_count,
+            self.forecast_probability_sum,
+            self.forecast_count,
+            self.probability_bin_coord,
+        )
+        assert_array_equal(
+            result[:3], [obs_count, self.forecast_probability_sum, self.forecast_count],
+        )
+        self.assertEqual(result[3], self.probability_bin_coord)
 
     def test_one_non_monotonic_bin_pair(self):
         """Test one bin pair is combined, if one bin pair is non-monotonic."""
         obs_count = np.array([0, 250, 500, 1000, 750], dtype=np.float32)
-        self.reliability_table.data[0] = obs_count
-        result = Plugin()._combine_bin_pair(self.reliability_table)
-        assert_array_equal(result.data, self.expected_enforced_monotonic)
+        result = Plugin()._combine_bin_pair(
+            obs_count,
+            self.forecast_probability_sum,
+            self.forecast_count,
+            self.probability_bin_coord,
+        )
+        assert_array_equal(result[:3], self.expected_enforced_monotonic)
         expected_bin_coord_points = np.array(
             [0.09999999, 0.29999998, 0.5, 0.8], dtype=np.float32
         )
@@ -121,22 +132,22 @@ class Test__combine_bin_pair(Test_setup):
             [[0.0, 0.19999999], [0.2, 0.39999998], [0.4, 0.59999996], [0.6, 1.0]],
             dtype=np.float32,
         )
-        assert_allclose(
-            expected_bin_coord_bounds, result.coord("probability_bin").bounds
-        )
-        assert_allclose(
-            expected_bin_coord_points, result.coord("probability_bin").points
-        )
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+        assert_allclose(expected_bin_coord_points, result[3].points)
 
     def test_two_non_monotonic_bin_pairs(self):
         """Test one bin pair is combined, if two bin pairs are non-monotonic.
         As only a single bin pair is combined, the resulting observation
         count will still yield a non-monotonic observation frequency."""
         obs_count = np.array([0, 750, 500, 1000, 750], dtype=np.float32)
-        self.reliability_table.data[0] = obs_count
         self.expected_enforced_monotonic[0][1] = 750  # Amend observation count
-        result = Plugin()._combine_bin_pair(self.reliability_table)
-        assert_array_equal(result.data, self.expected_enforced_monotonic)
+        result = Plugin()._combine_bin_pair(
+            obs_count,
+            self.forecast_probability_sum,
+            self.forecast_count,
+            self.probability_bin_coord,
+        )
+        assert_array_equal(result[:3], self.expected_enforced_monotonic)
         expected_bin_coord_points = np.array(
             [0.09999999, 0.29999998, 0.5, 0.8], dtype=np.float32
         )
@@ -144,12 +155,8 @@ class Test__combine_bin_pair(Test_setup):
             [[0.0, 0.19999999], [0.2, 0.39999998], [0.4, 0.59999996], [0.6, 1.0]],
             dtype=np.float32,
         )
-        assert_allclose(
-            expected_bin_coord_bounds, result.coord("probability_bin").bounds
-        )
-        assert_allclose(
-            expected_bin_coord_points, result.coord("probability_bin").points
-        )
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+        assert_allclose(expected_bin_coord_points, result[3].points)
 
 
 class Test__assume_constant_observation_frequency(Test_setup):
@@ -157,17 +164,18 @@ class Test__assume_constant_observation_frequency(Test_setup):
 
     def test_monotonic(self):
         """Test no change to observation frequency, if already monotonic."""
-        expected_data = self.reliability_table.copy().data
-        result = Plugin()._assume_constant_observation_frequency(self.reliability_table)
-        assert_array_equal(result.data, expected_data)
+        result = Plugin()._assume_constant_observation_frequency(
+            self.obs_count, self.forecast_count
+        )
+        assert_array_equal(result.data, self.obs_count)
 
     def test_non_monotonic(self):
         """Test enforcement of monotonicity for observation frequency."""
         obs_count = np.array([0, 750, 500, 1000, 750], dtype=np.float32)
-        self.reliability_table.data[0] = obs_count
-        expected_result = self.reliability_table.data.copy()
-        expected_result[0] = np.array([0, 750, 750, 1000, 1000], dtype=np.float32)
-        result = Plugin()._assume_constant_observation_frequency(self.reliability_table)
+        expected_result = np.array([0, 750, 750, 1000, 1000], dtype=np.float32)
+        result = Plugin()._assume_constant_observation_frequency(
+            obs_count, self.forecast_count
+        )
         assert_array_equal(result.data, expected_result)
 
 
