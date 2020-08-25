@@ -33,6 +33,7 @@
 import iris
 import numpy as np
 import pytest
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.synthetic_data.set_up_test_cubes import (
@@ -60,13 +61,16 @@ def multi_cloud_fixture():
     return cloud_probability_cube(cloud_area_fraction, thresholds)
 
 
-@pytest.fixture(name="single_thresh_cloud_cube")
-def single_thresh_cloud_fixture():
-    """Multi-realization, single threshold cloud data cube."""
+@pytest.fixture(name="thresholded_cloud_cube")
+def thresholded_cloud_fixture():
+    """Cloud data for a single realization at the relevant threshold."""
     cloud_area_fraction = np.zeros((1, 10, 10), dtype=np.float32)
     cloud_area_fraction[:, 1:4, 1:4] = 1.0
-    thresholds = [0.8125]
-    return cloud_probability_cube(cloud_area_fraction, thresholds)
+    thresholds = [DIAG_THRESH]
+    multi_realization_cube = iris.util.squeeze(
+        cloud_probability_cube(cloud_area_fraction, thresholds)
+    )
+    return next(multi_realization_cube.slices_over("realization"))
 
 
 @pytest.fixture(name="no_cloud_cube")
@@ -107,47 +111,41 @@ def cloud_probability_cube(cloud_area_fraction, thresholds):
 def test_full_process(multi_cloud_cube):
     """Test the process function with multi realization/threshold input cube."""
 
-    cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
-    cube.remove_coord("cloud_area_fraction")
-    expected_data = np.where(cube.data[0] == 0.0, 1.0, 0.0)
+    cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))[0]
+    expected_data = np.where(cube.data == 0.0, 1.0, 0.0)
 
     result = PLUGIN.process(multi_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 
-def test__calculate_ratio(multi_cloud_cube):
+def test__calculate_ratio(thresholded_cloud_cube):
     """Test the _calculate_ratio function with single realization of the input cube."""
 
-    cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
-    cube.remove_coord("cloud_area_fraction")
-    expected_data = np.where(cube.data[0] == 0.0, 1.0, 0.3333)
+    expected_data = np.where(thresholded_cloud_cube.data == 0.0, 1.0, 0.3333)
 
     PLUGIN.cube_name = "cloud_area_fraction"
-    result = PLUGIN._calculate_ratio(cube[0], NB_RADIUS)
+    result = PLUGIN._calculate_ratio(thresholded_cloud_cube, NB_RADIUS)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 
-def test__calculate_transitions(multi_cloud_cube):
+def test__calculate_transitions(thresholded_cloud_cube):
     """Test the _calculate_transitions function with a numpy array simulating
        the input cube."""
-
-    cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
-    cube.remove_coord("cloud_area_fraction")
 
     expected_data = np.zeros((10, 10), dtype=np.float32)
     expected_data[1:4, 1:4] = np.array(
         [[2.0, 1.0, 2.0], [1.0, 0.0, 1.0], [2.0, 1.0, 2.0]]
     )
 
-    result = PLUGIN._calculate_transitions(cube[0].data)
+    result = PLUGIN._calculate_transitions(thresholded_cloud_cube.data)
     np.testing.assert_almost_equal(result, expected_data, decimal=4)
 
 
-def test_process_single_threshold(single_thresh_cloud_cube):
+def test_process_single_threshold(multi_cloud_cube):
     """Test the process function with single threshold version of the multi
        realization input cube."""
 
-    single_thresh_cloud_cube = iris.util.squeeze(single_thresh_cloud_cube)
+    single_thresh_cloud_cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
     expected_data = np.where(single_thresh_cloud_cube.data[0] == 0.0, 1.0, 0.0)
 
     result = PLUGIN.process(single_thresh_cloud_cube)
@@ -169,9 +167,7 @@ def test_process_no_cloud(no_cloud_cube):
     """Test the FieldTexture plugin with multi realization input cube that has
        no cloud present in the field."""
 
-    cube = no_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
-    cube.remove_coord("cloud_area_fraction")
-    expected_data = np.ones(cube[0].shape)
+    expected_data = np.ones(no_cloud_cube[0][0].shape)
 
     result = PLUGIN.process(no_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
@@ -181,9 +177,7 @@ def test_process_all_cloud(all_cloud_cube):
     """Test the process function with multi realization input cube that has
        all cloud occupying the field."""
 
-    cube = all_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
-    cube.remove_coord("cloud_area_fraction")
-    expected_data = np.zeros(cube[0].shape)
+    expected_data = np.zeros(all_cloud_cube[0][0].shape)
 
     result = PLUGIN.process(all_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
@@ -193,13 +187,8 @@ def test_no_threshold_cube(multi_cloud_cube):
     """Test the process function with multi_cloud_cube that has no thresholds"""
 
     multi_cloud_cube.remove_coord("cloud_area_fraction")
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(CoordinateNotFoundError, match="No threshold coord found.*"):
         PLUGIN.process(multi_cloud_cube)
-
-    assert (
-        str(excinfo.value)
-        == "'No threshold coord found on probability_of_cloud_area_fraction_above_threshold data'"
-    )
 
 
 def test_wrong_threshold(multi_cloud_cube):
@@ -212,13 +201,8 @@ def test_wrong_threshold(multi_cloud_cube):
         textural_threshold=TEXT_THRESH,
         diagnostic_threshold="0.235",
     )
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(ValueError, match="Threshold 0.235 is not present.*"):
         plugin.process(multi_cloud_cube)
-
-    assert (
-        str(excinfo.value)
-        == "Threshold 0.235 is not present on coordinate with values [0.265  0.415  0.8125] 1"
-    )
 
 
 def test_output_metadata(multi_cloud_cube):
@@ -230,14 +214,21 @@ def test_output_metadata(multi_cloud_cube):
     expected_threshold_coord_name = "texture_of_cloud_area_fraction"
 
     result = PLUGIN.process(multi_cloud_cube)
+
+    # check name and units
     result_name = result.name()
     assert expected_name == result_name
     result_units = result.units
     assert expected_units == result_units
-    result_thresh_coord_name = find_threshold_coordinate(result).name()
-    assert expected_threshold_coord_name == result_thresh_coord_name
+
+    # check coordinates
     assert "texture_of_cloud_area_fraction" in [
         crd.name() for crd in result.coords(dim_coords=False)
     ]
-    assert "cloud_area_fraction" not in [crd.name() for crd in result.coords()]
-    assert result.name("realization") not in [crd.name() for crd in result.coords()]
+    coord_names = [crd.name() for crd in result.coords()]
+    assert expected_threshold_coord_name in coord_names
+    for coord in ["cloud_area_fraction", "realization"]:
+        assert coord not in coord_names
+
+    # check coordinate units
+    assert result.coord(expected_threshold_coord_name).units == expected_units
