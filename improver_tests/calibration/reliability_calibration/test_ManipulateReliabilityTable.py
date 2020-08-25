@@ -106,6 +106,7 @@ class Test__combine_bin_pair(Test_setup):
         result = Plugin()._combine_bin_pair(self.reliability_table)
         expected_result = self.reliability_table.copy()
         assert_array_equal(result.data, expected_result.data)
+        self.assertEqual(result.coords(), expected_result.coords())
 
     def test_one_non_monotonic_bin_pair(self):
         """Test one bin pair is combined, if one bin pair is non-monotonic."""
@@ -113,6 +114,19 @@ class Test__combine_bin_pair(Test_setup):
         self.reliability_table.data[0] = obs_count
         result = Plugin()._combine_bin_pair(self.reliability_table)
         assert_array_equal(result.data, self.expected_enforced_monotonic)
+        expected_bin_coord_points = np.array(
+            [0.09999999, 0.29999998, 0.5, 0.8], dtype=np.float32
+        )
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.19999999], [0.2, 0.39999998], [0.4, 0.59999996], [0.6, 1.0]],
+            dtype=np.float32,
+        )
+        assert_allclose(
+            expected_bin_coord_bounds, result.coord("probability_bin").bounds
+        )
+        assert_allclose(
+            expected_bin_coord_points, result.coord("probability_bin").points
+        )
 
     def test_two_non_monotonic_bin_pairs(self):
         """Test one bin pair is combined, if two bin pairs are non-monotonic.
@@ -123,6 +137,19 @@ class Test__combine_bin_pair(Test_setup):
         self.expected_enforced_monotonic[0][1] = 750  # Amend observation count
         result = Plugin()._combine_bin_pair(self.reliability_table)
         assert_array_equal(result.data, self.expected_enforced_monotonic)
+        expected_bin_coord_points = np.array(
+            [0.09999999, 0.29999998, 0.5, 0.8], dtype=np.float32
+        )
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.19999999], [0.2, 0.39999998], [0.4, 0.59999996], [0.6, 1.0]],
+            dtype=np.float32,
+        )
+        assert_allclose(
+            expected_bin_coord_bounds, result.coord("probability_bin").bounds
+        )
+        assert_allclose(
+            expected_bin_coord_points, result.coord("probability_bin").points
+        )
 
 
 class Test__assume_constant_observation_frequency(Test_setup):
