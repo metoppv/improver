@@ -430,7 +430,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             perc_coord = find_percentile_coordinate(cube)
             perc_dim = cube.coord_dims(perc_coord.name())
             if not perc_dim:
-                msg = "The percentile coord must be a dimension " "of the cube."
+                msg = "The percentile coord must be a dimension of the cube."
                 raise ValueError(msg)
             # Check the percentile coordinate has more than one point,
             # otherwise raise an error as we won't be able to blend.

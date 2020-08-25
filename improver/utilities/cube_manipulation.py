@@ -63,6 +63,22 @@ def collapsed(cube, *args, **kwargs):
     return new_cube
 
 
+def collapse_realizations(cube):
+    """Collapses the realization coord of a cube and strips the coord from the cube.
+
+    Args:
+        cube (iris.cube.Cube):
+            Input cube
+
+    Returns:
+        iris.cube.Cube:
+            Cube with realization coord collapsed and removed.
+    """
+    returned_cube = collapsed(cube, "realization", iris.analysis.MEAN)
+    returned_cube.remove_coord("realization")
+    return returned_cube
+
+
 def get_dim_coord_names(cube):
     """
     Returns an ordered list of dimension coordinate names on the cube
