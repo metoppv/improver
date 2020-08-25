@@ -143,7 +143,6 @@ class FieldTexture(BasePlugin):
         actual_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
             actual_transitions, radius=radius
         )
-        # actual_transitions.data = np.where(cube.data > 0, actual_transitions.data, 0)
 
         # Calculate the ratio of actual to potential transitions.
         ratio = np.ones_like(actual_transitions.data)
