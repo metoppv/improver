@@ -36,7 +36,7 @@ import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
-from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.metadata.utilities import generate_mandatory_attributes
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.nbhood.square_kernel import SquareNeighbourhood
@@ -141,7 +141,7 @@ class FieldTexture(BasePlugin):
         actual_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
             actual_transitions, radius=radius
         )
-        actual_transitions.data = np.where(cube.data > 0, actual_transitions.data, 0)
+        #actual_transitions.data = np.where(cube.data > 0, actual_transitions.data, 0)
 
         # Calculate the ratio of actual to potential transitions.
         ratio = np.ones_like(actual_transitions.data)
@@ -157,7 +157,7 @@ class FieldTexture(BasePlugin):
             "texture_of_{}".format(self.cube_name),
             1,
             cube,
-            MANDATORY_ATTRIBUTE_DEFAULTS,
+            mandatory_attributes=generate_mandatory_attributes([cube]),
             data=ratio,
         )
         return ratio
@@ -237,6 +237,7 @@ class FieldTexture(BasePlugin):
             cslices = cube.slices_over("realization")
         except CoordinateNotFoundError:
             cslices = [cube]
+
         for cslice in cslices:
             ratios.append(self._calculate_ratio(cslice, self.nbhood_radius))
 

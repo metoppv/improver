@@ -205,13 +205,12 @@ def test_wrong_threshold(multi_cloud_cube):
         plugin.process(multi_cloud_cube)
 
 
-def test_output_metadata(multi_cloud_cube):
+def test_metadata_name(multi_cloud_cube):
     """Test that the metadata of the output cube follows expected conventions
        after the plugin is complete and all old coordinates have been removed."""
 
     expected_name = "probability_of_texture_of_cloud_area_fraction_above_threshold"
     expected_units = "1"
-    expected_threshold_coord_name = "texture_of_cloud_area_fraction"
 
     result = PLUGIN.process(multi_cloud_cube)
 
@@ -220,6 +219,16 @@ def test_output_metadata(multi_cloud_cube):
     assert expected_name == result_name
     result_units = result.units
     assert expected_units == result_units
+
+
+def test_metadata_coords(multi_cloud_cube):
+    """Test that the coordinate metadata in the output cube follows expected
+        conventions after that plugin has completed."""
+
+    expected_threshold_coord_name = "texture_of_cloud_area_fraction"
+    expected_units = "1"
+
+    result = PLUGIN.process(multi_cloud_cube)
 
     # check coordinates
     assert "texture_of_cloud_area_fraction" in [
