@@ -35,13 +35,14 @@ counts to a log file."""
 import argparse
 import os
 import sys
-import numpy as np
 
+import numpy as np
 from iris import Constraint
 
 from improver.utilities.load import load_cube
 from improver.utilities.temporal import (
-    datetime_to_cycletime, extract_nearest_time_point
+    datetime_to_cycletime,
+    extract_nearest_time_point,
 )
 
 

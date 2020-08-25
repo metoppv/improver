@@ -32,8 +32,9 @@
 """Script to calculate hits, misses, false alarms and no detections and append
 counts to a log file."""
 
-from improver import cli
 import numpy as np
+
+from improver import cli
 
 
 def get_counts(obs, fcst, threshold):
