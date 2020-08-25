@@ -35,12 +35,11 @@ import numpy as np
 import pytest
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.field_texture import FieldTexture
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
 )
-from improver.utilities.field_texture import FieldTexture
 
 NB_RADIUS = 10000
 TEXT_THRESH = 0.4
@@ -145,7 +144,9 @@ def test_process_single_threshold(multi_cloud_cube):
     """Test the process function with single threshold version of the multi
        realization input cube."""
 
-    single_thresh_cloud_cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))
+    single_thresh_cloud_cube = multi_cloud_cube.extract(
+        iris.Constraint(cloud_area_fraction=DIAG_THRESH)
+    )
     expected_data = np.where(single_thresh_cloud_cube.data[0] == 0.0, 1.0, 0.0)
 
     result = PLUGIN.process(single_thresh_cloud_cube)
