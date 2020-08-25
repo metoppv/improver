@@ -41,6 +41,7 @@ def process(
     reliability_table: cli.inputcube = None,
     *,
     minimum_forecast_count=200,
+    minimum_bin_fraction=0.6,
 ):
     """
     Calibrate a probability forecast using the provided reliability calibration
@@ -65,6 +66,10 @@ def process(
             table for a forecast threshold includes any bins with
             insufficient counts that threshold will be returned unchanged.
             The default value of 200 is that used in Flowerdew 2014.
+        minimum_bin_fraction (float):
+            The minimum fraction of forecast count bins associated with a
+            probability threshold that must exceed minimum_forecast_count
+            for that threshold to be calibrated.
     Returns:
         iris.cube.Cube:
             Calibrated forecast.
@@ -74,5 +79,8 @@ def process(
     if reliability_table is None:
         return forecast
 
-    plugin = ApplyReliabilityCalibration(minimum_forecast_count=minimum_forecast_count)
+    plugin = ApplyReliabilityCalibration(
+        minimum_forecast_count=minimum_forecast_count,
+        minimum_bin_fraction=minimum_bin_fraction,
+    )
     return plugin(forecast, reliability_table)

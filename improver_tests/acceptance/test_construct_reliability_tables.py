@@ -39,12 +39,13 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_basic(tmp_path):
+def test_no_single_value_bins(tmp_path):
     """
-    Test construction of simple reliability tables.
+    Test construction of reliability tables without the single value lower and
+    upper bins at 0 and 1.
     """
     kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_path = kgo_dir / "kgo_without_single_value_bins.nc"
     history_path = kgo_dir / "forecast*.nc"
     truth_path = kgo_dir / "truth*.nc"
     output_path = tmp_path / "output.nc"
@@ -53,6 +54,30 @@ def test_basic(tmp_path):
         truth_path,
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_single_value_bins(tmp_path):
+    """
+    Test construction of reliability tables with the single value lower and
+    upper bins at 0 and 1.
+    """
+    kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
+    kgo_path = kgo_dir / "kgo_single_value_bins.nc"
+    history_path = kgo_dir / "forecast*.nc"
+    truth_path = kgo_dir / "truth*.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        history_path,
+        truth_path,
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--single-value-lower-limit",
+        "--single-value-upper-limit",
         "--output",
         output_path,
     ]
