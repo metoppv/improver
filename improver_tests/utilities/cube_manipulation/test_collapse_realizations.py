@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2020 Met Office.
@@ -29,44 +28,22 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+"""
+Unit tests for the function collapsed.
+"""
 
-"""Script to run weighted blending to collapse realization and forecast_reference_time
-coords using equal weights."""
+import numpy as np
 
-from improver import cli
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.cube_manipulation import collapse_realizations
 
 
-@cli.clizefy
-@cli.with_output
-def process(
-    *cubes: cli.inputcube, cycletime: str = None,
-):
-    """Runs equal-weighted blending for a specific scenario.
-
-    Calculates an equal-weighted blend of input cube data across the realization and
-    forecast_reference_time coordinates.
-
-    Args:
-        cubes (iris.cube.CubeList):
-            Cubelist of cubes to be blended.
-        cycletime (str):
-            The forecast reference time to be used after blending has been
-            applied, in the format YYYYMMDDTHHMMZ. If not provided, the
-            blended file takes the latest available forecast reference time
-            from the input datasets.
-
-    Returns:
-        iris.cube.Cube:
-            Merged and blended Cube.
-    """
-    from improver.blending.calculate_weights_and_blend import WeightAndBlend
-    from improver.utilities.cube_manipulation import collapse_realizations
-    from iris.cube import CubeList
-
-    cubelist = CubeList()
-    for cube in cubes:
-        cubelist.append(collapse_realizations(cube))
-
-    plugin = WeightAndBlend("forecast_reference_time", "linear", y0val=0.5, ynval=0.5,)
-    cube = plugin(cubelist, cycletime=cycletime,)
-    return cube
+def test_basic():
+    """Test that a collapsed cube is returned with no realization coord"""
+    data = np.full((3, 3, 3), fill_value=281.0, dtype=np.float32)
+    cube = set_up_variable_cube(data, realizations=[0, 1, 2])
+    result = collapse_realizations(cube)
+    assert "realization" not in [
+        coord.name() for coord in result.dim_coords + result.aux_coords
+    ]
+    assert (result.data == np.full((3, 3), fill_value=281.0, dtype=np.float32)).all()

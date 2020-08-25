@@ -143,7 +143,6 @@ def process(
     import numpy as np
     from iris.exceptions import CoordinateNotFoundError
 
-    from improver.blending.calculate_weights_and_blend import WeightAndBlend
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         ConvertProbabilitiesToPercentiles,
     )
@@ -153,9 +152,10 @@ def process(
     from improver.spotdata.neighbour_finding import NeighbourSelection
     from improver.spotdata.spot_extraction import SpotExtraction
     from improver.utilities.cube_extraction import extract_subcube
+    from improver.utilities.cube_manipulation import collapse_realizations
 
     if realization_collapse:
-        cube = WeightAndBlend("realization", "linear", y0val=0.5, ynval=0.5,)(cube)
+        cube = collapse_realizations(cube)
     neighbour_selection_method = NeighbourSelection(
         land_constraint=land_constraint, minimum_dz=similar_altitude
     ).neighbour_finding_method_name()
