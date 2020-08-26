@@ -819,9 +819,10 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         return result.format(self.minimum_forecast_count)
 
     @staticmethod
-    def _extract_matching_reliability_table(self, forecast, reliability_table):
-        """Extract the reliability table with a threshold coordinate
-         matching the forecast cube.
+    def _extract_matching_reliability_table(forecast, reliability_table):
+        """
+        Extract the reliability table with a threshold coordinate
+        matching the forecast cube.
         If no matching reliability table is found raise an exception.
 
         Args:
