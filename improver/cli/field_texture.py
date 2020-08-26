@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate cloud clumpiness using field texture and edge transitions"""
+"""Script to calculate whether or not the input field texture exceeds a given threshold."""
 
 from improver import cli
 
@@ -36,32 +36,43 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube, *, nbhood_radius: float, textural_threshold: float, diagnostic_threshold: float):
+        cube: cli.inputcube,
+        *, nbhood_radius: float,
+        textural_threshold: float,
+        diagnostic_threshold: float
+):
 
-    """Calculates cloud texture for a given neighbourhood radius.
+    """Calculates field texture for a given neighbourhood radius.
 
     Args:
         cube (iris.cube.Cube):
             Input data cube that will have a mixture of sunny and cloudy intervals.
 
         nbhood_radius (float):
-                A neighbourhood radius of sufficient size to capture the region and
-                all actual transitions, in metres.
+            The neighbourhood radius in metres within which the number of potential
+            transitions should be calculated. This forms the denominator in the
+            calculation of the ratio of actual to potential transitions that indicates a
+            field's texture. A larger radius should be used for diagnosing larger-scale
+            textural features.
 
         textural_threshold (float):
-                A threshold to re-normalise values about a sensible value.
+            A unit-less threshold value that defines the ratio value above which
+            the field is considered rough and below which the field is considered
+            smoother.
 
         diagnostic_threshold (float):
-                A threshold 
+            A user defined threshold value related either to cloud or precipitation,
+            used to extract the corresponding dimensional cube with assumed units of 1.
 
     Returns:
-        clumpiness (iris.cube.Cube):
-            A cube of binary data, where 1 represents sunlight and 0 represents cloud.
+        iris.cube.Cube:
+                A cube containing the mean of the thresholded ratios in cube
+                format.
 
     """
 
     from improver.field_texture import FieldTexture
 
-    field_texture = FieldTexture()(cube, nbhood_radius, ratio_threshold)
+    field_texture = FieldTexture()(cube, nbhood_radius, textural_threshold, diagnostic_threshold)
 
     return field_texture
