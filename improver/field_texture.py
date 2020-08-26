@@ -79,7 +79,7 @@ class FieldTexture(BasePlugin):
 
             diagnostic_threshold (float):
                 A user defined threshold value related either to cloud or precipitation,
-                used to extract the corresponding dimensional cube (default: 1).
+                used to extract the corresponding dimensional cube with assumed units of 1.
 
         """
         self.nbhood_radius = nbhood_radius
@@ -129,9 +129,7 @@ class FieldTexture(BasePlugin):
         potential_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
             cube, radius=radius
         )
-        potential_transitions.data = np.where(
-            cube.data > 0, potential_transitions.data * 4, 0
-        )
+        potential_transitions.data = 4 * potential_transitions.data
 
         # Calculate the actual transitions for each grid cell of value 1 and
         # store them in a cube.
@@ -144,7 +142,10 @@ class FieldTexture(BasePlugin):
             actual_transitions, radius=radius
         )
 
-        # Calculate the ratio of actual to potential transitions.
+        # Calculate the ratio of actual to potential transitions in areas where the
+        # original diagnostic value was greater than zero. Where the original value
+        # was zero, set ratio value to one.
+
         ratio = np.ones_like(actual_transitions.data)
         np.divide(
             actual_transitions.data,
@@ -169,7 +170,8 @@ class FieldTexture(BasePlugin):
         Identifies actual transitions present in a binary field. These transitions
         are defined as the number of cells of value zero that directly neighbour
         cells of value 1. The number of transitions is calculated for all cells
-        of value 1. The number of transitions for cells of value 0 is set to 0.
+        of value 1 whilst avoiding double-counting transitions. The number of
+        transitions for cells of value 0 is set to 0.
 
         Args:
             data (numpy.ndarray):
