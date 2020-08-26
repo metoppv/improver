@@ -36,8 +36,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube, *, nbhood_radius: float, ratio_threshold: float = 0.05
-):
+    cube: cli.inputcube, *, nbhood_radius: float, textural_threshold: float, diagnostic_threshold: float):
 
     """Calculates cloud texture for a given neighbourhood radius.
 
@@ -49,8 +48,11 @@ def process(
                 A neighbourhood radius of sufficient size to capture the region and
                 all actual transitions, in metres.
 
-        ratio_threshold (float):
+        textural_threshold (float):
                 A threshold to re-normalise values about a sensible value.
+
+        diagnostic_threshold (float):
+                A threshold 
 
     Returns:
         clumpiness (iris.cube.Cube):
@@ -58,7 +60,7 @@ def process(
 
     """
 
-    from improver.utilities.field_texture import FieldTexture
+    from improver.field_texture import FieldTexture
 
     field_texture = FieldTexture()(cube, nbhood_radius, ratio_threshold)
 
