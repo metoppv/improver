@@ -704,7 +704,6 @@ class ManipulateReliabilityTable(PostProcessingPlugin):
             reliability_table.coord(probability_bin_coord).points
         ):
             reliability_table = reliability_table[..., 0:-1]
-            print(probability_bin_coord)
             reliability_table.replace_coord(probability_bin_coord)
         obs_count_cube = reliability_table.extract(
             iris.Constraint(table_row_name="observation_count")
