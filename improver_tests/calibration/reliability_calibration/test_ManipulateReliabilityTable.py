@@ -52,6 +52,7 @@ class Test_setup(unittest.TestCase):
 
     def setUp(self):
         """Set up forecast count"""
+        # Set up a reliabilty table with a single threshold
         thresholds = [275.0]
         self.forecast = set_up_probability_cube(
             np.ones((1, 3, 3), dtype=np.float32), thresholds
@@ -66,7 +67,6 @@ class Test_setup(unittest.TestCase):
             ],
             iris.analysis.SUM,
         )
-        # Over forecasting exceeding 275K.
         self.obs_count = np.array([0, 0, 250, 500, 750], dtype=np.float32)
         self.forecast_probability_sum = np.array(
             [0, 250, 500, 750, 1000], dtype=np.float32
@@ -79,6 +79,7 @@ class Test_setup(unittest.TestCase):
         self.reliability_table = reliability_cube_format.copy(data=reliability_data_0)
         self.probability_bin_coord = self.reliability_table.coord("probability_bin")
 
+        # Set up a reliablity table cube with two thresholds
         reliability_data_1 = np.array(
             [
                 [250, 500, 750, 1000, 1000],  # Observation count
@@ -94,7 +95,7 @@ class Test_setup(unittest.TestCase):
         self.multi_threshold_rt = iris.cube.CubeList(
             [self.reliability_table, reliability_table_1]
         ).merge_cube()
-
+        # Set up expected resulting reliablity table data for Test__combine_bin_pair
         self.expected_enforced_monotonic = np.array(
             [
                 [0, 250, 500, 1750],  # Observation count
@@ -102,17 +103,6 @@ class Test_setup(unittest.TestCase):
                 [1000, 1000, 1000, 2000],  # Forecast count
             ]
         )
-
-
-class Test__repr__(unittest.TestCase):
-
-    """Test the __repr__ method."""
-
-    def test_basic(self):
-        """A simple tests for the __repr__ method."""
-        result = str(Plugin())
-        msg = "<ManipulateReliabilityTable>"
-        self.assertEqual(result, msg)
 
 
 class Test__combine_bin_pair(Test_setup):

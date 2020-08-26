@@ -153,15 +153,28 @@ class Test__repr__(unittest.TestCase):
         self.assertEqual(result, msg)
 
 
-class Test__threshold_coords_equivalent(Test_ReliabilityCalibrate):
+class Test__extract_matching_reliability_table(Test_ReliabilityCalibrate):
 
-    """Test the _threshold_coords_equivalent method."""
+    """Test the _extract_matching_reliability_table method."""
 
     def test_matching_coords(self):
         """Test that no exception is raised in the case that the forecast
         and reliability table cubes have equivalent threshold coordinates."""
 
-        self.plugin._threshold_coords_equivalent(self.forecast, self.reliability_cube)
+        result = self.plugin._extract_matching_reliability_table(
+            self.forecast[0], self.reliability_cube
+        )
+        self.assertEqual(result.xml, self.reliability_cube[0].xml)
+
+    def test_matching_coords_cubelist(self):
+        """Test that no exception is raised in the case that the forecast
+        and reliability table cubes have equivalent threshold coordinates and
+        the reliability_table is provided as a cubelist"""
+
+        result = self.plugin._extract_matching_reliability_table(
+            self.forecast[0], self.reliability_cubelist
+        )
+        self.assertEqual(result.xml, self.reliability_cubelist[0].xml)
 
     def test_unmatching_coords(self):
         """Test that an exception is raised in the case that the forecast
@@ -169,9 +182,8 @@ class Test__threshold_coords_equivalent(Test_ReliabilityCalibrate):
 
         msg = "No reliability table found to match threshold"
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin._threshold_coords_equivalent(
-                self.forecast,
-                self.reliability_cubelist[1]
+            self.plugin._extract_matching_reliability_table(
+                self.forecast[0], self.reliability_cubelist[1]
             )
 
 
@@ -245,6 +257,28 @@ class Test__ensure_monotonicity_across_thresholds(Test_ReliabilityCalibrate):
 class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
 
     """Test the _calculate_reliability_probabilities method."""
+
+    def test_values(self):
+        """Test expected values are returned."""
+
+        expected_0 = (
+            np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
+            np.array([0.0, 0.0, 0.25, 0.5, 0.75]),
+        )
+        expected_1 = (
+            np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
+            np.array([0.25, 0.5, 0.75, 1.0, 1.0]),
+        )
+
+        threshold_0 = self.plugin._calculate_reliability_probabilities(
+            self.reliability_cube[0]
+        )
+        threshold_1 = self.plugin._calculate_reliability_probabilities(
+            self.reliability_cube[1]
+        )
+
+        assert_array_equal(threshold_0, expected_0)
+        assert_array_equal(threshold_1, expected_1)
 
     def test_insufficient_forecast_count(self):
         """Test that if the forecast count is insufficient the function returns
@@ -374,7 +408,9 @@ class Test_process(Test_ReliabilityCalibrate):
         self.assertFalse(warning_list)
 
     @ManageWarnings(record=True)
-    def test_calibrating_forecast_with_reliability_table_cubelist(self, warning_list=None):
+    def test_calibrating_forecast_with_reliability_table_cubelist(
+        self, warning_list=None
+    ):
         """Test application of the reliability table to the forecast. The
         input probabilities and table values have been chosen such that no
         warnings should be raised by this operation."""
@@ -384,6 +420,11 @@ class Test_process(Test_ReliabilityCalibrate):
         )
         expected_1 = np.array([[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]])
 
+        # swap order of cubes in reliabilty_cubelist to ensure order of
+        # cubelist doesn't matter
+        self.reliability_cubelist = iris.cube.CubeList(
+            [self.reliability_cubelist[1], self.reliability_cubelist[0]]
+        )
         result = self.plugin.process(self.forecast, self.reliability_cubelist)
 
         assert_allclose(result[0].data, expected_0)
