@@ -413,3 +413,26 @@ def test_no_lapse_rate_data(tmp_path):
     ]
     with pytest.warns(UserWarning, match=".*lapse rate.*"):
         run_cli(args)
+
+
+def test_percentile_from_threshold_with_realizations(tmp_path):
+    """Test requesting a percentile from a cube with thresholds where the realizations
+    need collapsing first"""
+    kgo_dir = acc.kgo_root() / "spot-extract"
+    neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
+    diag_path = kgo_dir / "inputs/enukx_preciprate_realizations_thresholds.nc"
+    kgo_path = kgo_dir / "outputs/with_realization_collapse.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        neighbour_path,
+        diag_path,
+        "--output",
+        output_path,
+        "--realization-collapse",
+        "--extract-percentiles",
+        "50",
+        "--new-title",
+        "MOGREPS-UK Spot Values",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

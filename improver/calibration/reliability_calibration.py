@@ -498,7 +498,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
     The method implemented here is described in Flowerdew J. 2014.
     """
 
-    def __init__(self, minimum_forecast_count=200):
+    def __init__(self, minimum_forecast_count=200, minimum_bin_fraction=0.6):
         """
         Initialise class for applying reliability calibration.
 
@@ -509,6 +509,13 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 table for a forecast threshold includes any bins with
                 insufficient counts that threshold will be returned unchanged.
                 The default value of 200 is that used in Flowerdew 2014.
+            minimum_bin_fraction (float):
+                The minimum fraction of forecast count bins associated with a
+                probability threshold that must exceed minimum_forecast_count
+                for that threshold to be calibrated.
+        Raises:
+            ValueError: If minimum_forecast_count is less than 1.
+            ValueError: If minimum_bin_fraction is not between 0 and 1.
         References:
             Flowerdew J. 2014. Calibrating ensemble reliability whilst
             preserving spatial structure. Tellus, Ser. A Dyn. Meteorol.
@@ -520,7 +527,14 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 "bins in the reliability table are not handled."
             )
 
+        if minimum_bin_fraction < 0 or minimum_bin_fraction > 1:
+            raise ValueError(
+                "The minimum_bin_fraction must be between 0 and 1. Value set "
+                f"as {minimum_bin_fraction}"
+            )
+
         self.minimum_forecast_count = minimum_forecast_count
+        self.minimum_bin_fraction = minimum_bin_fraction
         self.threshold_coord = None
 
     def __repr__(self):
@@ -636,10 +650,11 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             iris.Constraint(table_row_name="sum_of_forecast_probabilities")
         ).data
 
-        # In some bins have insufficient counts, return None to avoid applying
-        # calibration.
+        # If the fraction of bins with forecast counts exceeding minimum_forecast_count
+        # if less than minimum_bin_fraction, return None to avoid applying calibration
+        # to that probability threshold.
         valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
-        if valid_bins[0].size != forecast_count.size:
+        if valid_bins[0].size < forecast_count.size * self.minimum_bin_fraction:
             return None, None
 
         forecast_probability = np.array(forecast_probability_sum / forecast_count)
