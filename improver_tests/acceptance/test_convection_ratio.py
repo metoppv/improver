@@ -39,8 +39,8 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 ALL_PARAMS = [
-    "convective_precipitation_rate",
-    "dynamic_precipitation_rate",
+    "lwe_convective_precipitation_rate",
+    "lwe_stratiform_precipitation_rate",
 ]
 
 
