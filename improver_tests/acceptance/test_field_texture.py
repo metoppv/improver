@@ -40,7 +40,7 @@ run_cli = acc.run_cli(CLI)
 
 
 def test_multi_basic(tmp_path):
-    """Test field texture operation with multiple realizations and thresholds"""
+    """Test field texture operation with multiple realizations and thresholds."""
     kgo_dir = acc.kgo_root() / "field_texture/multi_basic"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
