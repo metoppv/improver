@@ -491,11 +491,18 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
 class ManipulateReliabilityTable(PostProcessingPlugin):
     """
     A plugin to manipulate the reliability tables to before they are used to
-    calibrate a forecast.
-    x and y must be collapsed
+    calibrate a forecast. x and y must be collapsed.
     The result is a reliability diagram with monotonic observation frequency.
+
     Steps taken are:
-        1.
+
+    1. If non-monotonicity of the observation frequency is detected, try
+    combining a pair of bins that appear non-monotonic. Only a single pair of
+    bins are combined.
+
+    2. If non-monotonicity of the observation frequency remains after trying
+    to combine a single pair of bins, replace non-monotonic bins by assuming a
+    constant observation frequency.
     """
 
     def __repr__(self):

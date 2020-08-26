@@ -37,10 +37,10 @@ import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.calibration.reliability_calibration import (
-    ManipulateReliabilityTable as Plugin,
+    ConstructReliabilityCalibrationTables as CalPlugin,
 )
 from improver.calibration.reliability_calibration import (
-    ConstructReliabilityCalibrationTables as CalPlugin,
+    ManipulateReliabilityTable as Plugin,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
