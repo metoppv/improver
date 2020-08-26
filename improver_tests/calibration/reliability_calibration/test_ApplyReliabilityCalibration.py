@@ -98,7 +98,7 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
         r1.replace_coord(self.forecast[1].coord(var_name="threshold"))
 
         self.reliability_cubelist = iris.cube.CubeList([r0, r1])
-        #self.reliability_cube = reliability_cube.merge_cube()
+        self.reliability_cube = self.reliability_cubelist.merge_cube()
 
         self.threshold = self.forecast.coord(var_name="threshold")
         self.plugin = Plugin(minimum_bin_fraction=1.0)
@@ -161,17 +161,17 @@ class Test__threshold_coords_equivalent(Test_ReliabilityCalibrate):
         """Test that no exception is raised in the case that the forecast
         and reliability table cubes have equivalent threshold coordinates."""
 
-        self.plugin._threshold_coords_equivalent(self.forecast_thresholds, self.reliability_cubelist)
+        self.plugin._threshold_coords_equivalent(self.forecast, self.reliability_cube)
 
     def test_unmatching_coords(self):
         """Test that an exception is raised in the case that the forecast
         and reliability table cubes have different threshold coordinates."""
 
-        msg = "Threshold coordinates do not match"
+        msg = "No reliability table found to match threshold"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._threshold_coords_equivalent(
-                iris.cube.CubeList([self.forecast_thresholds[0]]),
-                self.reliability_cubelist
+                self.forecast,
+                self.reliability_cubelist[1]
             )
 
 
@@ -250,10 +250,10 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
         """Test that if the forecast count is insufficient the function returns
         None types."""
 
-        self.reliability_cubelist.data[0, 2, 0] = 100
+        self.reliability_cube.data[0, 2, 0] = 100
 
         result = self.plugin._calculate_reliability_probabilities(
-            self.reliability_cubelist[0]
+            self.reliability_cube[0]
         )
 
         self.assertIsNone(result[0])
@@ -269,10 +269,10 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
             np.array([0.0, 0.0, 0.25, 0.5, 1.0]),
         )
 
-        self.reliability_cubelist.data[0, :, -1] = 100
+        self.reliability_cube.data[0, :, -1] = 100
 
         plugin = Plugin(minimum_bin_fraction=0.5)
-        result = plugin._calculate_reliability_probabilities(self.reliability_cubelist[0])
+        result = plugin._calculate_reliability_probabilities(self.reliability_cube[0])
         assert_array_equal(result, expected)
 
 
@@ -357,7 +357,24 @@ class Test_process(Test_ReliabilityCalibrate):
     """Test the process method."""
 
     @ManageWarnings(record=True)
-    def test_calibrating_forecast(self, warning_list=None):
+    def test_calibrating_forecast_with_reliability_table_cube(self, warning_list=None):
+        """Test application of the reliability table to the forecast. The
+        input probabilities and table values have been chosen such that no
+        warnings should be raised by this operation."""
+
+        expected_0 = np.array(
+            [[0.25, 0.3125, 0.375], [0.4375, 0.5, 0.5625], [0.625, 0.6875, 0.75]]
+        )
+        expected_1 = np.array([[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]])
+
+        result = self.plugin.process(self.forecast, self.reliability_cube)
+
+        assert_allclose(result[0].data, expected_0)
+        assert_allclose(result[1].data, expected_1)
+        self.assertFalse(warning_list)
+
+    @ManageWarnings(record=True)
+    def test_calibrating_forecast_with_reliability_table_cubelist(self, warning_list=None):
         """Test application of the reliability table to the forecast. The
         input probabilities and table values have been chosen such that no
         warnings should be raised by this operation."""
@@ -383,9 +400,9 @@ class Test_process(Test_ReliabilityCalibrate):
         expected_0 = self.forecast[0].copy().data
         expected_1 = np.array([[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]])
 
-        self.reliability_cubelist.data[0, 2, 0] = 100
+        self.reliability_cube.data[0, 2, 0] = 100
 
-        result = self.plugin.process(self.forecast, self.reliability_cubelist)
+        result = self.plugin.process(self.forecast, self.reliability_cube)
 
         assert_allclose(result[0].data, expected_0)
         assert_allclose(result[1].data, expected_1)
@@ -406,7 +423,7 @@ class Test_process(Test_ReliabilityCalibrate):
         input probabilities and table values have been chosen such that no
         warnings should be raised by this operation."""
 
-        reliability_cube = self.reliability_cubelist[..., 1:4]
+        reliability_cube = self.reliability_cube[..., 1:4]
         crd = reliability_cube.coord("probability_bin")
         bounds = crd.bounds.copy()
         bounds[0, 0] = 0.0

@@ -825,14 +825,13 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         result = "<ApplyReliabilityCalibration: minimum_forecast_count: {}>"
         return result.format(self.minimum_forecast_count)
 
-    @staticmethod
-    def _threshold_coords_equivalent(forecast_thresholds, reliability_table):
+    def _threshold_coords_equivalent(self, forecast, reliability_table):
         """Ensure that the threshold coordinates are identical in the
         reliability table and in the forecast cube. If not raise an
         exception.
 
         Args:
-            forecast_thresholds (iris.cube.CubeList):
+            forecast (iris.cube.Cube):
                 The forecast to be calibrated.
             reliability_table (iris.cube.CubeList):
                 The reliability table to use for applying calibration.
@@ -840,15 +839,16 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             ValueError: If the threshold coordinates are different in the two
                         cubes.
         """
-        slices = zip(forecast_thresholds, reliability_table)
-        for forecast_threshold, reliability_threshold in slices:
-            if not (
-                find_threshold_coordinate(forecast_threshold)
-                == find_threshold_coordinate(reliability_threshold)
-            ):
+        for forecast_threshold in forecast.slices_over(self.threshold_coord):
+            coord_values = {
+                find_threshold_coordinate(forecast_threshold).name():
+                find_threshold_coordinate(forecast_threshold).points}
+            constr = iris.Constraint(coord_values=coord_values)
+            extracted = reliability_table.extract(constr)
+            if not extracted:
                 raise ValueError(
-                    "Threshold coordinates do not match between "
-                    "reliability table and forecast cube."
+                    "No reliability table found to match threshold "
+                    f"{find_threshold_coordinate(forecast_threshold).points[0]}."
                 )
 
     def _ensure_monotonicity_across_thresholds(self, cube):
@@ -994,18 +994,19 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         Args:
             forecast (iris.cube.Cube):
                 The forecast to be calibrated.
-            reliability_table (iris.cube.CubeList):
+            reliability_table (iris.cube.Cube or iris.cube.CubeList):
                 The reliability table to use for applying calibration.
         Returns:
             calibrated_forecast (iris.cube.Cube):
                 The forecast cube following calibration.
         """
-        print("reliability_table = ", reliability_table)
         self.threshold_coord = find_threshold_coordinate(forecast)
-        forecast_thresholds = forecast.slices_over(self.threshold_coord)
-        self._threshold_coords_equivalent(forecast_thresholds, reliability_table)
+        self._threshold_coords_equivalent(forecast, reliability_table)
 
-        #reliability_thresholds = reliability_table.slices_over(self.threshold_coord)
+        forecast_thresholds = forecast.slices_over(self.threshold_coord)
+        if isinstance(reliability_table, iris.cube.Cube):
+            reliability_table = reliability_table.slices_over(self.threshold_coord)
+
         slices = zip(forecast_thresholds, reliability_table)
 
         uncalibrated_thresholds = []
