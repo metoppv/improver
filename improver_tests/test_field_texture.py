@@ -99,6 +99,12 @@ def cloud_probability_cube(cloud_area_fraction, thresholds):
         threshold_units="1",
         thresholds=thresholds,
         spatial_grid="equalarea",
+        attributes={
+            "source": "Unified Model",
+            "institution": "Met Office",
+            "title": "MOGREPS-UK Forecast on 2 km Standard Grid",
+            "mosg__model_configuration": "uk_ens",
+        },
     )
     cube = add_coordinate(cube, [0, 1, 2], "realization", dtype=np.int32)
     return cube
@@ -226,19 +232,35 @@ def test_metadata_coords(multi_cloud_cube):
     """Test that the coordinate metadata in the output cube follows expected
         conventions after that plugin has completed."""
 
-    expected_threshold_coord_name = "texture_of_cloud_area_fraction"
-    expected_units = "1"
-
     result = PLUGIN.process(multi_cloud_cube)
 
-    # check coordinates
-    assert "texture_of_cloud_area_fraction" in [
-        crd.name() for crd in result.coords(dim_coords=False)
-    ]
-    coord_names = [crd.name() for crd in result.coords()]
-    assert expected_threshold_coord_name in coord_names
-    for coord in ["cloud_area_fraction", "realization"]:
-        assert coord not in coord_names
+    expected_units = "1"
+    expected_dims = ["projection_y_coordinate", "projection_x_coordinate"]
+    expected_scalar_coord = "texture_of_cloud_area_fraction"
 
-    # check coordinate units
-    assert result.coord(expected_threshold_coord_name).units == expected_units
+    result_dims = [coord.name() for coord in result.coords(dim_coords=True)]
+    result_scalar_coords = [coord.name() for coord in result.coords(dim_coords=False)]
+
+    # check coordinates
+
+    assert result_dims == expected_dims
+    assert expected_scalar_coord in result_scalar_coords
+    for coord in ["cloud_area_fraction", "realization"]:
+        assert coord not in [crd.name() for crd in result.coords()]
+
+    # check threshold coordinate units
+    assert result.coord(expected_scalar_coord).units == expected_units
+
+
+def test_metadata_attributes(multi_cloud_cube):
+    """Test that the metadata attributes in the output cube follows expected
+        conventions after that plugin has completed."""
+
+    expected_attributes = {
+        "source": "Unified Model",
+        "institution": "Met Office",
+        "title": "MOGREPS-UK Forecast on 2 km Standard Grid",
+    }
+
+    result = PLUGIN.process(multi_cloud_cube)
+    assert result.attributes == expected_attributes

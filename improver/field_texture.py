@@ -234,7 +234,6 @@ class FieldTexture(BasePlugin):
         ratios = iris.cube.CubeList()
 
         try:
-
             cslices = cube.slices_over("realization")
         except CoordinateNotFoundError:
             cslices = [cube]
