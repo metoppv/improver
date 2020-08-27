@@ -497,7 +497,12 @@ class ManipulateReliabilityTable(BasePlugin):
 
     Steps taken are:
 
-    1. If non-monotonicity of the observation frequency is detected, try
+    1. If any bin contains less than the minimum forecast count then try
+    combining this bin with whichever neighbour has the lowest sample count.
+    This process is repeated for all bins that are below the minimum forecast
+    count criterion.
+
+    2. If non-monotonicity of the observation frequency is detected, try
     combining a pair of bins that appear non-monotonic. Only a single pair of
     bins are combined.
 
@@ -505,6 +510,32 @@ class ManipulateReliabilityTable(BasePlugin):
     to combine a single pair of bins, replace non-monotonic bins by assuming a
     constant observation frequency.
     """
+
+    def __init__(self, minimum_forecast_count=200):
+        """
+        Initialise class for manipulating a reliability table.
+
+        Args:
+            minimum_forecast_count (int):
+                The minimum number of forecast counts in a forecast probability
+                bin for it to be used in calibration. If the reliability
+                table for a forecast threshold includes any bins with
+                insufficient counts that threshold will be returned unchanged.
+                The default value of 200 is that used in Flowerdew 2014.
+        Raises:
+            ValueError: If minimum_forecast_count is less than 1.
+        References:
+            Flowerdew J. 2014. Calibrating ensemble reliability whilst
+            preserving spatial structure. Tellus, Ser. A Dyn. Meteorol.
+            Oceanogr. 66.
+        """
+        if minimum_forecast_count < 1:
+            raise ValueError(
+                "The minimum_forecast_count must be at least 1 as empty "
+                "bins in the reliability table are not handled."
+            )
+
+        self.minimum_forecast_count = minimum_forecast_count
 
     @staticmethod
     def _extract_reliability_table_components(reliability_table):
@@ -589,6 +620,68 @@ class ManipulateReliabilityTable(BasePlugin):
             new_points, long_name="probability_bin", units=1, bounds=new_bounds
         )
         return new_bin_coord
+
+    def _combine_undersampled_bins(
+        self, observation_count, forecast_probability_sum, forecast_count, probability_bin_coord,
+    ):
+        """
+        Combine bins that are under-sampled i.e. that have a lower forecast
+        count than the minimum_forecast_count, so that information from these
+        poorly-sampled bins can contribute to the calibration. If multiple
+        bins are below the minimum forecast count, the bin closest to
+        meeting the minimum_forecast_count criterion is combined with whichever
+        neighbour has the lowest sample count. A new bin is then created by
+        summing the neighbouring pair of bins. This process is repeated for all
+        bins that are below the minimum forecast count criterion.
+
+        Args:
+            observation_count (numpy.ndarray):
+                Observation count extracted from reliability table.
+            forecast_probability_sum (numpy.ndarray):
+                Forecast probability sum extracted from reliability table.
+            forecast_count (numpy.ndarray):
+                Forecast count extracted from reliability table.
+            probability_bin_coord (iris.coord.DimCoord):
+                Original probability bin coordinate.
+        Returns:
+            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, iris.coord.DimCoord]
+                Tuple containing the updated observation count,
+                forecast probability sum, forecast count and probability bin
+                coordinate.
+
+        """
+        while any(x < self.minimum_forecast_count for x in forecast_count):
+            forecast_count_copy = forecast_count.copy()
+            forecast_count_copy[forecast_count >= self.minimum_forecast_count] = np.nan
+
+            # Note for multiple occurrences of the maximum,
+            # the index of the first occurrence is returned.
+            index = np.int32(np.nanargmax(forecast_count_copy))
+
+            # Determine the upper index of the pair of bins to be combined.
+            if index == 0:
+                # Must use higher bin
+                upper = index + 1
+            elif index + 1 == len(forecast_count):
+                # Index already defines the upper bin
+                upper = index
+            else:
+                # Define upper index to include bin with lowest sample count.
+                if forecast_count[index + 1] > forecast_count[index - 1]:
+                    upper = index
+                else:
+                    upper = index + 1
+
+            forecast_count = self._sum_pairs(forecast_count, upper)
+            observation_count = self._sum_pairs(observation_count, upper)
+            forecast_probability_sum = self._sum_pairs(
+                forecast_probability_sum, upper
+            )
+            probability_bin_coord = self._create_new_bin_coord(
+                probability_bin_coord, upper
+            )
+
+        return observation_count, forecast_probability_sum, forecast_count, probability_bin_coord
 
     def _combine_bin_pair(
         self,
@@ -732,6 +825,25 @@ class ManipulateReliabilityTable(BasePlugin):
                 forecast_count,
                 probability_bin_coord,
             ) = self._extract_reliability_table_components(rel_table_slice)
+
+            valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
+            if valid_bins[0].size < len(rel_table_slice.coord("probability_bin").points):
+                (
+                    observation_count,
+                    forecast_probability_sum,
+                    forecast_count,
+                    probability_bin_coord
+                ) = self._combine_undersampled_bins(
+                    observation_count, forecast_probability_sum, forecast_count, probability_bin_coord
+                )
+                rel_table_slice = self._update_reliability_table(
+                    rel_table_slice,
+                    observation_count,
+                    forecast_probability_sum,
+                    forecast_count,
+                    probability_bin_coord,
+                )
+
             # If the observation frequency is non-monotonic adjust the
             # reliability table
             observation_frequency = np.array(observation_count / forecast_count)
@@ -902,78 +1014,6 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             warnings.warn(msg)
             cube.data = np.sort(cube.data, axis=threshold_dim)
 
-    @staticmethod
-    def _sum_pairs(array, lower, upper):
-        """
-        Replace a pair of values in an array with their sum.
-        Args:
-            array (numpy.ndarray):
-                Array to be modified.
-            lower (int):
-                Lower index of pair.
-            upper (int):
-                Upper index of pair.
-        Returns:
-            numpy.ndarray:
-                Array where a pair of values has been replaced by their sum.
-        """
-        array[lower] = np.sum([array[lower], array[upper]])
-        return np.delete(array, upper)
-
-    def _combine_undersampled_bins(
-        self, observation_count, forecast_probability_sum, forecast_count
-    ):
-        """
-        Combine bins that are under-sampled i.e. that have a lower forecast
-        count than the minimum_forecast_count, so that information from these
-        poorly-sampled bins can contribute to the calibration. If multiple
-        bins are below the minimum forecast count, the bin closest to
-        meeting the minimum_forecast_count criterion is combined with whichever
-        neighbour has the lowest sample count. A new bin is then created by
-        summing the neighbouring pair of bins. This process is repeated for all
-        bins that are below the minimum forecast count criterion.
-
-        Args:
-            observation_count (numpy.ndarray):
-                Observation count extracted from reliability table.
-            forecast_probability_sum (numpy.ndarray):
-                Forecast probability sum extracted from reliability table.
-            forecast_count (numpy.ndarray):
-                Forecast count extracted from reliability table.
-        Returns:
-            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
-                Tuple containing the updated observation count,
-                forecast probability sum and forecast count.
-
-        """
-        while any(x < self.minimum_forecast_count for x in forecast_count):
-            forecast_count_copy = forecast_count.copy()
-            forecast_count_copy[forecast_count >= self.minimum_forecast_count] = np.nan
-
-            # Note for multiple occurrences of the maximum,
-            # the index of the first occurrence is returned.
-            index = np.int32(np.nanargmax(forecast_count_copy))
-
-            if index == 0:
-                # Must use higher bin
-                neighbour = index + 1
-            elif index + 1 == len(forecast_count):
-                # Must use lower bin
-                neighbour = index - 1
-            else:
-                if forecast_count[index + 1] > forecast_count[index - 1]:
-                    neighbour = index - 1
-                else:
-                    neighbour = index + 1
-
-            forecast_count = self._sum_pairs(forecast_count, index, neighbour)
-            observation_count = self._sum_pairs(observation_count, index, neighbour)
-            forecast_probability_sum = self._sum_pairs(
-                forecast_probability_sum, index, neighbour
-            )
-
-        return observation_count, forecast_probability_sum, forecast_count
-
     def _calculate_reliability_probabilities(self, reliability_table):
         """
         Calculates forecast probabilities and observation frequencies from the
@@ -1002,22 +1042,15 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             iris.Constraint(table_row_name="sum_of_forecast_probabilities")
         ).data
 
-        valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
-        if valid_bins[0].size < len(reliability_table.coord("probability_bin").points):
-            (
-                observation_count,
-                forecast_probability_sum,
-                forecast_count,
-            ) = self._combine_undersampled_bins(
-                observation_count, forecast_probability_sum, forecast_count
-            )
-
         # If the fraction of bins with forecast counts exceeding minimum_forecast_count
         # if less than minimum_bin_fraction, return None to avoid applying calibration
         # to that probability threshold.
         valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
         if valid_bins[0].size < len(reliability_table.coord("probability_bin").points) * self.minimum_bin_fraction:
             return None, None
+
+        forecast_probability = np.array(forecast_probability_sum / forecast_count)
+        observation_frequency = np.array(observation_count / forecast_count)
 
         return forecast_probability, observation_frequency
 
