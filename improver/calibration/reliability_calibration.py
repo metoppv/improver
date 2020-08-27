@@ -622,7 +622,11 @@ class ManipulateReliabilityTable(BasePlugin):
         return new_bin_coord
 
     def _combine_undersampled_bins(
-        self, observation_count, forecast_probability_sum, forecast_count, probability_bin_coord,
+        self,
+        observation_count,
+        forecast_probability_sum,
+        forecast_count,
+        probability_bin_coord,
     ):
         """
         Combine bins that are under-sampled i.e. that have a lower forecast
@@ -674,14 +678,17 @@ class ManipulateReliabilityTable(BasePlugin):
 
             forecast_count = self._sum_pairs(forecast_count, upper)
             observation_count = self._sum_pairs(observation_count, upper)
-            forecast_probability_sum = self._sum_pairs(
-                forecast_probability_sum, upper
-            )
+            forecast_probability_sum = self._sum_pairs(forecast_probability_sum, upper)
             probability_bin_coord = self._create_new_bin_coord(
                 probability_bin_coord, upper
             )
 
-        return observation_count, forecast_probability_sum, forecast_count, probability_bin_coord
+        return (
+            observation_count,
+            forecast_probability_sum,
+            forecast_count,
+            probability_bin_coord,
+        )
 
     def _combine_bin_pair(
         self,
@@ -827,14 +834,19 @@ class ManipulateReliabilityTable(BasePlugin):
             ) = self._extract_reliability_table_components(rel_table_slice)
 
             valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
-            if valid_bins[0].size < len(rel_table_slice.coord("probability_bin").points):
+            if valid_bins[0].size < len(
+                rel_table_slice.coord("probability_bin").points
+            ):
                 (
                     observation_count,
                     forecast_probability_sum,
                     forecast_count,
-                    probability_bin_coord
+                    probability_bin_coord,
                 ) = self._combine_undersampled_bins(
-                    observation_count, forecast_probability_sum, forecast_count, probability_bin_coord
+                    observation_count,
+                    forecast_probability_sum,
+                    forecast_count,
+                    probability_bin_coord,
                 )
                 rel_table_slice = self._update_reliability_table(
                     rel_table_slice,
@@ -1046,7 +1058,11 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         # if less than minimum_bin_fraction, return None to avoid applying calibration
         # to that probability threshold.
         valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
-        if valid_bins[0].size < len(reliability_table.coord("probability_bin").points) * self.minimum_bin_fraction:
+        if (
+            valid_bins[0].size
+            < len(reliability_table.coord("probability_bin").points)
+            * self.minimum_bin_fraction
+        ):
             return None, None
 
         forecast_probability = np.array(forecast_probability_sum / forecast_count)

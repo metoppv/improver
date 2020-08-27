@@ -83,7 +83,7 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
                 [0, 250, 500, 750, 1000],  # Sum of forecast probability
                 [1000, 1000, 1000, 1000, 1000],  # Forecast count
             ],
-            dtype = np.float32,
+            dtype=np.float32,
         )
 
         # Under forecasting exceeding 280K.
