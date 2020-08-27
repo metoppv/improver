@@ -56,4 +56,3 @@ def test_basic(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-

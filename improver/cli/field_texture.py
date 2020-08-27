@@ -36,11 +36,11 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-        cube: cli.inputcube,
-        *,
-        nbhood_radius: float,
-        textural_threshold: float,
-        diagnostic_threshold: float
+    cube: cli.inputcube,
+    *,
+    nbhood_radius: float,
+    textural_threshold: float,
+    diagnostic_threshold: float,
 ):
 
     """Calculates field texture for a given neighbourhood radius.
@@ -74,5 +74,7 @@ def process(
 
     from improver.field_texture import FieldTexture
 
-    field_texture = FieldTexture(nbhood_radius, textural_threshold, diagnostic_threshold)(cube)
+    field_texture = FieldTexture(
+        nbhood_radius, textural_threshold, diagnostic_threshold
+    )(cube)
     return field_texture

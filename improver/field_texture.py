@@ -43,7 +43,7 @@ from improver.metadata.utilities import (
 )
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.threshold import BasicThreshold
-from improver.utilities.cube_manipulation import collapsed, collapse_realizations
+from improver.utilities.cube_manipulation import collapse_realizations, collapsed
 
 
 class FieldTexture(BasePlugin):
@@ -245,8 +245,6 @@ class FieldTexture(BasePlugin):
 
         ratios = ratios.merge_cube()
         thresholded = BasicThreshold(self.diagnostic_threshold).process(ratios)
-        field_texture = iris.util.squeeze(
-            collapse_realizations(thresholded)
-        )
+        field_texture = iris.util.squeeze(collapse_realizations(thresholded))
         field_texture.data = np.float32(field_texture.data)
         return field_texture
