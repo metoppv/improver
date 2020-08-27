@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the ApplyReliabilityCalibration plugin."""
+"""Unit tests for the ManipulateReliabilityTable plugin."""
 
 import unittest
 
@@ -47,7 +47,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 class Test_setup(unittest.TestCase):
 
-    """Test class for the Test_ManipulateReliabilityTable tests,
+    """Test class for the ManipulateReliabilityTable tests,
     setting up cubes to use as inputs."""
 
     def setUp(self):
@@ -192,7 +192,7 @@ class Test_process(Test_setup):
     """Test the process method."""
 
     def test_no_change(self):
-        """Test with on changes required to preserve monotonicity"""
+        """Test with no changes required to preserve monotonicity"""
         result = Plugin().process(self.multi_threshold_rt.copy())
         assert_array_equal(result[0].data, self.multi_threshold_rt[0].data)
         self.assertEqual(result[0].coords(), self.multi_threshold_rt[0].coords())

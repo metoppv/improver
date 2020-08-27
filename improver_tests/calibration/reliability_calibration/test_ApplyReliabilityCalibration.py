@@ -392,7 +392,7 @@ class Test_process(Test_ReliabilityCalibrate):
 
     @ManageWarnings(record=True)
     def test_calibrating_forecast_with_reliability_table_cube(self, warning_list=None):
-        """Test application of the reliability table to the forecast. The
+        """Test application of the reliability table cube to the forecast. The
         input probabilities and table values have been chosen such that no
         warnings should be raised by this operation."""
 
@@ -411,8 +411,8 @@ class Test_process(Test_ReliabilityCalibrate):
     def test_calibrating_forecast_with_reliability_table_cubelist(
         self, warning_list=None
     ):
-        """Test application of the reliability table to the forecast. The
-        input probabilities and table values have been chosen such that no
+        """Test application of a reliability table cubelist to the forecast.
+        The input probabilities and table values have been chosen such that no
         warnings should be raised by this operation."""
 
         expected_0 = np.array(
