@@ -39,21 +39,21 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_multi_basic(tmp_path):
+def test_basic(tmp_path):
     """Test field texture operation with multiple realizations and thresholds."""
-    kgo_dir = acc.kgo_root() / "field_texture/multi_basic"
+    kgo_dir = acc.kgo_root() / "field-texture/basic"
     kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [kgo_dir / "input.nc", "--output", output_path]
+
+    args = [
+        input_path,
+        "--nbhood-radius=10000.0",
+        "--textural-threshold=0.4",
+        "--diagnostic-threshold=0.8125",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
-
-#def test_single_basic(tmp_path):
-#    """Test field texture operation with a single realization"""
-#    kgo_dir = acc.kgo_root() / "field_texture/single_basic"
-#    kgo_path = kgo_dir / "kgo.nc"
-#    output_path = tmp_path / "output.nc"
-#    args = [kgo_dir / "input.nc", "--output", output_path]
-#    run_cli(args)
-#    acc.compare(output_path, kgo_path)

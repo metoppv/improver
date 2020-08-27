@@ -37,7 +37,8 @@ from improver import cli
 @cli.with_output
 def process(
         cube: cli.inputcube,
-        *, nbhood_radius: float,
+        *,
+        nbhood_radius: float,
         textural_threshold: float,
         diagnostic_threshold: float
 ):
@@ -73,6 +74,5 @@ def process(
 
     from improver.field_texture import FieldTexture
 
-    field_texture = FieldTexture()(cube, nbhood_radius, textural_threshold, diagnostic_threshold)
-
+    field_texture = FieldTexture(nbhood_radius, textural_threshold, diagnostic_threshold)(cube)
     return field_texture
