@@ -455,12 +455,32 @@ class Test__assume_constant_observation_frequency(Test_setup):
         )
         assert_array_equal(result.data, self.obs_count)
 
-    def test_non_monotonic(self):
+    def test_non_monotonic_equal_forecast_count(self):
         """Test enforcement of monotonicity for observation frequency."""
         obs_count = np.array([0, 750, 500, 1000, 750], dtype=np.float32)
         expected_result = np.array([0, 750, 750, 1000, 1000], dtype=np.float32)
         result = Plugin()._assume_constant_observation_frequency(
             obs_count, self.forecast_count
+        )
+        assert_array_equal(result.data, expected_result)
+
+    def test_non_monotonic_lower_forecast_count_on_left(self):
+        """Test enforcement of monotonicity for observation frequency."""
+        obs_count = np.array([0, 750, 500, 1000, 750], dtype=np.float32)
+        forecast_count = np.array([500, 1000, 1000, 1000, 1000], dtype=np.float32)
+        expected_result = np.array([0, 500, 500, 750, 750], dtype=np.float32)
+        result = Plugin()._assume_constant_observation_frequency(
+            obs_count, forecast_count
+        )
+        assert_array_equal(result.data, expected_result)
+
+    def test_non_monotonic_higher_forecast_count_on_left(self):
+        """Test enforcement of monotonicity for observation frequency."""
+        obs_count = np.array([0, 750, 500, 1000, 75], dtype=np.float32)
+        forecast_count = np.array([1000, 1000, 1000, 1000, 100], dtype=np.float32)
+        expected_result = np.array([0, 750, 750, 1000, 100], dtype=np.float32)
+        result = Plugin()._assume_constant_observation_frequency(
+            obs_count, forecast_count
         )
         assert_array_equal(result.data, expected_result)
 
@@ -603,7 +623,7 @@ class Test_process(Test_setup):
         """Test expected values are returned where the upper observation
         count bins are non-monotonic."""
         expected_data = np.array(
-            [[0, 1000, 1000, 2000], [0, 250, 500, 1750], [1000, 1000, 1000, 2000]]
+            [[0, 375, 375, 750], [0, 250, 500, 1750], [1000, 1000, 1000, 2000]]
         )
         expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
 
