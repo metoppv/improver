@@ -43,7 +43,7 @@ from improver.metadata.utilities import (
 )
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.threshold import BasicThreshold
-from improver.utilities.cube_manipulation import collapse_realizations, collapsed
+from improver.utilities.cube_manipulation import collapse_realizations
 
 
 class FieldTexture(BasePlugin):
