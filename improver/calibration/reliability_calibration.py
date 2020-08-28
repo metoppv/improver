@@ -506,7 +506,7 @@ class ManipulateReliabilityTable(BasePlugin):
     combining a pair of bins that appear non-monotonic. Only a single pair of
     bins are combined.
 
-    2. If non-monotonicity of the observation frequency remains after trying
+    3. If non-monotonicity of the observation frequency remains after trying
     to combine a single pair of bins, replace non-monotonic bins by assuming a
     constant observation frequency.
     """
@@ -654,10 +654,14 @@ class ManipulateReliabilityTable(BasePlugin):
                 coordinate.
 
         """
-        while any(x < self.minimum_forecast_count for x in forecast_count):
+        while (any(x < self.minimum_forecast_count for x in forecast_count) and
+                len(forecast_count)>2):
             forecast_count_copy = forecast_count.copy()
-            forecast_count_copy[forecast_count >= self.minimum_forecast_count] = np.nan
 
+            # Find index of the bin with the highest forecast count that is
+            # below the minimum_forecast_count by setting forecast counts
+            # greater than the minimum_forecast_count to NaN.
+            forecast_count_copy[forecast_count >= self.minimum_forecast_count] = np.nan
             # Note for multiple occurrences of the maximum,
             # the index of the first occurrence is returned.
             index = np.int32(np.nanargmax(forecast_count_copy))
@@ -833,10 +837,7 @@ class ManipulateReliabilityTable(BasePlugin):
                 probability_bin_coord,
             ) = self._extract_reliability_table_components(rel_table_slice)
 
-            valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
-            if valid_bins[0].size < len(
-                rel_table_slice.coord("probability_bin").points
-            ):
+            if np.any(forecast_count < self.minimum_forecast_count):
                 (
                     observation_count,
                     forecast_probability_sum,

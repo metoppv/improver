@@ -297,6 +297,22 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
         self.assertIsNone(result[0])
         self.assertIsNone(result[1])
 
+    def test_incomplete_bins_allowed(self):
+        """Test that if the forecast count is insufficient in a single bin, but
+        the minimum_bin_fraction is set to allow this, the function returns the
+        expected values."""
+
+        expected = (
+            np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
+            np.array([0.0, 0.0, 0.25, 0.5, 1.0]),
+        )
+
+        self.reliability_cube.data[0, :, -1] = 100
+
+        plugin = Plugin(minimum_bin_fraction=0.5)
+        result = plugin._calculate_reliability_probabilities(self.reliability_cube[0])
+        assert_array_equal(result, expected)
+
 
 class Test__interpolate(unittest.TestCase):
 

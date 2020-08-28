@@ -134,6 +134,36 @@ class Test__combine_undersampled_bins(Test_setup):
         )
         self.assertEqual(result[3], self.probability_bin_coord)
 
+    def test_poorly_sampled_bins(self):
+        """Test when all bins are poorly sampled and the minimum forecast count
+        cannot be reached."""
+        obs_count = np.array([0, 2, 5, 8, 10], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 2, 5, 8, 10], dtype=np.float32)
+        forecast_count = np.array([10, 10, 10, 10, 10], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [15, 10],  # Observation count
+                [15, 10],  # Sum of forecast probability
+                [40, 10],  # Forecast count
+            ]
+        )
+
+        result = self.plugin._combine_undersampled_bins(
+            obs_count,
+            forecast_probability_sum,
+            forecast_count,
+            self.probability_bin_coord,
+        )
+
+        assert_array_equal(result[:3], expected)
+        expected_bin_coord_points = np.array([0.4, 0.9], dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.8], [0.8, 1.0]], dtype=np.float32,
+        )
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+        assert_allclose(expected_bin_coord_points, result[3].points)
+
     def test_one_undersampled_bin_at_top(self):
         """Test when the highest probability bin is under-sampled."""
         obs_count = np.array([0, 250, 500, 750, 100], dtype=np.float32)
@@ -393,14 +423,15 @@ class Test_process(Test_setup):
         assert_array_equal(result[1].data, self.multi_threshold_rt[1].data)
         self.assertEqual(result[1].coords(), self.multi_threshold_rt[1].coords())
 
-    def test_combine_undersampled_bins(self):
+    def test_combine_undersampled_bins_monotonic(self):
         """Test expected values are returned when a bin is below the minimum
-        forecast count."""
+        forecast count when the observed frequency is monotonic."""
 
         expected_data = np.array(
             [[0, 250, 425, 1000], [0, 250, 425, 1000], [1000, 1000, 600, 1000]]
         )
-        expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9], dtype=np.float32)
+        expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9],
+                                             dtype=np.float32)
         expected_bin_coord_bounds = np.array(
             [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
@@ -421,6 +452,40 @@ class Test_process(Test_setup):
         )
         assert_allclose(
             result[1].coord("probability_bin").bounds, expected_bin_coord_bounds
+        )
+
+    def test_combine_undersampled_bins_non_monotonic(self):
+        """Test expected values are returned when a bin is below the minimum
+        forecast count when the observed frequency is non-monotonic."""
+
+        expected_data = np.array(
+            [[0, 250, 425, 1000], [0, 250, 425, 1000], [1000, 1000, 600, 1000]]
+        )
+        expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9],
+                                             dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
+        )
+        self.multi_threshold_rt.data[1] = np.array(
+            [
+                [0, 250, 50, 375, 1000],  # Observation count
+                [0, 250, 50, 375, 1000],  # Sum of forecast probability
+                [1000, 1000, 100, 500, 1000],  # Forecast count
+            ]
+        )
+
+        result = Plugin().process(self.multi_threshold_rt.copy())
+        assert_array_equal(result[0].data, self.multi_threshold_rt[0].data)
+        self.assertEqual(result[0].coords(),
+                         self.multi_threshold_rt[0].coords())
+        assert_array_equal(result[1].data, expected_data)
+        assert_allclose(
+            result[1].coord("probability_bin").points,
+            expected_bin_coord_points
+        )
+        assert_allclose(
+            result[1].coord("probability_bin").bounds,
+            expected_bin_coord_bounds
         )
 
     def test_highest_bin_non_monotonic(self):
