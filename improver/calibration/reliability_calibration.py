@@ -827,7 +827,10 @@ class ManipulateReliabilityTable(BasePlugin):
                 Containing a reliability table cube for each threshold in the
                 input reliablity table. For tables where monotonicity has been
                 enforced the probability_bin coordinate will have one less
-                bin than the tables that were already monotonic.
+                bin than the tables that were already monotonic. If
+                under-sampled bins have been combined, then the probability_bin
+                coordinate will have been reduced until all bins have more than
+                the minimum_forecast_count.
         """
         threshold_coord = find_threshold_coordinate(reliability_table)
         reliability_table_cubelist = iris.cube.CubeList()
