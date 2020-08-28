@@ -898,17 +898,20 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
     forecasts. This calibration is designed to improve the reliability of
     probability forecasts without significantly degrading their resolution.
 
-    The method implemented here is described in Flowerdew J. 2014.
+    The method implemented here is described in Flowerdew J. 2014. Calibration
+    is always applied as long as there are at least two bins within the input
+    reliability table.
+
+    References:
+    Flowerdew J. 2014. Calibrating ensemble reliability whilst
+    preserving spatial structure. Tellus, Ser. A Dyn. Meteorol.
+    Oceanogr. 66.
     """
 
     def __init__(self):
         """
         Initialise class for applying reliability calibration.
 
-        References:
-            Flowerdew J. 2014. Calibrating ensemble reliability whilst
-            preserving spatial structure. Tellus, Ser. A Dyn. Meteorol.
-            Oceanogr. 66.
         """
         self.threshold_coord = None
 
