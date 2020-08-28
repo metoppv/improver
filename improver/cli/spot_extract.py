@@ -48,6 +48,7 @@ def process(
     ignore_ecc_bounds=False,
     new_title: str = None,
     suppress_warnings=False,
+    realization_collapse=False,
 ):
     """Module to run spot data extraction.
 
@@ -102,6 +103,9 @@ def process(
         suppress_warnings (bool):
             Suppress warning output. This option should only be used if it
             is known that warnings will be generated but they are not required.
+        realization_collapse (bool):
+            Triggers equal-weighting blending of the realization coord if required.
+            Use this if a threshold coord is also present on the input cube.
 
     Returns:
         iris.cube.Cube:
@@ -148,7 +152,10 @@ def process(
     from improver.spotdata.neighbour_finding import NeighbourSelection
     from improver.spotdata.spot_extraction import SpotExtraction
     from improver.utilities.cube_extraction import extract_subcube
+    from improver.utilities.cube_manipulation import collapse_realizations
 
+    if realization_collapse:
+        cube = collapse_realizations(cube)
     neighbour_selection_method = NeighbourSelection(
         land_constraint=land_constraint, minimum_dz=similar_altitude
     ).neighbour_finding_method_name()

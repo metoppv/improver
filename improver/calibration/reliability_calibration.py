@@ -488,6 +488,279 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
         return result
 
 
+class ManipulateReliabilityTable(BasePlugin):
+    """
+    A plugin to manipulate the reliability tables before they are used to
+    calibrate a forecast. x and y coordinates on the reliability table must be
+    collapsed.
+    The result is a reliability diagram with monotonic observation frequency.
+
+    Steps taken are:
+
+    1. If non-monotonicity of the observation frequency is detected, try
+    combining a pair of bins that appear non-monotonic. Only a single pair of
+    bins are combined.
+
+    2. If non-monotonicity of the observation frequency remains after trying
+    to combine a single pair of bins, replace non-monotonic bins by assuming a
+    constant observation frequency.
+    """
+
+    @staticmethod
+    def _extract_reliability_table_components(reliability_table):
+        """Extract reliability table components from cube
+
+        Args:
+            reliability_table (iris.cube.Cube):
+                A reliability table to be manipulated.
+
+        Returns:
+            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, iris.coord.DimCoord]:
+                Tuple containing the updated observation count,
+                forecast probability sum, forecast count and probability bin
+                coordinate.
+        """
+        observation_count = reliability_table.extract(
+            iris.Constraint(table_row_name="observation_count")
+        ).data
+        forecast_probability_sum = reliability_table.extract(
+            iris.Constraint(table_row_name="sum_of_forecast_probabilities")
+        ).data
+        forecast_count = reliability_table.extract(
+            iris.Constraint(table_row_name="forecast_count")
+        ).data
+        probability_bin_coord = reliability_table.coord("probability_bin")
+        return (
+            observation_count,
+            forecast_probability_sum,
+            forecast_count,
+            probability_bin_coord,
+        )
+
+    @staticmethod
+    def _sum_pairs(array, upper):
+        """
+        Returns a new array where a pair of values in the original array have
+        been replaced by their sum. Combines the value in the upper index with
+        the value in the upper-1 index.
+
+        Args:
+            array (numpy.ndarray):
+                Array to be modified.
+            upper (int):
+                Upper index of pair.
+
+        Returns:
+            numpy.ndarray:
+                Array where a pair of values has been replaced by their sum.
+        """
+        result = array.copy()
+        result[upper - 1] = np.sum(array[upper - 1 : upper + 1])
+        return np.delete(result, upper)
+
+    @staticmethod
+    def _create_new_bin_coord(probability_bin_coord, upper):
+        """
+        Create a new probability_bin coordinate by combining two adjacent
+        points on the probability_bin coordinate. This matches the combination
+        of the data for the two bins.
+
+        Args:
+            probability_bin_coord (iris.coord.DimCoord):
+                Original probability bin coordinate.
+            upper (int):
+                Upper index of pair.
+
+        Returns:
+            iris.coord.DimCoord:
+                Probability bin coordinate with updated points and bounds where
+                a pair of bins have been combined to create a single bin.
+        """
+        old_bounds = probability_bin_coord.bounds
+        new_bounds = np.concatenate(
+            (
+                old_bounds[0 : upper - 1],
+                np.array([[old_bounds[upper - 1, 0], old_bounds[upper, 1]]]),
+                old_bounds[upper + 1 :],
+            )
+        )
+        new_points = np.mean(new_bounds, axis=1, dtype=np.float32)
+        new_bin_coord = iris.coords.DimCoord(
+            new_points, long_name="probability_bin", units=1, bounds=new_bounds
+        )
+        return new_bin_coord
+
+    def _combine_bin_pair(
+        self,
+        observation_count,
+        forecast_probability_sum,
+        forecast_count,
+        probability_bin_coord,
+    ):
+        """
+        Combine a pair of bins when non-monotonicity of the observation
+        frequency is detected. Iterate top-down from the highest forecast
+        probability bin to the lowest probability bin when combining the bins.
+        Only allow a single pair of bins to be combined.
+
+        Args:
+            observation_count (numpy.ndarray):
+                Observation count extracted from reliability table.
+            forecast_probability_sum (numpy.ndarray):
+                Forecast probability sum extracted from reliability table.
+            forecast_count (numpy.ndarray):
+                Forecast count extracted from reliability table.
+            probability_bin_coord (iris.coord.DimCoord):
+                Original probability bin coordinate.
+
+        Returns:
+            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, iris.coord.DimCoord]
+                Tuple containing the updated observation count,
+                forecast probability sum, forecast count and probability bin
+                coordinate.
+        """
+        observation_frequency = np.array(observation_count / forecast_count)
+        for upper in np.arange(len(observation_frequency) - 1, 0, -1):
+            (diff,) = np.diff(
+                [observation_frequency[upper - 1], observation_frequency[upper]]
+            )
+            if diff < 0:
+                forecast_count = self._sum_pairs(forecast_count, upper)
+                observation_count = self._sum_pairs(observation_count, upper)
+                forecast_probability_sum = self._sum_pairs(
+                    forecast_probability_sum, upper
+                )
+                probability_bin_coord = self._create_new_bin_coord(
+                    probability_bin_coord, upper
+                )
+                break
+        return (
+            observation_count,
+            forecast_probability_sum,
+            forecast_count,
+            probability_bin_coord,
+        )
+
+    @staticmethod
+    def _assume_constant_observation_frequency(observation_count, forecast_count):
+        """
+        Iterate through the observation frequency from the lowest probability
+        bin to the highest probability bin. Compare each pair of bins and, if
+        a pair is non-monotonic, replace the value of the upper bin with the
+        value of the lower bin. Then calculate the new observation count
+        required to give a monotonic observation frequency.
+
+        Args:
+            observation_count (numpy.ndarray):
+                Observation count extracted from reliability table.
+            forecast_count (numpy.ndarray):
+                Forecast count extracted from reliability table.
+
+        Returns:
+            numpy.ndarray:
+                Observation count computed from a monotonic observation frequency.
+
+        """
+        observation_frequency = np.array(observation_count / forecast_count)
+        for index, lower_bin in enumerate(observation_frequency[:-1]):
+            (diff,) = np.diff([lower_bin, observation_frequency[index + 1]])
+            if diff < 0:
+                observation_frequency[index + 1] = lower_bin
+        observation_count = observation_frequency * forecast_count
+        return observation_count
+
+    @staticmethod
+    def _update_reliability_table(
+        reliability_table,
+        observation_count,
+        forecast_probability_sum,
+        forecast_count,
+        probability_bin_coord,
+    ):
+        """
+        Update the reliability table data and the probability bin coordinate.
+
+        Args:
+            reliability_table (iris.cube.Cube):
+                A reliability table to be manipulated.
+            observation_count (numpy.ndarray):
+                Observation count extracted from reliability table.
+            forecast_probability_sum (numpy.ndarray):
+                Forecast probability sum extracted from reliability table.
+            forecast_count (numpy.ndarray):
+                Forecast count extracted from reliability table.
+            probability_bin_coord (iris.coord.DimCoord):
+                Original probability bin coordinate.
+
+        Returns:
+            iris.cube.Cube:
+                Updated reliability table.
+        """
+        final_data = np.stack(
+            [observation_count, forecast_probability_sum, forecast_count]
+        )
+        nrows, ncols = final_data.shape
+        reliability_table = reliability_table[0:nrows, 0:ncols].copy(data=final_data)
+        reliability_table.replace_coord(probability_bin_coord)
+        return reliability_table
+
+    def process(self, reliability_table):
+        """
+        Apply the steps needed to produce a reliability diagram with a
+        monotonic observation frequency.
+
+        Args:
+            reliability_table (iris.cube.Cube):
+                A reliability table to be manipulated. The only coordinates
+                expected on this cube are a threshold coordinate,
+                a table_row_index coordinate and corresponding table_row_name
+                coordinate and a probability_bin coordinate.
+
+        Returns:
+            iris.cube.CubeList:
+                Containing a reliability table cube for each threshold in the
+                input reliablity table. For tables where monotonicity has been
+                enforced the probability_bin coordinate will have one less
+                bin than the tables that were already monotonic.
+        """
+        threshold_coord = find_threshold_coordinate(reliability_table)
+        reliability_table_cubelist = iris.cube.CubeList()
+        for rel_table_slice in reliability_table.slices_over(threshold_coord):
+            (
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+                probability_bin_coord,
+            ) = self._extract_reliability_table_components(rel_table_slice)
+            # If the observation frequency is non-monotonic adjust the
+            # reliability table
+            observation_frequency = np.array(observation_count / forecast_count)
+            if not np.all(np.diff(observation_frequency) >= 0):
+                (
+                    observation_count,
+                    forecast_probability_sum,
+                    forecast_count,
+                    probability_bin_coord,
+                ) = self._combine_bin_pair(
+                    observation_count,
+                    forecast_probability_sum,
+                    forecast_count,
+                    probability_bin_coord,
+                )
+                observation_count = self._assume_constant_observation_frequency(
+                    observation_count, forecast_count
+                )
+                rel_table_slice = self._update_reliability_table(
+                    rel_table_slice,
+                    observation_count,
+                    forecast_probability_sum,
+                    forecast_count,
+                    probability_bin_coord,
+                )
+            reliability_table_cubelist.append(rel_table_slice)
+        return reliability_table_cubelist
+
+
 class ApplyReliabilityCalibration(PostProcessingPlugin):
 
     """
@@ -543,30 +816,39 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         return result.format(self.minimum_forecast_count)
 
     @staticmethod
-    def _threshold_coords_equivalent(forecast, reliability_table):
-        """Ensure that the threshold coordinates are identical in the
-        reliability table and in the forecast cube. If not raise an
-        exception.
+    def _extract_matching_reliability_table(forecast, reliability_table):
+        """
+        Extract the reliability table with a threshold coordinate
+        matching the forecast cube.
+        If no matching reliability table is found raise an exception.
 
         Args:
             forecast (iris.cube.Cube):
                 The forecast to be calibrated.
-            reliability_table (iris.cube.Cube):
+            reliability_table (iris.cube.CubeList):
                 The reliability table to use for applying calibration.
+        Returns:
+            iris.cube.Cube:
+                A reliability table who's threshold coordinate matches
+                the forecast cube.
         Raises:
-            ValueError: If the threshold coordinates are different in the two
-                        cubes.
+            ValueError: If no matching reliability table is found.
         """
-        if not (
-            find_threshold_coordinate(forecast)
-            == find_threshold_coordinate(reliability_table)
-        ):
+        threshold_coord = find_threshold_coordinate(forecast)
+        coord_values = {threshold_coord.name(): threshold_coord.points}
+        constr = iris.Constraint(coord_values=coord_values)
+        if isinstance(reliability_table, iris.cube.Cube):
+            extracted = reliability_table.extract(constr)
+        else:
+            extracted = reliability_table.extract(constr, strict=True)
+        if not extracted:
             raise ValueError(
-                "Threshold coordinates do not match between "
-                "reliability table and forecast cube."
+                "No reliability table found to match threshold "
+                f"{find_threshold_coordinate(forecast).points[0]}."
             )
+        return extracted
 
-    def _ensure_monotonicity(self, cube):
+    def _ensure_monotonicity_across_thresholds(self, cube):
         """
         Ensures that probabilities change monotonically relative to thresholds
         in the expected order, e.g. exceedance probabilities always remain the
@@ -632,13 +914,11 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 calculate the forecast probabilities and observation
                 frequencies.
         Returns:
-            (tuple): tuple containing Nones or:
-                **forecast_probability** (numpy.ndarray):
-                    Forecast probabilities calculated by dividing the sum of
-                    forecast probabilities by the forecast count.
-                **observation_frequency** (numpy.ndarray):
-                    Observation frequency calculated by dividing the
-                    observation count by the forecast count.
+            Optional[Tuple[numpy.ndarray, numpy.ndarray]]:
+                Tuple containing forecast probabilities calculated by dividing
+                the sum of forecast probabilities by the forecast count and
+                observation frequency calculated by dividing the observation
+                count by the forecast count.
         """
         observation_count = reliability_table.extract(
             iris.Constraint(table_row_name="observation_count")
@@ -650,15 +930,15 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             iris.Constraint(table_row_name="sum_of_forecast_probabilities")
         ).data
 
+        forecast_probability = np.array(forecast_probability_sum / forecast_count)
+        observation_frequency = np.array(observation_count / forecast_count)
+
         # If the fraction of bins with forecast counts exceeding minimum_forecast_count
         # if less than minimum_bin_fraction, return None to avoid applying calibration
         # to that probability threshold.
         valid_bins = np.where(forecast_count >= self.minimum_forecast_count)
         if valid_bins[0].size < forecast_count.size * self.minimum_bin_fraction:
             return None, None
-
-        forecast_probability = np.array(forecast_probability_sum / forecast_count)
-        observation_frequency = np.array(observation_count / forecast_count)
 
         return forecast_probability, observation_frequency
 
@@ -712,23 +992,23 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         Args:
             forecast (iris.cube.Cube):
                 The forecast to be calibrated.
-            reliability_table (iris.cube.Cube):
+            reliability_table (iris.cube.Cube or iris.cube.CubeList):
                 The reliability table to use for applying calibration.
+                x and y dimensions must be collapsed.
         Returns:
-            calibrated_forecast (iris.cube.Cube):
+            iris.cube.Cube:
                 The forecast cube following calibration.
         """
-        self._threshold_coords_equivalent(forecast, reliability_table)
         self.threshold_coord = find_threshold_coordinate(forecast)
 
         forecast_thresholds = forecast.slices_over(self.threshold_coord)
-        reliability_thresholds = reliability_table.slices_over(self.threshold_coord)
-        slices = zip(forecast_thresholds, reliability_thresholds)
 
         uncalibrated_thresholds = []
         calibrated_cubes = iris.cube.CubeList()
-        for forecast_threshold, reliability_threshold in slices:
-
+        for forecast_threshold in forecast_thresholds:
+            reliability_threshold = self._extract_matching_reliability_table(
+                forecast_threshold, reliability_table
+            )
             (
                 reliability_probabilities,
                 observation_frequencies,
@@ -750,7 +1030,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             calibrated_cubes.append(forecast_threshold.copy(data=interpolated))
 
         calibrated_forecast = calibrated_cubes.merge_cube()
-        self._ensure_monotonicity(calibrated_forecast)
+        self._ensure_monotonicity_across_thresholds(calibrated_forecast)
 
         if uncalibrated_thresholds:
             msg = (
