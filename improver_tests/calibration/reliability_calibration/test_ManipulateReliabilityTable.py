@@ -105,6 +105,33 @@ class Test_setup(unittest.TestCase):
         )
 
 
+class Test__init__(unittest.TestCase):
+
+    """Test the __init__ method."""
+
+    def test_using_defaults(self):
+        """Test without providing any arguments."""
+
+        plugin = Plugin()
+
+        self.assertEqual(plugin.minimum_forecast_count, 200)
+
+    def test_with_arguments(self):
+        """Test with specified arguments."""
+
+        plugin = Plugin(minimum_forecast_count=100)
+
+        self.assertEqual(plugin.minimum_forecast_count, 100)
+
+    def test_with_invalid_minimum_forecast_count(self):
+        """Test an exception is raised if the minimum_forecast_count value is
+        less than 1."""
+
+        msg = "The minimum_forecast_count must be at least 1"
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin(minimum_forecast_count=0)
+
+
 class Test__combine_undersampled_bins(Test_setup):
 
     """Test the _combine_undersampled_bins method."""
@@ -143,9 +170,9 @@ class Test__combine_undersampled_bins(Test_setup):
 
         expected = np.array(
             [
-                [15, 10],  # Observation count
-                [15, 10],  # Sum of forecast probability
-                [40, 10],  # Forecast count
+                [25,],  # Observation count
+                [25,],  # Sum of forecast probability
+                [50,],  # Forecast count
             ]
         )
 
@@ -157,12 +184,10 @@ class Test__combine_undersampled_bins(Test_setup):
         )
 
         assert_array_equal(result[:3], expected)
-        expected_bin_coord_points = np.array([0.4, 0.9], dtype=np.float32)
-        expected_bin_coord_bounds = np.array(
-            [[0.0, 0.8], [0.8, 1.0]], dtype=np.float32,
-        )
-        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+        expected_bin_coord_points = np.array([0.5], dtype=np.float32)
+        expected_bin_coord_bounds = np.array([[0.0, 1.0]], dtype=np.float32,)
         assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
     def test_one_undersampled_bin_at_top(self):
         """Test when the highest probability bin is under-sampled."""
@@ -189,8 +214,8 @@ class Test__combine_undersampled_bins(Test_setup):
         expected_bin_coord_bounds = np.array(
             [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
-        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
         assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
     def test_one_undersampled_bin_at_bottom(self):
         """Test when the lowest probability bin is under-sampled."""
@@ -215,8 +240,8 @@ class Test__combine_undersampled_bins(Test_setup):
         expected_bin_coord_bounds = np.array(
             [[0.0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
-        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
         assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
     def test_one_undersampled_bin_lower_neighbour(self):
         """Test for one under-sampled bin that is combined with its lower
@@ -244,8 +269,8 @@ class Test__combine_undersampled_bins(Test_setup):
         expected_bin_coord_bounds = np.array(
             [[0.0, 0.2], [0.2, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
-        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
         assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
     def test_one_undersampled_bin_upper_neighbour(self):
         """Test for one under-sampled bin that is combined with its upper
@@ -273,8 +298,8 @@ class Test__combine_undersampled_bins(Test_setup):
         expected_bin_coord_bounds = np.array(
             [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
-        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
         assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
     def test_two_undersampled_bins(self):
         """Test when two bins are under-sampled."""
@@ -301,8 +326,8 @@ class Test__combine_undersampled_bins(Test_setup):
         expected_bin_coord_bounds = np.array(
             [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
-        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
         assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
     def test_two_equal_undersampled_bins(self):
         """Test when two bins are under-sampled and the under-sampled bins have
@@ -331,8 +356,8 @@ class Test__combine_undersampled_bins(Test_setup):
         expected_bin_coord_bounds = np.array(
             [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
-        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
         assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
 class Test__combine_bin_pair(Test_setup):
@@ -367,8 +392,8 @@ class Test__combine_bin_pair(Test_setup):
         expected_bin_coord_bounds = np.array(
             [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
-        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
         assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
     def test_two_non_monotonic_bin_pairs(self):
         """Test one bin pair is combined, if two bin pairs are non-monotonic.
@@ -387,8 +412,8 @@ class Test__combine_bin_pair(Test_setup):
         expected_bin_coord_bounds = np.array(
             [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
-        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
         assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
 class Test__assume_constant_observation_frequency(Test_setup):
@@ -430,8 +455,7 @@ class Test_process(Test_setup):
         expected_data = np.array(
             [[0, 250, 425, 1000], [0, 250, 425, 1000], [1000, 1000, 600, 1000]]
         )
-        expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9],
-                                             dtype=np.float32)
+        expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
             [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
@@ -461,8 +485,7 @@ class Test_process(Test_setup):
         expected_data = np.array(
             [[0, 250, 425, 1000], [0, 250, 425, 1000], [1000, 1000, 600, 1000]]
         )
-        expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9],
-                                             dtype=np.float32)
+        expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
             [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
@@ -476,16 +499,13 @@ class Test_process(Test_setup):
 
         result = Plugin().process(self.multi_threshold_rt.copy())
         assert_array_equal(result[0].data, self.multi_threshold_rt[0].data)
-        self.assertEqual(result[0].coords(),
-                         self.multi_threshold_rt[0].coords())
+        self.assertEqual(result[0].coords(), self.multi_threshold_rt[0].coords())
         assert_array_equal(result[1].data, expected_data)
         assert_allclose(
-            result[1].coord("probability_bin").points,
-            expected_bin_coord_points
+            result[1].coord("probability_bin").points, expected_bin_coord_points
         )
         assert_allclose(
-            result[1].coord("probability_bin").bounds,
-            expected_bin_coord_bounds
+            result[1].coord("probability_bin").bounds, expected_bin_coord_bounds
         )
 
     def test_highest_bin_non_monotonic(self):

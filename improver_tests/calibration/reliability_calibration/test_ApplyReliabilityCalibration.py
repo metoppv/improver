@@ -34,6 +34,7 @@ import unittest
 
 import iris
 import numpy as np
+from cf_units import Unit
 from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.calibration.reliability_calibration import (
@@ -104,7 +105,7 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
         self.reliability_cube = self.reliability_cubelist.merge_cube()
 
         self.threshold = self.forecast.coord(var_name="threshold")
-        self.plugin = Plugin(minimum_bin_fraction=1.0)
+        self.plugin = Plugin()
         self.plugin.threshold_coord = self.threshold
 
 
@@ -116,44 +117,7 @@ class Test__init__(unittest.TestCase):
         """Test without providing any arguments."""
 
         plugin = Plugin()
-
-        self.assertEqual(plugin.minimum_forecast_count, 200)
         self.assertIsNone(plugin.threshold_coord, None)
-
-    def test_with_arguments(self):
-        """Test with specified arguments."""
-
-        plugin = Plugin(minimum_forecast_count=100)
-
-        self.assertEqual(plugin.minimum_forecast_count, 100)
-        self.assertIsNone(plugin.threshold_coord, None)
-
-    def test_with_invalid_minimum_forecast_count(self):
-        """Test an exception is raised if the minimum_forecast_count value is
-        less than 1."""
-
-        msg = "The minimum_forecast_count must be at least 1"
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin(minimum_forecast_count=0)
-
-    def test_with_invalid_minimum_bin_fraction(self):
-        """Test an exception is raised if the minimum_bin_fraction value is
-        not between 0 and 1 inclusive."""
-
-        msg = "The minimum_bin_fraction must be between 0 and 1. Value set as 1.5"
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin(minimum_bin_fraction=1.5)
-
-
-class Test__repr__(unittest.TestCase):
-
-    """Test the __repr__ method."""
-
-    def test_basic(self):
-        """A simple tests for the __repr__ method."""
-        result = str(Plugin())
-        msg = "<ApplyReliabilityCalibration: minimum_forecast_count: 200>"
-        self.assertEqual(result, msg)
 
 
 class Test__extract_matching_reliability_table(Test_ReliabilityCalibrate):
@@ -262,8 +226,8 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
     """Test the _calculate_reliability_probabilities method."""
 
     def test_values(self):
-        """Test expected values are returned when all bins contain a sample
-        count above the minimum sample count."""
+        """Test expected values are returned when two or more bins are
+        available for interpolation."""
 
         expected_0 = (
             np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
@@ -273,7 +237,7 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
             np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
             np.array([0.25, 0.5, 0.75, 1.0, 1.0]),
         )
-        plugin = Plugin(minimum_bin_fraction=1.0)
+        plugin = Plugin()
         threshold_0 = plugin._calculate_reliability_probabilities(
             self.reliability_cube[0]
         )
@@ -284,34 +248,32 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
         assert_array_equal(threshold_0, expected_0)
         assert_array_equal(threshold_1, expected_1)
 
-    def test_insufficient_forecast_count(self):
-        """Test that if the forecast count is insufficient the function returns
-        None types."""
-
-        self.reliability_cube.data[0, 2, 0] = 100.0
-
-        result = self.plugin._calculate_reliability_probabilities(
-            self.reliability_cube[0]
+    def test_fewer_than_two_bins(self):
+        """Test that if fewer than two probability bins are provided, no
+        calibration is applied."""
+        reliability_cube = self.reliability_cube[0, :, 0]
+        probability_bin_coord = iris.coords.DimCoord(
+            np.array([0.5], dtype=np.float32),
+            bounds=np.array([[0.0, 1.0]], dtype=np.float32),
+            standard_name=None,
+            units=Unit("1"),
+            long_name="probability_bin",
         )
+        reliability_cube.replace_coord(probability_bin_coord)
+
+        reliability_cube.data = np.array(
+            [
+                5.0,  # Observation count
+                5.0,  # Sum of forecast probability
+                10.0,
+            ],  # Forecast count
+            dtype=np.float32,
+        )
+
+        result = self.plugin._calculate_reliability_probabilities(reliability_cube)
 
         self.assertIsNone(result[0])
         self.assertIsNone(result[1])
-
-    def test_incomplete_bins_allowed(self):
-        """Test that if the forecast count is insufficient in a single bin, but
-        the minimum_bin_fraction is set to allow this, the function returns the
-        expected values."""
-
-        expected = (
-            np.array([0.0, 0.25, 0.5, 0.75, 1.0]),
-            np.array([0.0, 0.0, 0.25, 0.5, 1.0]),
-        )
-
-        self.reliability_cube.data[0, :, -1] = 100
-
-        plugin = Plugin(minimum_bin_fraction=0.5)
-        result = plugin._calculate_reliability_probabilities(self.reliability_cube[0])
-        assert_array_equal(result, expected)
 
 
 class Test__interpolate(unittest.TestCase):
@@ -445,9 +407,28 @@ class Test_process(Test_ReliabilityCalibrate):
         expected_0 = self.forecast[0].copy().data
         expected_1 = np.array([[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]])
 
-        self.reliability_cube.data[0, 2, :] = 100
+        reliability_cube_0 = self.reliability_cubelist[0][:, 0]
+        probability_bin_coord = iris.coords.DimCoord(
+            np.array([0.5], dtype=np.float32),
+            bounds=np.array([[0.0, 1.0]], dtype=np.float32),
+            standard_name=None,
+            units=Unit("1"),
+            long_name="probability_bin",
+        )
+        reliability_cube_0.replace_coord(probability_bin_coord)
 
-        result = self.plugin.process(self.forecast, self.reliability_cube)
+        reliability_cube_0.data = np.array(
+            [
+                5.0,  # Observation count
+                5.0,  # Sum of forecast probability
+                10.0,
+            ],  # Forecast coun
+            dtype=np.float32,
+        )
+        reliability_cubelist = iris.cube.CubeList(
+            [reliability_cube_0, self.reliability_cubelist[1]]
+        )
+        result = self.plugin.process(self.forecast, reliability_cubelist)
 
         assert_allclose(result[0].data, expected_0)
         assert_allclose(result[1].data, expected_1)
