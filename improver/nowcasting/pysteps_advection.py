@@ -213,7 +213,9 @@ class PystepsExtrapolate(BasePlugin):
                 standard.
         """
         # remove forecast data where values are unrealistic
-        all_forecasts = np.where(all_forecasts < MAX_RATE_MMH, all_forecasts, np.nan)
+        all_forecasts = np.where(
+            (all_forecasts >= 0) & (all_forecasts < MAX_RATE_MMH), all_forecasts, np.nan
+        )
 
         # re-mask forecast data
         all_forecasts = np.ma.masked_invalid(all_forecasts)
