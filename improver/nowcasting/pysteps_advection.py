@@ -53,9 +53,6 @@ with redirect_stdout():
     from pysteps.extrapolation.semilagrangian import extrapolate
 
 
-MAX_RATE_MMH = 1000.0
-
-
 class PystepsExtrapolate(BasePlugin):
     """Wrapper for the pysteps semi-Lagrangian extrapolation method
 
@@ -212,11 +209,6 @@ class PystepsExtrapolate(BasePlugin):
                 required lead times, and conforming to the IMPROVER metadata
                 standard.
         """
-        # remove forecast data where values are unrealistic
-        all_forecasts = np.where(
-            (all_forecasts >= 0) & (all_forecasts < MAX_RATE_MMH), all_forecasts, np.nan
-        )
-
         # re-mask forecast data
         all_forecasts = np.ma.masked_invalid(all_forecasts)
 
