@@ -464,7 +464,8 @@ class Test__assume_constant_observation_frequency(Test_setup):
         )
         assert_array_equal(result.data, expected_result)
 
-    def test_non_monotonic_lower_forecast_count_on_left(self):
+    @staticmethod
+    def test_non_monotonic_lower_forecast_count_on_left():
         """Test enforcement of monotonicity for observation frequency."""
         obs_count = np.array([0, 750, 500, 1000, 750], dtype=np.float32)
         forecast_count = np.array([500, 1000, 1000, 1000, 1000], dtype=np.float32)
@@ -474,7 +475,8 @@ class Test__assume_constant_observation_frequency(Test_setup):
         )
         assert_array_equal(result.data, expected_result)
 
-    def test_non_monotonic_higher_forecast_count_on_left(self):
+    @staticmethod
+    def test_non_monotonic_higher_forecast_count_on_left():
         """Test enforcement of monotonicity for observation frequency."""
         obs_count = np.array([0, 750, 500, 1000, 75], dtype=np.float32)
         forecast_count = np.array([1000, 1000, 1000, 1000, 100], dtype=np.float32)

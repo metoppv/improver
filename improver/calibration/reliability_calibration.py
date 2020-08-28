@@ -30,11 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Reliability calibration plugins."""
 
+import operator
 import warnings
 
 import iris
 import numpy as np
-import operator
 import scipy
 
 from improver import BasePlugin, PostProcessingPlugin
