@@ -75,45 +75,51 @@ def main(obs_path, fcst_paths, log_path, model, thresholds_mmh):
     """
     # Load "truth" and set up constants
     obs = load_cube(obs_path)
-    obs.convert_units('mm h-1')
+    obs.convert_units("mm h-1")
     obs_time = obs.coord("time").cell(0).point
     cycletime = datetime_to_cycletime(obs_time)
 
     lines = []
-    for fcst_path in fcst_paths:    
+    for fcst_path in fcst_paths:
 
         all_fcsts = load_cube(fcst_path)
 
         try:
-            fcst = extract_nearest_time_point(all_fcsts, obs_time, allowed_dt_difference=0)
+            fcst = extract_nearest_time_point(
+                all_fcsts, obs_time, allowed_dt_difference=0
+            )
         except ValueError:
             # we expect the UKV not to have matching 15 minute forcasts; so if a
             # matching forecast is not available, exit without error
             continue
 
-        fcst.convert_units('mm h-1')
+        fcst.convert_units("mm h-1")
         lead_time_minutes = int(fcst.coord("forecast_period").points[0] / 60)
 
         for threshold in thresholds_mmh:
-            hits, misses, false_alarms, no_det = get_counts(obs.data, fcst.data, threshold)
-            line = (f'{cycletime} {lead_time_minutes:3} {threshold:5.3} {hits:6} '
-                    f'{misses:6} {false_alarms:6} {no_det:6}')
+            hits, misses, false_alarms, no_det = get_counts(
+                obs.data, fcst.data, threshold
+            )
+            line = (
+                f"{cycletime} {lead_time_minutes:3} {threshold:5.3} {hits:6} "
+                f"{misses:6} {false_alarms:6} {no_det:6}"
+            )
             lines.append(line)
 
     # Append lines to log file
-    fname = os.path.join(log_path, f'{cycletime[:6]}_{model}_counts.log')
+    fname = os.path.join(log_path, f"{cycletime[:6]}_{model}_counts.log")
     with open(fname, "a") as dtf:
         for line in lines:
-            dtf.write(line+'\n')
+            dtf.write(line + "\n")
 
 
 if __name__ == "__main__":
     """Execute with arguments"""
     parser = argparse.ArgumentParser()
-    parser.add_argument('obs_path', type=str)
-    parser.add_argument('fcst_paths', type=str, nargs='+')
-    parser.add_argument('--log_path', type=str)
-    parser.add_argument('--model', type=str)
-    parser.add_argument('--thresholds', type=float, nargs='+')
+    parser.add_argument("obs_path", type=str)
+    parser.add_argument("fcst_paths", type=str, nargs="+")
+    parser.add_argument("--log_path", type=str)
+    parser.add_argument("--model", type=str)
+    parser.add_argument("--thresholds", type=float, nargs="+")
     args = parser.parse_args()
     main(args.obs_path, args.fcst_paths, args.log_path, args.model, args.thresholds)
