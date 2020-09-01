@@ -751,11 +751,15 @@ class ManipulateReliabilityTable(BasePlugin):
     @staticmethod
     def _assume_constant_observation_frequency(observation_count, forecast_count):
         """
-        Iterate through the observation frequency from the bin with the highest
-        sample count to the bin with the lowest sample count. Compare each
-        pair of bins and, if a pair is non-monotonic, replace the value of the
-        upper bin with the value of the lower bin. Then calculate the new
-        observation count required to give a monotonic observation frequency.
+        Decide which end bin (highest probability bin or lowest probability
+        bin) has the highest sample count. Iterate through the observation
+        frequency from the end bin with the highest sample count to the end bin
+        with the lowest sample count. Whilst iterating, compare each pair of
+        bins and, if a pair is non-monotonic, replace the value of the bin
+        closer to the lowest sample count end bin with the value of the
+        bin that is closer to the higher sample count end bin. Then calculate
+        the new observation count required to give a monotonic observation
+        frequency.
 
         Args:
             observation_count (numpy.ndarray):
