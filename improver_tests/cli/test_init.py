@@ -43,6 +43,7 @@ from improver.cli import (
     create_constrained_inputcubelist_converter,
     docutilize,
     inputcube,
+    inputcubelist,
     inputjson,
     maybe_coerce_with,
     run_main,
