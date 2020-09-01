@@ -95,7 +95,7 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
                 [1000, 1000, 1000, 1000, 1000],  # Forecast count
             ],
             dtype=np.float32,
-        )  # Forecast count
+        )
 
         r0 = reliability_cube_format.copy(data=reliability_data_0)
         r1 = reliability_cube_format.copy(data=reliability_data_1)
@@ -265,8 +265,8 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
             [
                 5.0,  # Observation count
                 5.0,  # Sum of forecast probability
-                10.0,
-            ],  # Forecast count
+                10.0,  # Forecast count
+            ],
             dtype=np.float32,
         )
 

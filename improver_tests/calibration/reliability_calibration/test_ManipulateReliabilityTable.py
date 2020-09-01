@@ -359,6 +359,35 @@ class Test__combine_undersampled_bins(Test_setup):
         assert_allclose(expected_bin_coord_points, result[3].points)
         assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
+    def test_three_equal_undersampled_bin_neighbours(self):
+        """Test when three neighbouring bins are under-sampled."""
+        obs_count = np.array([0, 25, 50, 75, 250], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 25, 50, 75, 250], dtype=np.float32)
+        forecast_count = np.array([1000, 100, 100, 100, 250], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 150, 250],  # Observation count
+                [0, 150, 250],  # Sum of forecast probability
+                [1000, 300, 250],  # Forecast count
+            ]
+        )
+
+        result = self.plugin._combine_undersampled_bins(
+            obs_count,
+            forecast_probability_sum,
+            forecast_count,
+            self.probability_bin_coord,
+        )
+
+        assert_array_equal(result[:3], expected)
+        expected_bin_coord_points = np.array([0.1, 0.5, 0.9], dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.2], [0.2, 0.8], [0.8, 1.0]], dtype=np.float32,
+        )
+        assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+
 
 class Test__combine_bin_pair(Test_setup):
 
@@ -483,16 +512,16 @@ class Test_process(Test_setup):
         forecast count when the observed frequency is non-monotonic."""
 
         expected_data = np.array(
-            [[0, 250, 425, 1000], [0, 250, 425, 1000], [1000, 1000, 600, 1000]]
+            [[1000, 425, 1000], [1000, 425, 1000], [2000, 600, 1000]]
         )
-        expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9], dtype=np.float32)
+        expected_bin_coord_points = np.array([0.2, 0.6, 0.9], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
+            [[0.0, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
         self.multi_threshold_rt.data[1] = np.array(
             [
-                [0, 250, 50, 375, 1000],  # Observation count
-                [0, 250, 50, 375, 1000],  # Sum of forecast probability
+                [750, 250, 50, 375, 1000],  # Observation count
+                [750, 250, 50, 375, 1000],  # Sum of forecast probability
                 [1000, 1000, 100, 500, 1000],  # Forecast count
             ]
         )

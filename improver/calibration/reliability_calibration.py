@@ -830,7 +830,9 @@ class ManipulateReliabilityTable(BasePlugin):
                 bin than the tables that were already monotonic. If
                 under-sampled bins have been combined, then the probability_bin
                 coordinate will have been reduced until all bins have more than
-                the minimum_forecast_count.
+                the minimum_forecast_count if possible; a single under-sampled
+                bin will be returned if combining all bins is still insufficient
+                to reach the minimum_forecast_count.
         """
         threshold_coord = find_threshold_coordinate(reliability_table)
         reliability_table_cubelist = iris.cube.CubeList()
@@ -1008,7 +1010,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         reliability table. If fewer than two bins are provided, Nones are
         returned as no calibration can be applied. Fewer than two bins can occur
         due to repeated combination of undersampled probability bins,
-        please see :class:`.ManipulateReliabilityTables`.
+        please see :class:`.ManipulateReliabilityTable`.
 
         Args:
             reliability_table (iris.cube.Cube):
