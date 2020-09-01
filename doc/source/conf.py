@@ -394,7 +394,7 @@ texinfo_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     "https://docs.python.org/": None,
-    "https://scitools.org.uk/iris/docs/latest/": None,
+    "https://scitools-iris.readthedocs.io/en/latest/": None,
     "https://scitools.org.uk/cartopy/docs/latest/": None,
     "https://scitools.org.uk/cf-units/docs/latest/": None,
     "https://docs.scipy.org/doc/numpy/": None,
