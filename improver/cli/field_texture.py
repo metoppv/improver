@@ -45,7 +45,7 @@ def process(
 
     """Calculates field texture for a given neighbourhood radius.
 
-       The field texture is an assessment of the transitions/edges within a 
+       The field texture is an assessment of the transitions/edges within a
        neighbourhood of a grid point to indicate whether the field is rough
        or smooth.
 
