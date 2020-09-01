@@ -118,9 +118,11 @@ def test_full_process(multi_cloud_cube):
 
     cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))[0]
     expected_data = np.where(cube.data == 0.0, 1.0, 0.0)
+    expected_dtype = "float32"
 
     result = PLUGIN.process(multi_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
+    assert result.dtype == expected_dtype
 
 
 def test__calculate_ratio(thresholded_cloud_cube):
@@ -236,7 +238,6 @@ def test_metadata_coords(multi_cloud_cube):
     expected_units = "1"
     expected_dims = ["projection_y_coordinate", "projection_x_coordinate"]
     expected_scalar_coord = "texture_of_cloud_area_fraction"
-    expected_dtype = "float32"
 
     result_dims = [coord.name() for coord in result.coords(dim_coords=True)]
     result_scalar_coords = [coord.name() for coord in result.coords(dim_coords=False)]
@@ -250,7 +251,6 @@ def test_metadata_coords(multi_cloud_cube):
 
     # check threshold coordinate units
     assert result.coord(expected_scalar_coord).units == expected_units
-    assert result.dtype == expected_dtype
 
 
 def test_metadata_attributes(multi_cloud_cube):

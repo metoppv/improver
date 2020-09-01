@@ -202,8 +202,8 @@ class FieldTexture(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                A cube containing the mean of the thresholded ratios in cube
-                format.
+                A cube containing the mean of the thresholded ratios to give
+                the field texture.
         """
 
         values = np.unique(input_cube.data)

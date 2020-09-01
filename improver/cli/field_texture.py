@@ -51,7 +51,9 @@ def process(
 
     Args:
         cube (iris.cube.Cube):
-            Input data cube that will have a mixture of sunny and cloudy intervals.
+            Precipitation or cloud cover cube where transitions between 
+            precipitating or cloudy regions and non-precipitating or cloudless
+            regions will be diagnosed.
 
         nbhood_radius (float):
             The neighbourhood radius in metres within which the number of potential
@@ -71,9 +73,10 @@ def process(
 
     Returns:
         iris.cube.Cube:
-                A cube containing the mean of the thresholded ratios to give the
-                field texture.
-
+            A field texture cube containing values between 0 and 1, where 0
+            indicates no transitions and 1 indicates the maximum number of
+            possible transitions has been achieved, within the neighbourhood of
+            the grid point.
     """
 
     from improver.field_texture import FieldTexture
