@@ -254,7 +254,7 @@ def test_set_time():
 
 def test_set_time_period():
     """ Tests cube generated with time bounds calculated using specified time_period and the rest of the values set as default values """
-    time_period = 2.5
+    time_period = 150
     cube = generate_metadata(time_period=time_period)
 
     assert iris_time_to_datetime(cube.coord("time"))[0] == TIME_DEFAULT

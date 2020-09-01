@@ -68,7 +68,7 @@ def test_variable_cube(tmp_path):
         "--time",
         "20200102T0400Z",
         "--time-period",
-        "2",
+        "120",
         "--frt",
         "20200101T0400Z",
         "--ensemble-members",

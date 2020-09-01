@@ -42,7 +42,7 @@ def process(
     units=None,
     spatial_grid="latlon",
     time="20171110T0400Z",
-    time_period: float = None,
+    time_period: int = None,
     frt="20171110T0000Z",
     ensemble_members: int = 8,
     leading_dimension: cli.comma_separated_list_of_float = None,
@@ -70,8 +70,8 @@ def process(
             "latlon" or "equalarea".
         time (Optional[str]):
             Single cube validity time. Datetime string of format YYYYMMDDTHHMMZ. If time period given, time is used as the upper time bound.
-        time_period (Optional[float]):
-            The period in hours between the time bounds. This is used to calculate the lower time bound.
+        time_period (Optional[int]):
+            The period in minutes between the time bounds. This is used to calculate the lower time bound.
         frt (Optional[str]):
             Single cube forecast reference time. Datetime string of format YYYYMMDDTHHMMZ.
         ensemble_members (Optional[int]):
