@@ -45,6 +45,10 @@ def process(
 
     """Calculates field texture for a given neighbourhood radius.
 
+       The field texture is an assessment of the transitions/edges within a 
+       neighbourhood of a grid point to indicate whether the field is rough
+       or smooth.
+
     Args:
         cube (iris.cube.Cube):
             Input data cube that will have a mixture of sunny and cloudy intervals.
@@ -67,8 +71,8 @@ def process(
 
     Returns:
         iris.cube.Cube:
-                A cube containing the mean of the thresholded ratios in cube
-                format.
+                A cube containing the mean of the thresholded ratios to give the
+                field texture.
 
     """
 

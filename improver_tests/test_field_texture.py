@@ -233,10 +233,10 @@ def test_metadata_coords(multi_cloud_cube):
         conventions after that plugin has completed."""
 
     result = PLUGIN.process(multi_cloud_cube)
-
     expected_units = "1"
     expected_dims = ["projection_y_coordinate", "projection_x_coordinate"]
     expected_scalar_coord = "texture_of_cloud_area_fraction"
+    expected_dtype = "float32"
 
     result_dims = [coord.name() for coord in result.coords(dim_coords=True)]
     result_scalar_coords = [coord.name() for coord in result.coords(dim_coords=False)]
@@ -250,6 +250,7 @@ def test_metadata_coords(multi_cloud_cube):
 
     # check threshold coordinate units
     assert result.coord(expected_scalar_coord).units == expected_units
+    assert result.dtype == expected_dtype
 
 
 def test_metadata_attributes(multi_cloud_cube):
