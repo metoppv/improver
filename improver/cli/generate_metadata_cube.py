@@ -71,37 +71,50 @@ def process(
             What type of x/y coordinate values to use.  Permitted values are
             "latlon" or "equalarea".
         time (Optional[str]):
-            Single cube validity time. Datetime string of format YYYYMMDDTHHMMZ. If time period given, time is used as the upper time bound.
+            Single cube validity time. Datetime string of format YYYYMMDDTHHMMZ. If
+            time period given, time is used as the upper time bound.
         time_period (Optional[int]):
-            The period in minutes between the time bounds. This is used to calculate the lower time bound.
+            The period in minutes between the time bounds. This is used to calculate
+            the lower time bound.
         frt (Optional[str]):
-            Single cube forecast reference time. Datetime string of format YYYYMMDDTHHMMZ.
+            Single cube forecast reference time. Datetime string of format
+            YYYYMMDDTHHMMZ.
         ensemble_members (Optional[int]):
-            Number of ensemble members. Default 8, unless percentile or probability set to True. Will not be used if leading_dimension or leading_dimension_json provided.
+            Number of ensemble members. Default 8, unless percentile or probability set
+            to True. Will not be used if leading_dimension or leading_dimension_json
+            provided.
         leading_dimension (Optional[List[float]]):
             List of realizations, percentiles or thresholds.
         leading_dimension_json (Optional[Dict]):
-            Dictionary containing a list of realizations, percentiles or thresholds. If both leading_dimension and leading_dimension_json are provided, leading_dimension is used.
+            Dictionary containing a list of realizations, percentiles or thresholds. If
+            both leading_dimension and leading_dimension_json are provided,
+            leading_dimension is used.
         percentile (Optional[bool]):
-            Flag to indicate whether the leading dimension is percentile values. If True, a percentile cube is created.
+            Flag to indicate whether the leading dimension is percentile values. If
+            True, a percentile cube is created.
         probability (Optional[bool]):
-            Flag to indicate whether the leading dimension is threshold values. If True, a probability cube is created.
+            Flag to indicate whether the leading dimension is threshold values. If
+            True, a probability cube is created.
         spp__relative_to_threshold (Optional[str]):
-            Value of the attribute "spp__relative_to_threshold" which is required for IMPROVER probability cubes.
+            Value of the attribute "spp__relative_to_threshold" which is required for
+            IMPROVER probability cubes.
         attributes (Optional[Dict]):
             Dictionary of additional metadata attributes.
         resolution (Optional[float]):
             Resolution of grid (metres or degrees).
         domain_corner (Optional[Tuple[float, float]]):
-            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
+            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for
+            equalarea).
         npoints (Optional[int]):
             Number of points along each of the y and x spatial axes.
         height_levels (Optional[List[float]]):
             List of altitude/pressure levels.
         height_levels_json (Optional[Dict]):
-            Dictionary containing a list of height levels. If both height_levels and height_levels_json are provided, height_levels is used.
+            Dictionary containing a list of height levels. If both height_levels and
+            height_levels_json are provided, height_levels is used.
         pressure (Optional[bool]):
-            Flag to indicate whether the height levels are specified as pressure, in Pa. If False, use height in metres.
+            Flag to indicate whether the height levels are specified as pressure, in
+            Pa. If False, use height in metres.
 
     Returns:
         iris.cube.Cube:

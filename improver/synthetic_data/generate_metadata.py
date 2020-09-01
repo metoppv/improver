@@ -56,7 +56,8 @@ def _get_units(name):
 
 
 def _create_time_bounds(time, time_period):
-    """ Create time bounds using time - time_period as the lower bound and time as the upper bound"""
+    """ Create time bounds using time - time_period as the lower bound and time as the
+    upper bound"""
     lower_bound = time - timedelta(minutes=time_period)
     upper_bound = time
 
@@ -120,37 +121,46 @@ def generate_metadata(
             What type of x/y coordinate values to use.  Permitted values are
             "latlon" or "equalarea".
         time (Optional[datetime.datetime]):
-            Single cube validity time. If time period given, time is used as the upper time bound.
+            Single cube validity time. If time period given, time is used as the upper
+            time bound.
         time_period (Optional[int]):
-            The period in minutes between the time bounds. This is used to calculate the lower time bound.
+            The period in minutes between the time bounds. This is used to calculate
+            the lower time bound.
         frt (Optional[datetime.datetime]):
             Single cube forecast reference time.
         ensemble_members (Optional[int]):
-            Number of ensemble members. Default 8, unless percentile or probability set to True.
+            Number of ensemble members. Default 8, unless percentile or probability set
+            to True.
         leading_dimension (Optional[List[float]]):
             List of realizations, percentiles or thresholds.
         percentile (Optional[bool]):
-            Flag to indicate whether the leading dimension is percentile values. If True, a percentile cube is created.
+            Flag to indicate whether the leading dimension is percentile values. If
+            True, a percentile cube is created.
         probability (Optional[bool]):
-            Flag to indicate whether the leading dimension is threshold values. If True, a probability cube is created.
+            Flag to indicate whether the leading dimension is threshold values. If
+            True, a probability cube is created.
         spp__relative_to_threshold (Optional[str]):
-            Value of the attribute "spp__relative_to_threshold" which is required for IMPROVER probability cubes.
+            Value of the attribute "spp__relative_to_threshold" which is required for
+            IMPROVER probability cubes.
         attributes (Optional[Dict]):
             Dictionary of additional metadata attributes.
         resolution (Optional[float]):
             Resolution of grid (metres or degrees).
         domain_corner (Optional[Tuple[float, float]]):
-            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
+            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for
+            equalarea).
         npoints (Optional[int]):
             Number of points along each of the y and x spatial axes.
         height_levels (Optional[List[float]]):
             List of altitude/pressure levels.
         pressure (Optional[bool]):
-            Flag to indicate whether the height levels are specified as pressure, in Pa. If False, use height in metres.
+            Flag to indicate whether the height levels are specified as pressure, in
+            Pa. If False, use height in metres.
 
     Returns:
         iris.cube.Cube:
-            Output of set_up_variable_cube(), set_up_percentile_cube() or set_up_probability_cube()
+            Output of set_up_variable_cube(), set_up_percentile_cube() or
+            set_up_probability_cube()
     """
     if spatial_grid not in ("latlon", "equalarea"):
         raise ValueError(
