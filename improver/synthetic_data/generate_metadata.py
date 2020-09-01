@@ -111,9 +111,11 @@ def generate_metadata(
 
     Args:
         name (str):
-            Output variable name.
+            Output variable name, or if creating a probability cube the name of the
+            underlying variable to which the probability field applies.
         units (Optional[str]):
-            Output variable units.
+            Output variable units, or if creating a probability cube the units of the
+            underlying variable / threshold.
         spatial_grid (Optional[str]):
             What type of x/y coordinate values to use.  Permitted values are
             "latlon" or "equalarea".
@@ -140,7 +142,7 @@ def generate_metadata(
         domain_corner (Optional[Tuple[float, float]]):
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
         npoints (Optional[int]):
-            Number of points along a single axis.
+            Number of points along each of the y and x spatial axes.
         height_levels (Optional[List[float]]):
             List of altitude/pressure levels.
         pressure (Optional[bool]):
