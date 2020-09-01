@@ -51,7 +51,7 @@ def process(
 
     Args:
         cube (iris.cube.Cube):
-            Precipitation or cloud cover cube where transitions between 
+            Precipitation or cloud cover cube where transitions between
             precipitating or cloudy regions and non-precipitating or cloudless
             regions will be diagnosed.
 
