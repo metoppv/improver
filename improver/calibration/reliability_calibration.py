@@ -790,6 +790,7 @@ class ManipulateReliabilityTable(BasePlugin):
 
         observation_frequency = iterator
         if forecast_count[0] < forecast_count[-1]:
+            # Re-reverse array from bottom to top to ensure original ordering.
             observation_frequency = iterator[::-1]
 
         observation_count = observation_frequency * forecast_count
