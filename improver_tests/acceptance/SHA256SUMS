@@ -33,6 +33,7 @@ b4b7b5810cd993538d771f1fee7578568481dfc6b3203aed6eb73f3e58c42079  ./apply-lapse-
 6564fd98afbed70eb278f8fc33fbba7bc2d3e621dc64c91e691d846ba89b707b  ./apply-night-mask/uk_basic/input.nc
 24903d364a70212cddcf200a1434c78ed7d3574577529ece721ffe5f161f191d  ./apply-night-mask/uk_basic/kgo.nc
 d45b0d66f47dc40f67df5a6ffc5a338aa33959cd1928a3078d2f303c21fd0539  ./apply-reliability-calibration/basic/collapsed_table.nc
+95b0f56f3ba5d437971f1305325e3d2ccbcd407a3edb3954a42782a83fa0ed14  ./apply-reliability-calibration/basic/cubelist_table.nc
 429c6278c294b2106de8982a81df2f494f533639384092d444a16da9fff3ec23  ./apply-reliability-calibration/basic/forecast.nc
 d54ddf4cfe900310c7ede345cb56dad6100ef1ac8aaa40d97fe17f69ed7bdb93  ./apply-reliability-calibration/basic/kgo.nc
 62d4bee1fa81fd967c5c4ebc87cd235ed926b7eddf224481392dca875c86a4ac  ./between-thresholds/input.nc

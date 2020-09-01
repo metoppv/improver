@@ -53,6 +53,21 @@ def test_calibration(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_calibration_cubelist_input(tmp_path):
+    """
+    Test calibration of a forecast using a reliability calibration table input
+    as a cubelist with a separate cube for each threshold.
+    """
+    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
+    kgo_path = kgo_dir / "kgo.nc"
+    forecast_path = kgo_dir / "forecast.nc"
+    table_path = kgo_dir / "cubelist_table.nc"
+    output_path = tmp_path / "output.nc"
+    args = [forecast_path, table_path, "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_no_calibration(tmp_path):
     """
     Test applying reliability calibration without a reliability table.

@@ -135,6 +135,17 @@ class Test_inputcube(unittest.TestCase):
         self.assertEqual(result, "return")
 
 
+class Test_inputcubelist(unittest.TestCase):
+    """Tests the input cubelist function"""
+
+    @patch("improver.cli.maybe_coerce_with", return_value="return")
+    def test_basic(self, m):
+        """Tests that input cubelist calls load_cubelist with the string"""
+        result = inputcubelist("foo")
+        m.assert_called_with(improver.utilities.load.load_cubelist, "foo")
+        self.assertEqual(result, "return")
+
+
 class Test_inputjson(unittest.TestCase):
     """Tests the input cube function"""
 
