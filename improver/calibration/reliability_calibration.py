@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Reliability calibration plugins."""
 
+import operator
 import warnings
 
 import iris
@@ -750,11 +751,15 @@ class ManipulateReliabilityTable(BasePlugin):
     @staticmethod
     def _assume_constant_observation_frequency(observation_count, forecast_count):
         """
-        Iterate through the observation frequency from the lowest probability
-        bin to the highest probability bin. Compare each pair of bins and, if
-        a pair is non-monotonic, replace the value of the upper bin with the
-        value of the lower bin. Then calculate the new observation count
-        required to give a monotonic observation frequency.
+        Decide which end bin (highest probability bin or lowest probability
+        bin) has the highest sample count. Iterate through the observation
+        frequency from the end bin with the highest sample count to the end bin
+        with the lowest sample count. Whilst iterating, compare each pair of
+        bins and, if a pair is non-monotonic, replace the value of the bin
+        closer to the lowest sample count end bin with the value of the
+        bin that is closer to the higher sample count end bin. Then calculate
+        the new observation count required to give a monotonic observation
+        frequency.
 
         Args:
             observation_count (numpy.ndarray):
@@ -768,10 +773,26 @@ class ManipulateReliabilityTable(BasePlugin):
 
         """
         observation_frequency = np.array(observation_count / forecast_count)
-        for index, lower_bin in enumerate(observation_frequency[:-1]):
-            (diff,) = np.diff([lower_bin, observation_frequency[index + 1]])
-            if diff < 0:
-                observation_frequency[index + 1] = lower_bin
+
+        iterator = observation_frequency
+        operation = operator.lt
+        # Top down if forecast count is lower for lowest probability bin,
+        # than for highest probability bin.
+        if forecast_count[0] < forecast_count[-1]:
+            # Reverse array to iterate from top to bottom.
+            iterator = observation_frequency[::-1]
+            operation = operator.gt
+
+        for index, lower_bin in enumerate(iterator[:-1]):
+            (diff,) = np.diff([lower_bin, iterator[index + 1]])
+            if operation(diff, 0):
+                iterator[index + 1] = lower_bin
+
+        observation_frequency = iterator
+        if forecast_count[0] < forecast_count[-1]:
+            # Re-reverse array from bottom to top to ensure original ordering.
+            observation_frequency = iterator[::-1]
+
         observation_count = observation_frequency * forecast_count
         return observation_count
 
