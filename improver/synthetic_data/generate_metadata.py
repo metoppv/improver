@@ -57,7 +57,7 @@ def _get_units(name):
 
 def _create_time_bounds(time, time_period):
     """ Create time bounds using time - time_period as the lower bound and time as the upper bound"""
-    lower_bound = time - timedelta(hours=time_period)
+    lower_bound = time - timedelta(minutes=time_period)
     upper_bound = time
 
     return (lower_bound, upper_bound)
@@ -119,8 +119,8 @@ def generate_metadata(
             "latlon" or "equalarea".
         time (Optional[datetime.datetime]):
             Single cube validity time. If time period given, time is used as the upper time bound.
-        time_period (Optional[float]):
-            The period in hours between the time bounds. This is used to calculate the lower time bound.
+        time_period (Optional[int]):
+            The period in minutes between the time bounds. This is used to calculate the lower time bound.
         frt (Optional[datetime.datetime]):
             Single cube forecast reference time.
         ensemble_members (Optional[int]):
