@@ -39,9 +39,9 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_mainpulate(tmp_path):
+def test_manipulate(tmp_path):
     """
-    Test mainpulation of a reliablity table
+    Test manipulation of a reliability table
     """
     kgo_dir = acc.kgo_root() / "manipulate-reliability-table/basic"
     kgo_path = kgo_dir / "kgo_precip.nc"
@@ -52,9 +52,9 @@ def test_mainpulate(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_mainpulate_minimum_forecast_count(tmp_path):
+def test_manipulate_minimum_forecast_count(tmp_path):
     """
-    Test mainpulation of a reliablity table with a reduced minimum forecast count
+    Test manipulation of a reliability table with an increased minimum forecast count
     """
     kgo_dir = acc.kgo_root() / "manipulate-reliability-table/basic"
     kgo_path = kgo_dir / "kgo_300_min_count.nc"

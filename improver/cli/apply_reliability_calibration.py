@@ -53,9 +53,10 @@ def process(
     Args:
         forecast (iris.cube.Cube):
             The forecast to be calibrated.
-        reliability_table (iris.cube.Cube):
+        reliability_table (iris.cube.Cube or iris.cube.CubeList):
             The reliability calibration table to use in calibrating the
-            forecast.
+            forecast. If input is a CubeList the CubeList should contain
+            separate cubes for each threshold in the forecast cube.
 
     Returns:
         iris.cube.Cube:

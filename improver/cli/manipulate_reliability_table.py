@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to mainpulate a relibility table cube."""
+"""CLI to manipulate a reliability table cube."""
 
 from improver import cli
 
@@ -41,7 +41,7 @@ def process(
 ):
     """
     Manipulate a reliability table to ensure sufficient sample counts in
-    as many bins as possible by combining bins low sample counts.
+    as many bins as possible by combining bins with low sample counts.
     Also enforces a monotonic observation frequency.
 
     Args:
@@ -56,7 +56,8 @@ def process(
     Returns:
         iris.cube.CubeList:
             The reliability table that has been manipulated to ensure
-            sufficient sample counts and monotonic observation frequency.
+            sufficient sample counts in each probability bin and a monotonic
+            observation frequency.
             The cubelist contains a separate cube for each threshold in
             the original reliability table.
     """
