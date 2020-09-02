@@ -86,7 +86,7 @@ def _create_data_array(ensemble_members, leading_dimension, npoints, height_leve
     data_shape.append(npoints)
     data_shape.append(npoints)
 
-    return np.zeros(data_shape, dtype=int)
+    return np.zeros(data_shape, dtype=np.float32)
 
 
 def generate_metadata(
