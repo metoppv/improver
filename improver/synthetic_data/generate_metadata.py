@@ -195,22 +195,23 @@ def generate_metadata(
         ensemble_members, leading_dimension, npoints, height_levels
     )
 
+    # Set args to pass to cube set up function
+    common_args = {
+        "spatial_grid": spatial_grid,
+        "time": time,
+        "time_bounds": time_bounds,
+        "frt": frt,
+        "attributes": attributes,
+        "grid_spacing": resolution,
+        "domain_corner": domain_corner,
+        "height_levels": height_levels,
+        "pressure": pressure,
+    }
+
     # Set up requested cube
     if percentile:
         metadata_cube = set_up_percentile_cube(
-            data,
-            percentiles=leading_dimension,
-            name=name,
-            units=units,
-            spatial_grid=spatial_grid,
-            time=time,
-            time_bounds=time_bounds,
-            frt=frt,
-            attributes=attributes,
-            grid_spacing=resolution,
-            domain_corner=domain_corner,
-            height_levels=height_levels,
-            pressure=pressure,
+            data, percentiles=leading_dimension, name=name, units=units, **common_args,
         )
     elif probability:
         metadata_cube = set_up_probability_cube(
@@ -219,31 +220,11 @@ def generate_metadata(
             variable_name=name,
             threshold_units=units,
             spp__relative_to_threshold=spp__relative_to_threshold,
-            spatial_grid=spatial_grid,
-            time=time,
-            time_bounds=time_bounds,
-            frt=frt,
-            attributes=attributes,
-            grid_spacing=resolution,
-            domain_corner=domain_corner,
-            height_levels=height_levels,
-            pressure=pressure,
+            **common_args,
         )
     else:
         metadata_cube = set_up_variable_cube(
-            data,
-            name=name,
-            units=units,
-            spatial_grid=spatial_grid,
-            time=time,
-            time_bounds=time_bounds,
-            frt=frt,
-            realizations=leading_dimension,
-            attributes=attributes,
-            grid_spacing=resolution,
-            domain_corner=domain_corner,
-            height_levels=height_levels,
-            pressure=pressure,
+            data, name=name, units=units, realizations=leading_dimension, **common_args,
         )
 
     metadata_cube = squeeze(metadata_cube)
