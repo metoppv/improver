@@ -53,7 +53,8 @@ def test_default(tmp_path):
 
 
 def test_variable_cube(tmp_path):
-    """Test metadata cube generation creating a variable/realization cube setting values for all options except pressure and dimension json inputs"""
+    """Test metadata cube generation creating a variable/realization cube setting
+    values for all options except pressure and dimension json inputs"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
     kgo_path = kgo_dir / "kgo_variable.nc"
     attributes_path = kgo_dir / "attributes.json"
@@ -186,7 +187,8 @@ def test_probability_cube_json(tmp_path):
 
 
 def test_both_leading_dimension_json(tmp_path):
-    """Test metadata cube generated with leading_dimension input rather than leading_dimension_json input if both provided"""
+    """Test metadata cube generated with leading_dimension input rather than
+    leading_dimension_json input if both provided"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
     kgo_path = kgo_dir / "kgo_leading_dimension.nc"
     realizations_path = kgo_dir / "realizations.json"
@@ -204,7 +206,8 @@ def test_both_leading_dimension_json(tmp_path):
 
 
 def test_single_height_level(tmp_path):
-    """Test metadata cube generation giving single value (rather than comma separated list) for height levels option demotes height to scalar coordinate"""
+    """Test metadata cube generation giving single value (rather than comma separated
+    list) for height levels option demotes height to scalar coordinate"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
     kgo_path = kgo_dir / "kgo_single_height_level.nc"
     output_path = tmp_path / "output.nc"
@@ -242,7 +245,8 @@ def test_pressure_levels(tmp_path):
 
 
 def test_both_height_levels_input(tmp_path):
-    """Test metadata cube generated with height_levels input rather than height_levels_json input if both provided"""
+    """Test metadata cube generated with height_levels input rather than
+    height_levels_json input if both provided"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
     kgo_path = kgo_dir / "kgo_single_height_level.nc"
     height_levels_path = kgo_dir / "height_levels.json"
