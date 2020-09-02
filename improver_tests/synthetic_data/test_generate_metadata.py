@@ -69,11 +69,6 @@ SPATIAL_GRID_ATTRIBUTE_DEFAULTS = {
 }
 
 
-def _check_cubes_are_same(cube_result, cube_expected):
-    """ Asserts that cubes are equal """
-    assert cube_result == cube_expected
-
-
 def _check_cube_shape_different(cube):
     """ Asserts that cube shape has been changed from default but name, units and attributes are unchanged """
     default_cube = generate_metadata()
@@ -131,7 +126,7 @@ def test_set_name_no_units():
     cube.standard_name = default_cube.standard_name
     cube.units = default_cube.units
 
-    _check_cubes_are_same(cube, default_cube)
+    assert cube == default_cube
 
 
 def test_set_name_units():
@@ -149,15 +144,14 @@ def test_set_name_units():
     cube.standard_name = default_cube.standard_name
     cube.units = default_cube.units
 
-    _check_cubes_are_same(cube, default_cube)
+    assert cube == default_cube
 
 
 def test_name_unknown_no_units():
     """ Tests error raised if output variable name not in iris.std_names.STD_NAMES and no unit provided """
     name = "temperature"
-    msg = "Units of {} are not known.".format(name)
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match=name):
         generate_metadata(name)
 
 
@@ -178,7 +172,7 @@ def test_name_unknown_with_units():
     cube.rename(default_cube.standard_name)
     cube.units = default_cube.units
 
-    _check_cubes_are_same(cube, default_cube)
+    assert cube == default_cube
 
 
 @pytest.mark.parametrize("spatial_grid", ["latlon", "equalarea"])
@@ -220,19 +214,16 @@ def test_set_spatial_grid(spatial_grid):
                 "coord_system"
             ]
 
-        _check_cubes_are_same(cube, default_cube)
+        assert cube == default_cube
     else:
-        _check_cubes_are_same(cube, default_cube)
+        assert cube == default_cube
 
 
 def test_spatial_grid_not_supported():
     """ Tests error raised if spatial grid not supported """
     spatial_grid = "other"
-    msg = "Spatial grid {} not supported. Choose either latlon or equalarea.".format(
-        spatial_grid
-    )
 
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError, match=spatial_grid):
         generate_metadata(spatial_grid=spatial_grid)
 
 
@@ -249,7 +240,7 @@ def test_set_time():
     cube.coord("time").points = default_cube.coord("time").points
     cube.coord("forecast_period").points = default_cube.coord("forecast_period").points
 
-    _check_cubes_are_same(cube, default_cube)
+    assert cube == default_cube
 
 
 def test_set_time_period():
@@ -269,7 +260,7 @@ def test_set_time_period():
     cube.coord("time").bounds = None
     cube.coord("forecast_period").bounds = None
 
-    _check_cubes_are_same(cube, default_cube)
+    assert cube == default_cube
 
 
 def test_set_frt():
@@ -288,7 +279,7 @@ def test_set_frt():
     ).points
     cube.coord("forecast_period").points = default_cube.coord("forecast_period").points
 
-    _check_cubes_are_same(cube, default_cube)
+    assert cube == default_cube
 
 
 def test_set_ensemble_members():
@@ -329,7 +320,7 @@ def test_leading_dimension(percentile, probability, spp__relative_to_threshold):
     """ Tests cube generated with leading dimension specified using percentile and probability flags, and different values for spp__relative_to_threshold """
     if percentile and probability:
         # Tests that error is raised when both percentile and probability set to True
-        msg = "Only percentile cube or probability cube can be generated, not both."
+        msg = "percentile cube or probability cube"
 
         with pytest.raises(ValueError, match=msg):
             generate_metadata(percentile=percentile, probability=probability)
@@ -372,7 +363,7 @@ def test_leading_dimension(percentile, probability, spp__relative_to_threshold):
         assert cube.ndim == 3
         assert cube.shape == (len(leading_dimension), NPOINTS_DEFAULT, NPOINTS_DEFAULT)
         assert cube.coords()[0].name() == coord_name
-        assert np.array_equal(cube.coord(coord_name).points, leading_dimension)
+        np.testing.assert_array_equal(cube.coord(coord_name).points, leading_dimension)
 
         # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
         default_cube = generate_metadata()
@@ -383,7 +374,7 @@ def test_leading_dimension(percentile, probability, spp__relative_to_threshold):
         cube.rename(default_cube.standard_name)
         cube.units = default_cube.units
 
-        _check_cubes_are_same(cube, default_cube)
+        assert cube == default_cube
 
 
 def test_set_attributes():
@@ -397,7 +388,7 @@ def test_set_attributes():
     default_cube = generate_metadata()
     cube.attributes = default_cube.attributes
 
-    _check_cubes_are_same(cube, default_cube)
+    assert cube == default_cube
 
 
 def test_set_resolution():
@@ -414,7 +405,7 @@ def test_set_resolution():
         cube.coord(axis=axis).points = default_cube.coord(axis=axis).points
         cube.coord(axis=axis).bounds = default_cube.coord(axis=axis).bounds
 
-    _check_cubes_are_same(cube, default_cube)
+    assert cube == default_cube
 
 
 def test_set_domain_corner():
@@ -431,13 +422,13 @@ def test_set_domain_corner():
     cube.coord(axis="x").points = default_cube.coord(axis="x").points
     cube.coord(axis="y").bounds = default_cube.coord(axis="y").bounds
     cube.coord(axis="x").bounds = default_cube.coord(axis="x").bounds
-    _check_cubes_are_same(cube, default_cube)
+    assert cube == default_cube
 
 
 @pytest.mark.parametrize("domain_corner", ([0], [1, 2, 3]))
 def test_error_domain_corner_incorrect_length(domain_corner):
     """ Tests error is raised if domain corner provided is not of length 2 """
-    msg = "Domain corner must be a list or tuple of length 2."
+    msg = "Domain corner"
 
     with pytest.raises(ValueError, match=msg):
         generate_metadata(domain_corner=domain_corner)
@@ -475,7 +466,7 @@ def test_set_height_levels():
     assert cube.coords()[2].name() == expected_spatial_grid_attributes["y"]
     assert cube.coords()[3].name() == expected_spatial_grid_attributes["x"]
 
-    assert np.array_equal(cube.coord("height").points, height_levels)
+    np.testing.assert_array_equal(cube.coord("height").points, height_levels)
 
     # Assert that cube shape is different from default cube shape but metadata unchanged
     _check_cube_shape_different(cube)
@@ -496,12 +487,12 @@ def test_set_height_levels_single_value():
     assert cube.coords()[1].name() == expected_spatial_grid_attributes["y"]
     assert cube.coords()[2].name() == expected_spatial_grid_attributes["x"]
 
-    assert np.array_equal(cube.coord("height").points, height_levels)
+    np.testing.assert_array_equal(cube.coord("height").points, height_levels)
 
     # Assert that no other values have unexpectedly changed by returning changed values to defaults and comparing against default cube
     default_cube = generate_metadata()
     cube.remove_coord("height")
-    _check_cubes_are_same(cube, default_cube)
+    assert cube == default_cube
 
 
 def test_disable_ensemble_set_height_levels():
@@ -522,7 +513,7 @@ def test_disable_ensemble_set_height_levels():
     assert cube.coords()[1].name() == expected_spatial_grid_attributes["y"]
     assert cube.coords()[2].name() == expected_spatial_grid_attributes["x"]
 
-    assert np.array_equal(cube.coord("height").points, height_levels)
+    np.testing.assert_array_equal(cube.coord("height").points, height_levels)
 
     # Assert that cube shape is different from default cube shape but metadata unchanged
     _check_cube_shape_different(cube)
