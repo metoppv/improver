@@ -40,7 +40,8 @@ run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
-    """Test field texture operation with multiple realizations and thresholds."""
+    """Test field texture operation with default arguments."""
+
     kgo_dir = acc.kgo_root() / "field-texture/basic"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
@@ -48,9 +49,26 @@ def test_basic(tmp_path):
 
     args = [
         input_path,
-        "--nbhood-radius=10000.0",
-        "--textural-threshold=0.4",
-        "--diagnostic-threshold=0.8125",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_args(tmp_path):
+    """Tests field texture operation with defined arguments"""
+
+    kgo_dir = acc.kgo_root() / "field-texture/args"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+
+    args = [
+        input_path,
+        "--nbhood-radius=5000.0",
+        "--textural-threshold=0.05",
+        "--diagnostic-threshold=0.6145",
         "--output",
         output_path,
     ]

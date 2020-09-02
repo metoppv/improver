@@ -38,9 +38,9 @@ from improver import cli
 def process(
     cube: cli.inputcube,
     *,
-    nbhood_radius: float,
-    textural_threshold: float,
-    diagnostic_threshold: float,
+    nbhood_radius: float = 10000.0,
+    textural_threshold: float = 0.05,
+    diagnostic_threshold: float = 0.8125,
 ):
 
     """Calculates field texture for a given neighbourhood radius.
@@ -51,25 +51,29 @@ def process(
 
     Args:
         cube (iris.cube.Cube):
-            Precipitation or cloud cover cube where transitions between
+            Cloud area fraction or precipitation rate cube where transitions between
             precipitating or cloudy regions and non-precipitating or cloudless
-            regions will be diagnosed.
+            regions will be diagnosed. Defaults set assuming cloud area fraction
+            cube.
 
         nbhood_radius (float):
             The neighbourhood radius in metres within which the number of potential
             transitions should be calculated. This forms the denominator in the
             calculation of the ratio of actual to potential transitions that indicates a
             field's texture. A larger radius should be used for diagnosing larger-scale
-            textural features.
+            textural features. Default value set to 10000.0 assuming cloud area fraction
+            cube.
 
         textural_threshold (float):
             A unit-less threshold value that defines the ratio value above which
             the field is considered rough and below which the field is considered
-            smoother.
+            smoother. Default value set to 0.05 assuming cloud area fraction cube.
 
         diagnostic_threshold (float):
-            A user defined threshold value related either to cloud or precipitation,
-            used to extract the corresponding dimensional cube with assumed units of 1.
+            The diagnostic threshold for which field texture will be calculated.
+            A ValueError is raised if this threshold is not present on the input
+            cube. Default value set to 0.8125 corresponding to 6 oktas, assuming
+            cloud area fraction cube.
 
     Returns:
         iris.cube.Cube:

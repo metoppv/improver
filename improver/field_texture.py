@@ -213,12 +213,22 @@ class FieldTexture(BasePlugin):
 
         # Create new cube name for _calculate_ratio method.
         self.cube_name = find_threshold_coordinate(input_cube).name()
-
-        # Extract threshold from input data to work with.
+        # Extract threshold from input data to work with, taking into account floating
+        # point comparisons.
         cube = input_cube.extract(
             iris.Constraint(
                 coord_values={
-                    self.cube_name: lambda cell: cell == self.diagnostic_threshold
+                    self.cube_name: lambda cell: np.nextafter(
+                        self.diagnostic_threshold,
+                        self.diagnostic_threshold - 1,
+                        dtype=np.float32,
+                    )
+                    < cell
+                    < np.nextafter(
+                        self.diagnostic_threshold,
+                        self.diagnostic_threshold + 1,
+                        dtype=np.float32,
+                    )
                 }
             )
         )

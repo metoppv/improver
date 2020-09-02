@@ -208,7 +208,7 @@ def test_wrong_threshold(multi_cloud_cube):
     plugin = FieldTexture(
         nbhood_radius=NB_RADIUS,
         textural_threshold=TEXT_THRESH,
-        diagnostic_threshold="0.235",
+        diagnostic_threshold=0.235,
     )
     with pytest.raises(ValueError, match="Threshold 0.235 is not present.*"):
         plugin.process(multi_cloud_cube)
