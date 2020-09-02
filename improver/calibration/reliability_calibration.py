@@ -519,9 +519,7 @@ class ManipulateReliabilityTable(BasePlugin):
         Args:
             minimum_forecast_count (int):
                 The minimum number of forecast counts in a forecast probability
-                bin for it to be used in calibration. If the reliability
-                table for a forecast threshold includes any bins with
-                insufficient counts that threshold will be returned unchanged.
+                bin for it to be used in calibration.
                 The default value of 200 is that used in Flowerdew 2014.
         Raises:
             ValueError: If minimum_forecast_count is less than 1.

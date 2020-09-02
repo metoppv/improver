@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2020 Met Office.
@@ -28,53 +29,39 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the apply-reliability-calibration CLI."""
+"""CLI to manipulate a reliability table cube."""
 
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver import cli
 
 
-def test_calibration(tmp_path):
+@cli.clizefy
+@cli.with_output
+def process(
+    reliability_table: cli.inputcube, *, minimum_forecast_count: int = 200,
+):
     """
-    Test calibration of a forecast using a reliability calibration table.
-    """
-    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    forecast_path = kgo_dir / "forecast.nc"
-    table_path = kgo_dir / "collapsed_table.nc"
-    output_path = tmp_path / "output.nc"
-    args = [forecast_path, table_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    Manipulate a reliability table to ensure sufficient sample counts in
+    as many bins as possible by combining bins with low sample counts.
+    Also enforces a monotonic observation frequency.
 
+    Args:
+        reliability_table (iris.cube.Cube):
+            The reliability table that needs to be manipulated after the
+            spatial dimensions have been aggregated.
+        minimum_forecast_count (int):
+            The minimum number of forecast counts in a forecast probability
+            bin for it to be used in calibration.
+            The default value of 200 is that used in Flowerdew 2014.
 
-def test_calibration_cubelist_input(tmp_path):
+    Returns:
+        iris.cube.CubeList:
+            The reliability table that has been manipulated to ensure
+            sufficient sample counts in each probability bin and a monotonic
+            observation frequency.
+            The cubelist contains a separate cube for each threshold in
+            the original reliability table.
     """
-    Test calibration of a forecast using a reliability calibration table input
-    as a cubelist with a separate cube for each threshold.
-    """
-    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    forecast_path = kgo_dir / "forecast.nc"
-    table_path = kgo_dir / "cubelist_table.nc"
-    output_path = tmp_path / "output.nc"
-    args = [forecast_path, table_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    from improver.calibration.reliability_calibration import ManipulateReliabilityTable
 
-
-def test_no_calibration(tmp_path):
-    """
-    Test applying reliability calibration without a reliability table.
-    """
-    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
-    forecast_path = kgo_dir / "forecast.nc"
-    output_path = tmp_path / "output.nc"
-    args = [forecast_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, forecast_path)
+    plugin = ManipulateReliabilityTable(minimum_forecast_count=minimum_forecast_count)
+    return plugin(reliability_table)
