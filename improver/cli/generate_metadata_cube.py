@@ -138,22 +138,11 @@ def process(
     time = cycletime_to_datetime(time)
     frt = cycletime_to_datetime(frt)
 
-    return generate_metadata(
-        name=name,
-        units=units,
-        spatial_grid=spatial_grid,
-        time=time,
-        time_period=time_period,
-        frt=frt,
-        ensemble_members=ensemble_members,
-        leading_dimension=leading_dimension,
-        percentile=percentile,
-        probability=probability,
-        spp__relative_to_threshold=spp__relative_to_threshold,
-        attributes=attributes,
-        resolution=resolution,
-        domain_corner=domain_corner,
-        npoints=npoints,
-        height_levels=height_levels,
-        pressure=pressure,
-    )
+    # Set arguments to pass to generate_metadata function
+    generate_metadata_args = locals()
+    generate_metadata_args.pop("leading_dimension_json", None)
+    generate_metadata_args.pop("height_levels_json", None)
+    generate_metadata_args.pop("cycletime_to_datetime", None)
+    generate_metadata_args.pop("generate_metadata", None)
+
+    return generate_metadata(**generate_metadata_args)
