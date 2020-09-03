@@ -51,7 +51,7 @@ def process(
     probability=False,
     spp__relative_to_threshold="above",
     attributes: cli.inputjson = None,
-    resolution: float = None,
+    grid_spacing: float = None,
     domain_corner: cli.comma_separated_list_of_float = None,
     npoints: int = 71,
     height_levels: cli.comma_separated_list_of_float = None,
@@ -100,7 +100,7 @@ def process(
             IMPROVER probability cubes.
         attributes (Optional[Dict]):
             Dictionary of additional metadata attributes.
-        resolution (Optional[float]):
+        grid_spacing (Optional[float]):
             Resolution of grid (metres or degrees).
         domain_corner (Optional[Tuple[float, float]]):
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for

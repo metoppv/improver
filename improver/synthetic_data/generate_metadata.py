@@ -42,7 +42,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 
-DEFAULT_RESOLUTION = {"latlon": 0.02, "equalarea": 2000}
+DEFAULT_GRID_SPACING = {"latlon": 0.02, "equalarea": 2000}
 
 
 def _get_units(name):
@@ -102,7 +102,7 @@ def generate_metadata(
     probability=False,
     spp__relative_to_threshold="above",
     attributes=None,
-    resolution=None,
+    grid_spacing=None,
     domain_corner=None,
     npoints=71,
     height_levels=None,
@@ -144,7 +144,7 @@ def generate_metadata(
             IMPROVER probability cubes.
         attributes (Optional[Dict]):
             Dictionary of additional metadata attributes.
-        resolution (Optional[float]):
+        grid_spacing (Optional[float]):
             Resolution of grid (metres or degrees).
         domain_corner (Optional[Tuple[float, float]]):
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for
@@ -186,9 +186,9 @@ def generate_metadata(
     else:
         time_bounds = None
 
-    # If resolution not specified, use default for requested spatial grid
-    if resolution is None:
-        resolution = DEFAULT_RESOLUTION[spatial_grid]
+    # If grid_spacing not specified, use default for requested spatial grid
+    if grid_spacing is None:
+        grid_spacing = DEFAULT_GRID_SPACING[spatial_grid]
 
     # Create ndimensional array of zeros
     data = _create_data_array(
@@ -202,7 +202,7 @@ def generate_metadata(
         "time_bounds": time_bounds,
         "frt": frt,
         "attributes": attributes,
-        "grid_spacing": resolution,
+        "grid_spacing": grid_spacing,
         "domain_corner": domain_corner,
         "height_levels": height_levels,
         "pressure": pressure,

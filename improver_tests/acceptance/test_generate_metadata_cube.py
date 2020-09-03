@@ -78,7 +78,7 @@ def test_variable_cube(tmp_path):
         "1,4,8,12",
         "--attributes",
         attributes_path,
-        "--resolution",
+        "--grid-spacing",
         "5000",
         "--domain-corner",
         "0,0",
