@@ -1,32 +1,7 @@
 import argparse
-import os
 
-import numpy as np
-from matplotlib import pyplot as plt
-
-
-def format_line(line):
-    """Take raw line from textfile, remove spaces and return list of
-    numbers"""
-    # remove spaces
-    ftline = line.strip(' \n').split(' ')
-    ftline = [item for item in ftline if item != '']
-    # convert to numerical values
-    ftline = [ftline[0], int(ftline[1]), float(ftline[2]),
-              *[int(item) for item in ftline[3:]]]
-    return ftline
-
-
-def get_stats(hits, misses, false, no_det):
-    """Calculate binary statistics"""
-    a, b, c, d = [float(x) for x in [hits, misses, false, no_det]]
-
-    POD = a / (a + b)
-    FAR = c / (a + c)
-    CSI = a / (a + b + c)
-    HSS = 2*(a*d - b*c) / ((a+c)*(c+d) + (a+b)*(b+d))
-
-    return POD, FAR, CSI, HSS
+from improver.verify.parse_file import get_model, read_count_files
+from improver.verify.statistics import StatsDict, plot_by_leadtime
 
 
 def main(infiles, plotdir, startdate, enddate):
@@ -47,40 +22,21 @@ def main(infiles, plotdir, startdate, enddate):
         enddate (int or None):
             Date to end calculation in YYYYMMDD format
     """
-    # get model from first filename in list
-    model = os.path.basename(infiles[0])[7:-11]
-    print(model)
+    model = get_model(infiles[0])
+    if len(infiles) > 1:
+        for fname in infiles:
+            if get_model(fname) != model:
+                raise ValueError('All input counts must come from the same model')
 
     if startdate is None:
         startdate = 0
     if enddate is None:
         enddate = 20500101
 
-    counts_by_leadtime = {}
-    for datafile in infiles:
-        with open(datafile) as dtf:
-            line = dtf.readline()
-            while line:
-                dt, lt, thresh, hits, misses, false, no_det = format_line(line)
-                day = int(dt[:8])
-                # TODO filter by threshold!
-                if day > startdate and day < enddate:
-                    if lt not in counts_by_leadtime:
-                        counts_by_leadtime[lt] = {}
-                    if thresh not in counts_by_leadtime[lt]:
-                        counts_by_leadtime[lt][thresh] = {}
-                        for name in ['hits', 'misses', 'false', 'no_det']:
-                            counts_by_leadtime[lt][thresh][name] = 0
-                    counts_by_leadtime[lt][thresh]['hits'] += hits
-                    counts_by_leadtime[lt][thresh]['misses'] += misses
-                    counts_by_leadtime[lt][thresh]['false'] += false
-                    counts_by_leadtime[lt][thresh]['no_det'] += no_det
+    counts = read_count_files(infiles, startdate, enddate)
+    stats = StatsDict(counts)
 
-                line = dtf.readline()
-
-    for lt in counts_by_leadtime:
-        for thresh in counts_by_leadtime[lt]:
-            print(lt, thresh, counts_by_leadtime[lt][thresh])
+    plot_by_leadtime(stats, [0.1, 0.5, 1.0, 2.0, 4.0], 'FAR')
 
 
 
