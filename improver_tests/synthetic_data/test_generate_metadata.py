@@ -55,14 +55,14 @@ SPATIAL_GRID_ATTRIBUTE_DEFAULTS = {
     "latlon": {
         "y": "latitude",
         "x": "longitude",
-        "resolution": 0.02,
+        "grid_spacing": 0.02,
         "units": "degrees",
         "coord_system": GLOBAL_GRID_CCRS,
     },
     "equalarea": {
         "y": "projection_y_coordinate",
         "x": "projection_x_coordinate",
-        "resolution": 2000,
+        "grid_spacing": 2000,
         "units": "metres",
         "coord_system": STANDARD_GRID_CCRS,
     },
@@ -97,7 +97,7 @@ def test_default():
         assert cube.coord(axis=axis).units == spatial_grid_values["units"]
         assert cube.coord(axis=axis).coord_system == spatial_grid_values["coord_system"]
         assert np.diff(cube.coord(axis=axis).points)[0] == pytest.approx(
-            spatial_grid_values["resolution"]
+            spatial_grid_values["grid_spacing"]
         )
 
     assert np.count_nonzero(cube.data) == 0
@@ -202,7 +202,7 @@ def test_set_spatial_grid(spatial_grid):
             == expected_spatial_grid_attributes["coord_system"]
         )
         assert np.diff(cube.coord(axis=axis).points)[0] == pytest.approx(
-            expected_spatial_grid_attributes["resolution"]
+            expected_spatial_grid_attributes["grid_spacing"]
         )
 
     # Assert that no other values have unexpectedly changed by returning changed values
@@ -411,14 +411,14 @@ def test_set_attributes():
     assert cube == default_cube
 
 
-def test_set_resolution():
-    """ Tests cube generated with specified resolution and the rest of the values set
+def test_set_grid_spacing():
+    """ Tests cube generated with specified grid_spacing and the rest of the values set
     as default values """
-    resolution = 5
-    cube = generate_metadata(resolution=resolution)
+    grid_spacing = 5
+    cube = generate_metadata(grid_spacing=grid_spacing)
 
-    assert np.diff(cube.coord(axis="y").points)[0] == resolution
-    assert np.diff(cube.coord(axis="x").points)[0] == resolution
+    assert np.diff(cube.coord(axis="y").points)[0] == grid_spacing
+    assert np.diff(cube.coord(axis="x").points)[0] == grid_spacing
 
     # Assert that no other values have unexpectedly changed by returning changed values
     # to defaults and comparing against default cube
