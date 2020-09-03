@@ -327,42 +327,54 @@ def test_disable_ensemble(ensemble_members):
     _check_cube_shape_different(cube)
 
 
-@pytest.mark.parametrize("percentile", (True, False))
 @pytest.mark.parametrize(
-    "probability,spp__relative_to_threshold",
-    ((True, "above"), (True, "below"), (True, None), (False, None)),
+    "cube_type", ("variable", "percentile", "probability", "other")
 )
-def test_leading_dimension(percentile, probability, spp__relative_to_threshold):
+@pytest.mark.parametrize(
+    "spp__relative_to_threshold", ("above", "below", "between", None),
+)
+def test_leading_dimension(cube_type, spp__relative_to_threshold):
     """ Tests cube generated with leading dimension specified using percentile and
     probability flags, and different values for spp__relative_to_threshold """
-    if percentile and probability:
+    if cube_type == "probability" and spp__relative_to_threshold == "between":
         # Tests that error is raised when both percentile and probability set to True
-        msg = "percentile cube or probability cube"
+        msg = "spp__relative_to_threshold"
 
         with pytest.raises(ValueError, match=msg):
-            generate_metadata(percentile=percentile, probability=probability)
+            generate_metadata(
+                cube_type=cube_type,
+                spp__relative_to_threshold=spp__relative_to_threshold,
+            )
+    elif cube_type == "other":
+        # Tests that error is raised when cube type isn't supported
+        msg = 'Cube type {} not supported. Specify one of "variable", "percentile" or "probability".'.format(
+            cube_type
+        )
+
+        with pytest.raises(ValueError, match=msg):
+            generate_metadata(
+                cube_type=cube_type,
+                spp__relative_to_threshold=spp__relative_to_threshold,
+            )
     else:
         leading_dimension = [10, 20, 30, 40, 50, 60, 70, 80]
 
         if spp__relative_to_threshold is not None:
             cube = generate_metadata(
                 leading_dimension=leading_dimension,
-                percentile=percentile,
-                probability=probability,
+                cube_type=cube_type,
                 spp__relative_to_threshold=spp__relative_to_threshold,
             )
         else:
             cube = generate_metadata(
-                leading_dimension=leading_dimension,
-                percentile=percentile,
-                probability=probability,
+                leading_dimension=leading_dimension, cube_type=cube_type,
             )
             spp__relative_to_threshold = RELATIVE_TO_THRESHOLD_DEFAULT
 
-        if percentile:
+        if cube_type == "percentile":
             cube_name = NAME_DEFAULT
             coord_name = "percentile"
-        elif probability:
+        elif cube_type == "probability":
             cube_name = "probability_of_{}_{}_threshold".format(
                 NAME_DEFAULT, spp__relative_to_threshold
             )
@@ -447,15 +459,6 @@ def test_set_domain_corner():
     cube.coord(axis="y").bounds = default_cube.coord(axis="y").bounds
     cube.coord(axis="x").bounds = default_cube.coord(axis="x").bounds
     assert cube == default_cube
-
-
-@pytest.mark.parametrize("domain_corner", ([0], [1, 2, 3]))
-def test_error_domain_corner_incorrect_length(domain_corner):
-    """ Tests error is raised if domain corner provided is not of length 2 """
-    msg = "Domain corner"
-
-    with pytest.raises(ValueError, match=msg):
-        generate_metadata(domain_corner=domain_corner)
 
 
 def test_set_npoints():

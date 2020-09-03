@@ -43,6 +43,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 DEFAULT_GRID_SPACING = {"latlon": 0.02, "equalarea": 2000}
+CUBE_TYPES = ("variable", "percentile", "probability")
 
 
 def _get_units(name):
@@ -95,18 +96,13 @@ def generate_metadata(
     spatial_grid="latlon",
     time=datetime(2017, 11, 10, 4, 0),
     time_period=None,
-    frt=datetime(2017, 11, 10, 0, 0),
     ensemble_members=8,
     leading_dimension=None,
-    percentile=False,
-    probability=False,
+    cube_type="variable",
     spp__relative_to_threshold="above",
-    attributes=None,
-    grid_spacing=None,
-    domain_corner=None,
     npoints=71,
     height_levels=None,
-    pressure=False,
+    **kwargs,
 ):
     """ Generate a cube with metadata only.
 
@@ -126,56 +122,42 @@ def generate_metadata(
         time_period (Optional[int]):
             The period in minutes between the time bounds. This is used to calculate
             the lower time bound.
-        frt (Optional[datetime.datetime]):
-            Single cube forecast reference time.
         ensemble_members (Optional[int]):
             Number of ensemble members. Default 8, unless percentile or probability set
             to True.
         leading_dimension (Optional[List[float]]):
             List of realizations, percentiles or thresholds.
-        percentile (Optional[bool]):
-            Flag to indicate whether the leading dimension is percentile values. If
-            True, a percentile cube is created.
-        probability (Optional[bool]):
-            Flag to indicate whether the leading dimension is threshold values. If
-            True, a probability cube is created.
+        cube_type (Optional[str]):
+            The type of cube to be generated. Permitted values are "variable",
+            "percentile" or "probability".
         spp__relative_to_threshold (Optional[str]):
             Value of the attribute "spp__relative_to_threshold" which is required for
             IMPROVER probability cubes.
-        attributes (Optional[Dict]):
-            Dictionary of additional metadata attributes.
-        grid_spacing (Optional[float]):
-            Resolution of grid (metres or degrees).
-        domain_corner (Optional[Tuple[float, float]]):
-            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for
-            equalarea).
         npoints (Optional[int]):
             Number of points along each of the y and x spatial axes.
         height_levels (Optional[List[float]]):
             List of altitude/pressure levels.
-        pressure (Optional[bool]):
-            Flag to indicate whether the height levels are specified as pressure, in
-            Pa. If False, use height in metres.
+        **kwargs:
+            Additional keyword arguments to pass to the required cube setup function.
 
     Returns:
         iris.cube.Cube:
             Output of set_up_variable_cube(), set_up_percentile_cube() or
             set_up_probability_cube()
     """
-    if spatial_grid not in ("latlon", "equalarea"):
+    if cube_type not in CUBE_TYPES:
         raise ValueError(
-            "Spatial grid {} not supported. Choose either latlon or equalarea.".format(
-                spatial_grid
+            'Cube type {} not supported. Specify one of "variable", "percentile" or "probability".'.format(
+                cube_type
             )
         )
 
-    if percentile is True and probability is True:
+    if spatial_grid not in ("latlon", "equalarea"):
         raise ValueError(
-            "Only percentile cube or probability cube can be generated, not both."
+            "Spatial grid {} not supported. Specify either latlon or equalarea.".format(
+                spatial_grid
+            )
         )
-
-    if domain_corner is not None and len(domain_corner) != 2:
-        raise ValueError("Domain corner must be a list or tuple of length 2.")
 
     if units is None:
         units = _get_units(name)
@@ -183,48 +165,39 @@ def generate_metadata(
     # If time_period specified, create time bounds using time as upper bound
     if time_period is not None:
         time_bounds = _create_time_bounds(time, time_period)
-    else:
-        time_bounds = None
+        kwargs["time_bounds"] = time_bounds
 
     # If grid_spacing not specified, use default for requested spatial grid
-    if grid_spacing is None:
-        grid_spacing = DEFAULT_GRID_SPACING[spatial_grid]
+    if "grid_spacing" not in kwargs or kwargs["grid_spacing"] is None:
+        kwargs["grid_spacing"] = DEFAULT_GRID_SPACING[spatial_grid]
 
     # Create ndimensional array of zeros
     data = _create_data_array(
         ensemble_members, leading_dimension, npoints, height_levels
     )
 
-    # Set args to pass to cube set up function
-    common_args = {
-        "spatial_grid": spatial_grid,
-        "time": time,
-        "time_bounds": time_bounds,
-        "frt": frt,
-        "attributes": attributes,
-        "grid_spacing": grid_spacing,
-        "domain_corner": domain_corner,
-        "height_levels": height_levels,
-        "pressure": pressure,
-    }
+    # Add kwargs to pass to cube set up function
+    kwargs["spatial_grid"] = spatial_grid
+    kwargs["time"] = time
+    kwargs["height_levels"] = height_levels
 
     # Set up requested cube
-    if percentile:
+    if cube_type == "percentile":
         metadata_cube = set_up_percentile_cube(
-            data, percentiles=leading_dimension, name=name, units=units, **common_args,
+            data, percentiles=leading_dimension, name=name, units=units, **kwargs,
         )
-    elif probability:
+    elif cube_type == "probability":
         metadata_cube = set_up_probability_cube(
             data,
             leading_dimension,
             variable_name=name,
             threshold_units=units,
             spp__relative_to_threshold=spp__relative_to_threshold,
-            **common_args,
+            **kwargs,
         )
     else:
         metadata_cube = set_up_variable_cube(
-            data, name=name, units=units, realizations=leading_dimension, **common_args,
+            data, name=name, units=units, realizations=leading_dimension, **kwargs,
         )
 
     metadata_cube = squeeze(metadata_cube)

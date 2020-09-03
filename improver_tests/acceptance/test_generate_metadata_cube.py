@@ -52,12 +52,25 @@ def test_default(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_variable_cube(tmp_path):
-    """Test metadata cube generation creating a variable/realization cube setting
-    values for all options except pressure and dimension json inputs"""
+@pytest.mark.parametrize("domain_corner", ("0", "0,0,0"))
+def test_domain_corner_incorrect_length(tmp_path, domain_corner):
+    """Tests error raised if domain corner not length 2"""
+    msg = "Domain corner"
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--domain-corner",
+        domain_corner,
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(ValueError, match=msg):
+        run_cli(args)
+
+
+def test_ensemble_members(tmp_path):
+    """Test creating variable cube with all options set"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    kgo_path = kgo_dir / "kgo_variable.nc"
-    attributes_path = kgo_dir / "attributes.json"
+    kgo_path = kgo_dir / "kgo_ensemble_members_all_options.nc"
     output_path = tmp_path / "output.nc"
     args = [
         "--name",
@@ -67,25 +80,19 @@ def test_variable_cube(tmp_path):
         "--spatial-grid",
         "equalarea",
         "--time",
-        "20200102T0400Z",
+        "20200102T0000Z",
         "--time-period",
         "120",
         "--frt",
-        "20200101T0400Z",
+        "20200101T1200Z",
         "--ensemble-members",
         "4",
-        "--leading-dimension",
-        "1,4,8,12",
-        "--attributes",
-        attributes_path,
         "--grid-spacing",
-        "5000",
+        "1000",
         "--domain-corner",
         "0,0",
         "--npoints",
         "50",
-        "--height-levels",
-        "1.5,3.0,4.5,6.0",
         "--output",
         output_path,
     ]
@@ -94,91 +101,42 @@ def test_variable_cube(tmp_path):
 
 
 def test_realization_json(tmp_path):
-    """Test variable/realization metadata cube generated using leading dimension json input"""
+    """Test variable/realization metadata cube generated using leading dimension json
+    input"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    kgo_path = kgo_dir / "kgo_realization_json.nc"
+    kgo_path = kgo_dir / "kgo_realization.nc"
     realizations_path = kgo_dir / "realizations.json"
     output_path = tmp_path / "output.nc"
-    args = ["--leading-dimension-json", realizations_path, "--output", output_path]
+    args = ["--json-input", realizations_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
 def test_percentile_cube(tmp_path):
-    """Test percentile metadata cube generated"""
-    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    kgo_path = kgo_dir / "kgo_percentile.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        "--leading-dimension",
-        "30, 50, 80",
-        "--percentile",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_percentile_cube_json(tmp_path):
     """Test percentile metadata cube generated using leading dimension json input"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    kgo_path = kgo_dir / "kgo_percentile_json.nc"
+    kgo_path = kgo_dir / "kgo_percentile.nc"
     percentiles_path = kgo_dir / "percentiles.json"
     output_path = tmp_path / "output.nc"
     args = [
-        "--leading-dimension-json",
+        "--json-input",
         percentiles_path,
-        "--percentile",
         "--output",
         output_path,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_percentile_cube_realization_json(tmp_path):
-    """Test error raised if json provided without percentiles key"""
-    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    realizations_path = kgo_dir / "realizations.json"
-    output_path = tmp_path / "output.nc"
-    args = [
-        "--leading-dimension-json",
-        realizations_path,
-        "--percentile",
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(KeyError, match="'percentiles'"):
-        run_cli(args)
 
 
 def test_probability_cube(tmp_path):
-    """Test probability metadata cube generated"""
-    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    kgo_path = kgo_dir / "kgo_probability.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        "--leading-dimension",
-        "275.0,275.5,276.0",
-        "--probability",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_probability_cube_json(tmp_path):
     """Test probability metadata cube generated using leading dimension json input"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    kgo_path = kgo_dir / "kgo_probability_json.nc"
+    kgo_path = kgo_dir / "kgo_probability.nc"
     thresholds_path = kgo_dir / "thresholds.json"
     output_path = tmp_path / "output.nc"
     args = [
-        "--leading-dimension-json",
+        "--json-input",
         thresholds_path,
-        "--probability",
         "--output",
         output_path,
     ]
@@ -186,21 +144,29 @@ def test_probability_cube_json(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_both_leading_dimension_json(tmp_path):
-    """Test metadata cube generated with leading_dimension input rather than
-    leading_dimension_json input if both provided"""
+def test_error_more_than_one_leading_dimension(tmp_path):
+    """Test error raised if input contains more than one leading dimension"""
+    msg = "Only one"
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    kgo_path = kgo_dir / "kgo_leading_dimension.nc"
-    realizations_path = kgo_dir / "realizations.json"
+    leading_dimensions_path = kgo_dir / "leading_dimensions.json"
     output_path = tmp_path / "output.nc"
     args = [
-        "--leading-dimension",
-        "1, 5, 8",
-        "--leading-dimension-json",
-        realizations_path,
+        "--json-input",
+        leading_dimensions_path,
         "--output",
         output_path,
     ]
+    with pytest.raises(ValueError, match=msg):
+        run_cli(args)
+
+
+def test_height_levels(tmp_path):
+    """Test metadata cube generated with height levels from json"""
+    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
+    kgo_path = kgo_dir / "kgo_height_levels.nc"
+    height_levels_path = kgo_dir / "height_levels.json"
+    output_path = tmp_path / "output.nc"
+    args = ["--json-input", height_levels_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -210,19 +176,9 @@ def test_single_height_level(tmp_path):
     list) for height levels option demotes height to scalar coordinate"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
     kgo_path = kgo_dir / "kgo_single_height_level.nc"
+    height_level_path = kgo_dir / "single_height_level.json"
     output_path = tmp_path / "output.nc"
-    args = ["--height-levels", "1.5", "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_height_levels_json(tmp_path):
-    """Test metadata cube generated with height levels from json"""
-    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    kgo_path = kgo_dir / "kgo_height_levels_json.nc"
-    height_levels_path = kgo_dir / "height_levels.json"
-    output_path = tmp_path / "output.nc"
-    args = ["--height-levels-json", height_levels_path, "--output", output_path]
+    args = ["--json-input", height_level_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -231,31 +187,11 @@ def test_pressure_levels(tmp_path):
     """Test metadata cube generated with pressure in Pa instead of height in metres"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
     kgo_path = kgo_dir / "kgo_pressure_levels.nc"
-    height_levels_path = kgo_dir / "height_levels.json"
+    pressure_levels_path = kgo_dir / "pressure_levels.json"
     output_path = tmp_path / "output.nc"
     args = [
-        "--height-levels-json",
-        height_levels_path,
-        "--pressure",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_both_height_levels_input(tmp_path):
-    """Test metadata cube generated with height_levels input rather than
-    height_levels_json input if both provided"""
-    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    kgo_path = kgo_dir / "kgo_single_height_level.nc"
-    height_levels_path = kgo_dir / "height_levels.json"
-    output_path = tmp_path / "output.nc"
-    args = [
-        "--height-levels",
-        "1.5",
-        "--height-levels-json",
-        height_levels_path,
+        "--json-input",
+        pressure_levels_path,
         "--output",
         output_path,
     ]
