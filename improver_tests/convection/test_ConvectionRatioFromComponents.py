@@ -60,7 +60,7 @@ def input_cubes():
     cubes.append(
         set_up_variable_cube(
             data.copy(),
-            name="convective_precipitation_rate",
+            name="lwe_convective_precipitation_rate",
             units="m s-1",
             grid_spacing=10,
             domain_corner=(-90, -180),
@@ -70,7 +70,7 @@ def input_cubes():
     cubes.append(
         set_up_variable_cube(
             data.copy(),
-            name="dynamic_precipitation_rate",
+            name="lwe_stratiform_precipitation_rate",
             units="m s-1",
             grid_spacing=10,
             domain_corner=(-90, -180),
@@ -130,7 +130,8 @@ def test_data(data_con_dyn_out, units):
 
 
 @pytest.mark.parametrize(
-    "cube_name", ["convective_precipitation_rate", "dynamic_precipitation_rate"]
+    "cube_name",
+    ["lwe_convective_precipitation_rate", "lwe_stratiform_precipitation_rate"],
 )
 def test_bad_name(cube_name):
     """Test we get a useful error if one of the input cubes is incorrectly named."""
@@ -148,6 +149,6 @@ def test_bad_units():
         cube.units = "m"
     with assert_raises_regex(
         ValueError,
-        "Input convective_precipitation_rate cube cannot be converted to 'm s-1' from ",
+        "Input lwe_convective_precipitation_rate cube cannot be converted to 'm s-1' from ",
     ):
         ConvectionRatioFromComponents()(grid)
