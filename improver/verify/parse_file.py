@@ -8,6 +8,19 @@ def get_model(filename):
     return pth.basename(filename)[7:-11]
 
 
+def set_basename(infiles, stat, startdate=None, enddate=None):
+    """Set output filename based on data range and statistics"""
+    infiles = sorted(infiles)
+    if startdate is None:
+        index = pth.basename(infiles[0]).find('_')
+        startdate = pth.basename(infiles[0])[:index]
+    if enddate is None:
+        index = pth.basename(infiles[-1]).find('_')
+        enddate = pth.basename(infiles[-1])[:index]
+    model = get_model(infiles[0])
+    return f'{startdate}-{enddate}_{model}_{stat}.png'
+
+
 def format_line(line):
     """Take raw line from textfile, remove spaces and return list of
     numbers"""

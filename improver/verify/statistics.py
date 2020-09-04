@@ -77,7 +77,7 @@ class StatsDict:
         return self._sort_by_x(thresholds, skill)
 
 
-def plot_by_leadtime(stats_dict, thresholds, stat):
+def plot_by_leadtime(stats_dict, thresholds, stat, outname):
     """Plots statistic "stat" by lead time for a range of thresholds"""
     plt.figure(figsize=(8, 6))
     for thresh in thresholds:
@@ -90,7 +90,7 @@ def plot_by_leadtime(stats_dict, thresholds, stat):
     plt.ylabel(stat)
     plt.ylim(0, 1)
     plt.title(f'{stat} with lead time')
-
-    plt.show()
+    plt.tight_layout()
+    plt.savefig(outname)
 
 
