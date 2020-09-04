@@ -2,10 +2,10 @@ import argparse
 import os
 
 from improver.verify.parse_file import get_model, read_count_files, set_basename
-from improver.verify.statistics import StatsDict, plot_by_leadtime
+from improver.verify.statistics import StatsDict, plot_by_leadtime, plot_by_threshold
 
 
-def main(infiles, plotdir, stats, startdate, enddate):
+def main(infiles, plotdir, stats, thresholds, startdate, enddate):
     """
     Read textfiles with lines of the form:
 
@@ -20,20 +20,14 @@ def main(infiles, plotdir, stats, startdate, enddate):
             Full path to directory to save plots
         stats (list of str):
             List of stats to plot
+        thresholds (list of float):
+            List of thresholds to plot
         startdate (int or None):
             Date to start calculation in YYYYMMDD format
         enddate (int or None):
             Date to end calculation in YYYYMMDD format
     """
-    model = get_model(infiles[0])
-    if len(infiles) > 1:
-        for fname in infiles:
-            if get_model(fname) != model:
-                raise ValueError('All input counts must come from the same model')
-
-    # TODO capability to plot different models for a single threshold, by lead time
-    # Need to have plotting function take multiple stats dicts as currently designed
-
+    # set start and end times for item filtering
     start = startdate
     end = enddate
     if start is None:
@@ -41,13 +35,28 @@ def main(infiles, plotdir, stats, startdate, enddate):
     if end is None:
         end = 20500101
 
-    counts_dict = read_count_files(infiles, start, end)
-    stats_dict = StatsDict(counts_dict)
+    # sort input files by model
+    file_lists = {}
+    for name in infiles:
+        model = get_model(name)
+        if model in file_lists:
+            file_lists[model].append(name)
+        else:
+            file_lists[model] = [name]
+
+    stats_dicts = {}
+    for name in file_lists:
+        counts_dict = read_count_files(file_lists[name], start, end)
+        stats_dicts[name] = StatsDict(counts_dict)
 
     for stat in stats:
-        basename = set_basename(infiles, stat, startdate, enddate)
-        outname = os.path.join(plotdir, basename)
-        plot_by_leadtime(stats_dict, [0.03, 0.1, 0.5, 1.0, 2.0, 4.0], stat, outname)
+        for threshold in thresholds:
+            basename = set_basename(
+                infiles, stat, thresh=threshold, single_model=False,
+                startdate=startdate, enddate=enddate
+            )
+            outname = os.path.join(plotdir, basename)
+            plot_by_threshold(stats_dicts, stat, threshold, outname)
 
 
 if __name__ == "__main__":
@@ -55,10 +64,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('infiles', type=str, nargs='+', help='List of textfiles to read')
     parser.add_argument('--plotdir', type=str, help='Output directory to save plots')
-    parser.add_argument('--stats', type=str, nargs='+', help='List of stats to plot')
+    parser.add_argument('--stats', type=str, nargs='+', default=['HSS', 'CSI'])
+    parser.add_argument('--thresholds', type=float, nargs='+',
+                        default=[0.03, 0.1, 0.5, 1.0, 2.0, 4.0])
     parser.add_argument('--startdate', type=int, default=None)
     parser.add_argument('--enddate', type=int, default=None)
     args = parser.parse_args()
 
-    main(args.infiles, args.plotdir, args.stats, args.startdate, args.enddate)
+    main(args.infiles, args.plotdir, args.stats, args.thresholds,
+         args.startdate, args.enddate)
 
