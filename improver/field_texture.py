@@ -218,16 +218,8 @@ class FieldTexture(BasePlugin):
         cube = input_cube.extract(
             iris.Constraint(
                 coord_values={
-                    self.cube_name: lambda cell: np.nextafter(
-                        self.diagnostic_threshold,
-                        self.diagnostic_threshold - 1,
-                        dtype=np.float32,
-                    )
-                    < cell
-                    < np.nextafter(
-                        self.diagnostic_threshold,
-                        self.diagnostic_threshold + 1,
-                        dtype=np.float32,
+                    self.cube_name: lambda cell: np.isclose(
+                        cell.point, self.diagnostic_threshold
                     )
                 }
             )
