@@ -43,7 +43,7 @@ from improver.metadata.utilities import (
 )
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.threshold import BasicThreshold
-from improver.utilities.cube_manipulation import collapsed
+from improver.utilities.cube_manipulation import collapse_realizations
 
 
 class FieldTexture(BasePlugin):
@@ -202,8 +202,8 @@ class FieldTexture(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                A cube containing the mean of the thresholded ratios in cube
-                format.
+                A cube containing the mean of the thresholded ratios to give
+                the field texture.
         """
 
         values = np.unique(input_cube.data)
@@ -213,12 +213,14 @@ class FieldTexture(BasePlugin):
 
         # Create new cube name for _calculate_ratio method.
         self.cube_name = find_threshold_coordinate(input_cube).name()
-
-        # Extract threshold from input data to work with.
+        # Extract threshold from input data to work with, taking into account floating
+        # point comparisons.
         cube = input_cube.extract(
             iris.Constraint(
                 coord_values={
-                    self.cube_name: lambda cell: cell == self.diagnostic_threshold
+                    self.cube_name: lambda cell: np.isclose(
+                        cell.point, self.diagnostic_threshold
+                    )
                 }
             )
         )
@@ -245,9 +247,6 @@ class FieldTexture(BasePlugin):
 
         ratios = ratios.merge_cube()
         thresholded = BasicThreshold(self.diagnostic_threshold).process(ratios)
-        field_texture = iris.util.squeeze(
-            collapsed(thresholded, "realization", iris.analysis.MEAN)
-        )
-        field_texture.remove_coord("realization")
-
+        field_texture = iris.util.squeeze(collapse_realizations(thresholded))
+        field_texture.data = np.float32(field_texture.data)
         return field_texture

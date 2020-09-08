@@ -118,9 +118,11 @@ def test_full_process(multi_cloud_cube):
 
     cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))[0]
     expected_data = np.where(cube.data == 0.0, 1.0, 0.0)
+    expected_dtype = "float32"
 
     result = PLUGIN.process(multi_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
+    assert result.dtype == expected_dtype
 
 
 def test__calculate_ratio(thresholded_cloud_cube):
@@ -206,7 +208,7 @@ def test_wrong_threshold(multi_cloud_cube):
     plugin = FieldTexture(
         nbhood_radius=NB_RADIUS,
         textural_threshold=TEXT_THRESH,
-        diagnostic_threshold="0.235",
+        diagnostic_threshold=0.235,
     )
     with pytest.raises(ValueError, match="Threshold 0.235 is not present.*"):
         plugin.process(multi_cloud_cube)
@@ -233,7 +235,6 @@ def test_metadata_coords(multi_cloud_cube):
         conventions after that plugin has completed."""
 
     result = PLUGIN.process(multi_cloud_cube)
-
     expected_units = "1"
     expected_dims = ["projection_y_coordinate", "projection_x_coordinate"]
     expected_scalar_coord = "texture_of_cloud_area_fraction"
