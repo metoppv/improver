@@ -32,13 +32,13 @@
 
 
 import unittest
+import numpy as np
 
 from iris.cube import Cube
 from iris.tests import IrisTest
 
+from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood as NBHood
-
-from .test_BaseNeighbourhoodProcessing import set_up_cube
 
 
 class Test__init__(IrisTest):
@@ -93,7 +93,13 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up a cube."""
-        self.cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        data[0, 2, 2] = 0
+        self.cube = set_up_probability_cube(
+            data,
+            thresholds = np.array([278], dtype=np.float32),
+            spatial_grid = "equalarea",
+        )
 
     def test_default_percentiles(self):
         """Test that the circular neighbourhood processing is successful, if
