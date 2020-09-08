@@ -461,6 +461,14 @@ def test_set_domain_corner():
     assert cube == default_cube
 
 
+@pytest.mark.parametrize("domain_corner", ("0", "0,0,0"))
+def test_domain_corner_incorrect_length(domain_corner):
+    """Tests error raised if domain corner not length 2"""
+    msg = "Domain corner"
+    with pytest.raises(ValueError, match=msg):
+        generate_metadata(domain_corner=domain_corner)
+
+
 def test_set_npoints():
     """ Tests cube generated with specified npoints """
     npoints = 500

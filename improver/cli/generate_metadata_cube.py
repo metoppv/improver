@@ -33,90 +33,66 @@
 
 from improver import cli
 
-DEFAULT_CUBE_VALUES = {
-    "name": "air_pressure_at_sea_level",
-    "units": None,
-    "time": "20171110T0400Z",
-    "frt": "20171110T0000Z",
-    "time_bounds": None,
-    "spp__relative_to_threshold": "above",
-    "attributes": None,
-}
+
+def _error_more_than_one_leading_dimension():
+    """Raises an error to inform the user that only one leading dimension can be
+    provided in the input data."""
+    raise ValueError(
+        'Only one of "realization", "percentile" or "probability" dimensions should be provided.'
+    )
 
 
-class InputData:
-    def __init__(self, data):
-        self.data = data
+def _get_leading_dimension(coord_data):
+    """Gets leading dimension values from coords nested dictionary and sets cube
+    type based on what dimension key is used."""
+    leading_dimension = None
+    cube_type = "variable"
 
-    def get_data_from_dictionary(self, value, key):
-        """If value not provided, gets data from input json if included, otherwise 
-        returns default value."""
-        if value is None:
-            if self.data is not None and key in self.data:
-                value = self.data[key]
-            else:
-                value = DEFAULT_CUBE_VALUES[key]
+    if "realizations" in coord_data:
+        leading_dimension = coord_data["realizations"]
 
-        return value
+    if "percentiles" in coord_data:
+        if leading_dimension is not None:
+            _error_more_than_one_leading_dimension()
 
-    def _error_more_than_one_leading_dimension(self):
-        """Raises an error to inform the user that only one leading dimension can be
-        provided in the input data."""
-        raise ValueError(
-            'Only one of "realization", "percentile" or "probability" dimensions should be provided.'
-        )
+        leading_dimension = coord_data["percentiles"]
+        cube_type = "percentile"
 
-    def get_leading_dimension_from_dictionary(self, leading_dimension, cube_type):
-        """Gets leading dimension values from coords nested dictionary and sets cube
-        type based on what dimension key is used."""
-        if "realizations" in self.data:
-            leading_dimension = self.data["realizations"]
+    if "thresholds" in coord_data:
+        if leading_dimension is not None:
+            _error_more_than_one_leading_dimension()
 
-        if "percentiles" in self.data:
-            if leading_dimension is not None:
-                self._error_more_than_one_leading_dimension()
+        leading_dimension = coord_data["thresholds"]
+        cube_type = "probability"
 
-            leading_dimension = self.data["percentiles"]
-            cube_type = "percentile"
-
-        if "thresholds" in self.data:
-            if leading_dimension is not None:
-                self._error_more_than_one_leading_dimension()
-
-            leading_dimension = self.data["thresholds"]
-            cube_type = "probability"
-
-        return leading_dimension, cube_type
-
-    def get_height_levels_from_dictionary(self, height_levels, pressure):
-        """Gets height level values from coords nested dictionary and sets pressure
-        value based on whether heights or pressures key is used."""
-        if "heights" in self.data:
-            height_levels = self.data["heights"]
-        elif "pressures" in self.data:
-            height_levels = self.data["pressures"]
-            pressure = True
-
-        return height_levels, pressure
+    return leading_dimension, cube_type
 
 
-def _check_domain_corner(domain_corner):
-    """Checks that domain corner has a length of two int or float values, raises error
-    if not"""
-    if domain_corner is not None and len(domain_corner) != 2:
-        raise ValueError("Domain corner must be a list or tuple of length 2.")
+def _get_height_levels(coord_data):
+    """Gets height level values from coords nested dictionary and sets pressure
+    value based on whether heights or pressures key is used."""
+    height_levels = None
+    pressure = False
+
+    if "heights" in coord_data:
+        height_levels = coord_data["heights"]
+    elif "pressures" in coord_data:
+        height_levels = coord_data["pressures"]
+        pressure = True
+
+    return height_levels, pressure
 
 
 @cli.clizefy
 @cli.with_output
 def process(
     *,
-    name=None,
+    name="air_pressure_at_sea_level",
     units=None,
     spatial_grid="latlon",
-    time=None,
+    time="20171110T0400Z",
     time_period: int = None,
-    frt=None,
+    frt="20171110T0000Z",
     json_input: cli.inputjson = None,
     ensemble_members: int = 8,
     grid_spacing: float = None,
@@ -128,8 +104,7 @@ def process(
     Args:
         name (Optional[str]):
             Output variable name, or if creating a probability cube the name of the
-            underlying variable to which the probability field applies. Default:
-            "air_pressure_at_sea_level".
+            underlying variable to which the probability field applies.
         units (Optional[str]):
             Output variable units, or if creating a probability cube the units of the
             underlying variable / threshold.
@@ -138,14 +113,13 @@ def process(
             "latlon" or "equalarea".
         time (Optional[str]):
             Single cube validity time. Datetime string of format YYYYMMDDTHHMMZ. If
-            time period given, time is used as the upper time bound. Default:
-            "20171110T0400Z".
+            time period given, time is used as the upper time bound.
         time_period (Optional[int]):
             The period in minutes between the time bounds. This is used to calculate
             the lower time bound.
         frt (Optional[str]):
             Single cube forecast reference time. Datetime string of format
-            YYYYMMDDTHHMMZ. Default: "20171110T0000Z".
+            YYYYMMDDTHHMMZ.
         json_input (Optional[Dict]):
             Dictionary containing values for one or more of: "name", "units", "time",
             "time_bounds", "frt", "spp__relative_to_threshold", "attributes"
@@ -163,7 +137,7 @@ def process(
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for
             equalarea).
         npoints (Optional[int]):
-            Number of points along a single axis.
+            Number of points along each of the y and x spatial axes.
 
     Returns:
         iris.cube.Cube:
@@ -172,57 +146,42 @@ def process(
     from improver.synthetic_data.generate_metadata import generate_metadata
     from improver.utilities.temporal import cycletime_to_datetime
 
-    # Check domain corner is list of length 2 if provided
-    _check_domain_corner(domain_corner)
-
-    # Initialize variables that are only set from input json file
-    time_bounds = None
-    attributes = None
-    spp__relative_to_threshold = None
-    leading_dimension = None
-    cube_type = "variable"
-    height_levels = None
-    pressure = False
-
-    input_data = InputData(json_input)
-
-    name = input_data.get_data_from_dictionary(name, "name")
-    units = input_data.get_data_from_dictionary(units, "units")
-    time = input_data.get_data_from_dictionary(time, "time")
-    time_bounds = input_data.get_data_from_dictionary(time_period, "time_bounds")
-    frt = input_data.get_data_from_dictionary(frt, "frt")
-    spp__relative_to_threshold = input_data.get_data_from_dictionary(
-        spp__relative_to_threshold, "spp__relative_to_threshold"
-    )
-    attributes = input_data.get_data_from_dictionary(attributes, "attributes")
-
+    # Get leading dimension and height/pressure data from json_input
     if json_input is not None and "coords" in json_input:
-        coords = json_input["coords"]
-        coord_data = InputData(coords)
+        coord_data = json_input["coords"]
 
-        (
-            leading_dimension,
-            cube_type,
-        ) = coord_data.get_leading_dimension_from_dictionary(
-            leading_dimension, cube_type
-        )
-        height_levels, pressure = coord_data.get_height_levels_from_dictionary(
-            height_levels, pressure
-        )
+        leading_dimension, cube_type = _get_leading_dimension(coord_data)
+        height_levels, pressure = _get_height_levels(coord_data)
 
-    # Convert str time and frt to datetime
-    time = cycletime_to_datetime(time)
-    frt = cycletime_to_datetime(frt)
+        json_input.pop("coords", None)
+
+    # Convert str time, frt and time_bounds to datetime
+    if json_input is not None and "time" in json_input:
+        json_input["time"] = cycletime_to_datetime(json_input["time"])
+    else:
+        time = cycletime_to_datetime(time)
+
+    if json_input is not None and "frt" in json_input:
+        json_input["frt"] = cycletime_to_datetime(json_input["frt"])
+    else:
+        frt = cycletime_to_datetime(frt)
+
+    if json_input is not None and "time_bounds" in json_input:
+        time_bounds = []
+        for tb in json_input["time_bounds"]:
+            time_bounds.append(cycletime_to_datetime(tb))
+        json_input.pop("time_bounds", None)
 
     # Set arguments to pass to generate_metadata function
     generate_metadata_args = locals()
-    generate_metadata_args.pop("leading_dimension_json", None)
-    generate_metadata_args.pop("height_levels_json", None)
     generate_metadata_args.pop("coord_data", None)
-    generate_metadata_args.pop("coords", None)
-    generate_metadata_args.pop("input_data", None)
     generate_metadata_args.pop("json_input", None)
     generate_metadata_args.pop("cycletime_to_datetime", None)
     generate_metadata_args.pop("generate_metadata", None)
+    generate_metadata_args.pop("tb", None)
+
+    # If json_input provided, update generate_metadata_args with the json_input data
+    if json_input is not None:
+        generate_metadata_args.update(json_input)
 
     return generate_metadata(**generate_metadata_args)

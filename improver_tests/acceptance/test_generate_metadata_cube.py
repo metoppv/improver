@@ -52,21 +52,6 @@ def test_default(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.parametrize("domain_corner", ("0", "0,0,0"))
-def test_domain_corner_incorrect_length(tmp_path, domain_corner):
-    """Tests error raised if domain corner not length 2"""
-    msg = "Domain corner"
-    output_path = tmp_path / "output.nc"
-    args = [
-        "--domain-corner",
-        domain_corner,
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(ValueError, match=msg):
-        run_cli(args)
-
-
 def test_ensemble_members(tmp_path):
     """Test creating variable cube with all options set"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
@@ -93,6 +78,22 @@ def test_ensemble_members(tmp_path):
         "0,0",
         "--npoints",
         "50",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_json_all_inputs(tmp_path):
+    """Test creating variable cube with all options set"""
+    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
+    kgo_path = kgo_dir / "kgo_variable_cube_json_inputs.nc"
+    json_input_path = kgo_dir / "variable_cube_all_inputs.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--json-input",
+        json_input_path,
         "--output",
         output_path,
     ]

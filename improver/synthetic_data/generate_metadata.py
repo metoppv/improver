@@ -159,6 +159,13 @@ def generate_metadata(
             )
         )
 
+    if (
+        "domain_corner" in kwargs
+        and kwargs["domain_corner"] is not None
+        and len(kwargs["domain_corner"]) != 2
+    ):
+        raise ValueError("Domain corner must be a list or tuple of length 2.")
+
     if units is None:
         units = _get_units(name)
 
