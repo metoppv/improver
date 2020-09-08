@@ -44,7 +44,7 @@ from improver.grids import ELLIPSOID, STANDARD_GRID_CCRS
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
 from improver.nbhood.nbhood import SquareNeighbourhood
-
+from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from ...calibration.ensemble_calibration.helper_functions import (
     add_forecast_reference_time_and_forecast_period,
 )
@@ -287,6 +287,9 @@ def set_up_cube(
     return cube
 
 
+
+
+
 def set_up_cube_with_no_realizations(
     zero_point_indices=((0, 7, 7),), num_time_points=1, num_grid_points=16
 ):
@@ -470,7 +473,15 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up cube."""
-        self.cube = set_up_cube()
+        data = np.ones((1, 16, 16), dtype=np.float32)
+        data[0, 8, 8] = 0
+        self.cube = set_up_probability_cube(
+            data,
+            thresholds = np.array([278], dtype=np.float32),
+            spatial_grid = "equalarea",
+        )
+        print(self.cube)
+        print(self.cube.data)
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -491,7 +502,7 @@ class Test_process(IrisTest):
 
     def test_single_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
-        self.cube.data[0][0][6][7] = np.NAN
+        self.cube.data[0][6][7] = np.NAN
         msg = "NaN detected in input cube data"
         with self.assertRaisesRegex(ValueError, msg):
             neighbourhood_method = CircularNeighbourhood
