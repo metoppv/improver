@@ -97,8 +97,8 @@ class Test_process(IrisTest):
         data[0, 2, 2] = 0
         self.cube = set_up_probability_cube(
             data,
-            thresholds = np.array([278], dtype=np.float32),
-            spatial_grid = "equalarea",
+            thresholds=np.array([278], dtype=np.float32),
+            spatial_grid="equalarea",
         )
 
     def test_default_percentiles(self):

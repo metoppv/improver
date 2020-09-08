@@ -233,9 +233,6 @@ def set_up_cube(
     return cube
 
 
-
-
-
 def set_up_cube_with_no_realizations(
     zero_point_indices=((0, 7, 7),), num_time_points=1, num_grid_points=16
 ):
@@ -423,8 +420,8 @@ class Test_process(IrisTest):
         data[0, 8, 8] = 0
         self.cube = set_up_probability_cube(
             data,
-            thresholds = np.array([278], dtype=np.float32),
-            spatial_grid = "equalarea",
+            thresholds=np.array([278], dtype=np.float32),
+            spatial_grid="equalarea",
         )
 
     def test_basic(self):
