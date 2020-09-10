@@ -72,6 +72,24 @@ def thresholded_cloud_fixture():
     return next(multi_realization_cube.slices_over("realization"))
 
 
+@pytest.fixture(name="no_realization_cloud_cube")
+def no_realization_cloud_fixture():
+    """No realization, multiple threshold cloud data cube."""
+    cloud_area_fraction = np.zeros((3, 10, 10), dtype=np.float32)
+    cloud_area_fraction[:, 1:4, 1:4] = 1.0
+    thresholds = [0.265, 0.415, 0.8125]
+    multi_realization_cube = cloud_probability_cube(cloud_area_fraction, thresholds)
+    no_realization_cube = next(multi_realization_cube.slices_over("realization"))
+    no_realization_cube.remove_coord("realization")
+    no_realization_cube.attributes.update(
+        {
+            "title": "UKV Forecast on 2 km Standard Grid",
+            "mosg__model_configuration": "uk_det",
+        }
+    )
+    return no_realization_cube
+
+
 @pytest.fixture(name="no_cloud_cube")
 def no_cloud_fixture():
     """Multi-realization cloud data cube with no cloud present."""
@@ -158,6 +176,19 @@ def test_process_single_threshold(multi_cloud_cube):
     expected_data = np.where(single_thresh_cloud_cube.data[0] == 0.0, 1.0, 0.0)
 
     result = PLUGIN.process(single_thresh_cloud_cube)
+    np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
+
+
+def test_process_no_realization(no_realization_cloud_cube):
+    """Test the process function when the input cube does not contain a
+       realization coordinate."""
+
+    cube = no_realization_cloud_cube.extract(
+        iris.Constraint(cloud_area_fraction=DIAG_THRESH)
+    )
+    expected_data = np.where(cube.data == 0.0, 1.0, 0.0)
+
+    result = PLUGIN.process(no_realization_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 

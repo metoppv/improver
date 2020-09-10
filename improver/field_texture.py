@@ -202,8 +202,10 @@ class FieldTexture(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                A cube containing the mean of the thresholded ratios to give
-                the field texture.
+                A cube containing either the mean across realization of the
+                thresholded ratios to give the field texture, if a realization
+                coordinate is present, or the thresholded ratios directly, if
+                no realization coordinate is present.
         """
 
         values = np.unique(input_cube.data)
@@ -247,6 +249,11 @@ class FieldTexture(BasePlugin):
 
         ratios = ratios.merge_cube()
         thresholded = BasicThreshold(self.diagnostic_threshold).process(ratios)
-        field_texture = iris.util.squeeze(collapse_realizations(thresholded))
+
+        try:
+            field_texture = iris.util.squeeze(collapse_realizations(thresholded))
+        except CoordinateNotFoundError:
+            field_texture = iris.util.squeeze(thresholded)
+
         field_texture.data = np.float32(field_texture.data)
         return field_texture
