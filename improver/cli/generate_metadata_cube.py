@@ -41,9 +41,7 @@ def process(
     name="air_pressure_at_sea_level",
     units=None,
     spatial_grid="latlon",
-    time="20171110T0400Z",
     time_period: int = None,
-    frt="20171110T0000Z",
     json_input: cli.inputjson = None,
     ensemble_members: int = 8,
     grid_spacing: float = None,
@@ -62,15 +60,9 @@ def process(
         spatial_grid (Optional[str]):
             What type of x/y coordinate values to use.  Permitted values are
             "latlon" or "equalarea".
-        time (Optional[str]):
-            Single cube validity time. Datetime string of format YYYYMMDDTHHMMZ. If
-            time period given, time is used as the upper time bound.
         time_period (Optional[int]):
             The period in minutes between the time bounds. This is used to calculate
             the lower time bound.
-        frt (Optional[str]):
-            Single cube forecast reference time. Datetime string of format
-            YYYYMMDDTHHMMZ.
         json_input (Optional[Dict]):
             Dictionary containing values for one or more of: "name", "units", "time",
             "time_bounds", "frt", "spp__relative_to_threshold", "attributes"
@@ -113,13 +105,9 @@ def process(
     # Convert str time, frt and time_bounds to datetime
     if json_input is not None and "time" in json_input:
         json_input["time"] = cycletime_to_datetime(json_input["time"])
-    else:
-        time = cycletime_to_datetime(time)
 
     if json_input is not None and "frt" in json_input:
         json_input["frt"] = cycletime_to_datetime(json_input["frt"])
-    else:
-        frt = cycletime_to_datetime(frt)
 
     if json_input is not None and "time_bounds" in json_input:
         time_bounds = []
