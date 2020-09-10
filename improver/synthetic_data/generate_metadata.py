@@ -43,6 +43,8 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 DEFAULT_GRID_SPACING = {"latlon": 0.02, "equalarea": 2000}
+DEFAULT_SPATIAL_GRID = "latlon"
+DEFAULT_TIME = datetime(2017, 11, 10, 4, 0)
 CUBE_TYPES = ("variable", "percentile", "probability")
 
 
@@ -93,15 +95,12 @@ def _create_data_array(ensemble_members, leading_dimension, npoints, height_leve
 def generate_metadata(
     name="air_pressure_at_sea_level",
     units=None,
-    spatial_grid="latlon",
-    time=datetime(2017, 11, 10, 4, 0),
     time_period=None,
     ensemble_members=8,
     leading_dimension=None,
     cube_type="variable",
     spp__relative_to_threshold="above",
     npoints=71,
-    height_levels=None,
     **kwargs,
 ):
     """ Generate a cube with metadata only.
@@ -113,12 +112,6 @@ def generate_metadata(
         units (Optional[str]):
             Output variable units, or if creating a probability cube the units of the
             underlying variable / threshold.
-        spatial_grid (Optional[str]):
-            What type of x/y coordinate values to use.  Permitted values are
-            "latlon" or "equalarea".
-        time (Optional[datetime.datetime]):
-            Single cube validity time. If time period given, time is used as the upper
-            time bound.
         time_period (Optional[int]):
             The period in minutes between the time bounds. This is used to calculate
             the lower time bound.
@@ -135,8 +128,6 @@ def generate_metadata(
             IMPROVER probability cubes.
         npoints (Optional[int]):
             Number of points along each of the y and x spatial axes.
-        height_levels (Optional[List[float]]):
-            List of altitude/pressure levels.
         **kwargs:
             Additional keyword arguments to pass to the required cube setup function.
 
@@ -152,10 +143,13 @@ def generate_metadata(
             )
         )
 
-    if spatial_grid not in ("latlon", "equalarea"):
+    if "spatial_grid" in kwargs and kwargs["spatial_grid"] not in (
+        "latlon",
+        "equalarea",
+    ):
         raise ValueError(
             "Spatial grid {} not supported. Specify either latlon or equalarea.".format(
-                spatial_grid
+                kwargs["spatial_grid"]
             )
         )
 
@@ -171,22 +165,26 @@ def generate_metadata(
 
     # If time_period specified, create time bounds using time as upper bound
     if time_period is not None:
-        time_bounds = _create_time_bounds(time, time_period)
+        if "time" not in kwargs:
+            kwargs["time"] = DEFAULT_TIME
+
+        time_bounds = _create_time_bounds(kwargs["time"], time_period)
         kwargs["time_bounds"] = time_bounds
 
     # If grid_spacing not specified, use default for requested spatial grid
     if "grid_spacing" not in kwargs or kwargs["grid_spacing"] is None:
-        kwargs["grid_spacing"] = DEFAULT_GRID_SPACING[spatial_grid]
+        if "spatial_grid" not in kwargs:
+            kwargs["spatial_grid"] = DEFAULT_SPATIAL_GRID
+
+        kwargs["grid_spacing"] = DEFAULT_GRID_SPACING[kwargs["spatial_grid"]]
 
     # Create ndimensional array of zeros
-    data = _create_data_array(
-        ensemble_members, leading_dimension, npoints, height_levels
-    )
+    if "height_levels" not in kwargs:
+        kwargs["height_levels"] = None
 
-    # Add kwargs to pass to cube set up function
-    kwargs["spatial_grid"] = spatial_grid
-    kwargs["time"] = time
-    kwargs["height_levels"] = height_levels
+    data = _create_data_array(
+        ensemble_members, leading_dimension, npoints, kwargs["height_levels"]
+    )
 
     # Set up requested cube
     if cube_type == "percentile":
