@@ -309,12 +309,12 @@ def test_metadata_attributes_with_model_id_attr(multi_cloud_cube):
         "mosg__model_configuration": "uk_ens",
     }
 
-    PLUGIN = FieldTexture(
+    plugin = FieldTexture(
         nbhood_radius=NB_RADIUS,
         textural_threshold=TEXT_THRESH,
         diagnostic_threshold=DIAG_THRESH,
         model_id_attr="mosg__model_configuration",
     )
 
-    result = PLUGIN.process(multi_cloud_cube)
+    result = plugin.process(multi_cloud_cube)
     assert result.attributes == expected_attributes
