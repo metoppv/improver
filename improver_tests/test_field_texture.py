@@ -296,3 +296,25 @@ def test_metadata_attributes(multi_cloud_cube):
 
     result = PLUGIN.process(multi_cloud_cube)
     assert result.attributes == expected_attributes
+
+
+def test_metadata_attributes_with_model_id_attr(multi_cloud_cube):
+    """Test that the metadata attributes in the output cube follows expected
+    conventions when the model_id_attr argument is specified."""
+
+    expected_attributes = {
+        "source": "Unified Model",
+        "institution": "Met Office",
+        "title": "MOGREPS-UK Forecast on 2 km Standard Grid",
+        "mosg__model_configuration": "uk_ens",
+    }
+
+    PLUGIN = FieldTexture(
+        nbhood_radius=NB_RADIUS,
+        textural_threshold=TEXT_THRESH,
+        diagnostic_threshold=DIAG_THRESH,
+        model_id_attr="mosg__model_configuration",
+    )
+
+    result = PLUGIN.process(multi_cloud_cube)
+    assert result.attributes == expected_attributes

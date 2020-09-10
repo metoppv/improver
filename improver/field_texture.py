@@ -61,7 +61,13 @@ class FieldTexture(BasePlugin):
        (texture values close to zero).
     """
 
-    def __init__(self, nbhood_radius, textural_threshold, diagnostic_threshold):
+    def __init__(
+        self,
+        nbhood_radius,
+        textural_threshold,
+        diagnostic_threshold,
+        model_id_attr=None,
+    ):
         """
 
         Args:
@@ -81,10 +87,15 @@ class FieldTexture(BasePlugin):
                 A user defined threshold value related either to cloud or precipitation,
                 used to extract the corresponding dimensional cube with assumed units of 1.
 
+            model_id_attr (str):
+                Name of the attribute used to identify the source model for
+                blending.
+
         """
         self.nbhood_radius = nbhood_radius
         self.textural_threshold = textural_threshold
         self.diagnostic_threshold = diagnostic_threshold
+        self.model_id_attr = model_id_attr
         self.cube_name = None
 
     def _calculate_ratio(self, cube, radius):
@@ -159,7 +170,9 @@ class FieldTexture(BasePlugin):
             "texture_of_{}".format(self.cube_name),
             1,
             cube,
-            mandatory_attributes=generate_mandatory_attributes([cube]),
+            mandatory_attributes=generate_mandatory_attributes(
+                [cube], model_id_attr=self.model_id_attr
+            ),
             data=ratio,
         )
         return ratio
