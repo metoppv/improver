@@ -35,6 +35,12 @@ import unittest
 
 import iris
 import numpy as np
+
+# imports to be removed before merge:
+import sys
+np.set_printoptions(threshold=sys.maxsize)
+#end of imports to be removed before merge.
+
 from cf_units import Unit
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
@@ -44,7 +50,12 @@ from improver.grids import ELLIPSOID, STANDARD_GRID_CCRS
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
 from improver.nbhood.nbhood import SquareNeighbourhood
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_probability_cube,
+    set_up_variable_cube,
+    add_coordinate,
+)
+from datetime import datetime
 from ...calibration.ensemble_calibration.helper_functions import (
     add_forecast_reference_time_and_forecast_period,
 )
@@ -451,28 +462,41 @@ class Test_process(IrisTest):
 
     def test_multiple_realizations(self):
         """Test when the cube has a realization dimension."""
-        cube = set_up_cube(num_realization_points=4)
+
+        data = np.ones((4, 16, 16), dtype=np.float32)
+        data[0, 7, 7] = 0
+        cube = set_up_probability_cube(
+            data,
+            thresholds=np.array([278, 277, 276, 275], dtype=np.float32),
+            spatial_grid="equalarea",
+        )
         radii = 5600
         neighbourhood_method = CircularNeighbourhood()
         result = NBHood(neighbourhood_method, radii)(cube)
         self.assertIsInstance(result, Cube)
-        expected = np.ones([4, 1, 16, 16])
-        expected[0, 0, 6:9, 6:9] = (
-            [0.91666667, 0.875, 0.91666667],
-            [0.875, 0.83333333, 0.875],
-            [0.91666667, 0.875, 0.91666667],
+        expected = np.ones([4, 16, 16], dtype=np.float32)
+        expected[0, 6:9, 6:9] = (
+            [0.9166666, 0.875, 0.9166666],
+            [0.875, 0.8333333, 0.875],
+            [0.9166666, 0.875, 0.9166666],
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
+
     def test_no_realizations(self):
         """Test when the array has no realization coord."""
-        cube = set_up_cube_with_no_realizations()
+        data = np.ones((16, 16), dtype=np.float32)
+        data[7, 7] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
         radii = 5600
         neighbourhood_method = CircularNeighbourhood()
         result = NBHood(neighbourhood_method, radii)(cube)
         self.assertIsInstance(result, Cube)
-        expected = np.ones([1, 16, 16])
-        expected[0, 6:9, 6:9] = (
+        expected = np.ones([16, 16])
+        expected[6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
             [0.91666667, 0.875, 0.91666667],
@@ -483,32 +507,48 @@ class Test_process(IrisTest):
         """
         Test that a cube is returned when the radius varies with lead time.
         """
-        cube = set_up_cube(num_time_points=3)
-        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
-        time_points = cube.coord("time").points
-        fp_points = [2, 3, 4]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points
+
+        data = np.ones((1, 16, 16), dtype=np.float32)
+        data[0, 7, 7] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
+        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        cube = add_coordinate(
+            cube, 
+            coord_points=time_points, 
+            coord_name="time", 
+            is_datetime="true", 
+            order=[1, 0, 2, 3],
+        )
+
         radii = [10000, 20000, 30000]
         lead_times = [2, 3, 4]
         neighbourhood_method = CircularNeighbourhood()
         plugin = NBHood(neighbourhood_method, radii, lead_times)
         result = plugin(cube)
         self.assertIsInstance(result, Cube)
-        self.assertEqual(cube.coord("forecast_period").units, "hours")
 
     def test_radii_varying_with_lead_time_fp_seconds(self):
         """
         Test that a cube fp coord is unchanged by the lead time calculation.
         """
-        cube = set_up_cube(num_time_points=3)
-        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
-        time_points = cube.coord("time").points
-        fp_points = [2, 3, 4]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points
+        data = np.ones((1, 16, 16), dtype=np.float32)
+        data[0, 7, 7] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
+        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        cube = add_coordinate(
+            cube,
+            coord_points=time_points,
+            coord_name="time",
+            is_datetime="true",
+            order=[1, 0, 2, 3],
+        )
+
         cube.coord("forecast_period").convert_units("seconds")
         radii = [10000, 20000, 30000]
         lead_times = [2, 3, 4]
@@ -523,10 +563,22 @@ class Test_process(IrisTest):
         Test that the expected data is produced when the radius
         varies with lead time.
         """
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 7, 7), (0, 1, 7, 7,), (0, 2, 7, 7)),
-            num_time_points=3,
+
+        data = np.ones((1, 16, 16), dtype=np.float32)
+        data[0, 7, 7] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
+        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        cube = add_coordinate(
+            cube,
+            coord_points=time_points,
+            coord_name="time",
+            is_datetime="true",
+            order=[1, 0, 2, 3],
+        )
+
         expected = np.ones_like(cube.data)
         expected[0, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
@@ -546,12 +598,6 @@ class Test_process(IrisTest):
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
         )
 
-        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
-        time_points = cube.coord("time").points
-        fp_points = [2, 3, 4]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points
-        )
         radii = [5600, 7600, 9500]
         lead_times = [2, 3, 4]
         neighbourhood_method = CircularNeighbourhood()
@@ -563,17 +609,26 @@ class Test_process(IrisTest):
         """Test that a cube is returned for the following conditions:
         1. The radius varies wtih lead time.
         2. The cube contains multiple realizations."""
-        cube = set_up_cube(
-            zero_point_indices=((1, 0, 7, 7), (1, 1, 7, 7), (1, 2, 7, 7)),
-            num_time_points=3,
-            num_realization_points=2,
+
+        data = np.ones((2, 16, 16), dtype=np.float32)
+        data[1, 7, 7] = 0
+        cube = set_up_probability_cube(
+            data,
+            thresholds=[278, 279],
+            spatial_grid="equalarea",
         )
-        time_points = cube.coord("time").points
+
+        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        cube = add_coordinate(
+            cube,
+            coord_points=time_points,
+            coord_name="time",
+            is_datetime="true",
+            order=[1, 0, 2, 3],
+        )
+
         lead_times = [2, 3, 4]
         radii = [5600, 7600, 9500]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=lead_times
-        )
         expected = np.ones_like(cube.data)
         expected[1, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
@@ -603,13 +658,23 @@ class Test_process(IrisTest):
         2. Linear interpolation is required to create values for the radii
         which are required but were not specified within the 'radii'
         argument."""
-        cube = set_up_cube(num_time_points=3)
-        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
-        time_points = cube.coord("time").points
-        fp_points = [2, 3, 4]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points
+
+        data = np.ones((1, 16, 16), dtype=np.float32)
+        data[0, 7, 7] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
+
+        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        cube = add_coordinate(
+            cube,
+            coord_points=time_points,
+            coord_name="time",
+            is_datetime="true",
+            order=[1, 0, 2, 3],
+        )
+
         radii = [10000, 30000]
         lead_times = [2, 4]
         neighbourhood_method = CircularNeighbourhood()
@@ -624,10 +689,23 @@ class Test_process(IrisTest):
         2. Linear interpolation is required to create values for the radii
         which are required but were not specified within the 'radii'
         argument."""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 7, 7), (0, 1, 7, 7,), (0, 2, 7, 7)),
-            num_time_points=3,
+
+        data = np.ones((1, 16, 16), dtype=np.float32)
+        data[0, 7, 7] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
+
+        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        cube = add_coordinate(
+            cube,
+            coord_points=time_points,
+            coord_name="time",
+            is_datetime="true",
+            order=[1, 0, 2, 3],
+        )
+
         expected = np.ones_like(cube.data)
         expected[0, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
@@ -647,12 +725,7 @@ class Test_process(IrisTest):
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
         )
 
-        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
-        time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points
-        )
         radii = [5600, 9500]
         lead_times = [2, 4]
         neighbourhood_method = CircularNeighbourhood()
@@ -673,10 +746,14 @@ class Test_process(IrisTest):
                 [1.0, 1.0, 1.0, 1.0, 1.0],
             ]
         )
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5, num_time_points=1
+
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
-        cube = iris.util.squeeze(cube)
+
         mask_cube = cube.copy()
         mask_cube.data = np.array(
             [
@@ -696,19 +773,18 @@ class Test_process(IrisTest):
         """Test that the plugin returns an iris.cube.Cube with the correct
         data array if a mask cube is used and the mask cube does mask
         out the occurrences."""
-        expected = np.array(
-            [
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 0.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-            ]
+        
+        expected = np.ones((5, 5), dtype=np.float32)
+        expected[2, 2] = 0
+
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5, num_time_points=1
-        )
-        cube = iris.util.squeeze(cube)
+
+
         mask_cube = cube.copy()
         mask_cube.data = np.array(
             [
@@ -737,10 +813,14 @@ class Test_process(IrisTest):
                 [1.000000, 0.000000, 1.000000, 0.000000, 0.000000],
             ]
         )
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5, num_time_points=1
+
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
-        cube = iris.util.squeeze(cube)
+
         mask_cube = cube.copy()
         mask_cube.data = np.array(
             [
