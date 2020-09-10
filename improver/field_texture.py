@@ -263,6 +263,7 @@ class FieldTexture(BasePlugin):
         ratios = ratios.merge_cube()
         thresholded = BasicThreshold(self.diagnostic_threshold).process(ratios)
 
+        # Squeeze scalar threshold coordinate.
         try:
             field_texture = iris.util.squeeze(collapse_realizations(thresholded))
         except CoordinateNotFoundError:
