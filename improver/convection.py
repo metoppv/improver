@@ -369,8 +369,8 @@ class ConvectionRatioFromComponents(BasePlugin):
         """
         if not isinstance(cubes, iris.cube.CubeList):
             cubes = iris.cube.CubeList(cubes)
-        self.convective = self._get_cube(cubes, "convective_precipitation_rate")
-        self.dynamic = self._get_cube(cubes, "dynamic_precipitation_rate")
+        self.convective = self._get_cube(cubes, "lwe_convective_precipitation_rate")
+        self.dynamic = self._get_cube(cubes, "lwe_stratiform_precipitation_rate")
 
     @staticmethod
     def _get_cube(cubes, name):
@@ -424,8 +424,8 @@ class ConvectionRatioFromComponents(BasePlugin):
         Args:
             cubes (List[iris.cube.Cube, iris.cube.Cube]):
                 Both the convective and dynamic components as iris.cube.Cube in a list
-                with names 'convective_precipitation_rate' and
-                'dynamic_precipitation_rate'
+                with names 'lwe_convective_precipitation_rate' and
+                'lwe_stratiform_precipitation_rate'
 
         Returns:
             iris.cube.Cube:

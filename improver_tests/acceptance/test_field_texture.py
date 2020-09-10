@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the apply-reliability-calibration CLI."""
+"""Tests for the field-texture CLI"""
 
 import pytest
 
@@ -39,42 +39,38 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_calibration(tmp_path):
-    """
-    Test calibration of a forecast using a reliability calibration table.
-    """
-    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
+def test_basic(tmp_path):
+    """Test field texture operation with default arguments."""
+
+    kgo_dir = acc.kgo_root() / "field-texture/basic"
     kgo_path = kgo_dir / "kgo.nc"
-    forecast_path = kgo_dir / "forecast.nc"
-    table_path = kgo_dir / "collapsed_table.nc"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [forecast_path, table_path, "--output", output_path]
+
+    args = [
+        input_path,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-def test_calibration_cubelist_input(tmp_path):
-    """
-    Test calibration of a forecast using a reliability calibration table input
-    as a cubelist with a separate cube for each threshold.
-    """
-    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
+def test_args(tmp_path):
+    """Tests field texture operation with defined arguments"""
+
+    kgo_dir = acc.kgo_root() / "field-texture/args"
     kgo_path = kgo_dir / "kgo.nc"
-    forecast_path = kgo_dir / "forecast.nc"
-    table_path = kgo_dir / "cubelist_table.nc"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [forecast_path, table_path, "--output", output_path]
+
+    args = [
+        input_path,
+        "--nbhood-radius=5000.0",
+        "--textural-threshold=0.05",
+        "--diagnostic-threshold=0.6145",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_no_calibration(tmp_path):
-    """
-    Test applying reliability calibration without a reliability table.
-    """
-    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
-    forecast_path = kgo_dir / "forecast.nc"
-    output_path = tmp_path / "output.nc"
-    args = [forecast_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, forecast_path)

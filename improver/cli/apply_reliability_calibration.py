@@ -37,11 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    forecast: cli.inputcube,
-    reliability_table: cli.inputcube = None,
-    *,
-    minimum_forecast_count=200,
-    minimum_bin_fraction=0.6,
+    forecast: cli.inputcube, reliability_table: cli.inputcubelist = None,
 ):
     """
     Calibrate a probability forecast using the provided reliability calibration
@@ -57,19 +53,11 @@ def process(
     Args:
         forecast (iris.cube.Cube):
             The forecast to be calibrated.
-        reliability_table (iris.cube.Cube):
+        reliability_table (iris.cube.Cube or iris.cube.CubeList):
             The reliability calibration table to use in calibrating the
-            forecast.
-        minimum_forecast_count (int):
-            The minimum number of forecast counts in a forecast probability
-            bin for it to be used in calibration. If the reliability
-            table for a forecast threshold includes any bins with
-            insufficient counts that threshold will be returned unchanged.
-            The default value of 200 is that used in Flowerdew 2014.
-        minimum_bin_fraction (float):
-            The minimum fraction of forecast count bins associated with a
-            probability threshold that must exceed minimum_forecast_count
-            for that threshold to be calibrated.
+            forecast. If input is a CubeList the CubeList should contain
+            separate cubes for each threshold in the forecast cube.
+
     Returns:
         iris.cube.Cube:
             Calibrated forecast.
@@ -78,9 +66,5 @@ def process(
 
     if reliability_table is None:
         return forecast
-
-    plugin = ApplyReliabilityCalibration(
-        minimum_forecast_count=minimum_forecast_count,
-        minimum_bin_fraction=minimum_bin_fraction,
-    )
+    plugin = ApplyReliabilityCalibration()
     return plugin(forecast, reliability_table)

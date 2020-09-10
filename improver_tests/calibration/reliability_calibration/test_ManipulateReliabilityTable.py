@@ -105,6 +105,290 @@ class Test_setup(unittest.TestCase):
         )
 
 
+class Test__init__(unittest.TestCase):
+
+    """Test the __init__ method."""
+
+    def test_using_defaults(self):
+        """Test without providing any arguments."""
+
+        plugin = Plugin()
+
+        self.assertEqual(plugin.minimum_forecast_count, 200)
+
+    def test_with_arguments(self):
+        """Test with specified arguments."""
+
+        plugin = Plugin(minimum_forecast_count=100)
+
+        self.assertEqual(plugin.minimum_forecast_count, 100)
+
+    def test_with_invalid_minimum_forecast_count(self):
+        """Test an exception is raised if the minimum_forecast_count value is
+        less than 1."""
+
+        msg = "The minimum_forecast_count must be at least 1"
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin(minimum_forecast_count=0)
+
+
+class Test__combine_undersampled_bins(Test_setup):
+
+    """Test the _combine_undersampled_bins method."""
+
+    def setUp(self):
+        """Set up monotonic bins as default and plugin for testing."""
+        super().setUp()
+        self.obs_count = np.array([0, 250, 500, 750, 1000], dtype=np.float32)
+        self.forecast_probability_sum = np.array(
+            [0, 250, 500, 750, 1000], dtype=np.float32
+        )
+        self.plugin = Plugin()
+
+    def test_no_undersampled_bins(self):
+        """Test no bins are combined when no bins are under-sampled."""
+        forecast_count = np.array([1000, 1000, 1000, 1000, 1000], dtype=np.float32)
+
+        result = self.plugin._combine_undersampled_bins(
+            self.obs_count,
+            self.forecast_probability_sum,
+            forecast_count,
+            self.probability_bin_coord,
+        )
+
+        assert_array_equal(
+            result[:3], [self.obs_count, self.forecast_probability_sum, forecast_count]
+        )
+        self.assertEqual(result[3], self.probability_bin_coord)
+
+    def test_poorly_sampled_bins(self):
+        """Test when all bins are poorly sampled and the minimum forecast count
+        cannot be reached."""
+        obs_count = np.array([0, 2, 5, 8, 10], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 2, 5, 8, 10], dtype=np.float32)
+        forecast_count = np.array([10, 10, 10, 10, 10], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [25,],  # Observation count
+                [25,],  # Sum of forecast probability
+                [50,],  # Forecast count
+            ]
+        )
+
+        result = self.plugin._combine_undersampled_bins(
+            obs_count,
+            forecast_probability_sum,
+            forecast_count,
+            self.probability_bin_coord,
+        )
+
+        assert_array_equal(result[:3], expected)
+        expected_bin_coord_points = np.array([0.5], dtype=np.float32)
+        expected_bin_coord_bounds = np.array([[0.0, 1.0]], dtype=np.float32,)
+        assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+
+    def test_one_undersampled_bin_at_top(self):
+        """Test when the highest probability bin is under-sampled."""
+        obs_count = np.array([0, 250, 500, 750, 100], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 250, 500, 750, 100], dtype=np.float32)
+        forecast_count = np.array([1000, 1000, 1000, 1000, 100], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 250, 500, 850],  # Observation count
+                [0, 250, 500, 850],  # Sum of forecast probability
+                [1000, 1000, 1000, 1100],  # Forecast count
+            ]
+        )
+        result = self.plugin._combine_undersampled_bins(
+            obs_count,
+            forecast_probability_sum,
+            forecast_count,
+            self.probability_bin_coord,
+        )
+
+        assert_array_equal(result[:3], expected)
+        expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
+        )
+        assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+
+    def test_one_undersampled_bin_at_bottom(self):
+        """Test when the lowest probability bin is under-sampled."""
+        forecast_count = np.array([100, 1000, 1000, 1000, 1000], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [250, 500, 750, 1000],  # Observation count
+                [250, 500, 750, 1000],  # Sum of forecast probability
+                [1100, 1000, 1000, 1000],  # Forecast count
+            ]
+        )
+        result = self.plugin._combine_undersampled_bins(
+            self.obs_count,
+            self.forecast_probability_sum,
+            forecast_count,
+            self.probability_bin_coord,
+        )
+
+        assert_array_equal(result[:3], expected)
+        expected_bin_coord_points = np.array([0.2, 0.5, 0.7, 0.9], dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
+        )
+        assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+
+    def test_one_undersampled_bin_lower_neighbour(self):
+        """Test for one under-sampled bin that is combined with its lower
+        neighbour."""
+        obs_count = np.array([0, 250, 50, 1500, 1000], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 250, 50, 1500, 1000], dtype=np.float32)
+        forecast_count = np.array([1000, 1000, 100, 2000, 1000], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 300, 1500, 1000],  # Observation count
+                [0, 300, 1500, 1000],  # Sum of forecast probability
+                [1000, 1100, 2000, 1000],  # Forecast count
+            ]
+        )
+        result = self.plugin._combine_undersampled_bins(
+            obs_count,
+            forecast_probability_sum,
+            forecast_count,
+            self.probability_bin_coord,
+        )
+
+        assert_array_equal(result[:3], expected)
+        expected_bin_coord_points = np.array([0.1, 0.4, 0.7, 0.9], dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.2], [0.2, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
+        )
+        assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+
+    def test_one_undersampled_bin_upper_neighbour(self):
+        """Test for one under-sampled bin that is combined with its upper
+        neighbour."""
+        obs_count = np.array([0, 500, 50, 750, 1000], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 500, 50, 750, 1000], dtype=np.float32)
+        forecast_count = np.array([1000, 2000, 100, 1000, 1000], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 500, 800, 1000],  # Observation count
+                [0, 500, 800, 1000],  # Sum of forecast probability
+                [1000, 2000, 1100, 1000],  # Forecast count
+            ]
+        )
+        result = self.plugin._combine_undersampled_bins(
+            obs_count,
+            forecast_probability_sum,
+            forecast_count,
+            self.probability_bin_coord,
+        )
+
+        assert_array_equal(result[:3], expected)
+        expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9], dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
+        )
+        assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+
+    def test_two_undersampled_bins(self):
+        """Test when two bins are under-sampled."""
+        obs_count = np.array([0, 12, 250, 75, 250], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 12, 250, 75, 250], dtype=np.float32)
+        forecast_count = np.array([1000, 50, 500, 100, 250], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 262, 325],  # Observation count
+                [0, 262, 325],  # Sum of forecast probability
+                [1000, 550, 350],  # Forecast count
+            ]
+        )
+        result = self.plugin._combine_undersampled_bins(
+            obs_count,
+            forecast_probability_sum,
+            forecast_count,
+            self.probability_bin_coord,
+        )
+
+        assert_array_equal(result[:3], expected)
+        expected_bin_coord_points = np.array([0.1, 0.4, 0.8], dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]], dtype=np.float32,
+        )
+        assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+
+    def test_two_equal_undersampled_bins(self):
+        """Test when two bins are under-sampled and the under-sampled bins have
+        an equal forecast count."""
+        obs_count = np.array([0, 25, 250, 75, 250], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 25, 250, 75, 250], dtype=np.float32)
+        forecast_count = np.array([1000, 100, 500, 100, 250], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 275, 325],  # Observation count
+                [0, 275, 325],  # Sum of forecast probability
+                [1000, 600, 350],  # Forecast count
+            ]
+        )
+
+        result = self.plugin._combine_undersampled_bins(
+            obs_count,
+            forecast_probability_sum,
+            forecast_count,
+            self.probability_bin_coord,
+        )
+
+        assert_array_equal(result[:3], expected)
+        expected_bin_coord_points = np.array([0.1, 0.4, 0.8], dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]], dtype=np.float32,
+        )
+        assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+
+    def test_three_equal_undersampled_bin_neighbours(self):
+        """Test when three neighbouring bins are under-sampled."""
+        obs_count = np.array([0, 25, 50, 75, 250], dtype=np.float32)
+        forecast_probability_sum = np.array([0, 25, 50, 75, 250], dtype=np.float32)
+        forecast_count = np.array([1000, 100, 100, 100, 250], dtype=np.float32)
+
+        expected = np.array(
+            [
+                [0, 150, 250],  # Observation count
+                [0, 150, 250],  # Sum of forecast probability
+                [1000, 300, 250],  # Forecast count
+            ]
+        )
+
+        result = self.plugin._combine_undersampled_bins(
+            obs_count,
+            forecast_probability_sum,
+            forecast_count,
+            self.probability_bin_coord,
+        )
+
+        assert_array_equal(result[:3], expected)
+        expected_bin_coord_points = np.array([0.1, 0.5, 0.9], dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.2], [0.2, 0.8], [0.8, 1.0]], dtype=np.float32,
+        )
+        assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
+
+
 class Test__combine_bin_pair(Test_setup):
 
     """Test the _combine_bin_pair."""
@@ -133,15 +417,12 @@ class Test__combine_bin_pair(Test_setup):
             self.probability_bin_coord,
         )
         assert_array_equal(result[:3], self.expected_enforced_monotonic)
-        expected_bin_coord_points = np.array(
-            [0.09999999, 0.29999998, 0.5, 0.8], dtype=np.float32
-        )
+        expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.19999999], [0.2, 0.39999998], [0.4, 0.59999996], [0.6, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
-        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
         assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
     def test_two_non_monotonic_bin_pairs(self):
         """Test one bin pair is combined, if two bin pairs are non-monotonic.
@@ -156,15 +437,12 @@ class Test__combine_bin_pair(Test_setup):
             self.probability_bin_coord,
         )
         assert_array_equal(result[:3], self.expected_enforced_monotonic)
-        expected_bin_coord_points = np.array(
-            [0.09999999, 0.29999998, 0.5, 0.8], dtype=np.float32
-        )
+        expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.19999999], [0.2, 0.39999998], [0.4, 0.59999996], [0.6, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
-        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
         assert_allclose(expected_bin_coord_points, result[3].points)
+        assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
 class Test__assume_constant_observation_frequency(Test_setup):
@@ -177,12 +455,34 @@ class Test__assume_constant_observation_frequency(Test_setup):
         )
         assert_array_equal(result.data, self.obs_count)
 
-    def test_non_monotonic(self):
+    def test_non_monotonic_equal_forecast_count(self):
         """Test enforcement of monotonicity for observation frequency."""
         obs_count = np.array([0, 750, 500, 1000, 750], dtype=np.float32)
         expected_result = np.array([0, 750, 750, 1000, 1000], dtype=np.float32)
         result = Plugin()._assume_constant_observation_frequency(
             obs_count, self.forecast_count
+        )
+        assert_array_equal(result.data, expected_result)
+
+    @staticmethod
+    def test_non_monotonic_lower_forecast_count_on_left():
+        """Test enforcement of monotonicity for observation frequency."""
+        obs_count = np.array([0, 750, 500, 1000, 750], dtype=np.float32)
+        forecast_count = np.array([500, 1000, 1000, 1000, 1000], dtype=np.float32)
+        expected_result = np.array([0, 500, 500, 750, 750], dtype=np.float32)
+        result = Plugin()._assume_constant_observation_frequency(
+            obs_count, forecast_count
+        )
+        assert_array_equal(result.data, expected_result)
+
+    @staticmethod
+    def test_non_monotonic_higher_forecast_count_on_left():
+        """Test enforcement of monotonicity for observation frequency."""
+        obs_count = np.array([0, 750, 500, 1000, 75], dtype=np.float32)
+        forecast_count = np.array([1000, 1000, 1000, 1000, 100], dtype=np.float32)
+        expected_result = np.array([0, 750, 750, 1000, 100], dtype=np.float32)
+        result = Plugin()._assume_constant_observation_frequency(
+            obs_count, forecast_count
         )
         assert_array_equal(result.data, expected_result)
 
@@ -198,6 +498,66 @@ class Test_process(Test_setup):
         self.assertEqual(result[0].coords(), self.multi_threshold_rt[0].coords())
         assert_array_equal(result[1].data, self.multi_threshold_rt[1].data)
         self.assertEqual(result[1].coords(), self.multi_threshold_rt[1].coords())
+
+    def test_combine_undersampled_bins_monotonic(self):
+        """Test expected values are returned when a bin is below the minimum
+        forecast count when the observed frequency is monotonic."""
+
+        expected_data = np.array(
+            [[0, 250, 425, 1000], [0, 250, 425, 1000], [1000, 1000, 600, 1000]]
+        )
+        expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9], dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
+        )
+        self.multi_threshold_rt.data[1] = np.array(
+            [
+                [0, 250, 50, 375, 1000],  # Observation count
+                [0, 250, 50, 375, 1000],  # Sum of forecast probability
+                [1000, 1000, 100, 500, 1000],  # Forecast count
+            ]
+        )
+
+        result = Plugin().process(self.multi_threshold_rt.copy())
+        assert_array_equal(result[0].data, self.multi_threshold_rt[0].data)
+        self.assertEqual(result[0].coords(), self.multi_threshold_rt[0].coords())
+        assert_array_equal(result[1].data, expected_data)
+        assert_allclose(
+            result[1].coord("probability_bin").points, expected_bin_coord_points
+        )
+        assert_allclose(
+            result[1].coord("probability_bin").bounds, expected_bin_coord_bounds
+        )
+
+    def test_combine_undersampled_bins_non_monotonic(self):
+        """Test expected values are returned when a bin is below the minimum
+        forecast count when the observed frequency is non-monotonic."""
+
+        expected_data = np.array(
+            [[1000, 425, 1000], [1000, 425, 1000], [2000, 600, 1000]]
+        )
+        expected_bin_coord_points = np.array([0.2, 0.6, 0.9], dtype=np.float32)
+        expected_bin_coord_bounds = np.array(
+            [[0.0, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
+        )
+        self.multi_threshold_rt.data[1] = np.array(
+            [
+                [750, 250, 50, 375, 1000],  # Observation count
+                [750, 250, 50, 375, 1000],  # Sum of forecast probability
+                [1000, 1000, 100, 500, 1000],  # Forecast count
+            ]
+        )
+
+        result = Plugin().process(self.multi_threshold_rt.copy())
+        assert_array_equal(result[0].data, self.multi_threshold_rt[0].data)
+        self.assertEqual(result[0].coords(), self.multi_threshold_rt[0].coords())
+        assert_array_equal(result[1].data, expected_data)
+        assert_allclose(
+            result[1].coord("probability_bin").points, expected_bin_coord_points
+        )
+        assert_allclose(
+            result[1].coord("probability_bin").bounds, expected_bin_coord_bounds
+        )
 
     def test_highest_bin_non_monotonic(self):
         """Test expected values are returned where the highest observation
@@ -265,7 +625,7 @@ class Test_process(Test_setup):
         """Test expected values are returned where the upper observation
         count bins are non-monotonic."""
         expected_data = np.array(
-            [[0, 1000, 1000, 2000], [0, 250, 500, 1750], [1000, 1000, 1000, 2000]]
+            [[0, 375, 375, 750], [0, 250, 500, 1750], [1000, 1000, 1000, 2000]]
         )
         expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
 
