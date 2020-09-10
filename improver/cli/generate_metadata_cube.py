@@ -34,55 +34,6 @@
 from improver import cli
 
 
-def _error_more_than_one_leading_dimension():
-    """Raises an error to inform the user that only one leading dimension can be
-    provided in the input data."""
-    raise ValueError(
-        'Only one of "realization", "percentile" or "probability" dimensions should be provided.'
-    )
-
-
-def _get_leading_dimension(coord_data):
-    """Gets leading dimension values from coords nested dictionary and sets cube
-    type based on what dimension key is used."""
-    leading_dimension = None
-    cube_type = "variable"
-
-    if "realizations" in coord_data:
-        leading_dimension = coord_data["realizations"]
-
-    if "percentiles" in coord_data:
-        if leading_dimension is not None:
-            _error_more_than_one_leading_dimension()
-
-        leading_dimension = coord_data["percentiles"]
-        cube_type = "percentile"
-
-    if "thresholds" in coord_data:
-        if leading_dimension is not None:
-            _error_more_than_one_leading_dimension()
-
-        leading_dimension = coord_data["thresholds"]
-        cube_type = "probability"
-
-    return leading_dimension, cube_type
-
-
-def _get_height_levels(coord_data):
-    """Gets height level values from coords nested dictionary and sets pressure
-    value based on whether heights or pressures key is used."""
-    height_levels = None
-    pressure = False
-
-    if "heights" in coord_data:
-        height_levels = coord_data["heights"]
-    elif "pressures" in coord_data:
-        height_levels = coord_data["pressures"]
-        pressure = True
-
-    return height_levels, pressure
-
-
 @cli.clizefy
 @cli.with_output
 def process(
@@ -143,6 +94,10 @@ def process(
         iris.cube.Cube:
             Output of generate_metadata()
     """
+    from improver.synthetic_data.utilities import (
+        get_leading_dimension,
+        get_height_levels,
+    )
     from improver.synthetic_data.generate_metadata import generate_metadata
     from improver.utilities.temporal import cycletime_to_datetime
 
@@ -150,8 +105,8 @@ def process(
     if json_input is not None and "coords" in json_input:
         coord_data = json_input["coords"]
 
-        leading_dimension, cube_type = _get_leading_dimension(coord_data)
-        height_levels, pressure = _get_height_levels(coord_data)
+        leading_dimension, cube_type = get_leading_dimension(coord_data)
+        height_levels, pressure = get_height_levels(coord_data)
 
         json_input.pop("coords", None)
 
@@ -178,6 +133,8 @@ def process(
     generate_metadata_args.pop("json_input", None)
     generate_metadata_args.pop("cycletime_to_datetime", None)
     generate_metadata_args.pop("generate_metadata", None)
+    generate_metadata_args.pop("get_leading_dimension", None)
+    generate_metadata_args.pop("get_height_levels", None)
     generate_metadata_args.pop("tb", None)
 
     # If json_input provided, update generate_metadata_args with the json_input data
