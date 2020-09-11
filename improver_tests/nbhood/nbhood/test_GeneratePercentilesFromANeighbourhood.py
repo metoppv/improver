@@ -32,13 +32,13 @@
 
 
 import unittest
-import numpy as np
 
+import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood as NBHood
+from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
 class Test__init__(IrisTest):

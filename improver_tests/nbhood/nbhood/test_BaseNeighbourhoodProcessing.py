@@ -32,10 +32,10 @@
 
 
 import unittest
+from datetime import datetime
 
 import iris
 import numpy as np
-
 from cf_units import Unit
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
@@ -46,11 +46,11 @@ from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
 from improver.nbhood.nbhood import SquareNeighbourhood
 from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
     set_up_probability_cube,
     set_up_variable_cube,
-    add_coordinate,
 )
-from datetime import datetime
+
 from ...calibration.ensemble_calibration.helper_functions import (
     add_forecast_reference_time_and_forecast_period,
 )
