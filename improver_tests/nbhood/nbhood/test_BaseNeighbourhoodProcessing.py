@@ -477,15 +477,11 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
-
     def test_no_realizations(self):
         """Test when the array has no threshold coord."""
         data = np.ones((16, 16), dtype=np.float32)
         data[7, 7] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
         radii = 5600
         neighbourhood_method = CircularNeighbourhood()
         result = NBHood(neighbourhood_method, radii)(cube)
@@ -505,16 +501,17 @@ class Test_process(IrisTest):
 
         data = np.ones((1, 16, 16), dtype=np.float32)
         data[0, 7, 7] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
-        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        time_points = [
+            datetime(2017, 11, 10, 2),
+            datetime(2017, 11, 10, 3),
+            datetime(2017, 11, 10, 4),
+        ]
         cube = add_coordinate(
-            cube, 
-            coord_points=time_points, 
-            coord_name="time", 
-            is_datetime="true", 
+            cube,
+            coord_points=time_points,
+            coord_name="time",
+            is_datetime="true",
             order=[1, 0, 2, 3],
         )
 
@@ -531,11 +528,12 @@ class Test_process(IrisTest):
         """
         data = np.ones((1, 16, 16), dtype=np.float32)
         data[0, 7, 7] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
-        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        time_points = [
+            datetime(2017, 11, 10, 2),
+            datetime(2017, 11, 10, 3),
+            datetime(2017, 11, 10, 4),
+        ]
         cube = add_coordinate(
             cube,
             coord_points=time_points,
@@ -561,11 +559,12 @@ class Test_process(IrisTest):
 
         data = np.ones((1, 16, 16), dtype=np.float32)
         data[0, 7, 7] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
-        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        time_points = [
+            datetime(2017, 11, 10, 2),
+            datetime(2017, 11, 10, 3),
+            datetime(2017, 11, 10, 4),
+        ]
         cube = add_coordinate(
             cube,
             coord_points=time_points,
@@ -608,12 +607,14 @@ class Test_process(IrisTest):
         data = np.ones((2, 16, 16), dtype=np.float32)
         data[1, 7, 7] = 0
         cube = set_up_probability_cube(
-            data,
-            thresholds=[278, 279],
-            spatial_grid="equalarea",
+            data, thresholds=[278, 279], spatial_grid="equalarea",
         )
 
-        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        time_points = [
+            datetime(2017, 11, 10, 2),
+            datetime(2017, 11, 10, 3),
+            datetime(2017, 11, 10, 4),
+        ]
         cube = add_coordinate(
             cube,
             coord_points=time_points,
@@ -656,12 +657,13 @@ class Test_process(IrisTest):
 
         data = np.ones((1, 16, 16), dtype=np.float32)
         data[0, 7, 7] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
-        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        time_points = [
+            datetime(2017, 11, 10, 2),
+            datetime(2017, 11, 10, 3),
+            datetime(2017, 11, 10, 4),
+        ]
         cube = add_coordinate(
             cube,
             coord_points=time_points,
@@ -687,12 +689,13 @@ class Test_process(IrisTest):
 
         data = np.ones((1, 16, 16), dtype=np.float32)
         data[0, 7, 7] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
-        time_points = [datetime(2017, 11, 10, 2), datetime(2017, 11, 10, 3), datetime(2017, 11, 10, 4)]
+        time_points = [
+            datetime(2017, 11, 10, 2),
+            datetime(2017, 11, 10, 3),
+            datetime(2017, 11, 10, 4),
+        ]
         cube = add_coordinate(
             cube,
             coord_points=time_points,
@@ -744,10 +747,7 @@ class Test_process(IrisTest):
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
         mask_cube = cube.copy()
         mask_cube.data = np.array(
@@ -768,17 +768,13 @@ class Test_process(IrisTest):
         """Test that the plugin returns an iris.cube.Cube with the correct
         data array if a mask cube is used and the mask cube does mask
         out the occurrences."""
-        
+
         expected = np.ones((5, 5), dtype=np.float32)
         expected[2, 2] = 0
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
-
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
         mask_cube = cube.copy()
         mask_cube.data = np.array(
@@ -811,10 +807,7 @@ class Test_process(IrisTest):
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
         mask_cube = cube.copy()
         mask_cube.data = np.array(
