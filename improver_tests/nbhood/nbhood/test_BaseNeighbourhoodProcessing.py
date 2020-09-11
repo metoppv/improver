@@ -36,11 +36,6 @@ import unittest
 import iris
 import numpy as np
 
-# imports to be removed before merge:
-import sys
-np.set_printoptions(threshold=sys.maxsize)
-#end of imports to be removed before merge.
-
 from cf_units import Unit
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
@@ -461,7 +456,7 @@ class Test_process(IrisTest):
             NBHood(neighbourhood_method, self.RADIUS)(self.cube)
 
     def test_multiple_realizations(self):
-        """Test when the cube has a realization dimension."""
+        """Test when the cube has a threshold dimension."""
 
         data = np.ones((4, 16, 16), dtype=np.float32)
         data[0, 7, 7] = 0
@@ -484,7 +479,7 @@ class Test_process(IrisTest):
 
 
     def test_no_realizations(self):
-        """Test when the array has no realization coord."""
+        """Test when the array has no threshold coord."""
         data = np.ones((16, 16), dtype=np.float32)
         data[7, 7] = 0
         cube = set_up_variable_cube(
@@ -608,7 +603,7 @@ class Test_process(IrisTest):
     def test_radii_varying_with_lead_time_multiple_realizations(self):
         """Test that a cube is returned for the following conditions:
         1. The radius varies wtih lead time.
-        2. The cube contains multiple realizations."""
+        2. The cube contains multiple thresholds."""
 
         data = np.ones((2, 16, 16), dtype=np.float32)
         data[1, 7, 7] = 0
