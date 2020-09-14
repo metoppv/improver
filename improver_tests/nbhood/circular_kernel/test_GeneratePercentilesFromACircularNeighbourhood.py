@@ -39,7 +39,7 @@ import iris
 import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
-
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.circular_kernel import (
     GeneratePercentilesFromACircularNeighbourhood,
@@ -69,8 +69,12 @@ class Test_make_percentile_cube(IrisTest):
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1, num_grid_points=5
+
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        data[0, 2, 2] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
         result = GeneratePercentilesFromACircularNeighbourhood().make_percentile_cube(
             cube
@@ -79,9 +83,14 @@ class Test_make_percentile_cube(IrisTest):
 
     def test_coord_present(self):
         """Test that the percentile coord is added."""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1, num_grid_points=5
+
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        data[0, 2, 2] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
+
         result = GeneratePercentilesFromACircularNeighbourhood().make_percentile_cube(
             cube
         )
@@ -93,9 +102,14 @@ class Test_make_percentile_cube(IrisTest):
     def test_coord_is_dim_vector(self):
         """Test that the percentile coord is added as the zeroth dimension when
         multiple percentiles are used."""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1, num_grid_points=5
+
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        data[0, 2, 2] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
+
         result = GeneratePercentilesFromACircularNeighbourhood().make_percentile_cube(
             cube
         )
@@ -104,9 +118,14 @@ class Test_make_percentile_cube(IrisTest):
     def test_coord_is_dim_scalar(self):
         """Test that the percentile coord is added as the zeroth dimension when
         a single percentile is used."""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1, num_grid_points=5
+
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        data[0, 2, 2] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
         )
+
         result = GeneratePercentilesFromACircularNeighbourhood(
             50.0
         ).make_percentile_cube(cube)
@@ -119,7 +138,13 @@ class Test_pad_and_unpad_cube(IrisTest):
 
     def setUp(self):
         """Set up a cube."""
-        self.cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
+
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        data[0, 2, 2] = 0
+        self.cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
     def test_2d_slice(self):
         """Test a 2d slice."""
@@ -149,7 +174,7 @@ class Test_pad_and_unpad_cube(IrisTest):
             ]
         )
         kernel = np.array([[0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 0.0]])
-        cube = self.cube[0, 0, :, :]
+        cube = self.cube[0, :, :]
         plugin = GeneratePercentilesFromACircularNeighbourhood()
         plugin.percentiles = np.array([10, 50, 90])
         result = plugin.pad_and_unpad_cube(cube, kernel)
@@ -184,7 +209,7 @@ class Test_pad_and_unpad_cube(IrisTest):
             ]
         )
         kernel = np.array([[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
-        cube = self.cube[0, 0, :, :]
+        cube = self.cube[0, :, :]
         plugin = GeneratePercentilesFromACircularNeighbourhood()
         plugin.percentiles = np.array([10, 50, 90])
         result = plugin.pad_and_unpad_cube(cube, kernel)
@@ -193,10 +218,17 @@ class Test_pad_and_unpad_cube(IrisTest):
 
     def test_single_point_almost_edge(self):
         """Test behaviour for a non-zero grid cell quite near the edge."""
-        cube = set_up_cube(
-            zero_point_indices=[(0, 0, 1, 1)], num_grid_points=3
-        )  # Just within range of the edge.
-        slice_2d = cube[0, 0, :, :]
+
+        data = np.ones((1, 3, 3), dtype=np.float32)
+        data[0, 1, 1] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
+
+        # Just within range of the edge.
+
+        slice_2d = cube[0, :, :]
         expected = np.array(
             [
                 [[0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]],
@@ -221,10 +253,17 @@ class Test_pad_and_unpad_cube(IrisTest):
 
     def test_single_point_adjacent_edge(self):
         """Test behaviour for a single non-zero grid cell near the edge."""
-        cube = set_up_cube(
-            zero_point_indices=[(0, 0, 2, 1)], num_grid_points=5
-        )  # Range 3 goes over the edge.
-        slice_2d = cube[0, 0, :, :]
+
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        data[0, 2, 1] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
+
+        # Range 3 goes over the edge
+
+        slice_2d = cube[0, :, :]
         expected = np.array(
             [
                 [
@@ -284,8 +323,15 @@ class Test_pad_and_unpad_cube(IrisTest):
                 ],
             ]
         )
-        cube = set_up_cube(zero_point_indices=[(0, 0, 2, 0)], num_grid_points=5)
-        slice_2d = cube[0, 0, :, :]
+
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        data[0, 2, 0] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
+
+        slice_2d = cube[0, :, :]
         percentiles = np.array([10, 50, 90])
         kernel = np.array([[0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 0.0]])
         result = GeneratePercentilesFromACircularNeighbourhood(
@@ -320,10 +366,16 @@ class Test_pad_and_unpad_cube(IrisTest):
                 ],
             ]
         )
-        cube = set_up_cube(
-            zero_point_indices=[(0, 0, 0, 0)], num_grid_points=5
-        )  # Point is right on the corner.
-        slice_2d = cube[0, 0, :, :]
+
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        data[0, 0, 0] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
+
+        # Point is right on the corner.
+        slice_2d = cube[0, :, :]
         percentiles = np.array([10, 50, 90])
         kernel = np.array([[0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 0.0]])
         result = GeneratePercentilesFromACircularNeighbourhood(
@@ -339,7 +391,13 @@ class Test_run(IrisTest):
 
     def setUp(self):
         """Set up a cube."""
-        self.cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
+
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        data[0, 2, 2] = 0
+        self.cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -352,7 +410,7 @@ class Test_run(IrisTest):
         """Test behaviour for a single non-zero grid cell."""
         expected = np.array(
             [
-                [
+                
                     [
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
@@ -380,7 +438,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                         ]
                     ],
-                ]
+                
             ]
         )
         percentiles = np.array([10, 50, 90])
@@ -397,6 +455,8 @@ class Test_run(IrisTest):
             num_time_points=2,
             num_grid_points=5,
         )
+        print(cube)
+        print(cube.data)
         expected = np.array(
             [
                 [
