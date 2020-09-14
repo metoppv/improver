@@ -44,7 +44,7 @@ def _error_more_than_one_leading_dimension():
 def get_leading_dimension(coord_data):
     """Gets leading dimension values from coords nested dictionary and sets cube
     type based on what dimension key is used.
-    
+
     Args:
         coord_data (Dict):
             Dictionary containing values to use for either realizations, percentiles or
