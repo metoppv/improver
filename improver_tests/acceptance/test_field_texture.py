@@ -69,6 +69,7 @@ def test_args(tmp_path):
         "--nbhood-radius=5000.0",
         "--textural-threshold=0.05",
         "--diagnostic-threshold=0.6145",
+        "--model-id-attr=mosg__model_configuration",
         "--output",
         output_path,
     ]

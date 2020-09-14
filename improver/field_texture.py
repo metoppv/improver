@@ -61,7 +61,13 @@ class FieldTexture(BasePlugin):
        (texture values close to zero).
     """
 
-    def __init__(self, nbhood_radius, textural_threshold, diagnostic_threshold):
+    def __init__(
+        self,
+        nbhood_radius,
+        textural_threshold,
+        diagnostic_threshold,
+        model_id_attr=None,
+    ):
         """
 
         Args:
@@ -81,10 +87,15 @@ class FieldTexture(BasePlugin):
                 A user defined threshold value related either to cloud or precipitation,
                 used to extract the corresponding dimensional cube with assumed units of 1.
 
+            model_id_attr (str):
+                Name of the attribute used to identify the source model for
+                blending.
+
         """
         self.nbhood_radius = nbhood_radius
         self.textural_threshold = textural_threshold
         self.diagnostic_threshold = diagnostic_threshold
+        self.model_id_attr = model_id_attr
         self.cube_name = None
 
     def _calculate_ratio(self, cube, radius):
@@ -159,7 +170,9 @@ class FieldTexture(BasePlugin):
             "texture_of_{}".format(self.cube_name),
             1,
             cube,
-            mandatory_attributes=generate_mandatory_attributes([cube]),
+            mandatory_attributes=generate_mandatory_attributes(
+                [cube], model_id_attr=self.model_id_attr
+            ),
             data=ratio,
         )
         return ratio
@@ -202,8 +215,10 @@ class FieldTexture(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                A cube containing the mean of the thresholded ratios to give
-                the field texture.
+                A cube containing either the mean across realization of the
+                thresholded ratios to give the field texture, if a realization
+                coordinate is present, or the thresholded ratios directly, if
+                no realization coordinate is present.
         """
 
         values = np.unique(input_cube.data)
@@ -247,6 +262,12 @@ class FieldTexture(BasePlugin):
 
         ratios = ratios.merge_cube()
         thresholded = BasicThreshold(self.diagnostic_threshold).process(ratios)
-        field_texture = iris.util.squeeze(collapse_realizations(thresholded))
+
+        # Squeeze scalar threshold coordinate.
+        try:
+            field_texture = iris.util.squeeze(collapse_realizations(thresholded))
+        except CoordinateNotFoundError:
+            field_texture = iris.util.squeeze(thresholded)
+
         field_texture.data = np.float32(field_texture.data)
         return field_texture
