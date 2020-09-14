@@ -49,7 +49,7 @@ def get_leading_dimension(coord_data):
         coord_data (Dict):
             Dictionary containing values to use for either realizations, percentiles or
             thresholds.
-    
+
     Returns:
         Tuple[List(float), str]:
             A tuple containing the list of values to use for the leading dimension and
@@ -81,11 +81,11 @@ def get_leading_dimension(coord_data):
 def get_height_levels(coord_data):
     """Gets height level values from coords nested dictionary and sets pressure
     value based on whether heights or pressures key is used.
-    
+
     Args:
         coord_data (Dict):
             Dictionary containing values to use for either height or pressure levels.
-    
+
     Returns:
         Tuple[List(float), bool]:
             A tuple containing a list of values to use for the height/pressure dimension
