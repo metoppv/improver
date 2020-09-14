@@ -114,7 +114,8 @@ def generate_metadata(
             underlying variable / threshold.
         time_period (Optional[int]):
             The period in minutes between the time bounds. This is used to calculate
-            the lower time bound.
+            the lower time bound. If unset the diagnostic will be instantaneous, i.e.
+            without time bounds.
         ensemble_members (Optional[int]):
             Number of ensemble members. Default 8, unless percentile or probability set
             to True.

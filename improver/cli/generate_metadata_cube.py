@@ -62,7 +62,8 @@ def process(
             "latlon" or "equalarea".
         time_period (Optional[int]):
             The period in minutes between the time bounds. This is used to calculate
-            the lower time bound.
+            the lower time bound. If unset the diagnostic will be instantaneous, i.e.
+            without time bounds.
         json_input (Optional[Dict]):
             Dictionary containing values for one or more of: "name", "units", "time",
             "time_bounds", "frt", "spp__relative_to_threshold", "attributes"
@@ -71,9 +72,8 @@ def process(
             and one of "realizations", "percentiles" or "thresholds" (list of dimension
             values).
         ensemble_members (Optional[int]):
-            Number of ensemble members. Default 8, unless percentile or probability set
-            to True. Will not be used if leading_dimension or leading_dimension_json
-            provided.
+            Number of ensemble members. Default 8. Will not be used if "realizations",
+            "percentiles" or "thresholds" provided in json_input.
         grid_spacing (Optional[float]):
             Resolution of grid (metres or degrees).
         domain_corner (Optional[Tuple[float, float]]):
@@ -86,6 +86,11 @@ def process(
         iris.cube.Cube:
             Output of generate_metadata()
     """
+    # Set arguments to pass to generate_metadata function and remove json_input for
+    # processing contents before adding
+    generate_metadata_args = locals()
+    generate_metadata_args.pop("json_input", None)
+
     from improver.synthetic_data.utilities import (
         get_leading_dimension,
         get_height_levels,
@@ -93,40 +98,35 @@ def process(
     from improver.synthetic_data.generate_metadata import generate_metadata
     from improver.utilities.temporal import cycletime_to_datetime
 
-    # Get leading dimension and height/pressure data from json_input
-    if json_input is not None and "coords" in json_input:
-        coord_data = json_input["coords"]
-
-        leading_dimension, cube_type = get_leading_dimension(coord_data)
-        height_levels, pressure = get_height_levels(coord_data)
-
-        json_input.pop("coords", None)
-
-    # Convert str time, frt and time_bounds to datetime
-    if json_input is not None and "time" in json_input:
-        json_input["time"] = cycletime_to_datetime(json_input["time"])
-
-    if json_input is not None and "frt" in json_input:
-        json_input["frt"] = cycletime_to_datetime(json_input["frt"])
-
-    if json_input is not None and "time_bounds" in json_input:
-        time_bounds = []
-        for tb in json_input["time_bounds"]:
-            time_bounds.append(cycletime_to_datetime(tb))
-        json_input.pop("time_bounds", None)
-
-    # Set arguments to pass to generate_metadata function
-    generate_metadata_args = locals()
-    generate_metadata_args.pop("coord_data", None)
-    generate_metadata_args.pop("json_input", None)
-    generate_metadata_args.pop("cycletime_to_datetime", None)
-    generate_metadata_args.pop("generate_metadata", None)
-    generate_metadata_args.pop("get_leading_dimension", None)
-    generate_metadata_args.pop("get_height_levels", None)
-    generate_metadata_args.pop("tb", None)
-
-    # If json_input provided, update generate_metadata_args with the json_input data
     if json_input is not None:
+        # Get leading dimension and height/pressure data from json_input
+        if "coords" in json_input:
+            coord_data = json_input["coords"]
+
+            (
+                json_input["leading_dimension"],
+                json_input["cube_type"],
+            ) = get_leading_dimension(coord_data)
+            json_input["height_levels"], json_input["pressure"] = get_height_levels(
+                coord_data
+            )
+
+            json_input.pop("coords", None)
+
+        # Convert str time, frt and time_bounds to datetime
+        if "time" in json_input:
+            json_input["time"] = cycletime_to_datetime(json_input["time"])
+
+        if "frt" in json_input:
+            json_input["frt"] = cycletime_to_datetime(json_input["frt"])
+
+        if "time_bounds" in json_input:
+            time_bounds = []
+            for tb in json_input["time_bounds"]:
+                time_bounds.append(cycletime_to_datetime(tb))
+            json_input["time_bounds"] = time_bounds
+
+        # Update generate_metadata_args with the json_input data
         generate_metadata_args.update(json_input)
 
     return generate_metadata(**generate_metadata_args)

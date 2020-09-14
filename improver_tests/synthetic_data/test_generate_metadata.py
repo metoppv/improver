@@ -107,7 +107,6 @@ def test_default():
     assert (
         iris_time_to_datetime(cube.coord("forecast_reference_time"))[0] == FRT_DEFAULT
     )
-    print(cube.coord("forecast_period").points)
     assert cube.coord("forecast_period").points == FORECAST_PERIOD_DEFAULT
 
     assert cube.attributes == ATTRIBUTES_DEFAULT
@@ -331,21 +330,12 @@ def test_disable_ensemble(ensemble_members):
     "cube_type", ("variable", "percentile", "probability", "other")
 )
 @pytest.mark.parametrize(
-    "spp__relative_to_threshold", ("above", "below", "between", None),
+    "spp__relative_to_threshold", ("above", "below", None),
 )
 def test_leading_dimension(cube_type, spp__relative_to_threshold):
     """ Tests cube generated with leading dimension specified using percentile and
     probability flags, and different values for spp__relative_to_threshold """
-    if cube_type == "probability" and spp__relative_to_threshold == "between":
-        # Tests that error is raised when both percentile and probability set to True
-        msg = "spp__relative_to_threshold"
-
-        with pytest.raises(ValueError, match=msg):
-            generate_metadata(
-                cube_type=cube_type,
-                spp__relative_to_threshold=spp__relative_to_threshold,
-            )
-    elif cube_type == "other":
+    if cube_type == "other":
         # Tests that error is raised when cube type isn't supported
         msg = 'Cube type {} not supported. Specify one of "variable", "percentile" or "probability".'.format(
             cube_type

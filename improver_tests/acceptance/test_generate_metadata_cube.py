@@ -141,22 +141,6 @@ def test_probability_cube(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_error_more_than_one_leading_dimension(tmp_path):
-    """Test error raised if input contains more than one leading dimension"""
-    msg = "Only one"
-    kgo_dir = acc.kgo_root() / "generate-metadata-cube"
-    leading_dimensions_path = kgo_dir / "leading_dimensions.json"
-    output_path = tmp_path / "output.nc"
-    args = [
-        "--json-input",
-        leading_dimensions_path,
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(ValueError, match=msg):
-        run_cli(args)
-
-
 def test_height_levels(tmp_path):
     """Test metadata cube generated with height levels from json"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
