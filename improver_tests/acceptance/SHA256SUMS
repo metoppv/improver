@@ -122,9 +122,9 @@ aa3e49a252d9b3222ec71459fe981791d7f631b1aa83dcee9c95bc1f1b82cecc  ./feels_like_t
 09149c4ff592e9337e7ee8819d084b890438e050f7140701939d0524cae1b1b3  ./feels_like_temp/ukvx/20181121T1200Z-PT0012H00M-wind_speed_at_10m.nc
 986df18975a55a8e00589fb45c36c375c459940504580bb4fa1c62a03082ba07  ./feels_like_temp/ukvx/kgo.nc
 4d18db23620186e1a020121bd1348cf59331ebc8472a864711d5484c31cf6dbb  ./field-texture/args/input.nc
-724698a223741d238c39ab28c965d536e79eb45efb65a3bb91dcdbaab501f10a  ./field-texture/args/kgo.nc
+90ee8476a8ebf9e335f6c7a845e5f436c47e5943ebfe38dedaaebb4c24bbfb5a  ./field-texture/args/kgo.nc
 4d18db23620186e1a020121bd1348cf59331ebc8472a864711d5484c31cf6dbb  ./field-texture/basic/input.nc
-175698d69391fb02afaf8dc560ceb15a310056e7739b7204b008ef1ff9a495e5  ./field-texture/basic/kgo.nc
+be1089085c1c90733cca1c591043d8a17f8ecdb7e6ccdbec7388be13e2eaef48  ./field-texture/basic/kgo.nc
 a67f7c879abc799c207d6ba124d245ca1f1939ba4703aa5bdf0c74131aee3a30  ./fill-radar-holes/basic/201811271330_remasked_rainrate_composite.nc
 5192a6b9cffb5599c365c3e90087f56321a75b3ffd0f99fb63c77c6ca50399e8  ./fill-radar-holes/basic/kgo.nc
 71be98e709dc5f00b7d658a4361c6ca4f4355cece605f5e4008ea6c93fadd055  ./generate-landmask/basic/input.nc
