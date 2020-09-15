@@ -83,20 +83,14 @@ class Test_apply_circular_kernel(IrisTest):
 
         data = np.ones((1, 16, 16), dtype=np.float32)
         data[0, 7, 7] = 0
-        self.cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
         ranges = 2
         result = CircularNeighbourhood(weighted_mode=False).apply_circular_kernel(
@@ -139,11 +133,8 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for points over multiple times."""
         data = np.ones((2, 16, 16), dtype=np.float32)
         data[0, 10, 10] = 0
-        data[1, 7, 7]= 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        data[1, 7, 7] = 0
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
@@ -229,17 +220,14 @@ class Test_apply_circular_kernel(IrisTest):
 
         data = np.ones((1, 4, 4), dtype=np.float32)
         data[0, 1, 1] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
         expected = np.array(
             [
                 [
-                        [0.97636177, 0.97533402, 0.97636177, 0.97944502],
-                        [0.97533402, 0.97430627, 0.97533402, 0.97841727],
-                        [0.97636177, 0.97533402, 0.97636177, 0.97944502],
-                        [0.97944502, 0.97841727, 0.97944502, 0.98252826],
+                    [0.97636177, 0.97533402, 0.97636177, 0.97944502],
+                    [0.97533402, 0.97430627, 0.97533402, 0.97841727],
+                    [0.97636177, 0.97533402, 0.97636177, 0.97944502],
+                    [0.97944502, 0.97841727, 0.97944502, 0.98252826],
                 ]
             ]
         )
@@ -251,9 +239,9 @@ class Test_apply_circular_kernel(IrisTest):
 
     def test_point_pair(self):
         """Test behaviour for two nearby non-zero grid cells."""
-       
+
         cube = self.cube
-        cube.data[0, 7, 7] = 1 
+        cube.data[0, 7, 7] = 1
         cube.data[0, 7, 6] = 0
         cube.data[0, 7, 8] = 0
 
@@ -417,10 +405,7 @@ class Test_run(IrisTest):
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
         result = CircularNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
@@ -433,10 +418,7 @@ class Test_run(IrisTest):
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
         msg = "The use of a mask cube with a circular kernel is " "not yet implemented."
         with self.assertRaisesRegex(NotImplementedError, msg):
