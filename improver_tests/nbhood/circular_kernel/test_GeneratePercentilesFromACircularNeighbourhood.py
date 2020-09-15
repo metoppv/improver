@@ -34,12 +34,12 @@ plugin."""
 
 
 import unittest
-
+from datetime import datetime
 import iris
 import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube, add_coordinate
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.circular_kernel import (
     GeneratePercentilesFromACircularNeighbourhood,
@@ -67,15 +67,21 @@ class Test_make_percentile_cube(IrisTest):
     """Test the make_percentile_cube method from
        GeneratePercentilesFromACircularNeighbourhood."""
 
-    def test_basic(self):
-        """Test that the plugin returns an iris.cube.Cube."""
+    def setUp(self):
+        """Set up a cube."""
 
         data = np.ones((1, 5, 5), dtype=np.float32)
         data[0, 2, 2] = 0
-        cube = set_up_variable_cube(
+        self.cube = set_up_variable_cube(
             data,
             spatial_grid="equalarea",
         )
+
+
+    def test_basic(self):
+        """Test that the plugin returns an iris.cube.Cube."""
+
+        cube = self.cube
         result = GeneratePercentilesFromACircularNeighbourhood().make_percentile_cube(
             cube
         )
@@ -84,13 +90,7 @@ class Test_make_percentile_cube(IrisTest):
     def test_coord_present(self):
         """Test that the percentile coord is added."""
 
-        data = np.ones((1, 5, 5), dtype=np.float32)
-        data[0, 2, 2] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
-
+        cube = self.cube
         result = GeneratePercentilesFromACircularNeighbourhood().make_percentile_cube(
             cube
         )
@@ -103,13 +103,7 @@ class Test_make_percentile_cube(IrisTest):
         """Test that the percentile coord is added as the zeroth dimension when
         multiple percentiles are used."""
 
-        data = np.ones((1, 5, 5), dtype=np.float32)
-        data[0, 2, 2] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
-
+        cube = self.cube
         result = GeneratePercentilesFromACircularNeighbourhood().make_percentile_cube(
             cube
         )
@@ -119,13 +113,7 @@ class Test_make_percentile_cube(IrisTest):
         """Test that the percentile coord is added as the zeroth dimension when
         a single percentile is used."""
 
-        data = np.ones((1, 5, 5), dtype=np.float32)
-        data[0, 2, 2] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
-
+        cube = self.cube
         result = GeneratePercentilesFromACircularNeighbourhood(
             50.0
         ).make_percentile_cube(cube)
@@ -253,13 +241,9 @@ class Test_pad_and_unpad_cube(IrisTest):
 
     def test_single_point_adjacent_edge(self):
         """Test behaviour for a single non-zero grid cell near the edge."""
-
-        data = np.ones((1, 5, 5), dtype=np.float32)
-        data[0, 2, 1] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = self.cube
+        cube.data[0, 2, 2] = 1
+        cube.data[0, 2, 1] = 0
 
         # Range 3 goes over the edge
 
@@ -324,12 +308,9 @@ class Test_pad_and_unpad_cube(IrisTest):
             ]
         )
 
-        data = np.ones((1, 5, 5), dtype=np.float32)
-        data[0, 2, 0] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = self.cube
+        cube.data[0, 2, 2] = 1
+        cube.data[0, 2, 0] = 0
 
         slice_2d = cube[0, :, :]
         percentiles = np.array([10, 50, 90])
@@ -367,12 +348,9 @@ class Test_pad_and_unpad_cube(IrisTest):
             ]
         )
 
-        data = np.ones((1, 5, 5), dtype=np.float32)
-        data[0, 0, 0] = 0
-        cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        cube = self.cube
+        cube.data[0, 2, 2] = 1
+        cube.data[0, 0, 0] = 0
 
         # Point is right on the corner.
         slice_2d = cube[0, :, :]
@@ -411,16 +389,20 @@ class Test_run(IrisTest):
         expected = np.array(
             [
                 
-                    [
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 0.4, 1.0, 1.0],
                             [1.0, 0.4, 0.4, 0.4, 1.0],
                             [1.0, 1.0, 0.4, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
+                        [
+                            [1.0, 1.0, 1.0, 1.0, 1.0],
+                            [1.0, 1.0, 1.0, 1.0, 1.0],
+                            [1.0, 1.0, 1.0, 1.0, 1.0],
+                            [1.0, 1.0, 1.0, 1.0, 1.0],
+                            [1.0, 1.0, 1.0, 1.0, 1.0],
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
@@ -428,35 +410,42 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                         ]
-                    ],
-                    [
-                        [
-                            [1.0, 1.0, 1.0, 1.0, 1.0],
-                            [1.0, 1.0, 1.0, 1.0, 1.0],
-                            [1.0, 1.0, 1.0, 1.0, 1.0],
-                            [1.0, 1.0, 1.0, 1.0, 1.0],
-                            [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
                 
             ]
         )
+
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+            )
         percentiles = np.array([10, 50, 90])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
             percentiles=percentiles
-        ).run(self.cube, radius)
+        ).run(cube, radius)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_multi_point_multitimes(self):
         """Test behaviour for points over multiple times."""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2), (0, 1, 2, 1)),
-            num_time_points=2,
-            num_grid_points=5,
+
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        time_points = [
+            datetime(2017, 11, 10, 2),
+            datetime(2017, 11, 10, 3),
+        ]
+        cube = add_coordinate(
+            cube,
+            coord_points=time_points,
+            coord_name="time",
+            is_datetime="true",
+            order=[1, 0, 2, 3],
         )
-        print(cube)
-        print(cube.data)
+        cube.data[0, 0, 2, 2] = 0
+        cube.data[0, 1, 2, 1] = 0
+
         expected = np.array(
             [
                 [
@@ -520,7 +509,14 @@ class Test_run(IrisTest):
 
     def test_single_point_lat_long(self):
         """Test behaviour for a single grid cell on lat long grid."""
-        cube = set_up_cube_lat_long()
+
+        data = np.ones((1, 16, 16), dtype=np.float32)
+        data[0, 7, 7] = 0
+        cube = set_up_variable_cube(
+        data,
+        spatial_grid="latlon",
+        )
+
         msg = "Unable to convert from"
         radius = 6000.0
         with self.assertRaisesRegex(ValueError, msg):
@@ -534,40 +530,38 @@ class Test_run(IrisTest):
         expected = np.array(
             [
                 [
-                    [
+                    
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 0.4, 1.0, 1.0],
                             [1.0, 0.4, 0.4, 0.4, 1.0],
                             [1.0, 1.0, 0.4, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
+                    
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
+                    
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
+                        ],
                 ]
             ]
         )
         cube = self.cube
         mask = np.zeros_like(cube.data)
-        mask[0, 0, 2, 2] = 1
+        mask[0, 2, 2] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
+        print(cube.data)
         percentiles = np.array([10, 50, 90])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
@@ -581,39 +575,36 @@ class Test_run(IrisTest):
         expected = np.array(
             [
                 [
-                    [
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 0.4, 1.0, 1.0],
                             [1.0, 0.4, 0.4, 0.4, 1.0],
                             [1.0, 1.0, 0.4, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
+                    
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
+                    
+                    
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
+                        ],
                 ]
             ]
         )
         cube = self.cube
         mask = np.zeros_like(cube.data)
-        mask[0, 0, 2, 3] = 1
+        mask[0, 2, 3] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
         percentiles = np.array([10, 50, 90])
         radius = 2000.0
@@ -627,39 +618,32 @@ class Test_run(IrisTest):
         expected = np.array(
             [
                 [
-                    [
+                    
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 0.2, 1.0, 1.0],
                             [1.0, 0.2, 0.2, 0.2, 1.0],
                             [1.0, 1.0, 0.2, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 0.4, 1.0, 1.0],
                             [1.0, 0.4, 0.4, 0.4, 1.0],
                             [1.0, 1.0, 0.4, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 0.8, 1.0, 1.0],
                             [1.0, 0.8, 0.8, 0.8, 1.0],
                             [1.0, 1.0, 0.8, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
+                        ],
                 ]
             ]
         )
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_time_points=1, num_grid_points=5
-        )
+        cube = self.cube
         percentiles = np.array([5, 10, 20])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
@@ -672,39 +656,33 @@ class Test_run(IrisTest):
         expected = np.array(
             [
                 [
-                    [
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 0.0, 0.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
+                        ],
                 ]
             ]
         )
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2), (0, 0, 2, 1)), num_grid_points=5
-        )
+        cube = self.cube
+        cube.data[0, 2, 1] = 0
+
         percentiles = np.array([25, 50, 75])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
@@ -718,7 +696,6 @@ class Test_run(IrisTest):
         expected = np.array(
             [
                 [
-                    [
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -727,9 +704,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.2, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -738,9 +713,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.4, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -749,9 +722,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.6, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -760,9 +731,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.8, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -772,11 +741,16 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                         ]
-                    ],
                 ]
             ]
         )
-        cube = set_up_cube(zero_point_indices=[(0, 0, 3, 3)], num_grid_points=7)
+        
+        data = np.ones((1, 7, 7), dtype=np.float32)
+        data[0, 3, 3] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+            )
         percentiles = np.array([5, 10, 15, 20, 25])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
@@ -789,7 +763,6 @@ class Test_run(IrisTest):
         expected = np.array(
             [
                 [
-                    [
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -798,9 +771,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.1, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -809,9 +780,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.2, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -820,9 +789,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.3, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -831,9 +798,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.4, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -842,9 +807,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.5, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -853,9 +816,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.6, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -864,9 +825,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.7, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -875,9 +834,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.8, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -886,9 +843,7 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 0.9, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        ]
-                    ],
-                    [
+                        ],
                         [
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
@@ -898,11 +853,17 @@ class Test_run(IrisTest):
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
                         ]
-                    ],
                 ]
             ]
         )
-        cube = set_up_cube(zero_point_indices=[(0, 0, 3, 3)], num_grid_points=7)
+
+        data = np.ones((1, 7, 7), dtype = np.float32)
+        data[0, 3, 3] = 0
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+            )
+
         percentiles = np.array([2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
@@ -923,7 +884,7 @@ class Test_run(IrisTest):
         """Test that a NotImplementedError is raised, if a mask cube is passed
         in when generating percentiles from a circular neighbourhood, as this
         option is not supported."""
-        cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)[0, 0]
+        cube = self.cube
         radius = 4000.0
         msg = "The use of a mask cube with a circular kernel is " "not yet implemented."
         with self.assertRaisesRegex(NotImplementedError, msg):
