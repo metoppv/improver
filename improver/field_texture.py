@@ -158,11 +158,9 @@ class FieldTexture(BasePlugin):
         # was zero, set ratio value to one.
 
         ratio = np.ones_like(actual_transitions.data)
-        np.divide(
-            actual_transitions.data,
-            potential_transitions.data,
-            out=ratio,
-            where=(cube.data > 0),
+        ratio[cube.data > 0] = (
+            actual_transitions.data[cube.data > 0]
+            / potential_transitions.data[cube.data > 0]
         )
 
         # Create a new cube to contain the resulting ratio data.
