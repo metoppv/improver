@@ -98,7 +98,7 @@ def test_json_all_inputs(tmp_path):
 
 
 def test_realization_json(tmp_path):
-    """Test variable/realization metadata cube generated using leading realization
+    """Test variable/realization metadata cube generated using realization
     coordinate defined in the json input"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
     kgo_path = kgo_dir / "kgo_realization.nc"
@@ -110,7 +110,7 @@ def test_realization_json(tmp_path):
 
 
 def test_percentile_cube(tmp_path):
-    """Test percentile metadata cube generated using using leading percentile
+    """Test percentile metadata cube generated using using percentile
     coordinate defined in the json input"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
     kgo_path = kgo_dir / "kgo_percentile.nc"
@@ -127,7 +127,7 @@ def test_percentile_cube(tmp_path):
 
 
 def test_probability_cube(tmp_path):
-    """Test probability metadata cube generated using using leading threshold
+    """Test probability metadata cube generated using using threshold
     coordinate defined in the json input"""
     kgo_dir = acc.kgo_root() / "generate-metadata-cube"
     kgo_path = kgo_dir / "kgo_probability.nc"
