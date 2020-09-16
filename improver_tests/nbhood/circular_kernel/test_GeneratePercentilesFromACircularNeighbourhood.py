@@ -50,9 +50,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 
-from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube, set_up_cube_lat_long
-
-
 class Test__repr__(IrisTest):
 
     """Test the repr method."""
@@ -129,7 +126,6 @@ class Test_pad_and_unpad_cube(IrisTest):
         """Set up a cube."""
 
         data = np.ones((1, 5, 5), dtype=np.float32)
-        data[0, 2, 2] = 0
         self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
     def test_2d_slice(self):
@@ -160,7 +156,9 @@ class Test_pad_and_unpad_cube(IrisTest):
             ]
         )
         kernel = np.array([[0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 0.0]])
-        cube = self.cube[0, :, :]
+        cube = self.cube
+        cube.data[0, 2, 2] = 0
+        cube = cube[0, :, :]
         plugin = GeneratePercentilesFromACircularNeighbourhood()
         plugin.percentiles = np.array([10, 50, 90])
         result = plugin.pad_and_unpad_cube(cube, kernel)
@@ -195,7 +193,9 @@ class Test_pad_and_unpad_cube(IrisTest):
             ]
         )
         kernel = np.array([[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
-        cube = self.cube[0, :, :]
+        cube = self.cube
+        cube.data[0, 2, 2] = 0
+        cube = cube[0, :, :]
         plugin = GeneratePercentilesFromACircularNeighbourhood()
         plugin.percentiles = np.array([10, 50, 90])
         result = plugin.pad_and_unpad_cube(cube, kernel)
@@ -237,7 +237,6 @@ class Test_pad_and_unpad_cube(IrisTest):
     def test_single_point_adjacent_edge(self):
         """Test behaviour for a single non-zero grid cell near the edge."""
         cube = self.cube
-        cube.data[0, 2, 2] = 1
         cube.data[0, 2, 1] = 0
 
         # Range 3 goes over the edge
@@ -304,7 +303,6 @@ class Test_pad_and_unpad_cube(IrisTest):
         )
 
         cube = self.cube
-        cube.data[0, 2, 2] = 1
         cube.data[0, 2, 0] = 0
 
         slice_2d = cube[0, :, :]
@@ -344,7 +342,6 @@ class Test_pad_and_unpad_cube(IrisTest):
         )
 
         cube = self.cube
-        cube.data[0, 2, 2] = 1
         cube.data[0, 0, 0] = 0
 
         # Point is right on the corner.
@@ -366,12 +363,12 @@ class Test_run(IrisTest):
         """Set up a cube."""
 
         data = np.ones((1, 5, 5), dtype=np.float32)
-        data[0, 2, 2] = 0
         self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
         cube = self.cube
+        cube.data[0, 2, 2] = 0
         radius = 4000.0
         result = GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)
         self.assertIsInstance(result, Cube)
@@ -539,6 +536,8 @@ class Test_run(IrisTest):
             ]
         )
         cube = self.cube
+        cube.data[0, 2, 2] = 0
+
         mask = np.zeros_like(cube.data)
         mask[0, 2, 2] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
@@ -581,6 +580,8 @@ class Test_run(IrisTest):
             ]
         )
         cube = self.cube
+        cube.data[0, 2, 2] = 0
+
         mask = np.zeros_like(cube.data)
         mask[0, 2, 3] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
@@ -621,6 +622,8 @@ class Test_run(IrisTest):
             ]
         )
         cube = self.cube
+        cube.data[0, 2, 2] = 0
+
         percentiles = np.array([5, 10, 20])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
@@ -658,6 +661,7 @@ class Test_run(IrisTest):
             ]
         )
         cube = self.cube
+        cube.data[0, 2, 2] = 0
         cube.data[0, 2, 1] = 0
 
         percentiles = np.array([25, 50, 75])
@@ -846,6 +850,7 @@ class Test_run(IrisTest):
         """Test that an exception is raised is the circle requested is bigger
         than the size of the domain."""
         cube = self.cube
+        cube.data[0, 2, 2] = 0
         radius = 50000.0
         msg = "Distance of {}m exceeds max domain distance".format(radius)
         with self.assertRaisesRegex(ValueError, msg):
@@ -856,6 +861,7 @@ class Test_run(IrisTest):
         in when generating percentiles from a circular neighbourhood, as this
         option is not supported."""
         cube = self.cube
+        cube.data[0, 2, 2] = 0
         radius = 4000.0
         msg = "The use of a mask cube with a circular kernel is " "not yet implemented."
         with self.assertRaisesRegex(NotImplementedError, msg):

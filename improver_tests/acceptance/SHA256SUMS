@@ -80,7 +80,7 @@ ba16a5cd5174bcddd08cad6509b38e7a221e18073fe09f41400a911937446b20  ./construct-re
 350a568d28eab64886ccaca8f057745c98a3fc91e9861dff3e5da1bba24574c8  ./construct-reliability-tables/basic/kgo_without_single_value_bins.nc
 9480392febfe81b76bf93de6ca2d88e07ad3fccabbca343713ef7ee374a77d47  ./construct-reliability-tables/basic/truth_0.nc
 d15752239edb3fb26904b600f1705ea97ac8c637090033f16ddeb86052eed5b4  ./construct-reliability-tables/basic/truth_1.nc
-3684137053805d7be642b674879876868461a25c46c320e8233c35e7f32e7e33  ./convection-ratio/basic/kgo.nc
+925f1451fe824890160fa172946ef4ad4b924fb4e98e4d847205978af6c9876b  ./convection-ratio/basic/kgo.nc
 74f850942572aa99de807396d48bd80dd96088c638a9d5fa379b95f7c5ad8614  ./convection-ratio/basic/lwe_convective_precipitation_rate.nc
 b946c7687cb9ed02a12a934429a31306004ad45214cf4b451468b077018c0911  ./convection-ratio/basic/lwe_stratiform_precipitation_rate.nc
 5e403ecf836c3f36abd10414821bda43159db968ce4a850e435040ac92692ae2  ./create-grid-with-halo/basic/kgo.nc

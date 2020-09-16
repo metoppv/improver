@@ -44,7 +44,6 @@ from ..nbhood.test_BaseNeighbourhoodProcessing import (
     SINGLE_POINT_RANGE_2_CENTROID_FLAT,
     SINGLE_POINT_RANGE_3_CENTROID,
     SINGLE_POINT_RANGE_5_CENTROID,
-    set_up_cube,
 )
 
 
@@ -82,16 +81,12 @@ class Test_apply_circular_kernel(IrisTest):
         """Set up a cube."""
 
         data = np.ones((1, 16, 16), dtype=np.float32)
-        data[0, 7, 7] = 0
         self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
 
-        data = np.ones((5, 5), dtype=np.float32)
-        data[2, 2] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
-
+        cube = self.cube[0]
         ranges = 2
         result = CircularNeighbourhood(weighted_mode=False).apply_circular_kernel(
             cube, ranges
@@ -102,7 +97,7 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a single non-zero grid cell."""
 
         cube = self.cube
-
+        cube.data[0, 7, 7] = 0
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[0][5 + index][5:10] = slice_
@@ -119,7 +114,7 @@ class Test_apply_circular_kernel(IrisTest):
         range of 2 was chosen for this test."""
 
         cube = self.cube
-
+        cube.data[0, 7, 7] = 0
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_2_CENTROID_FLAT):
             expected[0][5 + index][5:10] = slice_
@@ -153,6 +148,7 @@ class Test_apply_circular_kernel(IrisTest):
         scipy.ndimage.correlate base behaviour."""
 
         cube = self.cube
+        cube.data[0, 7, 7] = 0
 
         expected = np.ones_like(cube.data)
         mask = np.zeros_like(cube.data)
@@ -172,6 +168,7 @@ class Test_apply_circular_kernel(IrisTest):
         The behaviour here is not right, as the mask is ignored."""
 
         cube = self.cube
+        cube.data[0, 7, 7] = 0
 
         expected = np.ones_like(cube.data)
         mask = np.zeros_like(cube.data)
@@ -190,6 +187,7 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour with a non-zero point with unit range."""
 
         cube = self.cube
+        cube.data[0, 7, 7] = 0
 
         expected = np.ones_like(cube.data)
         expected[0][7][7] = 0.0
@@ -203,6 +201,7 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour with a non-zero point with a large range."""
 
         cube = self.cube
+        cube.data[0, 7, 7] = 0
 
         expected = np.ones_like(cube.data)
         for time_index in range(len(expected)):
@@ -241,7 +240,6 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for two nearby non-zero grid cells."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 1
         cube.data[0, 7, 6] = 0
         cube.data[0, 7, 8] = 0
 
@@ -267,7 +265,6 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a non-zero grid cell quite near the edge."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 1
         cube.data[0, 7, 2] = 0
 
         # Just within range of the edge.
@@ -285,7 +282,6 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a single non-zero grid cell near the edge."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 1
         cube.data[0, 7, 1] = 0
 
         # Range 3 goes over the edge.
@@ -303,7 +299,6 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a non-zero grid cell on the edge."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 1
         cube.data[0, 7, 0] = 0
 
         expected = np.ones_like(cube.data)
@@ -328,7 +323,6 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a non-zero grid cell quite near a corner."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 1
         cube.data[0, 2, 2] = 0
 
         # Just within corner range.
@@ -346,7 +340,6 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a non-zero grid cell near the corner."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 1
         cube.data[0, 1, 1] = 0
 
         # Kernel goes over the corner.
@@ -366,7 +359,6 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a single non-zero grid cell on the corner."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 1
         cube.data[0, 0, 0] = 0
 
         # Point is right on the corner.
