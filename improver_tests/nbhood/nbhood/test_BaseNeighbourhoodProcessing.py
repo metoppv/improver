@@ -51,10 +51,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 
-from ...calibration.ensemble_calibration.helper_functions import (
-    add_forecast_reference_time_and_forecast_period,
-)
-
 SINGLE_POINT_RANGE_3_CENTROID = np.array(
     [
         [0.992, 0.968, 0.96, 0.968, 0.992],
@@ -423,11 +419,24 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up cube."""
         data = np.ones((1, 16, 16), dtype=np.float32)
-        data[0, 8, 8] = 0
+        data[0, 7, 7] = 0
         self.cube = set_up_probability_cube(
             data,
             thresholds=np.array([278], dtype=np.float32),
             spatial_grid="equalarea",
+        )
+
+        time_points = [
+            datetime(2017, 11, 10, 2),
+            datetime(2017, 11, 10, 3),
+            datetime(2017, 11, 10, 4),
+        ]
+        self.multi_time_cube = add_coordinate(
+            self.cube,
+            coord_points=time_points,
+            coord_name="time",
+            is_datetime="true",
+            order=[1, 0, 2, 3],
         )
 
     def test_basic(self):
@@ -455,7 +464,7 @@ class Test_process(IrisTest):
             neighbourhood_method = CircularNeighbourhood
             NBHood(neighbourhood_method, self.RADIUS)(self.cube)
 
-    def test_multiple_realizations(self):
+    def test_multiple_thresholds(self):
         """Test when the cube has a threshold dimension."""
 
         data = np.ones((4, 16, 16), dtype=np.float32)
@@ -477,11 +486,10 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_no_realizations(self):
-        """Test when the array has no threshold coord."""
-        data = np.ones((16, 16), dtype=np.float32)
-        data[7, 7] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+    def test_2d_cube(self):
+        """Test with a 2D dataset (no leading realization or threshold dimension."""
+
+        cube = self.cube[0]
         radii = 5600
         neighbourhood_method = CircularNeighbourhood()
         result = NBHood(neighbourhood_method, radii)(cube)
@@ -494,53 +502,11 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_radii_varying_with_lead_time(self):
-        """
-        Test that a cube is returned when the radius varies with lead time.
-        """
-
-        data = np.ones((1, 16, 16), dtype=np.float32)
-        data[0, 7, 7] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
-        time_points = [
-            datetime(2017, 11, 10, 2),
-            datetime(2017, 11, 10, 3),
-            datetime(2017, 11, 10, 4),
-        ]
-        cube = add_coordinate(
-            cube,
-            coord_points=time_points,
-            coord_name="time",
-            is_datetime="true",
-            order=[1, 0, 2, 3],
-        )
-
-        radii = [10000, 20000, 30000]
-        lead_times = [2, 3, 4]
-        neighbourhood_method = CircularNeighbourhood()
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
-        result = plugin(cube)
-        self.assertIsInstance(result, Cube)
-
     def test_radii_varying_with_lead_time_fp_seconds(self):
         """
         Test that a cube fp coord is unchanged by the lead time calculation.
         """
-        data = np.ones((1, 16, 16), dtype=np.float32)
-        data[0, 7, 7] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
-        time_points = [
-            datetime(2017, 11, 10, 2),
-            datetime(2017, 11, 10, 3),
-            datetime(2017, 11, 10, 4),
-        ]
-        cube = add_coordinate(
-            cube,
-            coord_points=time_points,
-            coord_name="time",
-            is_datetime="true",
-            order=[1, 0, 2, 3],
-        )
+        cube = self.multi_time_cube
 
         cube.coord("forecast_period").convert_units("seconds")
         radii = [10000, 20000, 30000]
@@ -554,24 +520,9 @@ class Test_process(IrisTest):
     def test_radii_varying_with_lead_time_check_data(self):
         """
         Test that the expected data is produced when the radius
-        varies with lead time.
+        varies with lead time and that a cube is returned.
         """
-
-        data = np.ones((1, 16, 16), dtype=np.float32)
-        data[0, 7, 7] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
-        time_points = [
-            datetime(2017, 11, 10, 2),
-            datetime(2017, 11, 10, 3),
-            datetime(2017, 11, 10, 4),
-        ]
-        cube = add_coordinate(
-            cube,
-            coord_points=time_points,
-            coord_name="time",
-            is_datetime="true",
-            order=[1, 0, 2, 3],
-        )
+        cube = self.multi_time_cube
 
         expected = np.ones_like(cube.data)
         expected[0, 0, 6:9, 6:9] = (
@@ -598,8 +549,9 @@ class Test_process(IrisTest):
         plugin = NBHood(neighbourhood_method, radii, lead_times)
         result = plugin(cube)
         self.assertArrayAlmostEqual(result.data, expected)
+        self.assertIsInstance(result, Cube)
 
-    def test_radii_varying_with_lead_time_multiple_realizations(self):
+    def test_radii_varying_with_lead_time_multiple_thresholds(self):
         """Test that a cube is returned for the following conditions:
         1. The radius varies wtih lead time.
         2. The cube contains multiple thresholds."""
@@ -655,22 +607,7 @@ class Test_process(IrisTest):
         which are required but were not specified within the 'radii'
         argument."""
 
-        data = np.ones((1, 16, 16), dtype=np.float32)
-        data[0, 7, 7] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
-
-        time_points = [
-            datetime(2017, 11, 10, 2),
-            datetime(2017, 11, 10, 3),
-            datetime(2017, 11, 10, 4),
-        ]
-        cube = add_coordinate(
-            cube,
-            coord_points=time_points,
-            coord_name="time",
-            is_datetime="true",
-            order=[1, 0, 2, 3],
-        )
+        cube = self.multi_time_cube
 
         radii = [10000, 30000]
         lead_times = [2, 4]
@@ -687,22 +624,7 @@ class Test_process(IrisTest):
         which are required but were not specified within the 'radii'
         argument."""
 
-        data = np.ones((1, 16, 16), dtype=np.float32)
-        data[0, 7, 7] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
-
-        time_points = [
-            datetime(2017, 11, 10, 2),
-            datetime(2017, 11, 10, 3),
-            datetime(2017, 11, 10, 4),
-        ]
-        cube = add_coordinate(
-            cube,
-            coord_points=time_points,
-            coord_name="time",
-            is_datetime="true",
-            order=[1, 0, 2, 3],
-        )
+        cube = self.multi_time_cube
 
         expected = np.ones_like(cube.data)
         expected[0, 0, 6:9, 6:9] = (
@@ -769,27 +691,17 @@ class Test_process(IrisTest):
         data array if a mask cube is used and the mask cube does mask
         out the occurrences."""
 
-        expected = np.ones((5, 5), dtype=np.float32)
-        expected[2, 2] = 0
-
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
         cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
+        expected_data = data
         mask_cube = cube.copy()
-        mask_cube.data = np.array(
-            [
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 0.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-            ]
-        )
+
         radius = 2000
         neighbourhood_method = SquareNeighbourhood()
         result = NBHood(neighbourhood_method, radius)(cube, mask_cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_use_mask_cube_occurrences_masked_irregular(self):
         """Test that the plugin returns an iris.cube.Cube with the correct
