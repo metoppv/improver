@@ -54,6 +54,7 @@ class Test__init__(IrisTest):
     def test_sum_or_fraction(self):
         """Test that a ValueError is raised if an invalid option is passed
         in for sum_or_fraction."""
+
         sum_or_fraction = "nonsense"
         msg = "option is invalid"
         with self.assertRaisesRegex(ValueError, msg):
@@ -66,6 +67,7 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
+
         result = str(CircularNeighbourhood())
         msg = (
             "<CircularNeighbourhood: weighted_mode: True, " "sum_or_fraction: fraction>"
@@ -78,15 +80,15 @@ class Test_apply_circular_kernel(IrisTest):
     """Test neighbourhood circular probabilities plugin."""
 
     def setUp(self):
-        """Set up a cube."""
+        """Set up a 2D cube."""
 
-        data = np.ones((1, 16, 16), dtype=np.float32)
+        data = np.ones((16, 16), dtype=np.float32)
         self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
 
-        cube = self.cube[0]
+        cube = self.cube
         ranges = 2
         result = CircularNeighbourhood(weighted_mode=False).apply_circular_kernel(
             cube, ranges
@@ -97,10 +99,10 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a single non-zero grid cell."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 0
+        cube.data[7, 7] = 0
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-            expected[0][5 + index][5:10] = slice_
+            expected[5 + index][5:10] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
@@ -109,15 +111,15 @@ class Test_apply_circular_kernel(IrisTest):
 
     def test_single_point_flat(self):
         """Test behaviour for a single non-zero grid cell, flat weighting.
-        Note that this gives one more grid cell range than weighted! As the
+        Note that this gives one more grid cell range than weighted. As the
         affected area is one grid cell more in each direction, an equivalent
-        range of 2 was chosen for this test."""
+        range of 2 is chosen for this test."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 0
+        cube.data[7, 7] = 0
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_2_CENTROID_FLAT):
-            expected[0][5 + index][5:10] = slice_
+            expected[5 + index][5:10] = slice_
         ranges = 2
         result = CircularNeighbourhood(weighted_mode=False).apply_circular_kernel(
             cube, ranges
@@ -126,6 +128,7 @@ class Test_apply_circular_kernel(IrisTest):
 
     def test_multi_point_multitimes(self):
         """Test behaviour for points over multiple times."""
+
         data = np.ones((2, 16, 16), dtype=np.float32)
         data[0, 10, 10] = 0
         data[1, 7, 7] = 0
@@ -148,15 +151,14 @@ class Test_apply_circular_kernel(IrisTest):
         scipy.ndimage.correlate base behaviour."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 0
+        cube.data[7, 7] = 0
 
         expected = np.ones_like(cube.data)
         mask = np.zeros_like(cube.data)
-        mask[0][7][7] = 1
+        mask[7][7] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
-        for time_index in range(len(expected)):
-            for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-                expected[time_index][5 + index][5:10] = slice_
+        for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
+            expected[5 + index][5:10] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
@@ -168,15 +170,14 @@ class Test_apply_circular_kernel(IrisTest):
         The behaviour here is not right, as the mask is ignored."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 0
+        cube.data[7, 7] = 0
 
         expected = np.ones_like(cube.data)
         mask = np.zeros_like(cube.data)
-        mask[0][6][7] = 1
+        mask[6][7] = 1
         cube.data = np.ma.masked_array(cube.data, mask=mask)
-        for time_index in range(len(expected)):
-            for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-                expected[time_index][5 + index][5:10] = slice_
+        for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
+            expected[5 + index][5:10] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
@@ -184,13 +185,13 @@ class Test_apply_circular_kernel(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_1(self):
-        """Test behaviour with a non-zero point with unit range."""
+        """Test behaviour with a non-zero point and unit range."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 0
+        cube.data[7, 7] = 0
 
         expected = np.ones_like(cube.data)
-        expected[0][7][7] = 0.0
+        expected[7][7] = 0.0
         ranges = 1
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
@@ -198,15 +199,14 @@ class Test_apply_circular_kernel(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5(self):
-        """Test behaviour with a non-zero point with a large range."""
+        """Test behaviour with a non-zero point and a large range."""
 
         cube = self.cube
-        cube.data[0, 7, 7] = 0
+        cube.data[7, 7] = 0
 
         expected = np.ones_like(cube.data)
-        for time_index in range(len(expected)):
-            for index, slice_ in enumerate(SINGLE_POINT_RANGE_5_CENTROID):
-                expected[time_index][3 + index][3:12] = slice_
+        for index, slice_ in enumerate(SINGLE_POINT_RANGE_5_CENTROID):
+            expected[3 + index][3:12] = slice_
         ranges = 5
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
@@ -217,18 +217,16 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour - non-zero point, small domain, large range.
         This exhibits the undesirable edge reflection behaviour."""
 
-        data = np.ones((1, 4, 4), dtype=np.float32)
-        data[0, 1, 1] = 0
+        data = np.ones((4, 4), dtype=np.float32)
+        data[1, 1] = 0
         cube = set_up_variable_cube(data, spatial_grid="equalarea",)
         expected = np.array(
-            [
                 [
                     [0.97636177, 0.97533402, 0.97636177, 0.97944502],
                     [0.97533402, 0.97430627, 0.97533402, 0.97841727],
                     [0.97636177, 0.97533402, 0.97636177, 0.97944502],
                     [0.97944502, 0.97841727, 0.97944502, 0.98252826],
                 ]
-            ]
         )
         ranges = 5
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
@@ -240,8 +238,8 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for two nearby non-zero grid cells."""
 
         cube = self.cube
-        cube.data[0, 7, 6] = 0
-        cube.data[0, 7, 8] = 0
+        cube.data[7, 6] = 0
+        cube.data[7, 8] = 0
 
         expected_snippet = np.array(
             [
@@ -254,7 +252,7 @@ class Test_apply_circular_kernel(IrisTest):
         )
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(expected_snippet):
-            expected[0][5 + index][4:11] = slice_
+            expected[5 + index][4:11] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
@@ -265,13 +263,13 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a non-zero grid cell quite near the edge."""
 
         cube = self.cube
-        cube.data[0, 7, 2] = 0
+        cube.data[7, 2] = 0
 
         # Just within range of the edge.
 
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-            expected[0][5 + index][0:5] = slice_
+            expected[5 + index][0:5] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
@@ -282,13 +280,13 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a single non-zero grid cell near the edge."""
 
         cube = self.cube
-        cube.data[0, 7, 1] = 0
+        cube.data[7, 1] = 0
 
         # Range 3 goes over the edge.
 
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-            expected[0][5 + index][0:4] = slice_[1:]
+            expected[5 + index][0:4] = slice_[1:]
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
@@ -299,7 +297,7 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a non-zero grid cell on the edge."""
 
         cube = self.cube
-        cube.data[0, 7, 0] = 0
+        cube.data[7, 0] = 0
 
         expected = np.ones_like(cube.data)
         expected_centroid = np.array(
@@ -312,7 +310,7 @@ class Test_apply_circular_kernel(IrisTest):
             ]
         )
         for index, slice_ in enumerate(expected_centroid):
-            expected[0][5 + index][0:3] = slice_
+            expected[5 + index][0:3] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
@@ -323,13 +321,13 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a non-zero grid cell quite near a corner."""
 
         cube = self.cube
-        cube.data[0, 2, 2] = 0
+        cube.data[2, 2] = 0
 
         # Just within corner range.
 
         expected = np.ones_like(cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-            expected[0][index][0:5] = slice_
+            expected[index][0:5] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
@@ -340,7 +338,7 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a non-zero grid cell near the corner."""
 
         cube = self.cube
-        cube.data[0, 1, 1] = 0
+        cube.data[1, 1] = 0
 
         # Kernel goes over the corner.
 
@@ -348,7 +346,7 @@ class Test_apply_circular_kernel(IrisTest):
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             if index == 0:
                 continue
-            expected[0][index - 1][0:4] = slice_[1:]
+            expected[index - 1][0:4] = slice_[1:]
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
@@ -359,7 +357,7 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour for a single non-zero grid cell on the corner."""
 
         cube = self.cube
-        cube.data[0, 0, 0] = 0
+        cube.data[0, 0] = 0
 
         # Point is right on the corner.
 
@@ -368,7 +366,7 @@ class Test_apply_circular_kernel(IrisTest):
             [[0.592, 0.768, 0.92], [0.768, 0.872, 0.96], [0.92, 0.96, 0.992],]
         )
         for index, slice_ in enumerate(expected_centroid):
-            expected[0][index][0:3] = slice_
+            expected[index][0:3] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
             cube, ranges
