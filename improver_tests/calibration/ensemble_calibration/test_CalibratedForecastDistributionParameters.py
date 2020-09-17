@@ -36,6 +36,7 @@ class.
 """
 import unittest
 
+import iris
 import numpy as np
 from iris.tests import IrisTest
 from numpy.testing import assert_array_almost_equal
@@ -85,6 +86,23 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         self.coeffs_from_mean = estimator.create_coefficients_cubelist(
             self.expected_mean_predictor_norm, self.current_temperature_forecast_cube,
         )
+
+        index = [
+            self.current_temperature_forecast_cube.coord(axis="y"),
+            self.current_temperature_forecast_cube.coord(axis="x"),
+        ]
+
+        coeff_cubes = iris.cube.CubeList()
+        for ctf_slice in self.current_temperature_forecast_cube.slices_over(index):
+            coeff_cubes.append(estimator.create_coefficients_cubelist(
+                self.expected_mean_predictor_norm, ctf_slice,
+            ))
+
+        self.coeffs_from_mean_each_point = estimator.reorganise_pointwise_list(coeff_cubes)
+        # print("self.current_temperature_forecast_cube = ", self.current_temperature_forecast_cube)
+        # print("self.coeffs_from_mean_each_point = ", self.coeffs_from_mean_each_point)
+        # for cube in self.coeffs_from_mean_each_point:
+        #     print(cube)
 
         # Set up a coefficients cube when using the ensemble realization as the
         # predictor and the coefficients have been estimated using statsmodels.
@@ -423,6 +441,25 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_predictor.data, self.expected_loc_param_mean
+        )
+        self.assertCalibratedVariablesAlmostEqual(
+            calibrated_forecast_var.data, self.expected_scale_param_mean
+        )
+        self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
+
+    @ManageWarnings(
+        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_end_to_end_each_point(self):
+        """An example end-to-end calculation when a separate set of
+        coefficients is computed for each grid point. This repeats the test
+        elements above but all grouped together."""
+        calibrated_forecast_predictor, calibrated_forecast_var = self.plugin.process(
+            self.current_temperature_forecast_cube, self.coeffs_from_mean_each_point
+        )
+
+        self.assertCalibratedVariablesAlmostEqual(
+            calibrated_forecast_predictor.data,
+            self.expected_loc_param_mean
         )
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_var.data, self.expected_scale_param_mean

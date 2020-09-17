@@ -1098,6 +1098,21 @@ class Test_process(
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_each_point(self):
+        """"""
+        plugin = Plugin(self.distribution, each_point=True)
+        result = plugin.process(
+            self.historic_temperature_forecast_cube, self.temperature_truth_cube
+        )
+        print("result = ", result)
+        # self.assertEMOSCoefficientsAlmostEqual(
+        #     np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
+        # )
+        # self.assertArrayEqual(
+        #     [cube.name() for cube in result], self.expected_coeff_names
+        # )
+
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_truth_unit_conversion(self):
         """Ensure the expected optimised coefficients are generated,
         even if the input truth cube has different units."""
