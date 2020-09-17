@@ -43,9 +43,6 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.pad_spatial import pad_cube_with_halo
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
-
-
 def _mean_points(points):
     """Create an array of the mean of adjacent points in original array"""
     return np.array((points[:-1] + points[1:]) / 2, dtype=np.float32)
@@ -190,9 +187,13 @@ class Test_set_up_cubes(IrisTest):
     """Test the set up of cubes prior to neighbourhooding."""
 
     def setUp(self):
-        """Set up a cube."""
-        self.cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
-        self.cube = iris.util.squeeze(self.cube)
+        """Set up a 2D cube."""
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        self.cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
     def test_without_masked_data(self):
         """Test setting up cubes to be neighbourhooded when the input cube
