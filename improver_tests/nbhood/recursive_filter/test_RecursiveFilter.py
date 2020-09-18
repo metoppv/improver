@@ -556,7 +556,7 @@ class Test_process(Test_RecursiveFilter):
         """Test that the RecursiveFilter plugin returns the correct data
         when a masked data cube."""
         plugin = RecursiveFilter(iterations=self.iterations,)
-        mask = np.zeros((self.cube.data.shape))
+        mask = np.zeros(self.cube.data.shape)
         mask[0][3][2] = 1
         self.cube.data = np.ma.MaskedArray(self.cube.data, mask=mask)
         result = plugin(
