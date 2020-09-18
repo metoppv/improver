@@ -94,11 +94,15 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
 
         coeff_cubes = iris.cube.CubeList()
         for ctf_slice in self.current_temperature_forecast_cube.slices_over(index):
-            coeff_cubes.append(estimator.create_coefficients_cubelist(
-                self.expected_mean_predictor_norm, ctf_slice,
-            ))
+            coeff_cubes.append(
+                estimator.create_coefficients_cubelist(
+                    self.expected_mean_predictor_norm, ctf_slice,
+                )
+            )
 
-        self.coeffs_from_mean_each_point = estimator.reorganise_pointwise_list(coeff_cubes)
+        self.coeffs_from_mean_each_point = estimator.reorganise_pointwise_list(
+            coeff_cubes
+        )
         # print("self.current_temperature_forecast_cube = ", self.current_temperature_forecast_cube)
         # print("self.coeffs_from_mean_each_point = ", self.coeffs_from_mean_each_point)
         # for cube in self.coeffs_from_mean_each_point:
@@ -447,8 +451,7 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         )
         self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."])
+    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end_each_point(self):
         """An example end-to-end calculation when a separate set of
         coefficients is computed for each grid point. This repeats the test
@@ -458,8 +461,7 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         )
 
         self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_predictor.data,
-            self.expected_loc_param_mean
+            calibrated_forecast_predictor.data, self.expected_loc_param_mean
         )
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_var.data, self.expected_scale_param_mean

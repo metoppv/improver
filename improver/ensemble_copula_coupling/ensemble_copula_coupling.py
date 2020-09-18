@@ -971,7 +971,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         Raises:
             ValueError: If cube is not of the expected dimensions.
         """
-        check_for_x_and_y_axes(cube, require_dim_coords=True)
+        # check_for_x_and_y_axes(cube, require_dim_coords=True)
         dim_coords = get_dim_coord_names(cube)
         msg = (
             "{} expects a cube with only a leading threshold dimension, "

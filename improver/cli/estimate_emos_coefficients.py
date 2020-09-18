@@ -42,6 +42,7 @@ def process(
     *cubes: cli.inputcube,
     distribution,
     truth_attribute,
+    each_point=False,
     units=None,
     predictor="mean",
     tolerance: float = 0.02,
@@ -70,6 +71,10 @@ def process(
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on historical truth cubes.
+        each_point (bool):
+            If True, coefficients are calculated independently for each point
+            within the input cube. If False, a single set of coefficients are
+            calculated using all points.
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
@@ -107,10 +112,10 @@ def process(
 
     plugin = EstimateCoefficientsForEnsembleCalibration(
         distribution,
+        each_point=each_point,
         desired_units=units,
         predictor=predictor,
         tolerance=tolerance,
         max_iterations=max_iterations,
     )
-
     return plugin(forecast, truth, landsea_mask=land_sea_mask)
