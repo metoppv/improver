@@ -94,7 +94,7 @@ class Test_run(IrisTest):
     def test_basic_re_mask_true(self):
         """Test that a cube with correct data is produced by the run method
         when re-masking is applied."""
-        data = np.array(
+        expected_array = np.array(
             [
                 [1.0, 1.0, 1.0, 1.0, 1.0],
                 [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
@@ -106,11 +106,11 @@ class Test_run(IrisTest):
         cube = self.cube
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_negative_strides_re_mask_true(self):
         """Test that a cube still works if there are negative-strides."""
-        data = np.array(
+        expected_array = np.array(
             [
                 [1.0, 1.0, 1.0, 1.0, 1.0],
                 [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
@@ -128,11 +128,11 @@ class Test_run(IrisTest):
 
         result = SquareNeighbourhood().run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_basic_re_mask_false(self):
         """Test that a cube with correct data is produced by the run method."""
-        data = np.array(
+        expected_array = np.array(
             [
                 [1.0, 1.0, 1.0, 1.0, 1.0],
                 [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
@@ -144,7 +144,7 @@ class Test_run(IrisTest):
         cube = self.cube
         result = SquareNeighbourhood(re_mask=False).run(cube, self.RADIUS)
         self.assertIsInstance(cube, Cube)
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_masked_array_re_mask_true(self):
         """Test that the run method produces a cube with correct data when a
@@ -338,7 +338,7 @@ class Test_run(IrisTest):
         cube.data = cube.data.astype(complex)
         cube.data[1, 3] = 0.5 + 0.5j
         cube.data[4, 3] = 0.4 + 0.6j
-        expected_data = np.array(
+        expected_array = np.array(
             [
                 [
                     1.0 + 0.0j,
@@ -372,7 +372,7 @@ class Test_run(IrisTest):
             ]
         )
         result = SquareNeighbourhood().run(cube, self.RADIUS)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_multiple_times(self):
         """Test that a cube with correct data is produced by the run method
