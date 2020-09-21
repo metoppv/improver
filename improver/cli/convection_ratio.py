@@ -44,8 +44,6 @@ def process(*cubes: cli.inputcube,):
 
         ratio = convective_rate / (convective_rate + dynamic_rate)
 
-    Then calculates the mean ratio across realizations.
-
     Args:
         cubes (iris.cube.CubeList):
             Cubes of "lwe_convective_precipitation_rate" and "lwe_stratiform_precipitation_rate"
@@ -53,17 +51,11 @@ def process(*cubes: cli.inputcube,):
 
     Returns:
         iris.cube.Cube:
-            A single cube of convection_ratio.
+            A cube of convection_ratio of the same dimensions as the input cubes.
+
     """
-    from improver.blending.calculate_weights_and_blend import WeightAndBlend
     from improver.convection import ConvectionRatioFromComponents
-    from iris.coords import CellMethod
 
     if len(cubes) != 2:
         raise IOError(f"Expected 2 input cubes, received {len(cubes)}")
-    convection_ratio = ConvectionRatioFromComponents()(cubes)
-    mean_convection_ratio = WeightAndBlend(
-        "realization", "linear", y0val=1.0, ynval=1.0
-    )(convection_ratio)
-    mean_convection_ratio.add_cell_method(CellMethod("mean", "realization"))
-    return mean_convection_ratio
+    return ConvectionRatioFromComponents()(cubes)
