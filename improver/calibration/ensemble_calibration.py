@@ -37,6 +37,7 @@ Statistics (EMOS).
    ensemble_calibration.rst
 
 """
+import functools
 import os
 import warnings
 from multiprocessing import Pool
@@ -234,7 +235,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                     allvecs[-2],
                     np.absolute(allvecs[-2] - allvecs[-1]),
                 )
-                warnings.warn(msg)
+                #warnings.warn(msg)
 
         try:
             minimisation_function = self.minimisation_dict[distribution]
@@ -284,29 +285,32 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                                       forecast_predictor_data[:, index],
                                       truth_data[:, index],
                                       forecast_var_data[:, index], sqrt_pi,
-                                      predictor,
-                                      distribution))
+                                      predictor))
 
             with Pool(os.cpu_count()) as pool:
                 optimised_coeffs = pool.starmap(
                     self.minimise_caller, argument_list)
+
             optimised_coeffs = np.transpose(optimised_coeffs)
+            optimised_coeffs = [x.x.astype(np.float32) for x in optimised_coeffs]
+            return np.array(optimised_coeffs).reshape(
+                (len(initial_guess),) + forecast_predictor.data.shape[1:])
 
         else:
             optimised_coeffs = self.minimise_caller(
                 minimisation_function, initial_guess, forecast_predictor_data,
                 truth_data, forecast_var_data, sqrt_pi, predictor)
 
-        if not optimised_coeffs.success:
-            msg = (
-                "Minimisation did not result in convergence after "
-                "{} iterations. \n{}".format(
-                    self.max_iterations, optimised_coeffs.message
+            if not optimised_coeffs.success:
+                msg = (
+                    "Minimisation did not result in convergence after "
+                    "{} iterations. \n{}".format(
+                        self.max_iterations, optimised_coeffs.message
+                    )
                 )
-            )
-            warnings.warn(msg)
-        calculate_percentage_change_in_last_iteration(optimised_coeffs.allvecs)
-        return optimised_coeffs.x.astype(np.float32)
+                warnings.warn(msg)
+            calculate_percentage_change_in_last_iteration(optimised_coeffs.allvecs)
+            return optimised_coeffs.x.astype(np.float32)
 
     def minimise_caller(self, minimisation_function, initial_guess, forecast_predictor_data, truth_data,
                              forecast_var_data, sqrt_pi, predictor):
@@ -316,7 +320,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             args=(forecast_predictor_data, truth_data,
                   forecast_var_data, sqrt_pi, predictor),
             method="Nelder-Mead", tol=self.tolerance,
-            options={"maxiter": self.max_iterations, "return_all": True}).x.astype(np.float32)
+            options={"maxiter": self.max_iterations, "return_all": True})
 
         return optimised_coeffs
 
@@ -839,8 +843,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Order of coefficients is [alpha, beta, gamma, delta].
 
         """
-        sm = self._get_statsmodels_availability()
-
+        sm = None
         if (
             predictor.lower() == "mean"
             and not estimate_coefficients_from_linear_model_flag
@@ -1027,11 +1030,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 match.
 
         """
+        import time
+        t0 = time.time()
+        print("time1 = ", time.time() - t0)
         if not (historic_forecasts and truths):
             raise ValueError("historic_forecasts and truths cubes must be provided.")
 
         # Ensure predictor is valid.
         check_predictor(self.predictor)
+        #sm = self._get_statsmodels_availability()
 
         historic_forecasts, truths = filter_non_matching_cubes(
             historic_forecasts, truths
@@ -1066,6 +1073,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             self.mask_cube(forecast_predictor, landsea_mask)
             self.mask_cube(forecast_var, landsea_mask)
             self.mask_cube(truths, landsea_mask)
+        print("time2 = ", time.time() - t0)
 
         if self.each_point:
 
@@ -1100,7 +1108,21 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             forecast_predictor.data
             forecast_var.data
             truths.data
-            historic_forecasts.data
+            #historic_forecasts.data
+
+            # truths = truths[..., :50, :50]
+            # #historic_forecasts = historic_forecasts[..., :200, :200]
+            # forecast_predictor = forecast_predictor[..., :50, :50]
+            # forecast_var = forecast_var[..., :50, :50]
+
+
+            print("truths = ", truths)
+            print("historic_forecasts = ", historic_forecasts)
+            print("forecast_predictor = ", forecast_predictor)
+            print("forecast_var = ", forecast_var)
+
+            print("time2b = ", time.time() - t0)
+            #hf_slice = next(historic_forecasts.slices_over(index)).copy()
 
             argument_list = (
                 (truths_slice, hf_slice, fp_slice, fv_slice,)
@@ -1111,7 +1133,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     historic_forecasts.slices_over(index),
                 )
             )
-
             # argument_list = []
             # for (fp_slice, fv_slice, truths_slice, hf_slice) in zip(
             #     forecast_predictor.slices_over(index),
@@ -1120,11 +1141,17 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             #     historic_forecasts.slices_over(index),
             # ):
             #     argument_list.append((truths_slice, hf_slice, fp_slice, fv_slice,))
+            print("argument_list = ", argument_list)
 
+            chunksize = (len(truths.coord(axis="x").points) * len(truths.coord(axis="x").points)) // self.pool_size
+            #f1 = functools.partial(self.guess_and_minimise, historic_forecasts=hf_slice)
+            print("time3 = ", time.time() - t0)
             with Pool(self.pool_size) as pool:
-                coefficients_list = pool.starmap(self.guess_and_minimise, argument_list)
+                coefficients_list = pool.starmap(
+                    self.guess_and_minimise, argument_list,
+                    chunksize=chunksize)
 
-
+            print("time4 = ", time.time() - t0)
 
             coefficients_cubelist = self.reorganise_pointwise_list(coefficients_list)
         else:
@@ -1133,6 +1160,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
 
         print("coefficients_cubelist = ", coefficients_cubelist)
+        print("time5 = ", time.time() - t0)
         return coefficients_cubelist
 
 
