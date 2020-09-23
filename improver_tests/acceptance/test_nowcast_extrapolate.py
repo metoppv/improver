@@ -46,7 +46,7 @@ OE = "orographic_enhancement_standard_resolution"
 
 def test_optical_flow_inputs(tmp_path):
     """Test extrapolation nowcast using optical flow inputs"""
-    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-extrapolate"
+    kgo_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-extrapolate"
     input_path = input_dir / RAINRATE_NC
@@ -70,7 +70,7 @@ def test_optical_flow_inputs(tmp_path):
 
 def test_wind_inputs(tmp_path):
     """Test extrapolation nowcast using wind component inputs"""
-    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-extrapolate"
+    kgo_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-extrapolate"
     input_path = input_dir / RAINRATE_NC
@@ -94,7 +94,7 @@ def test_wind_inputs(tmp_path):
 
 def test_metadata(tmp_path):
     """Test basic extrapolation nowcast with json metadata"""
-    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/nowcast-extrapolate"
+    kgo_dir = acc.kgo_root() / "nowcast-extrapolate/metadata"
     kgo_path = kgo_dir / "kgo_with_metadata.nc"
     input_dir = acc.kgo_root() / "nowcast-extrapolate"
     input_path = input_dir / RAINRATE_NC

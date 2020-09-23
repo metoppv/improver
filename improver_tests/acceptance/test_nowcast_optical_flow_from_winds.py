@@ -43,7 +43,7 @@ RADAR_EXT = "u1096_ng_radar_precip_ratecomposite_2km"
 
 def test_basic(tmp_path):
     """Test optical flow calculation by perturbing model winds"""
-    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/optical-flow-from-winds"
+    kgo_dir = acc.kgo_root() / "nowcast-optical-flow-from-winds"
     kgo_path = kgo_dir / "kgo_15min.nc"
     input_paths = [
         kgo_dir / f"20190101T{hhmm}Z-{RADAR_EXT}.nc" for hhmm in ("0645", "0700")
@@ -61,7 +61,7 @@ def test_basic(tmp_path):
 def test_longer_interval(tmp_path):
     """Test optical flow calculation by perturbing model winds over a 30 minute
     time interval"""
-    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/optical-flow-from-winds"
+    kgo_dir = acc.kgo_root() / "nowcast-optical-flow-from-winds"
     kgo_path = kgo_dir / "kgo_30min.nc"
     input_paths = [
         kgo_dir / f"20190101T{hhmm}Z-{RADAR_EXT}.nc" for hhmm in ("0630", "0700")
@@ -78,7 +78,7 @@ def test_longer_interval(tmp_path):
 
 def test_too_many_inputs(tmp_path):
     """Test an error is thrown if too many radar cubes are provided"""
-    kgo_dir = acc.kgo_root() / "nowcast-feature-branch/optical-flow-from-winds"
+    kgo_dir = acc.kgo_root() / "nowcast-optical-flow-from-winds"
     input_paths = [
         kgo_dir / f"20190101T{hhmm}Z-{RADAR_EXT}.nc"
         for hhmm in ("0630", "0645", "0700")
