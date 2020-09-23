@@ -81,31 +81,28 @@ class Test_make_percentile_cube(IrisTest):
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
 
-        cube = self.cube
         result = GeneratePercentilesFromACircularNeighbourhood().make_percentile_cube(
-            cube
+            self.cube
         )
         self.assertIsInstance(result, Cube)
 
     def test_coord_present(self):
         """Test that the percentile coord is added."""
 
-        cube = self.cube
         result = GeneratePercentilesFromACircularNeighbourhood().make_percentile_cube(
-            cube
+            self.cube
         )
         self.assertIsInstance(result.coord("percentile"), iris.coords.Coord)
         self.assertArrayEqual(result.coord("percentile").points, DEFAULT_PERCENTILES)
-        self.assertArrayEqual(result[0].data, cube.data)
-        self.assertDictEqual(cube.metadata._asdict(), result.metadata._asdict())
+        self.assertArrayEqual(result[0].data, self.cube.data)
+        self.assertDictEqual(self.cube.metadata._asdict(), result.metadata._asdict())
 
     def test_coord_is_dim_vector(self):
         """Test that the percentile coord is added as the zeroth dimension when
         multiple percentiles are used."""
 
-        cube = self.cube
         result = GeneratePercentilesFromACircularNeighbourhood().make_percentile_cube(
-            cube
+            self.cube
         )
         self.assertEqual(result.coord_dims("percentile")[0], 0)
 
@@ -113,10 +110,9 @@ class Test_make_percentile_cube(IrisTest):
         """Test that the percentile coord is added as the zeroth dimension when
         a single percentile is used."""
 
-        cube = self.cube
         result = GeneratePercentilesFromACircularNeighbourhood(
             50.0
-        ).make_percentile_cube(cube)
+        ).make_percentile_cube(self.cube)
         self.assertEqual(result.coord_dims("percentile")[0], 0)
 
 
@@ -159,12 +155,10 @@ class Test_pad_and_unpad_cube(IrisTest):
             ],
         )
         kernel = np.array([[0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 0.0]])
-        cube = self.cube
-        cube.data[2, 2] = 0
-        cube = cube[:, :]
+        self.cube.data[2, 2] = 0
         plugin = GeneratePercentilesFromACircularNeighbourhood()
         plugin.percentiles = np.array([10, 50, 90])
-        result = plugin.pad_and_unpad_cube(cube, kernel)
+        result = plugin.pad_and_unpad_cube(self.cube, kernel)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -196,12 +190,10 @@ class Test_pad_and_unpad_cube(IrisTest):
             ],
         )
         kernel = np.array([[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 0.0, 1.0]])
-        cube = self.cube
-        cube.data[2, 2] = 0
-        cube = cube[:, :]
+        self.cube.data[2, 2] = 0
         plugin = GeneratePercentilesFromACircularNeighbourhood()
         plugin.percentiles = np.array([10, 50, 90])
-        result = plugin.pad_and_unpad_cube(cube, kernel)
+        result = plugin.pad_and_unpad_cube(self.cube, kernel)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -214,7 +206,6 @@ class Test_pad_and_unpad_cube(IrisTest):
 
         # Just within range of the edge.
 
-        slice_2d = cube[:, :]
         expected = np.array(
             [
                 [[0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]],
@@ -234,18 +225,16 @@ class Test_pad_and_unpad_cube(IrisTest):
         )
         result = GeneratePercentilesFromACircularNeighbourhood(
             percentiles=percentiles
-        ).pad_and_unpad_cube(slice_2d, kernel)
+        ).pad_and_unpad_cube(cube, kernel)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
         """Test behaviour for a single non-zero grid cell near the edge."""
 
-        cube = self.cube
-        cube.data[2, 1] = 0
+        self.cube.data[2, 1] = 0
 
         # Range 3 goes over the edge
 
-        slice_2d = cube[:, :]
         expected = np.array(
             [
                 [
@@ -275,7 +264,7 @@ class Test_pad_and_unpad_cube(IrisTest):
         kernel = np.array([[0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 0.0]])
         result = GeneratePercentilesFromACircularNeighbourhood(
             percentiles=percentiles
-        ).pad_and_unpad_cube(slice_2d, kernel)
+        ).pad_and_unpad_cube(self.cube, kernel)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
@@ -307,15 +296,13 @@ class Test_pad_and_unpad_cube(IrisTest):
             ]
         )
 
-        cube = self.cube
-        cube.data[2, 0] = 0
+        self.cube.data[2, 0] = 0
 
-        slice_2d = cube[:, :]
         percentiles = np.array([10, 50, 90])
         kernel = np.array([[0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 0.0]])
         result = GeneratePercentilesFromACircularNeighbourhood(
             percentiles=percentiles
-        ).pad_and_unpad_cube(slice_2d, kernel)
+        ).pad_and_unpad_cube(self.cube, kernel)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
@@ -347,16 +334,14 @@ class Test_pad_and_unpad_cube(IrisTest):
             ]
         )
 
-        cube = self.cube
-        cube.data[0, 0] = 0
+        self.cube.data[0, 0] = 0
 
         # Point is right on the corner.
-        slice_2d = cube[:, :]
         percentiles = np.array([10, 50, 90])
         kernel = np.array([[0.0, 1.0, 0.0], [1.0, 1.0, 1.0], [0.0, 1.0, 0.0]])
         result = GeneratePercentilesFromACircularNeighbourhood(
             percentiles=percentiles
-        ).pad_and_unpad_cube(slice_2d, kernel)
+        ).pad_and_unpad_cube(self.cube, kernel)
         self.assertArrayAlmostEqual(result.data, expected)
 
 
@@ -374,10 +359,9 @@ class Test_run(IrisTest):
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
 
-        cube = self.cube
-        cube.data[2, 2] = 0
+        self.cube.data[2, 2] = 0
         radius = 4000.0
-        result = GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)
+        result = GeneratePercentilesFromACircularNeighbourhood().run(self.cube, radius)
         self.assertIsInstance(result, Cube)
 
     def test_single_point(self):
@@ -431,7 +415,6 @@ class Test_run(IrisTest):
         cube = add_coordinate(
             cube, coord_points=time_points, coord_name="time", is_datetime="true",
         )
-        print(cube)
         cube.data[0, 2, 2] = 0
         cube.data[1, 2, 1] = 0
 
@@ -537,17 +520,16 @@ class Test_run(IrisTest):
                 ],
             ]
         )
-        cube = self.cube
-        cube.data[2, 2] = 0
+        self.cube.data[2, 2] = 0
 
-        mask = np.zeros_like(cube.data)
+        mask = np.zeros_like(self.cube.data)
         mask[2, 2] = 1
-        cube.data = np.ma.masked_array(cube.data, mask=mask)
+        self.cube.data = np.ma.masked_array(self.cube.data, mask=mask)
         percentiles = np.array([10, 50, 90])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
             percentiles=percentiles
-        ).run(cube, radius)
+        ).run(self.cube, radius)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_masked_other_point(self):
@@ -579,17 +561,16 @@ class Test_run(IrisTest):
                 ],
             ]
         )
-        cube = self.cube
-        cube.data[2, 2] = 0
+        self.cube.data[2, 2] = 0
 
-        mask = np.zeros_like(cube.data)
+        mask = np.zeros_like(self.cube.data)
         mask[2, 3] = 1
-        cube.data = np.ma.masked_array(cube.data, mask=mask)
+        self.cube.data = np.ma.masked_array(self.cube.data, mask=mask)
         percentiles = np.array([10, 50, 90])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
             percentiles=percentiles
-        ).run(cube, radius)
+        ).run(self.cube, radius)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_low_percentiles(self):
@@ -620,14 +601,13 @@ class Test_run(IrisTest):
                 ],
             ]
         )
-        cube = self.cube
-        cube.data[2, 2] = 0
+        self.cube.data[2, 2] = 0
 
         percentiles = np.array([5, 10, 20])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
             percentiles=percentiles
-        ).run(cube, radius)
+        ).run(self.cube, radius)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_point_pair(self):
@@ -658,15 +638,14 @@ class Test_run(IrisTest):
                 ],
             ]
         )
-        cube = self.cube
-        cube.data[2, 2] = 0
-        cube.data[2, 1] = 0
+        self.cube.data[2, 2] = 0
+        self.cube.data[2, 1] = 0
 
         percentiles = np.array([25, 50, 75])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
             percentiles=percentiles
-        ).run(cube, radius)
+        ).run(self.cube, radius)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_number_of_percentiles_equals_number_of_points(self):
@@ -846,25 +825,23 @@ class Test_run(IrisTest):
         """Test that an exception is raised if the circle requested is bigger
         than the size of the domain."""
 
-        cube = self.cube
-        cube.data[2, 2] = 0
+        self.cube.data[2, 2] = 0
         radius = 50000.0
         msg = "Distance of {}m exceeds max domain distance".format(radius)
         with self.assertRaisesRegex(ValueError, msg):
-            GeneratePercentilesFromACircularNeighbourhood().run(cube, radius)
+            GeneratePercentilesFromACircularNeighbourhood().run(self.cube, radius)
 
     def test_mask_cube(self):
         """Test that a NotImplementedError is raised if a mask cube is passed
         in when generating percentiles from a circular neighbourhood, as this
         option is not supported."""
 
-        cube = self.cube
-        cube.data[2, 2] = 0
+        self.cube.data[2, 2] = 0
         radius = 4000.0
         msg = "The use of a mask cube with a circular kernel is " "not yet implemented."
         with self.assertRaisesRegex(NotImplementedError, msg):
             GeneratePercentilesFromACircularNeighbourhood().run(
-                cube, radius, mask_cube=cube
+                self.cube, radius, mask_cube=self.cube
             )
 
 
