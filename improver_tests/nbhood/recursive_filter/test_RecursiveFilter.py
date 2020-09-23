@@ -43,8 +43,6 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.pad_spatial import pad_cube_with_halo
 from improver.utilities.warnings_handler import ManageWarnings
 
-from ..nbhood.test_BaseNeighbourhoodProcessing import set_up_cube
-
 
 def _mean_points(points):
     """Create an array of the mean of adjacent points in original array"""
@@ -190,9 +188,10 @@ class Test_set_up_cubes(IrisTest):
     """Test the set up of cubes prior to neighbourhooding."""
 
     def setUp(self):
-        """Set up a cube."""
-        self.cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
-        self.cube = iris.util.squeeze(self.cube)
+        """Set up a 2D cube."""
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
     def test_without_masked_data(self):
         """Test setting up cubes to be neighbourhooded when the input cube
@@ -557,7 +556,7 @@ class Test_process(Test_RecursiveFilter):
         """Test that the RecursiveFilter plugin returns the correct data
         when a masked data cube."""
         plugin = RecursiveFilter(iterations=self.iterations,)
-        mask = np.zeros((self.cube.data.shape))
+        mask = np.zeros(self.cube.data.shape)
         mask[0][3][2] = 1
         self.cube.data = np.ma.MaskedArray(self.cube.data, mask=mask)
         result = plugin(

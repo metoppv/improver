@@ -200,6 +200,22 @@ def comma_separated_list(to_convert):
 
 
 @value_converter
+def comma_separated_list_of_float(to_convert):
+    """Converts comma separated string to list of floats or returns passed object.
+
+    Args:
+        to_convert (string or list)
+            comma separated string or list
+
+    Returns:
+       list
+    """
+    return maybe_coerce_with(
+        lambda string: [float(s) for s in string.split(",")], to_convert
+    )
+
+
+@value_converter
 def inputpath(to_convert):
     """Converts string paths to pathlib Path objects
 

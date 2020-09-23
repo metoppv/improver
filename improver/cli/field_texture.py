@@ -41,6 +41,7 @@ def process(
     nbhood_radius: float = 10000.0,
     textural_threshold: float = 0.05,
     diagnostic_threshold: float = 0.8125,
+    model_id_attr: str = None,
 ):
 
     """Calculates field texture for a given neighbourhood radius.
@@ -75,6 +76,10 @@ def process(
             cube. Default value set to 0.8125 corresponding to 6 oktas, assuming
             cloud area fraction cube.
 
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
+
     Returns:
         iris.cube.Cube:
             A field texture cube containing values between 0 and 1, where 0
@@ -86,6 +91,9 @@ def process(
     from improver.field_texture import FieldTexture
 
     field_texture = FieldTexture(
-        nbhood_radius, textural_threshold, diagnostic_threshold
+        nbhood_radius,
+        textural_threshold,
+        diagnostic_threshold,
+        model_id_attr=model_id_attr,
     )(cube)
     return field_texture

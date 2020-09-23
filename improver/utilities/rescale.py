@@ -103,8 +103,7 @@ def apply_double_scaling(
             Lower, mid and upper points to rescale data_cube from
         scaling_vals (tuple of three values):
             Lower, mid and upper points to rescale data_cube to
-        combine_function (Callable[[numpy.ndarray, numpy.ndarray],
-        numpy.ndarray]):
+        combine_function (Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]):
             Function that takes two arrays of the same shape and returns
             one array of the same shape.
             Expected to be numpy.minimum (default) or numpy.maximum.
