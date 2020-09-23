@@ -92,9 +92,11 @@ class Test_make_percentile_cube(IrisTest):
         result = GeneratePercentilesFromACircularNeighbourhood().make_percentile_cube(
             self.cube
         )
+        expected_data = self.cube.data.copy()
+
         self.assertIsInstance(result.coord("percentile"), iris.coords.Coord)
         self.assertArrayEqual(result.coord("percentile").points, DEFAULT_PERCENTILES)
-        self.assertArrayEqual(result[0].data, self.cube.data)
+        self.assertArrayEqual(result[0].data, expected_data)
         self.assertDictEqual(self.cube.metadata._asdict(), result.metadata._asdict())
 
     def test_coord_is_dim_vector(self):

@@ -88,24 +88,22 @@ class Test_apply_circular_kernel(IrisTest):
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
 
-        cube = self.cube
         ranges = 2
         result = CircularNeighbourhood(weighted_mode=False).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertIsInstance(result, Cube)
 
     def test_single_point(self):
         """Test behaviour for a single non-zero grid cell."""
 
-        cube = self.cube
-        cube.data[7, 7] = 0
-        expected = np.ones_like(cube.data)
+        self.cube.data[7, 7] = 0
+        expected = np.ones_like(self.cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[5 + index][5:10] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -115,14 +113,13 @@ class Test_apply_circular_kernel(IrisTest):
         affected area is one grid cell more in each direction, an equivalent
         range of 2 is chosen for this test."""
 
-        cube = self.cube
-        cube.data[7, 7] = 0
-        expected = np.ones_like(cube.data)
+        self.cube.data[7, 7] = 0
+        expected = np.ones_like(self.cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_2_CENTROID_FLAT):
             expected[5 + index][5:10] = slice_
         ranges = 2
         result = CircularNeighbourhood(weighted_mode=False).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -150,18 +147,17 @@ class Test_apply_circular_kernel(IrisTest):
         not right, as the mask is ignored. This comes directly from the
         scipy.ndimage.correlate base behaviour."""
 
-        cube = self.cube
-        cube.data[7, 7] = 0
+        self.cube.data[7, 7] = 0
 
-        expected = np.ones_like(cube.data)
-        mask = np.zeros_like(cube.data)
+        expected = np.ones_like(self.cube.data)
+        mask = np.zeros_like(self.cube.data)
         mask[7][7] = 1
-        cube.data = np.ma.masked_array(cube.data, mask=mask)
+        self.cube.data = np.ma.masked_array(self.cube.data, mask=mask)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[5 + index][5:10] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -169,47 +165,44 @@ class Test_apply_circular_kernel(IrisTest):
         """Test behaviour with a non-zero point next to a masked point.
         The behaviour here is not right, as the mask is ignored."""
 
-        cube = self.cube
-        cube.data[7, 7] = 0
+        self.cube.data[7, 7] = 0
 
-        expected = np.ones_like(cube.data)
-        mask = np.zeros_like(cube.data)
+        expected = np.ones_like(self.cube.data)
+        mask = np.zeros_like(self.cube.data)
         mask[6][7] = 1
-        cube.data = np.ma.masked_array(cube.data, mask=mask)
+        self.cube.data = np.ma.masked_array(self.cube.data, mask=mask)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[5 + index][5:10] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_1(self):
         """Test behaviour with a non-zero point and unit range."""
 
-        cube = self.cube
-        cube.data[7, 7] = 0
+        self.cube.data[7, 7] = 0
 
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(self.cube.data)
         expected[7][7] = 0.0
         ranges = 1
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_range_5(self):
         """Test behaviour with a non-zero point and a large range."""
 
-        cube = self.cube
-        cube.data[7, 7] = 0
+        self.cube.data[7, 7] = 0
 
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(self.cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_5_CENTROID):
             expected[3 + index][3:12] = slice_
         ranges = 5
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -237,9 +230,8 @@ class Test_apply_circular_kernel(IrisTest):
     def test_point_pair(self):
         """Test behaviour for two nearby non-zero grid cells."""
 
-        cube = self.cube
-        cube.data[7, 6] = 0
-        cube.data[7, 8] = 0
+        self.cube.data[7, 6] = 0
+        self.cube.data[7, 8] = 0
 
         expected_snippet = np.array(
             [
@@ -250,56 +242,53 @@ class Test_apply_circular_kernel(IrisTest):
                 [0.992, 0.968, 0.952, 0.936, 0.952, 0.968, 0.992],
             ]
         )
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(self.cube.data)
         for index, slice_ in enumerate(expected_snippet):
             expected[5 + index][4:11] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_edge(self):
         """Test behaviour for a non-zero grid cell quite near the edge."""
 
-        cube = self.cube
-        cube.data[7, 2] = 0
+        self.cube.data[7, 2] = 0
 
         # Just within range of the edge.
 
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(self.cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[5 + index][0:5] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_edge(self):
         """Test behaviour for a single non-zero grid cell near the edge."""
 
-        cube = self.cube
-        cube.data[7, 1] = 0
+        self.cube.data[7, 1] = 0
 
         # Range 3 goes over the edge.
 
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(self.cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[5 + index][0:4] = slice_[1:]
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_edge(self):
         """Test behaviour for a non-zero grid cell on the edge."""
 
-        cube = self.cube
-        cube.data[7, 0] = 0
+        self.cube.data[7, 0] = 0
 
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(self.cube.data)
         expected_centroid = np.array(
             [
                 [0.92, 0.96, 0.992],
@@ -313,55 +302,52 @@ class Test_apply_circular_kernel(IrisTest):
             expected[5 + index][0:3] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_almost_corner(self):
         """Test behaviour for a non-zero grid cell quite near a corner."""
 
-        cube = self.cube
-        cube.data[2, 2] = 0
+        self.cube.data[2, 2] = 0
 
         # Just within corner range.
 
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(self.cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             expected[index][0:5] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_adjacent_corner(self):
         """Test behaviour for a non-zero grid cell near the corner."""
 
-        cube = self.cube
-        cube.data[1, 1] = 0
+        self.cube.data[1, 1] = 0
 
         # Kernel goes over the corner.
 
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(self.cube.data)
         for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
             if index == 0:
                 continue
             expected[index - 1][0:4] = slice_[1:]
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_on_corner(self):
         """Test behaviour for a single non-zero grid cell on the corner."""
 
-        cube = self.cube
-        cube.data[0, 0] = 0
+        self.cube.data[0, 0] = 0
 
         # Point is right on the corner.
 
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(self.cube.data)
         expected_centroid = np.array(
             [[0.592, 0.768, 0.92], [0.768, 0.872, 0.96], [0.92, 0.96, 0.992],]
         )
@@ -369,7 +355,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[index][0:3] = slice_
         ranges = 3
         result = CircularNeighbourhood(weighted_mode=True).apply_circular_kernel(
-            cube, ranges
+            self.cube, ranges
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
