@@ -107,41 +107,6 @@ def generate_optical_flow_components(
     return u_mean, v_mean
 
 
-def generate_advection_velocities_as_perturbations(
-    current_obs, previous_forecast, previous_advection, orographic_enhancement
-):
-    """Generate advection velocities as perturbations from the velocities used
-    to generate the previous forecast
-
-    Args:
-        current_obs (iris.cube.Cube):
-            Latest radar observation at a single time
-        previous_forecast (iris.cube.Cube):
-            Forecast generated from a previous time step, for this validity time
-        previous_advection (iris.cube.CubeList):
-            u- and v- advection components used to generate the previous forecast
-        orographic_enhancement (iris.cube.Cube):
-            Field containing orographic enhancement data valid for this time
-
-    Returns:
-        iris.cube.CubeList:
-            u- and v- advection velocities
-    """
-    # check that validity times on the forecast and observation match
-    if current_obs.coord("time").cell(0) != previous_forecast.coord("time").cell(0):
-        raise ValueError("Forecast validity time must match input observation")
-
-    # calculate velocity perturbations required to match forecast to observation
-    cube_list = ApplyOrographicEnhancement("subtract")(
-        [previous_forecast, current_obs], orographic_enhancement
-    )
-    perturbations = OpticalFlow(iterations=100)(*cube_list, boxsize=30)
-
-    # sum perturbations and previous advection to get advection velocities
-    total_advection = _perturb_background_flow(previous_advection, perturbations)
-    return total_advection
-
-
 def generate_advection_velocities_from_winds(
     cubes, background_flow, orographic_enhancement
 ):
