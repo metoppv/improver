@@ -502,21 +502,6 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_radii_varying_with_lead_time_fp_seconds(self):
-        """
-        Test that a cube fp coord is unchanged by the lead time calculation.
-        """
-        cube = self.multi_time_cube
-
-        cube.coord("forecast_period").convert_units("seconds")
-        radii = [10000, 20000, 30000]
-        lead_times = [2, 3, 4]
-        neighbourhood_method = CircularNeighbourhood()
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
-        result = plugin(cube)
-        self.assertIsInstance(result, Cube)
-        self.assertEqual(cube.coord("forecast_period").units, "seconds")
-
     def test_radii_varying_with_lead_time_check_data(self):
         """
         Test that the expected data is produced when the radius
@@ -671,16 +656,8 @@ class Test_process(IrisTest):
         data[2, 2] = 0
         cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
-        mask_cube = cube.copy()
-        mask_cube.data = np.array(
-            [
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-            ]
-        )
+        mask_cube = cube.copy(data=np.ones((5, 5), dtype=np.float32))
+
         radius = 2000
         neighbourhood_method = SquareNeighbourhood()
         result = NBHood(neighbourhood_method, radius)(cube, mask_cube)
