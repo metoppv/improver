@@ -35,7 +35,7 @@ import numpy as np
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
-def set_up_test_cube(data, name, units, time, gridsize=30):
+def set_up_test_cube(data, name, units, time):
     """Template for cube metadata with 2 km coordinate spacing and zero
     forecast period
 
@@ -44,7 +44,6 @@ def set_up_test_cube(data, name, units, time, gridsize=30):
         name (str)
         units (str)
         time (datetime.datetime)
-        gridsize (int)
 
     Returns:
         iris.cube.Cube
