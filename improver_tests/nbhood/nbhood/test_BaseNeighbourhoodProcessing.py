@@ -336,10 +336,9 @@ class Test_process(IrisTest):
     def test_2d_cube(self):
         """Test with a 2D dataset (no leading realization or threshold dimension."""
 
-        cube = self.cube[0]
         radii = 5600
         neighbourhood_method = CircularNeighbourhood()
-        result = NBHood(neighbourhood_method, radii)(cube)
+        result = NBHood(neighbourhood_method, radii)(self.cube[0])
         self.assertIsInstance(result, Cube)
         expected = np.ones([16, 16])
         expected[6:9, 6:9] = (
@@ -354,9 +353,8 @@ class Test_process(IrisTest):
         Test that the expected data is produced when the radius
         varies with lead time and that a cube is returned.
         """
-        cube = self.multi_time_cube
 
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(self.multi_time_cube.data)
         expected[0, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
@@ -379,7 +377,7 @@ class Test_process(IrisTest):
         lead_times = [2, 3, 4]
         neighbourhood_method = CircularNeighbourhood()
         plugin = NBHood(neighbourhood_method, radii, lead_times)
-        result = plugin(cube)
+        result = plugin(self.multi_time_cube)
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertIsInstance(result, Cube)
 
@@ -439,13 +437,11 @@ class Test_process(IrisTest):
         which are required but were not specified within the 'radii'
         argument."""
 
-        cube = self.multi_time_cube
-
         radii = [10000, 30000]
         lead_times = [2, 4]
         neighbourhood_method = CircularNeighbourhood()
         plugin = NBHood(neighbourhood_method, radii, lead_times)
-        result = plugin(cube)
+        result = plugin(self.multi_time_cube)
         self.assertIsInstance(result, Cube)
 
     def test_radii_varying_with_lead_time_with_interpolation_check_data(self):
@@ -456,9 +452,7 @@ class Test_process(IrisTest):
         which are required but were not specified within the 'radii'
         argument."""
 
-        cube = self.multi_time_cube
-
-        expected = np.ones_like(cube.data)
+        expected = np.ones_like(multi_time_cube.data)
         expected[0, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
@@ -482,7 +476,7 @@ class Test_process(IrisTest):
         lead_times = [2, 4]
         neighbourhood_method = CircularNeighbourhood()
         plugin = NBHood(neighbourhood_method, radii, lead_times)
-        result = plugin(cube)
+        result = plugin(self.multi_time_cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_use_mask_cube_occurrences_not_masked(self):
