@@ -44,11 +44,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 NB_RADIUS = 10000
 TEXT_THRESH = 0.4
 DIAG_THRESH = 0.8125
-PLUGIN = FieldTexture(
-    nbhood_radius=NB_RADIUS,
-    textural_threshold=TEXT_THRESH,
-    diagnostic_threshold=DIAG_THRESH,
-)
 
 
 @pytest.fixture(name="multi_cloud_cube")
@@ -106,9 +101,6 @@ def all_cloud_fixture():
     return cloud_probability_cube(cloud_area_fraction, thresholds)
 
 
-# Set up probability cubes for the pytest fixtures.
-
-
 def cloud_probability_cube(cloud_area_fraction, thresholds):
     """Set up probability cube."""
     cube = set_up_probability_cube(
@@ -128,7 +120,13 @@ def cloud_probability_cube(cloud_area_fraction, thresholds):
     return cube
 
 
-# Begin the unit tests.
+def ftex_plugin():
+    fieldtexture_instance = FieldTexture(
+        nbhood_radius=NB_RADIUS,
+        textural_threshold=TEXT_THRESH,
+        diagnostic_threshold=DIAG_THRESH,
+    )
+    return fieldtexture_instance
 
 
 def test_full_process(multi_cloud_cube):
@@ -138,7 +136,7 @@ def test_full_process(multi_cloud_cube):
     expected_data = np.where(cube.data == 0.0, 1.0, 0.0)
     expected_dtype = "float32"
 
-    result = PLUGIN.process(multi_cloud_cube)
+    result = ftex_plugin().process(multi_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
     assert result.dtype == expected_dtype
 
@@ -147,9 +145,7 @@ def test__calculate_ratio(thresholded_cloud_cube):
     """Test the _calculate_ratio function with single realization of the input cube."""
 
     expected_data = np.where(thresholded_cloud_cube.data == 0.0, 1.0, 0.3333)
-
-    PLUGIN.cube_name = "cloud_area_fraction"
-    result = PLUGIN._calculate_ratio(thresholded_cloud_cube, NB_RADIUS)
+    result = ftex_plugin()._calculate_ratio(thresholded_cloud_cube, "cloud_area_fraction", NB_RADIUS)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 
@@ -161,8 +157,7 @@ def test__calculate_transitions(thresholded_cloud_cube):
     expected_data[1:4, 1:4] = np.array(
         [[2.0, 1.0, 2.0], [1.0, 0.0, 1.0], [2.0, 1.0, 2.0]]
     )
-
-    result = PLUGIN._calculate_transitions(thresholded_cloud_cube.data)
+    result = ftex_plugin()._calculate_transitions(thresholded_cloud_cube.data)
     np.testing.assert_almost_equal(result, expected_data, decimal=4)
 
 
@@ -174,8 +169,7 @@ def test_process_single_threshold(multi_cloud_cube):
         iris.Constraint(cloud_area_fraction=DIAG_THRESH)
     )
     expected_data = np.where(single_thresh_cloud_cube.data[0] == 0.0, 1.0, 0.0)
-
-    result = PLUGIN.process(single_thresh_cloud_cube)
+    result = ftex_plugin().process(single_thresh_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 
@@ -188,7 +182,7 @@ def test_process_no_realization(no_realization_cloud_cube):
     )
     expected_data = np.where(cube.data == 0.0, 1.0, 0.0)
 
-    result = PLUGIN.process(no_realization_cloud_cube)
+    result = ftex_plugin().process(no_realization_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 
@@ -199,7 +193,7 @@ def test_process_error(multi_cloud_cube):
     non_binary_cube = multi_cloud_cube.copy(data=non_binary_data)
 
     with pytest.raises(Exception) as excinfo:
-        PLUGIN.process(non_binary_cube)
+        ftex_plugin().process(non_binary_cube)
     assert str(excinfo.value) == "Incorrect input. Cube should hold binary data only"
 
 
@@ -208,8 +202,7 @@ def test_process_no_cloud(no_cloud_cube):
        no cloud present in the field."""
 
     expected_data = np.ones(no_cloud_cube[0][0].shape)
-
-    result = PLUGIN.process(no_cloud_cube)
+    result = ftex_plugin().process(no_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 
@@ -218,8 +211,7 @@ def test_process_all_cloud(all_cloud_cube):
        all cloud occupying the field."""
 
     expected_data = np.zeros(all_cloud_cube[0][0].shape)
-
-    result = PLUGIN.process(all_cloud_cube)
+    result = ftex_plugin().process(all_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 
@@ -228,7 +220,7 @@ def test_no_threshold_cube(multi_cloud_cube):
 
     multi_cloud_cube.remove_coord("cloud_area_fraction")
     with pytest.raises(CoordinateNotFoundError, match="No threshold coord found.*"):
-        PLUGIN.process(multi_cloud_cube)
+        ftex_plugin().process(multi_cloud_cube)
 
 
 def test_wrong_threshold(multi_cloud_cube):
@@ -249,24 +241,16 @@ def test_metadata_name(multi_cloud_cube):
     """Test that the metadata of the output cube follows expected conventions
        after the plugin is complete and all old coordinates have been removed."""
 
-    expected_name = "probability_of_texture_of_cloud_area_fraction_above_threshold"
-    expected_units = "1"
-
-    result = PLUGIN.process(multi_cloud_cube)
-
-    # check name and units
-    result_name = result.name()
-    assert expected_name == result_name
-    result_units = result.units
-    assert expected_units == result_units
+    result = ftex_plugin().process(multi_cloud_cube)
+    assert result.name() == "probability_of_texture_of_cloud_area_fraction_above_threshold"
+    assert result.units == "1"
 
 
 def test_metadata_coords(multi_cloud_cube):
     """Test that the coordinate metadata in the output cube follows expected
         conventions after that plugin has completed."""
 
-    result = PLUGIN.process(multi_cloud_cube)
-    expected_units = "1"
+    result = ftex_plugin().process(multi_cloud_cube)
     expected_dims = ["projection_y_coordinate", "projection_x_coordinate"]
     expected_scalar_coord = "texture_of_cloud_area_fraction"
 
@@ -274,14 +258,13 @@ def test_metadata_coords(multi_cloud_cube):
     result_scalar_coords = [coord.name() for coord in result.coords(dim_coords=False)]
 
     # check coordinates
-
-    assert result_dims == expected_dims
+    assert expected_dims == result_dims
     assert expected_scalar_coord in result_scalar_coords
     for coord in ["cloud_area_fraction", "realization"]:
         assert coord not in [crd.name() for crd in result.coords()]
 
     # check threshold coordinate units
-    assert result.coord(expected_scalar_coord).units == expected_units
+    assert result.coord(expected_scalar_coord).units == "1"
 
 
 def test_metadata_attributes(multi_cloud_cube):
@@ -294,7 +277,7 @@ def test_metadata_attributes(multi_cloud_cube):
         "title": "MOGREPS-UK Forecast on 2 km Standard Grid",
     }
 
-    result = PLUGIN.process(multi_cloud_cube)
+    result = ftex_plugin().process(multi_cloud_cube)
     assert result.attributes == expected_attributes
 
 
