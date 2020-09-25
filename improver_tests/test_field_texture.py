@@ -41,9 +41,10 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
 )
 
+THRESHOLDS = [0.265, 0.415, 0.8125]
 NB_RADIUS = 10000
 TEXT_THRESH = 0.4
-DIAG_THRESH = 0.8125
+DIAG_THRESH = THRESHOLDS[2]
 
 
 @pytest.fixture(name="multi_cloud_cube")
@@ -51,8 +52,7 @@ def multi_cloud_fixture():
     """Multi-realization/threshold cloud data cube."""
     cloud_area_fraction = np.zeros((3, 10, 10), dtype=np.float32)
     cloud_area_fraction[:, 1:4, 1:4] = 1.0
-    thresholds = [0.265, 0.415, 0.8125]
-    return cloud_probability_cube(cloud_area_fraction, thresholds)
+    return cloud_probability_cube(cloud_area_fraction, THRESHOLDS)
 
 
 @pytest.fixture(name="thresholded_cloud_cube")
@@ -60,9 +60,8 @@ def thresholded_cloud_fixture():
     """Cloud data for a single realization at the relevant threshold."""
     cloud_area_fraction = np.zeros((1, 10, 10), dtype=np.float32)
     cloud_area_fraction[:, 1:4, 1:4] = 1.0
-    thresholds = [DIAG_THRESH]
     multi_realization_cube = iris.util.squeeze(
-        cloud_probability_cube(cloud_area_fraction, thresholds)
+        cloud_probability_cube(cloud_area_fraction, [DIAG_THRESH])
     )
     return next(multi_realization_cube.slices_over("realization"))
 
@@ -72,8 +71,7 @@ def no_realization_cloud_fixture():
     """No realization, multiple threshold cloud data cube."""
     cloud_area_fraction = np.zeros((3, 10, 10), dtype=np.float32)
     cloud_area_fraction[:, 1:4, 1:4] = 1.0
-    thresholds = [0.265, 0.415, 0.8125]
-    multi_realization_cube = cloud_probability_cube(cloud_area_fraction, thresholds)
+    multi_realization_cube = cloud_probability_cube(cloud_area_fraction, THRESHOLDS)
     no_realization_cube = next(multi_realization_cube.slices_over("realization"))
     no_realization_cube.remove_coord("realization")
     no_realization_cube.attributes.update(
@@ -89,16 +87,14 @@ def no_realization_cloud_fixture():
 def no_cloud_fixture():
     """Multi-realization cloud data cube with no cloud present."""
     cloud_area_fraction = np.zeros((3, 10, 10), dtype=np.float32)
-    thresholds = [0.265, 0.415, 0.8125]
-    return cloud_probability_cube(cloud_area_fraction, thresholds)
+    return cloud_probability_cube(cloud_area_fraction, THRESHOLDS)
 
 
 @pytest.fixture(name="all_cloud_cube")
 def all_cloud_fixture():
     """Multi-realization cloud data cube with all cloud present."""
     cloud_area_fraction = np.ones((3, 10, 10), dtype=np.float32)
-    thresholds = [0.265, 0.415, 0.8125]
-    return cloud_probability_cube(cloud_area_fraction, thresholds)
+    return cloud_probability_cube(cloud_area_fraction, THRESHOLDS)
 
 
 def cloud_probability_cube(cloud_area_fraction, thresholds):
