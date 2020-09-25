@@ -67,12 +67,9 @@ def thresholded_cloud_fixture():
 
 
 @pytest.fixture(name="no_realization_cloud_cube")
-def no_realization_cloud_fixture():
+def no_realization_cloud_fixture(multi_cloud_cube):
     """No realization, multiple threshold cloud data cube."""
-    cloud_area_fraction = np.zeros((3, 10, 10), dtype=np.float32)
-    cloud_area_fraction[:, 1:4, 1:4] = 1.0
-    multi_realization_cube = cloud_probability_cube(cloud_area_fraction, THRESHOLDS)
-    no_realization_cube = next(multi_realization_cube.slices_over("realization"))
+    no_realization_cube = next(multi_cloud_cube.slices_over("realization"))
     no_realization_cube.remove_coord("realization")
     no_realization_cube.attributes.update(
         {
@@ -81,20 +78,6 @@ def no_realization_cloud_fixture():
         }
     )
     return no_realization_cube
-
-
-@pytest.fixture(name="no_cloud_cube")
-def no_cloud_fixture():
-    """Multi-realization cloud data cube with no cloud present."""
-    cloud_area_fraction = np.zeros((3, 10, 10), dtype=np.float32)
-    return cloud_probability_cube(cloud_area_fraction, THRESHOLDS)
-
-
-@pytest.fixture(name="all_cloud_cube")
-def all_cloud_fixture():
-    """Multi-realization cloud data cube with all cloud present."""
-    cloud_area_fraction = np.ones((3, 10, 10), dtype=np.float32)
-    return cloud_probability_cube(cloud_area_fraction, THRESHOLDS)
 
 
 def cloud_probability_cube(cloud_area_fraction, thresholds):
@@ -193,21 +176,23 @@ def test_process_error(multi_cloud_cube):
     assert str(excinfo.value) == "Incorrect input. Cube should hold binary data only"
 
 
-def test_process_no_cloud(no_cloud_cube):
+def test_process_no_cloud(multi_cloud_cube):
     """Test the FieldTexture plugin with multi realization input cube that has
        no cloud present in the field."""
 
-    expected_data = np.ones(no_cloud_cube[0][0].shape)
-    result = ftex_plugin().process(no_cloud_cube)
+    multi_cloud_cube.data[:] = 0.0
+    expected_data = np.ones_like(multi_cloud_cube[0][0])
+    result = ftex_plugin().process(multi_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 
-def test_process_all_cloud(all_cloud_cube):
+def test_process_all_cloud(multi_cloud_cube):
     """Test the process function with multi realization input cube that has
        all cloud occupying the field."""
 
-    expected_data = np.zeros(all_cloud_cube[0][0].shape)
-    result = ftex_plugin().process(all_cloud_cube)
+    multi_cloud_cube.data[:] = 1.0
+    expected_data = np.zeros_like(multi_cloud_cube[0][0])
+    result = ftex_plugin().process(multi_cloud_cube)
     np.testing.assert_almost_equal(result.data, expected_data, decimal=4)
 
 
