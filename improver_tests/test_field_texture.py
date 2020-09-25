@@ -170,10 +170,8 @@ def test_process_error(multi_cloud_cube):
 
     non_binary_data = np.where(multi_cloud_cube.data == 0.0, 2.1, 0.0)
     non_binary_cube = multi_cloud_cube.copy(data=non_binary_data)
-
-    with pytest.raises(Exception) as excinfo:
+    with pytest.raises(ValueError, match="binary data"):
         ftex_plugin().process(non_binary_cube)
-    assert str(excinfo.value) == "Incorrect input. Cube should hold binary data only"
 
 
 def test_process_no_cloud(multi_cloud_cube):
@@ -200,7 +198,7 @@ def test_no_threshold_cube(multi_cloud_cube):
     """Test the process function with multi_cloud_cube that has no thresholds"""
 
     multi_cloud_cube.remove_coord("cloud_area_fraction")
-    with pytest.raises(CoordinateNotFoundError, match="No threshold coord found.*"):
+    with pytest.raises(CoordinateNotFoundError, match="threshold coord"):
         ftex_plugin().process(multi_cloud_cube)
 
 
@@ -209,12 +207,13 @@ def test_wrong_threshold(multi_cloud_cube):
         diagnostic_threshold variable does not match threshold available in
         the cube."""
 
+    wrong_threshold = 0.235
     plugin = FieldTexture(
         nbhood_radius=NB_RADIUS,
         textural_threshold=TEXT_THRESH,
-        diagnostic_threshold=0.235,
+        diagnostic_threshold=wrong_threshold,
     )
-    with pytest.raises(ValueError, match="Threshold 0.235 is not present.*"):
+    with pytest.raises(ValueError, match=str(wrong_threshold)):
         plugin.process(multi_cloud_cube)
 
 
