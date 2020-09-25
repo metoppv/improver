@@ -452,7 +452,7 @@ class Test_process(IrisTest):
         which are required but were not specified within the 'radii'
         argument."""
 
-        expected = np.ones_like(multi_time_cube.data)
+        expected = np.ones_like(self.multi_time_cube.data)
         expected[0, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
