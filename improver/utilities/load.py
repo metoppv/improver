@@ -49,12 +49,9 @@ def iris_nimrod_patcher():
         raise RuntimeError("FIXME: nimrod monkey patch is no longer needed")
     try:
         from iris_nimrod_patch import nimrod, nimrod_load_rules
-    except ImportError as cause:
-        if "No module named" in str(cause):
-            yield
-            return
-        else:
-            raise
+    except ModuleNotFoundError:
+        yield
+        return
     else:
         header_attrs = [
             "general_header_int16s",
