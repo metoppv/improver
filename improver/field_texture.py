@@ -168,7 +168,7 @@ class FieldTexture(BasePlugin):
         # Create a new cube to contain the resulting ratio data.
         ratio = create_new_diagnostic_cube(
             "texture_of_{}".format(cube_name),
-            1,
+            "1",
             cube,
             mandatory_attributes=generate_mandatory_attributes(
                 [cube], model_id_attr=self.model_id_attr
