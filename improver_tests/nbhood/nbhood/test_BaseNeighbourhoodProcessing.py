@@ -265,13 +265,9 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up cube."""
-        data = np.ones((1, 16, 16), dtype=np.float32)
-        data[0, 7, 7] = 0
-        self.cube = set_up_probability_cube(
-            data,
-            thresholds=np.array([278], dtype=np.float32),
-            spatial_grid="equalarea",
-        )
+        data = np.ones((16, 16), dtype=np.float32)
+        data[7, 7] = 0
+        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
         time_points = [
             datetime(2017, 11, 10, 2),
@@ -279,11 +275,7 @@ class Test_process(IrisTest):
             datetime(2017, 11, 10, 4),
         ]
         self.multi_time_cube = add_coordinate(
-            self.cube,
-            coord_points=time_points,
-            coord_name="time",
-            is_datetime="true",
-            order=[1, 0, 2, 3],
+            self.cube, coord_points=time_points, coord_name="time", is_datetime="true",
         )
 
     def test_basic(self):
@@ -305,7 +297,7 @@ class Test_process(IrisTest):
 
     def test_single_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
-        self.cube.data[0][6][7] = np.NAN
+        self.cube.data[6][7] = np.NAN
         msg = "NaN detected in input cube data"
         with self.assertRaisesRegex(ValueError, msg):
             neighbourhood_method = CircularNeighbourhood
@@ -333,21 +325,6 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_2d_cube(self):
-        """Test with a 2D dataset (no leading realization or threshold dimension."""
-
-        radii = 5600
-        neighbourhood_method = CircularNeighbourhood()
-        result = NBHood(neighbourhood_method, radii)(self.cube[0])
-        self.assertIsInstance(result, Cube)
-        expected = np.ones([16, 16])
-        expected[6:9, 6:9] = (
-            [0.91666667, 0.875, 0.91666667],
-            [0.875, 0.83333333, 0.875],
-            [0.91666667, 0.875, 0.91666667],
-        )
-        self.assertArrayAlmostEqual(result.data, expected)
-
     def test_radii_varying_with_lead_time_check_data(self):
         """
         Test that the expected data is produced when the radius
@@ -355,15 +332,15 @@ class Test_process(IrisTest):
         """
 
         expected = np.ones_like(self.multi_time_cube.data)
-        expected[0, 0, 6:9, 6:9] = (
+        expected[0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
             [0.91666667, 0.875, 0.91666667],
         )
 
-        expected[0, 1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
+        expected[1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
 
-        expected[0, 2, 4:11, 4:11] = (
+        expected[2, 4:11, 4:11] = (
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
             [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
             [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
@@ -453,15 +430,15 @@ class Test_process(IrisTest):
         argument."""
 
         expected = np.ones_like(self.multi_time_cube.data)
-        expected[0, 0, 6:9, 6:9] = (
+        expected[0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
             [0.91666667, 0.875, 0.91666667],
         )
 
-        expected[0, 1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
+        expected[1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
 
-        expected[0, 2, 4:11, 4:11] = (
+        expected[2, 4:11, 4:11] = (
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
             [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
             [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
