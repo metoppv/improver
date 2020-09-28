@@ -96,9 +96,8 @@ class FieldTexture(BasePlugin):
         self.textural_threshold = textural_threshold
         self.diagnostic_threshold = diagnostic_threshold
         self.model_id_attr = model_id_attr
-        self.cube_name = None
 
-    def _calculate_ratio(self, cube, radius):
+    def _calculate_ratio(self, cube, cube_name, radius):
         """
         Calculates the ratio of actual to potential value transitions in a
         neighbourhood about each cell.
@@ -128,6 +127,9 @@ class FieldTexture(BasePlugin):
             cube (iris.cube.Cube):
                 Input data in cube format containing a two-dimensional field
                 of binary data.
+
+            cube_name (str):
+                Name of input data cube, used for determining output texture cube name.
 
             radius (float):
                 Radius for neighbourhood in metres.
@@ -165,8 +167,8 @@ class FieldTexture(BasePlugin):
 
         # Create a new cube to contain the resulting ratio data.
         ratio = create_new_diagnostic_cube(
-            "texture_of_{}".format(self.cube_name),
-            1,
+            "texture_of_{}".format(cube_name),
+            "1",
             cube,
             mandatory_attributes=generate_mandatory_attributes(
                 [cube], model_id_attr=self.model_id_attr
@@ -225,27 +227,27 @@ class FieldTexture(BasePlugin):
             raise ValueError("Incorrect input. Cube should hold binary data only")
 
         # Create new cube name for _calculate_ratio method.
-        self.cube_name = find_threshold_coordinate(input_cube).name()
+        cube_name = find_threshold_coordinate(input_cube).name()
         # Extract threshold from input data to work with, taking into account floating
         # point comparisons.
         cube = input_cube.extract(
             iris.Constraint(
                 coord_values={
-                    self.cube_name: lambda cell: np.isclose(
+                    cube_name: lambda cell: np.isclose(
                         cell.point, self.diagnostic_threshold
                     )
                 }
             )
         )
         try:
-            cube.remove_coord(self.cube_name)
+            cube.remove_coord(cube_name)
         except AttributeError:
             msg = "Threshold {} is not present on coordinate with values {} {}"
             raise ValueError(
                 msg.format(
                     self.diagnostic_threshold,
-                    input_cube.coord(self.cube_name).points,
-                    input_cube.coord(self.cube_name).units,
+                    input_cube.coord(cube_name).points,
+                    input_cube.coord(cube_name).units,
                 )
             )
         ratios = iris.cube.CubeList()
@@ -256,7 +258,7 @@ class FieldTexture(BasePlugin):
             cslices = [cube]
 
         for cslice in cslices:
-            ratios.append(self._calculate_ratio(cslice, self.nbhood_radius))
+            ratios.append(self._calculate_ratio(cslice, cube_name, self.nbhood_radius))
 
         ratios = ratios.merge_cube()
         thresholded = BasicThreshold(self.diagnostic_threshold).process(ratios)
