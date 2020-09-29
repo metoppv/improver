@@ -48,8 +48,9 @@ def iris_nimrod_patcher():
     if hasattr(iris.fileformats.nimrod_load_rules, "DEFAULT_UNITS"):
         raise RuntimeError("FIXME: nimrod monkey patch is no longer needed")
     try:
+        # pylint: disable=import-error
         from iris_nimrod_patch import nimrod, nimrod_load_rules
-    except ImportError:
+    except ModuleNotFoundError:
         yield
         return
     else:
