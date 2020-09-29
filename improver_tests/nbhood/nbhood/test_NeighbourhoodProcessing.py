@@ -38,8 +38,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.nbhood.nbhood import NeighbourhoodProcessing as NBHood
-
-from .test_BaseNeighbourhoodProcessing import set_up_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
 class Test__init__(IrisTest):
@@ -89,7 +88,14 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up a cube."""
-        self.cube = set_up_cube(zero_point_indices=((0, 0, 2, 2),), num_grid_points=5)
+
+        data = np.ones((1, 5, 5), dtype=np.float32)
+        data[0, 2, 2] = 0
+        self.cube = set_up_probability_cube(
+            data,
+            thresholds=np.array([278], dtype=np.float32),
+            spatial_grid="equalarea",
+        )
 
     def test_weighted_mode_is_true(self):
         """Test that the circular neighbourhood processing is successful, if
@@ -97,13 +103,11 @@ class Test_process(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 0.91666667, 0.875, 0.91666667, 1.0],
-                        [1.0, 0.875, 0.83333333, 0.875, 1.0],
-                        [1.0, 0.91666667, 0.875, 0.91666667, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                    ]
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 0.91666667, 0.875, 0.91666667, 1.0],
+                    [1.0, 0.875, 0.83333333, 0.875, 1.0],
+                    [1.0, 0.91666667, 0.875, 0.91666667, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
                 ]
             ]
         )
@@ -119,13 +123,11 @@ class Test_process(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [1.0, 1.0, 0.92307692, 1.0, 1.0],
-                        [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
-                        [0.92307692, 0.92307692, 0.92307692, 0.92307692, 0.92307692],
-                        [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
-                        [1.0, 1.0, 0.92307692, 1.0, 1.0],
-                    ]
+                    [1.0, 1.0, 0.92307692, 1.0, 1.0],
+                    [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
+                    [0.92307692, 0.92307692, 0.92307692, 0.92307692, 0.92307692],
+                    [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
+                    [1.0, 1.0, 0.92307692, 1.0, 1.0],
                 ]
             ]
         )
@@ -140,13 +142,11 @@ class Test_process(IrisTest):
         expected = np.array(
             [
                 [
-                    [
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
-                        [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
-                        [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                    ]
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                    [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                    [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
                 ]
             ]
         )

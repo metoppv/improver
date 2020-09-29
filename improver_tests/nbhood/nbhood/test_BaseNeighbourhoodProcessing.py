@@ -32,6 +32,7 @@
 
 
 import unittest
+from datetime import datetime
 
 import iris
 import numpy as np
@@ -44,9 +45,10 @@ from improver.grids import ELLIPSOID, STANDARD_GRID_CCRS
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
 from improver.nbhood.nbhood import SquareNeighbourhood
-
-from ...calibration.ensemble_calibration.helper_functions import (
-    add_forecast_reference_time_and_forecast_period,
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_probability_cube,
+    set_up_variable_cube,
 )
 
 SINGLE_POINT_RANGE_3_CENTROID = np.array(
@@ -56,60 +58,6 @@ SINGLE_POINT_RANGE_3_CENTROID = np.array(
         [0.96, 0.936, 0.928, 0.936, 0.96],
         [0.968, 0.944, 0.936, 0.944, 0.968],
         [0.992, 0.968, 0.96, 0.968, 0.992],
-    ]
-)
-
-SINGLE_POINT_RANGE_X_6_Y_3_CENTROID = np.array(
-    [
-        [1.0, 1.0, 0.99799197, 0.99598394, 0.99799197, 1.0, 1.0],
-        [1.0, 0.98995984, 0.98393574, 0.98192771, 0.98393574, 0.98995984, 1.0],
-        [
-            0.98995984,
-            0.97991968,
-            0.97389558,
-            0.97188755,
-            0.97389558,
-            0.97991968,
-            0.98995984,
-        ],
-        [
-            0.98393574,
-            0.97389558,
-            0.96787149,
-            0.96586345,
-            0.96787149,
-            0.97389558,
-            0.98393574,
-        ],
-        [
-            0.98192771,
-            0.97188755,
-            0.96586345,
-            0.96385542,
-            0.96586345,
-            0.97188755,
-            0.98192771,
-        ],
-        [
-            0.98393574,
-            0.97389558,
-            0.96787149,
-            0.96586345,
-            0.96787149,
-            0.97389558,
-            0.98393574,
-        ],
-        [
-            0.98995984,
-            0.97991968,
-            0.97389558,
-            0.97188755,
-            0.97389558,
-            0.97991968,
-            0.98995984,
-        ],
-        [1.0, 0.98995984, 0.98393574, 0.98192771, 0.98393574, 0.98995984, 1.0],
-        [1.0, 1.0, 0.99799197, 0.99598394, 0.99799197, 1.0, 1.0],
     ]
 )
 
@@ -228,159 +176,6 @@ SINGLE_POINT_RANGE_5_CENTROID = np.array(
 )
 
 
-def set_up_cube(
-    zero_point_indices=((0, 0, 7, 7),),
-    num_time_points=1,
-    num_grid_points=16,
-    num_realization_points=1,
-):
-    """Set up a cube with equal intervals along the x and y axis."""
-
-    zero_point_indices = list(zero_point_indices)
-    for index, indices in enumerate(zero_point_indices):
-        if len(indices) == 3:
-            indices = (0,) + indices
-        zero_point_indices[index] = indices
-    zero_point_indices = tuple(zero_point_indices)
-
-    data = np.ones(
-        (num_realization_points, num_time_points, num_grid_points, num_grid_points),
-        dtype=np.float32,
-    )
-    for indices in zero_point_indices:
-        realization_index, time_index, lat_index, lon_index = indices
-        data[realization_index][time_index][lat_index][lon_index] = 0
-
-    cube = Cube(data, standard_name="precipitation_amount", units="kg m^-2")
-
-    cube.add_dim_coord(
-        DimCoord(range(num_realization_points), standard_name="realization"), 0
-    )
-    tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
-    time_points = [402192.5 + _ for _ in range(num_time_points)]
-    cube.add_dim_coord(DimCoord(time_points, standard_name="time", units=tunit), 1)
-
-    step_size = 2000
-    y_points = np.arange(0.0, step_size * num_grid_points, step_size, dtype=np.float32)
-    cube.add_dim_coord(
-        DimCoord(
-            y_points,
-            "projection_y_coordinate",
-            units="m",
-            coord_system=STANDARD_GRID_CCRS,
-        ),
-        2,
-    )
-
-    x_points = np.arange(
-        -50000.0, (step_size * num_grid_points) - 50000, step_size, dtype=np.float32
-    )
-    cube.add_dim_coord(
-        DimCoord(
-            x_points,
-            "projection_x_coordinate",
-            units="m",
-            coord_system=STANDARD_GRID_CCRS,
-        ),
-        3,
-    )
-    return cube
-
-
-def set_up_cube_with_no_realizations(
-    zero_point_indices=((0, 7, 7),), num_time_points=1, num_grid_points=16
-):
-    """Set up a cube with equal intervals along the x and y axis."""
-
-    zero_point_indices = list(zero_point_indices)
-    for index, indices in enumerate(zero_point_indices):
-        if len(indices) == 2:
-            indices = (0,) + indices
-        zero_point_indices[index] = indices
-    zero_point_indices = tuple(zero_point_indices)
-
-    data = np.ones((num_time_points, num_grid_points, num_grid_points))
-    for indices in zero_point_indices:
-        time_index, lat_index, lon_index = indices
-        data[time_index][lat_index][lon_index] = 0
-
-    cube = Cube(data, standard_name="precipitation_amount", units="kg m^-2")
-
-    tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
-    time_points = [402192.5 + _ for _ in range(num_time_points)]
-    cube.add_dim_coord(DimCoord(time_points, standard_name="time", units=tunit), 0)
-
-    step_size = 2000
-    y_points = np.arange(0, step_size * num_grid_points, step_size)
-    cube.add_dim_coord(
-        DimCoord(
-            y_points,
-            "projection_y_coordinate",
-            units="m",
-            coord_system=STANDARD_GRID_CCRS,
-        ),
-        1,
-    )
-
-    x_points = np.arange(-50000, (step_size * num_grid_points) - 50000, step_size)
-    cube.add_dim_coord(
-        DimCoord(
-            x_points,
-            "projection_x_coordinate",
-            units="m",
-            coord_system=STANDARD_GRID_CCRS,
-        ),
-        2,
-    )
-
-    return cube
-
-
-def set_up_cube_lat_long(
-    zero_point_indices=((0, 7, 7),), num_time_points=1, num_grid_points=16
-):
-    """Set up a lat-long coord cube."""
-    data = np.ones((num_time_points, num_grid_points, num_grid_points))
-    for time_index, lat_index, lon_index in zero_point_indices:
-        data[time_index][lat_index][lon_index] = 0
-    cube = Cube(data, standard_name="precipitation_amount", units="kg m^-2")
-    tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
-    time_points = [402192.5 + _ for _ in range(num_time_points)]
-    cube.add_aux_coord(AuxCoord(time_points, "time", units=tunit), 0)
-    cube.add_dim_coord(
-        DimCoord(
-            np.linspace(0.0, float(num_grid_points - 1), num_grid_points),
-            "latitude",
-            units="degrees",
-            coord_system=ELLIPSOID,
-        ),
-        1,
-    )
-    cube.add_dim_coord(
-        DimCoord(
-            np.linspace(0.0, float(num_grid_points - 1), num_grid_points),
-            "longitude",
-            units="degrees",
-            coord_system=ELLIPSOID,
-        ),
-        2,
-    )
-    return cube
-
-
-class Test_set_up_cube(IrisTest):
-
-    """Test the set_up_cube method in this module"""
-
-    def test_regrid(self):
-        """
-        Test that set_up_cube returns a cube that can be regridded
-        as this proves that it has a coordinate reference systems.
-        """
-        result = set_up_cube().regrid(set_up_cube_lat_long(), iris.analysis.Linear())
-        self.assertIsInstance(result, Cube)
-
-
 class Test__init__(IrisTest):
 
     """Test the __init__ method of NeighbourhoodProcessing"""
@@ -470,7 +265,18 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up cube."""
-        self.cube = set_up_cube()
+        data = np.ones((16, 16), dtype=np.float32)
+        data[7, 7] = 0
+        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+
+        time_points = [
+            datetime(2017, 11, 10, 2),
+            datetime(2017, 11, 10, 3),
+            datetime(2017, 11, 10, 4),
+        ]
+        self.multi_time_cube = add_coordinate(
+            self.cube, coord_points=time_points, coord_name="time", is_datetime="true",
+        )
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -491,100 +297,50 @@ class Test_process(IrisTest):
 
     def test_single_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
-        self.cube.data[0][0][6][7] = np.NAN
+        self.cube.data[6][7] = np.NAN
         msg = "NaN detected in input cube data"
         with self.assertRaisesRegex(ValueError, msg):
             neighbourhood_method = CircularNeighbourhood
             NBHood(neighbourhood_method, self.RADIUS)(self.cube)
 
-    def test_multiple_realizations(self):
-        """Test when the cube has a realization dimension."""
-        cube = set_up_cube(num_realization_points=4)
+    def test_multiple_thresholds(self):
+        """Test when the cube has a threshold dimension."""
+
+        data = np.ones((4, 16, 16), dtype=np.float32)
+        data[0, 7, 7] = 0
+        cube = set_up_probability_cube(
+            data,
+            thresholds=np.array([278, 277, 276, 275], dtype=np.float32),
+            spatial_grid="equalarea",
+        )
         radii = 5600
         neighbourhood_method = CircularNeighbourhood()
         result = NBHood(neighbourhood_method, radii)(cube)
         self.assertIsInstance(result, Cube)
-        expected = np.ones([4, 1, 16, 16])
-        expected[0, 0, 6:9, 6:9] = (
-            [0.91666667, 0.875, 0.91666667],
-            [0.875, 0.83333333, 0.875],
-            [0.91666667, 0.875, 0.91666667],
+        expected = np.ones([4, 16, 16], dtype=np.float32)
+        expected[0, 6:9, 6:9] = (
+            [0.9166666, 0.875, 0.9166666],
+            [0.875, 0.8333333, 0.875],
+            [0.9166666, 0.875, 0.9166666],
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_no_realizations(self):
-        """Test when the array has no realization coord."""
-        cube = set_up_cube_with_no_realizations()
-        radii = 5600
-        neighbourhood_method = CircularNeighbourhood()
-        result = NBHood(neighbourhood_method, radii)(cube)
-        self.assertIsInstance(result, Cube)
-        expected = np.ones([1, 16, 16])
+    def test_radii_varying_with_lead_time_check_data(self):
+        """
+        Test that the expected data is produced when the radius
+        varies with lead time and that a cube is returned.
+        """
+
+        expected = np.ones_like(self.multi_time_cube.data)
         expected[0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
             [0.91666667, 0.875, 0.91666667],
         )
-        self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_radii_varying_with_lead_time(self):
-        """
-        Test that a cube is returned when the radius varies with lead time.
-        """
-        cube = set_up_cube(num_time_points=3)
-        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
-        time_points = cube.coord("time").points
-        fp_points = [2, 3, 4]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points
-        )
-        radii = [10000, 20000, 30000]
-        lead_times = [2, 3, 4]
-        neighbourhood_method = CircularNeighbourhood()
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
-        result = plugin(cube)
-        self.assertIsInstance(result, Cube)
-        self.assertEqual(cube.coord("forecast_period").units, "hours")
+        expected[1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
 
-    def test_radii_varying_with_lead_time_fp_seconds(self):
-        """
-        Test that a cube fp coord is unchanged by the lead time calculation.
-        """
-        cube = set_up_cube(num_time_points=3)
-        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
-        time_points = cube.coord("time").points
-        fp_points = [2, 3, 4]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points
-        )
-        cube.coord("forecast_period").convert_units("seconds")
-        radii = [10000, 20000, 30000]
-        lead_times = [2, 3, 4]
-        neighbourhood_method = CircularNeighbourhood()
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
-        result = plugin(cube)
-        self.assertIsInstance(result, Cube)
-        self.assertEqual(cube.coord("forecast_period").units, "seconds")
-
-    def test_radii_varying_with_lead_time_check_data(self):
-        """
-        Test that the expected data is produced when the radius
-        varies with lead time.
-        """
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 7, 7), (0, 1, 7, 7,), (0, 2, 7, 7)),
-            num_time_points=3,
-        )
-        expected = np.ones_like(cube.data)
-        expected[0, 0, 6:9, 6:9] = (
-            [0.91666667, 0.875, 0.91666667],
-            [0.875, 0.83333333, 0.875],
-            [0.91666667, 0.875, 0.91666667],
-        )
-
-        expected[0, 1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
-
-        expected[0, 2, 4:11, 4:11] = (
+        expected[2, 4:11, 4:11] = (
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
             [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
             [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
@@ -594,34 +350,40 @@ class Test_process(IrisTest):
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
         )
 
-        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
-        time_points = cube.coord("time").points
-        fp_points = [2, 3, 4]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points
-        )
         radii = [5600, 7600, 9500]
         lead_times = [2, 3, 4]
         neighbourhood_method = CircularNeighbourhood()
         plugin = NBHood(neighbourhood_method, radii, lead_times)
-        result = plugin(cube)
+        result = plugin(self.multi_time_cube)
         self.assertArrayAlmostEqual(result.data, expected)
+        self.assertIsInstance(result, Cube)
 
-    def test_radii_varying_with_lead_time_multiple_realizations(self):
+    def test_radii_varying_with_lead_time_multiple_thresholds(self):
         """Test that a cube is returned for the following conditions:
         1. The radius varies wtih lead time.
-        2. The cube contains multiple realizations."""
-        cube = set_up_cube(
-            zero_point_indices=((1, 0, 7, 7), (1, 1, 7, 7), (1, 2, 7, 7)),
-            num_time_points=3,
-            num_realization_points=2,
+        2. The cube contains multiple thresholds."""
+
+        data = np.ones((2, 16, 16), dtype=np.float32)
+        data[1, 7, 7] = 0
+        cube = set_up_probability_cube(
+            data, thresholds=[278, 279], spatial_grid="equalarea",
         )
-        time_points = cube.coord("time").points
+
+        time_points = [
+            datetime(2017, 11, 10, 2),
+            datetime(2017, 11, 10, 3),
+            datetime(2017, 11, 10, 4),
+        ]
+        cube = add_coordinate(
+            cube,
+            coord_points=time_points,
+            coord_name="time",
+            is_datetime="true",
+            order=[1, 0, 2, 3],
+        )
+
         lead_times = [2, 3, 4]
         radii = [5600, 7600, 9500]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=lead_times
-        )
         expected = np.ones_like(cube.data)
         expected[1, 0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
@@ -651,18 +413,12 @@ class Test_process(IrisTest):
         2. Linear interpolation is required to create values for the radii
         which are required but were not specified within the 'radii'
         argument."""
-        cube = set_up_cube(num_time_points=3)
-        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
-        time_points = cube.coord("time").points
-        fp_points = [2, 3, 4]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points
-        )
+
         radii = [10000, 30000]
         lead_times = [2, 4]
         neighbourhood_method = CircularNeighbourhood()
         plugin = NBHood(neighbourhood_method, radii, lead_times)
-        result = plugin(cube)
+        result = plugin(self.multi_time_cube)
         self.assertIsInstance(result, Cube)
 
     def test_radii_varying_with_lead_time_with_interpolation_check_data(self):
@@ -672,20 +428,17 @@ class Test_process(IrisTest):
         2. Linear interpolation is required to create values for the radii
         which are required but were not specified within the 'radii'
         argument."""
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 7, 7), (0, 1, 7, 7,), (0, 2, 7, 7)),
-            num_time_points=3,
-        )
-        expected = np.ones_like(cube.data)
-        expected[0, 0, 6:9, 6:9] = (
+
+        expected = np.ones_like(self.multi_time_cube.data)
+        expected[0, 6:9, 6:9] = (
             [0.91666667, 0.875, 0.91666667],
             [0.875, 0.83333333, 0.875],
             [0.91666667, 0.875, 0.91666667],
         )
 
-        expected[0, 1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
+        expected[1, 5:10, 5:10] = SINGLE_POINT_RANGE_3_CENTROID
 
-        expected[0, 2, 4:11, 4:11] = (
+        expected[2, 4:11, 4:11] = (
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
             [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
             [0.985, 0.9725, 0.965, 0.9625, 0.965, 0.9725, 0.985],
@@ -695,17 +448,12 @@ class Test_process(IrisTest):
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
         )
 
-        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
-        time_points = cube.coord("time").points
         fp_points = [2, 3, 4]
-        cube = add_forecast_reference_time_and_forecast_period(
-            cube, time_point=time_points, fp_point=fp_points
-        )
         radii = [5600, 9500]
         lead_times = [2, 4]
         neighbourhood_method = CircularNeighbourhood()
         plugin = NBHood(neighbourhood_method, radii, lead_times)
-        result = plugin(cube)
+        result = plugin(self.multi_time_cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_use_mask_cube_occurrences_not_masked(self):
@@ -721,20 +469,13 @@ class Test_process(IrisTest):
                 [1.0, 1.0, 1.0, 1.0, 1.0],
             ]
         )
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5, num_time_points=1
-        )
-        cube = iris.util.squeeze(cube)
-        mask_cube = cube.copy()
-        mask_cube.data = np.array(
-            [
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-            ]
-        )
+
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+
+        mask_cube = cube.copy(data=np.ones((5, 5), dtype=np.float32))
+
         radius = 2000
         neighbourhood_method = SquareNeighbourhood()
         result = NBHood(neighbourhood_method, radius)(cube, mask_cube)
@@ -744,33 +485,18 @@ class Test_process(IrisTest):
         """Test that the plugin returns an iris.cube.Cube with the correct
         data array if a mask cube is used and the mask cube does mask
         out the occurrences."""
-        expected = np.array(
-            [
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 0.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-            ]
-        )
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5, num_time_points=1
-        )
-        cube = iris.util.squeeze(cube)
+
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+
+        expected_data = data
         mask_cube = cube.copy()
-        mask_cube.data = np.array(
-            [
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 0.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-            ]
-        )
+
         radius = 2000
         neighbourhood_method = SquareNeighbourhood()
         result = NBHood(neighbourhood_method, radius)(cube, mask_cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_use_mask_cube_occurrences_masked_irregular(self):
         """Test that the plugin returns an iris.cube.Cube with the correct
@@ -785,10 +511,11 @@ class Test_process(IrisTest):
                 [1.000000, 0.000000, 1.000000, 0.000000, 0.000000],
             ]
         )
-        cube = set_up_cube(
-            zero_point_indices=((0, 0, 2, 2),), num_grid_points=5, num_time_points=1
-        )
-        cube = iris.util.squeeze(cube)
+
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+
         mask_cube = cube.copy()
         mask_cube.data = np.array(
             [
