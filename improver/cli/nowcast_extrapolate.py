@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to extrapolate input data given advection velocity fields."""
 
-
 from improver import cli
 
 # Creates the value_converter that clize needs.
@@ -78,15 +77,15 @@ def process(
         iris.cube.CubeList:
             New cubes with updated time and extrapolated data.
     """
-    from improver.nowcasting.forecasting import CreateExtrapolationForecast
+    from improver.nowcasting.pysteps_advection import PystepsExtrapolate
     from improver.utilities.cube_manipulation import MergeCubes
 
     u_cube, v_cube = advection_velocity
 
     # extrapolate input data to required lead times
-    plugin = CreateExtrapolationForecast(
+    forecast_plugin = PystepsExtrapolate(lead_time_interval, max_lead_time)
+    forecast_cubes = forecast_plugin(
         cube, u_cube, v_cube, orographic_enhancement, attributes_dict=attributes_config
     )
-    forecast_cubes = plugin(lead_time_interval, max_lead_time)
 
     return MergeCubes()(forecast_cubes)

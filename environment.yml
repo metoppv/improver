@@ -18,6 +18,7 @@ dependencies:
   - astroid=2.3.3
   - filelock
   - mock
+  - pysteps
   - isort=4.3.21
   - black=19.10b0
   - pip

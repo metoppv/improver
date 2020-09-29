@@ -43,11 +43,12 @@ from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_generate_optical_flow_components(IrisTest):
-    """Tests for the generate_optical_flow_components method"""
+    """Tests for the generate_optical_flow_components function. Optical flow
+    velocity values are tested within the Test_optical_flow module; this class
+    tests timestamps only."""
 
     def setUp(self):
-        """Set up test cubes.  Optical flow velocity values are tested within
-        the Test_optical_flow module; this class tests timestamps only."""
+        """Set up test input cubes"""
         self.iterations = 20
         self.ofc_box_size = 10
 

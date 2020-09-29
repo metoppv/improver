@@ -28,9 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the nowcast-optical-flow CLI
-"""
+"""Tests for the nowcast-optical-flow-from-winds CLI"""
 
 import pytest
 
@@ -40,39 +38,56 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
-RADAR_REGRID = "radar_rainrate_composite_UK_regridded"
-RADAR_REMASK = "radar_rainrate_remasked_composite_2km_UK"
-P_RATE = "lwe_precipitation_rate"
-OE = "orographic_enhancement_standard_resolution"
+RADAR_EXT = "u1096_ng_radar_precip_ratecomposite_2km"
 
 
-@pytest.mark.slow
 def test_basic(tmp_path):
-    """Test basic optical flow nowcast"""
-    kgo_dir = acc.kgo_root() / "nowcast-optical-flow/basic"
-    kgo_path = kgo_dir / "kgo.nc"
+    """Test optical flow calculation by perturbing model winds"""
+    kgo_dir = acc.kgo_root() / "nowcast-optical-flow-from-winds"
+    kgo_path = kgo_dir / "kgo_15min.nc"
     input_paths = [
-        kgo_dir / f"20181103{hhmm}_{RADAR_REGRID}.nc"
-        for hhmm in ("1530", "1545", "1600")
+        kgo_dir / f"20190101T{hhmm}Z-{RADAR_EXT}.nc" for hhmm in ("0645", "0700")
     ]
-    oe_path = kgo_dir / f"20181103T1600Z-PT0003H00M-{OE}.nc"
+    flow_path = (
+        kgo_dir / "20190101T0700Z-PT0000H00M-wind_components_on_pressure_levels.nc"
+    )
+    oe_path = kgo_dir / "20190101T0700Z-PT0000H00M-orographic_enhancement.nc"
     output_path = tmp_path / "output.nc"
-    args = [oe_path, *input_paths, "--output", output_path]
+    args = [flow_path, oe_path, *input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
-def test_remasked(tmp_path):
-    """Test remasked optical flow"""
-    kgo_dir = acc.kgo_root() / "nowcast-optical-flow/remasked"
-    kgo_path = kgo_dir / "kgo.nc"
+def test_longer_interval(tmp_path):
+    """Test optical flow calculation by perturbing model winds over a 30 minute
+    time interval"""
+    kgo_dir = acc.kgo_root() / "nowcast-optical-flow-from-winds"
+    kgo_path = kgo_dir / "kgo_30min.nc"
     input_paths = [
-        kgo_dir / f"20181127{hhmm}_{RADAR_REMASK}.nc"
-        for hhmm in ("1330", "1345", "1400")
+        kgo_dir / f"20190101T{hhmm}Z-{RADAR_EXT}.nc" for hhmm in ("0630", "0700")
     ]
-    oe_path = kgo_dir / f"20181127T1400Z-PT0004H00M-{OE}.nc"
+    flow_path = (
+        kgo_dir / "20190101T0700Z-PT0000H00M-wind_components_on_pressure_levels.nc"
+    )
+    oe_path = kgo_dir / "20190101T0700Z-PT0000H00M-orographic_enhancement.nc"
     output_path = tmp_path / "output.nc"
-    args = [oe_path, *input_paths, "--output", output_path]
+    args = [flow_path, oe_path, *input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_too_many_inputs(tmp_path):
+    """Test an error is thrown if too many radar cubes are provided"""
+    kgo_dir = acc.kgo_root() / "nowcast-optical-flow-from-winds"
+    input_paths = [
+        kgo_dir / f"20190101T{hhmm}Z-{RADAR_EXT}.nc"
+        for hhmm in ("0630", "0645", "0700")
+    ]
+    flow_path = (
+        kgo_dir / "20190101T0700Z-PT0000H00M-wind_components_on_pressure_levels.nc"
+    )
+    oe_path = kgo_dir / "20190101T0700Z-PT0000H00M-orographic_enhancement.nc"
+    output_path = tmp_path / "output.nc"
+    args = [flow_path, oe_path, *input_paths, "--output", output_path]
+    with pytest.raises(ValueError, match="Expected 2 radar cubes - got 3"):
+        run_cli(args)

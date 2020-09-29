@@ -48,7 +48,6 @@ def test_optical_flow_inputs(tmp_path):
     input_path = kgo_dir / "201811031600_radar_rainrate_composite_UK_regridded.nc"
     uv_path = kgo_dir / "optical_flow_uv.nc"
     oe_path = kgo_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
-
     output_path = tmp_path / "output.nc"
 
     args = [
@@ -73,7 +72,6 @@ def test_wind_inputs(tmp_path):
     input_path = kgo_dir / "201811031600_radar_rainrate_composite_UK_regridded.nc"
     uv_path = kgo_dir / "wind_uv.nc"
     oe_path = kgo_dir / "20181103T1600Z-PT0003H00M-orographic_enhancement.nc"
-
     output_path = tmp_path / "output.nc"
 
     args = [

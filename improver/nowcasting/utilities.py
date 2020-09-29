@@ -262,6 +262,12 @@ class ApplyOrographicEnhancement(BasePlugin):
                 Cube containing the orographic enhancement field at the
                 required time.
 
+        Raises:
+            ValueError: If required time step is not available within tolerance
+                (in theory.  In practise, the tolerance is left as the default
+                None, which matches ANY available field regardless of time
+                offset.  So this error will never be thrown.)
+
         """
         (time_point,) = iris_time_to_datetime(precip_cube.coord("time").copy())
         oe_cube_slice = extract_nearest_time_point(

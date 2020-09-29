@@ -33,11 +33,16 @@
 import unittest
 
 import iris
+import numpy as np
 from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
-from improver.nowcasting.optical_flow import check_input_coords
+from improver.nowcasting.optical_flow import (
+    _perturb_background_flow,
+    check_input_coords,
+)
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 from ..forecasting.test_AdvectField import set_up_xy_velocity_cube
 
@@ -80,6 +85,90 @@ class Test_check_input_coords(IrisTest):
         msg = "Input cube has no time coordinate"
         with self.assertRaisesRegexp(InvalidCubeError, msg):
             check_input_coords(cube, require_time=True)
+
+
+class Test__perturb_background_flow(IrisTest):
+    """Test for the _perturb_background_flow private utility"""
+
+    def setUp(self):
+        """Set up input cubes"""
+        wind_u = set_up_variable_cube(
+            np.full((10, 10), 2.1, dtype=np.float32),
+            name="grid_eastward_wind",
+            units="m s-1",
+            spatial_grid="equalarea",
+        )
+        wind_v = wind_u.copy(data=np.full((10, 10), 2.4, dtype=np.float32))
+        wind_v.rename("grid_northward_wind")
+        self.background_flow = iris.cube.CubeList([wind_u, wind_v])
+
+        flow_data = 0.1 * np.array(
+            [
+                [0, 1, 1, 1, 0],
+                [1, 2, 3, 2, 1],
+                [1, 3, 4, 4, 2],
+                [1, 2, 3, 3, 1],
+                [0, 1, 1, 1, 0],
+            ],
+            dtype=np.float32,
+        )
+
+        padded_flow_data = np.zeros((10, 10), dtype=np.float32)
+        padded_flow_data[3:8, 3:8] = flow_data
+
+        flow_x = set_up_variable_cube(
+            padded_flow_data,
+            name="precipitation_advection_x_velocity",
+            units="m s-1",
+            spatial_grid="equalarea",
+        )
+        flow_y = flow_x.copy()
+        flow_y.rename("precipitation_advection_y_velocity")
+        self.perturbations = iris.cube.CubeList([flow_x, flow_y])
+
+        data_with_nans = np.full((10, 10), np.nan, dtype=np.float32)
+        data_with_nans[3:8, 3:8] = flow_data
+        flow_xm = flow_x.copy(data=data_with_nans)
+        flow_ym = flow_y.copy(data=data_with_nans)
+        self.perturbations_with_nans = iris.cube.CubeList([flow_xm, flow_ym])
+
+        self.expected_u = wind_u.data + flow_x.data
+        self.expected_v = wind_v.data + flow_y.data
+
+    def test_basic(self):
+        """Test function returns cubes with expected names"""
+        expected_names = [
+            "precipitation_advection_x_velocity",
+            "precipitation_advection_y_velocity",
+        ]
+        result = _perturb_background_flow(self.background_flow, self.perturbations)
+        for i, cube in enumerate(result):
+            self.assertIsInstance(cube, iris.cube.Cube)
+            self.assertEqual(cube.name(), expected_names[i])
+
+    def test_values(self):
+        """Test function returns expected values"""
+        result = _perturb_background_flow(self.background_flow, self.perturbations)
+        self.assertArrayAlmostEqual(result[0].data, self.expected_u)
+        self.assertArrayAlmostEqual(result[1].data, self.expected_v)
+
+    def test_units(self):
+        """Test values are returned in units of perturbations"""
+        for cube in self.background_flow:
+            cube.convert_units("knots")
+        result = _perturb_background_flow(self.background_flow, self.perturbations)
+        for cube in result:
+            self.assertEqual(cube.units, "m s-1")
+        self.assertArrayAlmostEqual(result[0].data, self.expected_u)
+        self.assertArrayAlmostEqual(result[1].data, self.expected_v)
+
+    def test_nans_values(self):
+        """Test correct values are returned when an input contains nan values"""
+        result = _perturb_background_flow(
+            self.background_flow, self.perturbations_with_nans
+        )
+        self.assertArrayAlmostEqual(result[0].data, self.expected_u)
+        self.assertArrayAlmostEqual(result[1].data, self.expected_v)
 
 
 if __name__ == "__main__":

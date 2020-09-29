@@ -44,6 +44,8 @@ from iris.exceptions import (
 from scipy import ndimage, signal
 
 from improver import BasePlugin
+from improver.nowcasting.pysteps_advection import PystepsExtrapolate
+from improver.nowcasting.utilities import ApplyOrographicEnhancement
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import collapsed
 from improver.utilities.spatial import (
@@ -105,6 +107,70 @@ def generate_optical_flow_components(
     return u_mean, v_mean
 
 
+def generate_advection_velocities_from_winds(
+    cubes, background_flow, orographic_enhancement
+):
+    """Generate advection velocities as perturbations from a non-zero background
+    flow
+
+    Args:
+        cubes (iris.cube.CubeList):
+            Two rainfall observations separated by a time difference
+        background_flow (iris.cube.CubeList):
+            u- and v-components of a non-zero background flow field
+        orographic_enhancement (iris.cube.Cube):
+            Field containing orographic enhancement data valid for both
+            input cube times
+
+        Returns:
+        iris.cube.CubeList:
+            u- and v- advection velocities
+    """
+    cubes.sort(key=lambda x: x.coord("time").points[0])
+
+    lead_time_seconds = (
+        cubes[1].coord("time").cell(0).point - cubes[0].coord("time").cell(0).point
+    ).total_seconds()
+    lead_time_minutes = int(lead_time_seconds / 60)
+
+    # advect earlier cube forward to match time of later cube, using steering flow
+    advected_cube = PystepsExtrapolate(lead_time_minutes, lead_time_minutes)(
+        cubes[0], *background_flow, orographic_enhancement
+    )[-1]
+
+    # calculate velocity perturbations required to match forecast to observation
+    cube_list = ApplyOrographicEnhancement("subtract")(
+        [advected_cube, cubes[1]], orographic_enhancement
+    )
+    perturbations = OpticalFlow(data_smoothing_radius_km=8.0, iterations=20)(
+        *cube_list, boxsize=18
+    )
+
+    # sum perturbations and original flow field to get advection velocities
+    total_advection = _perturb_background_flow(background_flow, perturbations)
+    return total_advection
+
+
+def _perturb_background_flow(background, adjustment):
+    """Add a background flow to a flow adjustment field.  The returned cubelist
+    has the units of the adjustment field.
+
+    Args:
+        background (list of iris.cube.Cube)
+        adjustment (list of iris.cube.Cube)
+
+    Returns:
+        iris.cube.CubeList
+    """
+    for flow, adj in zip(background, adjustment):
+        flow.convert_units(adj.units)
+        perturbed_field = np.where(
+            np.isfinite(adj.data), adj.data + flow.data, flow.data
+        )
+        adj.data = perturbed_field.astype(adj.dtype)
+    return iris.cube.CubeList(adjustment)
+
+
 def check_input_coords(cube, require_time=False):
     """
     Checks an input cube has precisely two non-scalar dimension coordinates
@@ -156,7 +222,9 @@ class OpticalFlow(BasePlugin):
         Met Office Document.
     """
 
-    def __init__(self, data_smoothing_method="box", iterations=100):
+    def __init__(
+        self, data_smoothing_method="box", data_smoothing_radius_km=14.0, iterations=100
+    ):
         """
         Initialise the class with smoothing parameters for estimating gridded
         u- and v- velocities via optical flow.
@@ -166,9 +234,15 @@ class OpticalFlow(BasePlugin):
                 Smoothing method to be used on input fields before estimating
                 partial derivatives.  Can be square 'box' (as used in STEPS) or
                 circular 'kernel' (used in post-calculation smoothing).
+            data_smoothing_radius (float):
+                The radius, in km, of the kernel used to smooth the input data fields
+                before calculating optical flow.  14 km is suitable for precipitation
+                rate data separated by a 15 minute time step.  If the time step is
+                greater than 15 minutes, this radius is increased by the "process"
+                method.
             iterations (int):
                 Number of iterations to perform in post-calculation smoothing.
-                The value for good convergence is 20 (Bowler et al. 2004).
+                The minimum value for good convergence is 20 (Bowler et al. 2004).
 
         Raises:
             ValueError:
@@ -180,10 +254,7 @@ class OpticalFlow(BasePlugin):
                 "iterations".format(iterations)
             )
 
-        # Set parameters for input data smoothing.  14 km is suitable for input
-        # fields separated by a 15 minute time step - this is updated if
-        # necessary by the "process" function.
-        self.data_smoothing_radius_km = 14.0
+        self.data_smoothing_radius_km = data_smoothing_radius_km
         self.data_smoothing_method = data_smoothing_method
 
         # Set parameters for velocity calculation and "smart smoothing"

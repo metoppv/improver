@@ -29,6 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
+DEPRECATED MODULE. This module has been replaced by pysteps_advection.py
+and is no longer called by any CLI.
 This module defines plugins used to create nowcast extrapolation forecasts.
 """
 import datetime

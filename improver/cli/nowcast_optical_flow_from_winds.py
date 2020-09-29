@@ -29,49 +29,54 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate optical flow advection velocities with option to
-extrapolate."""
+"""Script to calculate optical flow components as perturbations from model
+steering flow"""
 
 from improver import cli
+
+# Creates the value_converter that clize needs.
+inputflow = cli.create_constrained_inputcubelist_converter(
+    "grid_eastward_wind", "grid_northward_wind",
+)
 
 
 @cli.clizefy
 @cli.with_output
 def process(
-    orographic_enhancement: cli.inputcube, *cubes: cli.inputcube,
+    steering_flow: inputflow,
+    orographic_enhancement: cli.inputcube,
+    *cubes: cli.inputcube,
 ):
-    """Calculate optical flow components from input fields.
+    """Calculate optical flow components as perturbations from the model
+    steering flow.  Advects the older of the two input radar observations to
+    the validity time of the newer observation, then calculates the velocity
+    required to adjust this forecast to match the observation.  Sums the
+    steering flow and perturbation values to give advection components for
+    extrapolation nowcasting.
 
     Args:
+        steering_flow (iris.cube.CubeList):
+            Model steering flow as u- and v- wind components.  These must
+            have names: "grid_eastward_wind" and "grid_northward_wind".
         orographic_enhancement (iris.cube.Cube):
             Cube containing the orographic enhancement fields.
-        cubes (iris.cube.CubeList):
-            Cubes from which to calculate optical flow velocities.
-            These three cubes will be sorted by their time coords.
+        cubes (tuple of iris.cube.Cube):
+            Two radar precipitation observation cubes.
 
     Returns:
         iris.cube.CubeList:
-            List of the umean and vmean cubes.
-
+            List of u- and v- advection velocities
     """
     from iris.cube import CubeList
-
-    from improver.nowcasting.optical_flow import generate_optical_flow_components
-    from improver.nowcasting.utilities import ApplyOrographicEnhancement
-
-    original_cube_list = CubeList(cubes)
-    # order input files by validity time
-    original_cube_list.sort(key=lambda x: x.coord("time").points[0])
-
-    # subtract orographic enhancement
-    cube_list = ApplyOrographicEnhancement("subtract")(
-        original_cube_list, orographic_enhancement
+    from improver.nowcasting.optical_flow import (
+        generate_advection_velocities_from_winds,
     )
 
-    # calculate optical flow velocities from T-1 to T and T-2 to T-1, and
-    # average to produce the velocities for use in advection
-    u_mean, v_mean = generate_optical_flow_components(
-        cube_list, ofc_box_size=30, smart_smoothing_iterations=100
+    if len(cubes) != 2:
+        raise ValueError("Expected 2 radar cubes - got {}".format(len(cubes)))
+
+    advection_velocities = generate_advection_velocities_from_winds(
+        CubeList(cubes), steering_flow, orographic_enhancement
     )
 
-    return CubeList([u_mean, v_mean])
+    return advection_velocities

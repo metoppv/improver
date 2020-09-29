@@ -48,9 +48,8 @@ def test_basic(tmp_path):
     """Test basic wind speed/direction to u/v vector conversion"""
     kgo_dir = acc.kgo_root() / "resolve-wind-components/basic"
     kgo_path = kgo_dir / "kgo.nc"
-    input_dir = acc.kgo_root() / "nowcast-extrapolate/model_winds"
-    wspd_path = input_dir / f"20181103T1600Z-PT0001H00M-{WSPD}.nc"
-    wdir_path = input_dir / f"20181103T1600Z-PT0001H00M-{WDIR}.nc"
+    wspd_path = kgo_dir / f"20181103T1600Z-PT0001H00M-{WSPD}.nc"
+    wdir_path = kgo_dir / f"20181103T1600Z-PT0001H00M-{WDIR}.nc"
     output_path = tmp_path / "output.nc"
     args = [wspd_path, wdir_path, "--output", output_path]
     run_cli(args)
