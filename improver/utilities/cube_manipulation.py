@@ -211,7 +211,7 @@ class MergeCubes(BasePlugin):
                 raise ValueError(msg)
 
     def process(
-        self, cubes_in, check_time_bounds_ranges=False, slice_over_realization=False
+        self, cubes_in, check_time_bounds_ranges=False, slice_over_realization=False, copy=True,
     ):
         """
         Function to merge cubes, accounting for differences in attributes,
@@ -237,6 +237,9 @@ class MergeCubes(BasePlugin):
                 Options to combine cubes with different realization dimensions.
                 These cannot always be concatenated directly as this can create a
                 non-monotonic realization coordinate.
+            copy (bool):
+                If True, this will copy the cubes, thus not having any impact on
+                the original objects.
 
         Returns:
             iris.cube.Cube:
@@ -253,14 +256,19 @@ class MergeCubes(BasePlugin):
                 self._check_time_bounds_ranges(cubes_in[0])
             return cubes_in[0]
 
+        if copy:
+            cube_return = lambda cube: cube.copy()
+        else:
+            cube_return = lambda cube: cube
+
         # create copies of input cubes so as not to modify in place
         cubelist = iris.cube.CubeList([])
         for cube in cubes_in:
             if slice_over_realization:
                 for real_slice in cube.slices_over("realization"):
-                    cubelist.append(real_slice.copy())
+                    cubelist.append(cube_return(real_slice))
             else:
-                cubelist.append(cube.copy())
+                cubelist.append(cube_return(cube))
 
         # equalise cube attributes, cell methods and coordinate names
         equalise_cube_attributes(cubelist, silent=self.silent_attributes)
