@@ -211,7 +211,11 @@ class MergeCubes(BasePlugin):
                 raise ValueError(msg)
 
     def process(
-        self, cubes_in, check_time_bounds_ranges=False, slice_over_realization=False, copy=True,
+        self,
+        cubes_in,
+        check_time_bounds_ranges=False,
+        slice_over_realization=False,
+        copy=True,
     ):
         """
         Function to merge cubes, accounting for differences in attributes,
