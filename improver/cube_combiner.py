@@ -292,8 +292,8 @@ class CubeCombiner(BasePlugin):
 
             # Rename the threshold coordinate to match the name of the diagnostic
             # that results from the combine operation.
-            result.coord(var_name='threshold').rename(new_diagnostic_name)
-            result.coord(new_diagnostic_name).var_name = 'threshold'
+            result.coord(var_name="threshold").rename(new_diagnostic_name)
+            result.coord(new_diagnostic_name).var_name = "threshold"
 
             new_diagnostic_name = probabilistic_name.replace(
                 diagnostic_name, new_diagnostic_name

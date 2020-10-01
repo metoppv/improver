@@ -274,7 +274,7 @@ class Test_process(CombinerTest):
         )
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
-        self.assertEqual(result.coord(var_name='threshold').name(), "new_cube_name")
+        self.assertEqual(result.coord(var_name="threshold").name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, self.cube4.data)
         self.assertCubeListEqual(input_copy, cubelist)
 
