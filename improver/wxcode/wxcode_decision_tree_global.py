@@ -90,10 +90,9 @@ def wxcode_decision_tree_global():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_cloud_area_fraction_above_threshold"],
+            "diagnostic_fields": ["probability_of_cloud_area_fraction_above_threshold"],
             "diagnostic_thresholds": [(0.8125, 1)],
-            "diagnostic_conditions": ["above"]
+            "diagnostic_conditions": ["above"],
         },
         "heavy_precipitation_convective_ratio": {
             "succeed": "heavy_sleet_shower",
@@ -103,7 +102,7 @@ def wxcode_decision_tree_global():
             "condition_combination": "",
             "diagnostic_fields": ["probability_of_convective_ratio_above_threshold"],
             "diagnostic_thresholds": [(0.8, 1)],
-            "diagnostic_conditions": ["above"]
+            "diagnostic_conditions": ["above"],
         },
         "heavy_sleet_continuous": {
             "succeed": 18,
@@ -207,10 +206,9 @@ def wxcode_decision_tree_global():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_cloud_area_fraction_above_threshold"],
+            "diagnostic_fields": ["probability_of_cloud_area_fraction_above_threshold"],
             "diagnostic_thresholds": [(0.8125, 1)],
-            "diagnostic_conditions": ["above"]
+            "diagnostic_conditions": ["above"],
         },
         "light_precipitation_convective_ratio": {
             "succeed": "light_sleet_shower",
@@ -220,7 +218,7 @@ def wxcode_decision_tree_global():
             "condition_combination": "",
             "diagnostic_fields": ["probability_of_convective_ratio_above_threshold"],
             "diagnostic_thresholds": [(0.8, 1)],
-            "diagnostic_conditions": ["above"]
+            "diagnostic_conditions": ["above"],
         },
         "light_sleet_continuous": {
             "succeed": 18,
