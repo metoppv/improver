@@ -92,17 +92,17 @@ def wxcode_decision_tree_global():
             "condition_combination": "",
             "diagnostic_fields": [
                 "probability_of_cloud_area_fraction_above_threshold"],
-            "diagnostic_thresholds": [(0.1875, 1)],
+            "diagnostic_thresholds": [(0.8125, 1)],
             "diagnostic_conditions": ["above"]
         },
         "heavy_precipitation_convective_ratio": {
             "succeed": "heavy_sleet_shower",
             "fail": "heavy_sleet_continuous",
-            "probability_thresholds": [0.7],
+            "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
             "diagnostic_fields": ["probability_of_convective_ratio_above_threshold"],
-            "diagnostic_thresholds": [(0.5, 1)],
+            "diagnostic_thresholds": [(0.8, 1)],
             "diagnostic_conditions": ["above"]
         },
         "heavy_sleet_continuous": {
@@ -209,17 +209,17 @@ def wxcode_decision_tree_global():
             "condition_combination": "",
             "diagnostic_fields": [
                 "probability_of_cloud_area_fraction_above_threshold"],
-            "diagnostic_thresholds": [(0.1875, 1)],
+            "diagnostic_thresholds": [(0.8125, 1)],
             "diagnostic_conditions": ["above"]
         },
         "light_precipitation_convective_ratio": {
             "succeed": "light_sleet_shower",
             "fail": "light_sleet_continuous",
-            "probability_thresholds": [0.7],
+            "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
             "diagnostic_fields": ["probability_of_convective_ratio_above_threshold"],
-            "diagnostic_thresholds": [(0.5, 1)],
+            "diagnostic_thresholds": [(0.8, 1)],
             "diagnostic_conditions": ["above"]
         },
         "light_sleet_continuous": {

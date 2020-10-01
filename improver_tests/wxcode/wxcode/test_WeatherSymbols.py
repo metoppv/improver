@@ -118,7 +118,7 @@ class Test_WXCode(IrisTest):
             frt=frt,
         )
 
-        thresholds = np.array([0.5], dtype=np.float32)
+        thresholds = np.array([0.8], dtype=np.float32)
         data_convective_ratio = np.array(
             [[[0.1, 0.1, 0.1], [0.2, 0.2, 1.0], [1.0, 1.0, 0.2]],], dtype=np.float32,
         )
