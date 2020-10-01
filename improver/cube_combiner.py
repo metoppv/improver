@@ -37,8 +37,8 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
-    find_threshold_coordinate,
     extract_diagnostic_name,
+    find_threshold_coordinate,
 )
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
