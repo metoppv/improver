@@ -105,21 +105,26 @@ def cloud_probability_cube(cloud_area_fraction, thresholds):
     return cube
 
 
-def ftex_plugin():
+def ftex_plugin(
+    nbhood_radius=NB_RADIUS,
+    textural_threshold=TEXT_THRESH,
+    diagnostic_threshold=DIAG_THRESH,
+):
     """Create an instance of the FieldTexture plugin with standard arguments"""
     fieldtexture_instance = FieldTexture(
-        nbhood_radius=NB_RADIUS,
-        textural_threshold=TEXT_THRESH,
-        diagnostic_threshold=DIAG_THRESH,
+        nbhood_radius, textural_threshold, diagnostic_threshold,
     )
     return fieldtexture_instance
 
 
-def test_full_process(multi_cloud_cube):
+@pytest.mark.parametrize("textural_threshold, expected_value", ((0.1, 1.0), (0.5, 0.0)))
+def test_full_process(multi_cloud_cube, textural_threshold, expected_value):
     """Test the process function with multi realization/threshold input cube"""
     cube = multi_cloud_cube.extract(iris.Constraint(cloud_area_fraction=DIAG_THRESH))[0]
-    expected_data = np.where(cube.data == 0.0, 1.0, 0.0)
-    result = ftex_plugin().process(multi_cloud_cube)
+    expected_data = np.where(cube.data == 0.0, 1.0, expected_value)
+    result = ftex_plugin(textural_threshold=textural_threshold).process(
+        multi_cloud_cube
+    )
     np.testing.assert_allclose(result.data, expected_data)
     assert result.dtype == np.float32
 
