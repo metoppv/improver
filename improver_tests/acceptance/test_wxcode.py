@@ -47,6 +47,7 @@ ALL_PARAMS = [
     "lwe_sleetfall_rate_above",
     "lwe_snowfall_rate_above",
     "rainfall_rate_above",
+    "texture_of_cloud_area_fraction_above",
     "visibility_in_air_below",
 ]
 
