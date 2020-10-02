@@ -261,11 +261,11 @@ class MergeCubes(BasePlugin):
             return cubes_in[0]
 
         if copy:
+            # create copies of input cubes so as not to modify in place
             cube_return = lambda cube: cube.copy()
         else:
             cube_return = lambda cube: cube
 
-        # create copies of input cubes so as not to modify in place
         cubelist = iris.cube.CubeList([])
         for cube in cubes_in:
             if slice_over_realization:
