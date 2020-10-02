@@ -546,7 +546,6 @@ class Test_interrogate_decision_tree(IrisTest):
 def test_interrogate_decision_tree(tree_name, expected):
     """Test that the function returns the right strings."""
     result = interrogate_decision_tree(tree_name)
-    print("result = ", result)
     assert result == expected
 
 
