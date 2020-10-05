@@ -33,16 +33,12 @@
 
 from improver import cli
 
-input_smoothing_coefficients = cli.create_constrained_inputcubelist_converter(
-    "smoothing_coefficient_x", "smoothing_coefficient_y",
-)
-
 
 @cli.clizefy
 @cli.with_output
 def process(
     cube: cli.inputcube,
-    smoothing_coefficients: input_smoothing_coefficients,
+    smoothing_coefficients: cli.inputcubelist,
     mask: cli.inputcube = None,
     *,
     iterations: int = 1,
@@ -79,14 +75,9 @@ def process(
     """
     from improver.nbhood.recursive_filter import RecursiveFilter
 
-    (
-        smoothing_coefficients_x_cube,
-        smoothing_coefficients_y_cube,
-    ) = smoothing_coefficients
     plugin = RecursiveFilter(iterations=iterations, re_mask=remask)
     return plugin(
         cube,
-        smoothing_coefficients_x=smoothing_coefficients_x_cube,
-        smoothing_coefficients_y=smoothing_coefficients_y_cube,
+        smoothing_coefficients=smoothing_coefficients,
         mask_cube=mask,
     )
