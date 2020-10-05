@@ -65,10 +65,6 @@ class RecursiveFilter(PostProcessingPlugin):
                 may result in values being present in areas that were
                 originally masked.
         Raises:
-            ValueError: If smoothing_coefficient_x is not set such that
-                        0 < smoothing_coefficient_x <= 0.5
-            ValueError: If smoothing_coefficient_y is not set such that
-                        0 < smoothing_coefficient_y <= 0.5
             ValueError: If number of iterations is not None and is set such
                         that iterations is less than 1.
         Warns:
@@ -285,7 +281,7 @@ class RecursiveFilter(PostProcessingPlugin):
             cube.data = output
         return cube
 
-    def _validate_smoothing_coefficients(self, cube, smoothing_coefficients):
+    def _validate_and_pad_coefficients(self, cube, smoothing_coefficients):
         """Validate the smoothing coefficients cubes.
 
         Args:
@@ -293,13 +289,20 @@ class RecursiveFilter(PostProcessingPlugin):
                 2D cube containing the input data to which the recursive
                 filter will be applied.
 
-            smoothing_coefficients_cube (iris.cube.CubeList):
+            smoothing_coefficients (iris.cube.CubeList):
                 A cubelist containing two cubes of smoothing_coefficient values,
                 one corresponding to smoothing in the x-direction, and the other
                 to smoothing in the y-direction.
 
+        Returns:
+            list:
+                A list of smoothing coefficients cubes ordered: [x-coeffs, y-coeffs].
+                The coefficients are padded to match the size of the padded cube
+                to which they will be applied.
+
         Raises:
             ValueError: Smoothing coefficient cubes are not named correctly.
+            ValueError: If any smoothing_coefficient cube value is over 0.5
             ValueError: The coordinate to be smoothed within the
                 smoothing coefficient cube is not of the expected length.
             ValueError: The coordinate to be smoothed within the
@@ -309,6 +312,7 @@ class RecursiveFilter(PostProcessingPlugin):
         smoothing_coefficients.sort(key=lambda cell: cell.name())
         axes = ["x", "y"]
 
+        padded_coefficients = []
         for axis, smoothing_coefficient in zip(axes, smoothing_coefficients):
 
             # Check the smoothing coefficient cube name is as expected
@@ -357,30 +361,17 @@ class RecursiveFilter(PostProcessingPlugin):
                     )
                     raise ValueError(msg)
 
-        return smoothing_coefficients
+            # Pad the smoothing coefficients to match the padded data shape
+            padded_coefficients.append(
+                pad_cube_with_halo(
+                    smoothing_coefficient,
+                    2 * self.edge_width,
+                    2 * self.edge_width,
+                    pad_method="symmetric",
+                )
+            )
 
-    def _set_smoothing_coefficients(self, smoothing_coefficients_cube):
-        """
-        Set up the smoothing_coefficient parameter.
-
-        Args:
-            smoothing_coefficients_cube (iris.cube.Cube):
-                Cube containing array of smoothing_coefficient values that will
-                be used when applying the recursive filter in a specific
-                direction.
-
-        Returns:
-            iris.cube.Cube:
-                Cube containing a padded array of smoothing_coefficient values
-                for the specified direction.
-        """
-        smoothing_coefficients_cube = pad_cube_with_halo(
-            smoothing_coefficients_cube,
-            2 * self.edge_width,
-            2 * self.edge_width,
-            pad_method="symmetric",
-        )
-        return smoothing_coefficients_cube
+        return padded_coefficients
 
     def process(
         self, cube, smoothing_coefficients, mask_cube=None,
@@ -430,26 +421,12 @@ class RecursiveFilter(PostProcessingPlugin):
             iris.cube.Cube:
                 Cube containing the smoothed field after the recursive filter
                 method has been applied.
-
-        Raises:
-            ValueError: If any smoothing_coefficient cube value is over 0.5
         """
         cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
-
         (
             smoothing_coefficients_x,
             smoothing_coefficients_y,
-        ) = self._validate_smoothing_coefficients(cube_format, smoothing_coefficients)
-
-        print(cube)
-        print(smoothing_coefficients_x)
-
-        smoothing_coefficients_x = self._set_smoothing_coefficients(
-            smoothing_coefficients_x
-        )
-        smoothing_coefficients_y = self._set_smoothing_coefficients(
-            smoothing_coefficients_y
-        )
+        ) = self._validate_and_pad_coefficients(cube_format, smoothing_coefficients)
 
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
