@@ -91,13 +91,15 @@ def wxcode_decision_tree():
         },
         # D
         "lightning_cloud": {
-            "succeed": 30,
-            "fail": 29,
+            "succeed": 29,
+            "fail": 30,
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": ["probability_of_cloud_area_fraction_above_threshold"],
-            "diagnostic_thresholds": [(0.8125, 1)],
+            "diagnostic_fields": [
+                "probability_of_texture_of_cloud_area_fraction_above_threshold"
+            ],
+            "diagnostic_thresholds": [(0.05, 1)],
             "diagnostic_conditions": ["above"],
         },
         # A
@@ -115,13 +117,15 @@ def wxcode_decision_tree():
         },
         # A.1
         "heavy_precipitation_cloud": {
-            "succeed": "heavy_snow_continuous",
-            "fail": "heavy_snow_shower",
+            "succeed": "heavy_snow_shower",
+            "fail": "heavy_snow_continuous",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": ["probability_of_cloud_area_fraction_above_threshold"],
-            "diagnostic_thresholds": [(0.8125, 1)],
+            "diagnostic_fields": [
+                "probability_of_texture_of_cloud_area_fraction_above_threshold"
+            ],
+            "diagnostic_thresholds": [(0.05, 1)],
             "diagnostic_conditions": ["above"],
         },
         # A.1.1
@@ -328,13 +332,15 @@ def wxcode_decision_tree():
         },
         # B.1
         "snow_in_vicinity_cloud": {
-            "succeed": "heavy_snow_continuous_in_vicinity",
-            "fail": "heavy_snow_shower_in_vicinity",
+            "succeed": "heavy_snow_shower_in_vicinity",
+            "fail": "heavy_snow_continuous_in_vicinity",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": ["probability_of_cloud_area_fraction_above_threshold"],
-            "diagnostic_thresholds": [(0.8125, 1)],
+            "diagnostic_fields": [
+                "probability_of_texture_of_cloud_area_fraction_above_threshold"
+            ],
+            "diagnostic_thresholds": [(0.05, 1)],
             "diagnostic_conditions": ["above"],
         },
         # B.1.a
@@ -365,13 +371,15 @@ def wxcode_decision_tree():
         },
         # B.2
         "rain_in_vicinity_cloud": {
-            "succeed": "heavy_rain_continuous_in_vicinity",
-            "fail": "heavy_rain_shower_in_vicinity",
+            "succeed": "heavy_rain_shower_in_vicinity",
+            "fail": "heavy_rain_continuous_in_vicinity",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": ["probability_of_cloud_area_fraction_above_threshold"],
-            "diagnostic_thresholds": [(0.8125, 1)],
+            "diagnostic_fields": [
+                "probability_of_texture_of_cloud_area_fraction_above_threshold"
+            ],
+            "diagnostic_thresholds": [(0.05, 1)],
             "diagnostic_conditions": ["above"],
         },
         # B.2.a
@@ -402,13 +410,15 @@ def wxcode_decision_tree():
         },
         # B.3
         "sleet_in_vicinity_cloud": {
-            "succeed": 18,
-            "fail": 17,
+            "succeed": 17,
+            "fail": 18,
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": ["probability_of_cloud_area_fraction_above_threshold"],
-            "diagnostic_thresholds": [(0.8125, 1)],
+            "diagnostic_fields": [
+                "probability_of_texture_of_cloud_area_fraction_above_threshold"
+            ],
+            "diagnostic_thresholds": [(0.05, 1)],
             "diagnostic_conditions": ["above"],
         },
         # C

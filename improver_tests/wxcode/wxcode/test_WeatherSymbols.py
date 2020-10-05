@@ -181,6 +181,20 @@ class Test_WXCode(IrisTest):
             frt=frt,
         )
 
+        thresholds = np.array([0.05], dtype=np.float32)
+        data_cloud_texture = np.array(
+            [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]],], dtype=np.float32,
+        )
+
+        cloud_texture = set_up_probability_cube(
+            data_cloud_texture,
+            thresholds,
+            variable_name="texture_of_cloud_area_fraction",
+            threshold_units="1",
+            time=time,
+            frt=frt,
+        )
+
         self.cubes = iris.cube.CubeList(
             [
                 snowfall_rate,
@@ -192,6 +206,7 @@ class Test_WXCode(IrisTest):
                 visibility,
                 lightning,
                 precip_rate,
+                cloud_texture,
             ]
         )
         names = [cube.name() for cube in self.cubes]
@@ -199,7 +214,7 @@ class Test_WXCode(IrisTest):
         self.gbl = [
             name
             for name in self.uk_no_lightning
-            if "vicinity" not in name and "sleet" not in name
+            if "vicinity" not in name and "sleet" not in name and "texture" not in name
         ]
 
 
@@ -789,9 +804,10 @@ class Test_process(Test_WXCode):
         cubes = self.cubes
         cubes[7].data = data_lightning
         result = plugin.process(self.cubes)
-        expected_wxcode = np.ones((3, 3)) * 29
-        expected_wxcode[1, 1:] = 30
-        expected_wxcode[2, 2] = 30
+        expected_wxcode = np.ones((3, 3)) * 30
+        expected_wxcode[0, 1] = 29
+        expected_wxcode[1, 1:] = 29
+        expected_wxcode[2, 0] = 29
         self.assertArrayEqual(result.data, expected_wxcode)
 
     def test_weather_data(self):
@@ -839,6 +855,10 @@ class Test_process(Test_WXCode):
             ],
             dtype=np.float32,
         )
+        data_cloud_texture = np.array(
+            [[[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],], dtype=np.float32,
+        )
+
         data_cld_low = np.zeros((1, 3, 3))
         data_vis = np.zeros((2, 3, 3))
         data_lightning = np.zeros((1, 3, 3))
@@ -853,6 +873,7 @@ class Test_process(Test_WXCode):
         cubes[6].data = data_vis
         cubes[7].data = data_lightning
         cubes[8].data = data_precip
+        cubes[9].data = data_cloud_texture
         result = plugin.process(cubes)
         self.assertArrayEqual(result.data, self.expected_wxcode_alternate)
 
@@ -869,6 +890,7 @@ class Test_process(Test_WXCode):
         data_cld_low = np.ones_like(self.cubes[5].data)
         data_vis = np.zeros_like(self.cubes[6].data)
         data_lightning = np.zeros_like(self.cubes[7].data)
+        data_cloud_texture = np.zeros_like(self.cubes[9].data)
         expected = np.ones_like(self.expected_wxcode_alternate) * 18
 
         cubes = self.cubes
@@ -881,6 +903,7 @@ class Test_process(Test_WXCode):
         cubes[6].data = data_vis
         cubes[7].data = data_lightning
         cubes[8].data = data_precip
+        cubes[9].data = data_cloud_texture
         result = plugin.process(cubes)
         self.assertArrayEqual(result.data, expected)
 

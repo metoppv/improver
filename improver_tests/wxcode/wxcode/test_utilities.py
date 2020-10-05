@@ -536,6 +536,7 @@ class Test_interrogate_decision_tree(IrisTest):
                 "probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
                 "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"
                 "probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+                "probability_of_texture_of_cloud_area_fraction_above_threshold (1): 0.05\n"
                 "probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
             ),
         ),
