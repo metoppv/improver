@@ -36,7 +36,10 @@ from iris.cube import CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
-from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.metadata.probabilistic import (
+    extract_diagnostic_name,
+    find_threshold_coordinate,
+)
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     expand_bounds,
@@ -282,6 +285,19 @@ class CubeCombiner(BasePlugin):
                 result = expand_bounds(
                     result, cube_list, expanded_coord_names, use_midpoint=use_midpoint
                 )
+
+        if self.broadcast_coords and "threshold" in self.broadcast_coords:
+            probabilistic_name = cube_list[0].name()
+            diagnostic_name = extract_diagnostic_name(probabilistic_name)
+
+            # Rename the threshold coordinate to match the name of the diagnostic
+            # that results from the combine operation.
+            result.coord(var_name="threshold").rename(new_diagnostic_name)
+            result.coord(new_diagnostic_name).var_name = "threshold"
+
+            new_diagnostic_name = probabilistic_name.replace(
+                diagnostic_name, new_diagnostic_name
+            )
 
         result.rename(new_diagnostic_name)
 

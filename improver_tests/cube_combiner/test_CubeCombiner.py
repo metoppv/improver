@@ -259,7 +259,10 @@ class Test_process(CombinerTest):
             plugin.process(cubelist, "new_cube_name")
 
     def test_broadcast_coord(self):
-        """Test that plugin broadcasts to a coord and doesn't change the inputs."""
+        """Test that plugin broadcasts to a coord and doesn't change the inputs.
+        Using the broadcast_to_coords argument including a value of "threshold"
+        will result in the returned cube maintaining the probabilistic elements
+        of the name of the first input cube."""
         plugin = CubeCombiner("*")
         cube = self.cube4[:, 0, ...].copy()
         cube.data = np.ones_like(cube.data)
@@ -270,7 +273,8 @@ class Test_process(CombinerTest):
             cubelist, "new_cube_name", broadcast_to_coords=["threshold"]
         )
         self.assertIsInstance(result, Cube)
-        self.assertEqual(result.name(), "new_cube_name")
+        self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
+        self.assertEqual(result.coord(var_name="threshold").name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, self.cube4.data)
         self.assertCubeListEqual(input_copy, cubelist)
 
