@@ -302,6 +302,17 @@ class Test_process(IrisTest):
         self.assertIn("realization", result_coords)
         self.assertSequenceEqual(result_dims, expected_dims)
 
+    def test_copy(self):
+        """Tests the use of copy avoids altering an object in place."""
+        self.cube_ukv.var_name = "VAR1"
+        cubes = iris.cube.CubeList([self.cube_ukv, self.cube_ukv_t1])
+        cube_orig = cubes[0].copy()
+        self.plugin.process(cubes)
+        self.assertTrue(cubes[0] == cube_orig)
+
+        self.plugin.process(cubes, copy=False)
+        self.assertFalse(cubes[0] == cube_orig)
+
 
 if __name__ == "__main__":
     unittest.main()

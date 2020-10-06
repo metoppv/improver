@@ -394,28 +394,28 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         )
         for forecast_slice, truth_slice in threshold_slices:
 
-            threshold_reliability = []
             time_slices = zip(
                 forecast_slice.slices_over(time_coord),
                 truth_slice.slices_over(time_coord),
             )
-            for forecast, truth in time_slices:
+            forecast, truth = next(time_slices)
+            threshold_reliability = self._populate_reliability_bins(
+                forecast.data, truth.data
+            )
 
-                reliability_table = self._populate_reliability_bins(
-                    forecast.data, truth.data
+            for forecast, truth in time_slices:
+                np.add(
+                    threshold_reliability,
+                    self._populate_reliability_bins(forecast.data, truth.data),
+                    out=threshold_reliability,
+                    dtype=np.float32,
                 )
 
-                threshold_reliability.append(reliability_table)
-
-            # Stack and sum reliability tables for all times
-            table_values = np.stack(threshold_reliability)
-            table_values = np.sum(table_values, axis=0, dtype=np.float32)
-
-            reliability_entry = reliability_cube.copy(data=table_values)
+            reliability_entry = reliability_cube.copy(data=threshold_reliability)
             reliability_entry.replace_coord(forecast_slice.coord(threshold_coord))
             reliability_tables.append(reliability_entry)
 
-        return MergeCubes()(reliability_tables)
+        return MergeCubes()(reliability_tables, copy=False)
 
 
 class AggregateReliabilityCalibrationTables(BasePlugin):
