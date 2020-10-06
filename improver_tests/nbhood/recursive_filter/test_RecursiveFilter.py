@@ -350,6 +350,20 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
                 self.cube, self.smoothing_coefficients_wrong_points
             )
 
+    def test_smoothing_coefficients_exceed_max(self):
+        """Test that an error is raised if any smoothing coefficient value
+        exceeds the allowed maximum of 0.5."""
+        self.smoothing_coefficients[0].data += 1.
+        msg = (
+                "All smoothing_coefficient values must be less than 0.5. "
+                "A large smoothing_coefficient value leads to poor "
+                "conservation of probabilities"
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            RecursiveFilter(edge_width=1)._validate_and_pad_coefficients(
+                self.cube, self.smoothing_coefficients
+            )
+
     def test_padding_default(self):
         """Test that the returned smoothing_coefficients array is padded as
         expected with the default edge_width."""
