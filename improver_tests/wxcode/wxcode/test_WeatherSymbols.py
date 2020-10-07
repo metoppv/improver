@@ -118,6 +118,20 @@ class Test_WXCode(IrisTest):
             frt=frt,
         )
 
+        thresholds = np.array([0.8], dtype=np.float32)
+        data_convective_ratio = np.array(
+            [[[0.1, 0.1, 0.1], [0.2, 0.2, 1.0], [1.0, 1.0, 0.2]],], dtype=np.float32,
+        )
+
+        convective_ratio = set_up_probability_cube(
+            data_convective_ratio,
+            thresholds,
+            variable_name="convective_ratio",
+            threshold_units="1",
+            time=time,
+            frt=frt,
+        )
+
         thresholds = np.array([0.1875, 0.8125], dtype=np.float32)
         data_cloud = np.array(
             [
@@ -207,6 +221,7 @@ class Test_WXCode(IrisTest):
                 lightning,
                 precip_rate,
                 cloud_texture,
+                convective_ratio,
             ]
         )
         names = [cube.name() for cube in self.cubes]
@@ -944,6 +959,9 @@ class Test_process(Test_WXCode):
         data_cld_low = np.zeros((1, 3, 3), dtype=np.float32)
         data_vis = np.zeros((2, 3, 3), dtype=np.float32)
         data_precip = np.max(np.array([data_snow, data_rain]), axis=0)
+        data_convective_ratio = np.array(
+            [[[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],], dtype=np.float32,
+        )
         cubes = self.cubes.extract(self.gbl)
         cubes[0].data = data_snow
         cubes[1].data = data_rain
@@ -951,6 +969,7 @@ class Test_process(Test_WXCode):
         cubes[3].data = data_cld_low
         cubes[4].data = data_vis
         cubes[5].data = data_precip
+        cubes[6].data = data_convective_ratio
         result = plugin.process(cubes)
         self.assertArrayEqual(result.data, self.expected_wxcode_alternate)
 

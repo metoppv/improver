@@ -92,6 +92,7 @@ def test_global(tmp_path):
         "cloud_area_fraction_above",
         "low_type_cloud_area_fraction_above",
         "lwe_precipitation_rate_above",
+        "convective_ratio_above",
     ]
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc" for p in params]
     output_path = tmp_path / "output.nc"
@@ -100,8 +101,8 @@ def test_global(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_insufficent_files(tmp_path):
-    """Test wxcode processing with insufficent files"""
+def test_insufficient_files(tmp_path):
+    """Test wxcode processing with insufficient files"""
     kgo_dir = acc.kgo_root() / "wxcode/global"
     params = [
         "rainfall_rate_above",
