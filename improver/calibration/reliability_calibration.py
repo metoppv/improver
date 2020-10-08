@@ -293,7 +293,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
     def _populate_reliability_bins(self, forecast, truth):
         """
         For an x-y slice at a single validity time and threshold, populate
-        a reliability table using the provided truth.
+        a reliability table using the provided truth. If a masked truth
+        is provided, a masked reliability table is returned.
 
         Args:
             forecast (numpy.ndarray):
@@ -315,8 +316,10 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         forecast_probabilities = []
         forecast_counts = []
 
-        for bin_min, bin_max in self.probability_bins:
+        if np.ma.isMaskedArray(truth):
+            forecast = np.ma.masked_where(np.ma.getmask(truth), forecast)
 
+        for bin_min, bin_max in self.probability_bins:
             observation_mask = (
                 ((forecast >= bin_min) & (forecast <= bin_max)) & (np.isclose(truth, 1))
             ).astype(int)
@@ -327,14 +330,61 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             forecast_probabilities.append(forecasts_probability_values)
             forecast_counts.append(forecast_mask)
 
-        reliability_table = np.stack(
+        reliability_table = np.ma.stack(
             [
-                np.stack(observation_counts),
-                np.stack(forecast_probabilities),
-                np.stack(forecast_counts),
+                np.ma.stack(observation_counts),
+                np.ma.stack(forecast_probabilities),
+                np.ma.stack(forecast_counts),
             ]
         )
+
+        if np.ma.isMaskedArray(reliability_table):
+            reliability_table.data[reliability_table.mask] = 0
+
         return reliability_table.astype(np.float32)
+
+    def _add_reliability_tables(self, forecast, truth, threshold_reliability):
+        """
+        Add reliability tables. The presence of a masked truth is handled
+        separately to ensure support for a mask that changes with validity time.
+
+        Args:
+            forecast (numpy.ndarray):
+                An array containing data over an xy slice for a single validity
+                time and threshold.
+            truth (numpy.ndarray):
+                An array containing a thresholded gridded truth at an
+                equivalent validity time to the forecast array.
+            threshold_reliability (numpy.ndarray):
+                The current reliability table that will be added to.
+        Returns:
+            numpy.ndarray:
+                An array containing reliability table data for a single time
+                and threshold. The leading dimension corresponds to the rows
+                of a calibration table, the second dimension to the number of
+                probability bins, and the trailing dimensions are the spatial
+                dimensions of the forecast and truth cubes (which are
+                equivalent).
+        """
+        if np.ma.isMaskedArray(truth.data):
+            table = self._populate_reliability_bins(forecast.data, truth.data)
+            # Bitwise addition of masks. This ensures that only points that are
+            # masked in both the existing and reliability tables are kept as
+            # being masked within the resulting reliability table.
+            mask = threshold_reliability.mask & table.mask
+            threshold_reliability = np.ma.array(
+                threshold_reliability.data + table.data,
+                mask=mask,
+                dtype=np.float32,
+            )
+        else:
+            np.add(
+                threshold_reliability,
+                self._populate_reliability_bins(forecast.data, truth.data),
+                out=threshold_reliability,
+                dtype=np.float32,
+            )
+        return threshold_reliability
 
     def process(self, historic_forecasts, truths):
         """
@@ -388,12 +438,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         )
 
         reliability_tables = iris.cube.CubeList()
+
         threshold_slices = zip(
             historic_forecasts.slices_over(threshold_coord),
             truths.slices_over(threshold_coord),
         )
         for forecast_slice, truth_slice in threshold_slices:
-
             time_slices = zip(
                 forecast_slice.slices_over(time_coord),
                 truth_slice.slices_over(time_coord),
@@ -404,12 +454,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             )
 
             for forecast, truth in time_slices:
-                np.add(
-                    threshold_reliability,
-                    self._populate_reliability_bins(forecast.data, truth.data),
-                    out=threshold_reliability,
-                    dtype=np.float32,
-                )
+                threshold_reliability = self._add_reliability_tables(
+                    forecast, truth, threshold_reliability)
 
             reliability_entry = reliability_cube.copy(data=threshold_reliability)
             reliability_entry.replace_coord(forecast_slice.coord(threshold_coord))
