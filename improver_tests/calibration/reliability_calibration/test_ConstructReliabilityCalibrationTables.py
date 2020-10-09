@@ -93,7 +93,6 @@ class Test_Setup(unittest.TestCase):
         )
         self.truths = MergeCubes()([self.truth_1, self.truth_2])
 
-        # print("truth_data.shape = ", truth_data.shape)
         masked_array = np.zeros(truth_data.shape, dtype=bool)
         masked_array[:, 0, :2] = True
         masked_truth_data_1 = np.ma.array(truth_data, mask=masked_array)
@@ -101,12 +100,6 @@ class Test_Setup(unittest.TestCase):
         masked_array[:, :2, 0] = True
         masked_truth_data_2 = np.ma.array(truth_data, mask=masked_array)
 
-        # print("truth_data_1 = ", truth_data_1)
-        # print("truth_data_2 = ", truth_data)
-        # print("masked_truth_data_1 = ", masked_truth_data_1)
-        # print("masked_truth_data_2 = ", masked_truth_data_2)
-        # import sys
-        # sys.exit(1)
         self.masked_truth_1 = set_up_probability_cube(
             masked_truth_data_1, thresholds, frt=datetime(2017, 11, 10, 4, 0)
         )
@@ -116,9 +109,7 @@ class Test_Setup(unittest.TestCase):
             time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 4, 0),
         )
-        # print("masked_truth_1 = ", self.masked_truth_1)
         self.masked_truths = MergeCubes()([self.masked_truth_1, self.masked_truth_2])
-        # print("self.masked_truths = ", self.masked_truths.data)
         self.expected_threshold_coord = self.forecasts.coord(var_name="threshold")
         self.expected_table_shape = (3, 5, 3, 3)
         self.expected_attributes = {
@@ -440,6 +431,11 @@ class Test__populate_reliability_bins(Test_Setup):
         self.assertSequenceEqual(result.shape, self.expected_table_shape)
         assert_array_equal(result, self.expected_table)
 
+
+class Test__populate_masked_reliability_bins(Test_Setup):
+
+    """Test the _populate_masked_reliability_bins method."""
+
     def test_table_values_masked_truth(self):
         """Test the reliability table returned has the expected values when a
         masked truth is input."""
@@ -448,10 +444,10 @@ class Test__populate_reliability_bins(Test_Setup):
         truth_slice = next(self.masked_truth_1.slices_over("air_temperature"))
         result = Plugin(
             single_value_lower_limit=True, single_value_upper_limit=True
-        )._populate_reliability_bins(forecast_slice.data, truth_slice.data)
+        )._populate_masked_reliability_bins(forecast_slice.data, truth_slice.data)
 
         self.assertSequenceEqual(result.shape, self.expected_table_shape)
-        self.assertIsInstance(result.data, np.ma.MaskedArray)
+        self.assertIsInstance(result, np.ma.MaskedArray)
         assert_array_equal(result.data, self.expected_table_for_mask)
         expected_mask = np.zeros(self.expected_table_for_mask.shape, dtype=bool)
         expected_mask[:, :, 0, :2] = True
@@ -495,9 +491,6 @@ class Test_process(Test_Setup):
         between timesteps. As a result, only one grid point is masked (
         within the upper left corner) within the resulting reliability table."""
 
-        # Expected values shown explicitly of comparison with self.expected_table.
-        # Example differences arising from masking are that the 0.125 value
-        # would have been 0.250 without the masking.
         expected_table_for_second_mask = np.array(
             [
                 [

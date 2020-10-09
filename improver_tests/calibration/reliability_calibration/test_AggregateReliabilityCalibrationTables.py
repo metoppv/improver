@@ -60,7 +60,6 @@ class Test_Aggregation(Test_Setup):
         )
         self.reliability_cube = reliability_cube_format.copy(data=self.expected_table)
         self.different_frt = self.reliability_cube.copy()
-
         new_frt = self.different_frt.coord("forecast_reference_time")
         new_frt.points = new_frt.points + 48 * 3600
         new_frt.bounds = new_frt.bounds + 48 * 3600
