@@ -373,9 +373,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             # being masked within the resulting reliability table.
             mask = threshold_reliability.mask & table.mask
             threshold_reliability = np.ma.array(
-                threshold_reliability.data + table.data,
-                mask=mask,
-                dtype=np.float32,
+                threshold_reliability.data + table.data, mask=mask, dtype=np.float32,
             )
         else:
             np.add(
@@ -455,7 +453,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
             for forecast, truth in time_slices:
                 threshold_reliability = self._add_reliability_tables(
-                    forecast, truth, threshold_reliability)
+                    forecast, truth, threshold_reliability
+                )
 
             reliability_entry = reliability_cube.copy(data=threshold_reliability)
             reliability_entry.replace_coord(forecast_slice.coord(threshold_coord))

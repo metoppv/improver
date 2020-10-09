@@ -524,7 +524,9 @@ class Test_process(Test_Setup):
             ],
             dtype=np.float32,
         )
-        expected = np.sum([self.expected_table_for_mask, expected_table_for_second_mask], axis=0)
+        expected = np.sum(
+            [self.expected_table_for_mask, expected_table_for_second_mask], axis=0
+        )
         expected_mask = np.zeros(expected.shape, dtype=bool)
         expected_mask[:, :, 0, 0] = True
         result = Plugin(

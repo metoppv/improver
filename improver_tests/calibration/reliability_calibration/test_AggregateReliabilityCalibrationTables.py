@@ -68,12 +68,16 @@ class Test_Aggregation(Test_Setup):
         self.masked_reliability_cube = self.reliability_cube.copy()
         masked_array = np.zeros(self.reliability_cube.shape, dtype=bool)
         masked_array[:, :, 0, :2] = True
-        self.masked_reliability_cube.data = np.ma.array(self.reliability_cube.data, mask=masked_array)
+        self.masked_reliability_cube.data = np.ma.array(
+            self.reliability_cube.data, mask=masked_array
+        )
 
         self.masked_different_frt = self.different_frt.copy()
         masked_array = np.zeros(self.different_frt.shape, dtype=bool)
         masked_array[:, :, :2, 0] = True
-        self.masked_different_frt.data = np.ma.array(self.different_frt.data, mask=masked_array)
+        self.masked_different_frt.data = np.ma.array(
+            self.different_frt.data, mask=masked_array
+        )
 
         self.overlapping_frt = self.reliability_cube.copy()
         new_frt = self.overlapping_frt.coord("forecast_reference_time")
