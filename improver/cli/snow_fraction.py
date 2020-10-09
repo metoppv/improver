@@ -41,6 +41,8 @@ def process(*cubes: cli.inputcube):
     accumulation). Where no precipitation is present, the data are filled in from
     the nearest precipitating point.
 
+    snow_fraction = snow / (snow + rain)
+
     Args:
         cubes (iris.cube.CubeList or list):
             Contains cubes of rain and snow, both must be either rates or accumulations.

@@ -47,6 +47,8 @@ class SnowFraction(PostProcessingPlugin):
     Calculates a snow-fraction field from fields of snow and rain (rate or
     accumulation). Where no precipitation is present, the data are filled in from
     the nearest precipitating point.
+
+    snow_fraction = snow / (snow + rain)
     """
 
     def _get_input_cubes(self, input_cubes):
@@ -106,7 +108,7 @@ class SnowFraction(PostProcessingPlugin):
             raise ValueError(f"Could not find both rain and snow in {cube_names}")
         if rain_name == snow_name:
             raise ValueError(
-                f"Rain and Snow cubes must have different names, not {rain_name}"
+                f"Failed to find unique Rain and Snow cubes from {cube_names}"
             )
         return rain_name, snow_name
 
