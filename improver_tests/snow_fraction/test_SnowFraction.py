@@ -104,7 +104,7 @@ def test_acclen_mismatch_error():
         (datetime(2017, 11, 10, 1, 0), datetime(2017, 11, 10, 4, 0)),
         snow.coord("forecast_reference_time").cell(0).point,
     )
-    [snow.replace_coord(coord) for coord, _ in time_coords]
+    _ = [snow.replace_coord(coord) for coord, _ in time_coords]
     with pytest.raises(
         ValueError, match="Rain and Snow cubes do not have the same time coord"
     ):
@@ -122,7 +122,7 @@ def test_dims_mismatch_error():
 
 def test_missing_cube_error():
     """Test the process function with one cube missing"""
-    rain, snow = setup_cubes()
+    rain, _ = setup_cubes()
     with pytest.raises(ValueError, match="Expected exactly two input cubes, found 1"):
         SnowFraction()(iris.cube.CubeList([rain]))
 
