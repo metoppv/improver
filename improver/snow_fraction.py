@@ -74,6 +74,29 @@ class SnowFraction(PostProcessingPlugin):
             raise ValueError(
                 f"Expected exactly two input cubes, found {len(input_cubes)}"
             )
+        rain_name, snow_name = self._get_input_cube_names(input_cubes)
+        self.rain = input_cubes.extract(rain_name).merge_cube()
+        self.snow = input_cubes.extract(snow_name).merge_cube()
+        self.snow.convert_units(self.rain.units)
+        if not spatial_coords_match(self.rain, self.snow):
+            raise ValueError("Rain and Snow cubes are not on the same grid")
+        if not self.rain.coord("time") == self.snow.coord("time"):
+            raise ValueError("Rain and Snow cubes do not have the same time coord")
+
+    def _get_input_cube_names(self, input_cubes):
+        """
+        Identifies the rain and snow cubes from the presence of "rain" or "snow" in
+        the cube names.
+
+        Args:
+            input_cubes (iris.cube.CubeList):
+                The unsorted rain and snow cubes.
+
+        Returns:
+            tuple:
+                rain_name and snow_name, in that order.
+
+        """
         cube_names = [cube.name() for cube in input_cubes]
         try:
             (rain_name,) = [x for x in cube_names if "rain" in x]
@@ -84,13 +107,7 @@ class SnowFraction(PostProcessingPlugin):
             raise ValueError(
                 f"Rain and Snow cubes must have different names, not {rain_name}"
             )
-        self.rain = input_cubes.extract(rain_name).merge_cube()
-        self.snow = input_cubes.extract(snow_name).merge_cube()
-        self.snow.convert_units(self.rain.units)
-        if not spatial_coords_match(self.rain, self.snow):
-            raise ValueError("Rain and Snow cubes are not on the same grid")
-        if not self.rain.coord("time") == self.snow.coord("time"):
-            raise ValueError("Rain and Snow cubes do not have the same time coord")
+        return rain_name, snow_name
 
     def _calculate_snow_fraction(self):
         """
