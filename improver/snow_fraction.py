@@ -83,7 +83,8 @@ class SnowFraction(PostProcessingPlugin):
         if not self.rain.coord("time") == self.snow.coord("time"):
             raise ValueError("Rain and Snow cubes do not have the same time coord")
 
-    def _get_input_cube_names(self, input_cubes):
+    @staticmethod
+    def _get_input_cube_names(input_cubes):
         """
         Identifies the rain and snow cubes from the presence of "rain" or "snow" in
         the cube names.
