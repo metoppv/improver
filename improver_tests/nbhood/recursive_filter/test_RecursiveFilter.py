@@ -294,12 +294,6 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
 
     """Test the _validate_and_pad_coefficients method"""
 
-    def test_smoothing_coefficients_cube(self):
-        """Test that correctly shaped smoothing_coefficients validate."""
-        _ = RecursiveFilter(edge_width=1)._validate_and_pad_coefficients(
-            self.cube, self.smoothing_coefficients
-        )
-
     def test_return_order(self):
         """Test that the coefficients cubes are returned in x, y order."""
         x, y = RecursiveFilter()._validate_and_pad_coefficients(
@@ -366,20 +360,32 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
 
     def test_padding_default(self):
         """Test that the returned smoothing_coefficients array is padded as
-        expected with the default edge_width."""
-        expected_shape = (65, 64)
-        expected_result = np.full(expected_shape, 0.5)
-        result, _ = RecursiveFilter()._validate_and_pad_coefficients(
+        expected with the default edge_width.
+
+        Using default edge_width of 15 cells, which is doubled and applied to both
+        sides of the array, so array should be padded with 15 * 4 extra rows/columns.
+        """
+        expected_shape_x = (65, 64)
+        expected_shape_y = (64, 65)
+        expected_result_x = np.full(expected_shape_x, 0.5)
+        expected_result_y = np.full(expected_shape_y, 0.5)
+        result_x, result_y = RecursiveFilter()._validate_and_pad_coefficients(
             self.cube, self.smoothing_coefficients
         )
-        self.assertIsInstance(result.data, np.ndarray)
-        self.assertArrayEqual(result.data, expected_result)
-        # Check shape: Array should be padded with 15 * 4 extra rows/columns
-        self.assertEqual(result.shape, expected_shape)
+        self.assertIsInstance(result_x.data, np.ndarray)
+        self.assertIsInstance(result_y.data, np.ndarray)
+        self.assertArrayEqual(result_x.data, expected_result_x)
+        self.assertArrayEqual(result_y.data, expected_result_y)
+        self.assertEqual(result_x.shape, expected_shape_x)
+        self.assertEqual(result_y.shape, expected_shape_y)
 
     def test_padding_set_edge_width(self):
         """Test that the returned smoothing_coefficients arrays are padded as
-        expected with a set edge_width."""
+        expected with a set edge_width.
+
+        Using an edge_width of 1 cell, which is doubled and applied to both
+        sides of the array, so array should be padded with 1 * 4 extra rows/columns.
+        """
         expected_shape_x = (9, 8)
         expected_shape_y = (8, 9)
         expected_result_x = np.full(expected_shape_x, 0.5)
@@ -389,14 +395,17 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
         )._validate_and_pad_coefficients(self.cube, self.smoothing_coefficients)
         self.assertArrayEqual(result_x.data, expected_result_x)
         self.assertArrayEqual(result_y.data, expected_result_y)
-        # Check shape: Array should be padded with 1 * 4 extra rows/columns
         self.assertEqual(result_x.shape, expected_shape_x)
         self.assertEqual(result_y.shape, expected_shape_y)
 
     def test_padding_non_constant_values(self):
         """Test that the returned smoothing_coefficients array contains the
         expected values when padded symmetrically with non-constant smoothing
-        coefficients."""
+        coefficients.
+
+        Using an edge_width of 1 cell, which is doubled and applied to both
+        sides of the array, so array should be padded with 1 * 4 extra rows/columns.
+        """
         expected_shape = (9, 8)
         expected_result = np.full(expected_shape, 0.5)
         expected_result[1:3, 1:3] = 0.25
@@ -405,7 +414,6 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
             self.cube, self.smoothing_coefficients
         )
         self.assertArrayEqual(result.data, expected_result)
-        # Check shape: Array should be padded with 1 * 4 extra rows/columns
         self.assertEqual(result.shape, expected_shape)
 
 
