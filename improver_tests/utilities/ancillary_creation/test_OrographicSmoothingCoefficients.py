@@ -63,10 +63,20 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test default attribute initialisation"""
         result = OrographicSmoothingCoefficients()
-        self.assertEqual(result.min_smoothing_coefficient, 0.0)
-        self.assertEqual(result.max_smoothing_coefficient, 1.0)
+        self.assertEqual(result.min_gradient_smoothing_coefficient, 0.5)
+        self.assertEqual(result.max_gradient_smoothing_coefficient, 0.0)
         self.assertEqual(result.coefficient, 1.0)
         self.assertEqual(result.power, 1.0)
+
+    def test_value_error(self):
+        """Test a ValueError is raised if the chosen smoothing coefficient limits
+        are outside the range 0 to 0.5 inclusive."""
+        msg = "min_gradient and max_gradient must be 0 <= value <=0.5"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin = OrographicSmoothingCoefficients(
+                min_gradient_smoothing_coefficient=1.0,
+                max_gradient_smoothing_coefficient=0.0,
+            )
 
 
 class Test__repr__(IrisTest):
@@ -76,9 +86,9 @@ class Test__repr__(IrisTest):
         """Test that the __repr__ returns the expected string."""
         result = str(OrographicSmoothingCoefficients())
         msg = (
-            "<OrographicSmoothingCoefficients: min_smoothing_coefficient: "
-            "{}; max_smoothing_coefficient: {}; coefficient: {}; power: {}"
-            ">".format(0.0, 1.0, 1, 1)
+            "<OrographicSmoothingCoefficients: min_gradient_smoothing_coefficient: "
+            "{}; max_gradient_smoothing_coefficient: {}; coefficient: {}; power: {}"
+            ">".format(0.5, 0.0, 1, 1)
         )
         self.assertEqual(result, msg)
 
@@ -144,7 +154,8 @@ class Test_gradient_to_smoothing_coefficient(IrisTest):
     def setUp(self):
         """Set up cube & plugin"""
         self.plugin = OrographicSmoothingCoefficients(
-            min_smoothing_coefficient=0.5, max_smoothing_coefficient=0.3
+            min_gradient_smoothing_coefficient=0.5,
+            max_gradient_smoothing_coefficient=0.3,
         )
         self.cube = set_up_cube()
         self.gradient_x, self.gradient_y = GradientBetweenAdjacentGridSquares(
@@ -181,7 +192,8 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up cube & plugin"""
         self.plugin = OrographicSmoothingCoefficients(
-            min_smoothing_coefficient=1.0, max_smoothing_coefficient=0.0
+            min_gradient_smoothing_coefficient=1.0,
+            max_gradient_smoothing_coefficient=0.0,
         )
         self.cube = set_up_cube()
 
@@ -189,9 +201,8 @@ class Test_process(IrisTest):
         """Tests that the final processing step gets the right values."""
         result = self.plugin.process(self.cube)
 
-        expected_x = np.array([[0.4, 0.2], [1.0, 0.6], [0.8, 1.0],])
-
-        expected_y = np.array([[0.8, 1.0, 0.6], [0.6, 0.8, 0.0],])
+        expected_x = np.array([[0.4, 0.2], [1.0, 0.6], [0.8, 1.0]])
+        expected_y = np.array([[0.8, 1.0, 0.6], [0.6, 0.8, 0.0]])
 
         self.assertArrayAlmostEqual(result[0].data, expected_x)
         self.assertArrayAlmostEqual(result[1].data, expected_y)

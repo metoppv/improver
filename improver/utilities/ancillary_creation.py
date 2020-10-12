@@ -60,18 +60,16 @@ class OrographicSmoothingCoefficients(BasePlugin):
         \\rm{smoothing\\_coefficient} = \\rm{coefficient} \\times
         \\rm{gradient}^{\\rm{power}}
 
-    The resulting values are scaled between min_smoothing_coefficient and
-    max_smoothing_coefficient to give the desired range of
-    smoothing_coefficients. These can be provided in reverse (i.e. min > max)
-    to invert the smoothing coefficients in relation to the orographic
-    gradient, providing smoothing coefficients that are largest where the
-    orography gradient is shallowest.
+    The resulting values are scaled between min_gradient_smoothing_coefficient and
+    max_gradient_smoothing_coefficient to give the desired range of
+    smoothing_coefficients. These limiting values must be greater than or equal to
+    zero and less than or equal to 0.5.
     """
 
     def __init__(
         self,
-        min_smoothing_coefficient=0.0,
-        max_smoothing_coefficient=1.0,
+        min_gradient_smoothing_coefficient=0.5,
+        max_gradient_smoothing_coefficient=0.0,
         coefficient=1,
         power=1,
     ):
@@ -79,19 +77,37 @@ class OrographicSmoothingCoefficients(BasePlugin):
         Initialise class.
 
         Args:
-            min_smoothing_coefficient (float):
-                The minimum value of smoothing_coefficient that you want to go
-                into the recursive filter.
-            max_smoothing_coefficient (float):
-                The maximum value of smoothing_coefficient that you want to go
-                into the recursive filter
+            min_gradient_smoothing_coefficient (float):
+                The value of recursive filter smoothing_coefficient to be used
+                where the orography gradient is a minimum. Generally this number
+                will be larger than the max_gradient_smoothing_coefficient as
+                quantities are likely to smoothed more across flat terrain.
+            max_gradient_smoothing_coefficient (float):
+                The value of recursive filter smoothing_coefficient to be used
+                where the orography gradient is a maximum. Generally this number
+                will be smaller than the min_gradient_smoothing_coefficient as
+                quantities are likely to smoothed less across complex terrain.
             coefficient (float):
                 The coefficient for the smoothing_coefficient equation
             power (float):
                 What power you want for your smoothing_coefficient equation
         """
-        self.max_smoothing_coefficient = max_smoothing_coefficient
-        self.min_smoothing_coefficient = min_smoothing_coefficient
+        for limit in [
+            min_gradient_smoothing_coefficient,
+            max_gradient_smoothing_coefficient,
+        ]:
+            if limit < 0 or limit > 0.5:
+                msg = (
+                    "min_gradient and max_gradient must be 0 <= value <=0.5, provided "
+                    "values are {} and {} respectively".format(
+                        min_gradient_smoothing_coefficient,
+                        max_gradient_smoothing_coefficient,
+                    )
+                )
+                raise ValueError(msg)
+
+        self.max_gradient_smoothing_coefficient = max_gradient_smoothing_coefficient
+        self.min_gradient_smoothing_coefficient = min_gradient_smoothing_coefficient
         self.coefficient = coefficient
         self.power = power
 
@@ -99,11 +115,11 @@ class OrographicSmoothingCoefficients(BasePlugin):
         """Represent the configured plugin instance as a string."""
         result = (
             "<OrographicSmoothingCoefficients: "
-            "min_smoothing_coefficient: {}; "
-            "max_smoothing_coefficient: {}; coefficient: {}; power: {}"
+            "min_gradient_smoothing_coefficient: {}; "
+            "max_gradient_smoothing_coefficient: {}; coefficient: {}; power: {}"
             ">".format(
-                self.min_smoothing_coefficient,
-                self.max_smoothing_coefficient,
+                self.min_gradient_smoothing_coefficient,
+                self.max_gradient_smoothing_coefficient,
                 self.coefficient,
                 self.power,
             )
@@ -214,8 +230,8 @@ class OrographicSmoothingCoefficients(BasePlugin):
             smoothing_coefficient_y,
         ) = self.scale_smoothing_coefficients(
             [smoothing_coefficient_x, smoothing_coefficient_y],
-            min_output=self.min_smoothing_coefficient,
-            max_output=self.max_smoothing_coefficient,
+            min_output=self.min_gradient_smoothing_coefficient,
+            max_output=self.max_gradient_smoothing_coefficient,
         )
         smoothing_coefficient_x = self.update_smoothing_coefficients_metadata(
             smoothing_coefficient_x, "smoothing_coefficient_x"
