@@ -39,10 +39,12 @@ from improver import cli
 def process(
     orography: cli.inputcube,
     *,
-    min_smoothing_coefficient: float = 0.0,
-    max_smoothing_coefficient: float = 1.0,
+    min_gradient_smoothing_coefficient: float = 0.5,
+    max_gradient_smoothing_coefficient: float = 0.0,
     coefficient: float = 1.0,
     power: float = 1.0,
+    use_mask_boundary: bool = True,
+    invert_mask: bool = False,
 ):
     """Generate smoothing coefficients for recursive filtering based on
     orography gradients.
@@ -59,12 +61,17 @@ def process(
 
     smoothing_coefficient = coefficient * gradient**power
 
-    The resulting values are scaled between min_smoothing_coefficient and
-    max_smoothing_coefficient to give the desired range of
-    smoothing_coefficients. These can be provided in reverse (i.e. min > max)
-    to invert the smoothing coefficients in relation to the orographic
-    gradient, providing smoothing coefficients that are largest where the
-    orography gradient is shallowest.
+    The resulting values are scaled between min_gradient_smoothing_coefficient
+    and max_gradient_smoothing_coefficient to give the desired range of
+    smoothing_coefficients. These limiting values must be greater than or equal to
+    zero and less than or equal to 0.5.
+
+    Note that the smoothing coefficients are returned on a grid that is one cell
+    smaller in the given dimension than the input orography, i.e. the smoothing
+    coefficients in the x-direction are returned on a grid that is one cell
+    smaller in x than the input. This is because the coefficients are used in
+    both forward and backward passes of the recursive filter, so they need to be
+    symmetric between cells in the original grid to help ensure conservation.
 
     Args:
         orography (iris.cube.Cube):
@@ -78,7 +85,20 @@ def process(
             The coefficient for the smoothing_coefficient equation.
         power (float):
             The power for the smoothing_coefficient equation.
-
+        use_mask_boundary (bool):
+            A mask can be provided to define a region in which smoothing
+            coefficients are set to zero, i.e. no smoothing. If this
+            option is set to True then rather than the whole masked region
+            being set to zero, only the cells that mark the transition from
+            masked to unmasked will be set to zero. The primary purpose for
+            this is to prevent smoothing across land-sea boundaries.
+        invert_mask (bool):
+            By default, if a mask is provided and use_mask_boundary is False,
+            all the smoothing coefficients corresponding to a mask value of 1
+            will be zeroed. Setting invert_mask to True reverses this behaviour
+            such that mask values of 0 set the points to be zeroed in the
+            smoothing coefficients. If use_mask_boundary is True this option
+            has no effect.
     Returns:
         iris.cube.CubeList:
             Processed CubeList containing smoothing_coefficients_x and
@@ -87,7 +107,12 @@ def process(
     from improver.utilities.ancillary_creation import OrographicSmoothingCoefficients
 
     plugin = OrographicSmoothingCoefficients(
-        min_smoothing_coefficient, max_smoothing_coefficient, coefficient, power
+        min_gradient_smoothing_coefficient,
+        max_gradient_smoothing_coefficient,
+        coefficient,
+        power,
+        use_mask_boundary,
+        invert_mask,
     )
 
     return plugin(orography)

@@ -49,9 +49,9 @@ def test_basic(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
-        "--max-smoothing-coefficient",
+        "--max-gradient-smoothing-coefficient",
         "0.",
-        "--min-smoothing-coefficient",
+        "--min-gradient-smoothing-coefficient",
         "0.5",
         "--output",
         output_path,
