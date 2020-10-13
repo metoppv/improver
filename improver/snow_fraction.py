@@ -61,8 +61,8 @@ class SnowFraction(PostProcessingPlugin):
 
         Args:
             input_cubes (iris.cube.CubeList):
-                Contains exactly two cubes, one of rain and one of snow. Both either
-                rates or accumulations of the same length and of compatible units.
+                Contains exactly two cubes, one of rain and one of snow. Both must be
+                either rates or accumulations of the same length and of compatible units.
 
         Returns:
             None
@@ -74,7 +74,7 @@ class SnowFraction(PostProcessingPlugin):
         """
         if len(input_cubes) != 2:
             raise ValueError(
-                f"Expected exactly two input cubes, found {len(input_cubes)}"
+                f"Expected exactly 2 input cubes, found {len(input_cubes)}"
             )
         rain_name, snow_name = self._get_input_cube_names(input_cubes)
         self.rain = input_cubes.extract(rain_name).merge_cube()
@@ -108,17 +108,17 @@ class SnowFraction(PostProcessingPlugin):
             raise ValueError(f"Could not find both rain and snow in {cube_names}")
         if rain_name == snow_name:
             raise ValueError(
-                f"Failed to find unique Rain and Snow cubes from {cube_names}"
+                f"Failed to find unique rain and snow cubes from {cube_names}"
             )
         return rain_name, snow_name
 
     def _calculate_snow_fraction(self):
         """
-        Calculates the snow fraction data and interpolates to fill in the missing points
+        Calculates the snow fraction data and interpolates to fill in the missing points.
 
         Returns:
             iris.cube.Cube:
-                Snow fraction cube
+                Snow fraction cube.
 
         """
         snow_fraction_cube = create_new_diagnostic_cube(

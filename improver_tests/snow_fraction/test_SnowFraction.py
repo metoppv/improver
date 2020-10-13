@@ -123,7 +123,7 @@ def test_dims_mismatch_error():
 def test_missing_cube_error():
     """Test the process function with one cube missing"""
     rain, _ = setup_cubes()
-    with pytest.raises(ValueError, match="Expected exactly two input cubes, found 1"):
+    with pytest.raises(ValueError, match="Expected exactly 2 input cubes, found 1"):
         SnowFraction()(iris.cube.CubeList([rain]))
 
 
