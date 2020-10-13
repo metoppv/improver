@@ -38,12 +38,13 @@ from improver import cli
 @cli.with_output
 def process(
     orography: cli.inputcube,
+    mask: cli.inputcube = None,
     *,
     min_gradient_smoothing_coefficient: float = 0.5,
     max_gradient_smoothing_coefficient: float = 0.0,
     coefficient: float = 1.0,
     power: float = 1.0,
-    use_mask_boundary: bool = True,
+    use_mask_boundary: bool = False,
     invert_mask: bool = False,
 ):
     """Generate smoothing coefficients for recursive filtering based on
@@ -77,6 +78,9 @@ def process(
         orography (iris.cube.Cube):
             A 2D field of orography on the grid for which
             smoothing_coefficients are to be generated.
+        mask (iris.cube.Cube):
+            A mask that defines where the smoothing coefficients should
+            be zeroed. Further options below determine how this mask is used.
         min_smoothing_coefficient (float):
             The minimum value of smoothing_coefficient.
         max_smoothing_coefficient (float):
@@ -115,4 +119,4 @@ def process(
         invert_mask,
     )
 
-    return plugin(orography)
+    return plugin(orography, mask)

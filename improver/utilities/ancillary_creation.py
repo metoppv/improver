@@ -30,18 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """A module for creating ancillary data"""
 
+import operator
 import warnings
 
 import iris
 import numpy as np
-import operator
 
 from improver import BasePlugin
 from improver.constants import TRIPLE_PT_WATER
-from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
+from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 
 class OrographicSmoothingCoefficients(BasePlugin):
@@ -83,7 +83,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
         max_gradient_smoothing_coefficient=0.0,
         coefficient=1,
         power=1,
-        use_mask_boundary=True,
+        use_mask_boundary=False,
         invert_mask=False,
     ):
         """
@@ -288,7 +288,9 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 A 2D field of orography on the grid for which
                 smoothing_coefficients are to be generated.
             mask (iris.cube.Cube or None):
-                A mask that defines where recusive
+                A mask that defines where the smoothing coefficients should
+                be zeroed. How the mask is used is determined by the plugin
+                configuration arguments.
         Returns:
             (iris.cube.CubeList): containing:
                 **smoothing_coefficient_x** (iris.cube.Cube): A cube of
@@ -315,7 +317,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
         ):
             raise ValueError(
                 "If a mask is provided is must have the same grid as the "
-                "orogaphy field."
+                "orography field."
             )
 
         # Enforce coordinate order for simpler processing.
@@ -346,7 +348,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
 
         # If a mask has been provided, zero coefficients where required.
         if mask is not None:
-            enforce_coordinate_ordering(mask, mask.coord(axis="y"))
+            enforce_coordinate_ordering(mask, target_order)
             self.zero_masked(*smoothing_coefficients, mask)
 
         for smoothing_coefficient in smoothing_coefficients:

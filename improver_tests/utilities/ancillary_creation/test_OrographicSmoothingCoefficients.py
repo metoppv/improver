@@ -32,16 +32,15 @@
 Unit tests for the OrographicSmoothingCoefficients utility.
 
 """
-import pytest
-
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+import pytest
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.ancillary_creation import OrographicSmoothingCoefficients
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 @pytest.fixture(name="orography")
@@ -114,7 +113,7 @@ def test_init():
     assert result.max_gradient_smoothing_coefficient == 0.0
     assert result.coefficient == 1.0
     assert result.power == 1.0
-    assert result.use_mask_boundary is True
+    assert result.use_mask_boundary is False
 
 
 def test_init_value_error():
@@ -164,13 +163,13 @@ def test_unnormalised_smoothing_coefficients(gradient):
     plugin = OrographicSmoothingCoefficients(coefficient=1, power=1)
     expected = gradient.data.copy()
     result = plugin.unnormalised_smoothing_coefficients(gradient)
-    assert_array_almost_equal(result.data, expected)
+    assert_array_almost_equal(result, expected)
 
     # Coefficient = 0.5, power = 2
     plugin = OrographicSmoothingCoefficients(coefficient=0.5, power=2)
     expected = np.array([0.0, 0.125, 0.5, 12.5])
     result = plugin.unnormalised_smoothing_coefficients(gradient)
-    assert_array_almost_equal(result.data[0, :], expected)
+    assert_array_almost_equal(result[0, :], expected)
 
 
 def test_zero_masked_use_mask_boundary(smoothing_coefficients, mask):
@@ -184,7 +183,7 @@ def test_zero_masked_use_mask_boundary(smoothing_coefficients, mask):
     expected_y[1, 2:4] = 0
     expected_y[3, 2:4] = 0
 
-    plugin = OrographicSmoothingCoefficients()
+    plugin = OrographicSmoothingCoefficients(use_mask_boundary=True)
     plugin.zero_masked(*smoothing_coefficients, mask)
     assert_array_equal(smoothing_coefficients[0].data, expected_x)
     assert_array_equal(smoothing_coefficients[1].data, expected_y)
@@ -199,7 +198,7 @@ def test_zero_masked_whole_area(smoothing_coefficients, mask):
     expected_y = smoothing_coefficients[1].data.copy()
     expected_y[1:4, 2:4] = 0
 
-    plugin = OrographicSmoothingCoefficients(use_mask_boundary=False)
+    plugin = OrographicSmoothingCoefficients()
     plugin.zero_masked(*smoothing_coefficients, mask)
     assert_array_equal(smoothing_coefficients[0].data, expected_x)
     assert_array_equal(smoothing_coefficients[1].data, expected_y)
@@ -214,7 +213,7 @@ def test_zero_masked_whole_area_inverted(smoothing_coefficients, mask):
     expected_y = np.zeros((5, 6), dtype=np.float32)
     expected_y[2, 2:4] = 0.475
 
-    plugin = OrographicSmoothingCoefficients(use_mask_boundary=False, invert_mask=True)
+    plugin = OrographicSmoothingCoefficients(invert_mask=True)
     plugin.zero_masked(*smoothing_coefficients, mask)
     assert_array_equal(smoothing_coefficients[0].data, expected_x)
     assert_array_equal(smoothing_coefficients[1].data, expected_y)
@@ -324,7 +323,7 @@ def test_process_with_mask(orography, mask):
     The masking is performed after scaling, so masking values does not lead to
     different scaling of the smoothing coefficients."""
 
-    # Using default behaviour which zeroes the edges of the masked region.
+    # Using use_mask_boundary=True which zeroes the edges of the masked region.
     # For x this means the coefficients between the left and central columns
     # in the bottom two rows are zeroed.
     # For y this means the coefficients between the top and middle rows
@@ -332,7 +331,7 @@ def test_process_with_mask(orography, mask):
     expected_x = [[0.5, 0.5], [0.0, 0.3], [0.0, 0.1]]
     expected_y = [[0.4, 0.0, 0.0], [0.4, 0.2, 0.0]]
 
-    plugin = OrographicSmoothingCoefficients()
+    plugin = OrographicSmoothingCoefficients(use_mask_boundary=True)
     result_x, result_y = plugin.process(orography, mask[1:4, 1:4])
 
     assert_array_almost_equal(result_x.data, expected_x)
@@ -344,7 +343,7 @@ def test_process_with_mask(orography, mask):
     expected_x = [[0.5, 0.5], [0.0, 0.0], [0.0, 0.0]]
     expected_y = [[0.4, 0.0, 0.0], [0.4, 0.0, 0.0]]
 
-    plugin = OrographicSmoothingCoefficients(use_mask_boundary=False)
+    plugin = OrographicSmoothingCoefficients()
     result_x, result_y = plugin.process(orography, mask[1:4, 1:4])
 
     assert_array_almost_equal(result_x.data, expected_x)
@@ -356,7 +355,7 @@ def test_process_with_mask(orography, mask):
     expected_x = [[0.0, 0.0], [0.0, 0.3], [0.0, 0.1]]
     expected_y = [[0.0, 0.0, 0.0], [0.0, 0.2, 0.0]]
 
-    plugin = OrographicSmoothingCoefficients(use_mask_boundary=False, invert_mask=True)
+    plugin = OrographicSmoothingCoefficients(invert_mask=True)
     result_x, result_y = plugin.process(orography, mask[1:4, 1:4])
 
     assert_array_almost_equal(result_x.data, expected_x)
@@ -368,7 +367,7 @@ def test_process_with_mask(orography, mask):
     enforce_coordinate_ordering(orography, order)
     enforce_coordinate_ordering(mask, order)
 
-    plugin = OrographicSmoothingCoefficients(use_mask_boundary=False, invert_mask=True)
+    plugin = OrographicSmoothingCoefficients(invert_mask=True)
     result_x, result_y = plugin.process(orography, mask[1:4, 1:4])
 
     assert_array_almost_equal(result_x.data, np.array(expected_x).T)
