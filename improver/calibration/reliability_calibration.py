@@ -296,14 +296,14 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         a reliability table using the provided truth.
 
         Args:
-            forecast (numpy.ndarray):
+            forecast (numpy.ndarray or numpy.ma.MaskedArray):
                 An array containing data over an xy slice for a single validity
                 time and threshold.
             truth (numpy.ndarray or numpy.ma.MaskedArray):
                 An array containing a thresholded gridded truth at an
                 equivalent validity time to the forecast array.
         Returns:
-            numpy.ndarray or numpy.ma.MaskedArray:
+            numpy.ma.MaskedArray:
                 An array containing reliability table data for a single time
                 and threshold. The leading dimension corresponds to the rows
                 of a calibration table, the second dimension to the number of
@@ -359,6 +359,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         """
         forecast = np.ma.masked_where(np.ma.getmask(truth), forecast)
         table = self._populate_reliability_bins(forecast, truth)
+        # Zero data underneath mask to support bitwise addition of masks.
         table.data[table.mask] = 0
         return table
 
@@ -385,7 +386,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                 dimensions of the forecast and truth cubes (which are
                 equivalent).
         """
-        if np.ma.isMaskedArray(truth.data):
+        if np.ma.is_masked(truth.data):
             table = self._populate_masked_reliability_bins(forecast.data, truth.data)
             # Bitwise addition of masks. This ensures that only points that are
             # masked in both the existing and new reliability tables are kept
@@ -455,7 +456,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         )
 
         populate_bins_func = self._populate_reliability_bins
-        if np.ma.isMaskedArray(truths.data):
+        if np.ma.is_masked(truths.data):
             populate_bins_func = self._populate_masked_reliability_bins
 
         reliability_tables = iris.cube.CubeList()

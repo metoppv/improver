@@ -447,7 +447,7 @@ class Test__populate_masked_reliability_bins(Test_Setup):
         )._populate_masked_reliability_bins(forecast_slice.data, truth_slice.data)
 
         self.assertSequenceEqual(result.shape, self.expected_table_shape)
-        self.assertIsInstance(result, np.ma.MaskedArray)
+        self.assertTrue(np.ma.is_masked(result))
         assert_array_equal(result.data, self.expected_table_for_mask)
         expected_mask = np.zeros(self.expected_table_for_mask.shape, dtype=bool)
         expected_mask[:, :, 0, :2] = True
