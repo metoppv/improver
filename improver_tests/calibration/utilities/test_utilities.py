@@ -55,9 +55,9 @@ from improver.calibration.utilities import (
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
     set_up_percentile_cube,
     set_up_variable_cube,
-    add_coordinate,
 )
 
 from ..ensemble_calibration.helper_functions import SetupCubes
