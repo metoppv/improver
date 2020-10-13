@@ -65,10 +65,6 @@ class RecursiveFilter(PostProcessingPlugin):
                 may result in values being present in areas that were
                 originally masked.
         Raises:
-            ValueError: If smoothing_coefficient_x is not set such that
-                        0 < smoothing_coefficient_x <= 0.5
-            ValueError: If smoothing_coefficient_y is not set such that
-                        0 < smoothing_coefficient_y <= 0.5
             ValueError: If number of iterations is not None and is set such
                         that iterations is less than 1.
         Warns:
@@ -88,6 +84,7 @@ class RecursiveFilter(PostProcessingPlugin):
         self.iterations = iterations
         self.edge_width = edge_width
         self.re_mask = re_mask
+        self.smoothing_coefficient_name_format = "smoothing_coefficient_{}"
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -284,8 +281,7 @@ class RecursiveFilter(PostProcessingPlugin):
             cube.data = output
         return cube
 
-    @staticmethod
-    def _validate_smoothing_coefficients(cube, smoothing_coefficients_cube):
+    def _validate_and_pad_coefficients(self, cube, smoothing_coefficients):
         """Validate the smoothing coefficients cubes.
 
         Args:
@@ -293,88 +289,92 @@ class RecursiveFilter(PostProcessingPlugin):
                 2D cube containing the input data to which the recursive
                 filter will be applied.
 
-            smoothing_coefficients_cube (iris.cube.Cube):
-                Cube containing array of smoothing_coefficient values that will
-                be used when applying the recursive filter in a specific
+            smoothing_coefficients (iris.cube.CubeList):
+                A cubelist containing two cubes of smoothing_coefficient values,
+                one corresponding to smoothing in the x-direction, and the other
+                to smoothing in the y-direction.
+
+        Returns:
+            list:
+                A list of smoothing coefficients cubes ordered: [x-coeffs, y-coeffs].
+                The coefficients are padded to match the size of the padded cube
+                to which they will be applied.
 
         Raises:
             ValueError: Smoothing coefficient cubes are not named correctly.
+            ValueError: If any smoothing_coefficient cube value is over 0.5
             ValueError: The coordinate to be smoothed within the
                 smoothing coefficient cube is not of the expected length.
             ValueError: The coordinate to be smoothed within the
                 smoothing coefficient cube does not have the expected points.
         """
-        if smoothing_coefficients_cube.name() == "smoothing_coefficient_x":
-            smoothing_axis = "x"
-            non_smoothing_axis = "y"
-        elif smoothing_coefficients_cube.name() == "smoothing_coefficient_y":
-            smoothing_axis = "y"
-            non_smoothing_axis = "x"
-        else:
-            msg = (
-                "The smoothing coefficients cube must be named either "
-                "smoothing_coefficient_x or smoothing_coefficient_y. "
-                "The smoothing coefficients are named: "
-                f"{smoothing_coefficients_cube.name()}"
+        # Ensure cubes are in x, y order.
+        smoothing_coefficients.sort(key=lambda cell: cell.name())
+        axes = ["x", "y"]
+
+        padded_coefficients = []
+        for axis, smoothing_coefficient in zip(axes, smoothing_coefficients):
+
+            # Check the smoothing coefficient cube name is as expected
+            expected_name = self.smoothing_coefficient_name_format.format(axis)
+            if smoothing_coefficient.name() != expected_name:
+                msg = (
+                    "The smoothing coefficient cube name {} does not match the "
+                    "expected name {}".format(
+                        smoothing_coefficient.name(), expected_name
+                    )
+                )
+                raise ValueError(msg)
+
+            # Check the smoothing coefficients do not exceed an empirically determined
+            # maximum value; larger values damage conservation significantly.
+            if (smoothing_coefficient.data > 0.5).any():
+                raise ValueError(
+                    "All smoothing_coefficient values must be less than 0.5. "
+                    "A large smoothing_coefficient value leads to poor "
+                    "conservation of probabilities"
+                )
+
+            for test_axis in axes:
+                coefficient_crd = smoothing_coefficient.coord(axis=test_axis)
+                if test_axis == axis:
+                    expected_points = (
+                        cube.coord(axis=test_axis).points[1:]
+                        + cube.coord(axis=test_axis).points[:-1]
+                    ) / 2
+                else:
+                    expected_points = cube.coord(axis=test_axis).points
+
+                if len(coefficient_crd.points) != len(
+                    expected_points
+                ) or not np.allclose(coefficient_crd.points, expected_points):
+                    msg = (
+                        f"The smoothing coefficients {test_axis} dimension does not "
+                        "have the expected length or values compared with the cube "
+                        "to which smoothing is being applied.\n\nSmoothing "
+                        "coefficient cubes must have coordinates that are:\n"
+                        "- one element shorter along the dimension being smoothed "
+                        f"({axis}) than in the target cube, with points in that "
+                        "dimension equal to the mean of each pair of points along "
+                        "the dimension in the target cube\n- equal to the points "
+                        "in the target cube along the dimension not being smoothed"
+                    )
+                    raise ValueError(msg)
+
+            # Pad the smoothing coefficients to match the padded data shape
+            padded_coefficients.append(
+                pad_cube_with_halo(
+                    smoothing_coefficient,
+                    2 * self.edge_width,
+                    2 * self.edge_width,
+                    pad_method="symmetric",
+                )
             )
-            raise ValueError(msg)
 
-        smoothing_coord = smoothing_coefficients_cube.coord(axis=smoothing_axis)
-        non_smoothing_coord = smoothing_coefficients_cube.coord(axis=non_smoothing_axis)
-
-        mean_points = (
-            cube.coord(axis=smoothing_axis).points[1:]
-            + cube.coord(axis=smoothing_axis).points[:-1]
-        ) / 2
-
-        if len(smoothing_coord.points) != len(mean_points) or not np.allclose(
-            smoothing_coord.points, mean_points
-        ):
-            msg = (
-                f"The points of the {smoothing_axis} spatial dimension of the "
-                "smoothing coefficients must be equal to the mean of each pair "
-                f"of points along the {smoothing_axis} dimension of the input "
-                "cube."
-            )
-            raise ValueError(msg)
-
-        if len(non_smoothing_coord.points) != len(
-            cube.coord(axis=non_smoothing_axis).points
-        ) or not np.allclose(
-            non_smoothing_coord.points, cube.coord(axis=non_smoothing_axis).points
-        ):
-            msg = (
-                f"The points of the {non_smoothing_axis} spatial dimension of "
-                "the smoothing coefficients must be equal to the points along "
-                f"the {non_smoothing_axis} dimension of the input cube."
-            )
-            raise ValueError(msg)
-
-    def _set_smoothing_coefficients(self, smoothing_coefficients_cube):
-        """
-        Set up the smoothing_coefficient parameter.
-
-        Args:
-            smoothing_coefficients_cube (iris.cube.Cube):
-                Cube containing array of smoothing_coefficient values that will
-                be used when applying the recursive filter in a specific
-                direction.
-
-        Returns:
-            iris.cube.Cube:
-                Cube containing a padded array of smoothing_coefficient values
-                for the specified direction.
-        """
-        smoothing_coefficients_cube = pad_cube_with_halo(
-            smoothing_coefficients_cube,
-            2 * self.edge_width,
-            2 * self.edge_width,
-            pad_method="symmetric",
-        )
-        return smoothing_coefficients_cube
+        return padded_coefficients
 
     def process(
-        self, cube, smoothing_coefficients_x, smoothing_coefficients_y, mask_cube=None,
+        self, cube, smoothing_coefficients, mask_cube=None,
     ):
         """
         Set up the smoothing_coefficient parameters and run the recursive
@@ -409,12 +409,10 @@ class RecursiveFilter(PostProcessingPlugin):
             cube (iris.cube.Cube):
                 Cube containing the input data to which the recursive filter
                 will be applied.
-            smoothing_coefficients_x (iris.cube.Cube):
-                Cube containing array of smoothing_coefficient values that will
-                be used when applying the recursive filter along the x-axis.
-            smoothing_coefficients_y (iris.cube.Cube):
-                Cube containing array of smoothing_coefficient values that will
-                be used when applying the recursive filter along the y-axis.
+            smoothing_coefficients (iris.cube.CubeList):
+                A cubelist containing two cubes of smoothing_coefficient values,
+                one corresponding to smoothing in the x-direction, and the other
+                to smoothing in the y-direction.
             mask_cube (iris.cube.Cube or None):
                 Cube containing an external mask to apply to the cube before
                 applying the recursive filter.
@@ -423,29 +421,12 @@ class RecursiveFilter(PostProcessingPlugin):
             iris.cube.Cube:
                 Cube containing the smoothed field after the recursive filter
                 method has been applied.
-
-        Raises:
-            ValueError: If any smoothing_coefficient cube value is over 0.5
         """
-        for smoothing_coefficient in (
+        cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
+        (
             smoothing_coefficients_x,
             smoothing_coefficients_y,
-        ):
-            if (smoothing_coefficient.data > 0.5).any():
-                raise ValueError(
-                    "All smoothing_coefficient values must be less than 0.5. "
-                    "A large smoothing_coefficient value leads to poor "
-                    "conservation of probabilities"
-                )
-        cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
-        self._validate_smoothing_coefficients(cube_format, smoothing_coefficients_x)
-        smoothing_coefficients_x = self._set_smoothing_coefficients(
-            smoothing_coefficients_x
-        )
-        self._validate_smoothing_coefficients(cube_format, smoothing_coefficients_y)
-        smoothing_coefficients_y = self._set_smoothing_coefficients(
-            smoothing_coefficients_y
-        )
+        ) = self._validate_and_pad_coefficients(cube_format, smoothing_coefficients)
 
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
