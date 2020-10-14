@@ -90,7 +90,7 @@ def _make_ukvx_grid():
     return cube
 
 
-def make_point_cube(data_point, name, unit):
+def make_point_ancil_cube(data_point, name, unit):
     """Create a cube containing a single point ancillary value"""
     cube = set_up_variable_cube(
         np.array([[data_point]], dtype=np.float32),
@@ -100,6 +100,8 @@ def make_point_cube(data_point, name, unit):
         domain_corner=(-1036000, -1158000),
     )
     # add bounds for a 2 km grid square
+    # Test1D::section0g fails without this test - bounds appear to be used to
+    # calculate grid length which affects the outputs of this code
     for axis in ['x', 'y']:
         point = cube.coord(axis=axis).points[0]
         cube.coord(axis=axis).bounds = [point-1000., point+1000.]
@@ -357,14 +359,16 @@ class TestSinglePoint:
 
         """
         self.w_cube = None
-        self.aos_cube = make_point_cube(AoS, None, 1)
-        self.s_cube = make_point_cube(Sigma, None, "m")
+        self.aos_cube = make_point_ancil_cube(AoS, None, 1)
+        self.s_cube = make_point_ancil_cube(
+            Sigma, "standard_deviation_of_orography_height", "m"
+        )
         if z_0 is None:
             self.z0_cube = None
         else:
-            self.z0_cube = make_point_cube(z_0, None, "m")
-        self.poro_cube = make_point_cube(pporog, "orography_height", "m")
-        self.moro_cube = make_point_cube(modelorog, "orography_height", "m")
+            self.z0_cube = make_point_ancil_cube(z_0, None, "m")
+        self.poro_cube = make_point_ancil_cube(pporog, "orography_height", "m")
+        self.moro_cube = make_point_ancil_cube(modelorog, "orography_height", "m")
         if heightlevels is not None:
             self.hl_cube = set_up_cube(num_height_levels=len(heightlevels), data=heightlevels)
         else:
@@ -431,10 +435,6 @@ class Test1D(IrisTest):
         """Test AoS is RMDI, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
             AoS=RMDI,
-            Sigma=20.0,
-            z_0=0.2,
-            pporog=250.0,
-            modelorog=230.0,
             heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
@@ -444,10 +444,6 @@ class Test1D(IrisTest):
         """Test AoS is np.nan, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
             AoS=np.nan,
-            Sigma=20.0,
-            z_0=0.2,
-            pporog=250.0,
-            modelorog=230.0,
             heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
@@ -456,11 +452,7 @@ class Test1D(IrisTest):
     def test_section0c(self):
         """Test Sigma is RMDI, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2,
             Sigma=RMDI,
-            z_0=0.2,
-            pporog=250.0,
-            modelorog=230.0,
             heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
@@ -469,11 +461,7 @@ class Test1D(IrisTest):
     def test_section0d(self):
         """Test Sigma is np.nan, point should not do anything, uin = uout."""
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2,
             Sigma=np.nan,
-            z_0=0.2,
-            pporog=250.0,
-            modelorog=230.0,
             heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
@@ -486,11 +474,8 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2,
-            Sigma=20.0,
             z_0=RMDI,
             pporog=230.0,
-            modelorog=230.0,
             heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
@@ -503,11 +488,8 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2,
-            Sigma=20.0,
             z_0=np.nan,
             pporog=230.0,
-            modelorog=230.0,
             heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
@@ -520,11 +502,7 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2,
-            Sigma=20.0,
             z_0=RMDI,
-            pporog=250.0,
-            modelorog=230.0,
             heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
@@ -540,11 +518,7 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2,
-            Sigma=20.0,
-            z_0=0.2,
             pporog=RMDI,
-            modelorog=230.0,
             heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
@@ -563,11 +537,7 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2,
-            Sigma=20.0,
-            z_0=0.2,
             pporog=np.nan,
-            modelorog=230.0,
             heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
@@ -586,10 +556,6 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2,
-            Sigma=20.0,
-            z_0=0.2,
-            pporog=250.0,
             modelorog=RMDI,
             heightlevels=self.hls,
         )
@@ -607,9 +573,7 @@ class Test1D(IrisTest):
 
         """
         hls = [0.2, 3, 13, RMDI, 133, 333, 1133]
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230, heightlevels=hls
-        )
+        landpointtests_hc_rc = TestSinglePoint(heightlevels=hls)
         with self.assertRaises(ValueError):
             _ = landpointtests_hc_rc.run_hc_rc(self.uin)
 
@@ -621,9 +585,7 @@ class Test1D(IrisTest):
 
         """
         hls = [0.2, 3, 13, np.nan, 133, 333, 1133]
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2, Sigma=20.0, z_0=0.2, pporog=250, modelorog=230, heightlevels=hls
-        )
+        landpointtests_hc_rc = TestSinglePoint(heightlevels=hls)
         with self.assertRaises(ValueError):
             _ = landpointtests_hc_rc.run_hc_rc(self.uin)
 
@@ -635,14 +597,7 @@ class Test1D(IrisTest):
 
         """
         uin = [20.0, 20.0, 20.0, RMDI, RMDI, 20.0, 0.0]
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2,
-            Sigma=20.0,
-            z_0=0.2,
-            pporog=250,
-            modelorog=230,
-            heightlevels=self.hls,
-        )
+        landpointtests_hc_rc = TestSinglePoint(heightlevels=self.hls)
         with self.assertRaises(ValueError):
             _ = landpointtests_hc_rc.run_hc_rc(uin)
 
@@ -654,14 +609,7 @@ class Test1D(IrisTest):
 
         """
         uin = [20.0, 20.0, 20.0, np.nan, 20.0, 20.0, 20.0]
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=0.2,
-            Sigma=20.0,
-            z_0=0.2,
-            pporog=250,
-            modelorog=230,
-            heightlevels=self.hls,
-        )
+        landpointtests_hc_rc = TestSinglePoint(heightlevels=self.hls)
         with self.assertRaises(ValueError):
             _ = landpointtests_hc_rc.run_hc_rc(uin)
 
@@ -673,7 +621,7 @@ class Test1D(IrisTest):
         uin = uout
 
         """
-        landpointtests_hc = TestSinglePoint(z_0=None, pporog=250.0, modelorog=250.0)
+        landpointtests_hc = TestSinglePoint(z_0=None, modelorog=250.0)
         land_hc_rc = landpointtests_hc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc.w_cube, land_hc_rc)
 
@@ -685,7 +633,7 @@ class Test1D(IrisTest):
         uin <= uout, at least one height has uin < uout.
 
         """
-        landpointtests_hc = TestSinglePoint(z_0=None, pporog=250.0, modelorog=230.0)
+        landpointtests_hc = TestSinglePoint(z_0=None)
         land_hc_rc = landpointtests_hc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data >= landpointtests_hc.w_cube.data).all()
@@ -700,7 +648,7 @@ class Test1D(IrisTest):
         uin >= uout, at least one height has uin > uout, uout[0] = 0.
 
         """
-        landpointtests_rc = TestSinglePoint(z_0=0.2, pporog=250.0, modelorog=250.0)
+        landpointtests_rc = TestSinglePoint(modelorog=250.0)
         land_hc_rc = landpointtests_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_rc.w_cube.data).all()
@@ -719,7 +667,7 @@ class Test1D(IrisTest):
         Must be 0.
 
         """
-        landpointtests_hc_rc = TestSinglePoint(z_0=0.2, pporog=230.0, modelorog=250.0)
+        landpointtests_hc_rc = TestSinglePoint(pporog=230.0, modelorog=250.0)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -736,7 +684,7 @@ class Test1D(IrisTest):
         uin = uout.
 
         """
-        landpointtests_hc_rc = TestSinglePoint(z_0=0.2, AoS=0.0)
+        landpointtests_hc_rc = TestSinglePoint(AoS=0.0)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
@@ -748,7 +696,7 @@ class Test1D(IrisTest):
         uin = uout.
 
         """
-        landpointtests_hc_rc = TestSinglePoint(z_0=0.2, Sigma=0.0)
+        landpointtests_hc_rc = TestSinglePoint(Sigma=0.0)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
@@ -782,7 +730,7 @@ class Test2D(IrisTest):
         hlvs = 10
         uin = np.ones(hlvs) * 20
         heights = ((np.arange(hlvs) + 1) ** 2.0) * 12.0
-        multip_hc_rc = TestMultiPoint(3)
+        multip_hc_rc = TestMultiPoint()
         land_hc_rc = multip_hc_rc.run_hc_rc(uin, dtime=1, height=heights)
         hidx = land_hc_rc.shape.index(hlvs)
         for field in land_hc_rc.slices_over(hidx):
@@ -853,7 +801,7 @@ class Test2D(IrisTest):
         hlvs = 10
         uin = (np.ones(hlvs) * 20).astype(np.float32)
         heights = (((np.arange(hlvs) + 1) ** 2.0) * 12.0).astype(np.float32)
-        multip_hc_rc = TestMultiPoint(3)
+        multip_hc_rc = TestMultiPoint()
         land_hc_rc = multip_hc_rc.run_hc_rc(uin, dtime=1, height=heights)
         self.assertEqual(land_hc_rc.dtype, np.float32)
 
