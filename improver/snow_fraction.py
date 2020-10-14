@@ -81,9 +81,9 @@ class SnowFraction(PostProcessingPlugin):
         self.snow = input_cubes.extract(snow_name).merge_cube()
         self.snow.convert_units(self.rain.units)
         if not spatial_coords_match(self.rain, self.snow):
-            raise ValueError("Rain and Snow cubes are not on the same grid")
+            raise ValueError("Rain and snow cubes are not on the same grid")
         if not self.rain.coord("time") == self.snow.coord("time"):
-            raise ValueError("Rain and Snow cubes do not have the same time coord")
+            raise ValueError("Rain and snow cubes do not have the same time coord")
 
     @staticmethod
     def _get_input_cube_names(input_cubes):

@@ -106,7 +106,7 @@ def test_acclen_mismatch_error():
     )
     _ = [snow.replace_coord(coord) for coord, _ in time_coords]
     with pytest.raises(
-        ValueError, match="Rain and Snow cubes do not have the same time coord"
+        ValueError, match="Rain and snow cubes do not have the same time coord"
     ):
         SnowFraction()(iris.cube.CubeList([rain, snow]))
 
@@ -115,7 +115,7 @@ def test_dims_mismatch_error():
     """Test the process function with mismatched dimensions"""
     rain, snow = setup_cubes(snow_data=np.array([[0, 0.5]], dtype=np.float32))
     with pytest.raises(
-        ValueError, match="Rain and Snow cubes are not on the same grid"
+        ValueError, match="Rain and snow cubes are not on the same grid"
     ):
         SnowFraction()(iris.cube.CubeList([rain, snow]))
 
@@ -146,7 +146,7 @@ def test_input_name_matches_both_phases_error():
     snow.rename("puppies")
     with pytest.raises(
         ValueError,
-        match="Failed to find unique Rain and Snow cubes from \['its_raining_snowy_kittens', 'puppies'\]",
+        match="Failed to find unique rain and snow cubes from \['its_raining_snowy_kittens', 'puppies'\]",
     ):
         SnowFraction()(iris.cube.CubeList([rain, snow]))
 
