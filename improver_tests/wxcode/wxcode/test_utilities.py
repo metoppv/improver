@@ -39,9 +39,6 @@ from tempfile import mkdtemp
 import iris
 import numpy as np
 import pytest
-from cf_units import Unit, date2num
-from iris.coords import DimCoord
-from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
@@ -85,7 +82,7 @@ def set_up_wxcube(time_points=None):
         domain_corner=(0, -30000),
         time=datetime.datetime(2018, 9, 12, 5, 43),
         frt=datetime.datetime(2018, 9, 12, 3),
-        attributes=weather_code_attributes()
+        attributes=weather_code_attributes(),
     )
 
     if time_points is not None:
@@ -115,7 +112,7 @@ def set_up_wxcube_lat_lon():
         grid_spacing=1,
         time=datetime.datetime(2018, 9, 12, 5, 43),
         frt=datetime.datetime(2018, 9, 12, 3),
-        attributes=weather_code_attributes()
+        attributes=weather_code_attributes(),
     )
 
 
@@ -261,7 +258,7 @@ class Test_update_daynight(IrisTest):
         result = update_daynight(cube)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "weather_code")
-        self.assertEqual(result.units, Unit("1"))
+        self.assertEqual(result.units, "1")
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
 
@@ -341,7 +338,7 @@ class Test_update_daynight(IrisTest):
                 datetime.datetime(2018, 9, 12, 6),
                 datetime.datetime(2018, 9, 12, 7),
             ]
-        ) 
+        )
         expected_result = np.ones((3, 16, 16))
         expected_result[0, :, :] = 0
         result = update_daynight(cube)
@@ -353,7 +350,7 @@ class Test_update_daynight(IrisTest):
         result = update_daynight(cube)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "weather_code")
-        self.assertEqual(result.units, Unit("1"))
+        self.assertEqual(result.units, "1")
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
 
