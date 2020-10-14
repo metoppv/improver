@@ -256,7 +256,7 @@ class Test_update_daynight(IrisTest):
         """Test that the function returns a weather code cube."""
         cube = set_up_wxcube()
         result = update_daynight(cube)
-        self.assertIsInstance(result, Cube)
+        self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "weather_code")
         self.assertEqual(result.units, "1")
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
@@ -348,7 +348,7 @@ class Test_update_daynight(IrisTest):
         """Test that the function returns a weather code lat lon cube.."""
         cube = set_up_wxcube_lat_lon()
         result = update_daynight(cube)
-        self.assertIsInstance(result, Cube)
+        self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "weather_code")
         self.assertEqual(result.units, "1")
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
