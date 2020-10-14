@@ -33,6 +33,7 @@
 
 import unittest
 
+import datetime
 import iris
 import numpy as np
 from cf_units import Unit
@@ -41,6 +42,10 @@ from iris.tests import IrisTest
 
 from improver.constants import RMDI
 from improver.grids import STANDARD_GRID_CCRS
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_variable_cube,
+    add_coordinate,
+)
 from improver.wind_calculations.wind_downscaling import RoughnessCorrection
 
 
@@ -85,24 +90,46 @@ def _make_ukvx_grid():
     return cube
 
 
+def make_point_cube(data_point, name, unit):
+    """Create a cube containing a single point ancillary value"""
+    cube = set_up_variable_cube(
+        np.array([[data_point]], dtype=np.float32),
+        name=name,
+        units=unit,
+        spatial_grid="equalarea",
+        domain_corner=(-1036000, -1158000),
+    )
+    # add bounds for a 2 km grid square
+    for axis in ['x', 'y']:
+        point = cube.coord(axis=axis).points[0]
+        cube.coord(axis=axis).bounds = [point-1000., point+1000.]
+    for coord in ["time", "forecast_reference_time", "forecast_period"]:
+        cube.remove_coord(coord)
+    return cube
+
+
 def set_up_cube(
     num_time_points=1,
     num_grid_points=1,
-    num_height_levels=7,
+    num_height_levels=1,
     data=None,
     name=None,
     unit=None,
     height=None,
 ):
     """Set up a UK model standard grid (UKVX) cube."""
+
+    #cube = set_up_variable_cube()
     cubel = iris.cube.CubeList()
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     t_0 = 402192.5
+
     if isinstance(num_grid_points, int):
         num_grid_points_x = num_grid_points_y = num_grid_points
     else:
         num_grid_points_x = num_grid_points[0]
         num_grid_points_y = num_grid_points[1]
+
     for i_idx in range(num_height_levels):
         cubel1 = iris.cube.CubeList()
         for j_idx in range(num_time_points):
@@ -121,41 +148,17 @@ def set_up_cube(
         cubel.append(cubel1.merge_cube())
     cubel = cubel.merge(0)
     cube = cubel[0]
+
     if data is not None:
-        try:
-            data = np.array(data, dtype=np.float32)
-            cube.data = data.reshape(cube.data.shape)
-        except ValueError as err:
-            if err == "total size of new array must be unchanged":
-                msg = (
-                    "supplied data does not fit the cube."
-                    "cube dimensions: {} vs. supplied data {}"
-                )
-                raise ValueError(msg.format(cube.shape, data.shape))
-            raise ValueError(err)
+        data = np.array(data, dtype=np.float32)
+        cube.data = data.reshape(cube.data.shape)
 
     if name is not None:
-        try:
-            cube.standard_name = name
-        except ValueError as err:
-            msg = (
-                "error trying to set the supplied name as cube data name: "
-                "{}".format(err)
-            )
-            raise ValueError(msg)
-        except TypeError as err:
-            msg = (
-                "error trying to set the supplied name as cube data name: "
-                "the name should be string and have a valid variable name "
-                "{}".format(err)
-            )
-            raise ValueError(msg)
+        cube.rename(name)
+
     if unit is not None:
-        try:
-            cube.units = Unit(unit)
-        except ValueError as err:
-            msg = "error trying to set Units to cube. supplied unit: {}"
-            raise ValueError(msg.format(unit))
+        cube.units = Unit(unit)
+
     return cube
 
 
@@ -211,28 +214,28 @@ class TestMultiPoint:
             modelorog = np.ones([n_x, n_y]) * 230.0
         self.w_cube = None
         self.aos_cube = set_up_cube(
-            1, [n_x, n_y], 1, data=AoS, height=0, name=None, unit=1
+            num_grid_points=[n_x, n_y], data=AoS, height=0, name=None, unit=1
         )
         self.s_cube = set_up_cube(
-            1, [n_x, n_y], 1, data=Sigma, height=0, name=None, unit="m"
+            num_grid_points=[n_x, n_y], data=Sigma, height=0, name=None, unit="m"
         )
         if z_0 is None:
             self.z0_cube = None
         elif isinstance(z_0, float):
             z_0 = np.ones([n_x, n_y]) * z_0
             self.z0_cube = set_up_cube(
-                1, [n_x, n_y], 1, data=z_0, height=0, name=None, unit="m"
+                num_grid_points=[n_x, n_y], data=z_0, height=0, name=None, unit="m"
             )
         elif isinstance(z_0, list):
             z_0 = np.array(z_0)
             self.z0_cube = set_up_cube(
-                1, [n_x, n_y], 1, data=z_0, height=0, name=None, unit="m"
+                num_grid_points=[n_x, n_y], data=z_0, height=0, name=None, unit="m"
             )
         self.poro_cube = set_up_cube(
-            1, [n_x, n_y], 1, data=pporog, height=0, name=None, unit="m"
+            num_grid_points=[n_x, n_y], data=pporog, height=0, name=None, unit="m"
         )
         self.moro_cube = set_up_cube(
-            1, [n_x, n_y], 1, data=modelorog, height=0, name=None, unit="m"
+            num_grid_points=[n_x, n_y], data=modelorog, height=0, name=None, unit="m"
         )
 
     def run_hc_rc(self, wind, dtime=1, height=None, aslist=False):
@@ -271,9 +274,8 @@ class TestMultiPoint:
                     ) * windfield.reshape(windfield.shape + (1, 1, 1))
                 self.w_cube.append(
                     set_up_cube(
-                        1,
-                        [self.n_x, self.n_y],
-                        windfield.shape[0],
+                        num_grid_points=[self.n_x, self.n_y],
+                        num_height_levels=windfield.shape[0],
                         data=windfield,
                         name="wind_speed",
                         unit="m s-1",
@@ -292,9 +294,9 @@ class TestMultiPoint:
                     wind.shape + (1, 1)
                 )
             self.w_cube = set_up_cube(
-                dtime,
-                [self.n_x, self.n_y],
-                wind.shape[0],
+                num_time_points=dtime,
+                num_grid_points=[self.n_x, self.n_y],
+                num_height_levels=wind.shape[0],
                 data=wind,
                 name="wind_speed",
                 unit="m s-1",
@@ -355,16 +357,16 @@ class TestSinglePoint:
 
         """
         self.w_cube = None
-        self.aos_cube = set_up_cube(1, 1, 1, data=AoS, name=None, unit=1)
-        self.s_cube = set_up_cube(1, 1, 1, data=Sigma, name=None, unit="m")
+        self.aos_cube = make_point_cube(AoS, None, 1)
+        self.s_cube = make_point_cube(Sigma, None, "m")
         if z_0 is None:
             self.z0_cube = None
         else:
-            self.z0_cube = set_up_cube(1, 1, 1, data=z_0, name=None, unit="m")
-        self.poro_cube = set_up_cube(1, 1, 1, data=pporog, name=None, unit="m")
-        self.moro_cube = set_up_cube(1, 1, 1, data=modelorog, name=None, unit="m")
+            self.z0_cube = make_point_cube(z_0, None, "m")
+        self.poro_cube = make_point_cube(pporog, "orography_height", "m")
+        self.moro_cube = make_point_cube(modelorog, "orography_height", "m")
         if heightlevels is not None:
-            self.hl_cube = set_up_cube(1, 1, len(heightlevels), data=heightlevels)
+            self.hl_cube = set_up_cube(num_height_levels=len(heightlevels), data=heightlevels)
         else:
             self.hl_cube = None
 
@@ -387,9 +389,8 @@ class TestSinglePoint:
         elif wind.ndim == 2:
             wind = wind.reshape([wind.shape[0], 1, wind.shape[1]])
         self.w_cube = set_up_cube(
-            wind.shape[0],
-            1,
-            wind.shape[2],
+            num_time_points=wind.shape[0],
+            num_height_levels=wind.shape[2],
             data=np.rollaxis(wind, 2, start=0),
             name="wind_speed",
             unit="m s-1",
@@ -866,9 +867,7 @@ class Test2D(IrisTest):
         """
         landpointtests_rc = TestSinglePoint(z_0=0.2, pporog=250.0, modelorog=250.0)
         landpointtests_rc.z0_cube = set_up_cube(
-            1,
-            [1, 2],
-            1,
+            num_grid_points=[1, 2],
             data=np.array(
                 [landpointtests_rc.z0_cube.data, landpointtests_rc.z0_cube.data]
             ),
@@ -889,9 +888,7 @@ class Test2D(IrisTest):
         """
         landpointtests_rc = TestSinglePoint(z_0=0.2, pporog=250.0, modelorog=250.0)
         landpointtests_rc.moro_cube = set_up_cube(
-            1,
-            [1, 2],
-            1,
+            num_grid_points=[1, 2],
             data=np.array(
                 [landpointtests_rc.moro_cube.data, landpointtests_rc.moro_cube.data]
             ),
