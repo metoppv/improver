@@ -31,9 +31,9 @@
 """Unit tests for plugin wind_downscaling.RoughnessCorrection."""
 
 
+import datetime
 import unittest
 
-import datetime
 import iris
 import numpy as np
 from cf_units import Unit
@@ -43,8 +43,8 @@ from iris.tests import IrisTest
 from improver.constants import RMDI
 from improver.grids import STANDARD_GRID_CCRS
 from improver.synthetic_data.set_up_test_cubes import (
-    set_up_variable_cube,
     add_coordinate,
+    set_up_variable_cube,
 )
 from improver.wind_calculations.wind_downscaling import RoughnessCorrection
 
@@ -92,21 +92,38 @@ def _make_ukvx_grid():
 
 def make_point_ancil_cube(data_point, name, unit):
     """Create a cube containing a single point ancillary value"""
+    cube = make_ancil_cube([[data_point]], name, unit)
+    return cube
+
+
+def make_ancil_cube(data, name, unit, shape=None):
+    """Create a multi-valued ancillary cube"""
+    data = np.array(data, dtype=np.float32)
+    if shape is not None:
+        data = data.reshape(shape)
     cube = set_up_variable_cube(
-        np.array([[data_point]], dtype=np.float32),
+        data,
         name=name,
         units=unit,
         spatial_grid="equalarea",
         domain_corner=(-1036000, -1158000),
+        grid_spacing=2000,
     )
-    # add bounds for a 2 km grid square
-    # Test1D::section0g fails without this test - bounds appear to be used to
-    # calculate grid length which affects the outputs of this code
-    for axis in ['x', 'y']:
-        point = cube.coord(axis=axis).points[0]
-        cube.coord(axis=axis).bounds = [point-1000., point+1000.]
+    # add bounds for a 2 km grid spacing (missing from length 1 dimensions)
+    for axis in ["x", "y"]:
+        points = cube.coord(axis=axis).points
+        cube.coord(axis=axis).bounds = np.array([points - 1000.0, points + 1000.0]).T
+    # remove unneeded time coordinates
     for coord in ["time", "forecast_reference_time", "forecast_period"]:
         cube.remove_coord(coord)
+    return cube
+
+
+def make_point_height_cube(heights_data):
+    """Create a multi-level height cube"""
+    flat_cube = make_point_ancil_cube(1, None, None)
+    cube = add_coordinate(flat_cube, range(len(heights_data)), "model_level_number", 1)
+    cube.data = np.array(heights_data).reshape(len(heights_data), 1, 1)
     return cube
 
 
@@ -120,8 +137,18 @@ def set_up_cube(
     height=None,
 ):
     """Set up a UK model standard grid (UKVX) cube."""
+    """
+    if len(data.shape) == 2:
+        cube = set_up_variable_cube(
+            np.array(data, dtype=np.float32),
+            name=name,
+            units=unit,
+            spatial_grid="equalarea",
+            domain_corner=(-1036000, -1158000),
+        )
 
-    #cube = set_up_variable_cube()
+
+    """
     cubel = iris.cube.CubeList()
     tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
     t_0 = 402192.5
@@ -136,7 +163,9 @@ def set_up_cube(
         cubel1 = iris.cube.CubeList()
         for j_idx in range(num_time_points):
             cube = _make_ukvx_grid()
-            cube = cube[:num_grid_points_x, :num_grid_points_y]
+            cube = cube[
+                :num_grid_points_x, :num_grid_points_y
+            ]  # BUG transposed dimensions
             cube.add_aux_coord(AuxCoord(t_0 + j_idx, "time", units=tunit))
             if height is None:
                 cube.add_aux_coord(AuxCoord(i_idx, "model_level_number"))
@@ -199,7 +228,7 @@ class TestMultiPoint:
                 Model orography field on post-processing grid
 
         """
-        if isinstance(nx_ny, int):
+        if isinstance(nx_ny, int):  # BUG assumes x/y ordering - rename these inputs
             n_x = n_y = nx_ny
         else:
             n_x = nx_ny[0]
@@ -215,29 +244,23 @@ class TestMultiPoint:
         if modelorog is None:
             modelorog = np.ones([n_x, n_y]) * 230.0
         self.w_cube = None
-        self.aos_cube = set_up_cube(
-            num_grid_points=[n_x, n_y], data=AoS, height=0, name=None, unit=1
-        )
-        self.s_cube = set_up_cube(
-            num_grid_points=[n_x, n_y], data=Sigma, height=0, name=None, unit="m"
+        self.aos_cube = make_ancil_cube(AoS, None, 1, shape=(n_x, n_y))
+        self.s_cube = make_ancil_cube(
+            Sigma, "standard_deviation_of_orography_height", "m", shape=(n_x, n_y)
         )
         if z_0 is None:
             self.z0_cube = None
         elif isinstance(z_0, float):
             z_0 = np.ones([n_x, n_y]) * z_0
-            self.z0_cube = set_up_cube(
-                num_grid_points=[n_x, n_y], data=z_0, height=0, name=None, unit="m"
-            )
+            self.z0_cube = make_ancil_cube(z_0, None, "m")
         elif isinstance(z_0, list):
             z_0 = np.array(z_0)
-            self.z0_cube = set_up_cube(
-                num_grid_points=[n_x, n_y], data=z_0, height=0, name=None, unit="m"
-            )
-        self.poro_cube = set_up_cube(
-            num_grid_points=[n_x, n_y], data=pporog, height=0, name=None, unit="m"
+            self.z0_cube = make_ancil_cube(z_0, None, "m", shape=(n_x, n_y))
+        self.poro_cube = make_ancil_cube(
+            pporog, "orography_height", "m", shape=(n_x, n_y)
         )
-        self.moro_cube = set_up_cube(
-            num_grid_points=[n_x, n_y], data=modelorog, height=0, name=None, unit="m"
+        self.moro_cube = make_ancil_cube(
+            modelorog, "orography_height", "m", shape=(n_x, n_y)
         )
 
     def run_hc_rc(self, wind, dtime=1, height=None, aslist=False):
@@ -370,7 +393,7 @@ class TestSinglePoint:
         self.poro_cube = make_point_ancil_cube(pporog, "orography_height", "m")
         self.moro_cube = make_point_ancil_cube(modelorog, "orography_height", "m")
         if heightlevels is not None:
-            self.hl_cube = set_up_cube(num_height_levels=len(heightlevels), data=heightlevels)
+            self.hl_cube = make_point_height_cube(heightlevels)
         else:
             self.hl_cube = None
 
@@ -433,37 +456,25 @@ class Test1D(IrisTest):
 
     def test_section0a(self):
         """Test AoS is RMDI, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=RMDI,
-            heightlevels=self.hls,
-        )
+        landpointtests_hc_rc = TestSinglePoint(AoS=RMDI, heightlevels=self.hls,)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0b(self):
         """Test AoS is np.nan, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(
-            AoS=np.nan,
-            heightlevels=self.hls,
-        )
+        landpointtests_hc_rc = TestSinglePoint(AoS=np.nan, heightlevels=self.hls,)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0c(self):
         """Test Sigma is RMDI, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(
-            Sigma=RMDI,
-            heightlevels=self.hls,
-        )
+        landpointtests_hc_rc = TestSinglePoint(Sigma=RMDI, heightlevels=self.hls,)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0d(self):
         """Test Sigma is np.nan, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(
-            Sigma=np.nan,
-            heightlevels=self.hls,
-        )
+        landpointtests_hc_rc = TestSinglePoint(Sigma=np.nan, heightlevels=self.hls,)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
@@ -474,9 +485,7 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            z_0=RMDI,
-            pporog=230.0,
-            heightlevels=self.hls,
+            z_0=RMDI, pporog=230.0, heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
@@ -488,9 +497,7 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            z_0=np.nan,
-            pporog=230.0,
-            heightlevels=self.hls,
+            z_0=np.nan, pporog=230.0, heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
@@ -501,10 +508,7 @@ class Test1D(IrisTest):
         modeloro < pporo, so point should do positive HC, uin < uout.
 
         """
-        landpointtests_hc_rc = TestSinglePoint(
-            z_0=RMDI,
-            heightlevels=self.hls,
-        )
+        landpointtests_hc_rc = TestSinglePoint(z_0=RMDI, heightlevels=self.hls,)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue((land_hc_rc.data > landpointtests_hc_rc.w_cube.data).all())
 
@@ -517,10 +521,7 @@ class Test1D(IrisTest):
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(
-            pporog=RMDI,
-            heightlevels=self.hls,
-        )
+        landpointtests_hc_rc = TestSinglePoint(pporog=RMDI, heightlevels=self.hls,)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -536,10 +537,7 @@ class Test1D(IrisTest):
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(
-            pporog=np.nan,
-            heightlevels=self.hls,
-        )
+        landpointtests_hc_rc = TestSinglePoint(pporog=np.nan, heightlevels=self.hls,)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -555,10 +553,7 @@ class Test1D(IrisTest):
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(
-            modelorog=RMDI,
-            heightlevels=self.hls,
-        )
+        landpointtests_hc_rc = TestSinglePoint(modelorog=RMDI, heightlevels=self.hls,)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -814,15 +809,10 @@ class Test2D(IrisTest):
 
         """
         landpointtests_rc = TestSinglePoint(z_0=0.2, pporog=250.0, modelorog=250.0)
-        landpointtests_rc.z0_cube = set_up_cube(
-            num_grid_points=[1, 2],
-            data=np.array(
-                [landpointtests_rc.z0_cube.data, landpointtests_rc.z0_cube.data]
-            ),
-            height=0,
-            name=None,
-            unit="m",
+        z0_data = np.array(
+            [landpointtests_rc.z0_cube.data, landpointtests_rc.z0_cube.data]
         )
+        landpointtests_rc.z0_cube = make_ancil_cube(z0_data, None, "m", shape=(1, 2))
         msg = "ancillary grids are not consistent"
         with self.assertRaisesRegex(ValueError, msg):
             _ = landpointtests_rc.run_hc_rc(self.uin)
@@ -835,14 +825,11 @@ class Test2D(IrisTest):
 
         """
         landpointtests_rc = TestSinglePoint(z_0=0.2, pporog=250.0, modelorog=250.0)
-        landpointtests_rc.moro_cube = set_up_cube(
-            num_grid_points=[1, 2],
-            data=np.array(
-                [landpointtests_rc.moro_cube.data, landpointtests_rc.moro_cube.data]
-            ),
-            height=0,
-            name=None,
-            unit="m",
+        moro_data = np.array(
+            [landpointtests_rc.moro_cube.data, landpointtests_rc.moro_cube.data]
+        )
+        landpointtests_rc.moro_cube = make_ancil_cube(
+            moro_data, "orography_height", "m", shape=(1, 2)
         )
         msg = "ancillary grids are not consistent"
         with self.assertRaisesRegex(ValueError, msg):
