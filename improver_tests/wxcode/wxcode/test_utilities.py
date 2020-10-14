@@ -169,14 +169,11 @@ def set_up_wxcube(time_points=None):
     return iris.util.squeeze(cube)
 
 
-def set_up_wxcube_lat_lon(time_points=None):
+def set_up_wxcube_lat_lon():
 
     """
-    Set up a lat-lon wxcube
-
-    Args:
-        time_points (numpy.ndarray):
-            Array of time points
+    Set up a lat-lon wxcube for a particular time and location, to include
+    the terminator and test the "update_daynight" functionality
 
     Returns:
         iris.cube.Cube:
@@ -184,19 +181,18 @@ def set_up_wxcube_lat_lon(time_points=None):
             data shape (time_points, 16, 16)
             grid covering 8W to 7E, 49N to 64N
     """
-    num_grid_points = 16
-    cube = _core_wxcube(time_points, num_grid_points)
-
-    lon_points = np.linspace(-8, 7, num_grid_points)
-    lat_points = np.linspace(49, 64, num_grid_points)
-
-    cube.add_dim_coord(
-        DimCoord(lat_points, "latitude", units="degrees", coord_system=ELLIPSOID), 1
+    cube = set_up_variable_cube(
+        np.ones((16, 16), dtype=np.float32),
+        name="weather_code",
+        units=1,
+        spatial_grid="latlon",
+        domain_corner=(49, -8),
+        grid_spacing=1,
+        time=datetime.datetime(2018, 9, 12, 5, 43),
+        frt=datetime.datetime(2018, 9, 12, 3),
+        attributes=weather_code_attributes()
     )
-    cube.add_dim_coord(
-        DimCoord(lon_points, "longitude", units="degrees", coord_system=ELLIPSOID), 2
-    )
-    return iris.util.squeeze(cube)
+    return cube
 
 
 class Test_wx_dict(IrisTest):
