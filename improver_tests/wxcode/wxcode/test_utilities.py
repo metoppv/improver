@@ -62,76 +62,13 @@ from improver.wxcode.utilities import (
 )
 
 
-def datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=43):
-    """
-    Convert date and time to a numdateval for use in a cube
-
-    Args:
-        year (int):
-           require year, default is 2018
-        month (int):
-           require year, default is 9
-        day (int):
-           require year, default is 12
-        hour (int):
-           require year, default is 5
-        minutes (int):
-           require year, default is 43
-
-    Default values should be roughly sunrise in Exeter.
-
-    Returns:
-        float:
-           date and time as a value relative to time_origin
-    """
-
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    dateval = datetime.datetime(year, month, day, hour, minutes)
-    numdateval = date2num(dateval, time_origin, calendar)
-    return numdateval
-
-
-def _core_wxcube(time_points, num_grid_points):
-    """
-    Set up a wxcube with unnamed spatial dimensions
-
-    Args:
-        time_points (numpy.ndarray):
-            Array of time points
-        num_grid_points (int):
-            Side length of square spatial grid
-
-    Returns:
-        iris.cube.Cube:
-            cube of weather codes set to 1, with a leading time dimension if
-            more than one time is provided.
-            data shape (<time_points>, num_grid_points, num_grid_points)
-    """
-    if time_points is None:
-        time_points = np.array([datetime_to_numdateval()])
-
-    data = np.ones((len(time_points), num_grid_points, num_grid_points))
-
-    cube = Cube(
-        data, long_name="weather_code", units="1", attributes=weather_code_attributes()
-    )
-
-    time_origin = "hours since 1970-01-01 00:00:00"
-    calendar = "gregorian"
-    tunit = Unit(time_origin, calendar)
-
-    cube.add_dim_coord(DimCoord(time_points, standard_name="time", units=tunit), 0)
-    return cube
-
-
 def set_up_wxcube(time_points=None):
     """
     Set up a wxcube
 
     Args:
-        time_points (numpy.ndarray):
-            Array of time points
+        time_points (list of datetime.datetime):
+            List of time points as datetime instances
 
     Returns:
         iris.cube.Cube:
@@ -140,33 +77,21 @@ def set_up_wxcube(time_points=None):
             grid covering 0 to 30km west of origin and
             0 to 30km north of origin. origin = 54.9N 2.5W
     """
-    num_grid_points = 16
-    cube = _core_wxcube(time_points, num_grid_points)
-
-    step_size = 2000
-    y_points = np.arange(0, step_size * num_grid_points, step_size)
-    cube.add_dim_coord(
-        DimCoord(
-            y_points,
-            "projection_y_coordinate",
-            units="m",
-            coord_system=STANDARD_GRID_CCRS,
-        ),
-        1,
+    cube = set_up_variable_cube(
+        np.ones((16, 16), dtype=np.float32),
+        name="weather_code",
+        units=1,
+        spatial_grid="equalarea",
+        domain_corner=(0, -30000),
+        time=datetime.datetime(2018, 9, 12, 5, 43),
+        frt=datetime.datetime(2018, 9, 12, 3),
+        attributes=weather_code_attributes()
     )
 
-    x_points = np.linspace(-30000, 0, num_grid_points)
-    cube.add_dim_coord(
-        DimCoord(
-            x_points,
-            "projection_x_coordinate",
-            units="m",
-            coord_system=STANDARD_GRID_CCRS,
-        ),
-        2,
-    )
+    if time_points is not None:
+        cube = add_coordinate(cube, time_points, "time", is_datetime=True)
 
-    return iris.util.squeeze(cube)
+    return cube
 
 
 def set_up_wxcube_lat_lon():
@@ -178,10 +103,10 @@ def set_up_wxcube_lat_lon():
     Returns:
         iris.cube.Cube:
             cube of weather codes set to 1
-            data shape (time_points, 16, 16)
+            data shape (16, 16)
             grid covering 8W to 7E, 49N to 64N
     """
-    cube = set_up_variable_cube(
+    return set_up_variable_cube(
         np.ones((16, 16), dtype=np.float32),
         name="weather_code",
         units=1,
@@ -192,7 +117,6 @@ def set_up_wxcube_lat_lon():
         frt=datetime.datetime(2018, 9, 12, 3),
         attributes=weather_code_attributes()
     )
-    return cube
 
 
 class Test_wx_dict(IrisTest):
@@ -378,49 +302,12 @@ class Test_update_daynight(IrisTest):
         self.assertArrayEqual(result.data, expected_result)
         self.assertEqual(result.shape, (16, 16))
 
-    def test_wxcode_time_as_scalar(self):
-        """ Test code works if time is a scalar not a dimension """
-        cube = set_up_wxcube()
-        cube.data = self.cube_data
-        cube = iris.util.squeeze(cube)
-        expected_result = np.array(
-            [
-                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-                [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3],
-                [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-                [6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
-                [7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
-                [8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8],
-                [9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 10],
-                [13, 13, 13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14],
-                [15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15],
-                [16, 16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 17],
-                [18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18, 18],
-                [19, 19, 19, 19, 19, 19, 19, 19, 19, 20, 20, 20, 20, 20, 20, 20],
-                [22, 22, 22, 22, 22, 22, 22, 22, 22, 23, 23, 23, 23, 23, 23, 23],
-                [25, 25, 25, 25, 25, 25, 25, 25, 25, 26, 26, 26, 26, 26, 26, 26],
-                [27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27, 27],
-                [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29],
-            ]
-        )
-        result = update_daynight(cube)
-
-        self.assertArrayEqual(result.data, expected_result)
-        self.assertEqual(result.data.shape, (16, 16))
-
     def test_wxcode_time_different_seconds(self):
         """ Test code works if time coordinate has a difference in the number
         of seconds, which should round to the same time in hours and minutes.
         This was raised by changes to cftime which altered its precision."""
-        time_origin = "hours since 1970-01-01 00:00:00"
-        calendar = "gregorian"
-        dateval = datetime.datetime(2018, 9, 12, 5, 42, 59)
-        numdateval = date2num(dateval, time_origin, calendar)
-        time_points = [numdateval]
-
-        cube = set_up_wxcube(time_points=time_points)
+        cube = set_up_wxcube(time_points=[datetime.datetime(2018, 9, 12, 5, 42, 59)])
         cube.data = self.cube_data
-        cube = iris.util.squeeze(cube)
         expected_result = np.array(
             [
                 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
@@ -448,10 +335,13 @@ class Test_update_daynight(IrisTest):
 
     def test_wxcode_time_as_array(self):
         """ Test code works if time is an array of dimension > 1 """
-        num1 = datetime_to_numdateval(year=2018, month=9, day=12, hour=5, minutes=0)
-        num2 = datetime_to_numdateval(year=2018, month=9, day=12, hour=6, minutes=0)
-        num3 = datetime_to_numdateval(year=2018, month=9, day=12, hour=7, minutes=0)
-        cube = set_up_wxcube(time_points=[num1, num2, num3])
+        cube = set_up_wxcube(
+            time_points=[
+                datetime.datetime(2018, 9, 12, 5),
+                datetime.datetime(2018, 9, 12, 6),
+                datetime.datetime(2018, 9, 12, 7),
+            ]
+        ) 
         expected_result = np.ones((3, 16, 16))
         expected_result[0, :, :] = 0
         result = update_daynight(cube)
