@@ -268,41 +268,30 @@ def test_process_metadata(orography):
         result[0].coord(axis="t")
 
 
-def test_process_no_mask(orography):
+@pytest.mark.parametrize(
+    "min_value, max_value, expected_x, expected_y",
+    (
+        (0.25, 0.0, [0.25, 0.15, 0.05], [0.20, 0.10, 0.00]),
+        (0.0, 0.25, [0.00, 0.10, 0.20], [0.05, 0.15, 0.25]),
+    ),
+)
+def test_process_no_mask(orography, min_value, max_value, expected_x, expected_y):
     """Test generation of smoothing coefficients from orography returns the
     expected values.
 
     The orography is such that the steepest gradient is found in the y-direction,
     whilst the minimum gradient is found in the x-direction. The maximum gradient
-    in x is 4/5ths of the maximum gradient in y."""
+    in x is 4/5ths of the maximum gradient in y.
 
-    # The smoothing coefficient is largest where the orography gradient is
-    # at its minimum. The largest smoothing coefficients are therefore found
-    # in the x-dimension.
-    max_grad_val = 0.0
-    min_grad_val = 0.25
-    expected_x = [0.25, 0.15, 0.05]
-    expected_y = [0.20, 0.10, 0.00]
+    In the first test the smoothing coefficient is largest where the orography
+    gradient is at its minimum, giving the largest smoothing coefficients in the
+    x-dimension. In the second test smoothing coefficient is largest where the
+    orography gradient is at its maximum, giving the largest smoothing
+    coefficients in the y-dimension."""
 
     plugin = OrographicSmoothingCoefficients(
-        max_gradient_smoothing_coefficient=max_grad_val,
-        min_gradient_smoothing_coefficient=min_grad_val,
-    )
-    result_x, result_y = plugin.process(orography)
-    assert_array_almost_equal(result_x.data[:, 0], expected_x)
-    assert_array_almost_equal(result_y.data[0, :], expected_y)
-
-    # The smoothing coefficient is largest where the orography gradient is
-    # at its maximum. The largest smoothing coefficients are therefore found
-    # in the y-dimension.
-    max_grad_val = 0.25
-    min_grad_val = 0.0
-    expected_x = [0.00, 0.10, 0.20]
-    expected_y = [0.05, 0.15, 0.25]
-
-    plugin = OrographicSmoothingCoefficients(
-        max_gradient_smoothing_coefficient=max_grad_val,
-        min_gradient_smoothing_coefficient=min_grad_val,
+        max_gradient_smoothing_coefficient=max_value,
+        min_gradient_smoothing_coefficient=min_value,
     )
     result_x, result_y = plugin.process(orography)
     assert_array_almost_equal(result_x.data[:, 0], expected_x)
@@ -318,6 +307,11 @@ def test_process_with_mask(orography, mask):
     The masking is performed after scaling, so masking values does not lead to
     different scaling of the smoothing coefficients."""
 
+    def compare_outputs(plugin, expected_x, expected_y):
+        result_x, result_y = plugin.process(orography, mask[1:4, 1:4])
+        assert_array_almost_equal(result_x.data, expected_x)
+        assert_array_almost_equal(result_y.data, expected_y)
+
     # Using use_mask_boundary=True which zeroes the edges of the masked region.
     # For x this means the coefficients between the left and central columns
     # in the bottom two rows are zeroed.
@@ -327,10 +321,7 @@ def test_process_with_mask(orography, mask):
     expected_y = [[0.4, 0.0, 0.0], [0.4, 0.2, 0.0]]
 
     plugin = OrographicSmoothingCoefficients(use_mask_boundary=True)
-    result_x, result_y = plugin.process(orography, mask[1:4, 1:4])
-
-    assert_array_almost_equal(result_x.data, expected_x)
-    assert_array_almost_equal(result_y.data, expected_y)
+    compare_outputs(plugin, expected_x, expected_y)
 
     # Using use_mask_boundary=False gives the same result as above modified to
     # zero the smoothing coefficients that are entirely covered by the mask as
@@ -339,10 +330,7 @@ def test_process_with_mask(orography, mask):
     expected_y = [[0.4, 0.0, 0.0], [0.4, 0.0, 0.0]]
 
     plugin = OrographicSmoothingCoefficients()
-    result_x, result_y = plugin.process(orography, mask[1:4, 1:4])
-
-    assert_array_almost_equal(result_x.data, expected_x)
-    assert_array_almost_equal(result_y.data, expected_y)
+    compare_outputs(plugin, expected_x, expected_y)
 
     # Using use_mask_boundary=False and invert_mask=True. In this case only
     # the values in the bottom right corner that are entirely covered by the
@@ -351,19 +339,16 @@ def test_process_with_mask(orography, mask):
     expected_y = [[0.0, 0.0, 0.0], [0.0, 0.2, 0.0]]
 
     plugin = OrographicSmoothingCoefficients(invert_mask=True)
-    result_x, result_y = plugin.process(orography, mask[1:4, 1:4])
-
-    assert_array_almost_equal(result_x.data, expected_x)
-    assert_array_almost_equal(result_y.data, expected_y)
+    compare_outputs(plugin, expected_x, expected_y)
 
     # This test repeats the one above but with the coordinates of the input
     # cubes reversed. The result should also have reversed coordinates.
+    expected_x = [[0.0, 0.0, 0.0], [0.0, 0.3, 0.1]]
+    expected_y = [[0.0, 0.0], [0.0, 0.2], [0.0, 0.0]]
+
     order = ["projection_x_coordinate", "projection_y_coordinate"]
     enforce_coordinate_ordering(orography, order)
     enforce_coordinate_ordering(mask, order)
 
     plugin = OrographicSmoothingCoefficients(invert_mask=True)
-    result_x, result_y = plugin.process(orography, mask[1:4, 1:4])
-
-    assert_array_almost_equal(result_x.data, np.array(expected_x).T)
-    assert_array_almost_equal(result_y.data, np.array(expected_y).T)
+    compare_outputs(plugin, expected_x, expected_y)
