@@ -116,21 +116,16 @@ def test_init():
     assert result.use_mask_boundary is False
 
 
-def test_init_value_error():
+@pytest.mark.parametrize("min_value, max_value", ((1.0, 0.0), (-0.1, 0.0)))
+def test_init_value_error(min_value, max_value):
     """Test a ValueError is raised if the chosen smoothing coefficient limits
     are outside the range 0 to 0.5 inclusive."""
 
     msg = "min_gradient and max_gradient must be 0 <= value <=0.5"
     with pytest.raises(ValueError, match=msg):
         OrographicSmoothingCoefficients(
-            min_gradient_smoothing_coefficient=1.0,
-            max_gradient_smoothing_coefficient=0.0,
-        )
-
-    with pytest.raises(ValueError, match=msg):
-        OrographicSmoothingCoefficients(
-            min_gradient_smoothing_coefficient=-0.1,
-            max_gradient_smoothing_coefficient=0.0,
+            min_gradient_smoothing_coefficient=min_value,
+            max_gradient_smoothing_coefficient=max_value,
         )
 
 
