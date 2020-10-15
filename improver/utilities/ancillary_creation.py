@@ -238,17 +238,19 @@ class OrographicSmoothingCoefficients(BasePlugin):
         provided mask. The changes are made in place to the input cubes. The
         behaviour is as follows:
 
-            use_mask_boundary = True
-            - The edges of the mask region are used to define where smoothing
+            use_mask_boundary = True:
+              The edges of the mask region are used to define where smoothing
               coefficients should be zeroed. The zeroed smoothing coefficients
               are between the masked and unmasked cells of the grid on which the
               mask is defined.
-            invert_mask = False
-            - All smoothing coefficients within regions for which the mask has
+
+            invert_mask = False:
+              All smoothing coefficients within regions for which the mask has
               value 1 are set to 0. The boundary cells between masked and
               unmasked are also set to 0. Has no effect if use_mask_boundary=True.
-            invert_mask = True
-            - All smoothing coefficients within regions for which the mask has
+
+            invert_mask = True:
+              All smoothing coefficients within regions for which the mask has
               value 0 are set to 0. The boundary cells between masked and
               unmasked are also set to 0. Has no effect if use_mask_boundary=True.
 
