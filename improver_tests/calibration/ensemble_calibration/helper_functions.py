@@ -243,7 +243,7 @@ def _create_historic_forecasts(
         new_time_dt = time_dt + datetime.timedelta(days=day)
         historic_forecasts.append(
             set_up_variable_cube(
-                data - 2,
+                data - 2 + 0.2*day,
                 time=new_time_dt,
                 frt=new_frt_dt,
                 standard_grid_metadata=standard_grid_metadata,
@@ -281,7 +281,7 @@ def _create_truth(data, time_dt, number_of_days=5, **kwargs):
         new_time_dt = time_dt + datetime.timedelta(days=day)
         truth.append(
             set_up_variable_cube(
-                np.amax(data - 3, axis=0),
+                np.amax(data - 3, axis=0) + 0.2*day,
                 time=new_time_dt,
                 frt=new_time_dt,
                 standard_grid_metadata="uk_det",

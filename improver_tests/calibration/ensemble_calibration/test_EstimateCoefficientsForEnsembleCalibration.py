@@ -44,9 +44,6 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import (
-    ContinuousRankedProbabilityScoreMinimisers,
-)
-from improver.calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration as Plugin,
 )
 from improver.metadata.utilities import generate_mandatory_attributes
@@ -135,15 +132,8 @@ class Test__init__(SetupCubes):
         """Test that the plugin instance defines the expected
         coefficient names."""
         expected = ["alpha", "beta", "gamma", "delta"]
-        predictor = "mean"
-        tolerance = 10
-        max_iterations = 10
         plugin = Plugin(
             self.distribution,
-            self.desired_units,
-            predictor=predictor,
-            tolerance=tolerance,
-            max_iterations=max_iterations,
         )
         self.assertEqual(plugin.coeff_names, expected)
 
@@ -152,7 +142,7 @@ class Test__init__(SetupCubes):
         distribution = "biscuits"
         msg = "Given distribution biscuits not available. "
         with self.assertRaisesRegex(ValueError, msg):
-            Plugin(distribution, self.desired_units)
+            Plugin(distribution)
 
     @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
     @ManageWarnings(
@@ -166,7 +156,7 @@ class Test__init__(SetupCubes):
         predictor = "mean"
         statsmodels_warning = "The statsmodels module cannot be imported"
 
-        Plugin(self.distribution, self.desired_units, predictor=predictor)
+        Plugin(self.distribution,  predictor=predictor)
         self.assertNotIn(statsmodels_warning, warning_list)
 
     @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
@@ -205,64 +195,10 @@ class Test__init__(SetupCubes):
         """
         predictor = "realizations"
 
-        Plugin(self.distribution, self.desired_units, predictor=predictor)
+        Plugin(self.distribution, predictor=predictor)
         warning_msg = "The statsmodels module cannot be imported"
         self.assertTrue(any(item.category == ImportWarning for item in warning_list))
         self.assertTrue(any(warning_msg in str(item) for item in warning_list))
-
-
-class Test__repr__(IrisTest):
-
-    """Test the __repr__ method."""
-
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def setUp(self):
-        """Set up values for tests."""
-        self.distribution = "norm"
-        self.minimiser = repr(ContinuousRankedProbabilityScoreMinimisers())
-        self.coeff_names = ["alpha", "beta", "gamma", "delta"]
-
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic(self):
-        """Test without specifying keyword arguments"""
-        result = str(Plugin(self.distribution))
-        msg = (
-            "<EstimateCoefficientsForEnsembleCalibration: "
-            "distribution: norm; "
-            "desired_units: None; "
-            "predictor: mean; "
-            "minimiser: <class 'improver.calibration.ensemble_calibration."
-            "ContinuousRankedProbabilityScoreMinimisers'>; "
-            "coeff_names: ['alpha', 'beta', 'gamma', 'delta']; "
-            "tolerance: 0.02; "
-            "max_iterations: 1000>"
-        )
-        self.assertEqual(result, msg)
-
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_with_kwargs(self):
-        """Test when keyword arguments are specified."""
-        result = str(
-            Plugin(
-                self.distribution,
-                desired_units="Kelvin",
-                predictor="realizations",
-                tolerance=10,
-                max_iterations=10,
-            )
-        )
-        msg = (
-            "<EstimateCoefficientsForEnsembleCalibration: "
-            "distribution: norm; "
-            "desired_units: Kelvin; "
-            "predictor: realizations; "
-            "minimiser: <class 'improver.calibration.ensemble_calibration."
-            "ContinuousRankedProbabilityScoreMinimisers'>; "
-            "coeff_names: ['alpha', 'beta', 'gamma', 'delta']; "
-            "tolerance: 10; "
-            "max_iterations: 10>"
-        )
-        self.assertEqual(result, msg)
 
 
 class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
@@ -1097,20 +1033,39 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_each_point(self):
-        """"""
-        plugin = Plugin(self.distribution, each_point=True)
-        result = plugin.process(
-            self.historic_temperature_forecast_cube, self.temperature_truth_cube
-        )
-        print("result = ", result)
-        # self.assertEMOSCoefficientsAlmostEqual(
-        #     np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
-        # )
-        # self.assertArrayEqual(
-        #     [cube.name() for cube in result], self.expected_coeff_names
-        # )
+    # @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    # def test_each_point(self):
+    #     """"""
+    #     plugin = Plugin(self.distribution, each_point=True)
+    #     result = plugin.process(
+    #         self.historic_temperature_forecast_cube, self.temperature_truth_cube
+    #     )
+    #     print("self.historic_temperature_forecast_cube = ", self.historic_temperature_forecast_cube)
+    #     print("self.historic_temperature_forecast_cube = ", self.historic_temperature_forecast_cube.data)
+    #     print("self.temperature_truth_cube = ", self.temperature_truth_cube)
+    #     print("self.temperature_truth_cube = ", self.temperature_truth_cube.data)
+    #     print("result = ", result)
+    #     self.assertEMOSCoefficientsAlmostEqual(
+    #         np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
+    #     )
+    #     self.assertArrayEqual(
+    #         [cube.name() for cube in result], self.expected_coeff_names
+    #     )
+
+    # @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    # def test_minimise_each_point(self):
+    #     """"""
+    #     plugin = Plugin(self.distribution, minimise_each_point=True)
+    #     result = plugin.process(
+    #         self.historic_temperature_forecast_cube, self.temperature_truth_cube
+    #     )
+    #     print("result = ", result)
+    #     self.assertEMOSCoefficientsAlmostEqual(
+    #         np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
+    #     )
+    #     self.assertArrayEqual(
+    #         [cube.name() for cube in result], self.expected_coeff_names
+    #     )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_truth_unit_conversion(self):

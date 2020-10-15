@@ -586,28 +586,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         # Setting default values for coeff_names.
         self.coeff_names = ["alpha", "beta", "gamma", "delta"]
 
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = (
-            "<EstimateCoefficientsForEnsembleCalibration: "
-            "distribution: {}; "
-            "desired_units: {}; "
-            "predictor: {}; "
-            "minimiser: {}; "
-            "coeff_names: {}; "
-            "tolerance: {}; "
-            "max_iterations: {}>"
-        )
-        return result.format(
-            self.distribution,
-            self.desired_units,
-            self.predictor,
-            self.minimiser.__class__,
-            self.coeff_names,
-            self.tolerance,
-            self.max_iterations,
-        )
-
     def _validate_distribution(self):
         """Validate that the distribution supplied has a corresponding method
         for minimising the Continuous Ranked Probability Score.
@@ -1006,6 +984,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
             with Pool(os.cpu_count()) as pool:
                 initial_guess = pool.starmap(self.compute_initial_guess, argument_list)
+
+            print("initial_guess = ", initial_guess)
         else:
             if self.minimise_each_point:
                 self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
@@ -1018,6 +998,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                 number_of_realizations,
             )
+            if np.any(np.isnan(initial_guess)):
+                initial_guess = self.compute_initial_guess(
+                    truths.data,
+                    forecast_predictor.data,
+                    self.predictor,
+                    False,
+                    number_of_realizations)
+
             if self.minimise_each_point:
                 initial_guess = np.broadcast_to(
                     initial_guess,
@@ -1025,18 +1013,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 )
 
         # Calculate coefficients if there are no nans in the initial guess.
-        if np.any(np.isnan(initial_guess)):
-            optimised_coeffs = initial_guess
-        else:
-            optimised_coeffs = self.minimiser(
-                initial_guess,
-                forecast_predictor,
-                truths,
-                forecast_var,
-                self.predictor,
-                self.distribution.lower(),
-            )
-
+        optimised_coeffs = self.minimiser(
+            initial_guess,
+            forecast_predictor,
+            truths,
+            forecast_var,
+            self.predictor,
+            self.distribution.lower(),
+        )
+        print("optimised_coeffs = ", optimised_coeffs)
         coefficients_cubelist = self.create_coefficients_cubelist(
             optimised_coeffs, historic_forecasts
         )
