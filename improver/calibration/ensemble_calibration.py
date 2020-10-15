@@ -37,8 +37,8 @@ Statistics (EMOS).
    ensemble_calibration.rst
 
 """
-import functools
 import os
+import time
 import warnings
 from multiprocessing import Pool
 
@@ -279,22 +279,43 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         sqrt_pi = np.sqrt(np.pi).astype(np.float64)
 
         if self.minimise_each_point:
+            #initial_guess
+            print("minimise_each_point")
+            print("initial_guess = ", initial_guess)
+            print("forecast_predictor_data.shape = ", forecast_predictor_data.shape)
             argument_list = []
             for index in range(forecast_predictor_data.shape[1]):
                 argument_list.append((minimisation_function, initial_guess,
                                       forecast_predictor_data[:, index],
                                       truth_data[:, index],
                                       forecast_var_data[:, index], sqrt_pi,
-                                      predictor))
+                                      predictor, index))
 
-            with Pool(os.cpu_count()) as pool:
-                optimised_coeffs = pool.starmap(
-                    self.minimise_caller, argument_list)
+            # with Pool(os.cpu_count()) as pool:
+            #     optimised_coeffs = pool.starmap(
+            #         self.minimise_caller, argument_list)
+            # print("", dir(optimised_coeffs))
 
-            optimised_coeffs = np.transpose(optimised_coeffs)
+            p = Pool(os.cpu_count())
+            #chunksize = len(argument_list) // os.cpu_count()
+            rs = p.starmap_async(self.minimise_caller, argument_list)
+            print("rs._chunksize = ", rs._chunksize)
+            p.close()
+            while (True):
+                remaining = rs._number_left  # How many of the map call haven't been done yet?
+                if (remaining == 0): break  # Jump out of while loop
+                print("Waiting for", remaining, "tasks to complete...")
+                time.sleep(60)
+
+            optimised_coeffs = rs.get()
             optimised_coeffs = [x.x.astype(np.float32) for x in optimised_coeffs]
-            return np.array(optimised_coeffs).reshape(
+            #print("optimised_coeffs = ", optimised_coeffs)
+            reshaped_coeffs = np.transpose(optimised_coeffs)
+            #print("reshaped_coeffs = ", reshaped_coeffs)
+            reshaped_coeffs = np.array(reshaped_coeffs).reshape(
                 (len(initial_guess),) + forecast_predictor.data.shape[1:])
+            #print("reshaped_coeffs = ", reshaped_coeffs)
+            return reshaped_coeffs
 
         else:
             optimised_coeffs = self.minimise_caller(
@@ -313,8 +334,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             return optimised_coeffs.x.astype(np.float32)
 
     def minimise_caller(self, minimisation_function, initial_guess, forecast_predictor_data, truth_data,
-                             forecast_var_data, sqrt_pi, predictor):
-
+                             forecast_var_data, sqrt_pi, predictor, index):
+        print("index = ", index)
         optimised_coeffs = minimize(
             minimisation_function, initial_guess,
             args=(forecast_predictor_data, truth_data,
@@ -487,6 +508,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         tolerance=0.02,
         max_iterations=1000,
         each_point=False,
+        minimise_each_point=False,
         pool_size=os.cpu_count(),
     ):
         """
@@ -531,6 +553,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """
         self.distribution = distribution
         self.each_point = each_point
+        self.minimise_each_point = minimise_each_point
+        if self.minimise_each_point:
+            self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
         self._validate_distribution()
         self.desired_units = desired_units
         # Ensure predictor is valid.
@@ -540,7 +565,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.max_iterations = max_iterations
         self.pool_size = pool_size
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
-            tolerance=self.tolerance, max_iterations=self.max_iterations
+            tolerance=self.tolerance, max_iterations=self.max_iterations,
+            minimise_each_point=self.minimise_each_point
         )
 
         # Setting default values for coeff_names.
@@ -955,13 +981,32 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Variance of the forecast for use in the minimisation.
 
         """
-        # Computing initial guess for EMOS coefficients
-        initial_guess = self.compute_initial_guess(
-            truths,
-            forecast_predictor,
-            self.predictor,
-            self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
-        )
+        if self.each_point:
+            index = [
+                forecast_predictor.coord(axis="y"),
+                forecast_predictor.coord(axis="x"),
+            ]
+
+            argument_list = []
+            for (truths_slice, fp_slice) in zip(
+                    truths.slices_over(index), forecast_predictor.slices_over(index)):
+                argument_list.append((truths_slice.data,
+                                      fp_slice.data,
+                                      self.predictor,
+                                      self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG
+                                      ))
+
+            with Pool(os.cpu_count()) as pool:
+                initial_guess = pool.starmap(
+                    self.compute_initial_guess, argument_list)
+        else:
+            # Computing initial guess for EMOS coefficients
+            initial_guess = self.compute_initial_guess(
+                truths,
+                forecast_predictor,
+                self.predictor,
+                self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
+            )
 
         # Calculate coefficients if there are no nans in the initial guess.
         if np.any(np.isnan(initial_guess)):
@@ -1108,7 +1153,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             forecast_predictor.data
             forecast_var.data
             truths.data
-            #historic_forecasts.data
+            historic_forecasts.data
 
             # truths = truths[..., :50, :50]
             # #historic_forecasts = historic_forecasts[..., :200, :200]
@@ -1124,7 +1169,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             print("time2b = ", time.time() - t0)
             #hf_slice = next(historic_forecasts.slices_over(index)).copy()
 
-            argument_list = (
+            argument_list = [
                 (truths_slice, hf_slice, fp_slice, fv_slice,)
                 for (fp_slice, fv_slice, truths_slice, hf_slice) in zip(
                     forecast_predictor.slices_over(index),
@@ -1132,7 +1177,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     truths.slices_over(index),
                     historic_forecasts.slices_over(index),
                 )
-            )
+            ]
             # argument_list = []
             # for (fp_slice, fv_slice, truths_slice, hf_slice) in zip(
             #     forecast_predictor.slices_over(index),
@@ -1143,17 +1188,27 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             #     argument_list.append((truths_slice, hf_slice, fp_slice, fv_slice,))
             print("argument_list = ", argument_list)
 
-            chunksize = (len(truths.coord(axis="x").points) * len(truths.coord(axis="x").points)) // self.pool_size
+            # chunksize = (len(truths.coord(axis="x").points) * len(truths.coord(axis="x").points)) // self.pool_size
             #f1 = functools.partial(self.guess_and_minimise, historic_forecasts=hf_slice)
             print("time3 = ", time.time() - t0)
-            with Pool(self.pool_size) as pool:
-                coefficients_list = pool.starmap(
-                    self.guess_and_minimise, argument_list,
-                    chunksize=chunksize)
+            print("self.pool_size = ", self.pool_size)
+            print("Total number of tasks = ", len(list(argument_list)))
+            p = Pool(self.pool_size)
+            rs = p.starmap(self.guess_and_minimise, argument_list)
+            p.close()
+            while (True):
+                remaining = rs.tasks_remaining()  # How many of the map call haven't been done yet?
+                if (remaining == 0): break  # Jump out of while loop
+                print("Waiting for", remaining, "tasks to complete...")
+                time.sleep(60)
+
+            # with Pool(self.pool_size) as pool:
+            #     coefficients_list = pool.starmap(
+            #         self.guess_and_minimise, argument_list)
 
             print("time4 = ", time.time() - t0)
 
-            coefficients_cubelist = self.reorganise_pointwise_list(coefficients_list)
+            coefficients_cubelist = self.reorganise_pointwise_list(rs)
         else:
             coefficients_cubelist = self.guess_and_minimise(
                 truths, historic_forecasts, forecast_predictor, forecast_var,
