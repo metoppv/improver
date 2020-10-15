@@ -122,7 +122,6 @@ def process(
     plugin = EstimateCoefficientsForEnsembleCalibration(
         distribution,
         each_point=each_point,
-        minimise_each_point=minimise_each_point,
         desired_units=units,
         predictor=predictor,
         tolerance=tolerance,
