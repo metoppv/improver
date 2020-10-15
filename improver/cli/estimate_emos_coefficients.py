@@ -78,7 +78,7 @@ def process(
             each grid point independently. If False, a single set of
             coefficients are calculated using all points.
             Warning: This option is memory intensive and is unsuitable for
-            gridded input, try the minimise_each_point option.
+            gridded input, please consider using the minimise_each_point option.
         minimise_each_point (bool):
             If True, coefficients are calculated independently for each point
             within the input cube by minimising each grid point independently.
@@ -122,6 +122,7 @@ def process(
     plugin = EstimateCoefficientsForEnsembleCalibration(
         distribution,
         each_point=each_point,
+        minimise_each_point=minimise_each_point,
         desired_units=units,
         predictor=predictor,
         tolerance=tolerance,
