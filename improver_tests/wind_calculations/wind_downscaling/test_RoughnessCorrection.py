@@ -49,47 +49,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.wind_calculations.wind_downscaling import RoughnessCorrection
 
 
-def _make_ukvx_grid():
-    """
-    Create a two-dimensional Cube that represents the UK model standard
-    grid (UKVX).
-
-    Returns
-    -------
-    iris.cube.Cube instance
-        Cube mapped to the UKVX grid.
-
-    """
-
-    # Grid resolution
-    num_x, num_y = 1042, 970
-
-    data = np.zeros([num_y, num_x])
-
-    # Grid extents / m
-    north, south = 902000, -1036000
-    east, west = 924000, -1158000
-
-    x_coord = iris.coords.DimCoord(
-        np.linspace(west, east, num_x),
-        "projection_x_coordinate",
-        units="m",
-        coord_system=STANDARD_GRID_CCRS,
-    )
-    y_coord = iris.coords.DimCoord(
-        np.linspace(south, north, num_y),
-        "projection_y_coordinate",
-        units="m",
-        coord_system=STANDARD_GRID_CCRS,
-    )
-    x_coord.guess_bounds()
-    y_coord.guess_bounds()
-    cube = iris.cube.Cube(data)
-    cube.add_dim_coord(y_coord, 0)
-    cube.add_dim_coord(x_coord, 1)
-    return cube
-
-
 def make_point_ancil_cube(data_point, name, unit):
     """Create a cube containing a single point ancillary value"""
     cube = make_ancil_cube([[data_point]], name, unit)
@@ -147,68 +106,26 @@ def make_point_data_cube(data, name, unit):
     return cube
 
 
-def set_up_cube(
-    num_time_points=1,
-    num_grid_points=1,
-    num_height_levels=1,
-    data=None,
-    name=None,
-    unit=None,
-    height=None,
-):
-    """Set up a UK model standard grid (UKVX) cube."""
-    """
-    if len(data.shape) == 2:
-        cube = set_up_variable_cube(
-            np.array(data, dtype=np.float32),
-            name=name,
-            units=unit,
-            spatial_grid="equalarea",
-            domain_corner=(-1036000, -1158000),
-        )
+def make_data_cube(data, name, unit, shape, heights):
+    """Create a multi-point data cube from 1D data on height levels"""
+    flat_data = np.broadcast_to(np.array(data[0], dtype=np.float32), shape)
+    flat_cube = set_up_variable_cube(
+        flat_data,
+        name=name,
+        units=unit,
+        spatial_grid="equalarea",
+        domain_corner=(-1036000, -1158000),
+        grid_spacing=2000,
+    )
 
+    # add height coordinate
+    cube = add_coordinate(flat_cube, heights, "height", "m")
 
-    """
-    cubel = iris.cube.CubeList()
-    tunit = Unit("hours since 1970-01-01 00:00:00", "gregorian")
-    t_0 = 402192.5
-
-    if isinstance(num_grid_points, int):
-        num_grid_points_x = num_grid_points_y = num_grid_points
-    else:
-        num_grid_points_x = num_grid_points[0]
-        num_grid_points_y = num_grid_points[1]
-
-    for i_idx in range(num_height_levels):
-        cubel1 = iris.cube.CubeList()
-        for j_idx in range(num_time_points):
-            cube = _make_ukvx_grid()
-            cube = cube[
-                :num_grid_points_x, :num_grid_points_y
-            ]  # BUG transposed dimensions
-            cube.add_aux_coord(AuxCoord(t_0 + j_idx, "time", units=tunit))
-            if height is None:
-                cube.add_aux_coord(AuxCoord(i_idx, "model_level_number"))
-            elif isinstance(height, float) or isinstance(height, int):
-                cube.add_aux_coord(AuxCoord(height, "height", units=Unit("meter")))
-            else:
-                cube.add_aux_coord(
-                    AuxCoord(height[i_idx], "height", units=Unit("meter"))
-                )
-            cubel1.append(cube)
-        cubel.append(cubel1.merge_cube())
-    cubel = cubel.merge(0)
-    cube = cubel[0]
-
-    if data is not None:
-        data = np.array(data, dtype=np.float32)
-        cube.data = data.reshape(cube.data.shape)
-
-    if name is not None:
-        cube.rename(name)
-
-    if unit is not None:
-        cube.units = Unit(unit)
+    # map 1d data onto 3d cube
+    data_3d = []
+    for point in data:
+        data_3d.append(np.broadcast_to(np.array([point]), shape))
+    cube.data = np.array(data_3d, dtype=np.float32)
 
     return cube
 
@@ -305,40 +222,27 @@ class TestMultiPoint:
             self.w_cube = iris.cube.CubeList()
             for windfield in wind:
                 windfield = np.array(windfield)
-                if windfield.ndim == 1:  # only function of height
-                    windfield = np.ones(
-                        windfield.shape + (1, *self.shape)
-                    ) * windfield.reshape(windfield.shape + (1, 1, 1))
                 self.w_cube.append(
-                    set_up_cube(
-                        num_grid_points=self.shape,
-                        num_height_levels=windfield.shape[0],
-                        data=windfield,
-                        name="wind_speed",
-                        unit="m s-1",
-                        height=height,
+                    make_data_cube(
+                        windfield, "wind_speed", "m s-1", self.shape, height
                     )
                 )
+
         else:
-            wind = np.array(wind)
-            self.w_cube = iris.cube.Cube
-            if wind.ndim == 1:  # only function of height
-                wind = np.ones(wind.shape + (dtime, *self.shape)) * wind.reshape(
-                    wind.shape + (1, 1, 1)
+            if dtime == 1:
+                self.w_cube = make_data_cube(
+                    wind, "wind_speed", "m s-1", self.shape, height
                 )
-            elif wind.ndim == 2:  # function of height and time
-                wind = np.ones(wind.shape + self.shape) * wind.reshape(
-                    wind.shape + (1, 1)
+            else:
+                cube = make_data_cube(wind, "wind_speed", "m s-1", self.shape, height)
+                time_points = []
+                for i in range(dtime):
+                    offset = datetime.timedelta(seconds=i*3600)
+                    time_points.append(cube.coord("time").cell(0).point + offset)
+                self.w_cube = add_coordinate(
+                    cube, time_points, "time", is_datetime=True, order=[1, 0, 2, 3]
                 )
-            self.w_cube = set_up_cube(
-                num_time_points=dtime,
-                num_grid_points=self.shape,
-                num_height_levels=wind.shape[0],
-                data=wind,
-                name="wind_speed",
-                unit="m s-1",
-                height=height,
-            )
+
         plugin = RoughnessCorrection(
             self.aos_cube,
             self.s_cube,
