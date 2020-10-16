@@ -48,7 +48,8 @@ from improver.wind_calculations.wind_downscaling import RoughnessCorrection
 
 
 def _make_flat_cube(data, name, unit):
-    """Create a "flat" y/x cube with required shape and 2 km grid bounds"""
+    """Create a "flat" y/x cube with required 2D shape, scalar time coordinates
+    and 2 km grid bounds"""
     flat_cube = set_up_variable_cube(
         data,
         name=name,
@@ -76,19 +77,24 @@ def make_ancil_cube(data, name, unit, shape=None):
     return cube
 
 
-def make_point_height_cube(heights_data):
+def _add_model_levels(flat_cube, data):
+    """Add a model level coordinate to a point cube and insert 1D height data"""
+    cube = add_coordinate(flat_cube, np.arange(len(data)), "model_level_number", 1)
+    cube.data = np.array(data).reshape(len(data), 1, 1)
+    return cube
+
+
+def make_point_height_ancil_cube(heights_data):
     """Create a multi-level height ancillary for one spatial point"""
     flat_cube = make_ancil_cube(1, None, None, shape=(1, 1))
-    cube = add_coordinate(flat_cube, range(len(heights_data)), "model_level_number", 1)
-    cube.data = np.array(heights_data).reshape(len(heights_data), 1, 1)
+    cube = _add_model_levels(flat_cube, heights_data)
     return cube
 
 
 def make_point_data_cube(data, name, unit):
     """Create a multi-level data cube for one spatial point"""
     flat_cube = _make_flat_cube(np.ones((1, 1), dtype=np.float32), name, unit)
-    cube = add_coordinate(flat_cube, range(len(data)), "model_level_number", 1)
-    cube.data = np.array(data).reshape(len(data), 1, 1)
+    cube = _add_model_levels(flat_cube, data)
     return cube
 
 
@@ -280,7 +286,7 @@ class TestSinglePoint:
             modelorog, "orography_height", "m", shape=(1, 1)
         )
         if heightlevels is not None:
-            self.hl_cube = make_point_height_cube(heightlevels)
+            self.hl_cube = make_point_height_ancil_cube(heightlevels)
         else:
             self.hl_cube = None
 
