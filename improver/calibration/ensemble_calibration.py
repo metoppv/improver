@@ -811,6 +811,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         predictor,
         estimate_coefficients_from_linear_model_flag,
         number_of_realizations,
+        sm=None
     ):
         """
         Function to compute initial guess of the alpha, beta, gamma
@@ -855,6 +856,11 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             estimate_coefficients_from_linear_model_flag (bool):
                 Flag whether coefficients should be estimated from
                 the linear regression, or static estimates should be used.
+            number_of_realizations (int or None):
+                Number of realizations within the forecast predictor. If no
+                realizations are present, this option is None.
+            sm (Optional[statsmodels.api]):
+                Statsmodels instance.
 
         Returns:
             list of float:
@@ -862,7 +868,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Order of coefficients is [alpha, beta, gamma, delta].
 
         """
-        sm = None
         if (
             predictor.lower() == "mean"
             and not estimate_coefficients_from_linear_model_flag
@@ -879,7 +884,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             truths_flattened = flatten_ignoring_masked_data(truths)
             if predictor.lower() == "mean":
                 forecast_predictor_flattened = flatten_ignoring_masked_data(
-                    forecast_predictor.data
+                    forecast_predictor
                 )
                 if (truths_flattened.size == 0) or (
                     forecast_predictor_flattened.size == 0
@@ -892,7 +897,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 initial_guess = [intercept, gradient, 0, 1]
             elif predictor.lower() == "realizations":
                 forecast_predictor_flattened = flatten_ignoring_masked_data(
-                    forecast_predictor.data, preserve_leading_dimension=True
+                    forecast_predictor, preserve_leading_dimension=True
                 )
                 val = sm.add_constant(forecast_predictor_flattened.T)
                 est = sm.OLS(truths_flattened, val).fit()
@@ -963,6 +968,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 gamma, delta.
 
         """
+        sm = self._get_statsmodels_availability()
         if self.each_point:
             index = [
                 forecast_predictor.coord(axis="y"),
@@ -976,6 +982,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     self.predictor,
                     self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                     number_of_realizations,
+                    sm
                 )
                 for (truths_slice, fp_slice) in zip(
                     truths.slices_over(index), forecast_predictor.slices_over(index)
@@ -997,6 +1004,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 self.predictor,
                 self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                 number_of_realizations,
+                sm=sm
             )
             if np.any(np.isnan(initial_guess)):
                 initial_guess = self.compute_initial_guess(
@@ -1004,7 +1012,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     forecast_predictor.data,
                     self.predictor,
                     False,
-                    number_of_realizations)
+                    number_of_realizations,
+                    sm=sm)
 
             if self.minimise_each_point:
                 initial_guess = np.broadcast_to(
@@ -1081,7 +1090,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         # Ensure predictor is valid.
         check_predictor(self.predictor)
-        sm = self._get_statsmodels_availability()
 
         historic_forecasts, truths = filter_non_matching_cubes(
             historic_forecasts, truths

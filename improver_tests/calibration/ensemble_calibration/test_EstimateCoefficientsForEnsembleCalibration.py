@@ -144,61 +144,61 @@ class Test__init__(SetupCubes):
         with self.assertRaisesRegex(ValueError, msg):
             Plugin(distribution)
 
-    @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
-    @ManageWarnings(
-        record=True, ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES
-    )
-    def test_statsmodels_mean(self, warning_list=None):
-        """
-        Test that the plugin raises no warnings if the statsmodels module
-        is not found for when the predictor is the ensemble mean.
-        """
-        predictor = "mean"
-        statsmodels_warning = "The statsmodels module cannot be imported"
-
-        Plugin(self.distribution,  predictor=predictor)
-        self.assertNotIn(statsmodels_warning, warning_list)
-
-    @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
-    @ManageWarnings(
-        record=True,
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Not importing directory .*sphinxcontrib'",
-            "The pandas.core.datetools module is deprecated",
-            "numpy.dtype size changed",
-            "invalid escape sequence",
-            "can't resolve package from",
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in" " convergence",
-            "\nThe final iteration resulted in a percentage "
-            "change that is greater than the"
-            " accepted threshold ",
-        ],
-        warning_types=[
-            UserWarning,
-            ImportWarning,
-            FutureWarning,
-            RuntimeWarning,
-            DeprecationWarning,
-            ImportWarning,
-            UserWarning,
-            UserWarning,
-            UserWarning,
-        ],
-    )
-    def test_statsmodels_realizations(self, warning_list=None):
-        """
-        Test that the plugin raises the desired warning if the statsmodels
-        module is not found for when the predictor is the ensemble
-        realizations.
-        """
-        predictor = "realizations"
-
-        Plugin(self.distribution, predictor=predictor)
-        warning_msg = "The statsmodels module cannot be imported"
-        self.assertTrue(any(item.category == ImportWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
+    # @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
+    # @ManageWarnings(
+    #     record=True, ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES
+    # )
+    # def test_statsmodels_mean(self, warning_list=None):
+    #     """
+    #     Test that the plugin raises no warnings if the statsmodels module
+    #     is not found for when the predictor is the ensemble mean.
+    #     """
+    #     predictor = "mean"
+    #     statsmodels_warning = "The statsmodels module cannot be imported"
+    #
+    #     Plugin(self.distribution,  predictor=predictor)
+    #     self.assertNotIn(statsmodels_warning, warning_list)
+    #
+    # @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
+    # @ManageWarnings(
+    #     record=True,
+    #     ignored_messages=[
+    #         "Collapsing a non-contiguous coordinate.",
+    #         "Not importing directory .*sphinxcontrib'",
+    #         "The pandas.core.datetools module is deprecated",
+    #         "numpy.dtype size changed",
+    #         "invalid escape sequence",
+    #         "can't resolve package from",
+    #         "Collapsing a non-contiguous coordinate.",
+    #         "Minimisation did not result in" " convergence",
+    #         "\nThe final iteration resulted in a percentage "
+    #         "change that is greater than the"
+    #         " accepted threshold ",
+    #     ],
+    #     warning_types=[
+    #         UserWarning,
+    #         ImportWarning,
+    #         FutureWarning,
+    #         RuntimeWarning,
+    #         DeprecationWarning,
+    #         ImportWarning,
+    #         UserWarning,
+    #         UserWarning,
+    #         UserWarning,
+    #     ],
+    # )
+    # def test_statsmodels_realizations(self, warning_list=None):
+    #     """
+    #     Test that the plugin raises the desired warning if the statsmodels
+    #     module is not found for when the predictor is the ensemble
+    #     realizations.
+    #     """
+    #     predictor = "realizations"
+    #
+    #     Plugin(self.distribution, predictor=predictor)
+    #     warning_msg = "The statsmodels module cannot be imported"
+    #     self.assertTrue(any(item.category == ImportWarning for item in warning_list))
+    #     self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
 
 class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
@@ -501,12 +501,13 @@ class Test_compute_initial_guess(IrisTest):
         """
         estimate_coefficients_from_linear_model_flag = False
 
-        plugin = Plugin(self.distribution, self.desired_units)
+        plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth,
-            self.current_forecast_predictor_mean,
+            self.truth.data,
+            self.current_forecast_predictor_mean.data,
             self.predictor,
             estimate_coefficients_from_linear_model_flag,
+            None,
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
@@ -525,13 +526,13 @@ class Test_compute_initial_guess(IrisTest):
         predictor = "realizations"
         estimate_coefficients_from_linear_model_flag = False
 
-        plugin = Plugin(self.distribution, self.desired_units)
+        plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth,
-            self.current_forecast_predictor_realizations,
+            self.truth.data,
+            self.current_forecast_predictor_realizations.data,
             predictor,
             estimate_coefficients_from_linear_model_flag,
-            no_of_realizations=self.no_of_realizations,
+            self.no_of_realizations,
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
@@ -550,12 +551,13 @@ class Test_compute_initial_guess(IrisTest):
         """
         estimate_coefficients_from_linear_model_flag = True
 
-        plugin = Plugin(self.distribution, self.desired_units)
+        plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth,
-            self.current_forecast_predictor_mean,
+            self.truth.data,
+            self.current_forecast_predictor_mean.data,
             self.predictor,
             estimate_coefficients_from_linear_model_flag,
+            None
         )
 
         self.assertArrayAlmostEqual(
@@ -576,13 +578,13 @@ class Test_compute_initial_guess(IrisTest):
         predictor = "realizations"
         estimate_coefficients_from_linear_model_flag = True
 
-        plugin = Plugin(self.distribution, self.desired_units)
+        plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth,
-            self.current_forecast_predictor_realizations,
+            self.truth.data,
+            self.current_forecast_predictor_realizations.data,
             predictor,
             estimate_coefficients_from_linear_model_flag,
-            no_of_realizations=self.no_of_realizations,
+            self.no_of_realizations,
         )
         self.assertArrayAlmostEqual(
             self.expected_realizations_predictor_with_linear_model, result
@@ -602,14 +604,14 @@ class Test_compute_initial_guess(IrisTest):
         """
         estimate_coefficients_from_linear_model_flag = True
 
-        plugin = Plugin(self.distribution, self.desired_units)
+        plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth_masked_halo,
-            self.current_forecast_predictor_mean_masked_halo,
+            self.truth_masked_halo.data,
+            self.current_forecast_predictor_mean_masked_halo.data,
             self.predictor,
             estimate_coefficients_from_linear_model_flag,
+            None
         )
-
         self.assertArrayAlmostEqual(
             self.expected_mean_predictor_with_linear_model, result
         )
@@ -630,13 +632,13 @@ class Test_compute_initial_guess(IrisTest):
         predictor = "realizations"
         estimate_coefficients_from_linear_model_flag = True
 
-        plugin = Plugin(self.distribution, self.desired_units)
+        plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth_masked_halo,
-            self.current_forecast_predictor_realizations_masked_halo,
+            self.truth_masked_halo.data,
+            self.current_forecast_predictor_realizations_masked_halo.data,
             predictor,
             estimate_coefficients_from_linear_model_flag,
-            no_of_realizations=self.no_of_realizations,
+            self.no_of_realizations,
         )
         self.assertArrayAlmostEqual(
             self.expected_realizations_predictor_with_linear_model, result
