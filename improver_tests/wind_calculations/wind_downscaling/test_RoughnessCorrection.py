@@ -127,6 +127,26 @@ def make_point_height_cube(heights_data):
     return cube
 
 
+def make_point_data_cube(data, name, unit):
+    """Create a multi-level data cube"""
+    flat_cube = set_up_variable_cube(
+        np.array([[1]], dtype=np.float32),
+        name=name,
+        units=unit,
+        spatial_grid="equalarea",
+        domain_corner=(-1036000, -1158000),
+        grid_spacing=2000,
+    )
+    # add bounds for a 2 km grid spacing (missing from length 1 dimensions)
+    for axis in ["x", "y"]:
+        points = flat_cube.coord(axis=axis).points
+        flat_cube.coord(axis=axis).bounds = np.array([points - 1000.0, points + 1000.0]).T
+    # add height coordinate
+    cube = add_coordinate(flat_cube, range(len(data)), "model_level_number", 1)
+    cube.data = np.array(data).reshape(len(data), 1, 1)
+    return cube
+
+
 def set_up_cube(
     num_time_points=1,
     num_grid_points=1,
@@ -404,25 +424,13 @@ class TestSinglePoint:
         axis in m.
 
         Args:
-            wind (1D or 2D numpy.ndarray):
+            wind (list or 1D numpy.ndarray):
                 Array of wind speeds
             height (float):
                 Value for height in metres for zeroth slice of wind,
                 default None.
         """
-        wind = np.array(wind)
-        if wind.ndim == 1:
-            wind = wind.reshape([1, 1, wind.shape[0]])
-        elif wind.ndim == 2:
-            wind = wind.reshape([wind.shape[0], 1, wind.shape[1]])
-        self.w_cube = set_up_cube(
-            num_time_points=wind.shape[0],
-            num_height_levels=wind.shape[2],
-            data=np.rollaxis(wind, 2, start=0),
-            name="wind_speed",
-            unit="m s-1",
-            height=height,
-        )
+        self.w_cube = make_point_data_cube(wind, "wind_speed", "m s-1")
         plugin = RoughnessCorrection(
             self.aos_cube,
             self.s_cube,
