@@ -37,11 +37,9 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.constants import RMDI
-from improver.grids import STANDARD_GRID_CCRS
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
@@ -49,14 +47,16 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.wind_calculations.wind_downscaling import RoughnessCorrection
 
 
-def make_point_ancil_cube(data_point, name, unit):
-    """Create a cube containing a single point ancillary value"""
-    cube = make_ancil_cube([[data_point]], name, unit)
-    return cube
+def _add_2km_bounds(cube):
+    """Add bounds for 2 km grid spacing to a cube that may have length 1
+    spatial dimensions"""
+    for axis in ["x", "y"]:
+        points = cube.coord(axis=axis).points
+        cube.coord(axis=axis).bounds = np.array([points - 1000.0, points + 1000.0]).T
 
 
 def make_ancil_cube(data, name, unit, shape=None):
-    """Create a multi-valued ancillary cube"""
+    """Create an ancillary cube (constant with time)"""
     data = np.array(data, dtype=np.float32)
     if shape is not None:
         data = data.reshape(shape)
@@ -68,39 +68,37 @@ def make_ancil_cube(data, name, unit, shape=None):
         domain_corner=(-1036000, -1158000),
         grid_spacing=2000,
     )
-    # add bounds for a 2 km grid spacing (missing from length 1 dimensions)
-    for axis in ["x", "y"]:
-        points = cube.coord(axis=axis).points
-        cube.coord(axis=axis).bounds = np.array([points - 1000.0, points + 1000.0]).T
-    # remove unneeded time coordinates
+    _add_2km_bounds(cube)
     for coord in ["time", "forecast_reference_time", "forecast_period"]:
         cube.remove_coord(coord)
     return cube
 
 
 def make_point_height_cube(heights_data):
-    """Create a multi-level height cube"""
-    flat_cube = make_point_ancil_cube(1, None, None)
+    """Create a multi-level height cube at a single spatial point"""
+    flat_cube = make_ancil_cube(1, None, None, shape=(1, 1))
     cube = add_coordinate(flat_cube, range(len(heights_data)), "model_level_number", 1)
     cube.data = np.array(heights_data).reshape(len(heights_data), 1, 1)
     return cube
 
 
-def make_point_data_cube(data, name, unit):
-    """Create a multi-level data cube"""
+def _make_flat_cube(name, unit, shape):
+    """Create a "flat" y/x cube with required shape and 2 km grid bounds"""
     flat_cube = set_up_variable_cube(
-        np.array([[1]], dtype=np.float32),
+        np.ones(shape, dtype=np.float32),
         name=name,
         units=unit,
         spatial_grid="equalarea",
         domain_corner=(-1036000, -1158000),
         grid_spacing=2000,
     )
-    # add bounds for a 2 km grid spacing (missing from length 1 dimensions)
-    for axis in ["x", "y"]:
-        points = flat_cube.coord(axis=axis).points
-        flat_cube.coord(axis=axis).bounds = np.array([points - 1000.0, points + 1000.0]).T
-    # add height coordinate
+    _add_2km_bounds(flat_cube)
+    return flat_cube
+
+
+def make_point_data_cube(data, name, unit):
+    """Create a multi-level data cube for one spatial point"""
+    flat_cube = _make_flat_cube(name, unit, (1, 1))
     cube = add_coordinate(flat_cube, range(len(data)), "model_level_number", 1)
     cube.data = np.array(data).reshape(len(data), 1, 1)
     return cube
@@ -108,25 +106,12 @@ def make_point_data_cube(data, name, unit):
 
 def make_data_cube(data, name, unit, shape, heights):
     """Create a multi-point data cube from 1D data on height levels"""
-    flat_data = np.broadcast_to(np.array(data[0], dtype=np.float32), shape)
-    flat_cube = set_up_variable_cube(
-        flat_data,
-        name=name,
-        units=unit,
-        spatial_grid="equalarea",
-        domain_corner=(-1036000, -1158000),
-        grid_spacing=2000,
-    )
-
-    # add height coordinate
+    flat_cube = _make_flat_cube(name, unit, shape)
     cube = add_coordinate(flat_cube, heights, "height", "m")
-
-    # map 1d data onto 3d cube
     data_3d = []
     for point in data:
         data_3d.append(np.broadcast_to(np.array([point]), shape))
     cube.data = np.array(data_3d, dtype=np.float32)
-
     return cube
 
 
@@ -185,9 +170,7 @@ class TestMultiPoint:
             self.z0_cube = make_ancil_cube(z_0, None, "m")
         elif isinstance(z_0, list):
             self.z0_cube = make_ancil_cube(np.array(z_0), None, "m", shape=shape)
-        self.poro_cube = make_ancil_cube(
-            pporog, "orography_height", "m", shape=shape
-        )
+        self.poro_cube = make_ancil_cube(pporog, "orography_height", "m", shape=shape)
         self.moro_cube = make_ancil_cube(
             modelorog, "orography_height", "m", shape=shape
         )
@@ -223,9 +206,7 @@ class TestMultiPoint:
             for windfield in wind:
                 windfield = np.array(windfield)
                 self.w_cube.append(
-                    make_data_cube(
-                        windfield, "wind_speed", "m s-1", self.shape, height
-                    )
+                    make_data_cube(windfield, "wind_speed", "m s-1", self.shape, height)
                 )
 
         else:
@@ -237,7 +218,7 @@ class TestMultiPoint:
                 cube = make_data_cube(wind, "wind_speed", "m s-1", self.shape, height)
                 time_points = []
                 for i in range(dtime):
-                    offset = datetime.timedelta(seconds=i*3600)
+                    offset = datetime.timedelta(seconds=i * 3600)
                     time_points.append(cube.coord("time").cell(0).point + offset)
                 self.w_cube = add_coordinate(
                     cube, time_points, "time", is_datetime=True, order=[1, 0, 2, 3]
@@ -298,16 +279,18 @@ class TestSinglePoint:
 
         """
         self.w_cube = None
-        self.aos_cube = make_point_ancil_cube(AoS, None, 1)
-        self.s_cube = make_point_ancil_cube(
-            Sigma, "standard_deviation_of_orography_height", "m"
+        self.aos_cube = make_ancil_cube(AoS, None, 1, shape=(1, 1))
+        self.s_cube = make_ancil_cube(
+            Sigma, "standard_deviation_of_orography_height", "m", shape=(1, 1)
         )
         if z_0 is None:
             self.z0_cube = None
         else:
-            self.z0_cube = make_point_ancil_cube(z_0, None, "m")
-        self.poro_cube = make_point_ancil_cube(pporog, "orography_height", "m")
-        self.moro_cube = make_point_ancil_cube(modelorog, "orography_height", "m")
+            self.z0_cube = make_ancil_cube(z_0, None, "m", shape=(1, 1))
+        self.poro_cube = make_ancil_cube(pporog, "orography_height", "m", shape=(1, 1))
+        self.moro_cube = make_ancil_cube(
+            modelorog, "orography_height", "m", shape=(1, 1)
+        )
         if heightlevels is not None:
             self.hl_cube = make_point_height_cube(heightlevels)
         else:
