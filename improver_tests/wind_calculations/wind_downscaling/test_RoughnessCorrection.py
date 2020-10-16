@@ -47,20 +47,9 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.wind_calculations.wind_downscaling import RoughnessCorrection
 
 
-def _add_2km_bounds(cube):
-    """Add bounds for 2 km grid spacing to a cube that may have length 1
-    spatial dimensions"""
-    for axis in ["x", "y"]:
-        points = cube.coord(axis=axis).points
-        cube.coord(axis=axis).bounds = np.array([points - 1000.0, points + 1000.0]).T
-
-
-def make_ancil_cube(data, name, unit, shape=None):
-    """Create an ancillary cube (constant with time)"""
-    data = np.array(data, dtype=np.float32)
-    if shape is not None:
-        data = data.reshape(shape)
-    cube = set_up_variable_cube(
+def _make_flat_cube(data, name, unit):
+    """Create a "flat" y/x cube with required shape and 2 km grid bounds"""
+    flat_cube = set_up_variable_cube(
         data,
         name=name,
         units=unit,
@@ -68,37 +57,36 @@ def make_ancil_cube(data, name, unit, shape=None):
         domain_corner=(-1036000, -1158000),
         grid_spacing=2000,
     )
-    _add_2km_bounds(cube)
+    for axis in ["x", "y"]:
+        points = flat_cube.coord(axis=axis).points
+        flat_cube.coord(axis=axis).bounds = np.array(
+            [points - 1000.0, points + 1000.0]
+        ).T
+    return flat_cube
+
+
+def make_ancil_cube(data, name, unit, shape=None):
+    """Create an ancillary cube (constant with time)"""
+    data = np.array(data, dtype=np.float32)
+    if shape is not None:
+        data = data.reshape(shape)
+    cube = _make_flat_cube(data, name, unit)
     for coord in ["time", "forecast_reference_time", "forecast_period"]:
         cube.remove_coord(coord)
     return cube
 
 
 def make_point_height_cube(heights_data):
-    """Create a multi-level height cube at a single spatial point"""
+    """Create a multi-level height ancillary for one spatial point"""
     flat_cube = make_ancil_cube(1, None, None, shape=(1, 1))
     cube = add_coordinate(flat_cube, range(len(heights_data)), "model_level_number", 1)
     cube.data = np.array(heights_data).reshape(len(heights_data), 1, 1)
     return cube
 
 
-def _make_flat_cube(name, unit, shape):
-    """Create a "flat" y/x cube with required shape and 2 km grid bounds"""
-    flat_cube = set_up_variable_cube(
-        np.ones(shape, dtype=np.float32),
-        name=name,
-        units=unit,
-        spatial_grid="equalarea",
-        domain_corner=(-1036000, -1158000),
-        grid_spacing=2000,
-    )
-    _add_2km_bounds(flat_cube)
-    return flat_cube
-
-
 def make_point_data_cube(data, name, unit):
     """Create a multi-level data cube for one spatial point"""
-    flat_cube = _make_flat_cube(name, unit, (1, 1))
+    flat_cube = _make_flat_cube(np.ones((1, 1), dtype=np.float32), name, unit)
     cube = add_coordinate(flat_cube, range(len(data)), "model_level_number", 1)
     cube.data = np.array(data).reshape(len(data), 1, 1)
     return cube
@@ -106,7 +94,7 @@ def make_point_data_cube(data, name, unit):
 
 def make_data_cube(data, name, unit, shape, heights):
     """Create a multi-point data cube from 1D data on height levels"""
-    flat_cube = _make_flat_cube(name, unit, shape)
+    flat_cube = _make_flat_cube(np.ones(shape, dtype=np.float32), name, unit)
     cube = add_coordinate(flat_cube, heights, "height", "m")
     data_3d = []
     for point in data:
