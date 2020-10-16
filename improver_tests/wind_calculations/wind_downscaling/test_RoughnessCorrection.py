@@ -80,7 +80,7 @@ def make_ancil_cube(data, name, unit, shape=None):
 def _add_model_levels(flat_cube, data):
     """Add a model level coordinate to a point cube and insert 1D height data"""
     cube = add_coordinate(flat_cube, np.arange(len(data)), "model_level_number", 1)
-    cube.data = np.array(data).reshape(len(data), 1, 1)
+    cube.data = np.array(data).reshape((len(data), 1, 1))
     return cube
 
 
