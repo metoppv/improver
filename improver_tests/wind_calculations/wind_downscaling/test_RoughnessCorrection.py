@@ -215,10 +215,9 @@ def set_up_cube(
 
 class TestMultiPoint:
 
-    """Test (typically) 3 x 1 or 3x3 point tests.
+    """Test (typically) 3x1 or 3x3 point tests.
 
-    The size can be set by nxny, which is either a scalar or an
-    np.array([x,y]). It constructs cubes for the ancillary fields
+    It constructs cubes for the ancillary fields:
     Silhouette roughness (AoS), standard deviation of model height grid
     cell (Sigma), vegetative roughness (z_0), post-processing grid
     orography (pporog) and model orography (modelorog). If no values
@@ -229,13 +228,13 @@ class TestMultiPoint:
     """
 
     def __init__(
-        self, nx_ny=3, AoS=None, Sigma=None, z_0=0.2, pporog=None, modelorog=None
+        self, shape=(3, 3), AoS=None, Sigma=None, z_0=0.2, pporog=None, modelorog=None
     ):
         """Set up multi-point tests.
 
         Args:
-            nx_ny (int or numpy.ndarray([x,y])):
-                Sets dimension for tests.
+            shape (tuple):
+                Required data shape.
             AoS (float or 1D or 2D numpy.ndarray):
                 Silhouette roughness field
             Sigma (float or 1D or 2D numpy.ndarray):
@@ -248,39 +247,32 @@ class TestMultiPoint:
                 Model orography field on post-processing grid
 
         """
-        if isinstance(nx_ny, int):  # BUG assumes x/y ordering - rename these inputs
-            n_x = n_y = nx_ny
-        else:
-            n_x = nx_ny[0]
-            n_y = nx_ny[1]
-        self.n_x = n_x
-        self.n_y = n_y
+        self.shape = shape
         if AoS is None:
-            AoS = np.ones([n_x, n_y]) * 0.2
+            AoS = np.full(shape, 0.2, dtype=np.float32)
         if Sigma is None:
-            Sigma = np.ones([n_x, n_y]) * 20.0
+            Sigma = np.full(shape, 20.0, dtype=np.float32)
         if pporog is None:
-            pporog = np.ones([n_x, n_y]) * 250.0
+            pporog = np.full(shape, 250.0, dtype=np.float32)
         if modelorog is None:
-            modelorog = np.ones([n_x, n_y]) * 230.0
+            modelorog = np.full(shape, 230.0, dtype=np.float32)
         self.w_cube = None
-        self.aos_cube = make_ancil_cube(AoS, None, 1, shape=(n_x, n_y))
+        self.aos_cube = make_ancil_cube(AoS, None, 1, shape=shape)
         self.s_cube = make_ancil_cube(
-            Sigma, "standard_deviation_of_orography_height", "m", shape=(n_x, n_y)
+            Sigma, "standard_deviation_of_orography_height", "m", shape=shape
         )
         if z_0 is None:
             self.z0_cube = None
         elif isinstance(z_0, float):
-            z_0 = np.ones([n_x, n_y]) * z_0
+            z_0 = np.full(shape, z_0, dtype=np.float32)
             self.z0_cube = make_ancil_cube(z_0, None, "m")
         elif isinstance(z_0, list):
-            z_0 = np.array(z_0)
-            self.z0_cube = make_ancil_cube(z_0, None, "m", shape=(n_x, n_y))
+            self.z0_cube = make_ancil_cube(np.array(z_0), None, "m", shape=shape)
         self.poro_cube = make_ancil_cube(
-            pporog, "orography_height", "m", shape=(n_x, n_y)
+            pporog, "orography_height", "m", shape=shape
         )
         self.moro_cube = make_ancil_cube(
-            modelorog, "orography_height", "m", shape=(n_x, n_y)
+            modelorog, "orography_height", "m", shape=shape
         )
 
     def run_hc_rc(self, wind, dtime=1, height=None, aslist=False):
@@ -315,11 +307,11 @@ class TestMultiPoint:
                 windfield = np.array(windfield)
                 if windfield.ndim == 1:  # only function of height
                     windfield = np.ones(
-                        windfield.shape + (1, self.n_x, self.n_y)
+                        windfield.shape + (1, *self.shape)
                     ) * windfield.reshape(windfield.shape + (1, 1, 1))
                 self.w_cube.append(
                     set_up_cube(
-                        num_grid_points=[self.n_x, self.n_y],
+                        num_grid_points=self.shape,
                         num_height_levels=windfield.shape[0],
                         data=windfield,
                         name="wind_speed",
@@ -331,16 +323,16 @@ class TestMultiPoint:
             wind = np.array(wind)
             self.w_cube = iris.cube.Cube
             if wind.ndim == 1:  # only function of height
-                wind = np.ones(wind.shape + (dtime, self.n_x, self.n_y)) * wind.reshape(
+                wind = np.ones(wind.shape + (dtime, *self.shape)) * wind.reshape(
                     wind.shape + (1, 1, 1)
                 )
             elif wind.ndim == 2:  # function of height and time
-                wind = np.ones(wind.shape + (self.n_x, self.n_y)) * wind.reshape(
+                wind = np.ones(wind.shape + self.shape) * wind.reshape(
                     wind.shape + (1, 1)
                 )
             self.w_cube = set_up_cube(
                 num_time_points=dtime,
-                num_grid_points=[self.n_x, self.n_y],
+                num_grid_points=self.shape,
                 num_height_levels=wind.shape[0],
                 data=wind,
                 name="wind_speed",
@@ -751,7 +743,7 @@ class Test2D(IrisTest):
         uin = np.ones(10) * 20
         heights = ((np.arange(10) + 1) ** 2.0) * 12
         multip_hc_rc = TestMultiPoint(
-            nx_ny=[3, 1],
+            shape=(3, 1),
             AoS=[0, 0.2, 0.2],
             pporog=[0, 250, 250],
             modelorog=[0, 250, 230],
@@ -790,7 +782,7 @@ class Test2D(IrisTest):
         uin = np.ones(10) * 20
         heights = ((np.arange(10) + 1) ** 2.0) * 12
         multip_hc_rc = TestMultiPoint(
-            nx_ny=[3, 1],
+            shape=(3, 1),
             AoS=[0, 0.2, 0.2],
             pporog=[0, 250, 250],
             modelorog=[0, 250, 230],
