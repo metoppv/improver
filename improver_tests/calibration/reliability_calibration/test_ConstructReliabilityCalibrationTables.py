@@ -92,6 +92,24 @@ class Test_Setup(unittest.TestCase):
             frt=datetime(2017, 11, 11, 4, 0),
         )
         self.truths = MergeCubes()([self.truth_1, self.truth_2])
+
+        masked_array = np.zeros(truth_data.shape, dtype=bool)
+        masked_array[:, 0, :2] = True
+        masked_truth_data_1 = np.ma.array(truth_data, mask=masked_array)
+        masked_array = np.zeros(truth_data.shape, dtype=bool)
+        masked_array[:, :2, 0] = True
+        masked_truth_data_2 = np.ma.array(truth_data, mask=masked_array)
+
+        self.masked_truth_1 = set_up_probability_cube(
+            masked_truth_data_1, thresholds, frt=datetime(2017, 11, 10, 4, 0)
+        )
+        self.masked_truth_2 = set_up_probability_cube(
+            masked_truth_data_2,
+            thresholds,
+            time=datetime(2017, 11, 11, 4, 0),
+            frt=datetime(2017, 11, 11, 4, 0),
+        )
+        self.masked_truths = MergeCubes()([self.masked_truth_1, self.masked_truth_2])
         self.expected_threshold_coord = self.forecasts.coord(var_name="threshold")
         self.expected_table_shape = (3, 5, 3, 3)
         self.expected_attributes = {
@@ -121,6 +139,32 @@ class Test_Setup(unittest.TestCase):
                 [
                     [[1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
                     [[0.0, 1.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                ],
+            ],
+            dtype=np.float32,
+        )
+        self.expected_table_for_mask = np.array(
+            [
+                [
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                ],
+                [
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.25], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.375, 0.5, 0.625], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.75, 0.875, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                ],
+                [
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
                     [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]],
                     [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
                     [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
@@ -388,6 +432,28 @@ class Test__populate_reliability_bins(Test_Setup):
         assert_array_equal(result, self.expected_table)
 
 
+class Test__populate_masked_reliability_bins(Test_Setup):
+
+    """Test the _populate_masked_reliability_bins method."""
+
+    def test_table_values_masked_truth(self):
+        """Test the reliability table returned has the expected values when a
+        masked truth is input."""
+
+        forecast_slice = next(self.forecast_1.slices_over("air_temperature"))
+        truth_slice = next(self.masked_truth_1.slices_over("air_temperature"))
+        result = Plugin(
+            single_value_lower_limit=True, single_value_upper_limit=True
+        )._populate_masked_reliability_bins(forecast_slice.data, truth_slice.data)
+
+        self.assertSequenceEqual(result.shape, self.expected_table_shape)
+        self.assertTrue(np.ma.is_masked(result))
+        assert_array_equal(result.data, self.expected_table_for_mask)
+        expected_mask = np.zeros(self.expected_table_for_mask.shape, dtype=bool)
+        expected_mask[:, :, 0, :2] = True
+        assert_array_equal(result.mask, expected_mask)
+
+
 class Test_process(Test_Setup):
 
     """Test the process method."""
@@ -415,6 +481,55 @@ class Test_process(Test_Setup):
         ).process(self.forecasts, self.truths)
 
         assert_array_equal(result[0].data, expected)
+
+    def test_table_values_masked_truth(self):
+        """Test, similar to test_table_values, using masked arrays. The
+        mask is different for different timesteps, reflecting the potential
+        for masked areas in e.g. a radar truth to differ between timesteps.
+        At timestep 1, two grid points are masked. At timestep 2, two
+        grid points are also masked with one masked grid point in common
+        between timesteps. As a result, only one grid point is masked (
+        within the upper left corner) within the resulting reliability table."""
+
+        expected_table_for_second_mask = np.array(
+            [
+                [
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                ],
+                [
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.125, 0.25], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.5, 0.625], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.75, 0.875, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                ],
+                [
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 1.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
+                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+                ],
+            ],
+            dtype=np.float32,
+        )
+        expected = np.sum(
+            [self.expected_table_for_mask, expected_table_for_second_mask], axis=0
+        )
+        expected_mask = np.zeros(expected.shape, dtype=bool)
+        expected_mask[:, :, 0, 0] = True
+        result = Plugin(
+            single_value_lower_limit=True, single_value_upper_limit=True
+        ).process(self.forecasts, self.masked_truths)
+        self.assertIsInstance(result.data, np.ma.MaskedArray)
+        assert_array_equal(result[0].data.data, expected)
+        assert_array_equal(result[0].data.mask, expected_mask)
+        # Different thresholds must have the same mask.
+        assert_array_equal(result[0].data.mask, result[1].data.mask)
 
     def test_mismatching_threshold_coordinates(self):
         """Test that an exception is raised if the forecast and truth cubes

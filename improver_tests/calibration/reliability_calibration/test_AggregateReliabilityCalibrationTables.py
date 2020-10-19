@@ -64,6 +64,20 @@ class Test_Aggregation(Test_Setup):
         new_frt.points = new_frt.points + 48 * 3600
         new_frt.bounds = new_frt.bounds + 48 * 3600
 
+        self.masked_reliability_cube = self.reliability_cube.copy()
+        masked_array = np.zeros(self.reliability_cube.shape, dtype=bool)
+        masked_array[:, :, 0, :2] = True
+        self.masked_reliability_cube.data = np.ma.array(
+            self.reliability_cube.data, mask=masked_array
+        )
+
+        self.masked_different_frt = self.different_frt.copy()
+        masked_array = np.zeros(self.different_frt.shape, dtype=bool)
+        masked_array[:, :, :2, 0] = True
+        self.masked_different_frt.data = np.ma.array(
+            self.different_frt.data, mask=masked_array
+        )
+
         self.overlapping_frt = self.reliability_cube.copy()
         new_frt = self.overlapping_frt.coord("forecast_reference_time")
         new_frt.points = new_frt.points + 6 * 3600
@@ -180,6 +194,38 @@ class Test_process(Test_Aggregation):
             coordinates=["latitude", "longitude"],
         )
         assert_array_equal(result.data, self.lat_lon_collapse * 2)
+        self.assertEqual(result.coord(frt).points, expected_points)
+        assert_array_equal(result.coord(frt).bounds, expected_bounds)
+
+    def test_aggregating_over_masked_cubes_and_coordinates(self):
+        """Test of aggregating over coordinates and cubes in a single call
+        using a masked reliability table. In this instance the latitude and
+        longitude coordinates are collapsed and the values from two input cube
+        combined."""
+
+        frt = "forecast_reference_time"
+        expected_points = self.masked_different_frt.coord(frt).points
+        expected_bounds = [
+            [
+                self.masked_reliability_cube.coord(frt).bounds[0][0],
+                self.masked_different_frt.coord(frt).bounds[-1][1],
+            ]
+        ]
+        expected_result = np.array(
+            [
+                [0.0, 0.0, 2.0, 4.0, 2.0],
+                [0.0, 0.625, 2.625, 3.25, 2.0],
+                [0.0, 3.0, 5.0, 4.0, 2.0],
+            ]
+        )
+
+        plugin = Plugin()
+        result = plugin.process(
+            [self.masked_reliability_cube, self.masked_different_frt],
+            coordinates=["latitude", "longitude"],
+        )
+        self.assertIsInstance(result.data, np.ma.MaskedArray)
+        assert_array_equal(result.data, expected_result)
         self.assertEqual(result.coord(frt).points, expected_points)
         assert_array_equal(result.coord(frt).bounds, expected_bounds)
 
