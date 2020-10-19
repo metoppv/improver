@@ -85,7 +85,7 @@ def process(
             The value of recursive filter smoothing_coefficient to be used
             where the orography gradient is a minimum. Generally this number
             will be larger than the max_gradient_smoothing_coefficient as
-            quantities are likely to smoothed more across flat terrain.
+            quantities are likely to be smoothed more across flat terrain.
         max_gradient_smoothing_coefficient (float):
             The value of recursive filter smoothing_coefficient to be used
             where the orography gradient is a maximum. Generally this number
@@ -99,9 +99,10 @@ def process(
             A mask can be provided to define a region in which smoothing
             coefficients are set to zero, i.e. no smoothing. If this
             option is set to True then rather than the whole masked region
-            being set to zero, only the cells that mark the transition from
-            masked to unmasked will be set to zero. The primary purpose for
-            this is to prevent smoothing across land-sea boundaries.
+            being set to zero, only the smoothing coefficient cells that mark
+            the transition from masked to unmasked will be set to zero. The
+            primary purpose for this is to prevent smoothing across land-sea
+            boundaries.
         invert_mask (bool):
             By default, if a mask is provided and use_mask_boundary is False,
             all the smoothing coefficients corresponding to a mask value of 1

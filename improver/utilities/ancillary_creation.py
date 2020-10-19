@@ -125,8 +125,10 @@ class OrographicSmoothingCoefficients(BasePlugin):
         ]:
             if limit < 0 or limit > 0.5:
                 msg = (
-                    "min_gradient and max_gradient must be 0 <= value <=0.5, provided "
-                    "values are {} and {} respectively".format(
+                    "min_gradient_smoothing_coefficient and max_gradient_smoothing_coefficient "
+                    "must be 0 <= value <=0.5 to help ensure better conservation across the "
+                    "whole field to which the recursive filter is applied. The values provided "
+                    "are {} and {} respectively".format(
                         min_gradient_smoothing_coefficient,
                         max_gradient_smoothing_coefficient,
                     )
@@ -189,8 +191,8 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 A cube of the normalised gradient
 
         Returns:
-            iris.cube.Cube:
-                The cube of initial unscaled smoothing_coefficients
+            numpy.ndarray:
+                An array containing the unscaled smoothing_coefficients.
         """
         return self.coefficient * gradient_cube.data ** self.power
 
@@ -201,8 +203,8 @@ class OrographicSmoothingCoefficients(BasePlugin):
         coordinates and rename.
 
         Args:
-            data (numpy.array):
-                The smoothin coefficient data to store in the cube.
+            data (numpy.ndarray):
+                The smoothing coefficient data to store in the cube.
             template (iris.cube.Cube):
                 A gradient cube, the dimensions of which are used as a template
                 for the coefficient cube.
@@ -291,8 +293,9 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 smoothing_coefficients are to be generated.
             mask (iris.cube.Cube or None):
                 A mask that defines where the smoothing coefficients should
-                be zeroed. How the mask is used is determined by the plugin
-                configuration arguments.
+                be zeroed. The mask must have the same spatial dimensions as
+                the orography cube. How the mask is used to zero smoothing
+                coefficients is determined by the plugin configuration arguments.
         Returns:
             (iris.cube.CubeList): containing:
                 **smoothing_coefficient_x** (iris.cube.Cube): A cube of
@@ -318,7 +321,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
             mask.coords(dim_coords=True) != cube.coords(dim_coords=True)
         ):
             raise ValueError(
-                "If a mask is provided is must have the same grid as the "
+                "If a mask is provided it must have the same grid as the "
                 "orography field."
             )
 

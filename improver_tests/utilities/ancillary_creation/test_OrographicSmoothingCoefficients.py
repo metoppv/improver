@@ -121,7 +121,7 @@ def test_init_value_error(min_value, max_value):
     """Test a ValueError is raised if the chosen smoothing coefficient limits
     are outside the range 0 to 0.5 inclusive."""
 
-    msg = "min_gradient and max_gradient must be 0 <= value <=0.5"
+    msg = "min_gradient_smoothing_coefficient and max_gradient_smoothing_coefficient"
     with pytest.raises(ValueError, match=msg):
         OrographicSmoothingCoefficients(
             min_gradient_smoothing_coefficient=min_value,
@@ -230,7 +230,7 @@ def test_process_exceptions(orography, mask):
         plugin.process(orography[0], None)
 
     # Test the mask cube shares the orography grid
-    msg = "If a mask is provided is must have the same grid"
+    msg = "If a mask is provided it must have the same grid"
     mask.coord(axis="x").points = mask.coord(axis="x").points + 1.0
     with pytest.raises(ValueError, match=msg):
         plugin.process(orography, mask)
