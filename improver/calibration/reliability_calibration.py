@@ -409,7 +409,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         Slice data over threshold and time coordinates to construct reliability
         tables. These are summed over time to give a single table for each
         threshold, constructed from all the provided historic forecasts and
-        truths.
+        truths. If a masked truth is provided, a masked reliability table is
+        returned. If the mask within the truth varies at different timesteps,
+        any point that is unmasked for at least one timestep will have
+        unmasked values within the reliability table. Therefore historic
+        forecast points will only be used if they have a corresponding valid
+        truth point for each timestep.
 
         .. See the documentation for an example of the resulting reliability
            table cube.
