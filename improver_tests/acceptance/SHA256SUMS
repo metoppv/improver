@@ -333,6 +333,10 @@ a87b4eb0ae9dfac3cdffb75dba94750e047fe618b4bb469f5e2262819bfd2318  ./phase-change
 38b1317ad9a7ecf34142ec42841e57159736bdbf26d9d022d5ca76e32389b710  ./phase-change-level/basic/snow_sleet_kgo.nc
 8693b7061a6a3048b193b084e23f9c782a655426764a2c3d1b77ea456d883c09  ./phase-change-level/basic/wbti.nc
 95c8e9238f70628bfa19276cf32c401460fee518411a51286c25de3598656e85  ./phase-change-level/basic/wet_bulb_temperature.nc
+7ba93c31870510834f7db8c5522d87b81fe9a87b33cc3493ba8eade20132f87d  ./phase-mask/rain/kgo.nc
+1701bac7f24212b753b68513552fa74d630bf15b5f6d90c0f1fbaf2fd3700683  ./phase-mask/sleet/kgo.nc
+b9652e6055af76f144ca4aa23658db90ce2582d82cae982d5b708982ac1147ac  ./phase-mask/snow/kgo.nc
+35c58b2ae7f42b9cbb93be0d2ebaffbbb0ed93bea0af4878ed5ccab15c6508b3  ./phase-mask/snow_fraction.nc
 efff8720d452591b6531a279bad6c0168db2336fa497c1f1087ecfcb9321af92  ./phase-probability/basic/rain_kgo.nc
 526d4b92887b171a5d9447561ba2233ef5673e4fc7853e350e07c50ead7d9bb6  ./phase-probability/basic/sleet_rain_input.nc
 77d35d36e52a65aa782e969e791f79c5558be8b0cf838fdc00bef3b4e75e6723  ./phase-probability/basic/snow_kgo.nc

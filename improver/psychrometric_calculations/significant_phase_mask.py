@@ -75,7 +75,10 @@ class SignificantPhaseMask(BasePlugin):
             )
         if f"{snow_fraction.units}" != "1":
             raise ValueError(f"Expected cube with units '1', not {snow_fraction.units}")
-        if isinstance(snow_fraction.data, np.ma.masked_array):
+        if (
+            isinstance(snow_fraction.data, np.ma.masked_array)
+            and snow_fraction.data.mask.any()
+        ):
             raise NotImplementedError("SignificantPhaseMask cannot handle masked data")
         if np.any((snow_fraction.data < 0) | (snow_fraction.data > 1)):
             raise ValueError(

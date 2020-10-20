@@ -30,9 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the snow-fraction CLI"""
 
-import pytest
 import iris
 import numpy as np
+import pytest
 
 from . import acceptance as acc
 
@@ -64,9 +64,9 @@ def test_kgos(tmp_path):
     rain_kgo = kgo_dir / "rain" / "kgo.nc"
     sleet_kgo = kgo_dir / "sleet" / "kgo.nc"
     snow_kgo = kgo_dir / "snow" / "kgo.nc"
-    rain = iris.load_cube(rain_kgo)
-    sleet = iris.load_cube(sleet_kgo)
-    snow = iris.load_cube(snow_kgo)
+    rain = iris.load_cube(str(rain_kgo))
+    sleet = iris.load_cube(str(sleet_kgo))
+    snow = iris.load_cube(str(snow_kgo))
     total = rain.data + sleet.data + snow.data
     expected = np.ones_like(total)
     assert np.allclose(total, expected)
