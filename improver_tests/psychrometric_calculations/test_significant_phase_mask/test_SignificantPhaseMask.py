@@ -122,6 +122,19 @@ def test_units_error():
         SignificantPhaseMask()(input_cube, "snow")
 
 
+def test_phase_error():
+    """Tests behaviour when requested phase is invalid"""
+    input_cube = set_up_variable_cube(
+        np.ones((2, 2), dtype=np.float32),
+        name="snow_fraction",
+        units="1",
+        standard_grid_metadata="uk_ens",
+    )
+    msg = r"Requested phase mask 'kittens' not in \['rain', 'sleet', 'snow'\]"
+    with pytest.raises(KeyError, match=msg):
+        SignificantPhaseMask()(input_cube, "kittens")
+
+
 @pytest.mark.parametrize("snow_fraction", (-1.0, 4.0))
 def test_data_error(snow_fraction):
     """Tests behaviour when input cube has invalid data"""
