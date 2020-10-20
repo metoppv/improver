@@ -79,59 +79,29 @@ def setup_cubes(rain_data=RAIN_DATA, snow_data=SNOW_DATA, name="{phase}rate"):
     return rain, snow
 
 
+@pytest.mark.parametrize("mask_with", ([[False, False], [False, False]], [[False, False], [False, True]]))
+@pytest.mark.parametrize("mask_what", ("none", "rain", "snow", "rain and snow"))
 @pytest.mark.parametrize(
     "cube_name", ("{phase}rate", "thickness_of_{phase}fall_amount")
 )
-def test_basic(cube_name):
+def test_basic(cube_name, mask_what, mask_with):
     """Run a test with four values, including one that will trigger divide-by-zero.
-    Check data and metadata of result."""
+    Check data and metadata of result. Check with and without masked arrays
+    and with and without a masked value."""
     rain, snow = setup_cubes(name=cube_name)
+    if "rain" in mask_what:
+        rain.data = np.ma.masked_array(rain.data, mask_with)
+    if "snow" in mask_what:
+        snow.data = np.ma.masked_array(snow.data, mask_with)
 
     expected_data = np.array([[1.0, 1.0], [2.0 / 3.0, 0.0]], dtype=np.float32)
     result = SnowFraction()(iris.cube.CubeList([rain, snow]))
     assert isinstance(result, iris.cube.Cube)
-    assert not isinstance(result.data, np.ma.masked_array)
-    assert str(result.units) == "1"
-    assert result.name() == "snow_fraction"
-    assert result.attributes == COMMON_ATTRS
-    assert np.allclose(result.data, expected_data)
-
-
-@pytest.mark.parametrize("mask_what", ("rain", "snow", "rain and snow"))
-def test_masked_false_data(mask_what):
-    """Repeat test_basic, with a masked-array (all False)."""
-    rain, snow = setup_cubes()
-    if "rain" in mask_what:
-        rain.data = np.ma.masked_array(rain.data)
-    if "snow" in mask_what:
-        snow.data = np.ma.masked_array(snow.data)
-
-    expected_data = np.array([[1.0, 1.0], [2.0 / 3.0, 0.0]], dtype=np.float32)
-    result = SnowFraction()(iris.cube.CubeList([rain, snow]))
-    assert isinstance(result, iris.cube.Cube)
-    assert isinstance(result.data, np.ma.masked_array)
-    assert not result.data.mask.any()
-    assert str(result.units) == "1"
-    assert result.name() == "snow_fraction"
-    assert result.attributes == COMMON_ATTRS
-    assert np.allclose(result.data, expected_data)
-
-
-@pytest.mark.parametrize("mask_what", ("rain", "snow", "rain and snow"))
-def test_masked_true_data(mask_what):
-    """Repeat test_basic, with a masked-array (one True)."""
-    rain, snow = setup_cubes()
-    mask = [[False, False], [False, True]]
-    if "rain" in mask_what:
-        rain.data = np.ma.masked_array(rain.data, mask)
-    if "snow" in mask_what:
-        snow.data = np.ma.masked_array(snow.data, mask)
-
-    expected_data = np.array([[1.0, 1.0], [2.0 / 3.0, 9999.0]], dtype=np.float32)
-    result = SnowFraction()(iris.cube.CubeList([rain, snow]))
-    assert isinstance(result, iris.cube.Cube)
-    assert isinstance(result.data, np.ma.masked_array)
-    assert (result.data.mask == mask).all()
+    if "none" in mask_what:
+        assert not isinstance(result.data, np.ma.masked_array)
+    else:
+        assert isinstance(result.data, np.ma.masked_array)
+        assert (result.data.mask == mask_with).all()
     assert str(result.units) == "1"
     assert result.name() == "snow_fraction"
     assert result.attributes == COMMON_ATTRS
