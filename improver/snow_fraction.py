@@ -32,6 +32,7 @@
 
 
 import iris
+import numpy as np
 
 from improver import PostProcessingPlugin
 from improver.metadata.utilities import (
@@ -121,6 +122,20 @@ class SnowFraction(PostProcessingPlugin):
                 Snow fraction cube.
 
         """
+        snow_fraction = self.snow.data / (self.rain.data + self.snow.data)
+        if isinstance(snow_fraction, np.ma.masked_array):
+            # If we have a masked array, mask will contain all input masked points and
+            # any new divide-by-zero points. Replace new points with np.nan
+            if isinstance(self.rain.data, np.ma.masked_array) and isinstance(
+                self.snow.data, np.ma.masked_array
+            ):
+                precip_mask = self.rain.data.mask | self.snow.data.mask
+            elif isinstance(self.rain.data, np.ma.masked_array):
+                precip_mask = self.rain.data.mask
+            elif isinstance(self.snow.data, np.ma.masked_array):
+                precip_mask = self.snow.data.mask
+            new_mask_values = snow_fraction.mask & ~precip_mask
+            snow_fraction[new_mask_values] = np.nan
         snow_fraction_cube = create_new_diagnostic_cube(
             "snow_fraction",
             "1",
@@ -128,7 +143,7 @@ class SnowFraction(PostProcessingPlugin):
             mandatory_attributes=generate_mandatory_attributes(
                 iris.cube.CubeList([self.rain, self.snow])
             ),
-            data=self.snow.data / (self.rain.data + self.snow.data),
+            data=snow_fraction,
         )
 
         spatial_dims = [snow_fraction_cube.coord(axis=n).name() for n in ["y", "x"]]

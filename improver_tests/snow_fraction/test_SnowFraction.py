@@ -90,6 +90,48 @@ def test_basic(cube_name):
     expected_data = np.array([[1.0, 1.0], [2.0 / 3.0, 0.0]], dtype=np.float32)
     result = SnowFraction()(iris.cube.CubeList([rain, snow]))
     assert isinstance(result, iris.cube.Cube)
+    assert not isinstance(result.data, np.ma.masked_array)
+    assert str(result.units) == "1"
+    assert result.name() == "snow_fraction"
+    assert result.attributes == COMMON_ATTRS
+    assert np.allclose(result.data, expected_data)
+
+
+@pytest.mark.parametrize("mask_what", ("rain", "snow", "rain and snow"))
+def test_masked_false_data(mask_what):
+    """Repeat test_basic, with a masked-array (all False)."""
+    rain, snow = setup_cubes()
+    if "rain" in mask_what:
+        rain.data = np.ma.masked_array(rain.data)
+    if "snow" in mask_what:
+        snow.data = np.ma.masked_array(snow.data)
+
+    expected_data = np.array([[1.0, 1.0], [2.0 / 3.0, 0.0]], dtype=np.float32)
+    result = SnowFraction()(iris.cube.CubeList([rain, snow]))
+    assert isinstance(result, iris.cube.Cube)
+    assert isinstance(result.data, np.ma.masked_array)
+    assert not result.data.mask.any()
+    assert str(result.units) == "1"
+    assert result.name() == "snow_fraction"
+    assert result.attributes == COMMON_ATTRS
+    assert np.allclose(result.data, expected_data)
+
+
+@pytest.mark.parametrize("mask_what", ("rain", "snow", "rain and snow"))
+def test_masked_true_data(mask_what):
+    """Repeat test_basic, with a masked-array (one True)."""
+    rain, snow = setup_cubes()
+    mask = [[False, False], [False, True]]
+    if "rain" in mask_what:
+        rain.data = np.ma.masked_array(rain.data, mask)
+    if "snow" in mask_what:
+        snow.data = np.ma.masked_array(snow.data, mask)
+
+    expected_data = np.array([[1.0, 1.0], [2.0 / 3.0, 9999.0]], dtype=np.float32)
+    result = SnowFraction()(iris.cube.CubeList([rain, snow]))
+    assert isinstance(result, iris.cube.Cube)
+    assert isinstance(result.data, np.ma.masked_array)
+    assert (result.data.mask == mask).all()
     assert str(result.units) == "1"
     assert result.name() == "snow_fraction"
     assert result.attributes == COMMON_ATTRS
