@@ -90,7 +90,7 @@ def process(
             The value of recursive filter smoothing_coefficient to be used
             where the orography gradient is a maximum. Generally this number
             will be smaller than the min_gradient_smoothing_coefficient as
-            quantities are likely to smoothed less across complex terrain.
+            quantities are likely to be smoothed less across complex terrain.
         coefficient (float):
             The coefficient for the smoothing_coefficient equation.
         power (float):

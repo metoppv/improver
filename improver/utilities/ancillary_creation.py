@@ -94,12 +94,12 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 The value of recursive filter smoothing_coefficient to be used
                 where the orography gradient is a minimum. Generally this number
                 will be larger than the max_gradient_smoothing_coefficient as
-                quantities are likely to smoothed more across flat terrain.
+                quantities are likely to be smoothed more across flat terrain.
             max_gradient_smoothing_coefficient (float):
                 The value of recursive filter smoothing_coefficient to be used
                 where the orography gradient is a maximum. Generally this number
                 will be smaller than the min_gradient_smoothing_coefficient as
-                quantities are likely to smoothed less across complex terrain.
+                quantities are likely to be smoothed less across complex terrain.
             coefficient (float):
                 The coefficient for the smoothing_coefficient equation
             power (float):
