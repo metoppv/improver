@@ -229,7 +229,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
             cube_name,
             "1",
             template,
-            MANDATORY_ATTRIBUTE_DEFAULTS,
+            MANDATORY_ATTRIBUTE_DEFAULTS.copy(),
             optional_attributes=attributes,
             data=data,
         )
