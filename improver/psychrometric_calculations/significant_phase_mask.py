@@ -59,10 +59,8 @@ class SignificantPhaseMask(BasePlugin):
 
     @staticmethod
     def _validate_snow_fraction(snow_fraction):
-        """Ensures that the input snow-fraction field has appropriate
-          - name (snow_fraction)
-          - units (1)
-          - data (between 0 and 1 inclusive)
+        """Ensures that the input snow-fraction field has appropriate name
+        (snow_fraction), units (1) and data (between 0 and 1 inclusive).
 
         Raises
             ValueError:
