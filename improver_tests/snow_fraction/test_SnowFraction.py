@@ -79,7 +79,9 @@ def setup_cubes(rain_data=RAIN_DATA, snow_data=SNOW_DATA, name="{phase}rate"):
     return rain, snow
 
 
-@pytest.mark.parametrize("mask_with", ([[False, False], [False, False]], [[False, False], [False, True]]))
+@pytest.mark.parametrize(
+    "mask_with", ([[False, False], [False, False]], [[False, False], [False, True]])
+)
 @pytest.mark.parametrize("mask_what", ("none", "rain", "snow", "rain and snow"))
 @pytest.mark.parametrize(
     "cube_name", ("{phase}rate", "thickness_of_{phase}fall_amount")
