@@ -58,7 +58,7 @@ def test_basic(tmp_path, phase):
     acc.compare(output_path, kgo_path)
 
 
-def test_kgos(tmp_path):
+def test_kgos():
     """Ensure the KGO for the three phases total exactly 1 everywhere"""
     kgo_dir = acc.kgo_root() / CLI
     rain_kgo = kgo_dir / "rain" / "kgo.nc"

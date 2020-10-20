@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for calculating the significant phase mask."""
 
-import iris
 import numpy as np
 
 from improver import BasePlugin
@@ -125,7 +124,7 @@ class SignificantPhaseMask(BasePlugin):
             data = self.phase_operator[phase](snow_fraction.data)
         except KeyError:
             raise KeyError(
-                f"Requested phase mask '{phase}' not in {self.phase_operator.keys()}"
+                f"Requested phase mask '{phase}' not in {list(self.phase_operator.keys())}"
             )
         phase_mask = create_new_diagnostic_cube(
             f"{phase}_mask",
