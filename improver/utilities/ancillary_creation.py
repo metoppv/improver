@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """A module for creating ancillary data"""
 
+import operator
 import warnings
 
 import iris
@@ -37,6 +38,9 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.constants import TRIPLE_PT_WATER
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.metadata.utilities import create_new_diagnostic_cube
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 
@@ -60,71 +64,96 @@ class OrographicSmoothingCoefficients(BasePlugin):
         \\rm{smoothing\\_coefficient} = \\rm{coefficient} \\times
         \\rm{gradient}^{\\rm{power}}
 
-    The resulting values are scaled between min_smoothing_coefficient and
-    max_smoothing_coefficient to give the desired range of
-    smoothing_coefficients. These can be provided in reverse (i.e. min > max)
-    to invert the smoothing coefficients in relation to the orographic
-    gradient, providing smoothing coefficients that are largest where the
-    orography gradient is shallowest.
+    The resulting values are scaled between min_gradient_smoothing_coefficient and
+    max_gradient_smoothing_coefficient to give the desired range of
+    smoothing_coefficients. These limiting values must be greater than or equal to
+    zero and less than or equal to 0.5.
+
+    Note that the smoothing coefficients are returned on a grid that is one cell
+    smaller in the given dimension than the input orography, i.e. the smoothing
+    coefficients in the x-direction are returned on a grid that is one cell
+    smaller in x than the input. This is because the coefficients are used in
+    both forward and backward passes of the recursive filter, so they need to be
+    symmetric between cells in the original grid to help ensure conservation.
     """
 
     def __init__(
         self,
-        min_smoothing_coefficient=0.0,
-        max_smoothing_coefficient=1.0,
+        min_gradient_smoothing_coefficient=0.5,
+        max_gradient_smoothing_coefficient=0.0,
         coefficient=1,
         power=1,
+        use_mask_boundary=False,
+        invert_mask=False,
     ):
         """
         Initialise class.
 
         Args:
-            min_smoothing_coefficient (float):
-                The minimum value of smoothing_coefficient that you want to go
-                into the recursive filter.
-            max_smoothing_coefficient (float):
-                The maximum value of smoothing_coefficient that you want to go
-                into the recursive filter
+            min_gradient_smoothing_coefficient (float):
+                The value of recursive filter smoothing_coefficient to be used
+                where the orography gradient is a minimum. Generally this number
+                will be larger than the max_gradient_smoothing_coefficient as
+                quantities are likely to be smoothed more across flat terrain.
+            max_gradient_smoothing_coefficient (float):
+                The value of recursive filter smoothing_coefficient to be used
+                where the orography gradient is a maximum. Generally this number
+                will be smaller than the min_gradient_smoothing_coefficient as
+                quantities are likely to be smoothed less across complex terrain.
             coefficient (float):
                 The coefficient for the smoothing_coefficient equation
             power (float):
                 What power you want for your smoothing_coefficient equation
+            use_mask_boundary (bool):
+                A mask can be provided to this plugin to define a region in which
+                smoothing coefficients are set to zero, i.e. no smoothing. If this
+                option is set to True then rather than the whole masked region
+                being set to zero, only the cells that mark the transition from
+                masked to unmasked will be set to zero. The primary purpose for
+                this is to prevent smoothing across land-sea boundaries.
+            invert_mask (bool):
+                By default, if a mask is provided and use_mask_boundary is False,
+                all the smoothing coefficients corresponding to a mask value of 1
+                will be zeroed. Setting invert_mask to True reverses this behaviour
+                such that mask values of 0 set the points to be zeroed in the
+                smoothing coefficients. If use_mask_boundary is True this option
+                has no effect.
         """
-        self.max_smoothing_coefficient = max_smoothing_coefficient
-        self.min_smoothing_coefficient = min_smoothing_coefficient
+        for limit in [
+            min_gradient_smoothing_coefficient,
+            max_gradient_smoothing_coefficient,
+        ]:
+            if limit < 0 or limit > 0.5:
+                msg = (
+                    "min_gradient_smoothing_coefficient and max_gradient_smoothing_coefficient "
+                    "must be 0 <= value <=0.5 to help ensure better conservation across the "
+                    "whole field to which the recursive filter is applied. The values provided "
+                    "are {} and {} respectively".format(
+                        min_gradient_smoothing_coefficient,
+                        max_gradient_smoothing_coefficient,
+                    )
+                )
+                raise ValueError(msg)
+
+        self.max_gradient_smoothing_coefficient = max_gradient_smoothing_coefficient
+        self.min_gradient_smoothing_coefficient = min_gradient_smoothing_coefficient
         self.coefficient = coefficient
         self.power = power
+        self.use_mask_boundary = use_mask_boundary
+        self.mask_comparison = operator.ge
+        if invert_mask:
+            self.mask_comparison = operator.le
 
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = (
-            "<OrographicSmoothingCoefficients: "
-            "min_smoothing_coefficient: {}; "
-            "max_smoothing_coefficient: {}; coefficient: {}; power: {}"
-            ">".format(
-                self.min_smoothing_coefficient,
-                self.max_smoothing_coefficient,
-                self.coefficient,
-                self.power,
-            )
-        )
-
-        return result
-
-    @staticmethod
-    def scale_smoothing_coefficients(cubes, min_output=0, max_output=1):
+    def scale_smoothing_coefficients(self, cubes):
         """
         This scales a set of smoothing_coefficients from input cubes to range
-        between the minimum and maximum smoothing_coefficient values.
+        between the min_gradient_smoothing_coefficient and the
+        max_gradient_smoothing_coefficient.
 
         Args:
             cubes (iris.cube.CubeList):
                 A list of smoothing_coefficient cubes that we need to take the
                 minimum and maximum values from.
-            min_output (float):
-                The minimum value we want our smoothing_coefficient to be.
-            max_output (float):
-                The maximum value we want our smoothing_coefficient to be.
 
         Returns:
             iris.cube.CubeList:
@@ -137,7 +166,14 @@ class OrographicSmoothingCoefficients(BasePlugin):
         scaled_cubes = iris.cube.CubeList()
         for cube in cubes:
             scaled_data = (abs(cube.data) - cube_min) / (cube_max - cube_min)
-            scaled_data = scaled_data * (max_output - min_output) + min_output
+            scaled_data = (
+                scaled_data
+                * (
+                    self.max_gradient_smoothing_coefficient
+                    - self.min_gradient_smoothing_coefficient
+                )
+                + self.min_gradient_smoothing_coefficient
+            )
             scaled_cube = cube.copy(data=scaled_data)
             scaled_cube.units = "1"
             scaled_cubes.append(scaled_cube)
@@ -155,83 +191,99 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 A cube of the normalised gradient
 
         Returns:
-            iris.cube.Cube:
-                The cube of initial unscaled smoothing_coefficients
+            numpy.ndarray:
+                An array containing the unscaled smoothing_coefficients.
         """
-        smoothing_coefficients_cube = gradient_cube.copy(
-            data=self.coefficient * gradient_cube.data ** self.power
-        )
-        return smoothing_coefficients_cube
+        return self.coefficient * gradient_cube.data ** self.power
 
     @staticmethod
-    def update_smoothing_coefficients_metadata(smoothing_coefficients_cube, cube_name):
+    def create_coefficient_cube(data, template, cube_name, attributes):
         """
         Update metadata in smoothing_coefficients cube. Remove any time
         coordinates and rename.
 
         Args:
-            smoothing_coefficients_cube (iris.cube.Cube):
-                A cube of smoothing_coefficients with "gradient" metadata
+            data (numpy.ndarray):
+                The smoothing coefficient data to store in the cube.
+            template (iris.cube.Cube):
+                A gradient cube, the dimensions of which are used as a template
+                for the coefficient cube.
             cube_name (str):
                 A name for the resultant cube
+            attributes (dict):
+                A dictionary of attributes for the new cube.
 
         Returns:
             iris.cube.Cube:
-                A cube of smoothing_coefficients with adjusted metadata
+                A new cube of smoothing_coefficients
         """
-        smoothing_coefficients_cube.rename(cube_name)
-        for coord in smoothing_coefficients_cube.coords(dim_coords=False):
-            if "time" in coord.name() or "period" in coord.name():
-                smoothing_coefficients_cube.remove_coord(coord)
-        return smoothing_coefficients_cube
+        for coord in template.coords(dim_coords=False):
+            for coord_name in ["time", "period", "realization"]:
+                if coord_name in coord.name():
+                    template.remove_coord(coord)
 
-    def gradient_to_smoothing_coefficient(self, gradient_x, gradient_y):
+        attributes["title"] = "Recursive filter smoothing coefficients"
+        attributes.pop("history", None)
+
+        return create_new_diagnostic_cube(
+            cube_name,
+            "1",
+            template,
+            MANDATORY_ATTRIBUTE_DEFAULTS,
+            optional_attributes=attributes,
+            data=data,
+        )
+
+    def zero_masked(self, smoothing_coefficient_x, smoothing_coefficient_y, mask):
         """
-        Generate smoothing_coefficients from orography gradients in the
-        x and y directions
+        Zero smoothing coefficients in regions or at boundaries defined by the
+        provided mask. The changes are made in place to the input cubes. The
+        behaviour is as follows:
+
+            use_mask_boundary = True:
+              The edges of the mask region are used to define where smoothing
+              coefficients should be zeroed. The zeroed smoothing coefficients
+              are between the masked and unmasked cells of the grid on which the
+              mask is defined.
+
+            invert_mask = False:
+              All smoothing coefficients within regions for which the mask has
+              value 1 are set to 0. The boundary cells between masked and
+              unmasked are also set to 0. Has no effect if use_mask_boundary=True.
+
+            invert_mask = True:
+              All smoothing coefficients within regions for which the mask has
+              value 0 are set to 0. The boundary cells between masked and
+              unmasked are also set to 0. Has no effect if use_mask_boundary=True.
 
         Args:
-            gradient_x (iris.cube.Cube):
-                A cube of the normalised gradient in the x direction
-            gradient_y (iris.cube.Cube):
-                A cube of the normalised gradient in the y direction
-
-        Returns:
-            (tuple): tuple containing:
-                **smoothing_coefficient_x** (iris.cube.Cube): A cube of
-                    orography-dependent smoothing_coefficients calculated in
-                    the x direction.
-
-                **smoothing_coefficient_y** (iris.cube.Cube): A cube of
-                    orography-dependent smoothing_coefficients calculated in
-                    the y direction.
+            smoothing_coefficient_x (iris.cube.Cube):
+                Smoothing coefficients calculated along the x-dimension.
+            smoothing_coefficient_y (iris.cube.Cube):
+                Smoothing coefficients calculated along the y-dimension.
+            mask (iris.cube.Cube):
+                The mask defining areas in which smoothing coefficients should
+                be zeroed.
         """
-        smoothing_coefficient_x = self.unnormalised_smoothing_coefficients(gradient_x)
-        smoothing_coefficient_y = self.unnormalised_smoothing_coefficients(gradient_y)
+        if self.use_mask_boundary:
+            zero_points_x = np.diff(mask.data, axis=1) != 0
+            zero_points_y = np.diff(mask.data, axis=0) != 0
+        else:
+            zero_points_x = self.mask_comparison(
+                mask.data[:, :-1] + mask.data[:, 1:], 1
+            )
+            zero_points_y = self.mask_comparison(
+                mask.data[:-1, :] + mask.data[1:, :], 1
+            )
+        smoothing_coefficient_x.data[zero_points_x] = 0.0
+        smoothing_coefficient_y.data[zero_points_y] = 0.0
 
-        (
-            smoothing_coefficient_x,
-            smoothing_coefficient_y,
-        ) = self.scale_smoothing_coefficients(
-            [smoothing_coefficient_x, smoothing_coefficient_y],
-            min_output=self.min_smoothing_coefficient,
-            max_output=self.max_smoothing_coefficient,
-        )
-        smoothing_coefficient_x = self.update_smoothing_coefficients_metadata(
-            smoothing_coefficient_x, "smoothing_coefficient_x"
-        )
-        smoothing_coefficient_y = self.update_smoothing_coefficients_metadata(
-            smoothing_coefficient_y, "smoothing_coefficient_y"
-        )
-
-        return smoothing_coefficient_x, smoothing_coefficient_y
-
-    def process(self, cube):
+    def process(self, cube, mask=None):
         """
         This creates the smoothing_coefficient cubes. It returns one for the x
         direction and one for the y direction. It uses the
         DifferenceBetweenAdjacentGridSquares plugin to calculate an average
-        gradient across each grid square.  These gradients are then used to
+        gradient across each grid square. These gradients are then used to
         calculate "smoothing_coefficient" arrays that are normalised between a
         user-specified max and min.
 
@@ -239,6 +291,11 @@ class OrographicSmoothingCoefficients(BasePlugin):
             cube (iris.cube.Cube):
                 A 2D field of orography on the grid for which
                 smoothing_coefficients are to be generated.
+            mask (iris.cube.Cube or None):
+                A mask that defines where the smoothing coefficients should
+                be zeroed. The mask must have the same spatial dimensions as
+                the orography cube. How the mask is used to zero smoothing
+                coefficients is determined by the plugin configuration arguments.
         Returns:
             (iris.cube.CubeList): containing:
                 **smoothing_coefficient_x** (iris.cube.Cube): A cube of
@@ -254,20 +311,55 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 "OrographicSmoothingCoefficients() expects cube "
                 "input, got {}".format(type(cube))
             )
-
         if len(cube.data.shape) != 2:
             raise ValueError(
                 "Expected orography on 2D grid, got {} dims".format(
                     len(cube.data.shape)
                 )
             )
-        gradient_x, gradient_y = GradientBetweenAdjacentGridSquares()(cube)
-        (
-            smoothing_coefficient_x,
-            smoothing_coefficient_y,
-        ) = self.gradient_to_smoothing_coefficient(gradient_x, gradient_y)
+        if mask is not None and (
+            mask.coords(dim_coords=True) != cube.coords(dim_coords=True)
+        ):
+            raise ValueError(
+                "If a mask is provided it must have the same grid as the "
+                "orography field."
+            )
 
-        return iris.cube.CubeList([smoothing_coefficient_x, smoothing_coefficient_y])
+        # Enforce coordinate order for simpler processing.
+        original_order = [crd.name() for crd in cube.coords(dim_coords=True)]
+        target_order = [cube.coord(axis="y").name(), cube.coord(axis="x").name()]
+        enforce_coordinate_ordering(cube, target_order)
+
+        # Returns two cubes, ordered gradient in x and gradient in y.
+        gradients = GradientBetweenAdjacentGridSquares()(cube)
+
+        # Calculate unscaled smoothing coefficients.
+        smoothing_coefficients = iris.cube.CubeList()
+        iterator = zip(
+            gradients, ["smoothing_coefficient_x", "smoothing_coefficient_y"]
+        )
+        for gradient, name in iterator:
+            coefficient_data = self.unnormalised_smoothing_coefficients(gradient)
+            smoothing_coefficients.append(
+                self.create_coefficient_cube(
+                    coefficient_data, gradient, name, cube.attributes.copy()
+                )
+            )
+
+        # Scale the smoothing coefficients between provided values.
+        smoothing_coefficients = self.scale_smoothing_coefficients(
+            smoothing_coefficients
+        )
+
+        # If a mask has been provided, zero coefficients where required.
+        if mask is not None:
+            enforce_coordinate_ordering(mask, target_order)
+            self.zero_masked(*smoothing_coefficients, mask)
+
+        for smoothing_coefficient in smoothing_coefficients:
+            enforce_coordinate_ordering(smoothing_coefficient, original_order)
+
+        return smoothing_coefficients
 
 
 class SaturatedVapourPressureTable(BasePlugin):
