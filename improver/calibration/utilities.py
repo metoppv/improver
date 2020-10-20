@@ -48,13 +48,13 @@ def convert_cube_data_to_2d(forecast, coord="realization", transpose=True):
         forecast (iris.cube.Cube):
             N-dimensional cube to be reshaped.
         coord (str):
-            The data will be flattened along this coordinate.
+            This dimension is retained as the second dimension by default,
+            and the leading dimension if "transpose" is set to False.
         transpose (bool):
             If True, the resulting flattened data is transposed.
-            This will transpose a 2d array of the format [:, coord]
-            to [coord, :].
-            If False, the resulting flattened data is not transposed.
-            This will result in a 2d array of format [:, coord].
+            This will transpose a 2d array of the format [coord, :]
+            to [:, coord].  If coord is not a dimension on the input cube,
+            the resulting array will be 2d with items of length 1.
 
     Returns:
         numpy.ndarray:

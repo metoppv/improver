@@ -55,11 +55,12 @@ from improver.calibration.utilities import (
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
     set_up_percentile_cube,
     set_up_variable_cube,
 )
 
-from ..ensemble_calibration.helper_functions import SetupCubes, set_up_temperature_cube
+from ..ensemble_calibration.helper_functions import SetupCubes
 from ..reliability_calibration.test_AggregateReliabilityCalibrationTables import (
     Test_Aggregation,
 )
@@ -70,22 +71,12 @@ class Test_convert_cube_data_to_2d(IrisTest):
     """Test the convert_cube_data_to_2d utility."""
 
     def setUp(self):
-        """Use temperature cube to test with."""
-        self.cube = set_up_temperature_cube()
+        """Set up a 3d temperature cube"""
+        data = np.arange(226.15, 230.1, 0.15, dtype=np.float32).reshape(3, 3, 3)
+        self.cube = set_up_variable_cube(data)
         self.data = np.array(
-            [
-                [226.15, 230.15, 232.15],
-                [237.4, 241.4, 243.4],
-                [248.65, 252.65, 254.65],
-                [259.9, 263.9, 265.9],
-                [271.15, 275.15, 277.15],
-                [282.4, 286.4, 288.4],
-                [293.65, 297.65, 299.65],
-                [304.9, 308.9, 310.9],
-                [316.15, 320.15, 322.15],
-            ],
-            dtype=np.float32,
-        )
+            [data[0].flatten(), data[1].flatten(), data[2].flatten()]
+        ).T
 
     def test_basic(self):
         """Test that the utility returns an iris.cube.Cube."""
@@ -103,7 +94,6 @@ class Test_convert_cube_data_to_2d(IrisTest):
         when the cube is sliced along the longitude dimension.
         """
         data = self.data.flatten().reshape(9, 3).T.reshape(9, 3)
-
         result = convert_cube_data_to_2d(self.cube, coord="longitude")
         self.assertArrayAlmostEqual(result, data)
 
@@ -113,91 +103,44 @@ class Test_convert_cube_data_to_2d(IrisTest):
         when the cube is not transposed after slicing.
         """
         data = self.data.T
-
         result = convert_cube_data_to_2d(self.cube, transpose=False)
         self.assertArrayAlmostEqual(result, data)
-
-    def test_3d_cube(self):
-        """
-        Test that the utility returns the expected data values
-        when a 3d cube is input.
-        """
-        cube = set_up_temperature_cube()
-        cube = cube[0]
-        data = np.array(
-            [[226.15, 237.4, 248.65, 259.9, 271.15, 282.4, 293.65, 304.9, 316.15]]
-        ).T
-
-        result = convert_cube_data_to_2d(cube)
-        self.assertArrayAlmostEqual(result, data, decimal=5)
 
     def test_2d_cube(self):
         """
         Test that the utility returns the expected data values
         when a 2d cube is input.
         """
-        cube = set_up_temperature_cube()
-        cube = cube[0, 0, :, :]
-        data = np.array(
-            [[226.15, 237.4, 248.65, 259.9, 271.15, 282.4, 293.65, 304.9, 316.15]]
-        ).T
-
+        cube = next(self.cube.slices_over("realization"))
+        expected_data = np.array([cube.data.flatten()]).T
         result = convert_cube_data_to_2d(cube)
-        self.assertArrayAlmostEqual(result, data, decimal=5)
+        self.assertArrayAlmostEqual(result, expected_data, decimal=5)
 
     def test_1d_cube(self):
         """
         Test that the utility returns the expected data values
         when a 1d cube is input.
         """
-        cube = set_up_temperature_cube()
-        cube = cube[0, 0, 0, :]
-        data = np.array([[226.15, 237.4, 248.65]]).T
-
+        cube = self.cube[0, 0]
+        expected_data = np.array([cube.data.flatten()]).T
         result = convert_cube_data_to_2d(cube)
-        self.assertArrayAlmostEqual(result, data, decimal=5)
+        self.assertArrayAlmostEqual(result, expected_data, decimal=5)
 
     def test_5d_cube(self):
         """
         Test that the utility returns the expected data values
         when a 5d cube is input.
         """
-        cube1 = set_up_temperature_cube()
-        height_coord = iris.coords.AuxCoord([5], standard_name="height")
-        cube1.add_aux_coord(height_coord)
-
-        cube2 = set_up_temperature_cube()
-        height_coord = iris.coords.AuxCoord([10], standard_name="height")
-        cube2.add_aux_coord(height_coord)
-
-        cubes = iris.cube.CubeList([cube1, cube2])
-        cube = cubes.merge_cube()
-
-        data = np.array(
+        cube = add_coordinate(self.cube, [5, 10], "height", coord_units="m")
+        expected_data = np.array(
             [
-                [226.15, 230.15, 232.15],
-                [237.4, 241.4, 243.4],
-                [248.65, 252.65, 254.65],
-                [259.9, 263.9, 265.9],
-                [271.15, 275.15, 277.15],
-                [282.4, 286.4, 288.4],
-                [293.65, 297.65, 299.65],
-                [304.9, 308.9, 310.9],
-                [316.15, 320.15, 322.15],
-                [226.15, 230.15, 232.15],
-                [237.4, 241.4, 243.4],
-                [248.65, 252.65, 254.65],
-                [259.9, 263.9, 265.9],
-                [271.15, 275.15, 277.15],
-                [282.4, 286.4, 288.4],
-                [293.65, 297.65, 299.65],
-                [304.9, 308.9, 310.9],
-                [316.15, 320.15, 322.15],
+                cube.data[:, 0, :, :].flatten(),
+                cube.data[:, 1, :, :].flatten(),
+                cube.data[:, 2, :, :].flatten(),
             ]
-        )
-
+        ).T
         result = convert_cube_data_to_2d(cube)
-        self.assertArrayAlmostEqual(result, data, decimal=5)
+        self.assertArrayAlmostEqual(result, expected_data, decimal=5)
 
 
 class Test_flatten_ignoring_masked_data(IrisTest):
