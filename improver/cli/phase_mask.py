@@ -35,7 +35,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube, phase: str):
+def process(cube: cli.inputcube, phase: str, *, model_id_attr: str = None):
     """
     Make significant-phase-mask cube for the specified phase.
 
@@ -45,9 +45,12 @@ def process(cube: cli.inputcube, phase: str):
         phase (str):
             One of "rain", "sleet" or "snow". This is the phase mask that will be
             returned.
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
     """
     from improver.psychrometric_calculations.significant_phase_mask import (
         SignificantPhaseMask,
     )
 
-    return SignificantPhaseMask()(cube, phase)
+    return SignificantPhaseMask(model_id_attr=model_id_attr)(cube, phase)

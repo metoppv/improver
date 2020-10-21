@@ -83,6 +83,27 @@ def test_values(snow_fraction, phase, expected):
     assert (result.data == expected).all()
 
 
+@pytest.mark.parametrize("model_id_attr", (None, "mosg__model_configuration"))
+def test_model_id_attr(model_id_attr):
+    """Test attribute handling"""
+    input_cube = set_up_variable_cube(
+        np.full((2, 2), fill_value=0.1, dtype=np.float32),
+        name="snow_fraction",
+        units="1",
+        standard_grid_metadata="uk_ens",
+    )
+    expected_attributes = {
+        "source": "Unit test",
+        "institution": "Met Office",
+        "title": "Post-Processed IMPROVER unit test",
+    }
+    input_cube.attributes.update(expected_attributes)
+    if model_id_attr:
+        expected_attributes[model_id_attr] = input_cube.attributes[model_id_attr]
+    result = SignificantPhaseMask(model_id_attr=model_id_attr)(input_cube, "snow")
+    assert result.attributes == expected_attributes
+
+
 def test_masked_values():
     """Test specific values give expected results"""
     data = np.zeros((2, 2), dtype=np.float32)

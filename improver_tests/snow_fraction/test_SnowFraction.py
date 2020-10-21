@@ -67,6 +67,7 @@ def setup_cubes(rain_data=RAIN_DATA, snow_data=SNOW_DATA, name="{phase}rate"):
         time_bounds=time_bounds,
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
+        standard_grid_metadata="uk_ens",
     )
     snow = set_up_variable_cube(
         snow_data,
@@ -75,18 +76,20 @@ def setup_cubes(rain_data=RAIN_DATA, snow_data=SNOW_DATA, name="{phase}rate"):
         time_bounds=time_bounds,
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
+        standard_grid_metadata="uk_ens",
     )
     return rain, snow
 
 
+@pytest.mark.parametrize("model_id_attr", (None, "mosg__model_configuration"))
 @pytest.mark.parametrize("mask_what", ("none", "rain", "snow", "rain and snow"))
 @pytest.mark.parametrize(
     "cube_name", ("{phase}rate", "thickness_of_{phase}fall_amount")
 )
-def test_basic(cube_name, mask_what):
+def test_basic(cube_name, mask_what, model_id_attr):
     """Run a test with four values, including one that will trigger divide-by-zero.
     Check data and metadata of result. Check with and without masked arrays
-    and with and without a masked value."""
+    and with and without a model_id_attr value."""
     rain, snow = setup_cubes(name=cube_name)
     if "rain" in mask_what:
         rain.data = np.ma.masked_array(rain.data)
@@ -94,12 +97,15 @@ def test_basic(cube_name, mask_what):
         snow.data = np.ma.masked_array(snow.data)
 
     expected_data = np.array([[1.0, 1.0], [2.0 / 3.0, 0.0]], dtype=np.float32)
-    result = SnowFraction()(iris.cube.CubeList([rain, snow]))
+    expected_attributes = COMMON_ATTRS.copy()
+    if model_id_attr:
+        expected_attributes[model_id_attr] = rain.attributes[model_id_attr]
+    result = SnowFraction(model_id_attr=model_id_attr)(iris.cube.CubeList([rain, snow]))
     assert isinstance(result, iris.cube.Cube)
     assert not isinstance(result.data, np.ma.masked_array)
     assert str(result.units) == "1"
     assert result.name() == "snow_fraction"
-    assert result.attributes == COMMON_ATTRS
+    assert result.attributes == expected_attributes
     assert np.allclose(result.data, expected_data)
 
 

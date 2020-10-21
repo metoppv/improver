@@ -50,6 +50,8 @@ def test_basic(tmp_path, input_names):
     args = [
         first_input_path,
         second_input_path,
+        "--model-id-attr",
+        "mosg__model_configuration",
         "--output",
         f"{output_path}",
     ]

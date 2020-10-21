@@ -51,6 +51,8 @@ def test_basic(tmp_path, phase):
     args = [
         snow_fraction_path,
         phase,
+        "--model-id-attr",
+        "mosg__model_configuration",
         "--output",
         f"{output_path}",
     ]

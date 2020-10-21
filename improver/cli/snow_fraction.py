@@ -35,7 +35,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube):
+def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """
     Calculates a snow-fraction field from fields of snow and rain (rate or
     accumulation). Where no precipitation is present, the data are filled in from
@@ -46,6 +46,9 @@ def process(*cubes: cli.inputcube):
     Args:
         cubes (iris.cube.CubeList or list):
             Contains cubes of rain and snow, both must be either rates or accumulations.
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
 
     Returns:
         iris.cube.Cube:
@@ -55,4 +58,4 @@ def process(*cubes: cli.inputcube):
     from improver.snow_fraction import SnowFraction
     from iris.cube import CubeList
 
-    return SnowFraction()(CubeList(cubes))
+    return SnowFraction(model_id_attr=model_id_attr)(CubeList(cubes))

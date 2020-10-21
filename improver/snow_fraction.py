@@ -52,6 +52,17 @@ class SnowFraction(PostProcessingPlugin):
     snow_fraction = snow / (snow + rain)
     """
 
+    def __init__(self, model_id_attr=None):
+        """
+        Initialise the class
+
+        Args:
+            model_id_attr (str):
+                Name of the attribute used to identify the source model for
+                blending.
+        """
+        self.model_id_attr = model_id_attr
+
     def _get_input_cubes(self, input_cubes):
         """
         Separates out the rain and snow cubes from the input list and checks that
@@ -134,7 +145,7 @@ class SnowFraction(PostProcessingPlugin):
             "1",
             template_cube=self.rain,
             mandatory_attributes=generate_mandatory_attributes(
-                iris.cube.CubeList([self.rain, self.snow])
+                iris.cube.CubeList([self.rain, self.snow]), model_id_attr=self.model_id_attr,
             ),
             data=snow_fraction,
         )

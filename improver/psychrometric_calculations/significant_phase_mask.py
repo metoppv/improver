@@ -48,8 +48,16 @@ class SignificantPhaseMask(BasePlugin):
     in between.
     """
 
-    def __init__(self):
-        """Initialise the class"""
+    def __init__(self, model_id_attr=None):
+        """
+        Initialise the class
+
+        Args:
+            model_id_attr (str):
+                Name of the attribute used to identify the source model for
+                blending.
+        """
+        self.model_id_attr = model_id_attr
         self.lower_threshold = 0.01
         self.upper_threshold = 0.99
         self.phase_operator = {
@@ -126,7 +134,7 @@ class SignificantPhaseMask(BasePlugin):
             f"{phase}_mask",
             "1",
             snow_fraction,
-            generate_mandatory_attributes([snow_fraction]),
+            generate_mandatory_attributes([snow_fraction], model_id_attr=self.model_id_attr),
             data=data.astype(np.int32),
             dtype=np.int32,
         )
