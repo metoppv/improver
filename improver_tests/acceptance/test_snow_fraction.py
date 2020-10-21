@@ -39,16 +39,17 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_basic(tmp_path):
-    """Test basic snow-fraction calculation"""
+@pytest.mark.parametrize("input_names", (("rain", "snow"), ("snow", "rain")))
+def test_basic(tmp_path, input_names):
+    """Test basic snow-fraction calculation with inputs in either order"""
     kgo_dir = acc.kgo_root() / CLI / "basic"
     kgo_path = kgo_dir / "kgo.nc"
-    rain_path = kgo_dir / "rain.nc"
-    snow_path = kgo_dir / "snow.nc"
+    first_input_path = kgo_dir / f"{input_names[0]}.nc"
+    second_input_path = kgo_dir / f"{input_names[1]}.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        rain_path,
-        snow_path,
+        first_input_path,
+        second_input_path,
         "--output",
         f"{output_path}",
     ]

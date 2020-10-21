@@ -85,6 +85,12 @@ class SnowFraction(PostProcessingPlugin):
             raise ValueError("Rain and snow cubes are not on the same grid")
         if not self.rain.coord("time") == self.snow.coord("time"):
             raise ValueError("Rain and snow cubes do not have the same time coord")
+        if np.ma.is_masked(self.rain.data) or np.ma.is_masked(self.snow.data):
+            raise ValueError("Unexpected masked data in input cube(s)")
+        if isinstance(self.rain.data, np.ma.masked_array):
+            self.rain.data = self.rain.data.data
+        if isinstance(self.snow.data, np.ma.masked_array):
+            self.snow.data = self.snow.data.data
 
     @staticmethod
     def _get_input_cube_names(input_cubes):
@@ -123,10 +129,6 @@ class SnowFraction(PostProcessingPlugin):
 
         """
         snow_fraction = self.snow.data / (self.rain.data + self.snow.data)
-        if isinstance(snow_fraction, np.ma.masked_array):
-            # If we have a masked array, mask will contain all input masked points and
-            # any new divide-by-zero points. Replace new points with np.nan
-            snow_fraction[self.rain.data + self.snow.data <= 0.0] = np.nan
         snow_fraction_cube = create_new_diagnostic_cube(
             "snow_fraction",
             "1",
