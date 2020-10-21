@@ -80,7 +80,7 @@ def test_values(snow_fraction, phase, expected):
     assert result.name() == f"{phase}_mask"
     assert str(result.units) == "1"
     assert result.dtype == np.int32
-    assert np.allclose(result.data, np.full((2, 2), fill_value=expected))
+    assert (result.data == expected).all()
 
 
 def test_masked_values():

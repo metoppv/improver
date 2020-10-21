@@ -41,8 +41,9 @@ from improver.metadata.utilities import (
 
 class SignificantPhaseMask(BasePlugin):
     """
-    Derives a mask (1 and 0) for the specified precipitation phase indicating whether
-    that phase is the dominant phase at each point based on input snow-fraction data.
+    Derives a categorical field for the specified precipitation phase indicating whether
+    that phase is the dominant phase at each point (1 where true, else 0) based on input
+    snow-fraction data.
     The decision is: snow-fraction <= 0.01: Rain; snow-fraction >= 0.99: Snow; Sleet
     in between.
     """
