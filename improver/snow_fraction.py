@@ -126,7 +126,7 @@ class SnowFraction(PostProcessingPlugin):
         if isinstance(snow_fraction, np.ma.masked_array):
             # If we have a masked array, mask will contain all input masked points and
             # any new divide-by-zero points. Replace new points with np.nan
-            snow_fraction[self.rain.data + self.snow.data <= 0.] = np.nan
+            snow_fraction[self.rain.data + self.snow.data <= 0.0] = np.nan
         snow_fraction_cube = create_new_diagnostic_cube(
             "snow_fraction",
             "1",
