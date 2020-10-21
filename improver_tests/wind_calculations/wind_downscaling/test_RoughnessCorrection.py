@@ -153,20 +153,22 @@ class TestMultiPoint:
         if modelorog is None:
             modelorog = np.full(shape, 230.0, dtype=np.float32)
         self.w_cube = None
-        self.aos_cube = make_ancil_cube(AoS, None, 1, shape=shape)
+        self.aos_cube = make_ancil_cube(AoS, "silhouette_roughness", 1, shape=shape)
         self.s_cube = make_ancil_cube(
-            Sigma, "standard_deviation_of_orography_height", "m", shape=shape
+            Sigma, "standard_deviation_of_height_in_grid_cell", "m", shape=shape
         )
         if z_0 is None:
             self.z0_cube = None
         elif isinstance(z_0, float):
             z_0 = np.full(shape, z_0, dtype=np.float32)
-            self.z0_cube = make_ancil_cube(z_0, None, "m")
+            self.z0_cube = make_ancil_cube(z_0, "vegetative_roughness_length", "m")
         elif isinstance(z_0, list):
-            self.z0_cube = make_ancil_cube(np.array(z_0), None, "m", shape=shape)
-        self.poro_cube = make_ancil_cube(pporog, "orography_height", "m", shape=shape)
+            self.z0_cube = make_ancil_cube(
+                np.array(z_0), "vegetative_roughness_length", "m", shape=shape
+            )
+        self.poro_cube = make_ancil_cube(pporog, "surface_altitude", "m", shape=shape)
         self.moro_cube = make_ancil_cube(
-            modelorog, "orography_height", "m", shape=shape
+            modelorog, "surface_altitude", "m", shape=shape
         )
 
     def run_hc_rc(self, wind, dtime=1, height=None, aslist=False):
@@ -273,17 +275,19 @@ class TestSinglePoint:
 
         """
         self.w_cube = None
-        self.aos_cube = make_ancil_cube(AoS, None, 1, shape=(1, 1))
+        self.aos_cube = make_ancil_cube(AoS, "silhouette_roughness", 1, shape=(1, 1))
         self.s_cube = make_ancil_cube(
-            Sigma, "standard_deviation_of_orography_height", "m", shape=(1, 1)
+            Sigma, "standard_deviation_of_height_in_grid_cell", "m", shape=(1, 1)
         )
         if z_0 is None:
             self.z0_cube = None
         else:
-            self.z0_cube = make_ancil_cube(z_0, None, "m", shape=(1, 1))
-        self.poro_cube = make_ancil_cube(pporog, "orography_height", "m", shape=(1, 1))
+            self.z0_cube = make_ancil_cube(
+                z_0, "vegetative_roughness_length", "m", shape=(1, 1)
+            )
+        self.poro_cube = make_ancil_cube(pporog, "surface_altitude", "m", shape=(1, 1))
         self.moro_cube = make_ancil_cube(
-            modelorog, "orography_height", "m", shape=(1, 1)
+            modelorog, "surface_altitude", "m", shape=(1, 1)
         )
         if heightlevels is not None:
             self.hl_cube = make_point_height_ancil_cube(heightlevels)
@@ -693,7 +697,9 @@ class Test2D(IrisTest):
         z0_data = np.array(
             [landpointtests_rc.z0_cube.data, landpointtests_rc.z0_cube.data]
         )
-        landpointtests_rc.z0_cube = make_ancil_cube(z0_data, None, "m", shape=(1, 2))
+        landpointtests_rc.z0_cube = make_ancil_cube(
+            z0_data, "vegetative_roughness_length", "m", shape=(1, 2)
+        )
         msg = "ancillary grids are not consistent"
         with self.assertRaisesRegex(ValueError, msg):
             _ = landpointtests_rc.run_hc_rc(self.uin)
@@ -710,7 +716,7 @@ class Test2D(IrisTest):
             [landpointtests_rc.moro_cube.data, landpointtests_rc.moro_cube.data]
         )
         landpointtests_rc.moro_cube = make_ancil_cube(
-            moro_data, "orography_height", "m", shape=(1, 2)
+            moro_data, "surface_altitude", "m", shape=(1, 2)
         )
         msg = "ancillary grids are not consistent"
         with self.assertRaisesRegex(ValueError, msg):
