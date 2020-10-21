@@ -145,7 +145,8 @@ class SnowFraction(PostProcessingPlugin):
             "1",
             template_cube=self.rain,
             mandatory_attributes=generate_mandatory_attributes(
-                iris.cube.CubeList([self.rain, self.snow]), model_id_attr=self.model_id_attr,
+                iris.cube.CubeList([self.rain, self.snow]),
+                model_id_attr=self.model_id_attr,
             ),
             data=snow_fraction,
         )

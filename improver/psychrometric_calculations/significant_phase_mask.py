@@ -134,7 +134,9 @@ class SignificantPhaseMask(BasePlugin):
             f"{phase}_mask",
             "1",
             snow_fraction,
-            generate_mandatory_attributes([snow_fraction], model_id_attr=self.model_id_attr),
+            generate_mandatory_attributes(
+                [snow_fraction], model_id_attr=self.model_id_attr
+            ),
             data=data.astype(np.int32),
             dtype=np.int32,
         )
