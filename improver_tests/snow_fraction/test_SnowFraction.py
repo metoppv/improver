@@ -88,7 +88,8 @@ def setup_cubes(rain_data=RAIN_DATA, snow_data=SNOW_DATA, name="{phase}rate"):
     "cube_name", ("{phase}rate", "thickness_of_{phase}fall_amount")
 )
 def test_basic(cube_name, mask_what, model_id_attr):
-    """Run a test with four values, including one that will trigger divide-by-zero.
+    """Run a test with four values, including one with no precip that will trigger
+    divide-by-zero.
     Check data and metadata of result. Check with and without masked arrays (because
     divide-by-zero gives a different result, even when input mask is all-False as in
     this test) and with and without a model_id_attr value.
