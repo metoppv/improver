@@ -70,6 +70,7 @@ class SnowFraction(PostProcessingPlugin):
             * Cubes represent the same time quantity (instantaneous or accumulation length)
             * Cubes have compatible units
             * Cubes have same dimensions
+            * Cubes are not masked (or are masked with an all-False mask)
 
         Args:
             input_cubes (iris.cube.CubeList):
@@ -139,7 +140,8 @@ class SnowFraction(PostProcessingPlugin):
                 Snow fraction cube.
 
         """
-        snow_fraction = self.snow.data / (self.rain.data + self.snow.data)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            snow_fraction = self.snow.data / (self.rain.data + self.snow.data)
         snow_fraction_cube = create_new_diagnostic_cube(
             "snow_fraction",
             "1",
