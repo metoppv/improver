@@ -37,7 +37,7 @@ from improver import cli
 @cli.with_output
 def process(cube: cli.inputcube, phase: str, *, model_id_attr: str = None):
     """
-    Make significant-phase-mask cube for the specified phase.
+    Make phase-mask cube for the specified phase.
 
     Args:
         cube (iris.cube.Cube):

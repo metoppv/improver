@@ -50,6 +50,7 @@ COMMON_ATTRS = {
 }
 RAIN_DATA = np.array([[0, 0.0], [0.5, 1]], dtype=np.float32)
 SNOW_DATA = np.array([[0, 0.5], [1, 0.0]], dtype=np.float32)
+EXPECTED_DATA = np.array([[1.0, 1.0], [2.0 / 3.0, 0.0]], dtype=np.float32)
 
 
 def setup_cubes(rain_data=RAIN_DATA, snow_data=SNOW_DATA, name="{phase}rate"):
@@ -88,15 +89,16 @@ def setup_cubes(rain_data=RAIN_DATA, snow_data=SNOW_DATA, name="{phase}rate"):
 )
 def test_basic(cube_name, mask_what, model_id_attr):
     """Run a test with four values, including one that will trigger divide-by-zero.
-    Check data and metadata of result. Check with and without masked arrays
-    and with and without a model_id_attr value."""
+    Check data and metadata of result. Check with and without masked arrays (because
+    divide-by-zero gives a different result, even when input mask is all-False as in
+    this test) and with and without a model_id_attr value.
+    """
     rain, snow = setup_cubes(name=cube_name)
     if "rain" in mask_what:
         rain.data = np.ma.masked_array(rain.data)
     if "snow" in mask_what:
         snow.data = np.ma.masked_array(snow.data)
 
-    expected_data = np.array([[1.0, 1.0], [2.0 / 3.0, 0.0]], dtype=np.float32)
     expected_attributes = COMMON_ATTRS.copy()
     if model_id_attr:
         expected_attributes[model_id_attr] = rain.attributes[model_id_attr]
@@ -106,7 +108,7 @@ def test_basic(cube_name, mask_what, model_id_attr):
     assert str(result.units) == "1"
     assert result.name() == "snow_fraction"
     assert result.attributes == expected_attributes
-    assert np.allclose(result.data, expected_data)
+    assert np.allclose(result.data, EXPECTED_DATA)
 
 
 def test_acclen_mismatch_error():
@@ -181,10 +183,9 @@ def test_coercing_units():
     """Test the process function with input cubes of different but compatible units"""
     rain, snow = setup_cubes()
     rain.convert_units("mm h-1")
-    expected_data = np.array([[1.0, 1.0], [2.0 / 3.0, 0.0]], dtype=np.float32)
     result = SnowFraction()(iris.cube.CubeList([rain, snow]))
     assert str(result.units) == "1"
-    assert np.allclose(result.data, expected_data)
+    assert np.allclose(result.data, EXPECTED_DATA)
     assert rain.units == "mm h-1"
     assert snow.units == "m s-1"
 
