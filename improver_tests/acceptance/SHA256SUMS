@@ -338,6 +338,10 @@ a87b4eb0ae9dfac3cdffb75dba94750e047fe618b4bb469f5e2262819bfd2318  ./phase-change
 38b1317ad9a7ecf34142ec42841e57159736bdbf26d9d022d5ca76e32389b710  ./phase-change-level/basic/snow_sleet_kgo.nc
 8693b7061a6a3048b193b084e23f9c782a655426764a2c3d1b77ea456d883c09  ./phase-change-level/basic/wbti.nc
 95c8e9238f70628bfa19276cf32c401460fee518411a51286c25de3598656e85  ./phase-change-level/basic/wet_bulb_temperature.nc
+af045341b905da87984f75c7a1fbbb689f929b8af8713ad05b559dd61f96c82f  ./phase-mask/rain/kgo.nc
+6d8b2786fc804bf395fe2870f169782237d116e4f7aaafd45af9d5512b1eb22c  ./phase-mask/sleet/kgo.nc
+f7380bc2313400131236d2174e654a164c2595cde34ef20342a79d7ab9ccf375  ./phase-mask/snow/kgo.nc
+29f807dbfdc6ffea2125cf57b31fbc417c9f80dfa38dca37349878256b7508db  ./phase-mask/snow_fraction.nc
 efff8720d452591b6531a279bad6c0168db2336fa497c1f1087ecfcb9321af92  ./phase-probability/basic/rain_kgo.nc
 526d4b92887b171a5d9447561ba2233ef5673e4fc7853e350e07c50ead7d9bb6  ./phase-probability/basic/sleet_rain_input.nc
 77d35d36e52a65aa782e969e791f79c5558be8b0cf838fdc00bef3b4e75e6723  ./phase-probability/basic/snow_kgo.nc
@@ -368,7 +372,7 @@ f7f403777278b966cd31e3db8592e5f30160076222e57891c67b9cfd3f5ee8f0  ./resolve-wind
 77d35d36e52a65aa782e969e791f79c5558be8b0cf838fdc00bef3b4e75e6723  ./sleet_probability/basic/half_prob_snow_falling_level.nc
 e592f74bec62c53fe906d6f1c1d87f4acec5f2660457c0db98ffc00c64066663  ./sleet_probability/basic/kgo.nc
 efff8720d452591b6531a279bad6c0168db2336fa497c1f1087ecfcb9321af92  ./sleet_probability/basic/tenth_prob_snow_falling_level.nc
-b1a29b84e460af5712ea74b7d8709c14e00f7b5f6f710b78e24567a2602598e1  ./snow-fraction/basic/kgo.nc
+29f807dbfdc6ffea2125cf57b31fbc417c9f80dfa38dca37349878256b7508db  ./snow-fraction/basic/kgo.nc
 14e91f1ca3a9beecbd68ae426f2b361bbb602cb6eec17cca37f346fbe92e6af5  ./snow-fraction/basic/rain.nc
 bfa7fe82e4f42c57b1e4b86c8805e8609527b2b345ead5e595e8cad5136b2263  ./snow-fraction/basic/snow.nc
 e1eb5ced578cb8396c7039bbed6c4ea3076cd99a30c5157c24faf3592ee7fdfa  ./spot-extract/inputs/all_methods_global.nc

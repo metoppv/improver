@@ -28,34 +28,47 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Interface to snow_fraction."""
+"""Tests for the snow-fraction CLI"""
 
-from improver import cli
+import iris
+import numpy as np
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@cli.clizefy
-@cli.with_output
-def process(*cubes: cli.inputcube, model_id_attr: str = None):
-    """
-    Calculates a snow-fraction field from fields of snow and rain (rate or
-    accumulation). Where no precipitation is present, the data are filled in from
-    the nearest precipitating point.
+@pytest.mark.parametrize("phase", ("rain", "sleet", "snow"))
+def test_basic(tmp_path, phase):
+    """Test basic phase-mask calculation"""
+    kgo_dir = acc.kgo_root() / CLI
+    kgo_path = kgo_dir / phase / "kgo.nc"
+    snow_fraction_path = kgo_dir / "snow_fraction.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        snow_fraction_path,
+        phase,
+        "--model-id-attr",
+        "mosg__model_configuration",
+        "--output",
+        f"{output_path}",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
 
-    snow_fraction = snow / (snow + rain)
 
-    Args:
-        cubes (iris.cube.CubeList or list):
-            Contains cubes of rain and snow, both must be either rates or accumulations.
-        model_id_attr (str):
-            Name of the attribute used to identify the source model for
-            blending.
-
-    Returns:
-        iris.cube.Cube:
-            A single cube containing the snow-fraction data.
-
-    """
-    from improver.snow_fraction import SnowFraction
-    from iris.cube import CubeList
-
-    return SnowFraction(model_id_attr=model_id_attr)(CubeList(cubes))
+def test_kgos():
+    """Ensure the KGO for the three phases total exactly 1 everywhere"""
+    kgo_dir = acc.kgo_root() / CLI
+    rain_kgo = kgo_dir / "rain" / "kgo.nc"
+    sleet_kgo = kgo_dir / "sleet" / "kgo.nc"
+    snow_kgo = kgo_dir / "snow" / "kgo.nc"
+    rain = iris.load_cube(str(rain_kgo))
+    sleet = iris.load_cube(str(sleet_kgo))
+    snow = iris.load_cube(str(snow_kgo))
+    total = rain.data + sleet.data + snow.data
+    expected = np.ones_like(total)
+    assert np.allclose(total, expected)

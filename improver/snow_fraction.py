@@ -32,6 +32,7 @@
 
 
 import iris
+import numpy as np
 
 from improver import PostProcessingPlugin
 from improver.metadata.utilities import (
@@ -51,6 +52,17 @@ class SnowFraction(PostProcessingPlugin):
     snow_fraction = snow / (snow + rain)
     """
 
+    def __init__(self, model_id_attr=None):
+        """
+        Initialise the class
+
+        Args:
+            model_id_attr (str):
+                Name of the attribute used to identify the source model for
+                blending.
+        """
+        self.model_id_attr = model_id_attr
+
     def _get_input_cubes(self, input_cubes):
         """
         Separates out the rain and snow cubes from the input list and checks that
@@ -58,6 +70,7 @@ class SnowFraction(PostProcessingPlugin):
             * Cubes represent the same time quantity (instantaneous or accumulation length)
             * Cubes have compatible units
             * Cubes have same dimensions
+            * Cubes are not masked (or are masked with an all-False mask)
 
         Args:
             input_cubes (iris.cube.CubeList):
@@ -84,6 +97,12 @@ class SnowFraction(PostProcessingPlugin):
             raise ValueError("Rain and snow cubes are not on the same grid")
         if not self.rain.coord("time") == self.snow.coord("time"):
             raise ValueError("Rain and snow cubes do not have the same time coord")
+        if np.ma.is_masked(self.rain.data) or np.ma.is_masked(self.snow.data):
+            raise ValueError("Unexpected masked data in input cube(s)")
+        if isinstance(self.rain.data, np.ma.masked_array):
+            self.rain.data = self.rain.data.data
+        if isinstance(self.snow.data, np.ma.masked_array):
+            self.snow.data = self.snow.data.data
 
     @staticmethod
     def _get_input_cube_names(input_cubes):
@@ -121,14 +140,17 @@ class SnowFraction(PostProcessingPlugin):
                 Snow fraction cube.
 
         """
+        with np.errstate(divide="ignore", invalid="ignore"):
+            snow_fraction = self.snow.data / (self.rain.data + self.snow.data)
         snow_fraction_cube = create_new_diagnostic_cube(
             "snow_fraction",
             "1",
             template_cube=self.rain,
             mandatory_attributes=generate_mandatory_attributes(
-                iris.cube.CubeList([self.rain, self.snow])
+                iris.cube.CubeList([self.rain, self.snow]),
+                model_id_attr=self.model_id_attr,
             ),
-            data=self.snow.data / (self.rain.data + self.snow.data),
+            data=snow_fraction,
         )
 
         spatial_dims = [snow_fraction_cube.coord(axis=n).name() for n in ["y", "x"]]
