@@ -63,7 +63,7 @@ def orography_fixture() -> Cube:
 def gradient_fixture() -> Cube:
     """Gradient cube with several gradient values."""
 
-    data = np.array([0, 0.5, 1.0, 5.0], dtype=np.float32)
+    data = np.array([0, 0.5, -1.0, 5.0], dtype=np.float32)
     data = np.stack([data] * 2)
     cube = set_up_variable_cube(
         data, name="gradient_of_surface_altitude", units="1", spatial_grid="equalarea"
@@ -156,13 +156,19 @@ def test_unnormalised_smoothing_coefficients(gradient):
 
     # Coefficient = 1, power = 1
     plugin = OrographicSmoothingCoefficients(coefficient=1, power=1)
-    expected = gradient.data.copy()
+    expected = np.abs(gradient.data.copy())
     result = plugin.unnormalised_smoothing_coefficients(gradient)
     assert_array_almost_equal(result, expected)
 
     # Coefficient = 0.5, power = 2
     plugin = OrographicSmoothingCoefficients(coefficient=0.5, power=2)
     expected = np.array([0.0, 0.125, 0.5, 12.5])
+    result = plugin.unnormalised_smoothing_coefficients(gradient)
+    assert_array_almost_equal(result[0, :], expected)
+
+    # Coefficient = 0.5, power = 0.5
+    plugin = OrographicSmoothingCoefficients(coefficient=0.5, power=0.5)
+    expected = np.array([0.0, 0.353553, 0.5, 1.118034])
     result = plugin.unnormalised_smoothing_coefficients(gradient)
     assert_array_almost_equal(result[0, :], expected)
 
