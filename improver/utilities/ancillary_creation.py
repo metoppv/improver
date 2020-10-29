@@ -58,11 +58,10 @@ class OrographicSmoothingCoefficients(BasePlugin):
     neighbouring cell.
 
     The smoothing coefficients are calculated from the orography gradient using
-    a simple equation and the user defined values for coefficient and power:
+    a simple equation with the user defined value for the power:
 
     .. math::
-        \\rm{smoothing\\_coefficient} = \\rm{coefficient} \\times
-        \\rm{gradient}^{\\rm{power}}
+        \\rm{smoothing\\_coefficient} = \\rm{gradient}^{\\rm{power}}
 
     The resulting values are scaled between min_gradient_smoothing_coefficient and
     max_gradient_smoothing_coefficient to give the desired range of
@@ -81,7 +80,6 @@ class OrographicSmoothingCoefficients(BasePlugin):
         self,
         min_gradient_smoothing_coefficient=0.5,
         max_gradient_smoothing_coefficient=0.0,
-        coefficient=1,
         power=1,
         use_mask_boundary=False,
         invert_mask=False,
@@ -100,10 +98,8 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 where the orography gradient is a maximum. Generally this number
                 will be smaller than the min_gradient_smoothing_coefficient as
                 quantities are likely to be smoothed less across complex terrain.
-            coefficient (float):
-                The coefficient for the smoothing_coefficient equation
             power (float):
-                What power you want for your smoothing_coefficient equation
+                The power to be used in the smoothing_coefficient equation
             use_mask_boundary (bool):
                 A mask can be provided to this plugin to define a region in which
                 smoothing coefficients are set to zero, i.e. no smoothing. If this
@@ -137,7 +133,6 @@ class OrographicSmoothingCoefficients(BasePlugin):
 
         self.max_gradient_smoothing_coefficient = max_gradient_smoothing_coefficient
         self.min_gradient_smoothing_coefficient = min_gradient_smoothing_coefficient
-        self.coefficient = coefficient
         self.power = power
         self.use_mask_boundary = use_mask_boundary
         self.mask_comparison = operator.ge
@@ -182,9 +177,9 @@ class OrographicSmoothingCoefficients(BasePlugin):
     def unnormalised_smoothing_coefficients(self, gradient_cube):
         """
         This generates initial smoothing_coefficient values from gradients
-        using a generalised power law, whose parameters are set at
-        initialisation. Current defaults give an output
-        smoothing_coefficients_cube equal to the input gradient_cube.
+        using a simple power law, for which the power is set at initialisation.
+        Using a power of 1 gives an output smoothing_coefficients_cube with
+        values equal to the input gradient_cube.
 
         Args:
             gradient_cube (iris.cube.Cube):
@@ -194,10 +189,9 @@ class OrographicSmoothingCoefficients(BasePlugin):
             numpy.ndarray:
                 An array containing the unscaled smoothing_coefficients.
         """
-        return self.coefficient * np.abs(gradient_cube.data) ** self.power
+        return np.abs(gradient_cube.data) ** self.power
 
-    @staticmethod
-    def create_coefficient_cube(data, template, cube_name, attributes):
+    def create_coefficient_cube(self, data, template, cube_name, attributes):
         """
         Update metadata in smoothing_coefficients cube. Remove any time
         coordinates and rename.
@@ -224,6 +218,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
 
         attributes["title"] = "Recursive filter smoothing coefficients"
         attributes.pop("history", None)
+        attributes["power"] = self.power
 
         return create_new_diagnostic_cube(
             cube_name,

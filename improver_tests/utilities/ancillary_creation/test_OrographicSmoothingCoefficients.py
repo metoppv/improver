@@ -111,7 +111,6 @@ def test_init():
     result = OrographicSmoothingCoefficients()
     assert result.min_gradient_smoothing_coefficient == 0.5
     assert result.max_gradient_smoothing_coefficient == 0.0
-    assert result.coefficient == 1.0
     assert result.power == 1.0
     assert result.use_mask_boundary is False
 
@@ -154,21 +153,21 @@ def test_scale_smoothing_coefficients(smoothing_coefficients):
 def test_unnormalised_smoothing_coefficients(gradient):
     """Test the unnormalised_smoothing_coefficients function"""
 
-    # Coefficient = 1, power = 1
-    plugin = OrographicSmoothingCoefficients(coefficient=1, power=1)
+    # Power = 1
+    plugin = OrographicSmoothingCoefficients(power=1)
     expected = np.abs(gradient.data.copy())
     result = plugin.unnormalised_smoothing_coefficients(gradient)
     assert_array_almost_equal(result, expected)
 
-    # Coefficient = 0.5, power = 2
-    plugin = OrographicSmoothingCoefficients(coefficient=0.5, power=2)
-    expected = np.array([0.0, 0.125, 0.5, 12.5])
+    # Power = 2
+    plugin = OrographicSmoothingCoefficients(power=2)
+    expected = np.array([0.0, 0.25, 1.0, 25.])
     result = plugin.unnormalised_smoothing_coefficients(gradient)
     assert_array_almost_equal(result[0, :], expected)
 
-    # Coefficient = 0.5, power = 0.5
-    plugin = OrographicSmoothingCoefficients(coefficient=0.5, power=0.5)
-    expected = np.array([0.0, 0.353553, 0.5, 1.118034])
+    # Power = 0.5
+    plugin = OrographicSmoothingCoefficients(power=0.5)
+    expected = np.array([0., 0.707107, 1., 2.236068])
     result = plugin.unnormalised_smoothing_coefficients(gradient)
     assert_array_almost_equal(result[0, :], expected)
 
