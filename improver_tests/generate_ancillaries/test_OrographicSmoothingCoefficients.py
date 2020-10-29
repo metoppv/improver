@@ -38,8 +38,10 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
+from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
+    OrographicSmoothingCoefficients,
+)
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.ancillary_creation import OrographicSmoothingCoefficients
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
@@ -161,13 +163,13 @@ def test_unnormalised_smoothing_coefficients(gradient):
 
     # Power = 2
     plugin = OrographicSmoothingCoefficients(power=2)
-    expected = np.array([0.0, 0.25, 1.0, 25.])
+    expected = np.array([0.0, 0.25, 1.0, 25.0])
     result = plugin.unnormalised_smoothing_coefficients(gradient)
     assert_array_almost_equal(result[0, :], expected)
 
     # Power = 0.5
     plugin = OrographicSmoothingCoefficients(power=0.5)
-    expected = np.array([0., 0.707107, 1., 2.236068])
+    expected = np.array([0.0, 0.707107, 1.0, 2.236068])
     result = plugin.unnormalised_smoothing_coefficients(gradient)
     assert_array_almost_equal(result[0, :], expected)
 
