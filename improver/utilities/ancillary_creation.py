@@ -194,7 +194,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
             numpy.ndarray:
                 An array containing the unscaled smoothing_coefficients.
         """
-        return self.coefficient * gradient_cube.data ** self.power
+        return self.coefficient * np.abs(gradient_cube.data) ** self.power
 
     @staticmethod
     def create_coefficient_cube(data, template, cube_name, attributes):
