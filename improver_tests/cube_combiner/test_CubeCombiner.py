@@ -185,6 +185,20 @@ class Test_process(CombinerTest):
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
 
+    def test_mixed_dtypes(self):
+        """Test that the plugin calculates the sum correctly and doesn't mangle dtypes."""
+        plugin = CubeCombiner("add")
+        cubelist = iris.cube.CubeList(
+            [self.cube1, self.cube2.copy(np.ones_like(self.cube2.data, dtype=np.int32))]
+        )
+        result = plugin.process(cubelist, "new_cube_name")
+        expected_data = np.full((1, 2, 2), 1.5, dtype=np.float32)
+        self.assertEqual(result.name(), "new_cube_name")
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertTrue(cubelist[0].dtype == np.float32)
+        self.assertTrue(cubelist[1].dtype == np.int32)
+        self.assertTrue(result.dtype == np.float32)
+
     def test_bounds_expansion(self):
         """Test that the plugin calculates the sum of the input cubes
         correctly and expands the time coordinate bounds on the

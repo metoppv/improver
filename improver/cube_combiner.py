@@ -36,6 +36,7 @@ from iris.cube import CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
+from improver.metadata.constants import FLOAT_DTYPE, FLOAT_TYPES
 from improver.metadata.probabilistic import (
     extract_diagnostic_name,
     find_threshold_coordinate,
@@ -276,6 +277,12 @@ class CubeCombiner(BasePlugin):
         # normalise mean (for which self.operator is np.add)
         if self.operation == "mean":
             result.data = result.data / len(cube_list)
+
+        # Check resulting dtype and modify if necessary
+        types_to_fix = FLOAT_TYPES.copy()
+        types_to_fix.remove(FLOAT_DTYPE)
+        if result.dtype in types_to_fix:
+            result.data = result.data.astype(FLOAT_DTYPE)
 
         # where the operation is "multiply", retain all coordinate metadata
         # from the first cube in the list; otherwise expand coordinate bounds
