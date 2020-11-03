@@ -59,6 +59,7 @@ class Test_process(IrisTest):
         result = CorrectLand().process(self.landmask)
         self.assertEqual(result.name(), "land_binary_mask")
         self.assertArrayEqual(result.data, self.expected_mask)
+        self.assertTrue(result.dtype == np.int8)
 
 
 if __name__ == "__main__":

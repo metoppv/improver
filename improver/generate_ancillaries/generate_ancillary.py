@@ -158,7 +158,7 @@ class CorrectLandSeaMask(BasePlugin):
         standard_landmask.data[mask_sea] = False
         mask_land = standard_landmask.data > 0.0
         standard_landmask.data[mask_land] = True
-        standard_landmask.data = standard_landmask.data.astype(np.int32)
+        standard_landmask.data = standard_landmask.data.astype(np.int8)
         standard_landmask.rename("land_binary_mask")
         return standard_landmask
 

@@ -57,9 +57,8 @@ def calculate_sleet_probability(prob_of_snow, prob_of_rain):
         ValueError: If the cube contains negative values for the the
                     probability of sleet.
     """
-    ones = np.ones((prob_of_snow.shape), dtype="float32")
-    sleet_prob = ones - (prob_of_snow.data + prob_of_rain.data)
-    if np.any(sleet_prob < 0.0):
+    sleet_prob = 1 - (prob_of_snow.data + prob_of_rain.data)
+    if np.any(sleet_prob < 0):
         msg = "Negative values of sleet probability have been calculated."
         raise ValueError(msg)
 

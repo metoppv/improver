@@ -111,25 +111,27 @@ class Test_process(IrisTest):
         """Test that process returns a cube with the right name, units and
         values. In this instance the phase change is from snow to sleet."""
         result = self.plugin.process(self.cubes)
-        expected = np.zeros((3, 3, 3), dtype=np.float32)
-        expected[0] = 1.0
+        expected = np.zeros((3, 3, 3), dtype=np.int8)
+        expected[0] = 1
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "probability_of_snow_at_surface")
         self.assertEqual(result.units, Unit("1"))
         self.assertDictEqual(result.attributes, self.mandatory_attributes)
         self.assertArrayAlmostEqual(result.data, expected)
+        self.assertTrue(result.dtype == np.int8)
 
     def test_prob_rain(self):
         """Test that process returns a cube with the right name, units and
         values. In this instance the phase change is from sleet to rain."""
         self.cubes[0].rename("altitude_of_rain_falling_level")
         result = self.plugin.process(self.cubes)
-        expected = np.zeros((3, 3, 3), dtype=np.float32)
-        expected[2] = 1.0
+        expected = np.zeros((3, 3, 3), dtype=np.int8)
+        expected[2] = 1
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "probability_of_rain_at_surface")
         self.assertEqual(result.units, Unit("1"))
         self.assertArrayAlmostEqual(result.data, expected)
+        self.assertTrue(result.dtype == np.int8)
 
     def test_unit_conversion(self):
         """Test that process returns the same as test_prob_rain when the
