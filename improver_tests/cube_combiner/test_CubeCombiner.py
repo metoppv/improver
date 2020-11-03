@@ -200,7 +200,7 @@ class Test_process(CombinerTest):
         self.assertTrue(result.dtype == np.float32)
 
     def test_mixed_dtypes_overflow(self):
-        """Test that the plugin dtype combinations that result in float64 data."""
+        """Test the plugin with a dtype combination that results in float64 data."""
         plugin = CubeCombiner("add")
         cubelist = iris.cube.CubeList(
             [self.cube1, self.cube2.copy(np.ones_like(self.cube2.data, dtype=np.int32))]
