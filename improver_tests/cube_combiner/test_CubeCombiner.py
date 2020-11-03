@@ -206,7 +206,7 @@ class Test_process(CombinerTest):
             [self.cube1, self.cube2.copy(np.ones_like(self.cube2.data, dtype=np.int32))]
         )
         msg = (
-            r"Operation add on types \{dtype\(\'int32\'\), dtype\(\'float32\'\)\} results in "
+            r"Operation add on types \{dtype\(\'.*\'\)\} results in "
             r"float64 data which cannot be safely coerced to float32"
         )
         with self.assertRaisesRegex(TypeError, msg):
