@@ -65,7 +65,6 @@ BOUNDS_FOR_ECDF = {
     "lwe_thickness_of_sleetfall_amount": Bounds((0, 0.5), "m"),
     "lwe_thickness_of_snowfall_amount": Bounds((0, 0.5), "m"),
     "thickness_of_rainfall_amount": Bounds((0, 0.5), "m"),
-    "air_pressure_at_sea_level": Bounds((86000, 108000), "Pa"),
     # Precipitation rate
     "lwe_precipitation_rate": Bounds((0, 128.0), "mm h-1"),
     "lwe_precipitation_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
@@ -89,6 +88,7 @@ BOUNDS_FOR_ECDF = {
     "wind_speed": Bounds((0, 50), "m s^-1"),
     "wind_speed_of_gust": Bounds((0, 200), "m s^-1"),
     # Others
+    "air_pressure_at_sea_level": Bounds((86000, 108000), "Pa"),
     "relative_humidity": Bounds((0, 1.2), "1"),
     "visibility_in_air": Bounds((0, 100000), "m"),
     "ultraviolet_index": Bounds((0, 25.0), "1"),
