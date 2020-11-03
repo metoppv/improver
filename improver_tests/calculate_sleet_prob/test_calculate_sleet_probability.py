@@ -97,25 +97,20 @@ class Test_calculate_sleet_probability(IrisTest):
 
     def test_with_ints(self):
         """Test the basic sleet calculation works with int8 data."""
-        rain_prob_cube = self.rain_prob_cube.copy(np.array(
-            [
-                [[1, 0, 0], [0, 1, 1], [0, 0, 1]],
-                [[1, 0, 0], [0, 1, 1], [0, 0, 1]],
-            ],
-            dtype=np.int8,
-        ))
-        snow_prob_cube = self.snow_prob_cube.copy(np.array(
-            [
-                [[0, 1, 0], [1, 0, 0], [0, 1, 0]],
-                [[0, 1, 0], [1, 0, 0], [0, 1, 0]],
-            ],
-            dtype=np.int8,
-        ))
+        rain_prob_cube = self.rain_prob_cube.copy(
+            np.array(
+                [[[1, 0, 0], [0, 1, 1], [0, 0, 1]], [[1, 0, 0], [0, 1, 1], [0, 0, 1]],],
+                dtype=np.int8,
+            )
+        )
+        snow_prob_cube = self.snow_prob_cube.copy(
+            np.array(
+                [[[0, 1, 0], [1, 0, 0], [0, 1, 0]], [[0, 1, 0], [1, 0, 0], [0, 1, 0]],],
+                dtype=np.int8,
+            )
+        )
         expected_result = np.array(
-            [
-                [[0, 0, 1], [0, 0, 0], [1, 0, 0]],
-                [[0, 0, 1], [0, 0, 0], [1, 0, 0]],
-            ],
+            [[[0, 0, 1], [0, 0, 0], [1, 0, 0]], [[0, 0, 1], [0, 0, 0], [1, 0, 0]],],
             dtype=np.int8,
         )
         result = calculate_sleet_probability(rain_prob_cube, snow_prob_cube)
