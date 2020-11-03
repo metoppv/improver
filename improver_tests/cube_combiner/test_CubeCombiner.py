@@ -189,15 +189,28 @@ class Test_process(CombinerTest):
         """Test that the plugin calculates the sum correctly and doesn't mangle dtypes."""
         plugin = CubeCombiner("add")
         cubelist = iris.cube.CubeList(
-            [self.cube1, self.cube2.copy(np.ones_like(self.cube2.data, dtype=np.int32))]
+            [self.cube1, self.cube2.copy(np.ones_like(self.cube2.data, dtype=np.int8))]
         )
         result = plugin.process(cubelist, "new_cube_name")
         expected_data = np.full((1, 2, 2), 1.5, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertTrue(cubelist[0].dtype == np.float32)
-        self.assertTrue(cubelist[1].dtype == np.int32)
+        self.assertTrue(cubelist[1].dtype == np.int8)
         self.assertTrue(result.dtype == np.float32)
+
+    def test_mixed_dtypes_overflow(self):
+        """Test that the plugin dtype combinations that result in float64 data."""
+        plugin = CubeCombiner("add")
+        cubelist = iris.cube.CubeList(
+            [self.cube1, self.cube2.copy(np.ones_like(self.cube2.data, dtype=np.int32))]
+        )
+        msg = (
+            r"Operation add on types \{dtype\(\'int32\'\), dtype\(\'float32\'\)\} results in "
+            r"float64 data which cannot be safely coerced to float32"
+        )
+        with self.assertRaisesRegex(TypeError, msg):
+            plugin.process(cubelist, "new_cube_name")
 
     def test_bounds_expansion(self):
         """Test that the plugin calculates the sum of the input cubes
