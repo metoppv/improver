@@ -258,6 +258,7 @@ class CubeCombiner(BasePlugin):
 
         Raises:
             ValueError: If the cube_list contains only one cube.
+            TypeError: If combining data results in float64 data.
         """
         if len(cube_list) < 2:
             msg = "Expecting 2 or more cubes in cube_list"
