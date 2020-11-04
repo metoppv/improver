@@ -415,6 +415,13 @@ class Test_find_max_in_nbhood_orography(IrisTest):
         result = plugin.find_max_in_nbhood_orography(self.cube)
         self.assertArrayAlmostEqual(result.data, self.expected_data)
 
+    def test_null(self):
+        """Test the function does nothing when radius is zero."""
+        plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=0)
+        expected_data = self.cube.data.copy()
+        result = plugin.find_max_in_nbhood_orography(self.cube)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
 
 class Test_process(IrisTest):
 
@@ -425,15 +432,16 @@ class Test_process(IrisTest):
         pressure, and relative humidity cubes that contain multiple height
         levels."""
 
-        data = np.ones((3, 3), dtype=np.float32)
+        self.setup_cubes_for_process()
 
+    def setup_cubes_for_process(self, spatial_grid="equalarea"):
+        data = np.ones((3, 3), dtype=np.float32)
         self.orog = set_up_variable_cube(
-            data, name="surface_altitude", units="m", spatial_grid="equalarea"
+            data, name="surface_altitude", units="m", spatial_grid=spatial_grid
         )
         self.land_sea = set_up_variable_cube(
-            data, name="land_binary_mask", units=1, spatial_grid="equalarea"
+            data, name="land_binary_mask", units=1, spatial_grid=spatial_grid
         )
-
         wbt_0 = np.array(
             [
                 [271.46216, 271.46216, 271.46216],
@@ -463,7 +471,6 @@ class Test_process(IrisTest):
             ],
             dtype=np.float32,
         )
-
         # Note the values below are ordered at [5, 195] m.
         wbti_0 = np.array(
             [
@@ -483,12 +490,10 @@ class Test_process(IrisTest):
             [np.broadcast_to(wbti_0, (3, 3, 3)), np.broadcast_to(wbti_1, (3, 3, 3))],
             dtype=np.float32,
         )
-
         height_points = [5.0, 195.0, 200.0]
         height_attribute = {"positive": "up"}
-
         wet_bulb_temperature = set_up_variable_cube(
-            data, spatial_grid="equalarea", name="wet_bulb_temperature"
+            data, spatial_grid=spatial_grid, name="wet_bulb_temperature"
         )
         wet_bulb_temperature = add_coordinate(
             wet_bulb_temperature, [0, 1, 2], "realization"
@@ -501,19 +506,16 @@ class Test_process(IrisTest):
             attributes=height_attribute,
         )
         self.wet_bulb_temperature_cube.data = wbt_data
-
         # Note that the iris cubelist merge_cube operation sorts the coordinate
         # being merged into ascending order. The cube created below is thus
         # in the incorrect height order, i.e. [5, 195] instead of [195, 5].
         # There is a function in the the PhaseChangeLevel plugin that ensures
         # the height coordinate is in descending order. This is tested here by
         # creating test cubes with both orders.
-
         height_attribute = {"positive": "down"}
-
         wet_bulb_integral = set_up_variable_cube(
             data,
-            spatial_grid="equalarea",
+            spatial_grid=spatial_grid,
             name="wet_bulb_temperature_integral",
             units="K m",
         )
@@ -529,7 +531,6 @@ class Test_process(IrisTest):
         self.wet_bulb_integral_cube = sort_coord_in_cube(
             self.wet_bulb_integral_cube_inverted, "height", descending=True
         )
-
         self.expected_snow_sleet = np.ones((3, 3, 3), dtype=np.float32) * 66.88566
 
     def test_snow_sleet_phase_change(self):
@@ -562,6 +563,53 @@ class Test_process(IrisTest):
                 [
                     self.wet_bulb_integral_cube,
                     self.wet_bulb_temperature_cube,
+                    self.orog,
+                    self.land_sea,
+                ]
+            )
+        )
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), "altitude_of_snow_falling_level")
+        self.assertEqual(result.units, Unit("m"))
+        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
+
+    def test_snow_sleet_phase_change_zero_radius(self):
+        """Test that process returns a cube with the right name, units and
+        values. In this instance the phase change is from snow to sleet. The
+        returned level is consistent across the field, despite a high point
+        that sits above the snow falling level."""
+        self.orog.data[1, 1] = 100.0
+        result = PhaseChangeLevel(
+            phase_change="snow-sleet", grid_point_radius=0
+        ).process(
+            CubeList(
+                [
+                    self.wet_bulb_temperature_cube,
+                    self.wet_bulb_integral_cube,
+                    self.orog,
+                    self.land_sea,
+                ]
+            )
+        )
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), "altitude_of_snow_falling_level")
+        self.assertEqual(result.units, Unit("m"))
+        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
+
+    def test_snow_sleet_phase_change_lat_lon(self):
+        """Test that process returns a cube with the right name, units and
+        values. In this instance the phase change is from snow to sleet. The
+        returned level is consistent across the field, despite a high point
+        that sits above the snow falling level."""
+        self.setup_cubes_for_process(spatial_grid="latlon")
+        self.orog.data[1, 1] = 100.0
+        result = PhaseChangeLevel(
+            phase_change="snow-sleet", grid_point_radius=0
+        ).process(
+            CubeList(
+                [
+                    self.wet_bulb_temperature_cube,
+                    self.wet_bulb_integral_cube,
                     self.orog,
                     self.land_sea,
                 ]

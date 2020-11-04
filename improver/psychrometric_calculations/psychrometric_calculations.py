@@ -843,11 +843,16 @@ class PhaseChangeLevel(BasePlugin):
                 The cube containing the maximum in a neighbourhood of the
                 orography data.
         """
-        radius_in_metres = number_of_grid_cells_to_distance(
-            orography_cube, self.grid_point_radius
-        )
-        max_in_nbhood_orog = OccurrenceWithinVicinity(radius_in_metres)(orography_cube)
-        return max_in_nbhood_orog
+        if self.grid_point_radius >= 1:
+            radius_in_metres = number_of_grid_cells_to_distance(
+                orography_cube, self.grid_point_radius
+            )
+            max_in_nbhood_orog = OccurrenceWithinVicinity(radius_in_metres)(
+                orography_cube
+            )
+            return max_in_nbhood_orog
+        else:
+            return orography_cube.copy()
 
     def _calculate_phase_change_level(
         self,
