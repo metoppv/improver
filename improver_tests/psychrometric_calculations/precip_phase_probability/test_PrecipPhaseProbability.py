@@ -106,16 +106,29 @@ class Test_process(IrisTest):
         )
 
         self.cubes = iris.cube.CubeList([falling_level_cube, orog_cube])
+        self.expected_template = np.zeros((3, 3, 3), dtype=np.int8)
+
+    def check_metadata(self, result, expected_name="probability_of_rain_at_surface"):
+        """
+        Checks that the meta-data of the cube "result" are as expected.
+        Args:
+            result (iris.cube.Cube):
+            expected_name (str):
+                Can be probability_of_snow_at_surface
+
+        """
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), expected_name)
+        self.assertEqual(result.units, Unit("1"))
+        self.assertTrue(result.dtype == np.int8)
 
     def test_prob_snow(self):
         """Test that process returns a cube with the right name, units and
         values. In this instance the phase change is from snow to sleet."""
         result = self.plugin.process(self.cubes)
-        expected = np.zeros((3, 3, 3), dtype=np.float32)
-        expected[0] = 1.0
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "probability_of_snow_at_surface")
-        self.assertEqual(result.units, Unit("1"))
+        expected = self.expected_template
+        expected[0] = 1
+        self.check_metadata(result, expected_name="probability_of_snow_at_surface")
         self.assertDictEqual(result.attributes, self.mandatory_attributes)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -124,11 +137,9 @@ class Test_process(IrisTest):
         values. In this instance the phase change is from sleet to rain."""
         self.cubes[0].rename("altitude_of_rain_falling_level")
         result = self.plugin.process(self.cubes)
-        expected = np.zeros((3, 3, 3), dtype=np.float32)
-        expected[2] = 1.0
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "probability_of_rain_at_surface")
-        self.assertEqual(result.units, Unit("1"))
+        expected = self.expected_template
+        expected[2] = 1
+        self.check_metadata(result)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_unit_conversion(self):
@@ -137,11 +148,9 @@ class Test_process(IrisTest):
         self.cubes[1].units = Unit("feet")
         self.cubes[0].rename("altitude_of_rain_falling_level")
         result = self.plugin.process(self.cubes)
-        expected = np.zeros((3, 3, 3), dtype=np.float32)
-        expected[2] = 1.0
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "probability_of_rain_at_surface")
-        self.assertEqual(result.units, Unit("1"))
+        expected = self.expected_template
+        expected[2] = 1
+        self.check_metadata(result)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_unit_synonyms(self):
@@ -150,11 +159,9 @@ class Test_process(IrisTest):
         self.cubes[1].units = Unit("metres")
         self.cubes[0].rename("altitude_of_rain_falling_level")
         result = self.plugin.process(self.cubes)
-        expected = np.zeros((3, 3, 3), dtype=np.float32)
-        expected[2] = 1.0
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "probability_of_rain_at_surface")
-        self.assertEqual(result.units, Unit("1"))
+        expected = self.expected_template
+        expected[2] = 1
+        self.check_metadata(result)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_bad_phase_cube(self):
