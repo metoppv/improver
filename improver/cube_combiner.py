@@ -258,6 +258,7 @@ class CubeCombiner(BasePlugin):
 
         Raises:
             ValueError: If the cube_list contains only one cube.
+            TypeError: If combining data results in float64 data.
         """
         if len(cube_list) < 2:
             msg = "Expecting 2 or more cubes in cube_list"
@@ -276,6 +277,14 @@ class CubeCombiner(BasePlugin):
         # normalise mean (for which self.operator is np.add)
         if self.operation == "mean":
             result.data = result.data / len(cube_list)
+
+        # Check resulting dtype and modify if necessary
+        if result.dtype == np.float64:
+            unique_cube_types = set([c.dtype for c in cube_list])
+            raise TypeError(
+                f"Operation {self.operation} on types {unique_cube_types} results in "
+                "float64 data which cannot be safely coerced to float32"
+            )
 
         # where the operation is "multiply", retain all coordinate metadata
         # from the first cube in the list; otherwise expand coordinate bounds
