@@ -79,7 +79,7 @@ def test_values(snow_fraction, phase, expected):
     assert isinstance(result, iris.cube.Cube)
     assert result.name() == f"{phase}_mask"
     assert str(result.units) == "1"
-    assert result.dtype == np.int32
+    assert result.dtype == np.int8
     assert (result.data == expected).all()
 
 

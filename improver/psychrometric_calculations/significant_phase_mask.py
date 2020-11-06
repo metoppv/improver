@@ -125,7 +125,7 @@ class SignificantPhaseMask(BasePlugin):
         self._validate_snow_fraction(snow_fraction)
 
         try:
-            data = self.phase_operator[phase](snow_fraction.data)
+            data = self.phase_operator[phase](snow_fraction.data).astype(np.int8)
         except KeyError:
             raise KeyError(
                 f"Requested phase mask '{phase}' not in {list(self.phase_operator.keys())}"
@@ -137,7 +137,6 @@ class SignificantPhaseMask(BasePlugin):
             generate_mandatory_attributes(
                 [snow_fraction], model_id_attr=self.model_id_attr
             ),
-            data=data.astype(np.int32),
-            dtype=np.int32,
+            data=data,
         )
         return phase_mask

@@ -37,7 +37,6 @@ from iris.tests import IrisTest
 
 from improver.calculate_sleet_prob import calculate_sleet_probability
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_calculate_sleet_probability(IrisTest):
@@ -94,6 +93,29 @@ class Test_calculate_sleet_probability(IrisTest):
         )
         result = calculate_sleet_probability(self.rain_prob_cube, self.snow_prob_cube)
         self.assertArrayAlmostEqual(result.data, expected_result)
+        self.assertTrue(result.dtype == np.float32)
+
+    def test_with_ints(self):
+        """Test the basic sleet calculation works with int8 data."""
+        rain_prob_cube = self.rain_prob_cube.copy(
+            np.array(
+                [[[1, 0, 0], [0, 1, 1], [0, 0, 1]], [[1, 0, 0], [0, 1, 1], [0, 0, 1]],],
+                dtype=np.int8,
+            )
+        )
+        snow_prob_cube = self.snow_prob_cube.copy(
+            np.array(
+                [[[0, 1, 0], [1, 0, 0], [0, 1, 0]], [[0, 1, 0], [1, 0, 0], [0, 1, 0]],],
+                dtype=np.int8,
+            )
+        )
+        expected_result = np.array(
+            [[[0, 0, 1], [0, 0, 0], [1, 0, 0]], [[0, 0, 1], [0, 0, 0], [1, 0, 0]],],
+            dtype=np.int8,
+        )
+        result = calculate_sleet_probability(rain_prob_cube, snow_prob_cube)
+        self.assertArrayAlmostEqual(result.data, expected_result)
+        self.assertTrue(result.dtype == np.int8)
 
     def test_negative_values(self):
         """Test that an exception is raised for negative values of

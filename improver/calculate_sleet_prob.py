@@ -45,21 +45,23 @@ def calculate_sleet_probability(prob_of_snow, prob_of_rain):
 
     Args:
       prob_of_snow (iris.cube.Cube):
-        Cube of the probability of snow.
+        Cube of the probability of snow. This can be a fraction (0 <= x <= 1) or
+        categorical (0 or 1)
       prob_of_rain (iris.cube.Cube):
-        Cube of the probability of rain.
+        Cube of the probability of rain. This can be a fraction (0 <= x <= 1) or
+        categorical (0 or 1)
 
     Returns:
       iris.cube.Cube:
-        Cube of the probability of sleet.
+        Cube of the probability of sleet. This will be fractional or categorical,
+        matching the highest precision of the inputs.
 
     Raises:
         ValueError: If the cube contains negative values for the the
                     probability of sleet.
     """
-    ones = np.ones((prob_of_snow.shape), dtype="float32")
-    sleet_prob = ones - (prob_of_snow.data + prob_of_rain.data)
-    if np.any(sleet_prob < 0.0):
+    sleet_prob = 1 - (prob_of_snow.data + prob_of_rain.data)
+    if np.any(sleet_prob < 0):
         msg = "Negative values of sleet probability have been calculated."
         raise ValueError(msg)
 

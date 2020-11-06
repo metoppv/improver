@@ -177,7 +177,7 @@ class PrecipPhaseProbability(BasePlugin):
             self.comparator(self.orography_cube.data, processed_falling_level.data),
             1,
             0,
-        ).astype("float32")
+        ).astype(np.int8)
         mandatory_attributes = generate_mandatory_attributes([self.falling_level_cube])
 
         cube = create_new_diagnostic_cube(
