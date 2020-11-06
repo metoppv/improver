@@ -152,26 +152,15 @@ def test_scale_smoothing_coefficients(smoothing_coefficients):
     assert_array_almost_equal(result[1].data[:, 0], expected_y)
 
 
-def test_unnormalised_smoothing_coefficients(gradient):
-    """Test the unnormalised_smoothing_coefficients function"""
+@pytest.mark.parametrize("power", (1, 2, 0.5))
+def test_unnormalised_smoothing_coefficients(gradient, power):
+    """Test the unnormalised_smoothing_coefficients function using various
+    powers."""
 
-    # Power = 1
-    plugin = OrographicSmoothingCoefficients(power=1)
-    expected = np.abs(gradient.data.copy())
+    plugin = OrographicSmoothingCoefficients(power=power)
+    expected = np.abs(gradient.data.copy()) ** power
     result = plugin.unnormalised_smoothing_coefficients(gradient)
     assert_array_almost_equal(result, expected)
-
-    # Power = 2
-    plugin = OrographicSmoothingCoefficients(power=2)
-    expected = np.array([0.0, 0.25, 1.0, 25.0])
-    result = plugin.unnormalised_smoothing_coefficients(gradient)
-    assert_array_almost_equal(result[0, :], expected)
-
-    # Power = 0.5
-    plugin = OrographicSmoothingCoefficients(power=0.5)
-    expected = np.array([0.0, 0.707107, 1.0, 2.236068])
-    result = plugin.unnormalised_smoothing_coefficients(gradient)
-    assert_array_almost_equal(result[0, :], expected)
 
 
 def test_zero_masked_use_mask_boundary(smoothing_coefficients, mask):
