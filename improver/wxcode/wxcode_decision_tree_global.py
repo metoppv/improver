@@ -305,30 +305,46 @@ def wxcode_decision_tree_global():
             "diagnostic_conditions": [["above", "above"]],
         },
         "drizzle_mist": {
-            "succeed": 11,
+            "succeed": "drizzle_is_rain",
             "fail": "drizzle_cloud",
             "probability_thresholds": [0.5, 0.5],
             "threshold_condition": ">=",
             "condition_combination": "AND",
             "diagnostic_fields": [
-                "probability_of_rainfall_rate_above_threshold",
+                "probability_of_lwe_precipitation_rate_above_threshold",
                 "probability_of_visibility_in_air_below_threshold",
             ],
             "diagnostic_thresholds": [(0.03, "mm hr-1"), (5000.0, "m")],
             "diagnostic_conditions": ["above", "below"],
         },
         "drizzle_cloud": {
-            "succeed": 11,
+            "succeed": "drizzle_is_rain",
             "fail": "mist_conditions",
             "probability_thresholds": [0.5, 0.5],
             "threshold_condition": ">=",
             "condition_combination": "AND",
             "diagnostic_fields": [
-                "probability_of_rainfall_rate_above_threshold",
+                "probability_of_lwe_precipitation_rate_above_threshold",
                 ("probability_of_low_type_cloud_area_fraction_above_threshold"),
             ],
             "diagnostic_thresholds": [(0.03, "mm hr-1"), (0.85, 1)],
             "diagnostic_conditions": ["above", "above"],
+        },
+        "drizzle_is_rain": {
+            "succeed": 11,
+            "fail": "mist_conditions",
+            "probability_thresholds": [0.0],
+            "threshold_condition": ">=",
+            "condition_combination": "",
+            "diagnostic_fields": [
+                [
+                    "probability_of_rainfall_rate_above_threshold",
+                    "-",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                ]
+            ],
+            "diagnostic_thresholds": [[(0.03, "mm hr-1"), (0.03, "mm hr-1")]],
+            "diagnostic_conditions": [["above", "above"]],
         },
         "no_precipitation_cloud": {
             "succeed": "overcast_cloud",
