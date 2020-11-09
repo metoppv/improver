@@ -40,11 +40,13 @@ from stratify import interpolate
 
 import improver.constants as consts
 from improver import BasePlugin
+from improver.generate_ancillaries.generate_svp_table import (
+    SaturatedVapourPressureTable,
+)
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.ancillary_creation import SaturatedVapourPressureTable
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.interpolation import interpolate_missing_data

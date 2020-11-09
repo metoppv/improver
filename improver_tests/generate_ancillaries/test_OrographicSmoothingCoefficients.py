@@ -38,8 +38,10 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
+from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
+    OrographicSmoothingCoefficients,
+)
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.ancillary_creation import OrographicSmoothingCoefficients
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
@@ -111,7 +113,6 @@ def test_init():
     result = OrographicSmoothingCoefficients()
     assert result.min_gradient_smoothing_coefficient == 0.5
     assert result.max_gradient_smoothing_coefficient == 0.0
-    assert result.coefficient == 1.0
     assert result.power == 1.0
     assert result.use_mask_boundary is False
 
@@ -151,26 +152,15 @@ def test_scale_smoothing_coefficients(smoothing_coefficients):
     assert_array_almost_equal(result[1].data[:, 0], expected_y)
 
 
-def test_unnormalised_smoothing_coefficients(gradient):
-    """Test the unnormalised_smoothing_coefficients function"""
+@pytest.mark.parametrize("power", (1, 2, 0.5))
+def test_unnormalised_smoothing_coefficients(gradient, power):
+    """Test the unnormalised_smoothing_coefficients function using various
+    powers."""
 
-    # Coefficient = 1, power = 1
-    plugin = OrographicSmoothingCoefficients(coefficient=1, power=1)
-    expected = np.abs(gradient.data.copy())
+    plugin = OrographicSmoothingCoefficients(power=power)
+    expected = np.abs(gradient.data.copy()) ** power
     result = plugin.unnormalised_smoothing_coefficients(gradient)
     assert_array_almost_equal(result, expected)
-
-    # Coefficient = 0.5, power = 2
-    plugin = OrographicSmoothingCoefficients(coefficient=0.5, power=2)
-    expected = np.array([0.0, 0.125, 0.5, 12.5])
-    result = plugin.unnormalised_smoothing_coefficients(gradient)
-    assert_array_almost_equal(result[0, :], expected)
-
-    # Coefficient = 0.5, power = 0.5
-    plugin = OrographicSmoothingCoefficients(coefficient=0.5, power=0.5)
-    expected = np.array([0.0, 0.353553, 0.5, 1.118034])
-    result = plugin.unnormalised_smoothing_coefficients(gradient)
-    assert_array_almost_equal(result[0, :], expected)
 
 
 def test_zero_masked_use_mask_boundary(smoothing_coefficients, mask):
