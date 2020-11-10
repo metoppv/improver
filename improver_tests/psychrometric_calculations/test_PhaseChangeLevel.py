@@ -452,6 +452,7 @@ class Test_process(IrisTest):
             units=1,
             spatial_grid=spatial_grid,
         )
+        # Note the values below are ordered at [5, 195, 200] m.
         wbt_0 = np.full_like(data, fill_value=271.46216)
         wbt_0[2, 2] = 270.20343
         wbt_1 = np.full_like(data, fill_value=274.4207)
@@ -526,8 +527,7 @@ class Test_process(IrisTest):
     def test_snow_sleet_phase_change(self):
         """Test that process returns a cube with the right name, units and
         values. In this instance the phase change is from snow to sleet. The
-        returned level is consistent across the field, despite a high point
-        that sits above the snow falling level."""
+        returned level has three values, all above orography."""
         result = PhaseChangeLevel(phase_change="snow-sleet").process(
             CubeList(
                 [
@@ -562,30 +562,6 @@ class Test_process(IrisTest):
         self.assertEqual(result.name(), "altitude_of_snow_falling_level")
         self.assertEqual(result.units, Unit("m"))
         self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
-
-    def test_snow_sleet_phase_change_zero_radius(self):
-        """Test that process returns a cube with the right name, units and
-        values. In this instance the phase change is from snow to sleet. The
-        returned level is consistent across the field, despite a high point
-        that sits above the snow falling level."""
-        result = PhaseChangeLevel(
-            phase_change="snow-sleet", grid_point_radius=0
-        ).process(
-            CubeList(
-                [
-                    self.wet_bulb_temperature_cube,
-                    self.wet_bulb_integral_cube,
-                    self.orog,
-                    self.land_sea,
-                ]
-            )
-        )
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "altitude_of_snow_falling_level")
-        self.assertEqual(result.units, Unit("m"))
-        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
-        if hasattr(result.data, "mask"):
-            self.assertFalse(result.data.mask.any())
 
     def test_sleet_rain_phase_change(self):
         """Test that process returns a cube with the right name, units and
