@@ -79,6 +79,23 @@ def test_altered_limits(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_altered_power(tmp_path):
+    """Test generation of smoothing coefficients with different power."""
+    kgo_dir = acc.kgo_root() / "generate-orographic-smoothing-coefficients"
+    input_path = kgo_dir / "orography.nc"
+    kgo_path = kgo_dir / "basic" / "kgo_different_power.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--power",
+        "0.5",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_mask_edges(tmp_path):
     """Test generation of orographic smoothing coefficients with a zero value
     along mask edges, which in this case is the coastline."""

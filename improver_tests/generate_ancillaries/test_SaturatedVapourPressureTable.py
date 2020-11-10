@@ -38,7 +38,9 @@ import numpy as np
 from cf_units import Unit
 from iris.tests import IrisTest
 
-from improver.utilities.ancillary_creation import SaturatedVapourPressureTable
+from improver.generate_ancillaries.generate_svp_table import (
+    SaturatedVapourPressureTable,
+)
 
 
 class Test__repr__(IrisTest):

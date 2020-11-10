@@ -42,7 +42,6 @@ def process(
     *,
     min_gradient_smoothing_coefficient: float = 0.5,
     max_gradient_smoothing_coefficient: float = 0.0,
-    coefficient: float = 1.0,
     power: float = 1.0,
     use_mask_boundary: bool = False,
     invert_mask: bool = False,
@@ -58,7 +57,7 @@ def process(
     neighbouring cell.
 
     The smoothing coefficients are calculated from the orography gradient using
-    a simple equation and the user defined values for coefficient and power:
+    a simple equation with the user defined value for the power:
 
     smoothing_coefficient = coefficient * gradient**power
 
@@ -91,8 +90,6 @@ def process(
             where the orography gradient is a maximum. Generally this number
             will be smaller than the min_gradient_smoothing_coefficient as
             quantities are likely to be smoothed less across complex terrain.
-        coefficient (float):
-            The coefficient for the smoothing_coefficient equation.
         power (float):
             The power for the smoothing_coefficient equation.
         use_mask_boundary (bool):
@@ -115,12 +112,13 @@ def process(
             Processed CubeList containing smoothing_coefficients_x and
             smoothing_coefficients_y cubes.
     """
-    from improver.utilities.ancillary_creation import OrographicSmoothingCoefficients
+    from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
+        OrographicSmoothingCoefficients,
+    )
 
     plugin = OrographicSmoothingCoefficients(
         min_gradient_smoothing_coefficient,
         max_gradient_smoothing_coefficient,
-        coefficient,
         power,
         use_mask_boundary,
         invert_mask,
