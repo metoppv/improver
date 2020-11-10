@@ -446,7 +446,7 @@ class Test_process(IrisTest):
             data, name="surface_altitude", units="m", spatial_grid=spatial_grid
         )
         self.land_sea = set_up_variable_cube(
-            data, name="land_binary_mask", units=1, spatial_grid=spatial_grid
+            data.copy(), name="land_binary_mask", units=1, spatial_grid=spatial_grid
         )
         wbt_0 = np.array(
             [
@@ -480,9 +480,9 @@ class Test_process(IrisTest):
         # Note the values below are ordered at [5, 195] m.
         wbti_0 = np.array(
             [
-                [128.68324, 128.68324, 128.68324],
+                [28.68324, 128.68324, 28.68324],
                 [128.68324, 3.176712, 128.68324],
-                [128.68324, 128.68324, 128.68324],
+                [28.68324, 128.68324, 28.68324],
             ]
         )
         wbti_1 = np.array(
@@ -537,7 +537,10 @@ class Test_process(IrisTest):
         self.wet_bulb_integral_cube = sort_coord_in_cube(
             self.wet_bulb_integral_cube_inverted, "height", descending=True
         )
-        self.expected_snow_sleet = np.ones((3, 3, 3), dtype=np.float32) * 66.88566
+        self.expected_snow_sleet = np.full(
+            (3, 3, 3), fill_value=66.88566, dtype=np.float32
+        )
+        self.expected_snow_sleet[:, 0::2, 0::2] = 1.0
 
     def test_snow_sleet_phase_change(self):
         """Test that process returns a cube with the right name, units and
@@ -621,7 +624,10 @@ class Test_process(IrisTest):
                 ]
             )
         )
-        expected = np.ones((3, 3, 3), dtype=np.float32) * 49.178673
+        expected = np.full(
+            (3, 3, 3), fill_value=49.178673, dtype=np.float32
+        )
+        expected[:, 0::2, 0::2] = 1.0
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "altitude_of_rain_falling_level")
         self.assertEqual(result.units, Unit("m"))
@@ -651,11 +657,11 @@ class Test_process(IrisTest):
         the surface of the sea, so for the single high point falling level is
         interpolated from the surrounding sea-level points."""
         orog = self.orog
-        orog.data = orog.data * 0.0
+        orog.data = np.zeros_like(orog.data)
         orog.data[1, 1] = 100.0
         land_sea = self.land_sea
         land_sea.data[1, 1] = 1
-        result = PhaseChangeLevel(phase_change="snow-sleet").process(
+        result = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=1).process(
             CubeList(
                 [
                     self.wet_bulb_temperature_cube,
@@ -665,7 +671,7 @@ class Test_process(IrisTest):
                 ]
             )
         )
-        expected = np.ones((3, 3, 3), dtype=np.float32) * 65.88566
+        expected = self.expected_snow_sleet - 1
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
