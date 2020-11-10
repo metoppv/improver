@@ -517,7 +517,7 @@ class Test_process(IrisTest):
         self.expected_snow_sleet = np.full(
             (3, 5, 5), fill_value=66.88566, dtype=np.float32
         )
-        self.expected_snow_sleet[:, 1::2, 1::2] = 26.645035
+        self.expected_snow_sleet[:, 1:4, 1:4] = 26.645035
 
     def test_snow_sleet_phase_change(self):
         """Test that process returns a cube with the right name, units and
@@ -538,6 +538,7 @@ class Test_process(IrisTest):
         self.assertEqual(result.name(), "altitude_of_snow_falling_level")
         self.assertEqual(result.units, Unit("m"))
         self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
+        self.assertFalse(hasattr(result.data, "mask"))
 
     def test_snow_sleet_phase_change_reorder_cubes(self):
         """Same test as test_snow_sleet_phase_change but the cubes are in a
@@ -583,9 +584,13 @@ class Test_process(IrisTest):
         """Test that process returns a cube with the right name, units and
         values. In this instance the phase change is from sleet to rain. Note
         that the wet bulb temperature integral values are doubled such that the
-        rain threshold is reached above the surface. The returned level is
-        consistent across the field, despite a high point that sits above the
-        rain falling level."""
+        rain threshold is reached above the surface.
+        The result has an odd pattern of 49.178673 around the edge at at the centre
+        point and a value of 1. forming a ring around the centre point. This arises
+        because the input data are not entirely realistic in this case. The ring
+        [1::4, 1::4] has a sleet-rain-phase-level below the orography (1 m) but the
+        centre point is an unrealistic point-hill of 100m which is interpolated
+        from the outer ring due to the grid_point_radius default value of 2."""
         self.wet_bulb_integral_cube.data *= 2.0
         result = PhaseChangeLevel(phase_change="sleet-rain").process(
             CubeList(
@@ -600,8 +605,10 @@ class Test_process(IrisTest):
         expected = np.full_like(
             self.expected_snow_sleet, fill_value=49.178673, dtype=np.float32
         )
-        expected[:, 1::2, 1::2] = 1.0
+        expected[:, 1:4, 1:4] = 1.0
+        expected[:, 2, 2] = 49.178673
         self.assertIsInstance(result, iris.cube.Cube)
+        self.assertFalse(hasattr(result.data, "mask"))
         self.assertEqual(result.name(), "altitude_of_rain_falling_level")
         self.assertEqual(result.units, Unit("m"))
         self.assertArrayAlmostEqual(result.data, expected)
