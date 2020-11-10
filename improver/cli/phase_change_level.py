@@ -69,8 +69,11 @@ def process(
                 sleet-rain - the melting of sleet to rain.
         grid_point_radius (int):
             The radius in grid points used to calculate the maximum
-            height of the orography in a neighbourhood as part of this
-            calculation.
+            height of the orography in a neighbourhood to determine points that
+            should be excluded from interpolation for being too close to the
+            orographic feature where high-resolution models can give highly
+            localised results. Zero uses central point only (neighbourhood is disabled).
+            One uses central point and one in each direction. Two goes two points etc.
 
         horizontal_interpolation (bool):
             If True apply horizontal interpolation to fill in holes in

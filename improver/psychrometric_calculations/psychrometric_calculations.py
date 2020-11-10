@@ -522,8 +522,11 @@ class PhaseChangeLevel(BasePlugin):
 
             grid_point_radius (int):
                 The radius in grid points used to calculate the maximum
-                height of the orography in a neighbourhood as part of this
-                calculation.
+                height of the orography in a neighbourhood to determine points that
+                should be excluded from interpolation for being too close to the
+                orographic feature where high-resolution models can give highly
+                localised results. Zero uses central point only (neighbourhood is disabled).
+                One uses central point and one in each direction. Two goes two points etc.
             horizontal_interpolation (bool):
                 If True apply horizontal interpolation to fill in holes in
                 the returned phase-change-level that occur because the level
@@ -830,9 +833,9 @@ class PhaseChangeLevel(BasePlugin):
 
     def find_max_in_nbhood_orography(self, orography_cube):
         """
-        Find the maximum value of the orography in the region around each grid
-        point in your orography field by finding the maximum in a neighbourhood
-        around that point.
+        Find the maximum value of the orography in the neighbourhood around
+        each grid point. If self.grid_point_radius is zero, the orography is used
+        without neighbourhooding.
 
         Args:
             orography_cube (iris.cube.Cube):
@@ -840,8 +843,8 @@ class PhaseChangeLevel(BasePlugin):
                 data
         Returns:
             iris.cube.Cube:
-                The cube containing the maximum in a neighbourhood of the
-                orography data.
+                The cube containing the maximum in the grid_point_radius neighbourhood
+                of the orography data or the orography data itself if the radius is zero
         """
         if self.grid_point_radius >= 1:
             radius_in_metres = number_of_grid_cells_to_distance(
@@ -880,7 +883,8 @@ class PhaseChangeLevel(BasePlugin):
             orography (numpy.ndarray):
                 Orography heights
             max_nbhood_orog (numpy.ndarray):
-                Maximum orography height in neighbourhood
+                Maximum orography height in neighbourhood (used to determine points that
+                can be used for interpolation)
             land_sea_data (numpy.ndarray):
                 Mask of binary land / sea data
             heights (np.ndarray):
