@@ -386,20 +386,12 @@ class Test_find_max_in_nbhood_orography(IrisTest):
                 [0, 5, 10, 10, 0],
             ]
         )
-        self.cube = iris.cube.Cube(
-            data, standard_name="air_temperature", units="celsius"
-        )
-        self.cube.add_dim_coord(
-            iris.coords.DimCoord(
-                np.linspace(2000.0, 10000.0, 5), "projection_x_coordinate", units="m"
-            ),
-            0,
-        )
-        self.cube.add_dim_coord(
-            iris.coords.DimCoord(
-                np.linspace(2000.0, 10000.0, 5), "projection_y_coordinate", units="m"
-            ),
-            1,
+        self.cube = set_up_variable_cube(
+            data,
+            name="orographic_height",
+            units="m",
+            spatial_grid="equalarea",
+            grid_spacing=2000.0,
         )
         self.expected_data = [
             [50, 50, 50, 20, 5],
@@ -420,6 +412,20 @@ class Test_find_max_in_nbhood_orography(IrisTest):
         plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=0)
         expected_data = self.cube.data.copy()
         result = plugin.find_max_in_nbhood_orography(self.cube)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_null_lat_lon(self):
+        """Test the function does nothing when radius is zero and grid is lat-lon."""
+        cube = set_up_variable_cube(
+            self.cube.data,
+            name="orographic_height",
+            units="m",
+            spatial_grid="latlon",
+            grid_spacing=0.01,
+        )
+        plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=0)
+        expected_data = self.cube.data.copy()
+        result = plugin.find_max_in_nbhood_orography(cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
 
@@ -578,30 +584,6 @@ class Test_process(IrisTest):
         values. In this instance the phase change is from snow to sleet. The
         returned level is consistent across the field, despite a high point
         that sits above the snow falling level."""
-        self.orog.data[1, 1] = 100.0
-        result = PhaseChangeLevel(
-            phase_change="snow-sleet", grid_point_radius=0
-        ).process(
-            CubeList(
-                [
-                    self.wet_bulb_temperature_cube,
-                    self.wet_bulb_integral_cube,
-                    self.orog,
-                    self.land_sea,
-                ]
-            )
-        )
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "altitude_of_snow_falling_level")
-        self.assertEqual(result.units, Unit("m"))
-        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
-
-    def test_snow_sleet_phase_change_lat_lon(self):
-        """Test that process returns a cube with the right name, units and
-        values. In this instance the phase change is from snow to sleet. The
-        returned level is consistent across the field, despite a high point
-        that sits above the snow falling level."""
-        self.setup_cubes_for_process(spatial_grid="latlon")
         self.orog.data[1, 1] = 100.0
         result = PhaseChangeLevel(
             phase_change="snow-sleet", grid_point_radius=0
