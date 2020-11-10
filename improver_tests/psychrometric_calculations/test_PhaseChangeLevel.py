@@ -442,11 +442,12 @@ class Test_process(IrisTest):
 
     def setup_cubes_for_process(self, spatial_grid="equalarea"):
         data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 100.0
         self.orog = set_up_variable_cube(
             data, name="surface_altitude", units="m", spatial_grid=spatial_grid
         )
         self.land_sea = set_up_variable_cube(
-            data.copy(), name="land_binary_mask", units=1, spatial_grid=spatial_grid
+            np.ones_like(data, dtype=np.int8), name="land_binary_mask", units=1, spatial_grid=spatial_grid
         )
         wbt_0 = np.full_like(data, fill_value=271.46216)
         wbt_0[2, 2] = 270.20343
@@ -523,7 +524,6 @@ class Test_process(IrisTest):
         values. In this instance the phase change is from snow to sleet. The
         returned level is consistent across the field, despite a high point
         that sits above the snow falling level."""
-        self.orog.data[2, 2] = 100.0
         result = PhaseChangeLevel(phase_change="snow-sleet").process(
             CubeList(
                 [
@@ -542,7 +542,6 @@ class Test_process(IrisTest):
     def test_snow_sleet_phase_change_reorder_cubes(self):
         """Same test as test_snow_sleet_phase_change but the cubes are in a
         different order"""
-        self.orog.data[2, 2] = 100.0
         result = PhaseChangeLevel(phase_change="snow-sleet").process(
             CubeList(
                 [
@@ -563,7 +562,6 @@ class Test_process(IrisTest):
         values. In this instance the phase change is from snow to sleet. The
         returned level is consistent across the field, despite a high point
         that sits above the snow falling level."""
-        self.orog.data[2, 2] = 100.0
         result = PhaseChangeLevel(
             phase_change="snow-sleet", grid_point_radius=0
         ).process(
@@ -588,7 +586,6 @@ class Test_process(IrisTest):
         rain threshold is reached above the surface. The returned level is
         consistent across the field, despite a high point that sits above the
         rain falling level."""
-        self.orog.data[2, 2] = 100.0
         self.wet_bulb_integral_cube.data *= 2.0
         result = PhaseChangeLevel(phase_change="sleet-rain").process(
             CubeList(
@@ -613,7 +610,6 @@ class Test_process(IrisTest):
         """Test that the phase change level process returns a cube
         containing the expected data when the height coordinate is in
         ascending order rather than the expected descending order."""
-        self.orog.data[2, 2] = 100.0
         result = PhaseChangeLevel(phase_change="snow-sleet").process(
             CubeList(
                 [
