@@ -244,17 +244,21 @@ def wxcode_decision_tree():
             "succeed": 11,
             "fail": "mist_conditions",
             "probability_thresholds": [0.0],
-            "threshold_condition": ">=",
+            "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
                 [
-                    "probability_of_rainfall_rate_above_threshold",
-                    "-",
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
                     "probability_of_lwe_snowfall_rate_above_threshold",
+                    "-",
+                    "probability_of_rainfall_rate_above_threshold",
                 ]
             ],
-            "diagnostic_thresholds": [[(0.03, "mm hr-1"), (0.03, "mm hr-1")]],
-            "diagnostic_conditions": [["above", "above"]],
+            "diagnostic_thresholds": [
+                [(0.03, "mm hr-1"), (0.03, "mm hr-1"), (0.03, "mm hr-1")]
+            ],
+            "diagnostic_conditions": [["above", "above", "above"]],
         },
         # C.1
         "no_precipitation_cloud": {
