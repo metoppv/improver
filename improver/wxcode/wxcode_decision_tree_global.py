@@ -55,10 +55,7 @@ def wxcode_decision_tree_global():
         * diagnostics_fields: The diagnostics which are being used in the
               query. If this is a list of lists, the fields are manipulated
               according to the operators in the list and then compared
-              with the probability threshold. In some cases, a factor of 0.7 is
-              applied to one field to allow an asymmetric condition to be
-              tested allowing priority to be given to a more significant symbol
-              such as snow vs rain.
+              with the probability threshold.
         * diagnostic_thresholds: The thresholding that is expected to have
               been applied to the input data; this is used to extract the
               appropriate data from the input cubes.
@@ -86,7 +83,7 @@ def wxcode_decision_tree_global():
         },
         "heavy_precipitation_cloud": {
             "succeed": "heavy_precipitation_convective_ratio",
-            "fail": "heavy_sleet_shower",
+            "fail": "heavy_snow_shower",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -95,8 +92,8 @@ def wxcode_decision_tree_global():
             "diagnostic_conditions": ["above"],
         },
         "heavy_precipitation_convective_ratio": {
-            "succeed": "heavy_sleet_shower",
-            "fail": "heavy_sleet_continuous",
+            "succeed": "heavy_snow_shower",
+            "fail": "heavy_snow_continuous",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -104,89 +101,89 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.8, 1)],
             "diagnostic_conditions": ["above"],
         },
-        "heavy_sleet_continuous": {
-            "succeed": 18,
-            "fail": "heavy_rain_or_snow_continuous",
-            "probability_thresholds": [0.0, 0.0],
-            "threshold_condition": ">=",
-            "condition_combination": "AND",
-            "diagnostic_fields": [
-                [
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                    "-",
-                    "probability_of_rainfall_rate_above_threshold",
-                    "*",
-                    "0.7",
-                ],
-                [
-                    "probability_of_rainfall_rate_above_threshold",
-                    "-",
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                ],
-            ],
-            "diagnostic_thresholds": [
-                [(1.0, "mm hr-1"), (1.0, "mm hr-1")],
-                [(1.0, "mm hr-1"), (1.0, "mm hr-1")],
-            ],
-            "diagnostic_conditions": [["above", "above"], ["above", "above"]],
-        },
-        "heavy_sleet_shower": {
-            "succeed": 17,
-            "fail": "heavy_rain_or_snow_shower",
-            "probability_thresholds": [0.0, 0.0],
-            "threshold_condition": ">=",
-            "condition_combination": "AND",
-            "diagnostic_fields": [
-                [
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                    "-",
-                    "probability_of_rainfall_rate_above_threshold",
-                    "*",
-                    "0.7",
-                ],
-                [
-                    "probability_of_rainfall_rate_above_threshold",
-                    "-",
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                ],
-            ],
-            "diagnostic_thresholds": [
-                [(1.0, "mm hr-1"), (1.0, "mm hr-1")],
-                [(1.0, "mm hr-1"), (1.0, "mm hr-1")],
-            ],
-            "diagnostic_conditions": [["above", "above"], ["above", "above"]],
-        },
-        "heavy_rain_or_snow_continuous": {
+        # A.1.1
+        "heavy_snow_continuous": {
             "succeed": 27,
-            "fail": 15,
+            "fail": "heavy_rain_or_sleet_continuous",
             "probability_thresholds": [0.0],
-            "threshold_condition": ">=",
+            "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
                 [
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                    "-",
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
                     "probability_of_rainfall_rate_above_threshold",
+                    "-",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
                 ]
             ],
-            "diagnostic_thresholds": [[(1.0, "mm hr-1"), (1.0, "mm hr-1")]],
-            "diagnostic_conditions": [["above", "above"]],
+            "diagnostic_thresholds": [
+                [(1.0, "mm hr-1"), (1.0, "mm hr-1"), (1.0, "mm hr-1")]
+            ],
+            "diagnostic_conditions": [["above", "above", "above"]],
         },
-        "heavy_rain_or_snow_shower": {
+        # A.1.2
+        "heavy_snow_shower": {
             "succeed": 26,
-            "fail": 14,
+            "fail": "heavy_rain_or_sleet_shower",
             "probability_thresholds": [0.0],
-            "threshold_condition": ">=",
+            "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
                 [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
+                    "probability_of_rainfall_rate_above_threshold",
+                    "-",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                ]
+            ],
+            "diagnostic_thresholds": [
+                [(1.0, "mm hr-1"), (1.0, "mm hr-1"), (1.0, "mm hr-1")]
+            ],
+            "diagnostic_conditions": [["above", "above", "above"]],
+        },
+        # A.1.1.b
+        "heavy_rain_or_sleet_continuous": {
+            "succeed": 15,
+            "fail": 18,
+            "probability_thresholds": [0.0],
+            "threshold_condition": "<",
+            "condition_combination": "",
+            "diagnostic_fields": [
+                [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
                     "probability_of_lwe_snowfall_rate_above_threshold",
                     "-",
                     "probability_of_rainfall_rate_above_threshold",
                 ]
             ],
-            "diagnostic_thresholds": [[(1.0, "mm hr-1"), (1.0, "mm hr-1")]],
-            "diagnostic_conditions": [["above", "above"]],
+            "diagnostic_thresholds": [
+                [(1.0, "mm hr-1"), (1.0, "mm hr-1"), (1.0, "mm hr-1")]
+            ],
+            "diagnostic_conditions": [["above", "above", "above"]],
+        },
+        # A.1.2.b
+        "heavy_rain_or_sleet_shower": {
+            "succeed": 14,
+            "fail": 17,
+            "probability_thresholds": [0.0],
+            "threshold_condition": "<",
+            "condition_combination": "",
+            "diagnostic_fields": [
+                [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                    "-",
+                    "probability_of_rainfall_rate_above_threshold",
+                ]
+            ],
+            "diagnostic_thresholds": [
+                [(1.0, "mm hr-1"), (1.0, "mm hr-1"), (1.0, "mm hr-1")]
+            ],
+            "diagnostic_conditions": [["above", "above", "above"]],
         },
         "light_precipitation": {
             "succeed": "light_precipitation_cloud",
@@ -202,7 +199,7 @@ def wxcode_decision_tree_global():
         },
         "light_precipitation_cloud": {
             "succeed": "light_precipitation_convective_ratio",
-            "fail": "light_sleet_shower",
+            "fail": "light_snow_shower",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -211,8 +208,8 @@ def wxcode_decision_tree_global():
             "diagnostic_conditions": ["above"],
         },
         "light_precipitation_convective_ratio": {
-            "succeed": "light_sleet_shower",
-            "fail": "light_sleet_continuous",
+            "succeed": "light_snow_shower",
+            "fail": "light_snow_continuous",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -220,89 +217,89 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.8, 1)],
             "diagnostic_conditions": ["above"],
         },
-        "light_sleet_continuous": {
-            "succeed": 18,
-            "fail": "light_rain_or_snow_continuous",
-            "probability_thresholds": [0.0, 0.0],
-            "threshold_condition": ">=",
-            "condition_combination": "AND",
-            "diagnostic_fields": [
-                [
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                    "-",
-                    "probability_of_rainfall_rate_above_threshold",
-                    "*",
-                    "0.7",
-                ],
-                [
-                    "probability_of_rainfall_rate_above_threshold",
-                    "-",
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                ],
-            ],
-            "diagnostic_thresholds": [
-                [(0.1, "mm hr-1"), (0.1, "mm hr-1")],
-                [(0.1, "mm hr-1"), (0.1, "mm hr-1")],
-            ],
-            "diagnostic_conditions": [["above", "above"], ["above", "above"]],
-        },
-        "light_rain_or_snow_continuous": {
+        # A.2.1
+        "light_snow_continuous": {
             "succeed": 24,
-            "fail": 12,
+            "fail": "light_rain_or_sleet_continuous",
             "probability_thresholds": [0.0],
-            "threshold_condition": ">=",
+            "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
                 [
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                    "-",
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
                     "probability_of_rainfall_rate_above_threshold",
+                    "-",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
                 ]
-            ],
-            "diagnostic_thresholds": [[(0.1, "mm hr-1"), (0.1, "mm hr-1")]],
-            "diagnostic_conditions": [["above", "above"]],
-        },
-        "light_sleet_shower": {
-            "succeed": 17,
-            "fail": "light_rain_or_snow_shower",
-            "probability_thresholds": [0.0, 0.0],
-            "threshold_condition": ">=",
-            "condition_combination": "AND",
-            "diagnostic_fields": [
-                [
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                    "-",
-                    "probability_of_rainfall_rate_above_threshold",
-                    "*",
-                    "0.7",
-                ],
-                [
-                    "probability_of_rainfall_rate_above_threshold",
-                    "-",
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                ],
             ],
             "diagnostic_thresholds": [
-                [(0.1, "mm hr-1"), (0.1, "mm hr-1")],
-                [(0.1, "mm hr-1"), (0.1, "mm hr-1")],
+                [(0.1, "mm hr-1"), (0.1, "mm hr-1"), (0.1, "mm hr-1")]
             ],
-            "diagnostic_conditions": [["above", "above"], ["above", "above"]],
+            "diagnostic_conditions": [["above", "above", "above"]],
         },
-        "light_rain_or_snow_shower": {
+        # A.2.2
+        "light_snow_shower": {
             "succeed": 23,
-            "fail": 10,
+            "fail": "light_rain_or_sleet_shower",
             "probability_thresholds": [0.0],
-            "threshold_condition": ">=",
+            "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
                 [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
+                    "probability_of_rainfall_rate_above_threshold",
+                    "-",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                ]
+            ],
+            "diagnostic_thresholds": [
+                [(0.1, "mm hr-1"), (0.1, "mm hr-1"), (0.1, "mm hr-1")]
+            ],
+            "diagnostic_conditions": [["above", "above", "above"]],
+        },
+        # A.2.1.b
+        "light_rain_or_sleet_continuous": {
+            "succeed": 12,
+            "fail": 18,
+            "probability_thresholds": [0.0],
+            "threshold_condition": "<",
+            "condition_combination": "",
+            "diagnostic_fields": [
+                [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
                     "probability_of_lwe_snowfall_rate_above_threshold",
                     "-",
                     "probability_of_rainfall_rate_above_threshold",
                 ]
             ],
-            "diagnostic_thresholds": [[(0.1, "mm hr-1"), (0.1, "mm hr-1")]],
-            "diagnostic_conditions": [["above", "above"]],
+            "diagnostic_thresholds": [
+                [(0.1, "mm hr-1"), (0.1, "mm hr-1"), (0.1, "mm hr-1")]
+            ],
+            "diagnostic_conditions": [["above", "above", "above"]],
+        },
+        # A.2.2.b
+        "light_rain_or_sleet_shower": {
+            "succeed": 10,
+            "fail": 17,
+            "probability_thresholds": [0.0],
+            "threshold_condition": "<",
+            "condition_combination": "",
+            "diagnostic_fields": [
+                [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                    "-",
+                    "probability_of_rainfall_rate_above_threshold",
+                ]
+            ],
+            "diagnostic_thresholds": [
+                [(0.1, "mm hr-1"), (0.1, "mm hr-1"), (0.1, "mm hr-1")]
+            ],
+            "diagnostic_conditions": [["above", "above", "above"]],
         },
         "drizzle_mist": {
             "succeed": "drizzle_is_rain",
