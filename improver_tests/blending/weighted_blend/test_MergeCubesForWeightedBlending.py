@@ -130,7 +130,7 @@ class Test__create_model_coordinates(IrisTest):
             cube_coords = [coord.name() for coord in cube.coords()]
             self.assertIn("model_id", cube_coords)
             self.assertIn("model_configuration", cube_coords)
-            self.assertEqual(cube.attributes["mosg__model_configuration"], "blend")
+            self.assertEqual(cube.attributes["mosg__model_configuration"], "uk_ens uk_det")
 
     def test_values(self):
         """Test values of model coordinates are as expected"""
@@ -156,7 +156,6 @@ class Test__create_model_coordinates(IrisTest):
         msg = "Cannot create model dimension"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._create_model_coordinates(new_cubelist)
-
 
 class Test_process(IrisTest):
     """Test the process method"""
