@@ -148,6 +148,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
             cube.add_aux_coord(new_model_id_coord)
             cube.add_aux_coord(new_model_coord)
 
+        model_titles.sort()
         for cube in cubelist:
             cube.attributes[self.model_id_attr] = ' '.join(model_titles)
             
