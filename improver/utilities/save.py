@@ -107,6 +107,9 @@ def save_netcdf(cubelist, filename, compression_level=1, least_significant_digit
     for cube in cubelist:
         _order_cell_methods(cube)
         _check_metadata(cube)
+        # update "least_significant_digit" attribute if required
+        if least_significant_digit is not None and "least_significant_digit" in cube.attributes.keys():
+                cube.attributes["least_significant_digit"] = least_significant_digit
 
     # If all xy slices are the same shape, use this to determine
     # the chunksize for the netCDF (eg. 1, 1, 970, 1042)

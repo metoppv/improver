@@ -234,6 +234,22 @@ class Test_save_netcdf(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             save_netcdf(no_units_cube, self.filepath)
 
+    def test_update_least_significant_digit(self):
+        """Test bitshaving updates correct metadata"""
+        self.cube.attributes["least_significant_digit"] = 0
+        save_netcdf(self.cube, self.filepath, least_significant_digit=2)
+        cube = load_cube(self.filepath)
+        self.assertEqual(cube.attributes["least_significant_digit"], 2)
+
+    def test_not_add_least_significant_digit(self):
+        """Test bitshaving does not add an attribute unless existing"""
+        print(self.cube)
+        save_netcdf(self.cube, self.filepath, least_significant_digit=2)
+        cube = load_cube(self.filepath)
+        print(cube.attributes)
+        self.assertNotIn("least_significant_digit", cube.attributes)
+        # TODO why is this failing?
+
 
 @pytest.fixture(name="bitshaving_cube")
 def bitshaving_cube_fixture():
