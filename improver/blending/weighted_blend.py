@@ -136,7 +136,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
                 raise ValueError(
                     "Cannot create model dimension coordinate " "with duplicate points"
                 )
-            model_titles.append(model_title)            
+            model_titles.append(model_title)
 
             new_model_id_coord = AuxCoord(
                 np.array([1000 * i], dtype=np.int32), units="1", long_name="model_id"
@@ -150,8 +150,8 @@ class MergeCubesForWeightedBlending(BasePlugin):
 
         model_titles.sort()
         for cube in cubelist:
-            cube.attributes[self.model_id_attr] = ' '.join(model_titles)
-            
+            cube.attributes[self.model_id_attr] = " ".join(model_titles)
+
     def process(self, cubes_in, cycletime=None):
         """
         Prepares merged input cube for cycle and grid blending
