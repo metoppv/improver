@@ -400,6 +400,13 @@ class Test_find_max_in_nbhood_orography(IrisTest):
             [80, 90, 90, 90, 10],
             [20, 20, 20, 10, 10],
         ]
+        self.cube_latlon = set_up_variable_cube(
+            self.cube.data,
+            name="orographic_height",
+            units="m",
+            spatial_grid="latlon",
+            grid_spacing=0.01,
+        )
 
     def test_basic(self):
         """Test the function does what it's meant to in a simple case."""
@@ -416,17 +423,21 @@ class Test_find_max_in_nbhood_orography(IrisTest):
 
     def test_null_lat_lon(self):
         """Test the function does nothing when radius is zero and grid is lat-lon."""
-        cube = set_up_variable_cube(
-            self.cube.data,
-            name="orographic_height",
-            units="m",
-            spatial_grid="latlon",
-            grid_spacing=0.01,
-        )
+        cube = self.cube_latlon
         plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=0)
         expected_data = self.cube.data.copy()
         result = plugin.find_max_in_nbhood_orography(cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_error_lat_lon(self):
+        """Test the function fails when radius is not zero and grid is lat-lon."""
+        cube = self.cube_latlon
+        plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=1)
+        with self.assertRaisesRegex(
+            ValueError,
+            r"Unable to convert from 'Unit\('degrees'\)' to 'Unit\('metres'\)'.",
+        ):
+            plugin.find_max_in_nbhood_orography(cube)
 
 
 class Test_process(IrisTest):
