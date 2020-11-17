@@ -422,7 +422,8 @@ class Test_find_max_in_nbhood_orography(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_null_lat_lon(self):
-        """Test the function does nothing when radius is zero and grid is lat-lon."""
+        """Test the function succeeds and does nothing when radius is zero and grid is
+        lat-lon."""
         cube = self.cube_latlon
         plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=0)
         expected_data = self.cube.data.copy()
