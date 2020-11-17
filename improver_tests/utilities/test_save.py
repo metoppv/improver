@@ -243,11 +243,9 @@ class Test_save_netcdf(IrisTest):
 
     def test_not_add_least_significant_digit(self):
         """Test bitshaving does not add an attribute unless existing"""
-        print(self.cube)
         save_netcdf(self.cube, self.filepath, least_significant_digit=2)
         cube = load_cube(self.filepath)
-        print(cube.attributes)
-        self.assertNotIn("least_significant_digit", cube.attributes)
+        self.assertNotIn("least_significant_digit", cube.attributes.keys())
         # TODO why is this failing?
 
 
