@@ -38,6 +38,7 @@ from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
+from improver.metadata.constants import FLOAT_DTYPE, FLOAT_TYPES
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_checker import check_cube_coordinates
 
@@ -60,6 +61,8 @@ def collapsed(cube, *args, **kwargs):
     original_methods = cube.cell_methods
     new_cube = cube.collapsed(*args, **kwargs)
     new_cube.cell_methods = original_methods
+    if new_cube.dtype in FLOAT_TYPES:
+        new_cube.data = new_cube.data.astype(FLOAT_DTYPE)
     return new_cube
 
 
