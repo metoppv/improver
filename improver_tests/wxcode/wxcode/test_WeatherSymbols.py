@@ -232,34 +232,38 @@ class Test_WXCode(IrisTest):
             if "vicinity" not in name and "sleet" not in name and "texture" not in name
         ]
 
-    def assertArrayAndMaskEqual(self, test, expected, **kwargs):
+    def assertArrayAndMaskEqual(self, array_a, array_b, **kwargs):
         """
-        Runs assertArrayEqual and then checks that if a mask is present, it matches.
+        Checks test output and expected array are equal, using self.assertArrayEqual
+        and then checks that if a mask is present on the test array, it matches the
+        expected mask.
 
         Args:
-            test (np.ndarray):
-            expected (np.ndarray):
+            array_a (np.ndarray):
+                Typically, this will be the output from a test
+            array_b (np.ndarray):
+                Typically, this will be the expected output from a test
 
         Raises:
             AssertionError:
                 if a mask is present on only one argument or masks do not match
 
         """
-        self.assertArrayEqual(test, expected, **kwargs)
-        if not np.ma.is_masked(test) and not np.ma.is_masked(expected):
+        self.assertArrayEqual(array_a, array_b, **kwargs)
+        if not np.ma.is_masked(array_a) and not np.ma.is_masked(array_b):
             # Neither array is masked. Test passes.
             return
-        if not (np.ma.is_masked(test) and np.ma.is_masked(expected)):
+        if not (np.ma.is_masked(array_a) and np.ma.is_masked(array_b)):
             # Only one array is masked.
-            if np.ma.is_masked(test):
-                msg = f"Only a is masked: {test.mask}"
+            if np.ma.is_masked(array_a):
+                msg = f"Only a is masked: {array_a.mask}"
             else:
-                msg = f"Only b is masked: {expected.mask}"
+                msg = f"Only b is masked: {array_b.mask}"
         else:
-            if (test.mask == expected.mask).all():
+            if (array_a.mask == array_b.mask).all():
                 # Masks match exactly
                 return
-            msg = f"Masks do not match: {test.mask} /= {expected.mask}"
+            msg = f"Masks do not match: {array_a.mask} /= {array_b.mask}"
         raise AssertionError(msg)
 
 
@@ -822,7 +826,7 @@ class Test_process(Test_WXCode):
         plugin = WeatherSymbols()
         result = plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAndMaskEqual(result.attributes["weather_code"], self.wxcode)
+        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
         self.assertEqual(result.dtype, np.int32)
@@ -856,8 +860,9 @@ class Test_process(Test_WXCode):
         self.assertArrayAndMaskEqual(result.data, expected_wxcode)
 
     def test_masked_precip(self):
-        """Test process returns right values when precipitation data are masked
-        (e.g. nowcast-only). """
+        """Test process returns right values when precipitation data are fully masked
+        (e.g. nowcast-only). The only possible non-masked result is a lightning code as
+        these do not include precipitation in any of their decision routes."""
         plugin = WeatherSymbols()
         data_precip = np.ma.masked_all_like(self.cubes[8].data)
         cubes = self.cubes
