@@ -107,12 +107,11 @@ def save_netcdf(cubelist, filename, compression_level=1, least_significant_digit
     for cube in cubelist:
         _order_cell_methods(cube)
         _check_metadata(cube)
-        # update "least_significant_digit" attribute if present
-        if "least_significant_digit" in cube.attributes.keys():
-            if least_significant_digit is None:
-                cube.attributes.pop("least_significant_digit")
-            else:
-                cube.attributes["least_significant_digit"] = least_significant_digit
+        # iris.fileformats.netcdf.save will add a new "least_significant_digit"
+        # attribute, but will not update an existing attribute when saving with
+        # different precision.  Therefore we remove the "least_significant_digit"
+        # attribute if present.
+        cube.attributes.pop("least_significant_digit", None)
 
     # If all xy slices are the same shape, use this to determine
     # the chunksize for the netCDF (eg. 1, 1, 970, 1042)
