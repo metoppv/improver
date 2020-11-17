@@ -41,17 +41,22 @@ def process(cube: cli.inputcube):
 
     Args:
         cube (iris.cube.Cube):
-            Cube that will have night values set to zero.
+            Cube that will have night values set to zero.  This should contain
+            either diagnostic values or probabilities of UV index above threshold.
 
     Returns:
         iris.cube.Cube:
             Input cube with all night values set to zero.
 
     """
-
     import numpy as np
 
+    from improver.metadata.probabilistic import is_probability
     from improver.utilities.solar import DayNightMask
+
+    if is_probability(cube):
+        if "above_threshold" not in cube.name():
+            raise ValueError(f"{cube.name()} unsuitable for night masking")
 
     mask = DayNightMask()(cube).data
     # Broadcast mask to shape of input cube to account for additional dimensions.
