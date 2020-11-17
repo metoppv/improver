@@ -580,8 +580,8 @@ class Test_process(IrisTest):
         values. In this instance the phase change is from sleet to rain. Note
         that the wet bulb temperature integral values are doubled such that the
         rain threshold is reached above the surface.
-        The result has an odd pattern of 49.178673 around the edge at at the centre
-        point and a value of 1. forming a ring around the centre point. This arises
+        The result has an odd pattern of 49.178673 around the edge and at the centre
+        point with a value of 1 forming a ring around the centre point. This arises
         because the input data are not entirely realistic in this case. The ring
         [1::4, 1::4] has a sleet-rain-phase-level below the orography (1 m) but the
         centre point is an unrealistic point-hill of 100m which is interpolated
