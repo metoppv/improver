@@ -110,7 +110,7 @@ def save_netcdf(cubelist, filename, compression_level=1, least_significant_digit
         # update "least_significant_digit" attribute if present
         if "least_significant_digit" in cube.attributes.keys():
             if least_significant_digit is None:
-                cube.attributes["least_significant_digit"].pop()
+                cube.attributes.pop("least_significant_digit")
             else:
                 cube.attributes["least_significant_digit"] = least_significant_digit
 
