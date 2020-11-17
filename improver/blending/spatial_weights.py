@@ -37,7 +37,6 @@ import numpy as np
 from scipy.ndimage.morphology import distance_transform_edt
 
 from improver import BasePlugin
-from improver.utilities.cube_manipulation import collapsed
 from improver.utilities.rescale import rescale
 
 

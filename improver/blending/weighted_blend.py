@@ -41,6 +41,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import amend_attributes
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
     MANDATORY_ATTRIBUTES,
@@ -283,7 +284,7 @@ class PercentileBlendingAggregator:
         arr_weights = arr_weights.reshape(input_shape)
         # Create the resulting data array, which is the shape of the original
         # data without dimension we are collapsing over
-        result = np.zeros(input_shape[1:], dtype=np.float32)
+        result = np.zeros(input_shape[1:], dtype=FLOAT_DTYPE)
         # Loop over the flattened data, i.e. across all the data points in
         # each slice of the coordinate we are collapsing over, finding the
         # blended percentile values at each point.
@@ -335,7 +336,7 @@ class PercentileBlendingAggregator:
         # Find the size of the dimension we want to blend over.
         num = perc_values.shape[0]
         # Create an array to store the weighted blending pdf
-        combined_pdf = np.zeros((num, len(percentiles)), dtype=np.float32)
+        combined_pdf = np.zeros((num, len(percentiles)), dtype=FLOAT_DTYPE)
         # Loop over the axis we are blending over finding the values for the
         # probability at each threshold in the pdf, for each of the other
         # points in the axis we are blending over. Use the values from the
@@ -366,7 +367,7 @@ class PercentileBlendingAggregator:
         # back from probability values to the original percentiles.
         new_combined_perc = np.interp(
             percentiles, combined_perc_values, combined_perc_thres_data
-        ).astype(np.float32)
+        ).astype(FLOAT_DTYPE)
         return new_combined_perc
 
 
@@ -502,7 +503,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         cube_dims = get_dim_coord_names(cube)
         if set(weight_dims) == set(cube_dims):
             enforce_coordinate_ordering(weights, cube_dims)
-            weights_array = weights.data.astype(np.float32)
+            weights_array = weights.data.astype(FLOAT_DTYPE)
         else:
             # Map array of weights to shape of cube to collapse.
             dim_map = []
@@ -520,7 +521,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                     raise ValueError(message.format(dim_coord))
             try:
                 weights_array = iris.util.broadcast_to_shape(
-                    np.array(weights.data, dtype=np.float32), cube.shape, tuple(dim_map)
+                    np.array(weights.data, dtype=FLOAT_DTYPE), cube.shape, tuple(dim_map)
                 )
             except ValueError:
                 msg = (
@@ -576,7 +577,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             weights_array = self.shape_weights(cube, weights)
         else:
             (number_of_fields,) = cube.coord(self.blend_coord).shape
-            weight = np.float32(1.0 / number_of_fields)
+            weight = FLOAT_DTYPE(1.0 / number_of_fields)
             weights_array = np.broadcast_to(weight, cube.shape)
 
         return weights_array
@@ -631,7 +632,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             )
         else:
             (number_of_fields,) = cube.coord(self.blend_coord).shape
-            weight = np.float32(1.0 / number_of_fields)
+            weight = FLOAT_DTYPE(1.0 / number_of_fields)
             weights_array = np.broadcast_to(weight, cube.shape)
 
         (blend_dim,) = cube.coord_dims(self.blend_coord)
@@ -663,7 +664,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 The cube with percentile values blended over self.blend_coord,
                 with suitable weightings applied.
         """
-        percentiles = np.array(perc_coord.points, dtype=np.float32)
+        percentiles = np.array(perc_coord.points, dtype=FLOAT_DTYPE)
         (perc_dim,) = cube.coord_dims(perc_coord.name())
 
         # The iris.analysis.Aggregator moves the coordinate being
@@ -694,12 +695,6 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             perc_dim=perc_dim,
         )
 
-        cube_new.data = cube_new.data.astype(np.float32)
-        # Ensure collapsed coordinates do not promote themselves
-        # to float64.
-        for coord in cube_new.coords():
-            if coord.points.dtype == np.float64:
-                coord.points = coord.points.astype(np.float32)
         return cube_new
 
     def weighted_mean(self, cube, weights):
