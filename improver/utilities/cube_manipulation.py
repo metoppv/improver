@@ -72,12 +72,12 @@ def collapsed(cube, *args, **kwargs):
     collapse_coords = find_dimension_coordinate_mismatch(cube, new_cube)
     for coord in collapse_coords:
         if new_cube.coord(coord).points.dtype in FLOAT_TYPES:
-            new_cube.coord(coord).points = (
-                new_cube.coord(coord).points.astype(FLOAT_DTYPE)
+            new_cube.coord(coord).points = new_cube.coord(coord).points.astype(
+                FLOAT_DTYPE
             )
             if new_cube.coord(coord).bounds is not None:
-                new_cube.coord(coord).bounds = (
-                    new_cube.coord(coord).bounds.astype(FLOAT_DTYPE)
+                new_cube.coord(coord).bounds = new_cube.coord(coord).bounds.astype(
+                    FLOAT_DTYPE
                 )
 
     return new_cube

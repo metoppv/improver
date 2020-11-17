@@ -521,7 +521,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                     raise ValueError(message.format(dim_coord))
             try:
                 weights_array = iris.util.broadcast_to_shape(
-                    np.array(weights.data, dtype=FLOAT_DTYPE), cube.shape, tuple(dim_map)
+                    np.array(weights.data, dtype=FLOAT_DTYPE),
+                    cube.shape,
+                    tuple(dim_map),
                 )
             except ValueError:
                 msg = (
