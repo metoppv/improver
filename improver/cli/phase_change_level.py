@@ -36,7 +36,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube, phase_change, horizontal_interpolation=True):
+def process(
+    *cubes: cli.inputcube,
+    phase_change,
+    grid_point_radius=2,
+    horizontal_interpolation=True,
+):
     """Height of precipitation phase change relative to sea level.
 
     Calculated as a continuous 2D field by finding the height above sea level
@@ -62,6 +67,13 @@ def process(*cubes: cli.inputcube, phase_change, horizontal_interpolation=True):
 
                 snow-sleet - the melting of snow to sleet.
                 sleet-rain - the melting of sleet to rain.
+        grid_point_radius (int):
+            The radius in grid points used to calculate the maximum
+            height of the orography in a neighbourhood to determine points that
+            should be excluded from interpolation for being too close to the
+            orographic feature where high-resolution models can give highly
+            localised results. Zero uses central point only (neighbourhood is disabled).
+            One uses central point and one in each direction. Two goes two points etc.
 
         horizontal_interpolation (bool):
             If True apply horizontal interpolation to fill in holes in
@@ -77,7 +89,9 @@ def process(*cubes: cli.inputcube, phase_change, horizontal_interpolation=True):
     )
 
     plugin = PhaseChangeLevel(
-        phase_change=phase_change, horizontal_interpolation=horizontal_interpolation
+        phase_change=phase_change,
+        grid_point_radius=grid_point_radius,
+        horizontal_interpolation=horizontal_interpolation,
     )
     result = plugin(cubes)
     return result
