@@ -227,7 +227,7 @@ class Test_process(IrisTest):
         self.assertEqual(result.metadata, self.cube_enuk.metadata)
 
     def test_single_item_list_attributes(self):
-        """Test cube from single item list is returned unchanged"""
+        """Test cube from single item list attributes are as expected"""
         cubelist = iris.cube.CubeList([self.cube_enuk.copy()])
         result = self.plugin.process(cubelist)
         self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
