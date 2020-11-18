@@ -130,7 +130,9 @@ class Test__create_model_coordinates(IrisTest):
             cube_coords = [coord.name() for coord in cube.coords()]
             self.assertIn("model_id", cube_coords)
             self.assertIn("model_configuration", cube_coords)
-            self.assertEqual(cube.attributes["mosg__model_configuration"], "blend")
+            self.assertEqual(
+                cube.attributes["mosg__model_configuration"], "uk_det uk_ens"
+            )
 
     def test_values(self):
         """Test values of model coordinates are as expected"""
@@ -223,6 +225,12 @@ class Test_process(IrisTest):
         result = self.plugin.process(cubelist)
         self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
         self.assertEqual(result.metadata, self.cube_enuk.metadata)
+
+    def test_single_item_list_attributes(self):
+        """Test cube from single item list attributes are as expected"""
+        cubelist = iris.cube.CubeList([self.cube_enuk.copy()])
+        result = self.plugin.process(cubelist)
+        self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
 
     def test_multi_model_merge(self):
         """Test models merge OK and have expected model coordinates"""

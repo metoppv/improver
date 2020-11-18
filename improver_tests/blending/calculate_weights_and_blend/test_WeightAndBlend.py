@@ -391,7 +391,9 @@ class Test_process(IrisTest):
             [self.ukv_cube, self.enukx_cube], model_id_attr="mosg__model_configuration"
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertEqual(result.attributes["mosg__model_configuration"], "blend")
+        self.assertEqual(
+            result.attributes["mosg__model_configuration"], "uk_det uk_ens"
+        )
         result_coords = [coord.name() for coord in result.coords()]
         self.assertNotIn("model_id", result_coords)
         self.assertNotIn("model_configuration", result_coords)
