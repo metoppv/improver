@@ -199,22 +199,22 @@ class BasicThreshold(PostProcessingPlugin):
         self.comparison_operator_dict = {}
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["ge", "GE", ">="], {"function": operator.ge, "spp_string": "above"}
+                ["ge", "GE", ">="], {"function": operator.ge, "spp_string": "greater_than_or_equal_to"}
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["gt", "GT", ">"], {"function": operator.gt, "spp_string": "above"}
+                ["gt", "GT", ">"], {"function": operator.gt, "spp_string": "greater_than"}
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["le", "LE", "<="], {"function": operator.le, "spp_string": "below"}
+                ["le", "LE", "<="], {"function": operator.le, "spp_string": "less_than_or_equal_to"}
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["lt", "LT", "<"], {"function": operator.lt, "spp_string": "below"}
+                ["lt", "LT", "<"], {"function": operator.lt, "spp_string": "less_than"}
             )
         )
         self.comparison_operator_string = comparison_operator
@@ -304,7 +304,9 @@ class BasicThreshold(PostProcessingPlugin):
                 probability_of_X_above(or below)_threshold (where X is
                 the diagnostic under consideration)
                 * Threshold dimension coordinate with same units as input_cube
-                * Threshold attribute (above or below threshold)
+                * Threshold attribute ("greater_than",
+                "greater_than_or_equal_to", "less_than", or
+                less_than_or_equal_to" depending on the operator)
                 * Cube units set to (1).
 
         Raises:
@@ -365,9 +367,12 @@ class BasicThreshold(PostProcessingPlugin):
                         clip=True,
                     ),
                 )
-                # if requirement is for probabilities below threshold (rather
-                # than above), invert the exceedance probability
-                if "below" in self.comparison_operator["spp_string"]:
+                # if requirement is for probabilities less_than or less_than_or_equal_to
+                # the threshold (rather than greater_than or greater_than_or_equal_to),
+                # invert the exceedance probability
+                if "less_than" in self.comparison_operator["spp_string"]:
+                    truth_value = 1.0 - truth_value
+                elif "less_than_or_equal_to" in self.comparison_operator["spp_string"]:
                     truth_value = 1.0 - truth_value
             truth_value = np.ma.masked_where(np.ma.getmask(cube.data), truth_value)
             truth_value = truth_value.astype(input_cube_dtype)
@@ -389,9 +394,15 @@ class BasicThreshold(PostProcessingPlugin):
             # if only one threshold has been provided, this should be scalar
             cube = next(cube.slices_over(cube.coord(var_name="threshold")))
 
+        if self.comparison_operator["spp_string"] is "less_than":
+            boundary = "below"
+        elif self.comparison_operator["spp_string"] is "less_than_or_equal_to":
+            boundary = "below"
+        else:
+            boundary = "above"
         cube.rename(
             "probability_of_{}_{}_threshold".format(
-                cube.name(), self.comparison_operator["spp_string"]
+                cube.name(), boundary
             )
         )
         cube.units = Unit(1)
