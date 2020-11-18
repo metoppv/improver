@@ -22,7 +22,7 @@ jobs:
         conda env update -q --file environment.yml --name improver
         conda list --export
     - name: conda activate
-      run:  echo "::add-path::/usr/share/miniconda/envs/improver/bin"
+      run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
     - name: sphinx-build
       run: make -C doc html SPHINXOPTS="-W --keep-going"
     - name: pytest unit-tests & cov-report
@@ -50,7 +50,7 @@ jobs:
         conda env update -q --file environment.yml --name improver
         conda list --export
     - name: conda activate
-      run:  echo "::add-path::/usr/share/miniconda/envs/improver/bin"
+      run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
     - name: isort
       run:  isort --check-only --recursive .
     - name: black
