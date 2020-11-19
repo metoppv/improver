@@ -32,9 +32,9 @@ b4b7b5810cd993538d771f1fee7578568481dfc6b3203aed6eb73f3e58c42079  ./apply-lapse-
 3fd42cca343388ddb110c8b1c1eacf878d2e4f4d7ff9dad7e79f61fceb328695  ./apply-night-mask/global_basic/kgo.nc
 6564fd98afbed70eb278f8fc33fbba7bc2d3e621dc64c91e691d846ba89b707b  ./apply-night-mask/uk_basic/input.nc
 24903d364a70212cddcf200a1434c78ed7d3574577529ece721ffe5f161f191d  ./apply-night-mask/uk_basic/kgo.nc
-c79fcc16acb4863cb8e414679f9d8d79781df3a27949959b80cc00cee8f3f8f7  ./apply-night-mask/uk_prob/invalid_input.nc
-3f6235b02f51b95d8681a55c93c56bf4afe8a2b3e68d06daa16e64657396f5f4  ./apply-night-mask/uk_prob/kgo.nc
-bf2f41191a9ef356794f49274afcc3f541805c9dcdb4c3358ee8b0d533f0b9ab  ./apply-night-mask/uk_prob/valid_input.nc
+37cd0d8d4c5e8b383f7ba62531d1501cf142609bd0238519a4cf965064af2763  ./apply-night-mask/uk_prob/invalid_input.nc
+a9728e6ac392296a6e0cf95eb31fa9fd5394ecf2db31df68ed58a0f5a108234e  ./apply-night-mask/uk_prob/kgo.nc
+d731f1c9f5972261debb1610c49d5d51f8fa1c3e743f052675e58153af37de4a  ./apply-night-mask/uk_prob/valid_input.nc
 d45b0d66f47dc40f67df5a6ffc5a338aa33959cd1928a3078d2f303c21fd0539  ./apply-reliability-calibration/basic/collapsed_table.nc
 95b0f56f3ba5d437971f1305325e3d2ccbcd407a3edb3954a42782a83fa0ed14  ./apply-reliability-calibration/basic/cubelist_table.nc
 429c6278c294b2106de8982a81df2f494f533639384092d444a16da9fff3ec23  ./apply-reliability-calibration/basic/forecast.nc
