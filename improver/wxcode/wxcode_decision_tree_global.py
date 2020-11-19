@@ -69,6 +69,7 @@ def wxcode_decision_tree_global():
             tree.
     """
     queries = {
+        # A
         "heavy_precipitation": {
             "succeed": "heavy_precipitation_cloud",
             "fail": "light_precipitation",
@@ -81,6 +82,7 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(1.0, "mm hr-1")],
             "diagnostic_conditions": ["above"],
         },
+        # A.1
         "heavy_precipitation_cloud": {
             "succeed": "heavy_precipitation_convective_ratio",
             "fail": "heavy_snow_shower",
@@ -185,6 +187,7 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
+        # B
         "light_precipitation": {
             "succeed": "light_precipitation_cloud",
             "fail": "drizzle_mist",
@@ -197,6 +200,7 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.1, "mm hr-1")],
             "diagnostic_conditions": ["above"],
         },
+        # A.2
         "light_precipitation_cloud": {
             "succeed": "light_precipitation_convective_ratio",
             "fail": "light_snow_shower",
@@ -301,6 +305,7 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
+        # A.3
         "drizzle_mist": {
             "succeed": "drizzle_is_rain",
             "fail": "drizzle_cloud",
@@ -347,6 +352,28 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
+        # C
+        "mist_conditions": {
+            "succeed": "fog_conditions",
+            "fail": "no_precipitation_cloud",
+            "probability_thresholds": [0.5],
+            "threshold_condition": ">=",
+            "condition_combination": "",
+            "diagnostic_fields": ["probability_of_visibility_in_air_below_threshold"],
+            "diagnostic_thresholds": [(5000.0, "m")],
+            "diagnostic_conditions": ["below"],
+        },
+        "fog_conditions": {
+            "succeed": 6,
+            "fail": 5,
+            "probability_thresholds": [0.5],
+            "threshold_condition": ">=",
+            "condition_combination": "",
+            "diagnostic_fields": ["probability_of_visibility_in_air_below_threshold"],
+            "diagnostic_thresholds": [(1000.0, "m")],
+            "diagnostic_conditions": ["below"],
+        },
+        # C.1
         "no_precipitation_cloud": {
             "succeed": "overcast_cloud",
             "fail": "partly_cloudy",
@@ -369,6 +396,7 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.85, 1)],
             "diagnostic_conditions": ["above"],
         },
+
         "partly_cloudy": {
             "succeed": 3,
             "fail": 1,
@@ -378,26 +406,6 @@ def wxcode_decision_tree_global():
             "diagnostic_fields": ["probability_of_cloud_area_fraction_above_threshold"],
             "diagnostic_thresholds": [(0.1875, 1)],
             "diagnostic_conditions": ["above"],
-        },
-        "mist_conditions": {
-            "succeed": "fog_conditions",
-            "fail": "no_precipitation_cloud",
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": ["probability_of_visibility_in_air_below_threshold"],
-            "diagnostic_thresholds": [(5000.0, "m")],
-            "diagnostic_conditions": ["below"],
-        },
-        "fog_conditions": {
-            "succeed": 6,
-            "fail": 5,
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": ["probability_of_visibility_in_air_below_threshold"],
-            "diagnostic_thresholds": [(1000.0, "m")],
-            "diagnostic_conditions": ["below"],
         },
     }
 
