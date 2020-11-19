@@ -76,6 +76,22 @@ class Test_collapsed(unittest.TestCase):
             ).all()
         )
 
+    def test_two_coords(self):
+        """Test behaviour collapsing over 2 coordinates, including not escalating
+        precision when collapsing a float coordinate (latitude)"""
+        result = collapsed(self.cube, ["realization", "latitude"], iris.analysis.MEAN)
+        self.assertTrue(
+            (
+                result.data
+                == self.cube.collapsed(
+                    ["realization", "latitude"], iris.analysis.MEAN
+                ).data
+            ).all()
+        )
+        self.assertEqual(
+            result.coord("latitude").dtype, self.cube.coord("latitude").dtype
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
