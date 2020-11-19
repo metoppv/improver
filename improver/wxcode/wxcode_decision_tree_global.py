@@ -396,7 +396,6 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.85, 1)],
             "diagnostic_conditions": ["above"],
         },
-
         "partly_cloudy": {
             "succeed": 3,
             "fail": 1,
