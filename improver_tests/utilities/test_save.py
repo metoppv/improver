@@ -247,6 +247,15 @@ class Test_save_netcdf(IrisTest):
         cube = load_cube(self.filepath)
         self.assertEqual(cube.attributes["least_significant_digit"], 2)
 
+    def test_remove_least_significant_digit(self):
+        """Test precision metadata are removed if bitshaving is not applied.
+        This is appropriate because if data have been processed since the last read
+        this attribute is no longer correct and should be removed."""
+        self.cube.attributes["least_significant_digit"] = 0
+        save_netcdf(self.cube, self.filepath)
+        cube = load_cube(self.filepath)
+        self.assertNotIn("least_significant_digit", cube.attributes)
+
 
 @pytest.fixture(name="bitshaving_cube")
 def bitshaving_cube_fixture():
