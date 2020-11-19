@@ -49,17 +49,15 @@ class Test_collapsed(unittest.TestCase):
         """Use temperature cube to test with."""
         data = 281 * np.ones((3, 3, 3), dtype=np.float32)
         self.cube = set_up_variable_cube(data, realizations=[0, 1, 2])
+        self.expected_data = self.cube.collapsed(
+            ["realization"], iris.analysis.MEAN
+        ).data
 
     def test_single_method(self):
         """Test that a collapsed cube is returned with no cell method added"""
         result = collapsed(self.cube, "realization", iris.analysis.MEAN)
         self.assertTupleEqual(result.cell_methods, ())
-        self.assertTrue(
-            (
-                result.data
-                == self.cube.collapsed("realization", iris.analysis.MEAN).data
-            ).all()
-        )
+        self.assertTrue((result.data == self.expected_data).all())
 
     def test_two_methods(self):
         """Test that a cube keeps its original cell method but another
@@ -70,24 +68,16 @@ class Test_collapsed(unittest.TestCase):
         cube.add_cell_method(method)
         result = collapsed(cube, "realization", iris.analysis.MEAN)
         self.assertTupleEqual(result.cell_methods, (method,))
-        self.assertTrue(
-            (
-                result.data == cube.collapsed("realization", iris.analysis.MEAN).data
-            ).all()
-        )
+        self.assertTrue((result.data == self.expected_data).all())
 
     def test_two_coords(self):
         """Test behaviour collapsing over 2 coordinates, including not escalating
         precision when collapsing a float coordinate (latitude)"""
+        expected_data = self.cube.collapsed(
+            ["realization", "latitude"], iris.analysis.MEAN
+        ).data
         result = collapsed(self.cube, ["realization", "latitude"], iris.analysis.MEAN)
-        self.assertTrue(
-            (
-                result.data
-                == self.cube.collapsed(
-                    ["realization", "latitude"], iris.analysis.MEAN
-                ).data
-            ).all()
-        )
+        self.assertTrue((result.data == expected_data).all())
         self.assertEqual(
             result.coord("latitude").dtype, self.cube.coord("latitude").dtype
         )
