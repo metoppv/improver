@@ -38,6 +38,13 @@ import iris
 import numpy as np
 from iris import Constraint
 from iris.time import PartialDateTime
+from iris.coords import AuxCoord
+from improver import PostProcessingPlugin
+from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
@@ -254,3 +261,98 @@ def extract_nearest_time_point(cube, dt, time_name="time", allowed_dt_difference
     constr = iris.Constraint(coord_values={time_name: nearest_dt})
     cube = cube.extract(constr)
     return cube
+
+
+class TimezoneExtraction(PostProcessingPlugin):
+    """Plugin to extract local time offsets"""
+
+    def create_output_cube(self, cube, utc_time_list):
+        """
+
+        Args:
+            cube:
+            utc_time_list:
+
+        Returns:
+
+        """
+        template_cube = cube.slices("time").next()
+        template_cube.remove_coord("time")
+        template_cube.remove_coord("forecast_period")
+        cube = create_new_diagnostic_cube(
+            cube.name(),
+            cube.units,
+            cube,
+            generate_mandatory_attributes(cube),
+            optional_attributes=cube.attributes,
+            data=np.ma.masked_all_like(cube.data).astype(cube.dtype),
+        )
+        time_coord_standards = TIME_COORDS["time"]
+        time_coord = AuxCoord(
+            np.ma.masked_all_like(cube.data).astype(time_coord_standards["dtype"]),
+            standard_name="time",
+            units=time_coord_standards["units"],
+            attributes={"calendar": time_coord_standards["calendar"]},
+        )
+        return cube
+
+    @staticmethod
+    def get_xy_dims(cube):
+        dims = []
+        for dim in ['y', 'x']:
+            crd_name = cube.coord(axis=dim).name()
+            dims.append(*cube.coord_dims(crd_name))
+        return tuple(dims)
+
+    def fill_timezones(self, input_cube, output_cube, timezone_cube):
+        """
+
+        Args:
+            input_cube:
+            output_cube:
+            timezone_cube:
+
+        Returns:
+
+        """
+        pass
+
+    def check_all_valid(self, output_cube):
+        """
+
+        Args:
+            output_cube:
+
+        Returns:
+
+        """
+        pass
+
+    def process(self, input_cube, timezone_cube, output_utc_time_list):
+        """
+        Calculates timezone-offset data for the specified UTC output times
+
+        Args:
+            input_cube (iris.cube.Cube):
+                Cube of data to extract timezone-offsets from. Must contain a time
+                coord spanning all the timezones.
+            timezone_cube (iris.cube.Cube):
+                Cube describing the UTC offset for the local time at each grid location
+                Must have the same spatial coords as input_cube.
+            output_utc_time_list (list of datetime.datetime):
+                Each of the UTC times to include in the output cube. This will form the
+                "utc" coord on the output cube.
+
+        Returns:
+            iris.cube.Cube:
+                Output local-time cube. The time coord will span the spatial coords.
+                The utc coord will match the output_utc_time_list supplied. All other
+                coords and attributes will match those found on input_cube.
+        """
+        output_cube = self.create_output_cube(input_cube, output_utc_time_list)
+
+        self.fill_timezones(input_cube, output_cube, timezone_cube)
+
+        self.check_all_valid(output_cube)
+
+        return output_cube
