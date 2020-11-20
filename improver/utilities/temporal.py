@@ -266,40 +266,49 @@ def extract_nearest_time_point(cube, dt, time_name="time", allowed_dt_difference
 class TimezoneExtraction(PostProcessingPlugin):
     """Plugin to extract local time offsets"""
 
+    def __init__(self):
+        self.time_coord_standards = TIME_COORDS["time"]
+        self.time_points = None
+        self.output_cube = None
+
     def create_output_cube(self, cube, utc_time_list):
         """
+        Constructs the output cube and an array that will be come the time coord
 
         Args:
             cube:
             utc_time_list:
 
-        Returns:
-
         """
-        template_cube = cube.slices("time").next()
+        template_cube = cube.slices_over("time").next().copy()
         template_cube.remove_coord("time")
         template_cube.remove_coord("forecast_period")
-        cube = create_new_diagnostic_cube(
-            cube.name(),
-            cube.units,
-            cube,
-            generate_mandatory_attributes(cube),
-            optional_attributes=cube.attributes,
-            data=np.ma.masked_all_like(cube.data).astype(cube.dtype),
+        self.output_cube = create_new_diagnostic_cube(
+            template_cube.name(),
+            template_cube.units,
+            template_cube,
+            generate_mandatory_attributes([template_cube]),
+            optional_attributes=template_cube.attributes,
+            data=np.ma.masked_all_like(template_cube.data).astype(template_cube.dtype),
         )
-        time_coord_standards = TIME_COORDS["time"]
-        time_coord = AuxCoord(
-            np.ma.masked_all_like(cube.data).astype(time_coord_standards["dtype"]),
-            standard_name="time",
-            units=time_coord_standards["units"],
-            attributes={"calendar": time_coord_standards["calendar"]},
+        self.time_points = np.ma.masked_all_like(
+            cube.slices(self.get_xy_dims(template_cube)).next().data
+        ).astype(self.time_coord_standards.dtype)
+
+        # Create a single valued time coordinate to help with plotting data.
+        utc_coord_standards = TIME_COORDS["utc"]
+        utc_units = cf_units.Unit(
+            utc_coord_standards.units, calendar=utc_coord_standards.calendar,
         )
-        return cube
+        points = utc_units.date2num(utc_time_list)
+        points = np.round(points).astype(utc_coord_standards.dtype)
+        utc = AuxCoord(points, long_name="utc", units=utc_units,)
+        self.output_cube.add_aux_coord(utc)
 
     @staticmethod
     def get_xy_dims(cube):
         dims = []
-        for dim in ['y', 'x']:
+        for dim in ["y", "x"]:
             crd_name = cube.coord(axis=dim).name()
             dims.append(*cube.coord_dims(crd_name))
         return tuple(dims)
@@ -349,10 +358,17 @@ class TimezoneExtraction(PostProcessingPlugin):
                 The utc coord will match the output_utc_time_list supplied. All other
                 coords and attributes will match those found on input_cube.
         """
-        output_cube = self.create_output_cube(input_cube, output_utc_time_list)
+        self.create_output_cube(input_cube, output_utc_time_list)
 
-        self.fill_timezones(input_cube, output_cube, timezone_cube)
+        self.fill_timezones(input_cube, timezone_cube)
 
-        self.check_all_valid(output_cube)
+        time_units = cf_units.Unit(
+            self.time_coord_standards.units,
+            calendar=self.time_coord_standards.calendar,
+        )
+        time_coord = AuxCoord(self.time_points, standard_name="time", units=time_units,)
+        self.output_cube.add_aux_coord(time_coord, self.get_xy_dims(self.output_cube))
 
-        return output_cube
+        self.check_all_valid()
+
+        return self.output_cube
