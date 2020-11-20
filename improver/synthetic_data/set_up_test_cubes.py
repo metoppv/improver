@@ -445,6 +445,8 @@ def set_up_percentile_cube(
     cube = set_up_variable_cube(data, realizations=percentiles, **kwargs,)
     cube.coord("realization").rename("percentile")
     cube.coord("percentile").units = Unit("%")
+    if len(percentiles) == 1:
+        cube = next(cube.slices_over("percentile"))
     return cube
 
 
@@ -509,6 +511,8 @@ def set_up_probability_cube(
     cube.coord(variable_name).var_name = "threshold"
     cube.coord(variable_name).attributes.update(coord_attributes)
     cube.coord(variable_name).units = Unit(threshold_units)
+    if len(thresholds) == 1:
+        cube = next(cube.slices_over(variable_name))
     return cube
 
 
