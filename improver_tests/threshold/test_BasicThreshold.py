@@ -267,8 +267,6 @@ class Test_process(IrisTest):
 
     def test_metadata_changes(self):
         """Test the metadata altering functionality"""
-        # Copy the cube as the cube.data is used as the basis for comparison.
-        # cube = self.cube.copy()
         plugin = Threshold(0.1)
         result = plugin(self.cube)
         name = "probability_of_{}_above_threshold"
