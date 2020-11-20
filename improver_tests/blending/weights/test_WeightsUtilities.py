@@ -130,9 +130,7 @@ class Test_build_weights_cube(IrisTest):
         )
 
         time_points = [dt(2015, 11, 19, 0, 30), dt(2015, 11, 19, 1, 30)]
-        self.cube = add_coordinate(
-            cube, time_points, "time", is_datetime=True
-        )
+        self.cube = add_coordinate(cube, time_points, "time", is_datetime=True)
         self.cube.data[1, :, :] = 0.6
 
     def test_basic_weights(self):
