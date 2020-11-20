@@ -199,22 +199,30 @@ class BasicThreshold(PostProcessingPlugin):
         self.comparison_operator_dict = {}
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["ge", "GE", ">="], {"function": operator.ge, "spp_string": "greater_than_or_equal_to"}
+                ["ge", "GE", ">="],
+                {"function": operator.ge,
+                 "spp_string": "greater_than_or_equal_to"}
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["gt", "GT", ">"], {"function": operator.gt, "spp_string": "greater_than"}
+                ["gt", "GT", ">"],
+                {"function": operator.gt,
+                 "spp_string": "greater_than"}
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["le", "LE", "<="], {"function": operator.le, "spp_string": "less_than_or_equal_to"}
+                ["le", "LE", "<="],
+                {"function": operator.le,
+                 "spp_string": "less_than_or_equal_to"}
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["lt", "LT", "<"], {"function": operator.lt, "spp_string": "less_than"}
+                ["lt", "LT", "<"],
+                {"function": operator.lt,
+                 "spp_string": "less_than"}
             )
         )
         self.comparison_operator_string = comparison_operator
@@ -367,9 +375,10 @@ class BasicThreshold(PostProcessingPlugin):
                         clip=True,
                     ),
                 )
-                # if requirement is for probabilities less_than or less_than_or_equal_to
-                # the threshold (rather than greater_than or greater_than_or_equal_to),
-                # invert the exceedance probability
+                # if requirement is for probabilities less_than or
+		# less_than_or_equal_to the threshold (rather than
+		# greater_than or greater_than_or_equal_to), invert
+		# the exceedance probability
                 if "less_than" in self.comparison_operator["spp_string"]:
                     truth_value = 1.0 - truth_value
                 elif "less_than_or_equal_to" in self.comparison_operator["spp_string"]:
