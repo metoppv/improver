@@ -49,10 +49,17 @@ from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants.time_types import TIME_COORDS
 
 
-def test_create_output_cube():
+@pytest.mark.parametrize(
+    "utc_times",
+    (
+        [datetime(2017, 11, 9, 12, 0)],
+        [datetime(2017, 11, 9, 12, 0), datetime(2017, 11, 10, 12, 0)],
+    ),
+)
+def test_create_output_cube(utc_times):
     """Tests that the create_output_cube method builds a cube with appropriate
     meta-data"""
-    data_shape = (3, 3, 3)
+    data_shape = [3, 3, 3]
     cube = set_up_variable_cube(
         np.zeros(data_shape).astype(np.float32),
         standard_grid_metadata="gl_ens",
@@ -70,14 +77,17 @@ def test_create_output_cube():
         dtype=TIME_COORDS["time"].dtype,
         is_datetime=True,
     )
-    utc_time = datetime(2017, 11, 9, 12, 0)
     plugin = TimezoneExtraction()
-    plugin.create_output_cube(cube, [utc_time])
+    plugin.create_output_cube(cube, utc_times)
     result = plugin.output_cube
     assert isinstance(result, Cube)
     assert result.name() == cube.name()
     assert result.units == cube.units
-    assert result.shape == data_shape
+    if len(utc_times) == 1:
+        expected_shape = data_shape
+    else:
+        expected_shape = [len(utc_times)] + data_shape
+    assert result.shape == tuple(expected_shape)
     assert result.attributes == cube.attributes
     check_mandatory_standards(result)
     result_time = plugin.time_points
@@ -85,5 +95,5 @@ def test_create_output_cube():
     assert np.ma.is_masked(result_time)
     assert result_time.mask.all()
     result_utc = result.coord("utc")
-    assert [cell.point for cell in result_utc.cells()] == [datetime(2017, 11, 9, 12, 0)]
+    assert [cell.point for cell in result_utc.cells()] == utc_times
     # assert result.coord_dims("time") == plugin.get_xy_dims(result)

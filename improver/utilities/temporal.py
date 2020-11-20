@@ -280,6 +280,8 @@ class TimezoneExtraction(PostProcessingPlugin):
             utc_time_list:
 
         """
+        # Import add_coordinate here to avoid circular import
+        from improver.synthetic_data.set_up_test_cubes import add_coordinate
         template_cube = cube.slices_over("time").next().copy()
         template_cube.remove_coord("time")
         template_cube.remove_coord("forecast_period")
@@ -295,15 +297,24 @@ class TimezoneExtraction(PostProcessingPlugin):
             cube.slices(self.get_xy_dims(template_cube)).next().data
         ).astype(self.time_coord_standards.dtype)
 
-        # Create a single valued time coordinate to help with plotting data.
+        # Create a UTC time coordinate to help with plotting data.
         utc_coord_standards = TIME_COORDS["utc"]
         utc_units = cf_units.Unit(
             utc_coord_standards.units, calendar=utc_coord_standards.calendar,
         )
-        points = utc_units.date2num(utc_time_list)
-        points = np.round(points).astype(utc_coord_standards.dtype)
-        utc = AuxCoord(points, long_name="utc", units=utc_units,)
-        self.output_cube.add_aux_coord(utc)
+        #points = utc_units.date2num(utc_time_list)
+        #points = np.round(points).astype(utc_coord_standards.dtype)
+        # utc = AuxCoord(points, long_name="utc", units=utc_units,)
+        self.output_cube = add_coordinate(
+            self.output_cube,
+            utc_time_list,
+            "utc",
+            coord_units=utc_units,
+            dtype=utc_coord_standards.dtype,
+            is_datetime=True,
+        )
+
+        # self.output_cube.add_aux_coord(utc)
 
     @staticmethod
     def get_xy_dims(cube):
