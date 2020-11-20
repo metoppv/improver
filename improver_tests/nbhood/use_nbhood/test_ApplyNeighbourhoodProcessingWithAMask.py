@@ -290,25 +290,23 @@ class Test_process(unittest.TestCase):
         cube2.coord("air_temperature").points = np.array([273.15], dtype=np.float32)
         self.multi_threshold_cube = iris.cube.CubeList(
             [cube2, self.cube]
-        ).concatenate_cube()
+        ).merge_cube()
         # Set up expected uncollapsed result
         self.expected_uncollapsed_result = np.array(
-            [
                 [
                     [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0],],
                     [[np.nan, 0.5, 0.5], [0.0, 0.25, 0.33333334], [0.0, 0.0, 0.0],],
                     [[np.nan, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0],],
                 ],
-            ],
             dtype=np.float32,
         )
         # Set up expected collapsed result
         expected_result = np.array(
-            [[[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]]],
+            [[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]],
             dtype=np.float32,
         )
         expected_mask = np.array(
-            [[[True, False, False], [False, False, False], [False, False, False]]],
+            [[True, False, False], [False, False, False], [False, False, False]],
         )
         self.expected_collapsed_result = np.ma.MaskedArray(
             expected_result, expected_mask
@@ -323,7 +321,7 @@ class Test_process(unittest.TestCase):
         result = plugin(self.cube, self.mask_cube)
         assert_allclose(result.data, self.expected_uncollapsed_result, equal_nan=True)
         expected_coords = self.cube.coords()
-        expected_coords.insert(1, self.mask_cube.coord("topographic_zone"))
+        expected_coords.insert(0, self.mask_cube.coord("topographic_zone"))
         self.assertEqual(result.coords(), expected_coords)
         self.assertEqual(result.metadata, self.cube.metadata)
 
@@ -351,7 +349,7 @@ class Test_process(unittest.TestCase):
         threshold dimension"""
         plugin = ApplyNeighbourhoodProcessingWithAMask("topographic_zone", 2000)
         result = plugin(self.multi_threshold_cube, self.mask_cube)
-        expected_result = np.concatenate(
+        expected_result = np.array(
             [self.expected_uncollapsed_result, self.expected_uncollapsed_result]
         )
         assert_allclose(result.data, expected_result, equal_nan=True)
@@ -368,7 +366,7 @@ class Test_process(unittest.TestCase):
             "topographic_zone", 2000, collapse_weights=self.weights_cube
         )
         result = plugin(self.multi_threshold_cube, self.mask_cube)
-        expected_result = np.ma.concatenate(
+        expected_result = np.ma.MaskedArray(
             [self.expected_collapsed_result, self.expected_collapsed_result]
         )
         assert_allclose(result.data.data, expected_result.data, equal_nan=True)

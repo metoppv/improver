@@ -101,7 +101,6 @@ class Test_process(IrisTest):
         """Test that the circular neighbourhood processing is successful, if
         the weighted mode is True."""
         expected = np.array(
-            [
                 [
                     [1.0, 1.0, 1.0, 1.0, 1.0],
                     [1.0, 0.91666667, 0.875, 0.91666667, 1.0],
@@ -109,7 +108,6 @@ class Test_process(IrisTest):
                     [1.0, 0.91666667, 0.875, 0.91666667, 1.0],
                     [1.0, 1.0, 1.0, 1.0, 1.0],
                 ]
-            ]
         )
         neighbourhood_method = "circular"
         radii = 4000
@@ -121,7 +119,6 @@ class Test_process(IrisTest):
         """Test that the circular neighbourhood processing is successful, if
         the weighted mode is False."""
         expected = np.array(
-            [
                 [
                     [1.0, 1.0, 0.92307692, 1.0, 1.0],
                     [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
@@ -129,7 +126,6 @@ class Test_process(IrisTest):
                     [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
                     [1.0, 1.0, 0.92307692, 1.0, 1.0],
                 ]
-            ]
         )
         neighbourhood_method = "circular"
         radii = 4000
@@ -140,7 +136,6 @@ class Test_process(IrisTest):
     def test_square_neighbourhood(self):
         """Test that the square neighbourhood processing is successful."""
         expected = np.array(
-            [
                 [
                     [1.0, 1.0, 1.0, 1.0, 1.0],
                     [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
@@ -148,7 +143,6 @@ class Test_process(IrisTest):
                     [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
                     [1.0, 1.0, 1.0, 1.0, 1.0],
                 ]
-            ]
         )
         neighbourhood_method = "square"
         radii = 2000
