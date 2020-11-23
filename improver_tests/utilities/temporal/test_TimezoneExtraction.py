@@ -35,31 +35,20 @@ from datetime import datetime, timedelta
 
 import iris
 import numpy as np
-from iris.cube import Cube, CubeList
-from iris.tests import IrisTest
-from iris.time import PartialDateTime
+from iris.cube import Cube
 
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
 from improver.utilities.temporal import TimezoneExtraction
-from improver.utilities.warnings_handler import ManageWarnings
 from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants.time_types import TIME_COORDS
 
 
-@pytest.mark.parametrize(
-    "utc_times",
-    (
-        [datetime(2017, 11, 9, 12, 0)],
-        [datetime(2017, 11, 9, 12, 0), datetime(2017, 11, 10, 12, 0)],
-    ),
-)
-def test_create_output_cube(utc_times):
-    """Tests that the create_output_cube method builds a cube with appropriate
-    meta-data"""
-    data_shape = [3, 3, 3]
+def make_input_cube(data_shape):
+    """Makes a 3D cube (time, y, x) of the described shape, filled with zeroes for use
+    in testing."""
     cube = set_up_variable_cube(
         np.zeros(data_shape).astype(np.float32),
         standard_grid_metadata="gl_ens",
@@ -77,16 +66,56 @@ def test_create_output_cube(utc_times):
         dtype=TIME_COORDS["time"].dtype,
         is_datetime=True,
     )
+    return cube
+
+
+def make_timezone_cube():
+    """Makes a timezone cube to use in tests. data=0 where points fall in that
+    time-zone. data=1 where they don't."""
+    cube = set_up_variable_cube(
+        np.zeros((3, 3)).astype(np.float32),
+        name="timezone_mask",
+        units="1",
+        standard_grid_metadata="gl_ens",
+        attributes={
+            "institution": "unknown",
+            "source": "IMPROVER",
+            "title": "Unit test",
+        },
+    )
+    cube = add_coordinate(
+        cube,
+        [-3600, 0, 3600],
+        "UTC_offset",
+        coord_units="seconds",
+        dtype=TIME_COORDS["forecast_period"].dtype,
+    )
+    true_row = [1, 1, 1]
+    false_row = [0, 0, 0]
+    cube.data = np.array(
+        [
+            [false_row, true_row, true_row],
+            [true_row, false_row, true_row],
+            [true_row, true_row, false_row],
+        ],
+        dtype=np.int8,
+    )
+    return cube
+
+
+def test_create_output_cube():
+    """Tests that the create_output_cube method builds a cube with appropriate
+    meta-data"""
+    data_shape = [3, 3]
+    cube = make_input_cube(data_shape)
+    utc_time = datetime(2017, 11, 9, 12, 0)
     plugin = TimezoneExtraction()
-    plugin.create_output_cube(cube, utc_times)
+    plugin.create_output_cube(cube, utc_time)
     result = plugin.output_cube
     assert isinstance(result, Cube)
     assert result.name() == cube.name()
     assert result.units == cube.units
-    if len(utc_times) == 1:
-        expected_shape = data_shape
-    else:
-        expected_shape = [len(utc_times)] + data_shape
+    expected_shape = data_shape
     assert result.shape == tuple(expected_shape)
     assert result.attributes == cube.attributes
     check_mandatory_standards(result)
@@ -95,5 +124,89 @@ def test_create_output_cube(utc_times):
     assert np.ma.is_masked(result_time)
     assert result_time.mask.all()
     result_utc = result.coord("utc")
-    assert [cell.point for cell in result_utc.cells()] == utc_times
-    # assert result.coord_dims("time") == plugin.get_xy_dims(result)
+    assert [cell.point for cell in result_utc.cells()] == [utc_time]
+
+
+@pytest.mark.parametrize(
+    "data_shape, expect_success", (([3, 3], True), ([3, 3, 3], False))
+)
+def test_check_input_cube_dims(data_shape, expect_success):
+    """Checks that check_input_cube_dims can differentiate between an input cube
+    with time, y, x coords and one with time, realization, y, x coords."""
+    cube = make_input_cube(data_shape)
+    plugin = TimezoneExtraction()
+    if expect_success:
+        plugin.check_input_cube_dims(cube)
+    else:
+        with pytest.raises(
+            ValueError, match=r"Expected coords on input_cube: time, y, x "
+        ):
+            plugin.check_input_cube_dims(cube)
+
+
+@pytest.mark.parametrize(
+    "utc_time, expect_success",
+    ((datetime(2017, 11, 10, 5, 0), True), (datetime(2017, 11, 10, 6, 0), False)),
+)
+def test_check_input_cube_time(utc_time, expect_success):
+    """Checks that check_input_cube_time can differentiate between arguments that match
+    expected times and arguments that don't."""
+    data_shape = [3, 3]
+    cube = make_input_cube(data_shape)
+    timezone_cube = make_timezone_cube()
+    plugin = TimezoneExtraction()
+    if expect_success:
+        plugin.check_input_cube_time(cube, timezone_cube, utc_time)
+    else:
+        with pytest.raises(
+            ValueError, match=r"Time coord on input cube does not match required times."
+        ):
+            plugin.check_input_cube_time(cube, timezone_cube, utc_time)
+
+
+def test_check_timezones_are_unique_pass():
+    """Checks that check_timezones_are_unique allows our test cube"""
+    timezone_cube = make_timezone_cube()
+    plugin = TimezoneExtraction()
+    plugin.check_timezones_are_unique(timezone_cube)
+
+
+@pytest.mark.parametrize("offset", (1, -1))
+def test_check_timezones_are_unique_fail(offset):
+    """Checks that check_timezones_are_unique fails if we break our test cube"""
+    timezone_cube = make_timezone_cube()
+    timezone_cube.data[0, 0, 0] += offset
+    plugin = TimezoneExtraction()
+    with pytest.raises(
+        ValueError,
+        match=r"Timezone cube does not map exactly one time zone to each spatial point",
+    ):
+        plugin.check_timezones_are_unique(timezone_cube)
+
+
+def test_process():
+    """Checks that the plugin process method returns the a cube with expected data and
+    time coord for our test data"""
+    data_shape = [3, 3]
+    cube = make_input_cube(data_shape)
+    data = np.array(
+        [
+            np.full((3, 3), fill_value=-1, dtype=np.float32),
+            np.zeros((3, 3), dtype=np.float32),
+            np.ones((3, 3), dtype=np.float32),
+        ]
+    )
+    cube.data = data
+    utc_time = datetime(2017, 11, 10, 5, 0)
+    timezone_cube = make_timezone_cube()
+    expected_data = [[-1, -1, -1], [0, 0, 0], [1, 1, 1]]
+    row1 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 4, 0))] * 3
+    row2 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 3
+    row3 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 6, 0))] * 3
+    expected_times = [row1, row2, row3]
+    plugin = TimezoneExtraction()
+    result = plugin(cube, timezone_cube, utc_time)
+    assert isinstance(result, iris.cube.Cube)
+    assert result.coord_dims("time") == (0, 1)
+    assert np.isclose(result.data, expected_data).all()
+    assert np.isclose(result.coord("time").points, expected_times).all()
