@@ -171,6 +171,17 @@ class Test_process(IrisTest):
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3))
 
+    def test_single_percentile(self):
+        """Test dimensions of output at median only"""
+        collapse_coord = ["realization"]
+        plugin = PercentileConverter(collapse_coord, percentiles=[50])
+        result = plugin.process(self.cube)
+        result_coords = [coord.name() for coord in result.coords()]
+        result_dims = [coord.name() for coord in result.coords(dim_coords=True)]
+        self.assertNotIn("realization", result_coords)
+        self.assertIn("percentile", result_coords)
+        self.assertNotIn("percentile", result_dims)
+
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_use_with_masked_data(self):
         """Test that the plugin handles masked data, this requiring the option
