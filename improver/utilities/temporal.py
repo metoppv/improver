@@ -45,6 +45,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.cube_checker import spatial_coords_match
 
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
@@ -416,6 +417,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 coords and attributes will match those found on input_cube.
         """
         self.check_input_cube_dims(input_cube)
+        spatial_coords_match(input_cube, timezone_cube)
         self.check_input_cube_time(input_cube, timezone_cube, output_utc_time)
         self.check_timezones_are_unique(timezone_cube)
         self.create_output_cube(input_cube, output_utc_time)
