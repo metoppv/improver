@@ -144,7 +144,7 @@ class Test_WXCode(IrisTest):
         cloud = set_up_probability_cube(
             data_cloud,
             thresholds,
-            variable_name="cloud_area_fraction",
+            variable_name="low_and_medium_type_cloud_area_fraction",
             threshold_units="1",
             time=time,
             frt=frt,
@@ -203,7 +203,7 @@ class Test_WXCode(IrisTest):
         cloud_texture = set_up_probability_cube(
             data_cloud_texture,
             thresholds,
-            variable_name="texture_of_cloud_area_fraction",
+            variable_name="texture_of_low_and_medium_type_cloud_area_fraction",
             threshold_units="1",
             time=time,
             frt=frt,

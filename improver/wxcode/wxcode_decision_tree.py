@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing weather symbol decision tree"""
 
+from improver.wxcode import CLOUD_PROB_ABOVE, LOW_CLOUD_PROB_ABOVE, TEXTURE_PROB_ABOVE
+
 # Start node for the high resolution wxcode decision tree.
 START_NODE = "lightning"
 
@@ -93,9 +95,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_texture_of_cloud_area_fraction_above_threshold"
-            ],
+            "diagnostic_fields": [TEXTURE_PROB_ABOVE],
             "diagnostic_thresholds": [(0.05, 1)],
             "diagnostic_conditions": ["above"],
         },
@@ -117,9 +117,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_texture_of_cloud_area_fraction_above_threshold"
-            ],
+            "diagnostic_fields": [TEXTURE_PROB_ABOVE],
             "diagnostic_thresholds": [(0.05, 1)],
             "diagnostic_conditions": ["above"],
         },
@@ -224,7 +222,7 @@ def wxcode_decision_tree():
             "condition_combination": "AND",
             "diagnostic_fields": [
                 "probability_of_lwe_precipitation_rate_above_threshold",
-                ("probability_of_low_type_cloud_area_fraction_above_threshold"),
+                (LOW_CLOUD_PROB_ABOVE),
             ],
             "diagnostic_thresholds": [(0.03, "mm hr-1"), (0.85, 1)],
             "diagnostic_conditions": ["above", "above"],
@@ -255,7 +253,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": ["probability_of_cloud_area_fraction_above_threshold"],
+            "diagnostic_fields": [CLOUD_PROB_ABOVE],
             "diagnostic_thresholds": [(0.8125, 1)],
             "diagnostic_conditions": ["above"],
         },
@@ -265,9 +263,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                ("probability_of_low_type_cloud_area_fraction_above_threshold")
-            ],
+            "diagnostic_fields": [(LOW_CLOUD_PROB_ABOVE)],
             "diagnostic_thresholds": [(0.85, 1)],
             "diagnostic_conditions": ["above"],
         },
@@ -277,7 +273,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": ["probability_of_cloud_area_fraction_above_threshold"],
+            "diagnostic_fields": [CLOUD_PROB_ABOVE],
             "diagnostic_thresholds": [(0.1875, 1)],
             "diagnostic_conditions": ["above"],
         },
@@ -339,9 +335,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_texture_of_cloud_area_fraction_above_threshold"
-            ],
+            "diagnostic_fields": [TEXTURE_PROB_ABOVE],
             "diagnostic_thresholds": [(0.05, 1)],
             "diagnostic_conditions": ["above"],
         },
@@ -375,9 +369,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_texture_of_cloud_area_fraction_above_threshold"
-            ],
+            "diagnostic_fields": [TEXTURE_PROB_ABOVE],
             "diagnostic_thresholds": [(0.05, 1)],
             "diagnostic_conditions": ["above"],
         },
@@ -411,9 +403,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_texture_of_cloud_area_fraction_above_threshold"
-            ],
+            "diagnostic_fields": [TEXTURE_PROB_ABOVE],
             "diagnostic_thresholds": [(0.05, 1)],
             "diagnostic_conditions": ["above"],
         },
