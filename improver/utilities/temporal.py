@@ -281,8 +281,8 @@ class TimezoneExtraction(PostProcessingPlugin):
                 Cube of data to extract timezone-offsets from. Must contain a time
                 coord spanning all the timezones.
             utc_time (datetime.datetime):
-                The UTC times to include in the output cube. This will form a scalar
-                "utc" coord on the output cube.
+                The UTC time of the output cube. This will form a scalar "utc" coord on
+                the output cube.
 
         """
         # Import add_coordinate here to avoid circular import
@@ -407,8 +407,8 @@ class TimezoneExtraction(PostProcessingPlugin):
                 Cube describing the UTC offset for the local time at each grid location
                 Must have the same spatial coords as input_cube.
             output_utc_time (datetime.datetime):
-                Each of the UTC times to include in the output cube. This will form a
-                scalar "utc" coord on the output cube.
+                The UTC time of the output cube. This will form a scalar "utc" coord on
+                the output cube.
 
         Returns:
             iris.cube.Cube:
