@@ -30,20 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for TimezoneExtraction plugin."""
 
-import pytest
 from datetime import datetime, timedelta
 
 import iris
 import numpy as np
+import pytest
 from iris.cube import Cube
 
+from improver.metadata.check_datatypes import check_mandatory_standards
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
 from improver.utilities.temporal import TimezoneExtraction
-from improver.metadata.check_datatypes import check_mandatory_standards
-from improver.metadata.constants.time_types import TIME_COORDS
 
 
 def make_input_cube(data_shape):

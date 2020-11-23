@@ -37,8 +37,9 @@ import cf_units
 import iris
 import numpy as np
 from iris import Constraint
-from iris.time import PartialDateTime
 from iris.coords import AuxCoord
+from iris.time import PartialDateTime
+
 from improver import PostProcessingPlugin
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import (
