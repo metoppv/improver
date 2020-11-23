@@ -269,5 +269,4 @@ class FieldTexture(BasePlugin):
         except CoordinateNotFoundError:
             field_texture = iris.util.squeeze(thresholded)
 
-        field_texture.data = np.float32(field_texture.data)
         return field_texture
