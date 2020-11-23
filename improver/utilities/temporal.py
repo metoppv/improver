@@ -302,9 +302,6 @@ class TimezoneExtraction(PostProcessingPlugin):
         utc_units = cf_units.Unit(
             utc_coord_standards.units, calendar=utc_coord_standards.calendar,
         )
-        #points = utc_units.date2num(utc_time_list)
-        #points = np.round(points).astype(utc_coord_standards.dtype)
-        # utc = AuxCoord(points, long_name="utc", units=utc_units,)
         self.output_cube = add_coordinate(
             self.output_cube,
             utc_time_list,
@@ -314,22 +311,11 @@ class TimezoneExtraction(PostProcessingPlugin):
             is_datetime=True,
         )
 
-        # self.output_cube.add_aux_coord(utc)
-
-    @staticmethod
-    def get_xy_dims(cube):
-        dims = []
-        for dim in ["y", "x"]:
-            crd_name = cube.coord(axis=dim).name()
-            dims.append(*cube.coord_dims(crd_name))
-        return tuple(dims)
-
-    def fill_timezones(self, input_cube, output_cube, timezone_cube):
+    def fill_timezones(self, input_cube, timezone_cube):
         """
 
         Args:
             input_cube:
-            output_cube:
             timezone_cube:
 
         Returns:
@@ -337,11 +323,10 @@ class TimezoneExtraction(PostProcessingPlugin):
         """
         pass
 
-    def check_all_valid(self, output_cube):
+    def check_all_valid(self):
         """
 
         Args:
-            output_cube:
 
         Returns:
 
@@ -378,7 +363,7 @@ class TimezoneExtraction(PostProcessingPlugin):
             calendar=self.time_coord_standards.calendar,
         )
         time_coord = AuxCoord(self.time_points, standard_name="time", units=time_units,)
-        self.output_cube.add_aux_coord(time_coord, self.get_xy_dims(self.output_cube))
+        self.output_cube.add_aux_coord(time_coord, (-2, -1))
 
         self.check_all_valid()
 
