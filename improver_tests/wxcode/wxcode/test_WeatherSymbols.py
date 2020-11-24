@@ -229,8 +229,42 @@ class Test_WXCode(IrisTest):
         self.gbl = [
             name
             for name in self.uk_no_lightning
-            if "vicinity" not in name and "sleet" not in name and "texture" not in name
+            if "vicinity" not in name and "texture" not in name
         ]
+
+    def assertArrayAndMaskEqual(self, array_a, array_b, **kwargs):
+        """
+        Checks test output and expected array are equal, using self.assertArrayEqual
+        and then checks that if a mask is present on the test array, it matches the
+        expected mask.
+
+        Args:
+            array_a (np.ndarray):
+                Typically, this will be the output from a test
+            array_b (np.ndarray):
+                Typically, this will be the expected output from a test
+
+        Raises:
+            AssertionError:
+                if a mask is present on only one argument or masks do not match
+
+        """
+        self.assertArrayEqual(array_a, array_b, **kwargs)
+        if not np.ma.is_masked(array_a) and not np.ma.is_masked(array_b):
+            # Neither array is masked. Test passes.
+            return
+        if not (np.ma.is_masked(array_a) and np.ma.is_masked(array_b)):
+            # Only one array is masked.
+            if np.ma.is_masked(array_a):
+                msg = f"Only a is masked: {array_a.mask}"
+            else:
+                msg = f"Only b is masked: {array_b.mask}"
+        else:
+            if (array_a.mask == array_b.mask).all():
+                # Masks match exactly
+                return
+            msg = f"Masks do not match: {array_a.mask} /= {array_b.mask}"
+        raise AssertionError(msg)
 
 
 class Test__repr__(IrisTest):
@@ -745,7 +779,7 @@ class Test_create_symbol_cube(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
-        self.assertTrue((result.data == -1).all())
+        self.assertTrue((result.data.mask).all())
 
     def test_removes_bounds(self):
         """Test bounds are removed from time and forecast period coordinate"""
@@ -794,7 +828,7 @@ class Test_process(Test_WXCode):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
-        self.assertArrayEqual(result.data, self.expected_wxcode)
+        self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
         self.assertEqual(result.dtype, np.int32)
 
     def test_day_night(self):
@@ -803,14 +837,14 @@ class Test_process(Test_WXCode):
         for i, cube in enumerate(self.cubes):
             self.cubes[i].coord("time").points = cube.coord("time").points + 3600 * 12
         result = plugin.process(self.cubes)
-        self.assertArrayEqual(result.data, self.expected_wxcode_night)
+        self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_night)
 
     def test_no_lightning(self):
         """Test process returns right values if no lightning. """
         plugin = WeatherSymbols()
         cubes = self.cubes.extract(self.uk_no_lightning)
         result = plugin.process(cubes)
-        self.assertArrayEqual(result.data, self.expected_wxcode_no_lightning)
+        self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_no_lightning)
 
     def test_lightning(self):
         """Test process returns right values if all lightning. """
@@ -823,7 +857,20 @@ class Test_process(Test_WXCode):
         expected_wxcode[0, 1] = 29
         expected_wxcode[1, 1:] = 29
         expected_wxcode[2, 0] = 29
-        self.assertArrayEqual(result.data, expected_wxcode)
+        self.assertArrayAndMaskEqual(result.data, expected_wxcode)
+
+    def test_masked_precip(self):
+        """Test process returns right values when precipitation data are fully masked
+        (e.g. nowcast-only). The only possible non-masked result is a lightning code as
+        these do not include precipitation in any of their decision routes."""
+        plugin = WeatherSymbols()
+        data_precip = np.ma.masked_all_like(self.cubes[8].data)
+        cubes = self.cubes
+        cubes[8].data = data_precip
+        result = plugin.process(self.cubes)
+        expected_wxcode = np.ma.masked_all_like(self.expected_wxcode)
+        expected_wxcode[0, 1] = self.expected_wxcode[0, 1]
+        self.assertArrayAndMaskEqual(result.data, expected_wxcode)
 
     def test_weather_data(self):
         """Test process returns the right weather values with a different
@@ -890,7 +937,7 @@ class Test_process(Test_WXCode):
         cubes[8].data = data_precip
         cubes[9].data = data_cloud_texture
         result = plugin.process(cubes)
-        self.assertArrayEqual(result.data, self.expected_wxcode_alternate)
+        self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_alternate)
 
     def test_sleet(self):
         """Test process returns the sleet weather code."""
@@ -920,14 +967,14 @@ class Test_process(Test_WXCode):
         cubes[8].data = data_precip
         cubes[9].data = data_cloud_texture
         result = plugin.process(cubes)
-        self.assertArrayEqual(result.data, expected)
+        self.assertArrayAndMaskEqual(result.data, expected)
 
     def test_basic_global(self):
         """Test process returns a wxcode cube with right values for global. """
         plugin = WeatherSymbols(wxtree="global")
         cubes = self.cubes.extract(self.gbl)
         result = plugin.process(cubes)
-        self.assertArrayEqual(result.data, self.expected_wxcode_no_lightning)
+        self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_no_lightning)
 
     def test_weather_data_global(self):
         """Test process returns the right weather values global part2 """
@@ -935,17 +982,25 @@ class Test_process(Test_WXCode):
 
         data_snow = np.array(
             [
-                [[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.1]],
-                [[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.0]],
-                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [1.0, 1.0, 1.0]],
+                [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [1.0, 1.0, 0.1]],
+                [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [1.0, 1.0, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]],
+            ],
+            dtype=np.float32,
+        )
+        data_sleet = np.array(
+            [
+                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
             ],
             dtype=np.float32,
         )
         data_rain = np.array(
             [
-                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[1.0, 1.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
             ],
             dtype=np.float32,
         )
@@ -958,20 +1013,21 @@ class Test_process(Test_WXCode):
         )
         data_cld_low = np.zeros((1, 3, 3), dtype=np.float32)
         data_vis = np.zeros((2, 3, 3), dtype=np.float32)
-        data_precip = np.max(np.array([data_snow, data_rain]), axis=0)
+        data_precip = np.max(np.array([data_snow, data_sleet, data_rain]), axis=0)
         data_convective_ratio = np.array(
             [[[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],], dtype=np.float32,
         )
         cubes = self.cubes.extract(self.gbl)
         cubes[0].data = data_snow
-        cubes[1].data = data_rain
-        cubes[2].data = data_cloud
-        cubes[3].data = data_cld_low
-        cubes[4].data = data_vis
-        cubes[5].data = data_precip
-        cubes[6].data = data_convective_ratio
+        cubes[1].data = data_sleet
+        cubes[2].data = data_rain
+        cubes[3].data = data_cloud
+        cubes[4].data = data_cld_low
+        cubes[5].data = data_vis
+        cubes[6].data = data_precip
+        cubes[7].data = data_convective_ratio
         result = plugin.process(cubes)
-        self.assertArrayEqual(result.data, self.expected_wxcode_alternate)
+        self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_alternate)
 
 
 if __name__ == "__main__":

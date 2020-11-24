@@ -567,7 +567,7 @@ class WeatherSymbols(BasePlugin):
             template_cube,
             attributes,
             optional_attributes=weather_code_attributes(),
-            data=np.full_like(template_cube.data, dtype=np.int32, fill_value=-1),
+            data=np.ma.masked_all_like(template_cube.data).astype(np.int32),
         )
         return symbols
 
@@ -637,7 +637,7 @@ class WeatherSymbols(BasePlugin):
                 test_chain = self.format_condition_chain(conditions)
 
                 # Set grid locations to suitable weather symbol
-                symbols.data[np.where(eval(test_chain))] = symbol_code
+                symbols.data[np.ma.where(eval(test_chain))] = symbol_code
         # Update symbols for day or night.
         symbols = update_daynight(symbols)
         return symbols

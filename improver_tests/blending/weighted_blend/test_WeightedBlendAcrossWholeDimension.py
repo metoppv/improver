@@ -530,7 +530,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         result = plugin.percentile_weighted_mean(perc_cube, self.weights1d, perc_coord)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA)
-        self.assertEqual(result.coord("percentile").points.dtype, np.float32)
+        self.assertEqual(result.coord("percentile").points.dtype, np.float64)
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_spatially_varying_weights(self):

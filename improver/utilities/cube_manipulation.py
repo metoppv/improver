@@ -38,6 +38,7 @@ from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
+from improver.metadata.constants import FLOAT_DTYPE, FLOAT_TYPES
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_checker import check_cube_coordinates
 
@@ -60,6 +61,22 @@ def collapsed(cube, *args, **kwargs):
     original_methods = cube.cell_methods
     new_cube = cube.collapsed(*args, **kwargs)
     new_cube.cell_methods = original_methods
+
+    # demote escalated datatypes as required
+    if new_cube.dtype in FLOAT_TYPES:
+        new_cube.data = new_cube.data.astype(FLOAT_DTYPE)
+
+    collapsed_coords = args[0] if isinstance(args[0], list) else [args[0]]
+    for coord in collapsed_coords:
+        if new_cube.coord(coord).points.dtype in FLOAT_TYPES:
+            new_cube.coord(coord).points = new_cube.coord(coord).points.astype(
+                FLOAT_DTYPE
+            )
+            if new_cube.coord(coord).bounds is not None:
+                new_cube.coord(coord).bounds = new_cube.coord(coord).bounds.astype(
+                    FLOAT_DTYPE
+                )
+
     return new_cube
 
 
@@ -612,8 +629,8 @@ def expand_bounds(result_cube, cubelist, coord_names, use_midpoint=False):
             new_top_bound = np.max(bounds)
         result_coord = result_cube.coord(coord)
         result_coord.bounds = np.array([[new_low_bound, new_top_bound]])
-        if result_coord.bounds.dtype == np.float64:
-            result_coord.bounds = result_coord.bounds.astype(np.float32)
+        if result_coord.bounds.dtype in FLOAT_TYPES:
+            result_coord.bounds = result_coord.bounds.astype(FLOAT_DTYPE)
 
         if use_midpoint:
             if "seconds" in str(result_coord.units):
@@ -632,7 +649,7 @@ def expand_bounds(result_cube, cubelist, coord_names, use_midpoint=False):
         else:
             result_coord.points = [new_top_bound]
 
-        if result_coord.points.dtype == np.float64:
-            result_coord.points = result_coord.points.astype(np.float32)
+        if result_coord.points.dtype in FLOAT_TYPES:
+            result_coord.points = result_coord.points.astype(FLOAT_DTYPE)
 
     return result_cube
