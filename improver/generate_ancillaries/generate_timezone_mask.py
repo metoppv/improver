@@ -48,6 +48,7 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.cube_manipulation import collapsed
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
+from improver.metadata.constants.time_types import TIME_COORDS
 
 try:
     importlib.util.find_spec("numba")
@@ -350,9 +351,9 @@ class GenerateTimezoneMask(BasePlugin):
         for offset in range(min_offset, max_offset + 1):
             zone = (grid_offsets != offset).astype(np.int8)
             coord = iris.coords.DimCoord(
-                np.array([offset * 3600], dtype=np.int32),
+                np.array([offset], dtype=np.int32),
                 long_name="UTC_offset",
-                units="seconds",
+                units="hours",
             )
             tz_slice = template_cube.copy(data=zone)
             tz_slice.add_aux_coord(coord)
@@ -362,4 +363,11 @@ class GenerateTimezoneMask(BasePlugin):
             timezone_mask = self._group_timezones(timezone_mask)
 
         timezone_mask = timezone_mask.merge_cube()
+        timezone_mask.coord("UTC_offset").convert_units(TIME_COORDS["UTC_offset"].units)
+        timezone_mask.coord("UTC_offset").points = timezone_mask.coord(
+            "UTC_offset"
+        ).points.astype(TIME_COORDS["UTC_offset"].dtype)
+        timezone_mask.coord("UTC_offset").bounds = timezone_mask.coord(
+            "UTC_offset"
+        ).bounds.astype(TIME_COORDS["UTC_offset"].dtype)
         return timezone_mask

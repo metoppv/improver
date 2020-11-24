@@ -47,4 +47,5 @@ TIME_COORDS = {
     "utc": _TIME_REFERENCE_SPEC,
     "forecast_reference_time": _TIME_REFERENCE_SPEC,
     "forecast_period": _TIME_INTERVAL_SPEC,
+    "UTC_offset": _TIME_INTERVAL_SPEC,
 }
