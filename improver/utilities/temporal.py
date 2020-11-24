@@ -354,6 +354,14 @@ class TimezoneExtraction(PostProcessingPlugin):
         times = input_cube.coord("time").points * (1 - timezone_cube.data)
         self.time_points = times.sum(axis=0)
 
+        # Check resulting dtype
+        if result.dtype == np.float64:
+            unique_cube_types = {input_cube.dtype, timezone_cube.dtype}
+            raise TypeError(
+                f"Operation multiply on types {unique_cube_types} results in "
+                "float64 data which cannot be safely coerced to float32"
+            )
+
     def check_input_cube_dims(self, input_cube):
         """Ensures input cube has exactly three dimensions: time, y, x
 

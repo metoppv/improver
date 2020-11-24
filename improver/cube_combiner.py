@@ -278,7 +278,7 @@ class CubeCombiner(BasePlugin):
         if self.operation == "mean":
             result.data = result.data / len(cube_list)
 
-        # Check resulting dtype and modify if necessary
+        # Check resulting dtype
         if result.dtype == np.float64:
             unique_cube_types = set([c.dtype for c in cube_list])
             raise TypeError(

@@ -207,6 +207,8 @@ def test_process():
     plugin = TimezoneExtraction()
     result = plugin(cube, timezone_cube, utc_time)
     assert isinstance(result, iris.cube.Cube)
+    assert result.dtype == np.float32
     assert result.coord_dims("time") == (0, 1)
     assert np.isclose(result.data, expected_data).all()
     assert np.isclose(result.coord("time").points, expected_times).all()
+    assert result.coord("time").dtype == np.int64
