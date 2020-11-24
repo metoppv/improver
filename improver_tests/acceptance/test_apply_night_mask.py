@@ -57,3 +57,22 @@ def test_basic_global(tmp_path):
     args = [kgo_dir / "input.nc", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_uk_prob_above(tmp_path):
+    """Test apply night mask operation to probabilities above threshold"""
+    kgo_dir = acc.kgo_root() / "apply-night-mask/uk_prob"
+    kgo_path = kgo_dir / "kgo.nc"
+    output_path = tmp_path / "output.nc"
+    args = [kgo_dir / "valid_input.nc", "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_uk_prob_below(tmp_path):
+    """Test error raised for probabilities below threshold"""
+    kgo_dir = acc.kgo_root() / "apply-night-mask/uk_prob"
+    output_path = tmp_path / "output.nc"
+    args = [kgo_dir / "invalid_input.nc", "--output", output_path]
+    with pytest.raises(ValueError):
+        run_cli(args)
