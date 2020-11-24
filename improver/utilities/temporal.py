@@ -348,6 +348,10 @@ class TimezoneExtraction(PostProcessingPlugin):
                 Cube will have a UTC_offset coord. Data will be 0 (included) or
                 1 (excluded) indicating which points are in each time zone.
 
+        Raises:
+            TypeError:
+                If combining the timezone_cube and input_cube results in float64 data.
+                (Hint: timezone_cube should be int8 and input cube should be float32)
         """
         result = input_cube.data * (1 - timezone_cube.data)
         self.output_cube.data = result.sum(axis=0)

@@ -212,3 +212,18 @@ def test_process():
     assert np.isclose(result.data, expected_data).all()
     assert np.isclose(result.coord("time").points, expected_times).all()
     assert result.coord("time").dtype == np.int64
+
+
+def test_bad_dtype():
+    """Checks that the plugin raises a useful error if the output are float64"""
+    data_shape = [3, 3]
+    cube = make_input_cube(data_shape)
+    utc_time = datetime(2017, 11, 10, 5, 0)
+    timezone_cube = make_timezone_cube()
+    timezone_cube.data = timezone_cube.data.astype(np.int32)
+    plugin = TimezoneExtraction()
+    with pytest.raises(
+        TypeError,
+        match=r"Operation multiply on types \{dtype\(\'.*32\'\), dtype\(\'.*32\'\)\} results in",
+    ):
+        plugin(cube, timezone_cube, utc_time)
