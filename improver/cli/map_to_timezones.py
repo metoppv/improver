@@ -51,7 +51,7 @@ def process(
             Must have the same spatial coords as input_cube.
             Use generate-timezone-mask-ancillary to create this.
         local_time (str):
-            The "local" time of the output cube as %Y%m%dT%H%MZ. This will form a
+            The "local" time of the output cube as %Y%m%dT%H%M. This will form a
             scalar "utc" coord on the output cube, while the "time" coord will be
             auxillary to the spatial coords and will show the UTC time that matches
             the local_time at each point.
@@ -63,5 +63,5 @@ def process(
     from datetime import datetime
     from improver.utilities.temporal import TimezoneExtraction
 
-    local_datetime = datetime.strptime(local_time, "%Y%m%dT%H%MZ")
+    local_datetime = datetime.strptime(local_time, "%Y%m%dT%H%M")
     return TimezoneExtraction()(cubes, timezone_cube, local_datetime)

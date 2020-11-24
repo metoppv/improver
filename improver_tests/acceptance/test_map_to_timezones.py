@@ -53,7 +53,7 @@ def test_basic(tmp_path, grid):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input_*.nc"
     timezone_path = kgo_dir / "timezone_mask.nc"
-    local_time = "20201128T0000Z"
+    local_time = "20201128T0000"
     output_path = tmp_path / "output.nc"
     args = [timezone_path, local_time, input_path, "--output", output_path]
     run_cli(args)

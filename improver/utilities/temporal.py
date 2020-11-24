@@ -457,7 +457,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 Cube describing the UTC offset for the local time at each grid location.
                 Must have the same spatial coords as input_cube.
            local_time (datetime.datetime):
-                The "local" time of the output cube as %Y%m%dT%H%MZ. This will form a
+                The "local" time of the output cube. This will form a
                 scalar "utc" coord on the output cube, while the "time" coord will be
                 auxillary to the spatial coords and will show the UTC time that matches
                 the local_time at each point.
