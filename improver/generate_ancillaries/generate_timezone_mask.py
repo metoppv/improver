@@ -256,7 +256,7 @@ class GenerateTimezoneMask(BasePlugin):
         attributes["includes_daylight_savings"] = str(self.include_dst)
 
         return create_new_diagnostic_cube(
-            "timezone_mask", 1, cube, attributes, dtype=np.int32
+            "timezone_mask", 1, cube, attributes, dtype=np.int8
         )
 
     def _group_timezones(self, timezone_mask):
@@ -348,7 +348,7 @@ class GenerateTimezoneMask(BasePlugin):
         # Create a cube containing the timezone UTC offset information.
         timezone_mask = iris.cube.CubeList()
         for offset in range(min_offset, max_offset + 1):
-            zone = (grid_offsets != offset).astype(np.int32)
+            zone = (grid_offsets != offset).astype(np.int8)
             coord = iris.coords.DimCoord([offset], long_name="UTC_offset")
             tz_slice = template_cube.copy(data=zone)
             tz_slice.add_aux_coord(coord)
