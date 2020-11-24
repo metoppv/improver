@@ -764,10 +764,11 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 Forecast reference time point in units of input cube coordinate
         """
         frt_coord = input_cube.coord("forecast_reference_time")
-        if cycletime is None:
-            return np.max(frt_coord.points)
+        #if cycletime is None:
+        #    return np.max(frt_coord.points)
         frt_units = frt_coord.units.origin
         frt_calendar = frt_coord.units.calendar
+        # raises TypeError if cycletime is None
         cycletime_point = cycletime_to_number(
             cycletime, time_unit=frt_units, calendar=frt_calendar
         )
@@ -792,12 +793,15 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             if blend_dim in input_cube.coord_dims(coord):
                 self.crds_to_remove.append(coord.name())
 
-    def _set_forecast_reference_time_and_period(self, blended_cube):
+    def _set_blended_time_coords(self, blended_cube):
         """
-        For cycle and model blending, update the forecast reference time and
-        forecast period coordinate points to the single most recent value,
-        rather than the blended average, and remove any bounds from the
-        forecast reference time. Modifies cube in place.
+        For cycle and model blending:
+        - Update the forecast reference time and forecast period coordinate points
+        to the single most recent value, rather than the blended average
+        - Remove any bounds from the forecast reference time
+        - Add a "blend_time" coordinate equal to the current cycletime
+
+        Modifies cube in place.
 
         Args:
             blended_cube (iris.cube.Cube)
@@ -809,6 +813,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         new_forecast_period = forecast_period_coord(blended_cube)
         time_dim = blended_cube.coord_dims("time")
         blended_cube.add_aux_coord(new_forecast_period, data_dims=time_dim)
+        blend_time_coord = blended_cube.coord("forecast_reference_time").copy()
+        blend_time_coord.rename("blend_time")
+        blended_cube.add_aux_coord(blend_time_coord, data_dims=None)
 
     def _update_blended_metadata(self, blended_cube, attributes_dict):
         """
@@ -827,7 +834,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             attributes_dict (dict or None)
         """
         if self.blend_coord in ["forecast_reference_time", "model_id"]:
-            self._set_forecast_reference_time_and_period(blended_cube)
+            self._set_blended_time_coords(blended_cube)
         for coord in self.crds_to_remove:
             blended_cube.remove_coord(coord)
         if attributes_dict is not None:
@@ -905,11 +912,17 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         perc_coord = self.check_percentile_coord(cube)
 
         # Establish metadata changes to be made after blending
-        self.cycletime_point = (
-            self._get_cycletime_point(cube, cycletime)
-            if self.blend_coord in ["forecast_reference_time", "model_id"]
-            else None
-        )
+        try:
+            self.cycletime_point = (
+                self._get_cycletime_point(cube, cycletime)
+                if self.blend_coord in ["forecast_reference_time", "model_id"]
+                else None
+            )
+        except TypeError:
+            raise ValueError(
+                'Current cycle time must be provided for cycle and model blending'
+            )
+
         self._set_coords_to_remove(cube)
 
         # Do blending and update metadata
