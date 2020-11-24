@@ -369,9 +369,10 @@ class TimezoneExtraction(PostProcessingPlugin):
             1 - timezone_cube.data
         )
         self.time_points = times.sum(axis=0)
-        self.time_bounds = bounds_offsets.reshape((1, 1, 2)) + self.time_points.reshape(
-            list(self.time_points.shape) + [1]
-        )
+        if bounds_offsets is not None:
+            self.time_bounds = bounds_offsets.reshape(
+                (1, 1, 2)
+            ) + self.time_points.reshape(list(self.time_points.shape) + [1])
 
         # Check resulting dtype
         if result.dtype == np.float64:
@@ -467,10 +468,10 @@ class TimezoneExtraction(PostProcessingPlugin):
                 The utc coord will match the output_utc_time_list supplied. All other
                 coords and attributes will match those found on input_cube.
         """
-        if isinstance(input_cubes, list):
-            input_cube = MergeCubes()(CubeList(input_cubes))
-        else:
+        if isinstance(input_cubes, iris.cube.Cube):
             input_cube = input_cubes
+        else:
+            input_cube = MergeCubes()(CubeList(input_cubes))
 
         self.check_input_cube_dims(input_cube)
         spatial_coords_match(input_cube, timezone_cube)
