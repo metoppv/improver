@@ -349,7 +349,11 @@ class GenerateTimezoneMask(BasePlugin):
         timezone_mask = iris.cube.CubeList()
         for offset in range(min_offset, max_offset + 1):
             zone = (grid_offsets != offset).astype(np.int8)
-            coord = iris.coords.DimCoord([offset], long_name="UTC_offset")
+            coord = iris.coords.DimCoord(
+                np.array([offset * 3600], dtype=np.int32),
+                long_name="UTC_offset",
+                units="seconds",
+            )
             tz_slice = template_cube.copy(data=zone)
             tz_slice.add_aux_coord(coord)
             timezone_mask.append(tz_slice)
