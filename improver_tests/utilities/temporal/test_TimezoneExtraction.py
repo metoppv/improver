@@ -35,6 +35,7 @@ from datetime import datetime, timedelta
 import iris
 import numpy as np
 import pytest
+from cf_units import Unit
 from iris.cube import Cube
 
 from improver.metadata.check_datatypes import check_mandatory_standards
@@ -65,6 +66,20 @@ def make_input_cube(data_shape):
         coord_units=TIME_COORDS["time"].units,
         dtype=TIME_COORDS["time"].dtype,
         is_datetime=True,
+    )
+    cube.coord("time").bounds = np.array(
+        [
+            [
+                np.around(
+                    Unit(TIME_COORDS["time"].units).date2num(
+                        datetime(2017, 11, 10, 4, 0) + timedelta(hours=h + b)
+                    )
+                )
+                for b in [-1, 0]
+            ]
+            for h in range(3)
+        ],
+        dtype=TIME_COORDS["time"].dtype,
     )
     return cube
 
@@ -103,6 +118,15 @@ def make_timezone_cube():
     return cube
 
 
+def assert_metadata_ok(output_cube):
+    """Checks that the meta-data of output_cube are as expected"""
+    assert isinstance(output_cube, Cube)
+    assert output_cube.dtype == np.float32
+    assert output_cube.coord_dims("time") == (0, 1)
+    assert output_cube.coord("time").dtype == np.int64
+    check_mandatory_standards(output_cube)
+
+
 def test_create_output_cube():
     """Tests that the create_output_cube method builds a cube with appropriate
     meta-data"""
@@ -110,21 +134,24 @@ def test_create_output_cube():
     cube = make_input_cube(data_shape)
     utc_time = datetime(2017, 11, 9, 12, 0)
     plugin = TimezoneExtraction()
-    plugin.create_output_cube(cube, utc_time)
-    result = plugin.output_cube
-    assert isinstance(result, Cube)
+    plugin.output_data = np.zeros(data_shape, dtype=np.float32)
+    plugin.time_points = np.full(
+        data_shape,
+        fill_value=Unit(TIME_COORDS["time"].units).date2num(
+            datetime(2017, 11, 10, 4, 0)
+        ),
+        dtype=np.int64,
+    )
+    plugin.time_bounds = None
+    result = plugin.create_output_cube(cube, utc_time)
+    assert_metadata_ok(result)
     assert result.name() == cube.name()
     assert result.units == cube.units
+    result_utc = result.coord("utc")
+    assert [cell.point for cell in result_utc.cells()] == [utc_time]
     expected_shape = data_shape
     assert result.shape == tuple(expected_shape)
     assert result.attributes == cube.attributes
-    check_mandatory_standards(result)
-    result_time = plugin.time_points
-    assert result_time.shape == (3, 3)
-    assert np.ma.is_masked(result_time)
-    assert result_time.mask.all()
-    result_utc = result.coord("utc")
-    assert [cell.point for cell in result_utc.cells()] == [utc_time]
 
 
 @pytest.mark.parametrize(
@@ -204,14 +231,13 @@ def test_process():
     row2 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 3
     row3 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 6, 0))] * 3
     expected_times = [row1, row2, row3]
+    expected_bounds = np.array(expected_times).reshape((3, 3, 1)) + [[[-3600, 0]]]
     plugin = TimezoneExtraction()
     result = plugin(cube, timezone_cube, utc_time)
-    assert isinstance(result, iris.cube.Cube)
-    assert result.dtype == np.float32
-    assert result.coord_dims("time") == (0, 1)
+    assert_metadata_ok(result)
     assert np.isclose(result.data, expected_data).all()
     assert np.isclose(result.coord("time").points, expected_times).all()
-    assert result.coord("time").dtype == np.int64
+    assert np.isclose(result.coord("time").bounds, expected_bounds).all()
 
 
 def test_bad_dtype():

@@ -62,9 +62,6 @@ def process(
     """
     from datetime import datetime
     from improver.utilities.temporal import TimezoneExtraction
-    from iris.cube import CubeList
-    from improver.utilities.cube_manipulation import MergeCubes
 
     local_datetime = datetime.strptime(local_time, "%Y%m%dT%H%MZ")
-    cube = MergeCubes()(CubeList(cubes))
-    return TimezoneExtraction()(cube, timezone_cube, local_datetime)
+    return TimezoneExtraction()(cubes, timezone_cube, local_datetime)

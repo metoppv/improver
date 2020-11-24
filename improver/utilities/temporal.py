@@ -38,6 +38,7 @@ import iris
 import numpy as np
 from iris import Constraint
 from iris.coords import AuxCoord
+from iris.cube import CubeList
 from iris.time import PartialDateTime
 
 from improver import PostProcessingPlugin
@@ -47,6 +48,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_checker import spatial_coords_match
+from improver.utilities.cube_manipulation import MergeCubes
 
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
@@ -271,16 +273,17 @@ class TimezoneExtraction(PostProcessingPlugin):
     def __init__(self):
         self.time_coord_standards = TIME_COORDS["time"]
         self.time_points = None
+        self.time_bounds = None
         self.time_units = cf_units.Unit(
             self.time_coord_standards.units,
             calendar=self.time_coord_standards.calendar,
         )
 
-        self.output_cube = None
+        self.output_data = None
 
     def create_output_cube(self, cube, local_time):
         """
-        Constructs the output cube and an array that will be come the time coord
+        Constructs the output cube
 
         Args:
             cube (iris.cube.Cube):
@@ -299,35 +302,39 @@ class TimezoneExtraction(PostProcessingPlugin):
         template_cube = cube.slices_over("time").next().copy()
         template_cube.remove_coord("time")
         template_cube.remove_coord("forecast_period")
-        self.output_cube = create_new_diagnostic_cube(
+        output_cube = create_new_diagnostic_cube(
             template_cube.name(),
             template_cube.units,
             template_cube,
             generate_mandatory_attributes([template_cube]),
             optional_attributes=template_cube.attributes,
-            data=np.ma.masked_all_like(template_cube.data).astype(template_cube.dtype),
+            data=self.output_data,
         )
-        # Spatial coordinates are always the last two on the cube (-2 and -1)
-        # Iris doesn't recognise negative indices for these, so at ndim to get the
-        # positive equivalent.
-        self.time_points = np.ma.masked_all_like(
-            cube.slices([n + cube.ndim for n in [-2, -1]]).next().data
-        ).astype(self.time_coord_standards.dtype)
 
         # Create a UTC time coordinate to help with plotting data.
         utc_coord_standards = TIME_COORDS["utc"]
         utc_units = cf_units.Unit(
             utc_coord_standards.units, calendar=utc_coord_standards.calendar,
         )
-        self.output_cube = add_coordinate(
-            self.output_cube,
+        output_cube = add_coordinate(
+            output_cube,
             [local_time],
             "utc",
             coord_units=utc_units,
             dtype=utc_coord_standards.dtype,
             is_datetime=True,
         )
-        self.output_cube = iris.util.squeeze(self.output_cube)
+        output_cube = iris.util.squeeze(output_cube)
+        output_cube.add_aux_coord(
+            AuxCoord(
+                self.time_points,
+                bounds=self.time_bounds,
+                standard_name="time",
+                units=self.time_units,
+            ),
+            (0, 1),
+        )
+        return output_cube
 
     def fill_timezones(self, input_cube, timezone_cube):
         """
@@ -353,14 +360,18 @@ class TimezoneExtraction(PostProcessingPlugin):
                 If combining the timezone_cube and input_cube results in float64 data.
                 (Hint: timezone_cube should be int8 and input cube should be float32)
         """
+        bounds_offsets = self.get_time_bounds_offset(input_cube)
         result = input_cube.data * (1 - timezone_cube.data)
-        self.output_cube.data = result.sum(axis=0)
+        self.output_data = result.sum(axis=0)
         input_time_points = input_cube.coord("time").points
         # Add scalar coords to allow broadcast to spatial coords.
         times = input_time_points.reshape((len(input_time_points), 1, 1)) * (
             1 - timezone_cube.data
         )
         self.time_points = times.sum(axis=0)
+        self.time_bounds = bounds_offsets.reshape((1, 1, 2)) + self.time_points.reshape(
+            list(self.time_points.shape) + [1]
+        )
 
         # Check resulting dtype
         if result.dtype == np.float64:
@@ -369,6 +380,20 @@ class TimezoneExtraction(PostProcessingPlugin):
                 f"Operation multiply on types {unique_cube_types} results in "
                 "float64 data which cannot be safely coerced to float32"
             )
+
+    @staticmethod
+    def get_time_bounds_offset(input_cube):
+        """Returns the generalised offset of bounds[0] and bounds[1] from points on the
+        time coord. Bound intervals must match as we have used MergeCubes, so only need
+        to access the first time point.
+        """
+        time_coord = input_cube.coord("time")
+        point = time_coord.points[0]
+        if time_coord.has_bounds():
+            bounds = time_coord.bounds[0]
+            return bounds - point
+        else:
+            return None
 
     def check_input_cube_dims(self, input_cube):
         """Ensures input cube has exactly three dimensions: time, y, x
@@ -419,14 +444,14 @@ class TimezoneExtraction(PostProcessingPlugin):
                 "Timezone cube does not map exactly one time zone to each spatial point"
             )
 
-    def process(self, input_cube, timezone_cube, local_time):
+    def process(self, input_cubes, timezone_cube, local_time):
         """
         Calculates timezone-offset data for the specified UTC output times
 
         Args:
-            input_cube (iris.cube.Cube):
-                Cube of data to extract timezone-offsets from. Must contain a time
-                coord spanning all the timezones.
+            input_cubes (iris.cube.Cube or list):
+                Cube or list of cubes of data to extract timezone-offsets from. Must
+                contain a time coord spanning all the timezones.
             timezone_cube (iris.cube.Cube):
                 Cube describing the UTC offset for the local time at each grid location.
                 Must have the same spatial coords as input_cube.
@@ -442,17 +467,17 @@ class TimezoneExtraction(PostProcessingPlugin):
                 The utc coord will match the output_utc_time_list supplied. All other
                 coords and attributes will match those found on input_cube.
         """
+        if isinstance(input_cubes, list):
+            input_cube = MergeCubes()(CubeList(input_cubes))
+        else:
+            input_cube = input_cubes
+
         self.check_input_cube_dims(input_cube)
         spatial_coords_match(input_cube, timezone_cube)
         self.check_input_cube_time(input_cube, timezone_cube, local_time)
         self.check_timezones_are_unique(timezone_cube)
 
-        self.create_output_cube(input_cube, local_time)
         self.fill_timezones(input_cube, timezone_cube)
+        output_cube = self.create_output_cube(input_cube, local_time)
 
-        self.output_cube.add_aux_coord(
-            AuxCoord(self.time_points, standard_name="time", units=self.time_units,),
-            (0, 1),
-        )
-
-        return self.output_cube
+        return output_cube
