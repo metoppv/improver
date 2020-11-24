@@ -381,8 +381,8 @@ class Test_interrogate_decision_tree(IrisTest):
         (
             "global",
             (
-                "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"
                 "probability_of_convective_ratio_above_threshold (1): 0.8\n"
+                "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"
                 "probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
                 "probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
                 "probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
