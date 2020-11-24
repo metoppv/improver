@@ -42,13 +42,13 @@ from iris.exceptions import CoordinateNotFoundError
 from pytz import timezone
 
 from improver import BasePlugin
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import collapsed
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
-from improver.metadata.constants.time_types import TIME_COORDS
 
 try:
     importlib.util.find_spec("numba")

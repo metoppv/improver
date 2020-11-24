@@ -334,7 +334,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         Populates the output cube data with data from input_cube. This is done by
         multiplying the inverse of the timezone_cube.data with the input_cube.data and
         summing along the time axis. Because timezone_cube.data is a mask of 1 and 0,
-        inversing it gives 1 where we WANT data and 0 where we don't. Summing these up
+        inverting it gives 1 where we WANT data and 0 where we don't. Summing these up
         produces the result. The same logic can be used for times.
         Modifies self.output_cube and self.time_points.
 
@@ -351,7 +351,11 @@ class TimezoneExtraction(PostProcessingPlugin):
         """
         result = input_cube.data * (1 - timezone_cube.data)
         self.output_cube.data = result.sum(axis=0)
-        times = input_cube.coord("time").points * (1 - timezone_cube.data)
+        input_time_points = input_cube.coord("time").points
+        # Add scalar coords to allow broadcast to spatial coords.
+        times = input_time_points.reshape((len(input_time_points), 1, 1)) * (
+            1 - timezone_cube.data
+        )
         self.time_points = times.sum(axis=0)
 
         # Check resulting dtype
