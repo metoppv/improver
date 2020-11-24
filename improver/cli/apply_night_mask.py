@@ -48,6 +48,12 @@ def process(cube: cli.inputcube):
         iris.cube.Cube:
             Input cube with all night values set to zero.
 
+    Raises:
+        ValueError: If input cube is suspicious, within reason.  Note that this is
+            a general check: the CLI expects a cube of UV index or probability of
+            UV index above thresold, and will raise an error if given a probability
+            below threshold, but will not recognise a completely inappropriate cube
+            (eg temperature in Kelvin).  Therefore this CLI should be used with care.
     """
     import numpy as np
 
