@@ -181,9 +181,6 @@ def above_or_below(cube):
             thresh == "less_than" or
             thresh == "less_than_or_equal_to"):
         threshold_attribute = "below"
-    else:
-        msg = "spp__relative_to_threshold attribute is invalid"
-        raise ValueError(msg)
 
     return threshold_attribute
 
