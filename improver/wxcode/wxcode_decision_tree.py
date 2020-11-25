@@ -30,7 +30,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing weather symbol decision tree"""
 
-from improver.wxcode import CLOUD_PROB_ABOVE, LOW_CLOUD_PROB_ABOVE, TEXTURE_PROB_ABOVE
+from improver.wxcode import (
+    CLOUD_PROB_ABOVE,
+    LOW_CLOUD_PROB_ABOVE,
+    PRECIP_PROB_ABOVE,
+    PRECIP_VICINITY_PROB_ABOVE,
+    RAIN_PROB_ABOVE,
+    SLEET_PROB_ABOVE,
+    SNOW_PROB_ABOVE,
+    TEXTURE_PROB_ABOVE,
+    VIS_PROB_BELOW,
+)
 
 # Start node for the high resolution wxcode decision tree.
 START_NODE = "lightning"
@@ -105,9 +115,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_above_threshold"
-            ],
+            "diagnostic_fields": [PRECIP_PROB_ABOVE],
             "diagnostic_thresholds": [(1.0, "mm hr-1")],
             "diagnostic_conditions": ["above"],
         },
@@ -128,13 +136,7 @@ def wxcode_decision_tree():
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [
-                    "probability_of_lwe_sleetfall_rate_above_threshold",
-                    "+",
-                    "probability_of_rainfall_rate_above_threshold",
-                    "-",
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                ]
+                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE,]
             ],
             "diagnostic_thresholds": [
                 [(1.0, "mm hr-1"), (1.0, "mm hr-1"), (1.0, "mm hr-1")]
@@ -148,13 +150,7 @@ def wxcode_decision_tree():
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [
-                    "probability_of_lwe_sleetfall_rate_above_threshold",
-                    "+",
-                    "probability_of_rainfall_rate_above_threshold",
-                    "-",
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                ]
+                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE,]
             ],
             "diagnostic_thresholds": [
                 [(1.0, "mm hr-1"), (1.0, "mm hr-1"), (1.0, "mm hr-1")]
@@ -168,13 +164,7 @@ def wxcode_decision_tree():
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [
-                    "probability_of_lwe_sleetfall_rate_above_threshold",
-                    "+",
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                    "-",
-                    "probability_of_rainfall_rate_above_threshold",
-                ]
+                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE,]
             ],
             "diagnostic_thresholds": [
                 [(1.0, "mm hr-1"), (1.0, "mm hr-1"), (1.0, "mm hr-1")]
@@ -188,13 +178,7 @@ def wxcode_decision_tree():
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [
-                    "probability_of_lwe_sleetfall_rate_above_threshold",
-                    "+",
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                    "-",
-                    "probability_of_rainfall_rate_above_threshold",
-                ]
+                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE,]
             ],
             "diagnostic_thresholds": [
                 [(1.0, "mm hr-1"), (1.0, "mm hr-1"), (1.0, "mm hr-1")]
@@ -207,10 +191,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5, 0.5],
             "threshold_condition": ">=",
             "condition_combination": "AND",
-            "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_above_threshold",
-                "probability_of_visibility_in_air_below_threshold",
-            ],
+            "diagnostic_fields": [PRECIP_PROB_ABOVE, VIS_PROB_BELOW,],
             "diagnostic_thresholds": [(0.03, "mm hr-1"), (5000.0, "m")],
             "diagnostic_conditions": ["above", "below"],
         },
@@ -220,10 +201,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5, 0.5],
             "threshold_condition": ">=",
             "condition_combination": "AND",
-            "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_above_threshold",
-                (LOW_CLOUD_PROB_ABOVE),
-            ],
+            "diagnostic_fields": [PRECIP_PROB_ABOVE, (LOW_CLOUD_PROB_ABOVE),],
             "diagnostic_thresholds": [(0.03, "mm hr-1"), (0.85, 1)],
             "diagnostic_conditions": ["above", "above"],
         },
@@ -234,13 +212,7 @@ def wxcode_decision_tree():
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [
-                    "probability_of_lwe_sleetfall_rate_above_threshold",
-                    "+",
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                    "-",
-                    "probability_of_rainfall_rate_above_threshold",
-                ]
+                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE,]
             ],
             "diagnostic_thresholds": [
                 [(0.03, "mm hr-1"), (0.03, "mm hr-1"), (0.03, "mm hr-1")]
@@ -283,9 +255,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold",
-            ],
+            "diagnostic_fields": [PRECIP_VICINITY_PROB_ABOVE,],
             "diagnostic_thresholds": [(0.1, "mm hr-1")],
             "diagnostic_conditions": ["above"],
         },
@@ -296,13 +266,7 @@ def wxcode_decision_tree():
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [
-                    "probability_of_lwe_sleetfall_rate_above_threshold",
-                    "+",
-                    "probability_of_rainfall_rate_above_threshold",
-                    "-",
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                ]
+                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE,]
             ],
             "diagnostic_thresholds": [
                 [(0.03, "mm hr-1"), (0.03, "mm hr-1"), (0.03, "mm hr-1")]
@@ -316,13 +280,7 @@ def wxcode_decision_tree():
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [
-                    "probability_of_lwe_sleetfall_rate_above_threshold",
-                    "+",
-                    "probability_of_lwe_snowfall_rate_above_threshold",
-                    "-",
-                    "probability_of_rainfall_rate_above_threshold",
-                ]
+                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE,]
             ],
             "diagnostic_thresholds": [
                 [(0.03, "mm hr-1"), (0.03, "mm hr-1"), (0.03, "mm hr-1")]
@@ -345,9 +303,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
-            ],
+            "diagnostic_fields": [PRECIP_VICINITY_PROB_ABOVE],
             "diagnostic_thresholds": [(1.0, "mm hr-1")],
             "diagnostic_conditions": ["above"],
         },
@@ -357,9 +313,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
-            ],
+            "diagnostic_fields": [PRECIP_VICINITY_PROB_ABOVE],
             "diagnostic_thresholds": [(1.0, "mm hr-1")],
             "diagnostic_conditions": ["above"],
         },
@@ -379,9 +333,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
-            ],
+            "diagnostic_fields": [PRECIP_VICINITY_PROB_ABOVE],
             "diagnostic_thresholds": [(1.0, "mm hr-1")],
             "diagnostic_conditions": ["above"],
         },
@@ -391,9 +343,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
-            ],
+            "diagnostic_fields": [PRECIP_VICINITY_PROB_ABOVE],
             "diagnostic_thresholds": [(1.0, "mm hr-1")],
             "diagnostic_conditions": ["above"],
         },
@@ -413,7 +363,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": ["probability_of_visibility_in_air_below_threshold"],
+            "diagnostic_fields": [VIS_PROB_BELOW],
             "diagnostic_thresholds": [(5000.0, "m")],
             "diagnostic_conditions": ["below"],
         },
@@ -423,7 +373,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": ["probability_of_visibility_in_air_below_threshold"],
+            "diagnostic_fields": [VIS_PROB_BELOW],
             "diagnostic_thresholds": [(1000.0, "m")],
             "diagnostic_conditions": ["below"],
         },

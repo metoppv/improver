@@ -30,8 +30,22 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Top level constants"""
 
-# Long name definitions
+### Long name definitions
+def prob_above_name(diagnostic):
+    """Inline function to construct probability cube name"""
+    return f"probability_of_{diagnostic}_above_threshold"
+
+
 CLOUD_NAME = "low_and_medium_type_cloud_area_fraction"
-CLOUD_PROB_ABOVE = f"probability_of_{CLOUD_NAME}_above_threshold"
-LOW_CLOUD_PROB_ABOVE = "probability_of_low_type_cloud_area_fraction_above_threshold"
-TEXTURE_PROB_ABOVE = f"probability_of_texture_of_{CLOUD_NAME}_above_threshold"
+CLOUD_PROB_ABOVE = prob_above_name(CLOUD_NAME)
+LOW_CLOUD_PROB_ABOVE = prob_above_name("low_type_cloud_area_fraction")
+TEXTURE_PROB_ABOVE = prob_above_name(f"texture_of_{CLOUD_NAME}")
+CONVECTION_PROB_ABOVE = prob_above_name("convective_ratio")
+
+PRECIP_PROB_ABOVE = prob_above_name("lwe_precipitation_rate")
+PRECIP_VICINITY_PROB_ABOVE = prob_above_name("lwe_precipitation_rate_in_vicinity")
+RAIN_PROB_ABOVE = prob_above_name("rainfall_rate")
+SLEET_PROB_ABOVE = prob_above_name("lwe_sleetfall_rate")
+SNOW_PROB_ABOVE = prob_above_name("lwe_snowfall_rate")
+
+VIS_PROB_BELOW = "probability_of_visibility_in_air_below_threshold"
