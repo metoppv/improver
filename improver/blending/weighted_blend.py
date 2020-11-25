@@ -764,8 +764,6 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 Forecast reference time point in units of input cube coordinate
         """
         frt_coord = input_cube.coord("forecast_reference_time")
-        #if cycletime is None:
-        #    return np.max(frt_coord.points)
         frt_units = frt_coord.units.origin
         frt_calendar = frt_coord.units.calendar
         # raises TypeError if cycletime is None
@@ -920,7 +918,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             )
         except TypeError:
             raise ValueError(
-                'Current cycle time must be provided for cycle and model blending'
+                "Current cycle time must be provided for cycle and model blending"
             )
 
         self._set_coords_to_remove(cube)
