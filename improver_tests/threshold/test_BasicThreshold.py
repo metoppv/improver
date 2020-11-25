@@ -168,7 +168,8 @@ class Test__add_threshold_coord(IrisTest):
         threshold_coord = result.coord("air_temperature")
         self.assertEqual(threshold_coord.var_name, "threshold")
         self.assertEqual(
-            threshold_coord.attributes, {"spp__relative_to_threshold": "greater_than"}
+            threshold_coord.attributes, {"spp__relative_to_threshold":
+	    "greater_than"}
         )
         self.assertAlmostEqual(threshold_coord.points[0], 1)
         self.assertEqual(threshold_coord.units, self.cube.units)
