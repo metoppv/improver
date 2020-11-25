@@ -67,6 +67,7 @@ def set_up_masked_cubes():
     name = "lwe_precipitation_rate"
     datatime = dt(2018, 9, 10, 7)
     cycletime = dt(2018, 9, 10, 5)
+    cycletime_string = "20180910T0500Z"
 
     # 5x5 matrix results in grid spacing of 200 km
     base_data = np.ones((5, 5), dtype=np.float32)
@@ -104,7 +105,7 @@ def set_up_masked_cubes():
         grid_spacing=grid_spacing,
     )
 
-    return iris.cube.CubeList([ukv_cube, nowcast_cube])
+    return iris.cube.CubeList([ukv_cube, nowcast_cube]), cycletime_string
 
 
 class Test__init__(IrisTest):
@@ -235,7 +236,7 @@ class Test__update_spatial_weights(IrisTest):
     @ManageWarnings(ignored_messages=["Deleting unmatched attribute"])
     def setUp(self):
         """Set up cube and plugin"""
-        cubelist = set_up_masked_cubes()
+        cubelist, self.cycletime = set_up_masked_cubes()
         merger = MergeCubesForWeightedBlending(
             "model_id",
             weighting_coord="forecast_period",
@@ -294,7 +295,6 @@ class Test_process(IrisTest):
         units = "mm h-1"
         name = "lwe_precipitation_rate"
         datatime = dt(2018, 9, 10, 7)
-        cycletime = dt(2018, 9, 10, 3)
 
         # a UKV cube with some rain and a 4 hr forecast period
         rain_data = np.array([[[0.9]], [[0.5]], [[0]]], dtype=np.float32)
@@ -304,7 +304,7 @@ class Test_process(IrisTest):
             variable_name=name,
             threshold_units=units,
             time=datatime,
-            frt=cycletime,
+            frt=dt(2018, 9, 10, 3),
             standard_grid_metadata="uk_det",
         )
 
@@ -339,9 +339,14 @@ class Test_process(IrisTest):
             variable_name=name,
             threshold_units=units,
             time=datatime,
-            frt=cycletime,
+            frt=dt(2018, 9, 10, 3),
             standard_grid_metadata="uk_ens",
         )
+
+        # cycletime from the most recent forecast (simulates current cycle)
+        self.cycletime = "20180910T0500Z"
+        self.expected_frt = self.nowcast_cube.coord("forecast_reference_time").copy()
+        self.expected_fp = self.nowcast_cube.coord("forecast_period").copy()
 
         self.plugin_cycle = WeightAndBlend(
             "forecast_reference_time", "linear", y0val=1, ynval=1
@@ -356,7 +361,9 @@ class Test_process(IrisTest):
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_basic(self):
         """Test output is a cube"""
-        result = self.plugin_cycle.process([self.ukv_cube, self.ukv_cube_latest])
+        result = self.plugin_cycle.process(
+            [self.ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+        )
         self.assertIsInstance(result, iris.cube.Cube)
 
     @ManageWarnings(record=True)
@@ -366,7 +373,9 @@ class Test_process(IrisTest):
         ukv_cube = self.ukv_cube.copy(
             data=np.ma.masked_where(self.ukv_cube.data < 0.5, self.ukv_cube.data)
         )
-        self.plugin_cycle.process([ukv_cube, self.ukv_cube_latest])
+        self.plugin_cycle.process(
+            [ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+        )
         message = "Blending masked data without spatial weights"
         self.assertTrue(any(message in str(item) for item in warning_list))
 
@@ -375,12 +384,13 @@ class Test_process(IrisTest):
         """Test plugin produces correct cycle blended output with equal
         linear weightings"""
         expected_data = np.array([[[0.95]], [[0.55]], [[0.1]]], dtype=np.float32)
-        result = self.plugin_cycle.process([self.ukv_cube, self.ukv_cube_latest])
+        result = self.plugin_cycle.process(
+            [self.ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+        )
         self.assertArrayAlmostEqual(result.data, expected_data)
-        # make sure output cube has the forecast reference time and period
-        # from the most recent contributing cycle
-        for coord in ["time", "forecast_reference_time", "forecast_period"]:
-            self.assertEqual(result.coord(coord), self.ukv_cube_latest.coord(coord))
+        self.assertEqual(result.coord("time"), self.ukv_cube_latest.coord("time"))
+        self.assertEqual(result.coord("forecast_reference_time"), self.expected_frt)
+        self.assertEqual(result.coord("forecast_period"), self.expected_fp)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_model_blend(self):
@@ -388,7 +398,9 @@ class Test_process(IrisTest):
         with 50-50 weightings defined by dictionary"""
         expected_data = np.array([[[0.8]], [[0.4]], [[0]]], dtype=np.float32)
         result = self.plugin_model.process(
-            [self.ukv_cube, self.enukx_cube], model_id_attr="mosg__model_configuration"
+            [self.ukv_cube, self.enukx_cube],
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(
@@ -420,6 +432,7 @@ class Test_process(IrisTest):
             [self.ukv_cube, self.nowcast_cube],
             model_id_attr="mosg__model_configuration",
             attributes_dict=attribute_changes,
+            cycletime=self.cycletime,
         )
         self.assertDictEqual(result.attributes, expected_attributes)
 
@@ -441,6 +454,7 @@ class Test_process(IrisTest):
         result = self.plugin_model.process(
             [self.ukv_cube, self.enukx_cube, self.nowcast_cube],
             model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
         # make sure output cube has the forecast reference time and period
@@ -451,7 +465,9 @@ class Test_process(IrisTest):
     def test_one_cube(self):
         """Test the plugin returns a single unmodified input cube"""
         result = self.plugin_model.process(
-            [self.enukx_cube], model_id_attr="mosg__model_configuration"
+            [self.enukx_cube],
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, self.enukx_cube.data)
         self.assertEqual(result.metadata, self.enukx_cube.metadata)
@@ -497,7 +513,7 @@ class Test_process_spatial_weights(IrisTest):
 
     def setUp(self):
         """Set up a masked nowcast and unmasked UKV cube"""
-        self.cubelist = set_up_masked_cubes()
+        self.cubelist, self.cycletime = set_up_masked_cubes()
         self.plugin = WeightAndBlend(
             "model_id",
             "dict",
@@ -527,6 +543,7 @@ class Test_process_spatial_weights(IrisTest):
             self.cubelist,
             model_id_attr="mosg__model_configuration",
             spatial_weights=True,
+            cycletime=self.cycletime,
         )
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
@@ -554,6 +571,7 @@ class Test_process_spatial_weights(IrisTest):
             model_id_attr="mosg__model_configuration",
             spatial_weights=True,
             fuzzy_length=400000,
+            cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
 
