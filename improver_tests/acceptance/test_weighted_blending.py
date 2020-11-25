@@ -162,7 +162,7 @@ def test_percentile(tmp_path):
         "--coordinate",
         "forecast_reference_time",
         "--cycletime",
-        "20170601T1000Z"
+        "20170601T1000Z",
         "--weighting-method",
         "nonlinear",
         "--cval",
@@ -200,6 +200,7 @@ def test_cycletime_with_specified_frt(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+# TODO this should break!  Need to deal with single inputs
 def test_cycletime_with_specified_frt_single_input(tmp_path):
     """Test cycletime blending where a forecast reference time for the
     returned cube is user specified. In this case the input is a single cube
@@ -239,7 +240,7 @@ def test_model(tmp_path):
         "--coordinate",
         "model_configuration",
         "--cycletime",
-        "20200218T0400Z",
+        "20171208T0400Z",
         "--ynval",
         "1",
         "--y0val",
@@ -267,7 +268,7 @@ def test_fails_no_model_id(tmp_path):
         "--coordinate",
         "model_configuration",
         "--cycletime",
-        "20200218T0400Z",
+        "20171208T0400Z",
         "--ynval",
         "1",
         "--y0val",
@@ -314,7 +315,7 @@ def test_weights_dict(tmp_path):
         "--coordinate",
         "model_configuration",
         "--cycletime",
-        "20200218T0400Z",
+        "20171208T0400Z",
         "--weighting-method",
         "dict",
         "--weighting-config",
@@ -398,7 +399,7 @@ def test_non_mo_model(tmp_path):
         "--coordinate",
         "model_configuration",
         "--cycletime",
-        "20171208T0400Z"
+        "20171208T0400Z",
         "--y0val",
         "1",
         "--ynval",
