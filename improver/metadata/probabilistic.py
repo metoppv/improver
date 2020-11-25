@@ -155,6 +155,39 @@ def find_threshold_coordinate(cube):
     return threshold_coord
 
 
+def above_or_below(cube):
+    """Checks the spp__relative_to_threshold attribute and outputs
+    whether it is above or below the threshold given.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube containing thresholded probability data
+
+    Returns:
+        str:
+            Which indicates whether the cube has data that is
+            above or below the threshold
+    """
+
+    thresh_coord = find_threshold_coordinate(cube)
+    thresh = thresh_coord.attributes["spp__relative_to_threshold"]
+    if (
+        thresh == "above" or
+            thresh == "greater_than" or
+            thresh == "greater_than_or_equal_to"):
+        threshold_attribute = "above"
+    elif (
+        thresh == "below" or
+            thresh == "less_than" or
+            thresh == "less_than_or_equal_to"):
+        threshold_attribute = "below"
+    else:
+        msg = "spp__relative_to_threshold attribute is invalid"
+        raise ValueError(msg)
+
+    return threshold_attribute
+
+
 def find_percentile_coordinate(cube):
     """Find percentile coord in cube.
 

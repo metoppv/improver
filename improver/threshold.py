@@ -39,6 +39,7 @@ from cf_units import Unit
 
 from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
+from improver.metadata.probabilistic import above_or_below
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
@@ -403,15 +404,9 @@ class BasicThreshold(PostProcessingPlugin):
             # if only one threshold has been provided, this should be scalar
             cube = next(cube.slices_over(cube.coord(var_name="threshold")))
 
-        if self.comparison_operator["spp_string"] is "less_than":
-            boundary = "below"
-        elif self.comparison_operator["spp_string"] is "less_than_or_equal_to":
-            boundary = "below"
-        else:
-            boundary = "above"
         cube.rename(
             "probability_of_{}_{}_threshold".format(
-                cube.name(), boundary
+                cube.name(), above_or_below(cube)
             )
         )
         cube.units = Unit(1)

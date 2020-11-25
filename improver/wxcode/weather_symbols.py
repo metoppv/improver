@@ -38,6 +38,7 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
+    above_or_below,    
     extract_diagnostic_name,
     find_threshold_coordinate,
 )
@@ -198,13 +199,13 @@ class WeatherSymbols(BasePlugin):
                             < threshold * (1.0 + self.float_tolerance)
                         )
                     }
+
+                # Checks whether the spp__relative_to_threshold attribute is above
+                # or below a threshold and and compares to the diagnostic_condition.
                 test_condition = iris.Constraint(
                     coord_values=coord_constraint,
                     cube_func=lambda cube: (
-                        find_threshold_coordinate(cube).attributes[
-                            "spp__relative_to_threshold"
-                        ]
-                        == condition
+                        above_or_below(cube) == condition
                     ),
                 )
                 matched_threshold = matched_cube.extract(test_condition)

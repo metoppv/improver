@@ -1073,7 +1073,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             raise ValueError(msg)
 
         if (
-            thresholding == "above"
+            (thresholding == "above" or
+                thresholding == "greater_than" or
+                thresholding == "greater_than_or_equal_to")
             and not (np.diff(cube.data, axis=threshold_dim) <= 0).all()
         ):
             msg = (
@@ -1084,7 +1086,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             cube.data = np.sort(cube.data, axis=threshold_dim)[::-1]
 
         if (
-            thresholding == "below"
+            (thresholding == "below" or
+                thresholding == "less_than" or
+                thresholding == "less_than_or_equal_to")
             and not (np.diff(cube.data, axis=threshold_dim) >= 0).all()
         ):
             msg = (

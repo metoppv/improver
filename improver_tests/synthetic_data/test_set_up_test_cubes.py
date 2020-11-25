@@ -666,7 +666,7 @@ class Test_set_up_probability_cube(IrisTest):
         self.assertEqual(thresh_coord.var_name, "threshold")
         self.assertEqual(thresh_coord.units, "K")
         self.assertEqual(len(thresh_coord.attributes), 1)
-        self.assertEqual(thresh_coord.attributes["spp__relative_to_threshold"], "above")
+        self.assertEqual(thresh_coord.attributes["spp__relative_to_threshold"], "greater_than")
         check_mandatory_standards(result)
 
     def test_relative_to_threshold(self):

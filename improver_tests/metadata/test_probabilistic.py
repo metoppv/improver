@@ -38,6 +38,7 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import (
+    above_or_below,    
     extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,
@@ -49,6 +50,76 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+
+class Test_above_or_below(unittest.TestCase):
+    """Test that the above_or_below function correctly identifies
+    whether the spp__relative_to_threshold attribute is above or
+    below with the respect to the threshold."""
+    
+    def setUp(self):
+        """Set up data and thresholds for the cubes."""
+        self.data = np.ones((3, 3, 3), dtype=np.float32)
+        self.threshold_points = np.array([276, 277, 278], dtype=np.float32)
+
+    def test_above(self):
+        """ Tests the case where spp__relative_threshold is above"""
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+            spp__relative_to_threshold="above"
+        )
+        result = above_or_below(cube)
+        self.assertEqual(result, "above")
+
+    def test_below(self):
+        """ Tests the case where spp__relative_threshold is above"""
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+            spp__relative_to_threshold="below"
+        )
+        result = above_or_below(cube)
+        self.assertEqual(result, "below")
+
+    def test_greater_than(self):
+        """ Tests the case where spp__relative_threshold is above"""
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+            spp__relative_to_threshold="greater_than"
+        )
+        result = above_or_below(cube)
+        self.assertEqual(result, "above")
+
+    def test_greater_than_or_equal_to(self):
+        """ Tests the case where spp__relative_threshold is above"""
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+            spp__relative_to_threshold="greater_than_or_equal_to"
+        )
+        result = above_or_below(cube)
+        self.assertEqual(result, "above")
+
+    def test_less_than(self):
+        """ Tests the case where spp__relative_threshold is above"""
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+            spp__relative_to_threshold="less_than"
+        )
+        result = above_or_below(cube)
+        self.assertEqual(result, "below")
+
+    def test_less_than_or_equal_to(self):
+        """ Tests the case where spp__relative_threshold is above"""
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+            spp__relative_to_threshold="less_than_or_equal_to"
+        )
+        result = above_or_below(cube)
+        self.assertEqual(result, "below")
 
 
 class Test_in_vicinity_name_format(unittest.TestCase):
