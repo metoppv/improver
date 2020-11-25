@@ -47,7 +47,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.temporal import TimezoneExtraction
 
 
-def make_input_cube(data_shape):
+def make_input_cube(data_shape, time_bounds=True):
     """Makes a 3D cube (time, y, x) of the described shape, filled with zeroes for use
     in testing."""
     cube = set_up_variable_cube(
@@ -67,20 +67,21 @@ def make_input_cube(data_shape):
         dtype=TIME_COORDS["time"].dtype,
         is_datetime=True,
     )
-    cube.coord("time").bounds = np.array(
-        [
+    if time_bounds:
+        cube.coord("time").bounds = np.array(
             [
-                np.around(
-                    Unit(TIME_COORDS["time"].units).date2num(
-                        datetime(2017, 11, 10, 4, 0) + timedelta(hours=h + b)
+                [
+                    np.around(
+                        Unit(TIME_COORDS["time"].units).date2num(
+                            datetime(2017, 11, 10, 4, 0) + timedelta(hours=h + b)
+                        )
                     )
-                )
-                for b in [-1, 0]
-            ]
-            for h in range(3)
-        ],
-        dtype=TIME_COORDS["time"].dtype,
-    )
+                    for b in [-1, 0]
+                ]
+                for h in range(3)
+            ],
+            dtype=TIME_COORDS["time"].dtype,
+        )
     return cube
 
 
@@ -211,11 +212,13 @@ def test_check_timezones_are_unique_fail(offset):
         plugin.check_timezones_are_unique(timezone_cube)
 
 
-def test_process():
+@pytest.mark.parametrize("input_as_cube", (True, False))
+@pytest.mark.parametrize("input_has_time_bounds", (True, False))
+def test_process(input_as_cube, input_has_time_bounds):
     """Checks that the plugin process method returns the a cube with expected data and
     time coord for our test data"""
     data_shape = [3, 3]
-    cube = make_input_cube(data_shape)
+    cube = make_input_cube(data_shape, time_bounds=input_has_time_bounds)
     data = np.array(
         [
             np.full((3, 3), fill_value=-1, dtype=np.float32),
@@ -233,11 +236,16 @@ def test_process():
     expected_times = [row1, row2, row3]
     expected_bounds = np.array(expected_times).reshape((3, 3, 1)) + [[[-3600, 0]]]
     plugin = TimezoneExtraction()
+    if not input_as_cube:
+        cube = [c for c in cube.slices_over("time")]
     result = plugin(cube, timezone_cube, utc_time)
     assert_metadata_ok(result)
     assert np.isclose(result.data, expected_data).all()
     assert np.isclose(result.coord("time").points, expected_times).all()
-    assert np.isclose(result.coord("time").bounds, expected_bounds).all()
+    if input_has_time_bounds:
+        assert np.isclose(result.coord("time").bounds, expected_bounds).all()
+    else:
+        assert result.coord("time").bounds is None
 
 
 def test_bad_dtype():
