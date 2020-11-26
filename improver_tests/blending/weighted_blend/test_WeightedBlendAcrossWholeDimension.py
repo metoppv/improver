@@ -716,6 +716,14 @@ class Test_process(Test_weighted_blend):
         self.assertEqual(result.coord("time").points, cube.coord("time").points)
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
+    def test_error_no_cycletime(self):
+        """Test error is raised if cycletime is not provided for cycle blending"""
+        plugin = WeightedBlendAcrossWholeDimension(self.coord)
+        msg = "Current cycle time is required"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin(self.cube)
+
+    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_cycletime_not_updated(self):
         """Test changes to forecast period and forecast reference time are not
         made when not blending over cycle or model."""

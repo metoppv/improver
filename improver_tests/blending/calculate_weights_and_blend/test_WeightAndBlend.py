@@ -463,14 +463,29 @@ class Test_process(IrisTest):
             self.assertEqual(result.coord(coord), self.nowcast_cube.coord(coord))
 
     def test_one_cube(self):
-        """Test the plugin returns a single unmodified input cube"""
+        """Test the plugin returns a single input cube with updated attributes
+        and time coordinates"""
+        expected_coords = {coord.name() for coord in self.enukx_cube.coords()}
+        expected_coords.update({"blend_time"})
         result = self.plugin_model.process(
             [self.enukx_cube],
             model_id_attr="mosg__model_configuration",
             cycletime=self.cycletime,
+            attributes_dict={"source": "IMPROVER"},
         )
         self.assertArrayAlmostEqual(result.data, self.enukx_cube.data)
-        self.assertEqual(result.metadata, self.enukx_cube.metadata)
+        self.assertSetEqual(
+            {coord.name() for coord in result.coords()}, expected_coords
+        )
+        self.assertEqual(result.attributes["source"], "IMPROVER")
+
+    def test_one_cube_error_no_cycletime(self):
+        """Test an error is raised if no cycletime is provided for model blending"""
+        msg = "Current cycle time is required"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin_model.process(
+                [self.enukx_cube], model_id_attr="mosg__model_configuration"
+            )
 
     def test_one_cube_with_cycletime_model_blending(self):
         """Test the plugin returns a single input cube with an updated forecast
