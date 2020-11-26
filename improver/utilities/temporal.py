@@ -296,9 +296,6 @@ class TimezoneExtraction(PostProcessingPlugin):
                 UTC time that matches the local_time at each point.
 
         """
-        # Import add_coordinate here to avoid circular import
-        from improver.synthetic_data.set_up_test_cubes import add_coordinate
-
         template_cube = cube.slices_over("time").next().copy()
         template_cube.remove_coord("time")
         template_cube.remove_coord("forecast_period")
@@ -317,15 +314,17 @@ class TimezoneExtraction(PostProcessingPlugin):
             local_time_coord_standards.units,
             calendar=local_time_coord_standards.calendar,
         )
-        output_cube = add_coordinate(
-            output_cube,
-            [local_time],
-            "time_in_local_timezone",
-            coord_units=local_time_units,
+        timezone_points = np.array(
+            np.round(local_time_units.date2num(local_time)),
             dtype=local_time_coord_standards.dtype,
-            is_datetime=True,
         )
-        output_cube = iris.util.squeeze(output_cube)
+        output_cube.add_aux_coord(
+            AuxCoord(
+                timezone_points,
+                long_name="time_in_local_timezone",
+                units=local_time_units,
+            )
+        )
         output_cube.add_aux_coord(
             AuxCoord(
                 self.time_points,
