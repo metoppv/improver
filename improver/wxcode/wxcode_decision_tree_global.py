@@ -37,8 +37,8 @@ START_NODE_GLOBAL = "heavy_precipitation"
 def wxcode_decision_tree_global():
     """
     Define queries that comprise the weather symbol decision tree.
-
     Each query contains the following elements:
+
         * succeed: The next query to call if the diagnostic being queried
               satisfies the current query.
         * fail: The next query to call if the diagnostic being queried
@@ -69,7 +69,6 @@ def wxcode_decision_tree_global():
             tree.
     """
     queries = {
-        # A
         "heavy_precipitation": {
             "succeed": "heavy_precipitation_cloud",
             "fail": "light_precipitation",
@@ -82,7 +81,6 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(1.0, "mm hr-1")],
             "diagnostic_conditions": ["above"],
         },
-        # A.1
         "heavy_precipitation_cloud": {
             "succeed": "heavy_precipitation_convective_ratio",
             "fail": "heavy_snow_shower",
@@ -103,7 +101,6 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.8, 1)],
             "diagnostic_conditions": ["above"],
         },
-        # A.1.1
         "heavy_snow_continuous": {
             "succeed": 27,
             "fail": "heavy_rain_or_sleet_continuous",
@@ -124,7 +121,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.1.2
         "heavy_snow_shower": {
             "succeed": 26,
             "fail": "heavy_rain_or_sleet_shower",
@@ -145,7 +141,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.1.1.b
         "heavy_rain_or_sleet_continuous": {
             "succeed": 15,
             "fail": 18,
@@ -166,7 +161,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.1.2.b
         "heavy_rain_or_sleet_shower": {
             "succeed": 14,
             "fail": 17,
@@ -187,7 +181,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # B
         "light_precipitation": {
             "succeed": "light_precipitation_cloud",
             "fail": "drizzle_mist",
@@ -200,7 +193,6 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.1, "mm hr-1")],
             "diagnostic_conditions": ["above"],
         },
-        # A.2
         "light_precipitation_cloud": {
             "succeed": "light_precipitation_convective_ratio",
             "fail": "light_snow_shower",
@@ -221,7 +213,6 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.8, 1)],
             "diagnostic_conditions": ["above"],
         },
-        # A.2.1
         "light_snow_continuous": {
             "succeed": 24,
             "fail": "light_rain_or_sleet_continuous",
@@ -242,7 +233,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.2.2
         "light_snow_shower": {
             "succeed": 23,
             "fail": "light_rain_or_sleet_shower",
@@ -263,7 +253,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.2.1.b
         "light_rain_or_sleet_continuous": {
             "succeed": 12,
             "fail": 18,
@@ -284,7 +273,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.2.2.b
         "light_rain_or_sleet_shower": {
             "succeed": 10,
             "fail": 17,
@@ -305,7 +293,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.3
         "drizzle_mist": {
             "succeed": "drizzle_is_rain",
             "fail": "drizzle_cloud",
@@ -352,7 +339,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # C
         "mist_conditions": {
             "succeed": "fog_conditions",
             "fail": "no_precipitation_cloud",
@@ -373,7 +359,6 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(1000.0, "m")],
             "diagnostic_conditions": ["below"],
         },
-        # C.1
         "no_precipitation_cloud": {
             "succeed": "overcast_cloud",
             "fail": "partly_cloudy",
