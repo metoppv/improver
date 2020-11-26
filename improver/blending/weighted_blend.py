@@ -747,25 +747,6 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
 
         return result
 
-    def _get_cycletime_point(self, cube):
-        """
-        For cycle and model blending, establish the current cycletime to set on
-        the cube after blending.
-
-        Returns:
-            numpy.int64:
-                Cycle time point in units matching the input cube forecast reference
-                time coordinate
-        """
-        frt_coord = cube.coord("forecast_reference_time")
-        frt_units = frt_coord.units.origin
-        frt_calendar = frt_coord.units.calendar
-        # raises TypeError if cycletime is None
-        cycletime_point = cycletime_to_number(
-            self.cycletime, time_unit=frt_units, calendar=frt_calendar
-        )
-        return round_close(cycletime_point, dtype=np.int64)
-
     def _set_coords_to_remove(self, cube):
         """
         Generate a list of coordinate names associated with the blend
@@ -785,11 +766,30 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             if blend_dim in cube.coord_dims(coord):
                 self.crds_to_remove.append(coord.name())
 
+    def _get_cycletime_point(self, cube):
+        """
+        For cycle and model blending, establish the current cycletime to set on
+        the cube after blending.
+
+        Returns:
+            numpy.int64:
+                Cycle time point in units matching the input cube forecast reference
+                time coordinate
+        """
+        frt_coord = cube.coord("forecast_reference_time")
+        frt_units = frt_coord.units.origin
+        frt_calendar = frt_coord.units.calendar
+        # raises TypeError if cycletime is None
+        cycletime_point = cycletime_to_number(
+            self.cycletime, time_unit=frt_units, calendar=frt_calendar
+        )
+        return round_close(cycletime_point, dtype=np.int64)
+
     def _set_blended_time_coords(self, blended_cube):
         """
         For cycle and model blending:
         - Update the forecast reference time and forecast period coordinate points
-        to the single most recent value, rather than the blended average
+        to reflect the current cycle time
         - Remove any bounds from the forecast reference time
         - Add a "blend_time" coordinate equal to the current cycletime
 
@@ -906,20 +906,18 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         # Check that the time coordinate is single valued if required.
         self.check_compatible_time_points(cube)
 
-        # Check to see if the data is percentile data
-        perc_coord = self.check_percentile_coord(cube)
-
         # Establish coordinates to be removed after blending
         self._set_coords_to_remove(cube)
 
         # Do blending and update metadata
+        perc_coord = self.check_percentile_coord(cube)
         if perc_coord:
             result = self.percentile_weighted_mean(cube, weights, perc_coord)
         else:
             result = self.weighted_mean(cube, weights)
         self._update_blended_metadata(result, attributes_dict)
 
-        # Checks the coordinate dimensions match the first relevant cube in the unblended cubeList.
+        # Reshape result to match input cubes if required
         result = check_cube_coordinates(
             next(cube.slices_over(self.blend_coord)), result
         )

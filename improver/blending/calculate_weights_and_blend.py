@@ -177,6 +177,27 @@ class WeightAndBlend(BasePlugin):
         weights = plugin(cube, weights, self.blend_coord)
         return weights
 
+    def _update_metadata_only(self, cube, attributes_dict, cycletime):
+        """
+        If blend_coord has only one value (for example cycle blending with
+        only one cycle available), or is not present (case where only
+        one model has been provided for a model blend), update attributes
+        and time coordinates and return.
+        """
+        result = cube.copy()
+        if attributes_dict is not None:
+            amend_attributes(result, attributes_dict)
+
+        (result,) = rebadge_forecasts_as_latest_cycle([result], cycletime)
+        if self.blend_coord in ["forecast_reference_time", "model_id"]:
+            if cycletime is not None:
+                add_blend_time(result, cycletime)
+            else:
+                msg = "Current cycle time is required for cycle and model blending"
+                raise ValueError(msg)
+
+        return result
+
     def process(
         self,
         cubelist,
@@ -231,30 +252,12 @@ class WeightAndBlend(BasePlugin):
         if "model" in self.blend_coord:
             self.blend_coord = "model_id"
 
-        # if blend_coord has only one value (for example cycle blending with
-        # only one cycle available), or is not present (case where only
-        # one model has been provided for a model blend), update attributes
-        # and ensure that the forecast reference time on the returned cube
-        # is set to the current IMPROVER processing cycle.
         coord_names = [coord.name() for coord in cube.coords()]
         if (
             self.blend_coord not in coord_names
             or len(cube.coord(self.blend_coord).points) == 1
         ):
-            result = cube.copy()
-            if attributes_dict is not None:
-                amend_attributes(result, attributes_dict)
-
-            (result,) = rebadge_forecasts_as_latest_cycle([result], cycletime)
-            if self.blend_coord in ["forecast_reference_time", "model_id"]:
-                if cycletime is not None:
-                    add_blend_time(result, cycletime)
-                else:
-                    raise ValueError(
-                        "Current cycle time is required for cycle and model blending"
-                    )
-
-        # otherwise, calculate weights and blend across specified dimension
+            result = self._update_metadata_only(cube, attributes_dict, cycletime)
         else:
             # calculate blend weights
             weights = self._calculate_blending_weights(cube)
