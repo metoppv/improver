@@ -52,9 +52,9 @@ def process(
             Use generate-timezone-mask-ancillary to create this.
         local_time (str):
             The "local" time of the output cube as %Y%m%dT%H%M. This will form a
-            scalar "utc" coord on the output cube, while the "time" coord will be
-            auxillary to the spatial coords and will show the UTC time that matches
-            the local_time at each point.
+            scalar "time_in_local_timezone" coord on the output cube, while the "time"
+            coord will be auxillary to the spatial coords and will show the UTC time
+            that matches the local_time at each point.
 
     Returns:
         iris.cube.Cube:

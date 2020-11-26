@@ -133,7 +133,7 @@ def test_create_output_cube():
     meta-data"""
     data_shape = [3, 3]
     cube = make_input_cube(data_shape)
-    utc_time = datetime(2017, 11, 9, 12, 0)
+    local_time = datetime(2017, 11, 9, 12, 0)
     plugin = TimezoneExtraction()
     plugin.output_data = np.zeros(data_shape, dtype=np.float32)
     plugin.time_points = np.full(
@@ -144,12 +144,12 @@ def test_create_output_cube():
         dtype=np.int64,
     )
     plugin.time_bounds = None
-    result = plugin.create_output_cube(cube, utc_time)
+    result = plugin.create_output_cube(cube, local_time)
     assert_metadata_ok(result)
     assert result.name() == cube.name()
     assert result.units == cube.units
-    result_utc = result.coord("utc")
-    assert [cell.point for cell in result_utc.cells()] == [utc_time]
+    result_local_time = result.coord("time_in_local_timezone")
+    assert [cell.point for cell in result_local_time.cells()] == [local_time]
     expected_shape = data_shape
     assert result.shape == tuple(expected_shape)
     assert result.attributes == cube.attributes
@@ -173,10 +173,10 @@ def test_check_input_cube_dims(data_shape, expect_success):
 
 
 @pytest.mark.parametrize(
-    "utc_time, expect_success",
+    "local_time, expect_success",
     ((datetime(2017, 11, 10, 5, 0), True), (datetime(2017, 11, 10, 6, 0), False)),
 )
-def test_check_input_cube_time(utc_time, expect_success):
+def test_check_input_cube_time(local_time, expect_success):
     """Checks that check_input_cube_time can differentiate between arguments that match
     expected times and arguments that don't."""
     data_shape = [3, 3]
@@ -184,12 +184,12 @@ def test_check_input_cube_time(utc_time, expect_success):
     timezone_cube = make_timezone_cube()
     plugin = TimezoneExtraction()
     if expect_success:
-        plugin.check_input_cube_time(cube, timezone_cube, utc_time)
+        plugin.check_input_cube_time(cube, timezone_cube, local_time)
     else:
         with pytest.raises(
             ValueError, match=r"Time coord on input cube does not match required times."
         ):
-            plugin.check_input_cube_time(cube, timezone_cube, utc_time)
+            plugin.check_input_cube_time(cube, timezone_cube, local_time)
 
 
 def test_check_timezones_are_unique_pass():
@@ -227,7 +227,7 @@ def test_process(input_as_cube, input_has_time_bounds):
         ]
     )
     cube.data = data
-    utc_time = datetime(2017, 11, 10, 5, 0)
+    local_time = datetime(2017, 11, 10, 5, 0)
     timezone_cube = make_timezone_cube()
     expected_data = [[-1, -1, -1], [0, 0, 0], [1, 1, 1]]
     row1 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 4, 0))] * 3
@@ -238,7 +238,7 @@ def test_process(input_as_cube, input_has_time_bounds):
     plugin = TimezoneExtraction()
     if not input_as_cube:
         cube = [c for c in cube.slices_over("time")]
-    result = plugin(cube, timezone_cube, utc_time)
+    result = plugin(cube, timezone_cube, local_time)
     assert_metadata_ok(result)
     assert np.isclose(result.data, expected_data).all()
     assert np.isclose(result.coord("time").points, expected_times).all()
@@ -252,7 +252,7 @@ def test_bad_dtype():
     """Checks that the plugin raises a useful error if the output are float64"""
     data_shape = [3, 3]
     cube = make_input_cube(data_shape)
-    utc_time = datetime(2017, 11, 10, 5, 0)
+    local_time = datetime(2017, 11, 10, 5, 0)
     timezone_cube = make_timezone_cube()
     timezone_cube.data = timezone_cube.data.astype(np.int32)
     plugin = TimezoneExtraction()
@@ -260,4 +260,4 @@ def test_bad_dtype():
         TypeError,
         match=r"Operation multiply on types \{dtype\(\'.*32\'\), dtype\(\'.*32\'\)\} results in",
     ):
-        plugin(cube, timezone_cube, utc_time)
+        plugin(cube, timezone_cube, local_time)

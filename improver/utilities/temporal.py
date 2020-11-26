@@ -291,9 +291,9 @@ class TimezoneExtraction(PostProcessingPlugin):
                 coord spanning all the timezones.
             local_time (datetime.datetime):
                 The "local" time of the output cube as %Y%m%dT%H%MZ. This will form a
-                scalar "utc" coord on the output cube, while the "time" coord will be
-                auxillary to the spatial coords and will show the UTC time that matches
-                the local_time at each point.
+                scalar "time_in_local_timezone" coord on the output cube, while the
+                "time" coord will be auxillary to the spatial coords and will show the
+                UTC time that matches the local_time at each point.
 
         """
         # Import add_coordinate here to avoid circular import
@@ -311,17 +311,18 @@ class TimezoneExtraction(PostProcessingPlugin):
             data=self.output_data,
         )
 
-        # Create a UTC time coordinate to help with plotting data.
-        utc_coord_standards = TIME_COORDS["utc"]
-        utc_units = cf_units.Unit(
-            utc_coord_standards.units, calendar=utc_coord_standards.calendar,
+        # Create a local time coordinate to help with plotting data.
+        local_time_coord_standards = TIME_COORDS["time_in_local_timezone"]
+        local_time_units = cf_units.Unit(
+            local_time_coord_standards.units,
+            calendar=local_time_coord_standards.calendar,
         )
         output_cube = add_coordinate(
             output_cube,
             [local_time],
-            "utc",
-            coord_units=utc_units,
-            dtype=utc_coord_standards.dtype,
+            "time_in_local_timezone",
+            coord_units=local_time_units,
+            dtype=local_time_coord_standards.dtype,
             is_datetime=True,
         )
         output_cube = iris.util.squeeze(output_cube)
@@ -458,9 +459,9 @@ class TimezoneExtraction(PostProcessingPlugin):
                 Must have the same spatial coords as input_cube.
            local_time (datetime.datetime):
                 The "local" time of the output cube. This will form a
-                scalar "utc" coord on the output cube, while the "time" coord will be
-                auxillary to the spatial coords and will show the UTC time that matches
-                the local_time at each point.
+                scalar "time_in_local_timezone" coord on the output cube, while the
+                "time" coord will be auxillary to the spatial coords and will show the
+                UTC time that matches the local_time at each point.
 
         Returns:
             iris.cube.Cube:
