@@ -32,6 +32,7 @@
 
 from improver.wxcode import (
     CLOUD_PROB_ABOVE,
+    LIGHTNING_VICINITY_PROB,
     LOW_CLOUD_PROB_ABOVE,
     PRECIP_PROB_ABOVE,
     PRECIP_VICINITY_PROB_ABOVE,
@@ -92,10 +93,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.3],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [
-                "probability_of_number_of_lightning_flashes_"
-                "per_unit_area_in_vicinity_above_threshold"
-            ],
+            "diagnostic_fields": [LIGHTNING_VICINITY_PROB],
             "diagnostic_thresholds": [(0.0, "m-2")],
             "diagnostic_conditions": ["above"],
         },

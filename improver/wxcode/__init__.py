@@ -36,6 +36,10 @@ def prob_above_name(diagnostic):
     return f"probability_of_{diagnostic}_above_threshold"
 
 
+LIGHTNING_VICINITY_PROB = prob_above_name(
+    "number_of_lightning_flashes_per_unit_area_in_vicinity"
+)
+
 CLOUD_NAME = "low_and_medium_type_cloud_area_fraction"
 CLOUD_PROB_ABOVE = prob_above_name(CLOUD_NAME)
 LOW_CLOUD_PROB_ABOVE = prob_above_name("low_type_cloud_area_fraction")
