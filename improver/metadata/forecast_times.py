@@ -199,6 +199,48 @@ def rebadge_forecasts_as_latest_cycle(cubes, cycletime=None):
     return unify_cycletime(cubes, cycle_datetime)
 
 
+def _create_frt_type_coord(cube, point, name):
+    """Create a new auxiliary coordinate based on forecast reference time
+
+    Args:
+        cube (iris.cube.Cube):
+            Input cube with scalar forecast reference time coordinate
+        points (datetime.datetime)
+            Single datetime point for output coord
+        name (str)
+            Name of aux coord to be returned
+
+    Returns:
+        iris.coords.AuxCoord
+    """
+    frt_coord_name = "forecast_reference_time"
+    coord_type_spec = TIME_COORDS[frt_coord_name]
+    coord_units = Unit(coord_type_spec.units)
+    new_points = round_close(
+        [coord_units.date2num(point)], dtype=coord_type_spec.dtype
+    )
+    new_coord = cube.coord(frt_coord_name).copy(points=new_points)
+    new_coord.rename(name)
+    return new_coord
+
+
+def add_blend_time(cube, cycletime):
+    """
+    Function to add scalar blend time coordinate to a blended cube based
+    on current cycle time.  Modifies cube in place.
+
+     Args:
+        cubes (iris.cube.Cube):
+            Cube to add blend time coordinate
+        cycletime (str):
+            Required blend time in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
+
+    """
+    cycle_datetime = cycletime_to_datetime(cycletime)
+    blend_coord = _create_frt_type_coord(cube, cycle_datetime, "blend_time")
+    cube.add_aux_coord(blend_coord, data_dims=None)
+
+
 def unify_cycletime(cubes, cycletime):
     """
     Function to unify the forecast_reference_time and update forecast_period.
@@ -226,12 +268,12 @@ def unify_cycletime(cubes, cycletime):
     for cube in cubes:
         cube = cube.copy()
         frt_coord_name = "forecast_reference_time"
-        coord_type_spec = TIME_COORDS[frt_coord_name]
-        coord_units = Unit(coord_type_spec.units)
-        frt_points = round_close(
-            [coord_units.date2num(cycletime)], dtype=coord_type_spec.dtype
-        )
-        frt_coord = cube.coord(frt_coord_name).copy(points=frt_points)
+        #coord_type_spec = TIME_COORDS[frt_coord_name]
+        #coord_units = Unit(coord_type_spec.units)
+        #frt_points = round_close(
+        #    [coord_units.date2num(cycletime)], dtype=coord_type_spec.dtype
+        #)
+        frt_coord =  _create_frt_type_coord(cube, cycletime, frt_coord_name)  #cube.coord(frt_coord_name).copy(points=frt_points)
         cube.remove_coord(frt_coord_name)
         cube.add_aux_coord(frt_coord, data_dims=None)
 
