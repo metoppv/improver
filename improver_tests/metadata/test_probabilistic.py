@@ -38,7 +38,7 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import (
-    above_or_below,    
+    above_or_below,
     extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,

@@ -136,15 +136,11 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         relative_to_threshold = self.thresh_coord.attributes[
             "spp__relative_to_threshold"
         ]
-        if (
-            relative_to_threshold == "above" or
-                relative_to_threshold == "greater_than" or
-                relative_to_threshold == "greater_than_or_equal_to"):
+        if (relative_to_threshold in ("above", "greater_than",
+                                      "greater_than_or_equal_to")):
             multiplier = 1.0
-        elif (
-            relative_to_threshold == "below" or
-                relative_to_threshold == "less_than" or
-                relative_to_threshold == "less_than_or_equal_to"):
+        elif (relative_to_threshold in ("below", "less_than",
+                                        "less_than_or_equal_to")):
             multiplier = -1.0
         else:
             raise ValueError(

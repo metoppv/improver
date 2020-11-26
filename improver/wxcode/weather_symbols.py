@@ -38,7 +38,7 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
-    above_or_below,    
+    above_or_below,
     extract_diagnostic_name,
     find_threshold_coordinate,
 )

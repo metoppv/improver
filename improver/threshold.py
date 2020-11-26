@@ -382,8 +382,6 @@ class BasicThreshold(PostProcessingPlugin):
 		# the exceedance probability
                 if "less_than" in self.comparison_operator["spp_string"]:
                     truth_value = 1.0 - truth_value
-                elif "less_than_or_equal_to" in self.comparison_operator["spp_string"]:
-                    truth_value = 1.0 - truth_value
             truth_value = np.ma.masked_where(np.ma.getmask(cube.data), truth_value)
             truth_value = truth_value.astype(input_cube_dtype)
 

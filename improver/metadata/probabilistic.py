@@ -171,15 +171,10 @@ def above_or_below(cube):
 
     thresh_coord = find_threshold_coordinate(cube)
     thresh = thresh_coord.attributes["spp__relative_to_threshold"]
-    if (
-        thresh == "above" or
-            thresh == "greater_than" or
-            thresh == "greater_than_or_equal_to"):
+    if (thresh in ("above", "greater_than",
+                   "greater_than_or_equal_to")):
         threshold_attribute = "above"
-    elif (
-        thresh == "below" or
-            thresh == "less_than" or
-            thresh == "less_than_or_equal_to"):
+    elif (thresh in ("below", "less_than", "less_than_or_equal_to")):
         threshold_attribute = "below"
 
     return threshold_attribute

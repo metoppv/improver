@@ -1072,12 +1072,10 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             )
             raise ValueError(msg)
 
-        if (
-            (thresholding == "above" or
-                thresholding == "greater_than" or
-                thresholding == "greater_than_or_equal_to")
-            and not (np.diff(cube.data, axis=threshold_dim) <= 0).all()
-        ):
+        if (thresholding in ("above", "greater_than",
+                             "greater_than_or_equal_to")
+                and not (np.diff(cube.data, axis=threshold_dim) <= 0).all()
+           ):
             msg = (
                 "Exceedance probabilities are not decreasing monotonically "
                 "as the threshold values increase. Forced back into order."
@@ -1085,12 +1083,10 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             warnings.warn(msg)
             cube.data = np.sort(cube.data, axis=threshold_dim)[::-1]
 
-        if (
-            (thresholding == "below" or
-                thresholding == "less_than" or
-                thresholding == "less_than_or_equal_to")
-            and not (np.diff(cube.data, axis=threshold_dim) >= 0).all()
-        ):
+        if (thresholding in ("below", "less_than",
+                             "less_than_or_equal_to")
+                and not (np.diff(cube.data, axis=threshold_dim) >= 0).all()
+           ):
             msg = (
                 "Below threshold probabilities are not increasing "
                 "monotonically as the threshold values increase. Forced "
