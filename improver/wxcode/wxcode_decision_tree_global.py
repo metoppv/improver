@@ -37,8 +37,8 @@ START_NODE_GLOBAL = "heavy_precipitation"
 def wxcode_decision_tree_global():
     """
     Define queries that comprise the weather symbol decision tree.
-
     Each query contains the following elements:
+
         * succeed: The next query to call if the diagnostic being queried
               satisfies the current query.
         * fail: The next query to call if the diagnostic being queried
@@ -101,7 +101,6 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.8, 1)],
             "diagnostic_conditions": ["above"],
         },
-        # A.1.1
         "heavy_snow_continuous": {
             "succeed": 27,
             "fail": "heavy_rain_or_sleet_continuous",
@@ -122,7 +121,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.1.2
         "heavy_snow_shower": {
             "succeed": 26,
             "fail": "heavy_rain_or_sleet_shower",
@@ -143,7 +141,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.1.1.b
         "heavy_rain_or_sleet_continuous": {
             "succeed": 15,
             "fail": 18,
@@ -164,7 +161,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.1.2.b
         "heavy_rain_or_sleet_shower": {
             "succeed": 14,
             "fail": 17,
@@ -217,7 +213,6 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.8, 1)],
             "diagnostic_conditions": ["above"],
         },
-        # A.2.1
         "light_snow_continuous": {
             "succeed": 24,
             "fail": "light_rain_or_sleet_continuous",
@@ -238,7 +233,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.2.2
         "light_snow_shower": {
             "succeed": 23,
             "fail": "light_rain_or_sleet_shower",
@@ -259,7 +253,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.2.1.b
         "light_rain_or_sleet_continuous": {
             "succeed": 12,
             "fail": 18,
@@ -280,7 +273,6 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        # A.2.2.b
         "light_rain_or_sleet_shower": {
             "succeed": 10,
             "fail": 17,
