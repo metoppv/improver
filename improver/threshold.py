@@ -33,15 +33,13 @@
 
 import operator
 
-import iris
 import numpy as np
-from cf_units import Unit
 
+import iris
+from cf_units import Unit
 from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.metadata.probabilistic import (
-	probabilistic_data_above_or_below,
-)
+from improver.metadata.probabilistic import probabilistic_data_above_or_below
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
