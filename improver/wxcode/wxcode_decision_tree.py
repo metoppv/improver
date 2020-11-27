@@ -199,7 +199,7 @@ def wxcode_decision_tree():
             "probability_thresholds": [0.5, 0.5],
             "threshold_condition": ">=",
             "condition_combination": "AND",
-            "diagnostic_fields": [PRECIP_PROB_ABOVE, (LOW_CLOUD_PROB_ABOVE)],
+            "diagnostic_fields": [PRECIP_PROB_ABOVE, LOW_CLOUD_PROB_ABOVE],
             "diagnostic_thresholds": [(0.03, "mm hr-1"), (0.85, 1)],
             "diagnostic_conditions": ["above", "above"],
         },
