@@ -492,7 +492,7 @@ def set_up_probability_cube(
     """
     # create a "relative to threshold" attribute
     coord_attributes = {"spp__relative_to_threshold": spp__relative_to_threshold}
-
+    
     if (spp__relative_to_threshold in ("above", "greater_than",
                                        "greater_than_or_equal_to")):
         name = "probability_of_{}_above_threshold".format(variable_name)

@@ -53,6 +53,7 @@ from improver.metadata.probabilistic import (
     extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,
+    probability_is_above_or_below,
 )
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
@@ -1048,9 +1049,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
         location_parameter.data = np.ma.filled(location_parameter.data, 1)
         scale_parameter.data = np.ma.filled(scale_parameter.data, 1)
         thresholds = find_threshold_coordinate(probability_cube_template).points
-        relative_to_threshold = find_threshold_coordinate(
-            probability_cube_template
-        ).attributes["spp__relative_to_threshold"]
+        relative_to_threshold = probability_is_above_or_below(
+            probability_cube_template)
 
         self._rescale_shape_parameters(
             location_parameter.data.flatten(), np.sqrt(scale_parameter.data).flatten()
@@ -1068,8 +1068,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         )
 
         probability_method = distribution.cdf
-        if (relative_to_threshold in ("above", "greater_than",
-                                      "greater_than_or_equal_to")):
+        if (relative_to_threshold == "above"):
             probability_method = distribution.sf
 
         for index, threshold in enumerate(thresholds):
