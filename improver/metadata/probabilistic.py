@@ -155,7 +155,7 @@ def find_threshold_coordinate(cube):
     return threshold_coord
 
 
-def above_or_below(cube):
+def probabilistic_data_above_or_below(cube):
     """Checks the spp__relative_to_threshold attribute and outputs
     whether it is above or below the threshold given.
 
@@ -169,6 +169,7 @@ def above_or_below(cube):
             above or below the threshold
     """
 
+    threshold_attribute = None    
     thresh_coord = find_threshold_coordinate(cube)
     thresh = thresh_coord.attributes["spp__relative_to_threshold"]
     if (thresh in ("above", "greater_than",

@@ -38,9 +38,9 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
-    above_or_below,
     extract_diagnostic_name,
     find_threshold_coordinate,
+    probabilistic_data_above_or_below,
 )
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
@@ -205,7 +205,7 @@ class WeatherSymbols(BasePlugin):
                 test_condition = iris.Constraint(
                     coord_values=coord_constraint,
                     cube_func=lambda cube: (
-                        above_or_below(cube) == condition
+                        probabilistic_data_above_or_below(cube) == condition
                     ),
                 )
                 matched_threshold = matched_cube.extract(test_condition)
