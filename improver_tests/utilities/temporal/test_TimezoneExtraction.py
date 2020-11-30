@@ -195,8 +195,7 @@ def test_check_input_cube_time(local_time, expect_success):
 def test_check_timezones_are_unique_pass():
     """Checks that check_timezones_are_unique allows our test cube"""
     timezone_cube = make_timezone_cube()
-    plugin = TimezoneExtraction()
-    plugin.check_timezones_are_unique(timezone_cube)
+    TimezoneExtraction().check_timezones_are_unique(timezone_cube)
 
 
 @pytest.mark.parametrize("offset", (1, -1))
@@ -204,12 +203,11 @@ def test_check_timezones_are_unique_fail(offset):
     """Checks that check_timezones_are_unique fails if we break our test cube"""
     timezone_cube = make_timezone_cube()
     timezone_cube.data[0, 0, 0] += offset
-    plugin = TimezoneExtraction()
     with pytest.raises(
         ValueError,
         match=r"Timezone cube does not map exactly one time zone to each spatial point",
     ):
-        plugin.check_timezones_are_unique(timezone_cube)
+        TimezoneExtraction().check_timezones_are_unique(timezone_cube)
 
 
 @pytest.mark.parametrize("input_as_cube", (True, False))
@@ -235,10 +233,9 @@ def test_process(input_as_cube, input_has_time_bounds):
     row3 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 6, 0))] * 3
     expected_times = [row1, row2, row3]
     expected_bounds = np.array(expected_times).reshape((3, 3, 1)) + [[[-3600, 0]]]
-    plugin = TimezoneExtraction()
     if not input_as_cube:
         cube = [c for c in cube.slices_over("time")]
-    result = plugin(cube, timezone_cube, local_time)
+    result = TimezoneExtraction()(cube, timezone_cube, local_time)
     assert_metadata_ok(result)
     assert np.isclose(result.data, expected_data).all()
     assert np.isclose(result.coord("time").points, expected_times).all()
@@ -255,9 +252,8 @@ def test_bad_dtype():
     local_time = datetime(2017, 11, 10, 5, 0)
     timezone_cube = make_timezone_cube()
     timezone_cube.data = timezone_cube.data.astype(np.int32)
-    plugin = TimezoneExtraction()
     with pytest.raises(
         TypeError,
         match=r"Operation multiply on types \{dtype\(\'.*32\'\), dtype\(\'.*32\'\)\} results in",
     ):
-        plugin(cube, timezone_cube, local_time)
+        TimezoneExtraction()(cube, timezone_cube, local_time)

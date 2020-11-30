@@ -379,7 +379,8 @@ class TimezoneExtraction(PostProcessingPlugin):
             unique_cube_types = {input_cube.dtype, timezone_cube.dtype}
             raise TypeError(
                 f"Operation multiply on types {unique_cube_types} results in "
-                "float64 data which cannot be safely coerced to float32"
+                "float64 data which cannot be safely coerced to float32. (Hint: "
+                "timezone_cube should be int8 and input cube should be float32)"
             )
 
     @staticmethod
@@ -433,7 +434,7 @@ class TimezoneExtraction(PostProcessingPlugin):
             )
 
     def check_timezones_are_unique(self, timezone_cube):
-        """Ensures that each grid point falls into exactly one time zone.
+        """Ensures that each grid point falls into exactly one time zone
 
         Raises:
             ValueError:
@@ -456,7 +457,7 @@ class TimezoneExtraction(PostProcessingPlugin):
             timezone_cube (iris.cube.Cube):
                 Cube describing the UTC offset for the local time at each grid location.
                 Must have the same spatial coords as input_cube.
-           local_time (datetime.datetime):
+            local_time (datetime.datetime):
                 The "local" time of the output cube. This will form a
                 scalar "time_in_local_timezone" coord on the output cube, while the
                 "time" coord will be auxillary to the spatial coords and will show the
@@ -465,8 +466,8 @@ class TimezoneExtraction(PostProcessingPlugin):
         Returns:
             iris.cube.Cube:
                 Output local-time cube. The time coord will span the spatial coords.
-                The utc coord will match the output_utc_time_list supplied. All other
-                coords and attributes will match those found on input_cube.
+                The time_in_local_timezone coord will match the local_time supplied.
+                All other coords and attributes will match those found on input_cube.
         """
         if isinstance(input_cubes, iris.cube.Cube):
             input_cube = input_cubes
