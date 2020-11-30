@@ -201,29 +201,24 @@ class BasicThreshold(PostProcessingPlugin):
         self.comparison_operator_dict.update(
             dict.fromkeys(
                 ["ge", "GE", ">="],
-                {"function": operator.ge,
-                 "spp_string": "greater_than_or_equal_to"}
+                {"function": operator.ge, "spp_string": "greater_than_or_equal_to"},
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
                 ["gt", "GT", ">"],
-                {"function": operator.gt,
-                 "spp_string": "greater_than"}
+                {"function": operator.gt, "spp_string": "greater_than"},
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
                 ["le", "LE", "<="],
-                {"function": operator.le,
-                 "spp_string": "less_than_or_equal_to"}
+                {"function": operator.le, "spp_string": "less_than_or_equal_to"},
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["lt", "LT", "<"],
-                {"function": operator.lt,
-                 "spp_string": "less_than"}
+                ["lt", "LT", "<"], {"function": operator.lt, "spp_string": "less_than"}
             )
         )
         self.comparison_operator_string = comparison_operator
@@ -377,9 +372,9 @@ class BasicThreshold(PostProcessingPlugin):
                     ),
                 )
                 # if requirement is for probabilities less_than or
-		# less_than_or_equal_to the threshold (rather than
-		# greater_than or greater_than_or_equal_to), invert
-		# the exceedance probability
+                # less_than_or_equal_to the threshold (rather than
+                # greater_than or greater_than_or_equal_to), invert
+                # the exceedance probability
                 if "less_than" in self.comparison_operator["spp_string"]:
                     truth_value = 1.0 - truth_value
             truth_value = np.ma.masked_where(np.ma.getmask(cube.data), truth_value)

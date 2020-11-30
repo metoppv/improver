@@ -172,11 +172,8 @@ def probability_is_above_or_below(cube):
 
     threshold_attribute = None
     thresh_coord = find_threshold_coordinate(cube)
-    thresh = thresh_coord.attributes.get(
-        "spp__relative_to_threshold", None
-    )
-    if thresh in ("above", "greater_than",
-                   "greater_than_or_equal_to"):
+    thresh = thresh_coord.attributes.get("spp__relative_to_threshold", None)
+    if thresh in ("above", "greater_than", "greater_than_or_equal_to"):
         threshold_attribute = "above"
     elif thresh in ("below", "less_than", "less_than_or_equal_to"):
         threshold_attribute = "below"

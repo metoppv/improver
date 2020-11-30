@@ -1047,8 +1047,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         location_parameter.data = np.ma.filled(location_parameter.data, 1)
         scale_parameter.data = np.ma.filled(scale_parameter.data, 1)
         thresholds = find_threshold_coordinate(probability_cube_template).points
-        relative_to_threshold = probability_is_above_or_below(
-            probability_cube_template)
+        relative_to_threshold = probability_is_above_or_below(probability_cube_template)
 
         self._rescale_shape_parameters(
             location_parameter.data.flatten(), np.sqrt(scale_parameter.data).flatten()

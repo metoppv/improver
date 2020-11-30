@@ -65,9 +65,7 @@ class Test_probability_is_or_below(unittest.TestCase):
     def test_above(self):
         """ Tests the case where spp__relative_threshold is above"""
         cube = set_up_probability_cube(
-            self.data,
-            self.threshold_points,
-            spp__relative_to_threshold="above"
+            self.data, self.threshold_points, spp__relative_to_threshold="above"
         )
         result = probability_is_above_or_below(cube)
         self.assertEqual(result, "above")
@@ -75,9 +73,7 @@ class Test_probability_is_or_below(unittest.TestCase):
     def test_below(self):
         """ Tests the case where spp__relative_threshold is above"""
         cube = set_up_probability_cube(
-            self.data,
-            self.threshold_points,
-            spp__relative_to_threshold="below"
+            self.data, self.threshold_points, spp__relative_to_threshold="below"
         )
         result = probability_is_above_or_below(cube)
         self.assertEqual(result, "below")
@@ -85,9 +81,7 @@ class Test_probability_is_or_below(unittest.TestCase):
     def test_greater_than(self):
         """ Tests the case where spp__relative_threshold is above"""
         cube = set_up_probability_cube(
-            self.data,
-            self.threshold_points,
-            spp__relative_to_threshold="greater_than"
+            self.data, self.threshold_points, spp__relative_to_threshold="greater_than"
         )
         result = probability_is_above_or_below(cube)
         self.assertEqual(result, "above")
@@ -97,7 +91,7 @@ class Test_probability_is_or_below(unittest.TestCase):
         cube = set_up_probability_cube(
             self.data,
             self.threshold_points,
-            spp__relative_to_threshold="greater_than_or_equal_to"
+            spp__relative_to_threshold="greater_than_or_equal_to",
         )
         result = probability_is_above_or_below(cube)
         self.assertEqual(result, "above")
@@ -105,9 +99,7 @@ class Test_probability_is_or_below(unittest.TestCase):
     def test_less_than(self):
         """ Tests the case where spp__relative_threshold is above"""
         cube = set_up_probability_cube(
-            self.data,
-            self.threshold_points,
-            spp__relative_to_threshold="less_than"
+            self.data, self.threshold_points, spp__relative_to_threshold="less_than"
         )
         result = probability_is_above_or_below(cube)
         self.assertEqual(result, "below")
@@ -117,7 +109,7 @@ class Test_probability_is_or_below(unittest.TestCase):
         cube = set_up_probability_cube(
             self.data,
             self.threshold_points,
-            spp__relative_to_threshold="less_than_or_equal_to"
+            spp__relative_to_threshold="less_than_or_equal_to",
         )
         result = probability_is_above_or_below(cube)
         self.assertEqual(result, "below")
@@ -125,24 +117,20 @@ class Test_probability_is_or_below(unittest.TestCase):
     def test_no_spp__relative_to_threshold(self):
         """Tests it returns None if there is no spp__relative_to_threshold
         attribute."""
-        cube = set_up_probability_cube(
-            self.data,
-            self.threshold_points,
-        )
-        cube.coord('air_temperature').attributes = {
-            'relative_to_threshold': 'greater_than'}
+        cube = set_up_probability_cube(self.data, self.threshold_points,)
+        cube.coord("air_temperature").attributes = {
+            "relative_to_threshold": "greater_than"
+        }
         result = probability_is_above_or_below(cube)
         self.assertEqual(result, None)
 
     def test_incorrect_attribute(self):
         """Tests it returns None if the spp__relative_to_threshold
         attribute has an invalid value."""
-        cube = set_up_probability_cube(
-            self.data,
-            self.threshold_points,
-        )
-        cube.coord('air_temperature').attributes = {
-            'spp__relative_to_threshold': 'higher'}
+        cube = set_up_probability_cube(self.data, self.threshold_points,)
+        cube.coord("air_temperature").attributes = {
+            "spp__relative_to_threshold": "higher"
+        }
         result = probability_is_above_or_below(cube)
         self.assertEqual(result, None)
 
