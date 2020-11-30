@@ -56,7 +56,7 @@ class Test_probability_is_or_below(unittest.TestCase):
     """Test that the probability_is_above_or_below function correctly
     identifies whether the spp__relative_to_threshold attribute is above
     or below with the respect to the threshold."""
-    
+
     def setUp(self):
         """Set up data and thresholds for the cubes."""
         self.data = np.ones((3, 3, 3), dtype=np.float32)
@@ -121,6 +121,30 @@ class Test_probability_is_or_below(unittest.TestCase):
         )
         result = probability_is_above_or_below(cube)
         self.assertEqual(result, "below")
+
+    def test_no_spp__relative_to_threshold(self):
+        """Tests it returns None if there is no spp__relative_to_threshold
+        attribute."""
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+        )
+        cube.coord('air_temperature').attributes = {
+            'relative_to_threshold': 'greater_than'}
+        result = probability_is_above_or_below(cube)
+        self.assertEqual(result, None)
+
+    def test_incorrect_attribute(self):
+        """Tests it returns None if the spp__relative_to_threshold
+        attribute has an invalid value."""
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+        )
+        cube.coord('air_temperature').attributes = {
+            'spp__relative_to_threshold': 'higher'}
+        result = probability_is_above_or_below(cube)
+        self.assertEqual(result, None)
 
 
 class Test_in_vicinity_name_format(unittest.TestCase):

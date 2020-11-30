@@ -134,17 +134,10 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
             ValueError: If the spp__relative_to_threshold attribute is
                 not recognised
         """
-        relative_to_threshold = probability_is_above_or_below(self.cube)       
-#        relative_to_threshold = self.thresh_coord.attributes[
-#            "spp__relative_to_threshold"
-#        ]
-#        if (relative_to_threshold in ("above", "greater_than",
-#                                      "greater_than_or_equal_to")):
-        if (relative_to_threshold == "above"):
+        relative_to_threshold = probability_is_above_or_below(self.cube)
+        if relative_to_threshold == "above":
             multiplier = 1.0
-        elif (relative_to_threshold == "below"):
-#        elif (relative_to_threshold in ("below", "less_than",
-#                                        "less_than_or_equal_to")):
+        elif relative_to_threshold == "below":
             multiplier = -1.0
         else:
             raise ValueError(

@@ -502,12 +502,10 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         prob_slices = np.around(prob_slices, 9)
 
         # Invert probabilities for data thresholded above thresholds.
-        relation = find_threshold_coordinate(forecast_probabilities).attributes[
-            "spp__relative_to_threshold"
-        ]
-        if (relation in ("above", "greater_than", "greater_than_or_equal_to")):
+        relation = probability_is_above_or_below(forecast_probabilities)
+        if relation == "above":
             probabilities_for_cdf = 1 - prob_slices
-        elif (relation in ("below", "less_than", "less_than_or_equal_to")):
+        elif relation == "below":
             probabilities_for_cdf = prob_slices
         else:
             msg = (
@@ -1068,7 +1066,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         )
 
         probability_method = distribution.cdf
-        if (relative_to_threshold == "above"):
+        if relative_to_threshold == "above":
             probability_method = distribution.sf
 
         for index, threshold in enumerate(thresholds):

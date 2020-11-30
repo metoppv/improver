@@ -157,7 +157,8 @@ def find_threshold_coordinate(cube):
 
 def probability_is_above_or_below(cube):
     """Checks the spp__relative_to_threshold attribute and outputs
-    whether it is above or below the threshold given.
+    whether it is above or below the threshold given. If there isn't
+    a spp__relative_to_threshold attribute it returns None.
 
     Args:
         cube (iris.cube.Cube):
@@ -169,14 +170,18 @@ def probability_is_above_or_below(cube):
             above or below the threshold
     """
 
-    threshold_attribute = None    
+    threshold_attribute = None
     thresh_coord = find_threshold_coordinate(cube)
-    thresh = thresh_coord.attributes["spp__relative_to_threshold"]
-    if (thresh in ("above", "greater_than",
-                   "greater_than_or_equal_to")):
+    thresh = thresh_coord.attributes.get(
+        "spp__relative_to_threshold", None
+    )
+    if thresh in ("above", "greater_than",
+                   "greater_than_or_equal_to"):
         threshold_attribute = "above"
-    elif (thresh in ("below", "less_than", "less_than_or_equal_to")):
+    elif thresh in ("below", "less_than", "less_than_or_equal_to"):
         threshold_attribute = "below"
+    else:
+        threshold_attribute = None
 
     return threshold_attribute
 

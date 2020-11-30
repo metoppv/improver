@@ -1056,51 +1056,44 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             cube (iris.cube.Cube):
                 The probability cube for which monotonicity is to be checked
                 and enforced. This cube is modified in place.
-#        Raises:
-#            ValueError: Threshold coordinate lacks the
-#                        spp__relative_to_threshold attribute.
+        Raises:
+            ValueError: Threshold coordinate lacks the
+                        spp__relative_to_threshold attribute.
         Warns:
             UserWarning: If the probabilities must be sorted to reinstate
                          expected monotonicity following calibration.
         """
         (threshold_dim,) = cube.coord_dims(self.threshold_coord)
-        threshold_att = self.threshold_coord.attributes.get(
-            "spp__relative_to_threshold", None
-        )
         thresholding = probability_is_above_or_below(cube)
-        if threshold_att is None:
+        if thresholding is None:
             msg = (
                 "Cube threshold coordinate does not define whether "
                 "thresholding is above or below the defined thresholds."
             )
             raise ValueError(msg)
-        else:
-            if (
-	            thresholding == "above"
-#        if (thresholding in ("above", "greater_than",
-#                             "greater_than_or_equal_to")
-                and not (np.diff(cube.data, axis=threshold_dim) <= 0).all()
-            ):
-                msg = (
-                    "Exceedance probabilities are not decreasing monotonically "
-                    "as the threshold values increase. Forced back into order."
-                )
-                warnings.warn(msg)
-                cube.data = np.sort(cube.data, axis=threshold_dim)[::-1]
 
-            if (
-	            thresholding == "below"
-#        if (thresholding in ("below", "less_than",
-#                             "less_than_or_equal_to")
-                and not (np.diff(cube.data, axis=threshold_dim) >= 0).all()
-            ):
-                msg = (
-                    "Below threshold probabilities are not increasing "
-                    "monotonically as the threshold values increase. Forced "
-                    "back into order."
-                ) 
-                warnings.warn(msg)
-                cube.data = np.sort(cube.data, axis=threshold_dim)
+        if (
+            thresholding == "above"
+            and not (np.diff(cube.data, axis=threshold_dim) <= 0).all()
+        ):
+            msg = (
+                "Exceedance probabilities are not decreasing monotonically "
+                "as the threshold values increase. Forced back into order."
+            )
+            warnings.warn(msg)
+            cube.data = np.sort(cube.data, axis=threshold_dim)[::-1]
+
+        if (
+            thresholding == "below"
+            and not (np.diff(cube.data, axis=threshold_dim) >= 0).all()
+        ):
+            msg = (
+                "Below threshold probabilities are not increasing "
+                "monotonically as the threshold values increase. Forced "
+                "back into order."
+            )
+            warnings.warn(msg)
+            cube.data = np.sort(cube.data, axis=threshold_dim)
 
     def _calculate_reliability_probabilities(self, reliability_table):
         """
