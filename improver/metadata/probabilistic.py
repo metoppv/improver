@@ -177,8 +177,6 @@ def probability_is_above_or_below(cube):
         threshold_attribute = "above"
     elif thresh in ("below", "less_than", "less_than_or_equal_to"):
         threshold_attribute = "below"
-    else:
-        threshold_attribute = None
 
     return threshold_attribute
 
