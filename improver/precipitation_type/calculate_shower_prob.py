@@ -34,6 +34,7 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import (
     extract_diagnostic_name,
     find_threshold_coordinate,
@@ -51,14 +52,14 @@ class ShowerProbability(BasePlugin):
         """Set up fixed thresholds from which to diagnose showers from different
         input fields"""
         self.conditions_uk = {
-            "texture_of_low_and_medium_cloud_area_fraction": {
+            "texture_of_low_and_medium_type_cloud_area_fraction": {
                 "diagnostic_threshold": 0.05,
                 "probability_threshold": 0.5,
                 "operator": "above",
             },
         }
         self.conditions_global = {
-             "low_and_medium_cloud_area_fraction": {
+            "low_and_medium_type_cloud_area_fraction": {
                 "diagnostic_threshold": 0.8125,
                 "probability_threshold": 0.5,
                 "operator": "below",
@@ -72,16 +73,21 @@ class ShowerProbability(BasePlugin):
         self.cubes = None
         self.tree = None
 
-    def _calculate_shower_probability(self):
+    def _calculate_shower_probability(self, shape):
         """Calculate deterministic "shower probability" field"""
-        shower_probability = np.ones_like(self.cubes[0].data)
+        shower_probability = np.ones(shape, dtype=FLOAT_DTYPE)
         for cube in self.cubes:
             name = extract_diagnostic_name(cube.name())
-            threshold_slice = cube.extract(
-                iris.Constraint(name=self.tree[name]["diagnostic_threshold"])
+            slice_constraint = iris.Constraint(
+                coord_values={
+                    name: lambda cell: np.isclose(
+                        cell.point, self.tree[name]["diagnostic_threshold"]
+                    )
+                }
             )
+            threshold_slice = cube.extract(slice_constraint)
             prob = self.tree[name]["probability_threshold"]
-            if tree[name]["operator"] == "above":
+            if self.tree[name]["operator"] == "above":
                 condition_met = np.where(threshold_slice.data >= prob, 1, 0)
             else:
                 condition_met = np.where(threshold_slice.data < prob, 1, 0)
@@ -90,8 +96,10 @@ class ShowerProbability(BasePlugin):
 
     def _output_metadata(self):
         """Returns template cube and mandatory attributes for result"""
-        template = next(self.cubes[0].slices_over(find_threshold_coordinate(self.cubes[0])))
-        template.remove_coord(find_threshold_coord(self.cubes[0]))
+        template = next(
+            self.cubes[0].slices_over(find_threshold_coordinate(self.cubes[0]))
+        )
+        template.remove_coord(find_threshold_coordinate(self.cubes[0]))
         attributes = generate_mandatory_attributes(self.cubes)
         return template, attributes
 
@@ -129,11 +137,11 @@ class ShowerProbability(BasePlugin):
             self.cubes = [cloud_texture]
             self.tree = self.conditions_uk
 
-        shower_probability = self.calculate_shower_probability()
-        template, attributes = self._output_metadata()
+        template, attributes = self._output_metadata()        
+        shower_probability = self._calculate_shower_probability(template.shape)
 
         result = create_new_diagnostic_cube(
-            "showery_precipitation",
+            "probability_precipitation_is_showery",
             "1",
             template,
             mandatory_attributes=attributes,
