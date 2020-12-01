@@ -54,7 +54,7 @@ def process(snow: cli.inputcube, rain: cli.inputcube):
     """
 
     from improver.precipitation_type.calculate_sleet_prob import (
-        calculate_sleet_probability
+        calculate_sleet_probability,
     )
 
     result = calculate_sleet_probability(snow, rain)
