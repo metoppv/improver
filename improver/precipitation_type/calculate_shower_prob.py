@@ -126,11 +126,6 @@ class ShowerProbability(BasePlugin):
             iris.cube.Cube:
                 Binary (0/1) "probability of showery precipitation"
 
-                TODO does this need a "threshold" coordinate (for technical reasons)?
-                By metadata standard it is analogous to "probability of snow at
-                surface", so should not have a "threshold" coordinate.  But it may not
-                be possible to adapt weather symbols code in the time available.
-
         Raises:
             ValueError: if inputs are incomplete
         """
