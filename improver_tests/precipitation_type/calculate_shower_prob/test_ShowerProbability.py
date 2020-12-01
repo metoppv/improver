@@ -38,7 +38,6 @@ from improver.metadata.constants import FLOAT_DTYPE
 from improver.precipitation_type.calculate_shower_prob import ShowerProbability
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
-
 # Set up probability data to boundary-test around 0.5
 PROBABILITY_DATA = np.array(
     [
@@ -46,7 +45,7 @@ PROBABILITY_DATA = np.array(
         [[0.2, 0.2, 0.3], [0.4, 0.49, 0.5], [0.5, 0.51, 0.7]],
         np.zeros((3, 3)),
     ],
-    dtype = FLOAT_DTYPE
+    dtype=FLOAT_DTYPE,
 )
 
 EXPECTED_UK = [[0, 0, 0], [0, 0, 1], [1, 1, 1]]
@@ -71,7 +70,7 @@ def cloud_texture_fixture():
 @pytest.fixture(name="cloud_cube")
 def cloud_fixture():
     """Probability of cloud above threshold cube"""
-    thresholds = np.array([0.5, 0.8125, 1.], dtype=FLOAT_DTYPE)
+    thresholds = np.array([0.5, 0.8125, 1.0], dtype=FLOAT_DTYPE)
     name = "low_and_medium_type_cloud_area_fraction"
     return set_up_probability_cube(
         np.flip(PROBABILITY_DATA, axis=1),
@@ -99,7 +98,9 @@ def conv_ratio_fixture():
 def test_basic(cloud_texture_cube):
     """Test output type and metadata"""
     expected_dims = ["projection_y_coordinate", "projection_x_coordinate"]
-    expected_aux = {coord.name() for coord in cloud_texture_cube.coords(dim_coords=False)}
+    expected_aux = {
+        coord.name() for coord in cloud_texture_cube.coords(dim_coords=False)
+    }
     expected_attributes = {
         "institution": "unknown",
         "source": "IMPROVER",
@@ -110,7 +111,7 @@ def test_basic(cloud_texture_cube):
     dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
     aux_coords = {coord.name() for coord in result.coords(dim_coords=False)}
 
-    assert result.name() == "probability_precipitation_is_showery"
+    assert result.name() == "precipitation_is_showery"
     assert result.units == "1"
     assert result.shape == (3, 3)
     assert aux_coords == expected_aux
@@ -134,9 +135,7 @@ def test_too_many_inputs(cloud_texture_cube, cloud_cube, conv_ratio_cube):
     """Test default behaviour using UK tree if all fields are provided"""
     expected_data = [[0, 0, 0], [0, 0, 1], [1, 1, 1]]
     result = ShowerProbability()(
-        cloud_texture=cloud_texture_cube,
-        cloud=cloud_cube,
-        conv_ratio=conv_ratio_cube
+        cloud_texture=cloud_texture_cube, cloud=cloud_cube, conv_ratio=conv_ratio_cube
     )
     np.testing.assert_allclose(result.data, EXPECTED_UK)
 
@@ -145,3 +144,10 @@ def test_too_few_inputs(cloud_cube):
     """Test error if too few inputs are provided"""
     with pytest.raises(ValueError, match="Incomplete inputs"):
         ShowerProbability()(cloud=cloud_cube)
+
+
+def test_missing_threshold(cloud_texture_cube):
+    """Test error if the required threshold is missing"""
+    cube = cloud_texture_cube[0]
+    with pytest.raises(ValueError, match="contain required threshold"):
+        ShowerProbability()(cloud_texture=cube)

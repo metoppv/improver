@@ -63,7 +63,7 @@ class ShowerProbability(BasePlugin):
                 "diagnostic_threshold": 0.8125,
                 "probability_threshold": 0.5,
                 "operator": "below",
-            },          
+            },
             "convective_ratio": {
                 "diagnostic_threshold": 0.8,
                 "probability_threshold": 0.5,
@@ -86,6 +86,12 @@ class ShowerProbability(BasePlugin):
                 }
             )
             threshold_slice = cube.extract(slice_constraint)
+            if threshold_slice is None:
+                msg = "Cube {} does not contain required threshold {}"
+                raise ValueError(
+                    msg.format(cube.name(), self.tree[name]["diagnostic_threshold"])
+                )
+
             prob = self.tree[name]["probability_threshold"]
             if self.tree[name]["operator"] == "above":
                 condition_met = np.where(threshold_slice.data >= prob, 1, 0)
@@ -126,7 +132,7 @@ class ShowerProbability(BasePlugin):
                 be possible to adapt weather symbols code in the time available.
 
         Raises:
-            ValueError: if inputs are incorrect or incomplete
+            ValueError: if inputs are incomplete
         """
         if cloud_texture is None:
             if cloud is None or conv_ratio is None:
@@ -137,15 +143,15 @@ class ShowerProbability(BasePlugin):
             self.cubes = [cloud_texture]
             self.tree = self.conditions_uk
 
-        template, attributes = self._output_metadata()        
+        template, attributes = self._output_metadata()
         shower_probability = self._calculate_shower_probability(template.shape)
 
         result = create_new_diagnostic_cube(
-            "probability_precipitation_is_showery",
+            "precipitation_is_showery",
             "1",
             template,
             mandatory_attributes=attributes,
             data=shower_probability,
         )
-            
+
         return result
