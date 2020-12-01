@@ -58,6 +58,7 @@ BOUNDS_FOR_ECDF = {
     "cloud_base_altitude_assuming_only_consider_cloud_area_fraction_greater_than_2p5_oktas": Bounds(
         (-300, 20000), "m"
     ),
+    "low_and_medium_type_cloud_area_fraction": Bounds((0, 1.0), "1"),
     "low_type_cloud_area_fraction": Bounds((0, 1.0), "1"),
     # Precipitation amount
     "lwe_thickness_of_precipitation_amount": Bounds((0, 0.5), "m"),
