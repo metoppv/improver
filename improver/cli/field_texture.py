@@ -88,7 +88,7 @@ def process(
             the grid point.
     """
 
-    from improver.field_texture import FieldTexture
+    from improver.precipitation_type.field_texture import FieldTexture
 
     field_texture = FieldTexture(
         nbhood_radius,
