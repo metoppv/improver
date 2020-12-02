@@ -124,7 +124,7 @@ class ShowerProbability(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                Binary (0/1) "probability of showery precipitation"
+                Binary (0/1) "precipitation is showery"
 
         Raises:
             ValueError: if inputs are incomplete
