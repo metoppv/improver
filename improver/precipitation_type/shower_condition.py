@@ -73,9 +73,9 @@ class ShowerCondition(BasePlugin):
         self.cubes = None
         self.tree = None
 
-    def _calculate_shower_probability(self, shape):
-        """Calculate deterministic "shower probability" field"""
-        shower_probability = np.ones(shape, dtype=FLOAT_DTYPE)
+    def _calculate_shower_condition(self, shape):
+        """Calculate deterministic "precipitation is showery" field"""
+        showery_points = np.ones(shape, dtype=FLOAT_DTYPE)
         for cube in self.cubes:
             name = extract_diagnostic_name(cube.name())
             slice_constraint = iris.Constraint(
@@ -97,8 +97,8 @@ class ShowerCondition(BasePlugin):
                 condition_met = np.where(threshold_slice.data >= prob, 1, 0)
             else:
                 condition_met = np.where(threshold_slice.data < prob, 1, 0)
-            shower_probability = np.multiply(shower_probability, condition_met)
-        return shower_probability
+            showery_points = np.multiply(showery_points, condition_met)
+        return showery_points.astype(FLOAT_DTYPE)
 
     def _output_metadata(self):
         """Returns template cube and mandatory attributes for result"""
@@ -139,14 +139,14 @@ class ShowerCondition(BasePlugin):
             self.tree = self.conditions_uk
 
         template, attributes = self._output_metadata()
-        shower_probability = self._calculate_shower_probability(template.shape)
+        showery_points = self._calculate_shower_condition(template.shape)
 
         result = create_new_diagnostic_cube(
             "precipitation_is_showery",
             "1",
             template,
             mandatory_attributes=attributes,
-            data=shower_probability,
+            data=showery_points,
         )
 
         return result

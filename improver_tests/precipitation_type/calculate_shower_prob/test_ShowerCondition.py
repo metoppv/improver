@@ -28,14 +28,14 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for ShowerProbability plugin"""
+"""Unit tests for ShowerCondition plugin"""
 
 import iris
 import numpy as np
 import pytest
 
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.precipitation_type.calculate_shower_prob import ShowerProbability
+from improver.precipitation_type.shower_condition import ShowerCondition
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 # Set up probability data to boundary-test around 0.5
@@ -107,13 +107,14 @@ def test_basic(cloud_texture_cube):
         "title": "unknown",
     }
 
-    result = ShowerProbability()(cloud_texture=cloud_texture_cube)
+    result = ShowerCondition()(cloud_texture=cloud_texture_cube)
     dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
     aux_coords = {coord.name() for coord in result.coords(dim_coords=False)}
 
     assert result.name() == "precipitation_is_showery"
     assert result.units == "1"
     assert result.shape == (3, 3)
+    assert result.data.dtype == FLOAT_DTYPE
     assert aux_coords == expected_aux
     assert dim_coords == expected_dims
     assert result.attributes == expected_attributes
@@ -121,19 +122,19 @@ def test_basic(cloud_texture_cube):
 
 def test_uk_tree(cloud_texture_cube):
     """Test correct shower diagnosis using UK decision tree"""
-    result = ShowerProbability()(cloud_texture=cloud_texture_cube)
+    result = ShowerCondition()(cloud_texture=cloud_texture_cube)
     np.testing.assert_allclose(result.data, EXPECTED_UK)
 
 
 def test_global_tree(cloud_cube, conv_ratio_cube):
     """Test correct shower diagnosis using global decision tree"""
-    result = ShowerProbability()(cloud=cloud_cube, conv_ratio=conv_ratio_cube)
+    result = ShowerCondition()(cloud=cloud_cube, conv_ratio=conv_ratio_cube)
     np.testing.assert_allclose(result.data, EXPECTED_GLOBAL)
 
 
 def test_too_many_inputs(cloud_texture_cube, cloud_cube, conv_ratio_cube):
     """Test default behaviour using UK tree if all fields are provided"""
-    result = ShowerProbability()(
+    result = ShowerCondition()(
         cloud_texture=cloud_texture_cube, cloud=cloud_cube, conv_ratio=conv_ratio_cube
     )
     np.testing.assert_allclose(result.data, EXPECTED_UK)
@@ -142,11 +143,11 @@ def test_too_many_inputs(cloud_texture_cube, cloud_cube, conv_ratio_cube):
 def test_too_few_inputs(cloud_cube):
     """Test error if too few inputs are provided"""
     with pytest.raises(ValueError, match="Incomplete inputs"):
-        ShowerProbability()(cloud=cloud_cube)
+        ShowerCondition()(cloud=cloud_cube)
 
 
 def test_missing_threshold(cloud_texture_cube):
     """Test error if the required threshold is missing"""
     cube = cloud_texture_cube[0]
     with pytest.raises(ValueError, match="contain required threshold"):
-        ShowerProbability()(cloud_texture=cube)
+        ShowerCondition()(cloud_texture=cube)
