@@ -38,6 +38,7 @@ import numpy as np
 from cf_units import Unit
 
 from improver import PostProcessingPlugin
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
@@ -246,7 +247,7 @@ class BasicThreshold(PostProcessingPlugin):
                 With new "threshold" axis
         """
         coord = iris.coords.DimCoord(
-            np.array([threshold], dtype=np.float32), units=cube.units
+            np.array([threshold], dtype=FLOAT_DTYPE), units=cube.units
         )
         coord.rename(self.threshold_coord_name)
         coord.var_name = "threshold"
@@ -314,7 +315,7 @@ class BasicThreshold(PostProcessingPlugin):
         # integer data must become float to enable fuzzy thresholding.
         input_cube_dtype = input_cube.dtype
         if input_cube.dtype.kind == "i":
-            input_cube_dtype = np.float32
+            input_cube_dtype = FLOAT_DTYPE
 
         thresholded_cubes = iris.cube.CubeList()
         if np.isnan(input_cube.data).any():
@@ -384,6 +385,9 @@ class BasicThreshold(PostProcessingPlugin):
             thresholded_cubes.append(cube)
 
         (cube,) = thresholded_cubes.concatenate()
+        if len(self.thresholds) == 1:
+            # if only one threshold has been provided, this should be scalar
+            cube = next(cube.slices_over(cube.coord(var_name="threshold")))
 
         cube.rename(
             "probability_of_{}_{}_threshold".format(

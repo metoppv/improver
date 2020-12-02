@@ -120,7 +120,7 @@ class Test_WXCode(IrisTest):
 
         thresholds = np.array([0.8], dtype=np.float32)
         data_convective_ratio = np.array(
-            [[[0.1, 0.1, 0.1], [0.2, 0.2, 1.0], [1.0, 1.0, 0.2]],], dtype=np.float32,
+            [[[0.1, 0.1, 0.1], [0.2, 0.2, 1.0], [1.0, 1.0, 0.2]]], dtype=np.float32,
         )
 
         convective_ratio = set_up_probability_cube(
@@ -197,7 +197,7 @@ class Test_WXCode(IrisTest):
 
         thresholds = np.array([0.05], dtype=np.float32)
         data_cloud_texture = np.array(
-            [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]],], dtype=np.float32,
+            [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]], dtype=np.float32,
         )
 
         cloud_texture = set_up_probability_cube(
@@ -849,7 +849,7 @@ class Test_process(Test_WXCode):
     def test_lightning(self):
         """Test process returns right values if all lightning. """
         plugin = WeatherSymbols()
-        data_lightning = np.ones((1, 3, 3))
+        data_lightning = np.ones((3, 3))
         cubes = self.cubes
         cubes[7].data = data_lightning
         result = plugin.process(self.cubes)
@@ -918,12 +918,12 @@ class Test_process(Test_WXCode):
             dtype=np.float32,
         )
         data_cloud_texture = np.array(
-            [[[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],], dtype=np.float32,
+            [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], dtype=np.float32,
         )
 
-        data_cld_low = np.zeros((1, 3, 3))
+        data_cld_low = np.zeros((3, 3))
         data_vis = np.zeros((2, 3, 3))
-        data_lightning = np.zeros((1, 3, 3))
+        data_lightning = np.zeros((3, 3))
 
         cubes = self.cubes
         cubes[0].data = data_snow
@@ -1011,11 +1011,11 @@ class Test_process(Test_WXCode):
             ],
             dtype=np.float32,
         )
-        data_cld_low = np.zeros((1, 3, 3), dtype=np.float32)
+        data_cld_low = np.zeros((3, 3), dtype=np.float32)
         data_vis = np.zeros((2, 3, 3), dtype=np.float32)
         data_precip = np.max(np.array([data_snow, data_sleet, data_rain]), axis=0)
         data_convective_ratio = np.array(
-            [[[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],], dtype=np.float32,
+            [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], dtype=np.float32,
         )
         cubes = self.cubes.extract(self.gbl)
         cubes[0].data = data_snow

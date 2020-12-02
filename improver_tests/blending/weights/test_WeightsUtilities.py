@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the weights.ChooseDefaultWeightsLinear plugin."""
 
-
 import unittest
+from datetime import datetime as dt
 
 import iris
 import numpy as np
@@ -39,8 +39,10 @@ from iris.tests import IrisTest
 
 from improver.blending.weights import WeightsUtilities
 from improver.metadata.probabilistic import find_threshold_coordinate
-
-from ...metadata.test_amend import create_cube_with_threshold
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_probability_cube,
+)
 
 
 class Test__repr__(IrisTest):
@@ -118,7 +120,18 @@ class Test_build_weights_cube(IrisTest):
 
     def setUp(self):
         """Setup for testing cube creation."""
-        self.cube = create_cube_with_threshold()
+        cube = set_up_probability_cube(
+            np.full((1, 2, 2), 0.5, dtype=np.float32),
+            np.array([1.0], dtype=np.float32),
+            variable_name="rainfall_rate",
+            threshold_units="mm h-1",
+            time=dt(2015, 11, 19, 1, 30),
+            frt=dt(2015, 11, 18, 22, 0),
+        )
+
+        time_points = [dt(2015, 11, 19, 0, 30), dt(2015, 11, 19, 1, 30)]
+        self.cube = add_coordinate(cube, time_points, "time", is_datetime=True)
+        self.cube.data[1, :, :] = 0.6
 
     def test_basic_weights(self):
         """Test building a cube with weights along the blending coordinate."""
