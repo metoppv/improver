@@ -71,7 +71,7 @@ class Test_probability_is_or_below(unittest.TestCase):
         self.assertEqual(result, "above")
 
     def test_below(self):
-        """ Tests the case where spp__relative_threshold is above"""
+        """ Tests the case where spp__relative_threshold is below"""
         cube = set_up_probability_cube(
             self.data, self.threshold_points, spp__relative_to_threshold="below"
         )
@@ -79,7 +79,7 @@ class Test_probability_is_or_below(unittest.TestCase):
         self.assertEqual(result, "below")
 
     def test_greater_than(self):
-        """ Tests the case where spp__relative_threshold is above"""
+        """ Tests the case where spp__relative_threshold is greater_than"""
         cube = set_up_probability_cube(
             self.data, self.threshold_points, spp__relative_to_threshold="greater_than"
         )
@@ -87,7 +87,8 @@ class Test_probability_is_or_below(unittest.TestCase):
         self.assertEqual(result, "above")
 
     def test_greater_than_or_equal_to(self):
-        """ Tests the case where spp__relative_threshold is above"""
+        """ Tests the case where spp__relative_threshold is
+        greater_than_or_equal_to"""
         cube = set_up_probability_cube(
             self.data,
             self.threshold_points,
@@ -97,7 +98,7 @@ class Test_probability_is_or_below(unittest.TestCase):
         self.assertEqual(result, "above")
 
     def test_less_than(self):
-        """ Tests the case where spp__relative_threshold is above"""
+        """ Tests the case where spp__relative_threshold is less_than"""
         cube = set_up_probability_cube(
             self.data, self.threshold_points, spp__relative_to_threshold="less_than"
         )
@@ -105,7 +106,8 @@ class Test_probability_is_or_below(unittest.TestCase):
         self.assertEqual(result, "below")
 
     def test_less_than_or_equal_to(self):
-        """ Tests the case where spp__relative_threshold is above"""
+        """ Tests the case where spp__relative_threshold is
+        less_than_or_equal_to"""
         cube = set_up_probability_cube(
             self.data,
             self.threshold_points,
