@@ -172,7 +172,7 @@ class Test_process(CombinerTest):
         result = plugin.process(cubelist, "new_cube_name")
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "new_cube_name")
-        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
+        expected_data = np.full((2, 2), 1.1, dtype=np.float32)
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertCubeListEqual(input_copy, cubelist)
 
@@ -181,7 +181,7 @@ class Test_process(CombinerTest):
         plugin = CubeCombiner("mean")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
         result = plugin.process(cubelist, "new_cube_name")
-        expected_data = np.full((1, 2, 2), 0.55, dtype=np.float32)
+        expected_data = np.full((2, 2), 0.55, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
 
@@ -192,7 +192,7 @@ class Test_process(CombinerTest):
             [self.cube1, self.cube2.copy(np.ones_like(self.cube2.data, dtype=np.int8))]
         )
         result = plugin.process(cubelist, "new_cube_name")
-        expected_data = np.full((1, 2, 2), 1.5, dtype=np.float32)
+        expected_data = np.full((2, 2), 1.5, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertTrue(cubelist[0].dtype == np.float32)
@@ -219,7 +219,7 @@ class Test_process(CombinerTest):
         plugin = CubeCombiner("add")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
         result = plugin.process(cubelist, "new_cube_name")
-        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
+        expected_data = np.full((2, 2), 1.1, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(result.coord("time").points[0], 1447894800)
@@ -252,15 +252,15 @@ class Test_process(CombinerTest):
         plugin = CubeCombiner("mean")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2, self.cube3])
         result = plugin.process(cubelist, "new_cube_name")
-        expected_data = np.full((1, 2, 2), 0.4, dtype=np.float32)
+        expected_data = np.full((2, 2), 0.4, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_with_mask(self):
         """Test that the plugin preserves the mask if any of the inputs are
         masked"""
-        expected_data = np.full((1, 2, 2), 1.2, dtype=np.float32)
-        mask = [[[False, True], [False, False]]]
+        expected_data = np.full((2, 2), 1.2, dtype=np.float32)
+        mask = [[False, True], [False, False]]
         self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
         plugin = CubeCombiner("add")
         result = plugin.process([self.cube1, self.cube2, self.cube3], "new_cube_name")
@@ -270,7 +270,7 @@ class Test_process(CombinerTest):
 
     def test_exception_mismatched_dimensions(self):
         """Test an error is raised if dimension coordinates do not match"""
-        self.cube2.coord("lwe_thickness_of_precipitation_amount").rename("snow_depth")
+        self.cube2.coord("latitude").rename("projection_y_coordinate")
         plugin = CubeCombiner("+")
         msg = "Cannot combine cubes with different dimensions"
         with self.assertRaisesRegex(ValueError, msg):

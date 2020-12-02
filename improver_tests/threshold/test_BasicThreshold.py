@@ -38,7 +38,10 @@ from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
 from improver.threshold import BasicThreshold as Threshold
 
 
@@ -194,8 +197,8 @@ class Test_process(IrisTest):
     def setUp(self):
         """Create a cube with a single non-zero point."""
         attributes = {"title": "UKV Model Forecast"}
-        data = np.zeros((1, 5, 5), dtype=np.float32)
-        data[0][2][2] = 0.5  # ~2 mm/hr
+        data = np.zeros((5, 5), dtype=np.float32)
+        data[2][2] = 0.5  # ~2 mm/hr
         self.cube = set_up_variable_cube(
             data,
             name="precipitation_amount",
@@ -218,11 +221,11 @@ class Test_process(IrisTest):
         self.plugin = Threshold(0.1, fuzzy_factor=0.95)
 
         self.masked_cube = self.cube.copy()
-        data = np.zeros((1, 5, 5))
-        mask = np.zeros((1, 5, 5))
-        data[0][2][2] = 0.5
-        data[0][0][0] = -32768.0
-        mask[0][0][0] = 1
+        data = np.zeros((5, 5))
+        mask = np.zeros((5, 5))
+        data[2][2] = 0.5
+        data[0][0] = -32768.0
+        mask[0][0] = 1
         self.masked_cube.data = np.ma.MaskedArray(data, mask=mask)
 
     def test_basic(self):
@@ -254,21 +257,18 @@ class Test_process(IrisTest):
         which return fractional values."""
         fuzzy_factor = 5.0 / 6.0
         threshold = 12
-        self.cube.data = np.arange(25).reshape((1, 5, 5))
+        self.cube.data = np.arange(25).reshape((5, 5))
         plugin = Threshold(threshold, fuzzy_factor=fuzzy_factor)
         result = plugin(self.cube)
-        expected = np.round(np.arange(0, 1, 1.0 / 25.0)).reshape((1, 1, 5, 5))
-        expected[0, 0, 2, 1:4] = [0.25, 0.5, 0.75]
+        expected = np.round(np.arange(0, 1, 1.0 / 25.0)).reshape((5, 5))
+        expected[2, 1:4] = [0.25, 0.5, 0.75]
         self.assertEqual(result.dtype, "float32")
         self.assertArrayEqual(result.data, expected)
 
     def test_metadata_changes(self):
         """Test the metadata altering functionality"""
-        # Copy the cube as the cube.data is used as the basis for comparison.
-        cube = self.cube.copy()
         plugin = Threshold(0.1)
-        result = plugin(cube)
-        # The single 0.5-valued point => 1.0, so cheat by * 2.0 vs orig data.
+        result = plugin(self.cube)
         name = "probability_of_{}_above_threshold"
         expected_name = name.format(self.cube.name())
         expected_attribute = "above"
@@ -290,28 +290,24 @@ class Test_process(IrisTest):
 
     def test_threshold(self):
         """Test the basic threshold functionality."""
-        # Copy the cube as the cube.data is used as the basis for comparison.
-        cube = self.cube.copy()
-        result = self.plugin(cube)
-        # The single 0.5-valued point => 1.0, so cheat by * 2.0 vs orig data.
-        expected_result_array = (self.cube.data * 2.0).reshape((1, 1, 5, 5))
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[2][2] = 1.0
+        result = self.plugin(self.cube)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_above_threshold_without_fuzzy_factor(self):
         """Test if the fixed threshold is below the value in the data."""
-        # Copy the cube as the cube.data is used as the basis for comparison.
-        cube = self.cube.copy()
         plugin = Threshold(0.1)
-        result = plugin(cube)
-        expected_result_array = self.cube.data.reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 1.0
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[2][2] = 1.0
+        result = plugin(self.cube)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_below_threshold_without_fuzzy_factor(self):
         """Test if the fixed threshold is above the value in the data."""
         plugin = Threshold(0.6)
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
+        expected_result_array = np.zeros_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_masked_array(self):
@@ -319,19 +315,17 @@ class Test_process(IrisTest):
         Masked values are preserved following thresholding."""
         plugin = Threshold(0.1)
         result = plugin(self.masked_cube)
-        expected_result_array = self.masked_cube.data.reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 1.0
+        expected_result_array = np.zeros_like(self.masked_cube.data)
+        expected_result_array[2][2] = 1.0
         self.assertArrayAlmostEqual(result.data.data, expected_result_array)
-        self.assertArrayEqual(
-            result.data.mask, self.masked_cube.data.mask.reshape((1, 1, 5, 5))
-        )
+        self.assertArrayEqual(result.data.mask, self.masked_cube.data.mask)
 
     def test_threshold_fuzzy(self):
         """Test when a point is in the fuzzy threshold area."""
         plugin = Threshold(0.6, fuzzy_factor=self.fuzzy_factor)
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 1.0 / 3.0
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[2][2] = 1.0 / 3.0
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_fuzzybounds(self):
@@ -339,8 +333,8 @@ class Test_process(IrisTest):
         bounds = (0.6 * self.fuzzy_factor, 0.6 * (2.0 - self.fuzzy_factor))
         plugin = Threshold(0.6, fuzzy_bounds=bounds)
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 1.0 / 3.0
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[2][2] = 1.0 / 3.0
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_masked_array_fuzzybounds(self):
@@ -349,11 +343,11 @@ class Test_process(IrisTest):
         bounds = (0.6 * self.fuzzy_factor, 0.6 * (2.0 - self.fuzzy_factor))
         plugin = Threshold(0.6, fuzzy_bounds=bounds)
         result = plugin.process(self.masked_cube)
-        expected_result_array = self.masked_cube.data.reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 1.0 / 3.0
+        expected_result_array = np.zeros_like(self.masked_cube.data)
+        expected_result_array[2][2] = 1.0 / 3.0
         self.assertArrayAlmostEqual(result.data.data, expected_result_array)
         self.assertArrayEqual(
-            result.data.mask, self.masked_cube.data.mask.reshape((1, 1, 5, 5))
+            result.data.mask, self.masked_cube.data.mask.reshape((5, 5))
         )
 
     def test_threshold_boundingzero(self):
@@ -361,10 +355,8 @@ class Test_process(IrisTest):
         bounds = (-1.0, 1.0)
         plugin = Threshold(0.0, fuzzy_bounds=bounds)
         result = plugin(self.cube)
-        expected_result_array = np.full_like(self.cube.data, fill_value=0.5).reshape(
-            (1, 1, 5, 5)
-        )
-        expected_result_array[0][0][2][2] = 0.75
+        expected_result_array = np.full_like(self.cube.data, fill_value=0.5)
+        expected_result_array[2][2] = 0.75
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_boundingzero_above(self):
@@ -372,10 +364,8 @@ class Test_process(IrisTest):
         bounds = (-0.1, 0.1)
         plugin = Threshold(0.0, fuzzy_bounds=bounds)
         result = plugin(self.cube)
-        expected_result_array = np.full_like(self.cube.data, fill_value=0.5).reshape(
-            (1, 1, 5, 5)
-        )
-        expected_result_array[0][0][2][2] = 1.0
+        expected_result_array = np.full_like(self.cube.data, fill_value=0.5)
+        expected_result_array[2][2] = 1.0
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_boundingbelowzero(self):
@@ -383,10 +373,8 @@ class Test_process(IrisTest):
         bounds = (-1.0, 1.0)
         plugin = Threshold(0.0, fuzzy_bounds=bounds, comparison_operator="<")
         result = plugin(self.cube)
-        expected_result_array = np.full_like(self.cube.data, fill_value=0.5).reshape(
-            (1, 1, 5, 5)
-        )
-        expected_result_array[0][0][2][2] = 0.25
+        expected_result_array = np.full_like(self.cube.data, fill_value=0.5)
+        expected_result_array[2][2] = 0.25
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_asymmetric_bounds_below(self):
@@ -394,7 +382,7 @@ class Test_process(IrisTest):
         bounds = (0.51, 0.9)
         plugin = Threshold(0.6, fuzzy_bounds=bounds)
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
+        expected_result_array = np.zeros_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_asymmetric_bounds_lower(self):
@@ -402,8 +390,8 @@ class Test_process(IrisTest):
         bounds = (0.4, 0.9)
         plugin = Threshold(0.6, fuzzy_bounds=bounds)
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 0.25
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[2][2] = 0.25
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_asymmetric_bounds_middle(self):
@@ -412,8 +400,8 @@ class Test_process(IrisTest):
         bounds = (0.4, 0.9)
         plugin = Threshold(0.5, fuzzy_bounds=bounds)
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 0.5
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[2][2] = 0.5
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_asymmetric_bounds_upper(self):
@@ -421,8 +409,8 @@ class Test_process(IrisTest):
         bounds = (0.0, 0.6)
         plugin = Threshold(0.4, fuzzy_bounds=bounds)
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 0.75
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[2][2] = 0.75
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_asymmetric_bounds_above(self):
@@ -430,8 +418,8 @@ class Test_process(IrisTest):
         bounds = (0.0, 0.45)
         plugin = Threshold(0.4, fuzzy_bounds=bounds)
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 1.0
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[2][2] = 1.0
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_asymmetric_bounds_upper_below(self):
@@ -440,48 +428,48 @@ class Test_process(IrisTest):
         bounds = (0.0, 0.6)
         plugin = Threshold(0.4, fuzzy_bounds=bounds, comparison_operator="<")
         result = plugin(self.cube)
-        expected_result_array = np.ones_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 0.25
+        expected_result_array = np.ones_like(self.cube.data)
+        expected_result_array[2][2] = 0.25
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_fuzzy_miss(self):
         """Test when a point is not within the fuzzy threshold area."""
         plugin = Threshold(2.0, fuzzy_factor=self.fuzzy_factor)
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
+        expected_result_array = np.zeros_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_fuzzy_miss_high_threshold(self):
         """Test when a point is not within the fuzzy high threshold area."""
         plugin = Threshold(3.0, fuzzy_factor=self.fuzzy_factor)
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
+        expected_result_array = np.zeros_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_negative(self):
         """Test a point when the threshold is negative."""
-        self.cube.data[0][2][2] = -0.75
+        self.cube.data[2][2] = -0.75
         plugin = Threshold(
             -1.0, fuzzy_factor=self.fuzzy_factor, comparison_operator="<"
         )
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 0.25
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[2][2] = 0.25
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_below_fuzzy(self):
         """Test a point in fuzzy threshold in below-threshold-mode."""
         plugin = Threshold(0.6, fuzzy_factor=self.fuzzy_factor, comparison_operator="<")
         result = plugin(self.cube)
-        expected_result_array = np.ones_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 2.0 / 3.0
+        expected_result_array = np.ones_like(self.cube.data)
+        expected_result_array[2][2] = 2.0 / 3.0
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_below_fuzzy_miss(self):
         """Test not meeting the threshold in fuzzy below-threshold-mode."""
         plugin = Threshold(2.0, fuzzy_factor=self.fuzzy_factor, comparison_operator="<")
         result = plugin(self.cube)
-        expected_result_array = np.ones_like(self.cube.data).reshape((1, 1, 5, 5))
+        expected_result_array = np.ones_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_gt(self):
@@ -491,8 +479,8 @@ class Test_process(IrisTest):
         expected_name = name.format(self.cube.name())
         expected_attribute = "above"
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 0
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[2][2] = 0
         self.assertEqual(result.name(), expected_name)
         self.assertEqual(
             result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
@@ -507,8 +495,8 @@ class Test_process(IrisTest):
         expected_name = name.format(self.cube.name())
         expected_attribute = "above"
         result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 1
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[2][2] = 1
         self.assertEqual(result.name(), expected_name)
         self.assertEqual(
             result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
@@ -523,8 +511,8 @@ class Test_process(IrisTest):
         expected_name = name.format(self.cube.name())
         expected_attribute = "below"
         result = plugin(self.cube)
-        expected_result_array = np.ones_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 0
+        expected_result_array = np.ones_like(self.cube.data)
+        expected_result_array[2][2] = 0
         self.assertEqual(result.name(), expected_name)
         self.assertEqual(
             result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
@@ -539,8 +527,8 @@ class Test_process(IrisTest):
         expected_name = name.format(self.cube.name())
         expected_attribute = "below"
         result = plugin(self.cube)
-        expected_result_array = np.ones_like(self.cube.data).reshape((1, 1, 5, 5))
-        expected_result_array[0][0][2][2] = 1
+        expected_result_array = np.ones_like(self.cube.data)
+        expected_result_array[2][2] = 1
         self.assertEqual(result.name(), expected_name)
         self.assertEqual(
             result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
@@ -549,19 +537,22 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_multiple_thresholds(self):
-        """Test multiple thresholds applied to the cube return a single cube
-        with multiple arrays corresponding to each threshold."""
-        thresholds = [0.2, 0.4, 0.6]
-        plugin = Threshold(thresholds)
-        result = plugin(self.cube)
-        all_zeroes = np.zeros_like(self.cube.data).reshape((1, 1, 5, 5))
+        """Test multiple thresholds applied to a multi-realization cube return a
+        single cube arrays corresponding to each realization and threshold."""
+        multi_realization_cube = add_coordinate(
+            self.cube, [0, 1, 2], "realization", dtype=np.int32
+        )
+        all_zeroes = np.zeros_like(multi_realization_cube.data)
         one_exceed_point = all_zeroes.copy()
-        one_exceed_point[0][0][2][2] = 1.0
-        expected_result_array = np.vstack(
+        one_exceed_point[:, 2, 2] = 1.0
+        expected_result_array = np.array(
             [one_exceed_point, one_exceed_point, all_zeroes]
         )
-        # transpose array to reflect realization coordinate re-ordering
+        # transpose array so that realization is leading coordinate
         expected_result_array = np.transpose(expected_result_array, [1, 0, 2, 3])
+        thresholds = [0.2, 0.4, 0.6]
+        plugin = Threshold(thresholds)
+        result = plugin(multi_realization_cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
@@ -592,7 +583,7 @@ class Test_process(IrisTest):
     def test_threshold_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
         # Need to copy the cube as we're adjusting the data.
-        self.cube.data[0][2][2] = np.NAN
+        self.cube.data[2][2] = np.NAN
         msg = "NaN detected in input cube data"
         plugin = Threshold(2.0, fuzzy_factor=self.fuzzy_factor, comparison_operator="<")
         with self.assertRaisesRegex(ValueError, msg):
