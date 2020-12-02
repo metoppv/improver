@@ -43,7 +43,10 @@ from improver.calibration.utilities import (
     create_unified_frt_coord,
     filter_non_matching_cubes,
 )
-from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.metadata.probabilistic import (
+    find_threshold_coordinate,
+    probability_is_above_or_below,
+)
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.utilities.cube_manipulation import MergeCubes, collapsed
 
@@ -1061,10 +1064,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                          expected monotonicity following calibration.
         """
         (threshold_dim,) = cube.coord_dims(self.threshold_coord)
-        thresholding = self.threshold_coord.attributes.get(
-            "spp__relative_to_threshold", None
-        )
-
+        thresholding = probability_is_above_or_below(cube)
         if thresholding is None:
             msg = (
                 "Cube threshold coordinate does not define whether "

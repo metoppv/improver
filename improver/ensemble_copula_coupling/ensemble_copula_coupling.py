@@ -53,6 +53,7 @@ from improver.metadata.probabilistic import (
     extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,
+    probability_is_above_or_below,
 )
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
@@ -501,9 +502,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         prob_slices = np.around(prob_slices, 9)
 
         # Invert probabilities for data thresholded above thresholds.
-        relation = find_threshold_coordinate(forecast_probabilities).attributes[
-            "spp__relative_to_threshold"
-        ]
+        relation = probability_is_above_or_below(forecast_probabilities)
         if relation == "above":
             probabilities_for_cdf = 1 - prob_slices
         elif relation == "below":
@@ -1048,9 +1047,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         location_parameter.data = np.ma.filled(location_parameter.data, 1)
         scale_parameter.data = np.ma.filled(scale_parameter.data, 1)
         thresholds = find_threshold_coordinate(probability_cube_template).points
-        relative_to_threshold = find_threshold_coordinate(
-            probability_cube_template
-        ).attributes["spp__relative_to_threshold"]
+        relative_to_threshold = probability_is_above_or_below(probability_cube_template)
 
         self._rescale_shape_parameters(
             location_parameter.data.flatten(), np.sqrt(scale_parameter.data).flatten()

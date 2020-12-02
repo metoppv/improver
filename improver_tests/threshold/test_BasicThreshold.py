@@ -168,7 +168,7 @@ class Test__add_threshold_coord(IrisTest):
         threshold_coord = result.coord("air_temperature")
         self.assertEqual(threshold_coord.var_name, "threshold")
         self.assertEqual(
-            threshold_coord.attributes, {"spp__relative_to_threshold": "above"}
+            threshold_coord.attributes, {"spp__relative_to_threshold": "greater_than"}
         )
         self.assertAlmostEqual(threshold_coord.points[0], 1)
         self.assertEqual(threshold_coord.units, self.cube.units)
@@ -271,14 +271,14 @@ class Test_process(IrisTest):
         result = plugin(self.cube)
         name = "probability_of_{}_above_threshold"
         expected_name = name.format(self.cube.name())
-        expected_attribute = "above"
+        expected_attribute = "greater_than"
         expected_units = 1
         expected_coord = DimCoord(
             np.array([0.1], dtype=np.float32),
             standard_name=self.cube.name(),
             var_name="threshold",
             units=self.cube.units,
-            attributes={"spp__relative_to_threshold": "above"},
+            attributes={"spp__relative_to_threshold": "greater_than"},
         )
         self.assertEqual(result.name(), expected_name)
         self.assertEqual(
@@ -477,7 +477,7 @@ class Test_process(IrisTest):
         plugin = Threshold(0.5)
         name = "probability_of_{}_above_threshold"
         expected_name = name.format(self.cube.name())
-        expected_attribute = "above"
+        expected_attribute = "greater_than"
         result = plugin(self.cube)
         expected_result_array = np.zeros_like(self.cube.data)
         expected_result_array[2][2] = 0
@@ -493,7 +493,7 @@ class Test_process(IrisTest):
         plugin = Threshold(0.5, comparison_operator=">=")
         name = "probability_of_{}_above_threshold"
         expected_name = name.format(self.cube.name())
-        expected_attribute = "above"
+        expected_attribute = "greater_than_or_equal_to"
         result = plugin(self.cube)
         expected_result_array = np.zeros_like(self.cube.data)
         expected_result_array[2][2] = 1
@@ -509,7 +509,7 @@ class Test_process(IrisTest):
         plugin = Threshold(0.5, comparison_operator="<")
         name = "probability_of_{}_below_threshold"
         expected_name = name.format(self.cube.name())
-        expected_attribute = "below"
+        expected_attribute = "less_than"
         result = plugin(self.cube)
         expected_result_array = np.ones_like(self.cube.data)
         expected_result_array[2][2] = 0
@@ -525,7 +525,7 @@ class Test_process(IrisTest):
         plugin = Threshold(0.5, comparison_operator="<=")
         name = "probability_of_{}_below_threshold"
         expected_name = name.format(self.cube.name())
-        expected_attribute = "below"
+        expected_attribute = "less_than_or_equal_to"
         result = plugin(self.cube)
         expected_result_array = np.ones_like(self.cube.data)
         expected_result_array[2][2] = 1

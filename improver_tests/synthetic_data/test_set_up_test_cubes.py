@@ -666,19 +666,21 @@ class Test_set_up_probability_cube(IrisTest):
         self.assertEqual(thresh_coord.var_name, "threshold")
         self.assertEqual(thresh_coord.units, "K")
         self.assertEqual(len(thresh_coord.attributes), 1)
-        self.assertEqual(thresh_coord.attributes["spp__relative_to_threshold"], "above")
+        self.assertEqual(
+            thresh_coord.attributes["spp__relative_to_threshold"], "greater_than",
+        )
         check_mandatory_standards(result)
 
     def test_relative_to_threshold(self):
         """Test ability to reset the "spp__relative_to_threshold" attribute"""
         data = np.flipud(self.data)
         result = set_up_probability_cube(
-            data, self.thresholds, spp__relative_to_threshold="below"
+            data, self.thresholds, spp__relative_to_threshold="less_than"
         )
         self.assertEqual(len(result.coord(var_name="threshold").attributes), 1)
         self.assertEqual(
             result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
-            "below",
+            "less_than",
         )
 
     def test_relative_to_threshold_set(self):
