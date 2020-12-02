@@ -40,6 +40,7 @@ from iris.tests import IrisTest
 
 from improver.percentile import PercentileConverter
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.cube_manipulation import get_coord_names, get_dim_coord_names
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -176,11 +177,10 @@ class Test_process(IrisTest):
         collapse_coord = ["realization"]
         plugin = PercentileConverter(collapse_coord, percentiles=[50])
         result = plugin.process(self.cube)
-        result_coords = [coord.name() for coord in result.coords()]
-        result_dims = [coord.name() for coord in result.coords(dim_coords=True)]
+        result_coords = get_coord_names(result)
         self.assertNotIn("realization", result_coords)
         self.assertIn("percentile", result_coords)
-        self.assertNotIn("percentile", result_dims)
+        self.assertNotIn("percentile", get_dim_coord_names(result))
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_use_with_masked_data(self):
