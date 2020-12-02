@@ -110,9 +110,9 @@ def make_timezone_cube():
     false_row = [0, 0, 0]
     cube.data = np.array(
         [
-            [false_row, true_row, true_row],
-            [true_row, false_row, true_row],
             [true_row, true_row, false_row],
+            [true_row, false_row, true_row],
+            [false_row, true_row, true_row],
         ],
         dtype=np.int8,
     )

@@ -278,6 +278,7 @@ class TimezoneExtraction(PostProcessingPlugin):
             self.time_coord_standards.units,
             calendar=self.time_coord_standards.calendar,
         )
+        self.timezone_cube = None
 
         self.output_data = None
 
@@ -336,7 +337,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         )
         return output_cube
 
-    def fill_timezones(self, input_cube, timezone_cube):
+    def fill_timezones(self, input_cube):
         """
         Populates the output cube data with data from input_cube. This is done by
         multiplying the inverse of the timezone_cube.data with the input_cube.data and
@@ -349,11 +350,6 @@ class TimezoneExtraction(PostProcessingPlugin):
             input_cube (iris.cube.Cube):
                 Cube of data to extract timezone-offsets from. Must contain a time
                 coord spanning all the timezones.
-            timezone_cube (iris.cube.Cube):
-                Cube describing the UTC offset for the local time at each grid location
-                Must have the same spatial coords as input_cube.
-                Cube will have a UTC_offset coord. Data will be 0 (included) or
-                1 (excluded) indicating which points are in each time zone.
 
         Raises:
             TypeError:
@@ -361,12 +357,12 @@ class TimezoneExtraction(PostProcessingPlugin):
                 (Hint: timezone_cube should be int8 and input cube should be float32)
         """
         bounds_offsets = self.get_time_bounds_offset(input_cube)
-        result = input_cube.data * (1 - timezone_cube.data)
+        result = input_cube.data * (1 - self.timezone_cube.data)
         self.output_data = result.sum(axis=0)
         input_time_points = input_cube.coord("time").points
         # Add scalar coords to allow broadcast to spatial coords.
         times = input_time_points.reshape((len(input_time_points), 1, 1)) * (
-            1 - timezone_cube.data
+            1 - self.timezone_cube.data
         )
         self.time_points = times.sum(axis=0)
         if bounds_offsets is not None:
@@ -376,7 +372,7 @@ class TimezoneExtraction(PostProcessingPlugin):
 
         # Check resulting dtype
         if result.dtype == np.float64:
-            unique_cube_types = {input_cube.dtype, timezone_cube.dtype}
+            unique_cube_types = {input_cube.dtype, self.timezone_cube.dtype}
             raise TypeError(
                 f"Operation multiply on types {unique_cube_types} results in "
                 "float64 data which cannot be safely coerced to float32. (Hint: "
@@ -419,10 +415,11 @@ class TimezoneExtraction(PostProcessingPlugin):
                 If the time coord on the input cube does not match the required times.
         """
         input_time_points = [cell.point for cell in input_cube.coord("time").cells()]
-        timezone_coord = timezone_cube.coord("UTC_offset")
+        self.timezone_cube = timezone_cube[::-1]
+        timezone_coord = self.timezone_cube.coord("UTC_offset")
         timezone_coord.convert_units("seconds")
         output_times = [
-            local_time + timedelta(seconds=np.int(offset))
+            local_time - timedelta(seconds=np.int(offset))
             for offset in timezone_coord.points
         ]
         if input_time_points != output_times:
@@ -479,7 +476,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         self.check_input_cube_time(input_cube, timezone_cube, local_time)
         self.check_timezones_are_unique(timezone_cube)
 
-        self.fill_timezones(input_cube, timezone_cube)
+        self.fill_timezones(input_cube)
         output_cube = self.create_output_cube(input_cube, local_time)
 
         return output_cube
