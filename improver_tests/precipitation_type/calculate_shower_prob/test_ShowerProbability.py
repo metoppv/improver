@@ -133,7 +133,6 @@ def test_global_tree(cloud_cube, conv_ratio_cube):
 
 def test_too_many_inputs(cloud_texture_cube, cloud_cube, conv_ratio_cube):
     """Test default behaviour using UK tree if all fields are provided"""
-    expected_data = [[0, 0, 0], [0, 0, 1], [1, 1, 1]]
     result = ShowerProbability()(
         cloud_texture=cloud_texture_cube, cloud=cloud_cube, conv_ratio=conv_ratio_cube
     )
