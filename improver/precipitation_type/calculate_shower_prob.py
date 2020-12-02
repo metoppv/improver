@@ -111,7 +111,7 @@ class ShowerProbability(BasePlugin):
 
     def process(self, cloud=None, cloud_texture=None, conv_ratio=None):
         """
-        Calculate shower probability from global or UK decision tree depending
+        Determine the shower condition from global or UK data depending
         on input fields
 
         Args:
