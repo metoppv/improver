@@ -45,8 +45,8 @@ from improver.metadata.utilities import (
 )
 
 
-class ShowerProbability(BasePlugin):
-    """Plugin to calculate probability of showery precipitation"""
+class ShowerCondition(BasePlugin):
+    """Plugin to calculate precipitation is showery condition"""
 
     def __init__(self):
         """Set up fixed thresholds from which to diagnose showers from different
