@@ -42,6 +42,7 @@ from iris.cube import CubeList
 from iris.time import PartialDateTime
 
 from improver import PostProcessingPlugin
+from improver.metadata.check_datatypes import enforce_dtype
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
@@ -356,28 +357,28 @@ class TimezoneExtraction(PostProcessingPlugin):
                 If combining the timezone_cube and input_cube results in float64 data.
                 (Hint: timezone_cube should be int8 and input cube should be float32)
         """
-        bounds_offsets = self.get_time_bounds_offset(input_cube)
+        # Get the output_data
         result = input_cube.data * (1 - self.timezone_cube.data)
         self.output_data = result.sum(axis=0)
+
+        # Check resulting dtype
+        enforce_dtype("multiply", [input_cube, self.timezone_cube], result)
+
+        # Sort out the time points
         input_time_points = input_cube.coord("time").points
         # Add scalar coords to allow broadcast to spatial coords.
         times = input_time_points.reshape((len(input_time_points), 1, 1)) * (
             1 - self.timezone_cube.data
         )
         self.time_points = times.sum(axis=0)
+
+        # Sort out the time bounds (if present)
+        bounds_offsets = self.get_time_bounds_offset(input_cube)
         if bounds_offsets is not None:
+            # Add scalar coords to allow broadcast to spatial coords.
             self.time_bounds = bounds_offsets.reshape(
                 (1, 1, 2)
             ) + self.time_points.reshape(list(self.time_points.shape) + [1])
-
-        # Check resulting dtype
-        if result.dtype == np.float64:
-            unique_cube_types = {input_cube.dtype, self.timezone_cube.dtype}
-            raise TypeError(
-                f"Operation multiply on types {unique_cube_types} results in "
-                "float64 data which cannot be safely coerced to float32. (Hint: "
-                "timezone_cube should be int8 and input cube should be float32)"
-            )
 
     @staticmethod
     def get_time_bounds_offset(input_cube):
@@ -399,8 +400,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         Raises:
             ValueError:
                 If the input cube does not have exactly the expected three coords."""
-        xy_coords = [input_cube.coord(axis=n) for n in "yx"]
-        expected_coords = ["time"] + [coord.name() for coord in xy_coords]
+        expected_coords = ["time"] + [input_cube.coord(axis=n).name() for n in "yx"]
         cube_coords = [coord.name() for coord in input_cube.coords(dim_coords=True)]
         if expected_coords != cube_coords:
             raise ValueError(

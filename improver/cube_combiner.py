@@ -36,6 +36,7 @@ from iris.cube import CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
+from improver.metadata.check_datatypes import enforce_dtype
 from improver.metadata.probabilistic import (
     extract_diagnostic_name,
     find_threshold_coordinate,
@@ -279,12 +280,7 @@ class CubeCombiner(BasePlugin):
             result.data = result.data / len(cube_list)
 
         # Check resulting dtype
-        if result.dtype == np.float64:
-            unique_cube_types = set([c.dtype for c in cube_list])
-            raise TypeError(
-                f"Operation {self.operation} on types {unique_cube_types} results in "
-                "float64 data which cannot be safely coerced to float32"
-            )
+        enforce_dtype(self.operation, cube_list, result)
 
         # where the operation is "multiply", retain all coordinate metadata
         # from the first cube in the list; otherwise expand coordinate bounds

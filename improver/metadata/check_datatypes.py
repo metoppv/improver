@@ -104,6 +104,33 @@ def check_dtype(obj):
     return dtype_ok
 
 
+def enforce_dtype(operation, inputs, result):
+    """
+    Ensures that result has not been automatically promoted to float64.
+
+    Args:
+        operation (str):
+            The operation that was performed (for the error message)
+        inputs (list):
+            The Numpy arrays or cubes that the operation was performed on (for the
+            error message)
+        result (np.array or iris.cube.Cube):
+            The result of the operation
+
+    Raises:
+        TypeError:
+            If result.dtype does not match the meta-data standard.
+
+    """
+    if not check_dtype(result):
+        unique_cube_types = set([c.dtype for c in inputs])
+        raise TypeError(
+            f"Operation {operation} on types {unique_cube_types} results in "
+            "float64 data which cannot be safely coerced to float32 (Hint: "
+            "combining int8 and float32 works)"
+        )
+
+
 def get_required_units(obj):
     """
     Returns the mandatory units for the supplied obj. Only time coords have
