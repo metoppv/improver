@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Plugin to calculate probability of showery precipitation"""
+"""Plugin to calculate whether precipitation is showery"""
 
 import iris
 import numpy as np
@@ -47,11 +47,21 @@ from improver.metadata.utilities import (
 
 
 class ShowerCondition(BasePlugin):
-    """Plugin to calculate precipitation is showery condition"""
+    """Plugin to calculate whether precipitation is showery based on input
+    cloud, texture and / or convective ratio probability fields"""
 
     def __init__(self):
-        """Set up fixed thresholds from which to diagnose showers from different
-        input fields"""
+        """
+        Set up fixed conditions from which to diagnose showers from different
+        input fields.
+
+        Shower condition from UK diagnostics:
+        - Probability of cloud texture above 0.05 >= 0.5
+
+        Shower condition from global diagnostics:
+        - Probability of cloud area fraction above 6.5 oktas < 0.5 AND
+        - Probability of convective ratio above 0.8 >= 0.5
+        """
         self.conditions_uk = {
             "texture_of_low_and_medium_type_cloud_area_fraction": {
                 "diagnostic_threshold": 0.05,
