@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module containing plugin for CubeCombiner."""
+"""Module containing plugins for combining cubes"""
 
 import iris
 import numpy as np
@@ -48,36 +48,27 @@ from improver.utilities.cube_manipulation import (
 
 
 class CubeCombiner(BasePlugin):
-
-    """Plugin for combining cubes.
-
-    """
+    """Plugin for combining cubes using linear operators"""
 
     COMBINE_OPERATORS = {
         "+": np.add,
         "add": np.add,
         "-": np.subtract,
         "subtract": np.subtract,
-        "*": np.multiply,
-        "multiply": np.multiply,
         "max": np.maximum,
         "min": np.minimum,
         "mean": np.add,
     }  # mean is calculated in two steps: sum and normalise
 
-    def __init__(self, operation, warnings_on=False):
-        """
-        Create a CubeCombiner plugin
+    def __init__(self, operation):
+        """Create a CubeCombiner plugin
 
         Args:
             operation (str):
                 Operation (+, - etc) to apply to the incoming cubes.
-            warnings_on (bool):
-                If True output warnings for mismatching metadata.
 
         Raises:
-            ValueError: Unknown operation.
-
+            ValueError: if operation is not recognised in dictionary
         """
         try:
             self.operator = self.COMBINE_OPERATORS[operation]
@@ -85,15 +76,19 @@ class CubeCombiner(BasePlugin):
             msg = "Unknown operation {}".format(operation)
             raise ValueError(msg)
         self.operation = operation
-        self.broadcast_coords = None
-        self.warnings_on = warnings_on
 
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        desc = "<CubeCombiner: operation={}, warnings_on = {}>".format(
-            self.operation, self.warnings_on
+    @staticmethod
+    def _coords_are_broadcastable(coord1, coord2):
+        """
+        Broadcastable coords will differ only in length, so create a copy of one with
+        the points and bounds of the other and compare. Also ensure length of at least
+        one of the coords is 1.
+        """
+        coord_copy = coord1.copy(coord2.points, bounds=coord2.bounds)
+
+        return (coord_copy == coord2) and (
+            (len(coord1.points) == 1) or (len(coord2.points) == 1)
         )
-        return desc
 
     def _check_dimensions_match(self, cube_list):
         """
@@ -119,19 +114,6 @@ class CubeCombiner(BasePlugin):
                     "{} and {}".format(repr(cube_list[0]), repr(cube))
                 )
                 raise ValueError(msg)
-
-    @staticmethod
-    def _coords_are_broadcastable(coord1, coord2):
-        """
-        Broadcastable coords will differ only in length, so create a copy of one with
-        the points and bounds of the other and compare. Also ensure length of at least
-        one of the coords is 1.
-        """
-        coord_copy = coord1.copy(coord2.points, bounds=coord2.bounds)
-
-        return (coord_copy == coord2) and (
-            (len(coord1.points) == 1) or (len(coord2.points) == 1)
-        )
 
     @staticmethod
     def _get_expanded_coord_names(cube_list):
@@ -166,6 +148,94 @@ class CubeCombiner(BasePlugin):
                 ):
                     expanded_coords.append(coord)
         return expanded_coords
+
+    def _combine_cube_data(self, cube_list):
+        """
+        Perform cumulative operation to combine cube data
+
+        Args:
+            cube_list (iris.cube.CubeList or list)
+
+        Returns:
+            iris.cube.Cube
+
+        Raises:
+            ValueError: if the operation results in an escalated datatype
+        """
+        result = cube_list[0].copy()
+        for cube in cube_list[1:]:
+            result.data = self.operator(result.data, cube.data)
+
+        if self.operation == "mean":
+            result.data = result.data / len(cube_list)
+
+        enforce_dtype(self.operation, cube_list, result)
+
+        return result
+
+    def process(
+        self,
+        cube_list,
+        new_diagnostic_name,
+        use_midpoint=False,
+    ):
+        """
+        Combine data and metadata from a list of input cubes into a single
+        cube, using the specified operation to combine the cube data.  The
+        first cube in the input list provides the template for the combined
+        cube metadata.
+
+        Args:
+            cube_list (iris.cube.CubeList or list):
+                List of cubes to combine.
+            new_diagnostic_name (str):
+                New name for the combined diagnostic.
+            use_midpoint (bool):
+                Determines the nature of the points and bounds for expanded
+                coordinates.  If False, the upper bound of the coordinate is
+                used as the point values.  If True, the midpoint is used.
+
+        Returns:
+            iris.cube.Cube:
+                Cube containing the combined data.
+
+        Raises:
+            ValueError: If the cube_list contains only one cube.
+            TypeError: If combining data results in float64 data.
+        """
+        if len(cube_list) < 2:
+            msg = "Expecting 2 or more cubes in cube_list"
+            raise ValueError(msg)
+
+        self._check_dimensions_match(cube_list)
+        result = self._combine_cube_data(cube_list)
+        expanded_coord_names = self._get_expanded_coord_names(cube_list)
+        if expanded_coord_names:
+            result = expand_bounds(
+                result, cube_list, expanded_coord_names, use_midpoint=use_midpoint
+            )
+        result.rename(new_diagnostic_name)
+        return result
+
+
+class CubeMultiplier(CubeCombiner):
+    """Class to multiply input cubes
+
+    The behaviour for the "multiply" operation is different from
+    other types of cube combination.  The only valid use case for
+    "multiply" is to apply a factor that conditions an input probability
+    field - that is, to apply Bayes Theorem.  The input probability is
+    therefore used as the source of ALL input metadata, and should always
+    be the first cube in the input list.  The factor(s) by which this is
+    multiplied are not compared for any mis-match in scalar coordinates.
+
+    """
+
+    def __init__(self):
+        """Create a CubeMultiplier plugin"""
+        self.operator = np.multiply
+        self.operation = "multiply"
+        self.broadcast_coords = None
 
     def _setup_coords_for_broadcast(self, cube_list):
         """
@@ -220,7 +290,6 @@ class CubeCombiner(BasePlugin):
         cube_list,
         new_diagnostic_name,
         broadcast_to_coords=None,
-        use_midpoint=False,
     ):
         """
         Combine data and metadata from a list of input cubes into a single
@@ -248,10 +317,6 @@ class CubeCombiner(BasePlugin):
             broadcast_to_coords (list):
                 Specifies a list of coord names that exist only on the first cube that
                 the other cube(s) need(s) broadcasting to prior to the combine.
-            use_midpoint (bool):
-                Determines the nature of the points and bounds for expanded
-                coordinates.  If False, the upper bound of the coordinate is
-                used as the point values.  If True, the midpoint is used.
 
         Returns:
             iris.cube.Cube:
@@ -270,26 +335,7 @@ class CubeCombiner(BasePlugin):
             cube_list = self._setup_coords_for_broadcast(cube_list)
         self._check_dimensions_match(cube_list)
 
-        # perform operation (add, subtract, min, max, multiply) cumulatively
-        result = cube_list[0].copy()
-        for cube in cube_list[1:]:
-            result.data = self.operator(result.data, cube.data)
-
-        # normalise mean (for which self.operator is np.add)
-        if self.operation == "mean":
-            result.data = result.data / len(cube_list)
-
-        # Check resulting dtype
-        enforce_dtype(self.operation, cube_list, result)
-
-        # where the operation is "multiply", retain all coordinate metadata
-        # from the first cube in the list; otherwise expand coordinate bounds
-        if self.operation != "multiply":
-            expanded_coord_names = self._get_expanded_coord_names(cube_list)
-            if expanded_coord_names:
-                result = expand_bounds(
-                    result, cube_list, expanded_coord_names, use_midpoint=use_midpoint
-                )
+        result = self._combine_cube_data(cube_list)
 
         if self.broadcast_coords and "threshold" in self.broadcast_coords:
             probabilistic_name = cube_list[0].name()
