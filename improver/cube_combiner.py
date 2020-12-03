@@ -232,12 +232,11 @@ class CubeMultiplier(CubeCombiner):
         """Create a CubeMultiplier plugin"""
         self.operator = np.multiply
         self.operation = "multiply"
-        self.broadcast_coords = None
 
     def _setup_coords_for_broadcast(self, cube_list):
         """
-        Adds a scalar DimCoord to any subsequent cube in cube_list so that they all include all of
-        the coords specified in self.broadcast_coords in the right order.
+        Adds a scalar threshold to any subsequent cube in cube_list so that they all
+        match the dimensions, in order, of the first cube in the list
 
         Args:
             cube_list: (iris.cube.CubeList)
@@ -247,40 +246,36 @@ class CubeMultiplier(CubeCombiner):
                 Updated version of cube_list
 
         """
-        for coord in self.broadcast_coords:
-            target_cube = cube_list[0]
+        target_cube = cube_list[0]
+        try:
+            target_coord = find_threshold_coordinate(target_cube)
+        except CoordinateNotFoundError:
+            raise CoordinateNotFoundError(
+                f"Cannot find coord threshold in {repr(target_cube)} to broadcast to"
+            )
+
+        new_list = CubeList([])
+        for cube in cube_list:
             try:
-                if coord == "threshold":
-                    target_coord = find_threshold_coordinate(target_cube)
-                else:
-                    target_coord = target_cube.coord(coord)
+                found_coord = cube.coord(target_coord)
             except CoordinateNotFoundError:
-                raise CoordinateNotFoundError(
-                    f"Cannot find coord {coord} in {repr(target_cube)} to broadcast to."
+                new_coord = target_coord.copy([0], bounds=None)
+                cube = cube.copy()
+                cube.add_aux_coord(new_coord, None)
+                cube = iris.util.new_axis(cube, new_coord)
+                enforce_coordinate_ordering(
+                    cube, [d.name() for d in target_cube.coords(dim_coords=True)]
                 )
-            new_list = CubeList([])
-            for cube in cube_list:
-                try:
-                    found_coord = cube.coord(target_coord)
-                except CoordinateNotFoundError:
-                    new_coord = target_coord.copy([0], bounds=None)
-                    cube = cube.copy()
-                    cube.add_aux_coord(new_coord, None)
-                    cube = iris.util.new_axis(cube, new_coord)
-                    enforce_coordinate_ordering(
-                        cube, [d.name() for d in target_cube.coords(dim_coords=True)]
-                    )
-                else:
-                    if found_coord not in cube.dim_coords:
-                        # We don't expect the coord to already exist in a scalar form as
-                        # this would indicate that the broadcast-from cube is only valid
-                        # for part of the new dimension and therefore should be rejected.
-                        raise TypeError(
-                            f"Cannot broadcast to coord {coord} as it already exists as an AuxCoord"
-                        )
-                new_list.append(cube)
-            cube_list = new_list
-        return cube_list
+            else:
+                if found_coord not in cube.dim_coords:
+                    # We don't expect the coord to already exist in a scalar form as
+                    # this would indicate that the broadcast-from cube is only valid
+                    # for a single threshold and therefore should be rejected.
+                    msg = "Cannot broadcast to coord threshold as it already exists as an AuxCoord"
+                    raise TypeError(msg)
+            new_list.append(cube)
+
+        return new_list
 
     def process(
         self, cube_list, new_diagnostic_name, broadcast_to_threshold=False,
@@ -310,14 +305,13 @@ class CubeMultiplier(CubeCombiner):
             msg = "Expecting 2 or more cubes in cube_list"
             raise ValueError(msg)
 
-        self.broadcast_coords = ["threshold"] if broadcast_to_threshold else None
-        if self.broadcast_coords is not None:
+        if broadcast_to_threshold:
             cube_list = self._setup_coords_for_broadcast(cube_list)
         self._check_dimensions_match(cube_list)
 
         result = self._combine_cube_data(cube_list)
 
-        if self.broadcast_coords and "threshold" in self.broadcast_coords:
+        if broadcast_to_threshold:
             probabilistic_name = cube_list[0].name()
             diagnostic_name = extract_diagnostic_name(probabilistic_name)
 
