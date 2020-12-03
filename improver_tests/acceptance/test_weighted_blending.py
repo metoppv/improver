@@ -200,7 +200,6 @@ def test_cycletime_with_specified_frt(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-# TODO this should break!  Need to deal with single inputs
 def test_cycletime_with_specified_frt_single_input(tmp_path):
     """Test cycletime blending where a forecast reference time for the
     returned cube is user specified. In this case the input is a single cube
