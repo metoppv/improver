@@ -67,6 +67,21 @@ def cloud_texture_fixture():
     )
 
 
+@pytest.fixture(name="below_threshold_cube")
+def below_threshold_fixture():
+    """Probability of cloud texture below threshold cube"""
+    thresholds = np.array([0.1, 0.05, 0], dtype=FLOAT_DTYPE)
+    name = "texture_of_low_and_medium_type_cloud_area_fraction"
+    return set_up_probability_cube(
+        PROBABILITY_DATA,
+        thresholds,
+        variable_name=name,
+        threshold_units="1",
+        spatial_grid="equalarea",
+        spp__relative_to_threshold="less_than",
+    )
+
+
 @pytest.fixture(name="cloud_cube")
 def cloud_fixture():
     """Probability of cloud above threshold cube"""
@@ -151,3 +166,9 @@ def test_missing_threshold(cloud_texture_cube):
     cube = cloud_texture_cube[0]
     with pytest.raises(ValueError, match="contain required threshold"):
         ShowerCondition()(cloud_texture=cube)
+
+
+def test_below_threshold(below_threshold_cube):
+    """Test error if the cube contains probabilities below threshold"""
+    with pytest.raises(ValueError, match="Expected.*above threshold"):
+        ShowerCondition()(cloud_texture=below_threshold_cube)

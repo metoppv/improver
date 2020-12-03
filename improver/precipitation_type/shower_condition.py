@@ -38,6 +38,7 @@ from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import (
     extract_diagnostic_name,
     find_threshold_coordinate,
+    probability_is_above_or_below,
 )
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
@@ -70,6 +71,7 @@ class ShowerCondition(BasePlugin):
                 "operator": "above",
             },
         }
+        self.relative_to_threshold = "above"
         self.cubes = None
         self.tree = None
 
@@ -78,6 +80,10 @@ class ShowerCondition(BasePlugin):
         showery_points = np.ones(shape, dtype=FLOAT_DTYPE)
         for cube in self.cubes:
             name = extract_diagnostic_name(cube.name())
+            if probability_is_above_or_below(cube) != self.relative_to_threshold:
+                msg = "Expected cube of {} {} threshold"
+                raise ValueError(msg.format(name, self.relative_to_threshold))
+
             slice_constraint = iris.Constraint(
                 coord_values={
                     name: lambda cell: np.isclose(
