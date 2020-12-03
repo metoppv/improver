@@ -80,9 +80,8 @@ def process(
         new_name = cubes[0].name()
 
     if operation == "*" or operation == "multiply":
-        broadcast_to_coords = ["threshold"] if broadcast_to_threshold else None
         result = CubeMultiplier()(
-            CubeList(cubes), new_name, broadcast_to_coords=broadcast_to_coords
+            CubeList(cubes), new_name, broadcast_to_threshold=broadcast_to_threshold,
         )
 
     else:

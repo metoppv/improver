@@ -283,34 +283,20 @@ class CubeMultiplier(CubeCombiner):
         return cube_list
 
     def process(
-        self, cube_list, new_diagnostic_name, broadcast_to_coords=None,
+        self, cube_list, new_diagnostic_name, broadcast_to_threshold=False,
     ):
         """
-        Combine data and metadata from a list of input cubes into a single
-        cube, using the specified operation to combine the cube data.  The
-        first cube in the input list provides the template for the combined
-        cube metadata.
-
-        NOTE the behaviour for the "multiply" operation is different from
-        other types of cube combination.  The only valid use case for
-        "multiply" is to apply a factor that conditions an input probability
-        field - that is, to apply Bayes Theorem.  The input probability is
-        therefore used as the source of ALL input metadata, and should always
-        be the first cube in the input list.  The factor(s) by which this is
-        multiplied are not compared for any mis-match in scalar coordinates,
-        neither do they to contribute to expanded bounds.
-
-        TODO the "multiply" case should be factored out into a separate plugin
-        given its substantial differences from other combine use cases.
+        Multiply data from a list of input cubes into a single cube.  The first
+        cube in the input list provides the combined cube metadata.
 
         Args:
             cube_list (iris.cube.CubeList or list):
                 List of cubes to combine.
             new_diagnostic_name (str):
                 New name for the combined diagnostic.
-            broadcast_to_coords (list):
-                Specifies a list of coord names that exist only on the first cube that
-                the other cube(s) need(s) broadcasting to prior to the combine.
+            broadcast_to_threshold (bool):
+                True if the first cube has a threshold coordinate to which the
+                following cube(s) need(s) to be broadcast prior to combining data.
 
         Returns:
             iris.cube.Cube:
@@ -324,8 +310,8 @@ class CubeMultiplier(CubeCombiner):
             msg = "Expecting 2 or more cubes in cube_list"
             raise ValueError(msg)
 
-        self.broadcast_coords = broadcast_to_coords
-        if self.broadcast_coords:
+        self.broadcast_coords = ["threshold"] if broadcast_to_threshold else None
+        if self.broadcast_coords is not None:
             cube_list = self._setup_coords_for_broadcast(cube_list)
         self._check_dimensions_match(cube_list)
 

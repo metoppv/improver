@@ -47,7 +47,7 @@ class Test_process(CombinerTest):
     """Test process method of CubeMultiplier"""
 
     def test_broadcast_coord(self):
-        """Test that plugin broadcasts to a coord and doesn't change the inputs.
+        """Test that plugin broadcasts to threshold coord without changing inputs.
         Using the broadcast_to_coords argument including a value of "threshold"
         will result in the returned cube maintaining the probabilistic elements
         of the name of the first input cube."""
@@ -57,7 +57,7 @@ class Test_process(CombinerTest):
         cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
         input_copy = deepcopy(cubelist)
         result = CubeMultiplier()(
-            cubelist, "new_cube_name", broadcast_to_coords=["threshold"]
+            cubelist, "new_cube_name", broadcast_to_threshold=True
         )
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
@@ -65,8 +65,9 @@ class Test_process(CombinerTest):
         self.assertArrayAlmostEqual(result.data, self.cube4.data)
         self.assertCubeListEqual(input_copy, cubelist)
 
-    def test_error_broadcast_coord_wrong_order(self):
-        """Test that plugin throws an error if the broadcast coord is not on the first cube"""
+    def test_error_broadcast_coord_not_found(self):
+        """Test that plugin throws an error if asked to broadcast to a threshold coord
+        that is not present on the first cube"""
         cube = self.cube4[:, 0, ...].copy()
         cube.data = np.ones_like(cube.data)
         cube.remove_coord("lwe_thickness_of_precipitation_amount")
@@ -77,34 +78,17 @@ class Test_process(CombinerTest):
             "\(realization: 3; latitude: 2; longitude: 2\)> to broadcast to"
         )
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            CubeMultiplier()(
-                cubelist, "new_cube_name", broadcast_to_coords=["threshold"]
-            )
-
-    def test_error_broadcast_coord_not_found(self):
-        """Test that plugin throws an error if the broadcast coord is not present anywhere"""
-        cube = self.cube4[:, 0, ...].copy()
-        cube.data = np.ones_like(cube.data)
-        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
-        msg = (
-            "Cannot find coord kittens in "
-            "<iris 'Cube' of probability_of_lwe_thickness_of_precipitation_amount_above_threshold / \(1\) "
-            "\(realization: 3; lwe_thickness_of_precipitation_amount: 2; latitude: 2; longitude: 2\)> "
-            "to broadcast to."
-        )
-        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            CubeMultiplier()(cubelist, "new_cube_name", broadcast_to_coords=["kittens"])
+            CubeMultiplier()(cubelist, "new_cube_name", broadcast_to_threshold=True)
 
     def test_error_broadcast_coord_is_auxcoord(self):
-        """Test that plugin throws an error if the broadcast coord already exists"""
+        """Test that plugin throws an error if asked to broadcast to a threshold coord
+        that already exists on later cubes"""
         cube = self.cube4[:, 0, ...].copy()
         cube.data = np.ones_like(cube.data)
         cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
         msg = "Cannot broadcast to coord threshold as it already exists as an AuxCoord"
         with self.assertRaisesRegex(TypeError, msg):
-            CubeMultiplier()(
-                cubelist, "new_cube_name", broadcast_to_coords=["threshold"]
-            )
+            CubeMultiplier()(cubelist, "new_cube_name", broadcast_to_threshold=True)
 
     def test_multiply_preserves_bounds(self):
         """Test specific case for precipitation type, where multiplying a
@@ -129,7 +113,7 @@ class Test_process(CombinerTest):
             frt=forecast_reference_time,
         )
         result = CubeMultiplier()(
-            [precip_accum, snow_prob], "lwe_thickness_of_snowfall_amount"
+            [precip_accum, snow_prob], "lwe_thickness_of_snowfall_amount",
         )
         self.assertArrayAlmostEqual(result.data, np.full((2, 3, 3), 0.3))
         self.assertArrayEqual(result.coord("time"), precip_accum.coord("time"))
