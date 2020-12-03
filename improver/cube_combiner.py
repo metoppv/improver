@@ -174,10 +174,7 @@ class CubeCombiner(BasePlugin):
         return result
 
     def process(
-        self,
-        cube_list,
-        new_diagnostic_name,
-        use_midpoint=False,
+        self, cube_list, new_diagnostic_name, use_midpoint=False,
     ):
         """
         Combine data and metadata from a list of input cubes into a single
@@ -286,10 +283,7 @@ class CubeMultiplier(CubeCombiner):
         return cube_list
 
     def process(
-        self,
-        cube_list,
-        new_diagnostic_name,
-        broadcast_to_coords=None,
+        self, cube_list, new_diagnostic_name, broadcast_to_coords=None,
     ):
         """
         Combine data and metadata from a list of input cubes into a single
