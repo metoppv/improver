@@ -310,6 +310,9 @@ class TimezoneExtraction(PostProcessingPlugin):
             data=self.output_data,
         )
 
+        # Copy cell-methods from template_cube
+        [output_cube.add_cell_method(cm) for cm in template_cube.cell_methods]
+
         # Create a local time coordinate to help with plotting data.
         local_time_coord_standards = TIME_COORDS["time_in_local_timezone"]
         local_time_units = cf_units.Unit(
@@ -419,13 +422,17 @@ class TimezoneExtraction(PostProcessingPlugin):
         )
 
     def check_input_cube_time(self, input_cube, local_time):
-        """Ensures input cube and timezone_cube cover exactly the right points
+        """Ensures input cube and timezone_cube cover exactly the right points and that
+        the time and UTC_offset coords have the same order.
 
         Raises:
             ValueError:
                 If the time coord on the input cube does not match the required times.
         """
         input_time_points = [cell.point for cell in input_cube.coord("time").cells()]
+        # timezone_cube.coord("UTC_offset") is monotonically increasing. It needs to be
+        # decreasing so that the required UTC time for local_time will be increasing
+        # when it is calculated.
         self.timezone_cube = self.timezone_cube[:, :, ::-1]
         timezone_coord = self.timezone_cube.coord("UTC_offset")
         timezone_coord.convert_units("seconds")

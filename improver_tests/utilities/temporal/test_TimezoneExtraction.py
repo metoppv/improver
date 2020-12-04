@@ -32,6 +32,7 @@
 
 from datetime import datetime, timedelta
 
+from iris.coords import CellMethod
 import numpy as np
 import pytest
 from cf_units import Unit
@@ -132,11 +133,16 @@ def assert_metadata_ok(output_cube):
     check_mandatory_standards(output_cube)
 
 
-def test_create_output_cube():
+@pytest.mark.parametrize("with_cell_method", (True, False))
+def test_create_output_cube(with_cell_method):
     """Tests that the create_output_cube method builds a cube with appropriate
-    meta-data"""
+    meta-data. The Time coord is tested in test_process as it depends on multiple
+    methods."""
     data_shape = [3, 4]
     cube = make_input_cube(data_shape)
+    if with_cell_method:
+        cell_method = CellMethod("minimum", coords="time")
+        cube.add_cell_method(cell_method)
     local_time = datetime(2017, 11, 9, 12, 0)
     plugin = TimezoneExtraction()
     plugin.output_data = np.zeros(data_shape, dtype=np.float32)
@@ -157,6 +163,8 @@ def test_create_output_cube():
     expected_shape = data_shape
     assert result.shape == tuple(expected_shape)
     assert result.attributes == cube.attributes
+    if with_cell_method:
+        assert result.cell_methods == tuple([cell_method])
 
 
 @pytest.mark.parametrize("include_time_coord", (True, False))
@@ -222,7 +230,7 @@ def test_check_timezones_are_unique_fail(offset):
 @pytest.mark.parametrize("input_as_cube", (True, False))
 @pytest.mark.parametrize("input_has_time_bounds", (True, False))
 def test_process(with_percentiles, input_as_cube, input_has_time_bounds):
-    """Checks that the plugin process method returns the a cube with expected data and
+    """Checks that the plugin process method returns a cube with expected data and
     time coord for our test data"""
     data_shape = [3, 4]
     data = np.array(
