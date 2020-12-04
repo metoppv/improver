@@ -55,7 +55,7 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test that the __init__ sets things up correctly"""
         plugin = CubeCombiner("+")
-        self.assertEqual(plugin.operation, "+")
+        self.assertEqual(plugin.operator, np.add)
 
     def test_raise_error_wrong_operation(self):
         """Test __init__ raises a ValueError for invalid operation"""
@@ -194,10 +194,7 @@ class Test_process(CombinerTest):
         cubelist = iris.cube.CubeList(
             [self.cube1, self.cube2.copy(np.ones_like(self.cube2.data, dtype=np.int32))]
         )
-        msg = (
-            r"Operation add on types \{dtype\(\'.*\'\)\} results in "
-            r"float64 data which cannot be safely coerced to float32"
-        )
+        msg = "Operation .* results in float64 data"
         with self.assertRaisesRegex(TypeError, msg):
             plugin.process(cubelist, "new_cube_name")
 

@@ -77,7 +77,8 @@ class CubeCombiner(BasePlugin):
         except KeyError:
             msg = "Unknown operation {}".format(operation)
             raise ValueError(msg)
-        self.operation = operation
+
+        self.normalise = operation == "mean"
 
     @staticmethod
     def _check_dimensions_match(cube_list, comparators=[eq]):
@@ -158,10 +159,10 @@ class CubeCombiner(BasePlugin):
         for cube in cube_list[1:]:
             result.data = self.operator(result.data, cube.data)
 
-        if self.operation == "mean":
+        if self.normalise:
             result.data = result.data / len(cube_list)
 
-        enforce_dtype(self.operation, cube_list, result)
+        enforce_dtype(str(self.operator), cube_list, result)
 
         return result
 
@@ -223,7 +224,7 @@ class CubeMultiplier(CubeCombiner):
     def __init__(self):
         """Create a CubeMultiplier plugin"""
         self.operator = np.multiply
-        self.operation = "multiply"
+        self.normalise = False
 
     def _setup_coords_for_broadcast(self, cube_list):
         """
