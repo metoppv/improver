@@ -32,10 +32,10 @@
 
 from datetime import datetime, timedelta
 
-from iris.coords import CellMethod
 import numpy as np
 import pytest
 from cf_units import Unit
+from iris.coords import CellMethod
 from iris.cube import Cube
 
 from improver.metadata.check_datatypes import check_mandatory_standards
