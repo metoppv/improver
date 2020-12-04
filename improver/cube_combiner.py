@@ -80,23 +80,7 @@ class CubeCombiner(BasePlugin):
         self.operation = operation
 
     @staticmethod
-    def _dimensions_match(cube_list):
-        """Returns True if dimensions match on all input cubes, False otherwise
-
-        Args:
-            cube_list (iris.cube.CubeList or list):
-                List of cubes to compare
-        """
-        ref_coords = cube_list[0].coords(dim_coords=True)
-        for cube in cube_list[1:]:
-            coords = cube.coords(dim_coords=True)
-            compare = [eq(a, b) for a, b in zip(coords, ref_coords)]
-            if not np.all(compare):
-                return False
-
-        return True
-
-    def _check_dimensions_match(self, cube_list, comparators=[eq]):
+    def _check_dimensions_match(cube_list, comparators=[eq]):
         """
         Check all coordinate dimensions on the input cubes are equal or broadcastable
 
