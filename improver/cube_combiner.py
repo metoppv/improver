@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugins for combining cubes"""
 
+from operator import eq
+
 import iris
 import numpy as np
 from iris.cube import CubeList
@@ -78,36 +80,46 @@ class CubeCombiner(BasePlugin):
         self.operation = operation
 
     @staticmethod
-    def _coords_are_broadcastable(coord1, coord2):
-        """
-        Broadcastable coords will differ only in length, so create a copy of one with
-        the points and bounds of the other and compare. Also ensure length of at least
-        one of the coords is 1.
-        """
-        coord_copy = coord1.copy(coord2.points, bounds=coord2.bounds)
+    def _dimensions_match(cube_list):
+        """Returns True if dimensions match on all input cubes, False otherwise
 
-        return (coord_copy == coord2) and (
-            (len(coord1.points) == 1) or (len(coord2.points) == 1)
-        )
+        Args:
+            cube_list (iris.cube.CubeList or list):
+                List of cubes to compare
+        """
+        ref_coords = cube_list[0].coords(dim_coords=True)
+        for cube in cube_list[1:]:
+            coords = cube.coords(dim_coords=True)
+            compare = [eq(a, b) for a, b in zip(coords, ref_coords)]
+            if not np.all(compare):
+                return False
 
-    def _check_dimensions_match(self, cube_list):
+        return True
+
+    def _check_dimensions_match(self, cube_list, comparators=[eq]):
         """
         Check all coordinate dimensions on the input cubes are equal or broadcastable
 
         Args:
             cube_list (iris.cube.CubeList or list):
                 List of cubes to compare
-
+            comparators (list of callable):
+                Comparison operators, one of which must return "True" for each
+                coordinate in order for the match to be valid
         Raises:
             ValueError: If dimension coordinates do not match
         """
         ref_coords = cube_list[0].coords(dim_coords=True)
         for cube in cube_list[1:]:
             coords = cube.coords(dim_coords=True)
-            compare = [
-                (a == b) or self._coords_are_broadcastable(a, b)
-                for a, b in zip(coords, ref_coords)
-            ]
+            compare = []
+            for a, b in zip(coords, ref_coords):
+                comp = False
+                for operator in comparators:
+                    if operator(a, b):
+                        comp = True
+                compare.append(comp)
+
             if not np.all(compare):
                 msg = (
                     "Cannot combine cubes with different dimensions:\n"
@@ -277,6 +289,19 @@ class CubeMultiplier(CubeCombiner):
 
         return new_list
 
+    @staticmethod
+    def _coords_are_broadcastable(coord1, coord2):
+        """
+        Broadcastable coords will differ only in length, so create a copy of one with
+        the points and bounds of the other and compare. Also ensure length of at least
+        one of the coords is 1.
+        """
+        coord_copy = coord1.copy(coord2.points, bounds=coord2.bounds)
+
+        return (coord_copy == coord2) and (
+            (len(coord1.points) == 1) or (len(coord2.points) == 1)
+        )
+
     def process(
         self, cube_list, new_diagnostic_name, broadcast_to_threshold=False,
     ):
@@ -307,7 +332,10 @@ class CubeMultiplier(CubeCombiner):
 
         if broadcast_to_threshold:
             cube_list = self._setup_coords_for_broadcast(cube_list)
-        self._check_dimensions_match(cube_list)
+
+        self._check_dimensions_match(
+            cube_list, comparators=[eq, self._coords_are_broadcastable]
+        )
 
         result = self._combine_cube_data(cube_list)
 
