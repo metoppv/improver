@@ -32,7 +32,6 @@
 
 from datetime import datetime, timedelta
 
-import iris
 import numpy as np
 import pytest
 from cf_units import Unit
@@ -61,7 +60,7 @@ def make_input_cube(data_shape, time_bounds=True):
     )
     cube = add_coordinate(
         cube,
-        [datetime(2017, 11, 10, 4, 0) + timedelta(hours=h) for h in range(3)],
+        [datetime(2017, 11, 10, 4, 0) + timedelta(hours=h) for h in range(2)],
         "time",
         coord_units=TIME_COORDS["time"].units,
         dtype=TIME_COORDS["time"].dtype,
@@ -78,10 +77,17 @@ def make_input_cube(data_shape, time_bounds=True):
                     )
                     for b in [-1, 0]
                 ]
-                for h in range(3)
+                for h in range(2)
             ],
             dtype=TIME_COORDS["time"].dtype,
         )
+    return cube
+
+
+def make_percentile_cube(data_shape_2d, time_bounds=True):
+    """Adds a percentile coordinate to make_input_cube"""
+    cube = make_input_cube(data_shape_2d, time_bounds=time_bounds)
+    cube = add_coordinate(cube, (25, 50, 75), "percentile", "%")
     return cube
 
 
@@ -89,7 +95,7 @@ def make_timezone_cube():
     """Makes a timezone cube to use in tests. data=0 where points fall in that
     time-zone. data=1 where they don't."""
     cube = set_up_variable_cube(
-        np.zeros((3, 3)).astype(np.float32),
+        np.zeros((3, 4)).astype(np.float32),
         name="timezone_mask",
         units="1",
         standard_grid_metadata="gl_ens",
@@ -101,19 +107,15 @@ def make_timezone_cube():
     )
     cube = add_coordinate(
         cube,
-        [-3600, 0, 3600],
+        [0, 3600],
         "UTC_offset",
         coord_units="seconds",
         dtype=TIME_COORDS["forecast_period"].dtype,
     )
-    true_row = [1, 1, 1]
-    false_row = [0, 0, 0]
+    true_row = [1, 1, 1, 1]
+    false_row = [0, 0, 0, 0]
     cube.data = np.array(
-        [
-            [true_row, true_row, false_row],
-            [true_row, false_row, true_row],
-            [false_row, true_row, true_row],
-        ],
+        [[true_row, true_row, false_row], [false_row, false_row, true_row],],
         dtype=np.int8,
     )
     return cube
@@ -123,7 +125,9 @@ def assert_metadata_ok(output_cube):
     """Checks that the meta-data of output_cube are as expected"""
     assert isinstance(output_cube, Cube)
     assert output_cube.dtype == np.float32
-    assert output_cube.coord_dims("time") == (0, 1)
+    assert list(output_cube.coord_dims("time")) == [
+        n for n, in [output_cube.coord_dims(c) for c in ["latitude", "longitude"]]
+    ]
     assert output_cube.coord("time").dtype == np.int64
     check_mandatory_standards(output_cube)
 
@@ -131,7 +135,7 @@ def assert_metadata_ok(output_cube):
 def test_create_output_cube():
     """Tests that the create_output_cube method builds a cube with appropriate
     meta-data"""
-    data_shape = [3, 3]
+    data_shape = [3, 4]
     cube = make_input_cube(data_shape)
     local_time = datetime(2017, 11, 9, 12, 0)
     plugin = TimezoneExtraction()
@@ -155,21 +159,25 @@ def test_create_output_cube():
     assert result.attributes == cube.attributes
 
 
-@pytest.mark.parametrize(
-    "data_shape, expect_success", (([3, 3], True), ([3, 3, 3], False))
-)
-def test_check_input_cube_dims(data_shape, expect_success):
+@pytest.mark.parametrize("include_time_coord", (True, False))
+def test_check_input_cube_dims(include_time_coord):
     """Checks that check_input_cube_dims can differentiate between an input cube
-    with time, y, x coords and one with time, realization, y, x coords."""
-    cube = make_input_cube(data_shape)
+    with time, y, x coords and one where time is missing. Also checks that timezone_cube
+    has been reordered correctly."""
+    cube = make_input_cube([3, 4])
+    timezone_cube = make_timezone_cube()
     plugin = TimezoneExtraction()
-    if expect_success:
-        plugin.check_input_cube_dims(cube)
+    if include_time_coord:
+        plugin.check_input_cube_dims(cube, timezone_cube)
+        assert plugin.timezone_cube.coord_dims("UTC_offset") == tuple(
+            [plugin.timezone_cube.ndim - 1]
+        )
     else:
+        cube.remove_coord("time")
         with pytest.raises(
             ValueError, match=r"Expected coords on input_cube: time, y, x "
         ):
-            plugin.check_input_cube_dims(cube)
+            plugin.check_input_cube_dims(cube, timezone_cube)
 
 
 @pytest.mark.parametrize(
@@ -179,17 +187,17 @@ def test_check_input_cube_dims(data_shape, expect_success):
 def test_check_input_cube_time(local_time, expect_success):
     """Checks that check_input_cube_time can differentiate between arguments that match
     expected times and arguments that don't."""
-    data_shape = [3, 3]
-    cube = make_input_cube(data_shape)
+    cube = make_input_cube([3, 4])
     timezone_cube = make_timezone_cube()
     plugin = TimezoneExtraction()
+    plugin.check_input_cube_dims(cube, timezone_cube)
     if expect_success:
-        plugin.check_input_cube_time(cube, timezone_cube, local_time)
+        plugin.check_input_cube_time(cube, local_time)
     else:
         with pytest.raises(
             ValueError, match=r"Time coord on input cube does not match required times."
         ):
-            plugin.check_input_cube_time(cube, timezone_cube, local_time)
+            plugin.check_input_cube_time(cube, local_time)
 
 
 def test_check_timezones_are_unique_pass():
@@ -210,30 +218,33 @@ def test_check_timezones_are_unique_fail(offset):
         TimezoneExtraction().check_timezones_are_unique(timezone_cube)
 
 
+@pytest.mark.parametrize("with_percentiles", (True, False))
 @pytest.mark.parametrize("input_as_cube", (True, False))
 @pytest.mark.parametrize("input_has_time_bounds", (True, False))
-def test_process(input_as_cube, input_has_time_bounds):
+def test_process(with_percentiles, input_as_cube, input_has_time_bounds):
     """Checks that the plugin process method returns the a cube with expected data and
     time coord for our test data"""
-    data_shape = [3, 3]
-    cube = make_input_cube(data_shape, time_bounds=input_has_time_bounds)
+    data_shape = [3, 4]
     data = np.array(
-        [
-            np.full((3, 3), fill_value=-1, dtype=np.float32),
-            np.zeros((3, 3), dtype=np.float32),
-            np.ones((3, 3), dtype=np.float32),
-        ]
+        [np.zeros(data_shape, dtype=np.float32), np.ones(data_shape, dtype=np.float32),]
     )
+    expected_data = [[0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1]]
+    if with_percentiles:
+        cube = make_percentile_cube(data_shape, time_bounds=input_has_time_bounds)
+        data = np.array([data, data, data])
+        expected_data = np.array([expected_data, expected_data, expected_data])
+    else:
+        cube = make_input_cube(data_shape, time_bounds=input_has_time_bounds)
     cube.data = data
     local_time = datetime(2017, 11, 10, 5, 0)
     timezone_cube = make_timezone_cube()
-    expected_data = [[-1, -1, -1], [0, 0, 0], [1, 1, 1]]
-    row1 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 4, 0))] * 3
-    row2 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 3
-    row3 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 6, 0))] * 3
+    row1 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 4, 0))] * 4
+    row2 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 4
+    row3 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 6, 0))] * 4
     expected_times = [row1, row2, row3]
-    expected_bounds = np.array(expected_times).reshape((3, 3, 1)) + [[[-3600, 0]]]
+    expected_bounds = np.array(expected_times).reshape((3, 4, 1)) + [[[-3600, 0]]]
     if not input_as_cube:
+        # Split cube into a list of cubes
         cube = [c for c in cube.slices_over("time")]
     result = TimezoneExtraction()(cube, timezone_cube, local_time)
     assert_metadata_ok(result)
@@ -247,8 +258,7 @@ def test_process(input_as_cube, input_has_time_bounds):
 
 def test_bad_dtype():
     """Checks that the plugin raises a useful error if the output are float64"""
-    data_shape = [3, 3]
-    cube = make_input_cube(data_shape)
+    cube = make_input_cube([3, 4])
     local_time = datetime(2017, 11, 10, 5, 0)
     timezone_cube = make_timezone_cube()
     timezone_cube.data = timezone_cube.data.astype(np.int32)

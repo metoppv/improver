@@ -49,7 +49,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_checker import spatial_coords_match
-from improver.utilities.cube_manipulation import MergeCubes
+from improver.utilities.cube_manipulation import MergeCubes, enforce_coordinate_ordering
 
 
 def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
@@ -334,7 +334,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 standard_name="time",
                 units=self.time_units,
             ),
-            (0, 1),
+            [n + output_cube.ndim for n in [-2, -1]],
         )
         return output_cube
 
@@ -346,6 +346,8 @@ class TimezoneExtraction(PostProcessingPlugin):
         inverting it gives 1 where we WANT data and 0 where we don't. Summing these up
         produces the result. The same logic can be used for times.
         Modifies self.output_cube and self.time_points.
+        Assumes that input_cube and self.timezone_cube have been arranged so that time
+        or UTC_offset are the inner-most coord (dim=-1).
 
         Args:
             input_cube (iris.cube.Cube):
@@ -359,7 +361,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         """
         # Get the output_data
         result = input_cube.data * (1 - self.timezone_cube.data)
-        self.output_data = result.sum(axis=0)
+        self.output_data = result.sum(axis=-1)
 
         # Check resulting dtype
         enforce_dtype("multiply", [input_cube, self.timezone_cube], result)
@@ -367,10 +369,10 @@ class TimezoneExtraction(PostProcessingPlugin):
         # Sort out the time points
         input_time_points = input_cube.coord("time").points
         # Add scalar coords to allow broadcast to spatial coords.
-        times = input_time_points.reshape((len(input_time_points), 1, 1)) * (
+        times = input_time_points.reshape((1, 1, len(input_time_points))) * (
             1 - self.timezone_cube.data
         )
-        self.time_points = times.sum(axis=0)
+        self.time_points = times.sum(axis=-1)
 
         # Sort out the time bounds (if present)
         bounds_offsets = self.get_time_bounds_offset(input_cube)
@@ -394,20 +396,29 @@ class TimezoneExtraction(PostProcessingPlugin):
         else:
             return None
 
-    def check_input_cube_dims(self, input_cube):
-        """Ensures input cube has exactly three dimensions: time, y, x
+    def check_input_cube_dims(self, input_cube, timezone_cube):
+        """Ensures input cube has at least three dimensions: time, y, x. Promotes time
+        to be the inner-most dimension (dim=-1). Does the same for the timezone_cube
+        UTC_offset dimension.
 
         Raises:
             ValueError:
                 If the input cube does not have exactly the expected three coords."""
         expected_coords = ["time"] + [input_cube.coord(axis=n).name() for n in "yx"]
         cube_coords = [coord.name() for coord in input_cube.coords(dim_coords=True)]
-        if expected_coords != cube_coords:
+        if not all(
+            [expected_coord in cube_coords for expected_coord in expected_coords]
+        ):
             raise ValueError(
                 f"Expected coords on input_cube: time, y, x ({expected_coords}). Found {cube_coords}"
             )
+        enforce_coordinate_ordering(input_cube, ["time"], anchor_start=False)
+        self.timezone_cube = timezone_cube.copy()
+        enforce_coordinate_ordering(
+            self.timezone_cube, ["UTC_offset"], anchor_start=False
+        )
 
-    def check_input_cube_time(self, input_cube, timezone_cube, local_time):
+    def check_input_cube_time(self, input_cube, local_time):
         """Ensures input cube and timezone_cube cover exactly the right points
 
         Raises:
@@ -415,7 +426,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 If the time coord on the input cube does not match the required times.
         """
         input_time_points = [cell.point for cell in input_cube.coord("time").cells()]
-        self.timezone_cube = timezone_cube[::-1]
+        self.timezone_cube = self.timezone_cube[:, :, ::-1]
         timezone_coord = self.timezone_cube.coord("UTC_offset")
         timezone_coord.convert_units("seconds")
         output_times = [
@@ -471,10 +482,10 @@ class TimezoneExtraction(PostProcessingPlugin):
         else:
             input_cube = MergeCubes()(CubeList(input_cubes))
 
-        self.check_input_cube_dims(input_cube)
-        spatial_coords_match(input_cube, timezone_cube)
-        self.check_input_cube_time(input_cube, timezone_cube, local_time)
         self.check_timezones_are_unique(timezone_cube)
+        self.check_input_cube_dims(input_cube, timezone_cube)
+        spatial_coords_match(input_cube, self.timezone_cube)
+        self.check_input_cube_time(input_cube, local_time)
 
         self.fill_timezones(input_cube)
         output_cube = self.create_output_cube(input_cube, local_time)
