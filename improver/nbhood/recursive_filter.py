@@ -373,6 +373,29 @@ class RecursiveFilter(PostProcessingPlugin):
 
         return padded_coefficients
 
+    @staticmethod
+    def _update_smoothing_coefficients(coeffs_x, coeffx_y, cube_xy):
+        """
+        If input cube is masked, dynamically adjust smoothing coefficients to be
+        zero under the mask.  This ensures data are correctly normalised near the
+        mask boundary.
+
+        Args:
+            coeffs_x (iris.cube.Cube)
+            coeffs_y (iris.cube.Cube)
+            cube_xy (iris.cube.Cube):
+                Spatial slice of input cube containing masked data
+
+        Returns:
+            tuple of iris.cube.Cube:
+                Updated smoothing coefficients
+        """
+        # TODO this may not be a trivial call to the orographic smoothing coefficients
+        # class, as padding of these coefficients is done already in the validation
+        # function - so the shapes may not be correct.  A bit of refactoring may be
+        # required.
+        return coeffs_x, coeffs_y
+
     def process(
         self, cube, smoothing_coefficients, mask_cube=None,
     ):
@@ -427,6 +450,16 @@ class RecursiveFilter(PostProcessingPlugin):
             smoothing_coefficients_x,
             smoothing_coefficients_y,
         ) = self._validate_and_pad_coefficients(cube_format, smoothing_coefficients)
+
+        if np.ma.is_masked(cube_format.data):
+            # assumes mask is the same for each x-y slice
+            smoothing_coefficients_x, smoothing_coefficients_y = (
+                self._update_smoothing_coefficients(
+                    smoothing_coefficients_x,
+                    smoothing_coefficients_y,                    
+                    cube_format,
+                )
+            )
 
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
