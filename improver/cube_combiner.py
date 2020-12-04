@@ -88,7 +88,7 @@ class CubeCombiner(BasePlugin):
             cube_list (iris.cube.CubeList or list):
                 List of cubes to compare
             comparators (list of callable):
-                Comparison operators, one of which must return "True" for each
+                Comparison operators, at least one of which must return "True" for each
                 coordinate in order for the match to be valid
         Raises:
             ValueError: If dimension coordinates do not match
@@ -96,14 +96,10 @@ class CubeCombiner(BasePlugin):
         ref_coords = cube_list[0].coords(dim_coords=True)
         for cube in cube_list[1:]:
             coords = cube.coords(dim_coords=True)
-            compare = []
-            for a, b in zip(coords, ref_coords):
-                comp = False
-                for operator in comparators:
-                    if operator(a, b):
-                        comp = True
-                compare.append(comp)
-
+            compare = [
+                np.any([comp(a, b) for comp in comparators])
+                for a, b in zip(coords, ref_coords)
+            ]
             if not np.all(compare):
                 msg = (
                     "Cannot combine cubes with different dimensions:\n"
