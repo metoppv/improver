@@ -341,7 +341,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         )
         return output_cube
 
-    def fill_timezones(self, input_cube):
+    def _fill_timezones(self, input_cube):
         """
         Populates the output cube data with data from input_cube. This is done by
         multiplying the inverse of the timezone_cube.data with the input_cube.data and
@@ -378,7 +378,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         self.time_points = times.sum(axis=-1)
 
         # Sort out the time bounds (if present)
-        bounds_offsets = self.get_time_bounds_offset(input_cube)
+        bounds_offsets = self._get_time_bounds_offset(input_cube)
         if bounds_offsets is not None:
             # Add scalar coords to allow broadcast to spatial coords.
             self.time_bounds = bounds_offsets.reshape(
@@ -386,7 +386,7 @@ class TimezoneExtraction(PostProcessingPlugin):
             ) + self.time_points.reshape(list(self.time_points.shape) + [1])
 
     @staticmethod
-    def get_time_bounds_offset(input_cube):
+    def _get_time_bounds_offset(input_cube):
         """Returns the generalised offset of bounds[0] and bounds[1] from points on the
         time coord. Bound intervals must match as we have used MergeCubes, so only need
         to access the first time point.
@@ -494,7 +494,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         spatial_coords_match(input_cube, self.timezone_cube)
         self.check_input_cube_time(input_cube, local_time)
 
-        self.fill_timezones(input_cube)
+        self._fill_timezones(input_cube)
         output_cube = self.create_output_cube(input_cube, local_time)
 
         return output_cube
