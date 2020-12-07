@@ -109,6 +109,19 @@ def get_dim_coord_names(cube):
     return [coord.name() for coord in cube.coords(dim_coords=True)]
 
 
+def get_coord_names(cube):
+    """
+    Returns a list of all coordinate names on the cube
+
+    Args:
+        cube (iris.cube.Cube)
+
+    Returns:
+        list of str
+    """
+    return [coord.name() for coord in cube.coords()]
+
+
 def equalise_cube_attributes(cubes, silent=None):
     """
     Function to remove attributes that do not match between all cubes in the

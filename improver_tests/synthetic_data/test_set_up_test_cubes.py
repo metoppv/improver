@@ -51,6 +51,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver.utilities.cube_manipulation import get_dim_coord_names
 from improver.utilities.temporal import iris_time_to_datetime
 
 
@@ -627,6 +628,13 @@ class Test_set_up_percentile_cube(IrisTest):
         self.assertEqual(result.attributes["mosg__grid_domain"], "uk_extended")
         self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
 
+    def test_single_percentile(self):
+        """Test a cube with one percentile correctly stores this as a scalar
+        coordinate"""
+        result = set_up_percentile_cube(self.data[1:2], self.percentiles[1:2])
+        dim_coords = get_dim_coord_names(result)
+        self.assertNotIn("percentile", dim_coords)
+
 
 class Test_set_up_probability_cube(IrisTest):
     """Test the set_up_probability_cube function"""
@@ -658,19 +666,21 @@ class Test_set_up_probability_cube(IrisTest):
         self.assertEqual(thresh_coord.var_name, "threshold")
         self.assertEqual(thresh_coord.units, "K")
         self.assertEqual(len(thresh_coord.attributes), 1)
-        self.assertEqual(thresh_coord.attributes["spp__relative_to_threshold"], "above")
+        self.assertEqual(
+            thresh_coord.attributes["spp__relative_to_threshold"], "greater_than",
+        )
         check_mandatory_standards(result)
 
     def test_relative_to_threshold(self):
         """Test ability to reset the "spp__relative_to_threshold" attribute"""
         data = np.flipud(self.data)
         result = set_up_probability_cube(
-            data, self.thresholds, spp__relative_to_threshold="below"
+            data, self.thresholds, spp__relative_to_threshold="less_than"
         )
         self.assertEqual(len(result.coord(var_name="threshold").attributes), 1)
         self.assertEqual(
             result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
-            "below",
+            "less_than",
         )
 
     def test_relative_to_threshold_set(self):
@@ -691,6 +701,13 @@ class Test_set_up_probability_cube(IrisTest):
         self.assertEqual(result.attributes["mosg__grid_version"], "1.3.0")
         self.assertEqual(result.attributes["mosg__grid_domain"], "uk_extended")
         self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
+
+    def test_single_threshold(self):
+        """Test a cube with one threshold correctly stores this as a scalar
+        coordinate"""
+        result = set_up_probability_cube(self.data[1:2], self.thresholds[1:2])
+        dim_coords = get_dim_coord_names(result)
+        self.assertNotIn("air_temperature", dim_coords)
 
 
 class Test_add_coordinate(IrisTest):

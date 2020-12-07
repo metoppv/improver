@@ -41,7 +41,7 @@ from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.convection import DiagnoseConvectivePrecipitation
+from improver.precipitation_type.convection import DiagnoseConvectivePrecipitation
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,

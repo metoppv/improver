@@ -38,6 +38,8 @@ import numpy as np
 from cf_units import Unit
 
 from improver import PostProcessingPlugin
+from improver.metadata.constants import FLOAT_DTYPE
+from improver.metadata.probabilistic import probability_is_above_or_below
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
@@ -198,22 +200,25 @@ class BasicThreshold(PostProcessingPlugin):
         self.comparison_operator_dict = {}
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["ge", "GE", ">="], {"function": operator.ge, "spp_string": "above"}
+                ["ge", "GE", ">="],
+                {"function": operator.ge, "spp_string": "greater_than_or_equal_to"},
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["gt", "GT", ">"], {"function": operator.gt, "spp_string": "above"}
+                ["gt", "GT", ">"],
+                {"function": operator.gt, "spp_string": "greater_than"},
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["le", "LE", "<="], {"function": operator.le, "spp_string": "below"}
+                ["le", "LE", "<="],
+                {"function": operator.le, "spp_string": "less_than_or_equal_to"},
             )
         )
         self.comparison_operator_dict.update(
             dict.fromkeys(
-                ["lt", "LT", "<"], {"function": operator.lt, "spp_string": "below"}
+                ["lt", "LT", "<"], {"function": operator.lt, "spp_string": "less_than"}
             )
         )
         self.comparison_operator_string = comparison_operator
@@ -246,7 +251,7 @@ class BasicThreshold(PostProcessingPlugin):
                 With new "threshold" axis
         """
         coord = iris.coords.DimCoord(
-            np.array([threshold], dtype=np.float32), units=cube.units
+            np.array([threshold], dtype=FLOAT_DTYPE), units=cube.units
         )
         coord.rename(self.threshold_coord_name)
         coord.var_name = "threshold"
@@ -303,7 +308,9 @@ class BasicThreshold(PostProcessingPlugin):
                 probability_of_X_above(or below)_threshold (where X is
                 the diagnostic under consideration)
                 * Threshold dimension coordinate with same units as input_cube
-                * Threshold attribute (above or below threshold)
+                * Threshold attribute ("greater_than",
+                "greater_than_or_equal_to", "less_than", or
+                less_than_or_equal_to" depending on the operator)
                 * Cube units set to (1).
 
         Raises:
@@ -314,7 +321,7 @@ class BasicThreshold(PostProcessingPlugin):
         # integer data must become float to enable fuzzy thresholding.
         input_cube_dtype = input_cube.dtype
         if input_cube.dtype.kind == "i":
-            input_cube_dtype = np.float32
+            input_cube_dtype = FLOAT_DTYPE
 
         thresholded_cubes = iris.cube.CubeList()
         if np.isnan(input_cube.data).any():
@@ -364,9 +371,11 @@ class BasicThreshold(PostProcessingPlugin):
                         clip=True,
                     ),
                 )
-                # if requirement is for probabilities below threshold (rather
-                # than above), invert the exceedance probability
-                if "below" in self.comparison_operator["spp_string"]:
+                # if requirement is for probabilities less_than or
+                # less_than_or_equal_to the threshold (rather than
+                # greater_than or greater_than_or_equal_to), invert
+                # the exceedance probability
+                if "less_than" in self.comparison_operator["spp_string"]:
                     truth_value = 1.0 - truth_value
             truth_value = np.ma.masked_where(np.ma.getmask(cube.data), truth_value)
             truth_value = truth_value.astype(input_cube_dtype)
@@ -384,10 +393,13 @@ class BasicThreshold(PostProcessingPlugin):
             thresholded_cubes.append(cube)
 
         (cube,) = thresholded_cubes.concatenate()
+        if len(self.thresholds) == 1:
+            # if only one threshold has been provided, this should be scalar
+            cube = next(cube.slices_over(cube.coord(var_name="threshold")))
 
         cube.rename(
             "probability_of_{}_{}_threshold".format(
-                cube.name(), self.comparison_operator["spp_string"]
+                cube.name(), probability_is_above_or_below(cube)
             )
         )
         cube.units = Unit(1)

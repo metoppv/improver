@@ -39,6 +39,7 @@ from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import (
     extract_diagnostic_name,
     find_threshold_coordinate,
+    probability_is_above_or_below,
 )
 
 
@@ -133,9 +134,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
             ValueError: If the spp__relative_to_threshold attribute is
                 not recognised
         """
-        relative_to_threshold = self.thresh_coord.attributes[
-            "spp__relative_to_threshold"
-        ]
+        relative_to_threshold = probability_is_above_or_below(self.cube)
         if relative_to_threshold == "above":
             multiplier = 1.0
         elif relative_to_threshold == "below":

@@ -445,6 +445,8 @@ def set_up_percentile_cube(
     cube = set_up_variable_cube(data, realizations=percentiles, **kwargs,)
     cube.coord("realization").rename("percentile")
     cube.coord("percentile").units = Unit("%")
+    if len(percentiles) == 1:
+        cube = next(cube.slices_over("percentile"))
     return cube
 
 
@@ -453,7 +455,7 @@ def set_up_probability_cube(
     thresholds,
     variable_name="air_temperature",
     threshold_units="K",
-    spp__relative_to_threshold="above",
+    spp__relative_to_threshold="greater_than",
     **kwargs,
 ):
     """
@@ -462,7 +464,7 @@ def set_up_probability_cube(
     - leading "threshold" dimension
     - "time", "forecast_reference_time" and "forecast_period" scalar coords
     - option to specify additional scalar coordinates
-    - "spp__relative_to_threshold" attribute (default "above")
+    - "spp__relative_to_threshold" attribute (default "greater_than")
     - default or configurable attributes
     - configurable cube data, name conforms to
     "probability_of_X_above(or below)_threshold" convention
@@ -491,9 +493,13 @@ def set_up_probability_cube(
     # create a "relative to threshold" attribute
     coord_attributes = {"spp__relative_to_threshold": spp__relative_to_threshold}
 
-    if spp__relative_to_threshold == "above":
+    if spp__relative_to_threshold in (
+        "above",
+        "greater_than",
+        "greater_than_or_equal_to",
+    ):
         name = "probability_of_{}_above_threshold".format(variable_name)
-    elif spp__relative_to_threshold == "below":
+    elif spp__relative_to_threshold in ("below", "less_than", "less_than_or_equal_to"):
         name = "probability_of_{}_below_threshold".format(variable_name)
     else:
         msg = (
@@ -509,6 +515,8 @@ def set_up_probability_cube(
     cube.coord(variable_name).var_name = "threshold"
     cube.coord(variable_name).attributes.update(coord_attributes)
     cube.coord(variable_name).units = Unit(threshold_units)
+    if len(thresholds) == 1:
+        cube = next(cube.slices_over(variable_name))
     return cube
 
 

@@ -466,7 +466,7 @@ class AdjustLandSeaPoints(BasePlugin):
 
         # Identify those points sourced from the opposite mask that are
         # close to a source point of the correct mask
-        (mismatch_points,) = np.logical_and(
+        mismatch_points = np.logical_and(
             np.logical_and(
                 self.output_land.data == selector_val,
                 self.input_land.data != selector_val,
