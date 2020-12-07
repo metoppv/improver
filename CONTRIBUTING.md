@@ -51,6 +51,7 @@ below:
 * Simon Jackson (Met Office, UK)
 * Caroline Jones (Met Office, UK)
 * Bruno P. Kinoshita (NIWA, NZ)
+* Daniel Mentiplay (Bureau of Meteorology, Australia)
 * Stephen Moseley (Met Office, UK)
 * Meabh NicGuidhir (Met Office, UK)
 * Tim Pillinger (Met Office, UK)
