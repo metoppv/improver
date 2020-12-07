@@ -170,7 +170,7 @@ def _calculate_forecast_period(
     return result_coord
 
 
-def _create_frt_type_coord(cube, point, name):
+def _create_frt_type_coord(cube, point, name="forecast_reference_time"):
     """Create a new auxiliary coordinate based on forecast reference time
 
     Args:
@@ -206,7 +206,7 @@ def add_blend_time(cube, cycletime):
 
     """
     cycle_datetime = cycletime_to_datetime(cycletime)
-    blend_coord = _create_frt_type_coord(cube, cycle_datetime, "blend_time")
+    blend_coord = _create_frt_type_coord(cube, cycle_datetime, name="blend_time")
     cube.add_aux_coord(blend_coord, data_dims=None)
 
 
@@ -265,9 +265,8 @@ def unify_cycletime(cubes, cycletime):
     result_cubes = iris.cube.CubeList([])
     for cube in cubes:
         cube = cube.copy()
-        frt_coord_name = "forecast_reference_time"
-        new_frt_coord = _create_frt_type_coord(cube, cycletime, frt_coord_name)
-        cube.remove_coord(frt_coord_name)
+        new_frt_coord = _create_frt_type_coord(cube, cycletime)
+        cube.remove_coord(new_frt_coord.name())
         cube.add_aux_coord(new_frt_coord, data_dims=None)
 
         # Update the forecast period for consistency within each cube

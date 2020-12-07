@@ -42,6 +42,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver.utilities.cube_manipulation import get_coord_names
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -386,6 +387,32 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.coord("realization").points, np.array([0, 1]))
         self.assertEqual(result[0].metadata, cube1.metadata)
         self.assertEqual(result[1].metadata, cube2.metadata)
+
+    def test_handling_blend_time(self):
+        """Test merging works with mismatched and / or missing blend time
+        coordinates"""
+        cube_nowcast = self.cube_ukv.copy()
+        cube_nowcast.coord("forecast_reference_time").points = (
+            cube_nowcast.coord("forecast_reference_time").points[0] + 900
+        )
+        cube_nowcast.coord("forecast_period").points = (
+            cube_nowcast.coord("forecast_period").points[0] - 900
+        )
+        cube_nowcast.attributes["mosg__model_configuration"] = "nc_det"
+
+        blt_ukv = self.cube_ukv.coord("forecast_reference_time").copy()
+        blt_ukv.rename("blend_time")
+        self.cube_ukv.add_aux_coord(blt_ukv)
+
+        blt_enuk = self.cube_enuk.coord("forecast_reference_time").copy()
+        blt_enuk.rename("blend_time")
+        self.cube_enuk.add_aux_coord(blt_enuk)
+
+        plugin = MergeCubesForWeightedBlending(
+            "model_id", model_id_attr="mosg__model_configuration"
+        )
+        result = plugin([cube_nowcast, self.cube_ukv, self.cube_enuk])
+        self.assertNotIn("blend_time", get_coord_names(result))
 
 
 if __name__ == "__main__":

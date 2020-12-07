@@ -46,6 +46,7 @@ from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
     MANDATORY_ATTRIBUTES,
 )
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import (
     add_blend_time,
     forecast_period_coord,
@@ -154,6 +155,18 @@ class MergeCubesForWeightedBlending(BasePlugin):
         for cube in cubelist:
             cube.attributes[self.model_id_attr] = " ".join(model_titles)
 
+    @staticmethod
+    def _remove_blend_time(cube):
+        """If present on input, remove existing blend time coordinate (as this will
+        be replaced on blending)"""
+        try:
+            coord = cube.coord("blend_time")
+        except CoordinateNotFoundError:
+            return cube
+        else:
+            cube.remove_coord(coord)
+            return cube
+
     def process(self, cubes_in, cycletime=None):
         """
         Prepares merged input cube for cycle and grid blending
@@ -174,20 +187,24 @@ class MergeCubesForWeightedBlending(BasePlugin):
                 If self.blend_coord is not present on all cubes (unless
                 blending over models)
         """
-        cubes_in = [cubes_in] if isinstance(cubes_in, iris.cube.Cube) else cubes_in
+        cubelist = (
+            [cubes_in.copy()]
+            if isinstance(cubes_in, iris.cube.Cube)
+            else [cube.copy() for cube in cubes_in]
+        )
 
-        if (
-            "model" in self.blend_coord
-            and self.weighting_coord is not None
-            and "forecast_period" in self.weighting_coord
-        ):
-            # if blending models using weights by forecast period, unify
-            # forecast periods (assuming validity times are identical);
-            # method returns a new cubelist with copies of input cubes
-            cubelist = rebadge_forecasts_as_latest_cycle(cubes_in, cycletime=cycletime)
-        else:
-            # copy cubes to avoid modifying inputs
-            cubelist = [cube.copy() for cube in cubes_in]
+        if "model" in self.blend_coord:
+            cubelist = [self._remove_blend_time(cube) for cube in cubelist]
+            if (
+                self.weighting_coord is not None
+                and "forecast_period" in self.weighting_coord
+            ):
+                # if blending models using weights by forecast period, unify
+                # forecast periods (assuming validity times are identical);
+                # method returns a new cubelist with copies of input cubes
+                cubelist = rebadge_forecasts_as_latest_cycle(
+                    cubelist, cycletime=cycletime
+                )
 
         # if input is already a single cube, return here
         if len(cubelist) == 1:
@@ -757,11 +774,10 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             input_cube (iris.cube.Cube):
                 Cube to be blended
         """
-        time_coords = ["time", "forecast_reference_time", "forecast_period"]
         (blend_dim,) = cube.coord_dims(self.blend_coord)
         self.crds_to_remove = []
         for coord in cube.coords():
-            if coord.name() in time_coords:
+            if coord.name() in TIME_COORDS:
                 continue
             if blend_dim in cube.coord_dims(coord):
                 self.crds_to_remove.append(coord.name())
