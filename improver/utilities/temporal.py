@@ -420,6 +420,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         enforce_coordinate_ordering(
             self.timezone_cube, ["UTC_offset"], anchor_start=False
         )
+        spatial_coords_match(input_cube, self.timezone_cube)
 
     def check_input_cube_time(self, input_cube, local_time):
         """Ensures input cube and timezone_cube cover exactly the right points and that
@@ -491,7 +492,6 @@ class TimezoneExtraction(PostProcessingPlugin):
 
         self.check_timezones_are_unique(timezone_cube)
         self.check_input_cube_dims(input_cube, timezone_cube)
-        spatial_coords_match(input_cube, self.timezone_cube)
         self.check_input_cube_time(input_cube, local_time)
 
         self._fill_timezones(input_cube)
