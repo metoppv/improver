@@ -358,6 +358,7 @@ class Test__validate_coefficients(Test_RecursiveFilter):
                 self.cube, self.smoothing_coefficients
             )
 
+
 class Test__pad_coefficients(Test_RecursiveFilter):
     """Test the _pad_coefficients method"""
 
@@ -393,9 +394,9 @@ class Test__pad_coefficients(Test_RecursiveFilter):
         expected_shape_y = (8, 9)
         expected_result_x = np.full(expected_shape_x, 0.5)
         expected_result_y = np.full(expected_shape_y, 0.5)
-        result_x, result_y = RecursiveFilter(
-            edge_width=1
-        )._pad_coefficients(*self.smoothing_coefficients)
+        result_x, result_y = RecursiveFilter(edge_width=1)._pad_coefficients(
+            *self.smoothing_coefficients
+        )
         self.assertArrayEqual(result_x.data, expected_result_x)
         self.assertArrayEqual(result_y.data, expected_result_y)
         self.assertEqual(result_x.shape, expected_shape_x)
@@ -592,7 +593,13 @@ class Test_process(Test_RecursiveFilter):
 
     def test_smoothing_coefficient_nan_in_data(self):
         """Test that the RecursiveFilter plugin returns the correct data
-        when the data contains nans."""
+        when the data contains nans.
+
+        TODO this is a big one to fix with sensible coding principles.  Need to
+        make smoothing coefficients zero with zero_masked - but independently
+        for each x-y slice.  Check there is a genuine requirement first.
+
+        """
         plugin = RecursiveFilter(iterations=self.iterations,)
         self.cube.data[0][3][2] = np.nan
         result = plugin(self.cube, smoothing_coefficients=self.smoothing_coefficients,)
@@ -601,7 +608,8 @@ class Test_process(Test_RecursiveFilter):
 
     def test_smoothing_coefficient_cubes_masked_data(self):
         """Test that the RecursiveFilter plugin returns the correct data
-        when a masked data cube."""
+        when a masked data cube.
+        """
         plugin = RecursiveFilter(iterations=self.iterations,)
         mask = np.zeros(self.cube.data.shape)
         mask[0][3][2] = 1

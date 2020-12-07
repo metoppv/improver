@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright  2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -9,7 +9,7 @@
 # * Redistributions of source code must retain the above copyright notice, this
 #   list of conditions and the following disclaimer.
 #
-# * Redistributions in binary form must reproduce the above copyright notice,
+# * Redistributions in binary form must reproduce the         above copyright notice,
 #   this list of conditions and the following disclaimer in the documentation
 #   and/or other materials provided with the distribution.
 #
@@ -36,7 +36,7 @@ import numpy as np
 
 from improver import PostProcessingPlugin
 from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
-    OrographicSmoothingCoefficients
+    OrographicSmoothingCoefficients,
 )
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_cube
@@ -372,13 +372,11 @@ class RecursiveFilter(PostProcessingPlugin):
         """Pad smoothing coefficients"""
         pad_x, pad_y = [
             pad_cube_with_halo(
-                coeff,
-                2 * self.edge_width,
-                2 * self.edge_width,
-                pad_method="symmetric",
-            ) for coeff in [coeff_x, coeff_y]
+                coeff, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric",
+            )
+            for coeff in [coeff_x, coeff_y]
         ]
-        return pad_x, pad_y 
+        return pad_x, pad_y
 
     @staticmethod
     def _update_coefficients_from_mask(coeffs_x, coeffs_y, cube_xy):
@@ -399,7 +397,9 @@ class RecursiveFilter(PostProcessingPlugin):
         """
         # call smoothing functionality to zero all smoothing coefficients for data points
         # that are masked
-        plugin = OrographicSmoothingCoefficients(use_mask_boundary=False, invert_mask=False)
+        plugin = OrographicSmoothingCoefficients(
+            use_mask_boundary=False, invert_mask=False
+        )
         mask_cube = cube_xy.copy(data=cube_xy.data.mask)
         plugin.zero_masked(coeffs_x, coeffs_y, mask_cube)
         return coeffs_x, coeffs_y
@@ -460,12 +460,8 @@ class RecursiveFilter(PostProcessingPlugin):
 
         if np.ma.is_masked(cube_format.data):
             # assumes mask is the same for each x-y slice
-            coeffs_x, coeffs_y = (
-                self._update_coefficients_from_mask(
-                    coeffs_x,
-                    coeffs_y,                    
-                    cube_format,
-                )
+            coeffs_x, coeffs_y = self._update_coefficients_from_mask(
+                coeffs_x, coeffs_y, cube_format,
             )
 
         padded_coefficients_x, padded_coefficients_y = self._pad_coefficients(
@@ -479,8 +475,8 @@ class RecursiveFilter(PostProcessingPlugin):
             # This should set up a mask full of 1.0 if None is provided
             # and set the data 0.0 where mask is 0.0 or the data is NaN
             # TODO ABSOLUTELY NOT!  Do a simple strip out and replace mask.
-            #output, mask, nan_array = self.set_up_cubes(output, mask_cube)
-            #mask = mask.data.squeeze()
+            # output, mask, nan_array = self.set_up_cubes(output, mask_cube)
+            # mask = mask.data.squeeze()
 
             mask = None
             if mask_cube:
