@@ -458,6 +458,10 @@ class RecursiveFilter(PostProcessingPlugin):
             cube_format, smoothing_coefficients
         )
 
+        # TODO calculate x-y mask HERE not in loop.  Then pass mask (not data) into
+        # _update_coefficients_from_mask.  Allows for external mask input, eg
+        # topographic bands masks.  But this is never used ... so NOPE.
+
         if np.ma.is_masked(cube_format.data):
             # assumes mask is the same for each x-y slice
             coeffs_x, coeffs_y = self._update_coefficients_from_mask(
@@ -480,8 +484,10 @@ class RecursiveFilter(PostProcessingPlugin):
 
             mask = None
             if mask_cube:
+                # TODO this needs inverting BUT results in completely masked data if I do!!
+                # Also this is never used - so nuke it.
                 mask = mask_cube.data
-            elif np.ma.is_masked(output.data):
+            if np.ma.is_masked(output.data):
                 mask = output.data.mask.copy()
 
             padded_cube = pad_cube_with_halo(
