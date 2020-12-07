@@ -275,3 +275,19 @@ def test_bad_dtype():
         match=r"Operation multiply on types \{dtype\(\'.*32\'\), dtype\(\'.*32\'\)\} results in",
     ):
         TimezoneExtraction()(cube, timezone_cube, local_time)
+
+
+def test_bad_spatial_coords():
+    """Checks that the plugin raises a useful error if the longitude coord is shifted by
+    180 degrees"""
+    cube = make_input_cube([3, 4])
+    local_time = datetime(2017, 11, 10, 5, 0)
+    timezone_cube = make_timezone_cube()
+    timezone_cube.data = timezone_cube.data.astype(np.int32)
+    longitude_coord = timezone_cube.coord("longitude")
+    timezone_cube.replace_coord(longitude_coord.copy(longitude_coord.points + 180))
+    with pytest.raises(
+        ValueError,
+        match=r"Spatial coordinates on input_cube and timezone_cube do not match.",
+    ):
+        TimezoneExtraction()(cube, timezone_cube, local_time)

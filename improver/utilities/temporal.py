@@ -406,7 +406,9 @@ class TimezoneExtraction(PostProcessingPlugin):
 
         Raises:
             ValueError:
-                If the input cube does not have exactly the expected three coords."""
+                If the input cube does not have exactly the expected three coords.
+                If the spatial coords on input_cube and timezone_cube do not match.
+        """
         expected_coords = ["time"] + [input_cube.coord(axis=n).name() for n in "yx"]
         cube_coords = [coord.name() for coord in input_cube.coords(dim_coords=True)]
         if not all(
@@ -420,7 +422,10 @@ class TimezoneExtraction(PostProcessingPlugin):
         enforce_coordinate_ordering(
             self.timezone_cube, ["UTC_offset"], anchor_start=False
         )
-        spatial_coords_match(input_cube, self.timezone_cube)
+        if not spatial_coords_match(input_cube, self.timezone_cube):
+            raise ValueError(
+                "Spatial coordinates on input_cube and timezone_cube do not match."
+            )
 
     def check_input_cube_time(self, input_cube, local_time):
         """Ensures input cube and timezone_cube cover exactly the right points and that
