@@ -281,7 +281,7 @@ class RecursiveFilter(PostProcessingPlugin):
             cube.data = output
         return cube
 
-    def _validate_and_pad_coefficients(self, cube, smoothing_coefficients):
+    def _validate_coefficients(self, cube, smoothing_coefficients):
         """Validate the smoothing coefficients cubes.
 
         Args:
@@ -297,8 +297,6 @@ class RecursiveFilter(PostProcessingPlugin):
         Returns:
             list:
                 A list of smoothing coefficients cubes ordered: [x-coeffs, y-coeffs].
-                The coefficients are padded to match the size of the padded cube
-                to which they will be applied.
 
         Raises:
             ValueError: Smoothing coefficient cubes are not named correctly.
@@ -361,20 +359,22 @@ class RecursiveFilter(PostProcessingPlugin):
                     )
                     raise ValueError(msg)
 
-            # Pad the smoothing coefficients to match the padded data shape
-            padded_coefficients.append(
-                pad_cube_with_halo(
-                    smoothing_coefficient,
-                    2 * self.edge_width,
-                    2 * self.edge_width,
-                    pad_method="symmetric",
-                )
-            )
+        return smoothing_coefficients
 
-        return padded_coefficients
+    def _pad_coefficients(self, coeff_x, coeff_y):
+        """Pad smoothing coefficients"""
+        pad_x, pad_y = [
+            pad_cube_with_halo(
+                coeff,
+                2 * self.edge_width,
+                2 * self.edge_width,
+                pad_method="symmetric",
+            ) for coeff in [coeff_x, coeff_y]
+        ]
+        return pad_x, pad_y 
 
     @staticmethod
-    def _update_smoothing_coefficients(coeffs_x, coeffx_y, cube_xy):
+    def _update_coefficients_from_mask(coeffs_x, coeffs_y, cube_xy):
         """
         If input cube is masked, dynamically adjust smoothing coefficients to be
         zero under the mask.  This ensures data are correctly normalised near the
@@ -446,20 +446,23 @@ class RecursiveFilter(PostProcessingPlugin):
                 method has been applied.
         """
         cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
-        (
-            smoothing_coefficients_x,
-            smoothing_coefficients_y,
-        ) = self._validate_and_pad_coefficients(cube_format, smoothing_coefficients)
+        coeffs_x, coeffs_y = self._validate_coefficients(
+            cube_format, smoothing_coefficients
+        )
 
         if np.ma.is_masked(cube_format.data):
             # assumes mask is the same for each x-y slice
-            smoothing_coefficients_x, smoothing_coefficients_y = (
-                self._update_smoothing_coefficients(
-                    smoothing_coefficients_x,
-                    smoothing_coefficients_y,                    
+            coeffs_x, coeffs_y = (
+                self._update_coefficients_from_mask(
+                    coeffs_x,
+                    coeffs_y,                    
                     cube_format,
                 )
             )
+
+        padded_coefficients_x, padded_coefficients_y = self._pad_coefficients(
+            coeffs_x, coeffs_y
+        )
 
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
@@ -476,8 +479,8 @@ class RecursiveFilter(PostProcessingPlugin):
 
             new_cube = self._run_recursion(
                 padded_cube,
-                smoothing_coefficients_x,
-                smoothing_coefficients_y,
+                padded_coefficients_x,
+                padded_coefficients_y,
                 self.iterations,
             )
             new_cube = remove_halo_from_cube(
