@@ -643,7 +643,7 @@ class Test_process(Test_weighted_blend):
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_basic(self):
-        """Test that the plugin returns an iris.cube.Cube appropriate metadata"""
+        """Test that the plugin returns an iris.cube.Cube with appropriate metadata"""
         expected_dim_coords = [
             coord.name() for coord in self.cube.coords(dim_coords=True)
         ]
