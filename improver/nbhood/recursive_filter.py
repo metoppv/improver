@@ -35,6 +35,9 @@ import iris
 import numpy as np
 
 from improver import PostProcessingPlugin
+from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
+    OrographicSmoothingCoefficients
+)
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_cube
 
@@ -115,6 +118,10 @@ class RecursiveFilter(PostProcessingPlugin):
                     the data of the output cube to be NaN.
 
         """
+        # TODO get rid of this - we should NOT be modifying data under a mask
+        # I'm not calling this and will demonstrate why the outputs are better
+        # without it...
+
         # Set up mask_cube
         if not mask_cube:
             mask = cube.copy(np.ones_like(cube.data, dtype=np.bool))
@@ -390,10 +397,11 @@ class RecursiveFilter(PostProcessingPlugin):
             tuple of iris.cube.Cube:
                 Updated smoothing coefficients
         """
-        # TODO this may not be a trivial call to the orographic smoothing coefficients
-        # class, as padding of these coefficients is done already in the validation
-        # function - so the shapes may not be correct.  A bit of refactoring may be
-        # required.
+        # call smoothing functionality to zero all smoothing coefficients for data points
+        # that are masked
+        plugin = OrographicSmoothingCoefficients(use_mask_boundary=False, invert_mask=False)
+        mask_cube = cube_xy.copy(data=cube_xy.data.mask)
+        plugin.zero_masked(coeffs_x, coeffs_y, mask_cube)
         return coeffs_x, coeffs_y
 
     def process(
@@ -470,8 +478,15 @@ class RecursiveFilter(PostProcessingPlugin):
             # Setup cube and mask for processing.
             # This should set up a mask full of 1.0 if None is provided
             # and set the data 0.0 where mask is 0.0 or the data is NaN
-            output, mask, nan_array = self.set_up_cubes(output, mask_cube)
-            mask = mask.data.squeeze()
+            # TODO ABSOLUTELY NOT!  Do a simple strip out and replace mask.
+            #output, mask, nan_array = self.set_up_cubes(output, mask_cube)
+            #mask = mask.data.squeeze()
+
+            mask = None
+            if mask_cube:
+                mask = mask_cube.data
+            elif np.ma.is_masked(output.data):
+                mask = output.data.mask.copy()
 
             padded_cube = pad_cube_with_halo(
                 output, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric"
@@ -486,11 +501,16 @@ class RecursiveFilter(PostProcessingPlugin):
             new_cube = remove_halo_from_cube(
                 new_cube, 2 * self.edge_width, 2 * self.edge_width
             )
+
+            """
             if self.re_mask:
                 new_cube.data[nan_array] = np.nan
                 new_cube.data = np.ma.masked_array(
                     new_cube.data, mask=np.logical_not(mask), copy=False
                 )
+            """
+            if mask is not None:
+                new_cube.data = np.ma.MaskedArray(new_cube.data, mask=mask)
 
             recursed_cube.append(new_cube)
 

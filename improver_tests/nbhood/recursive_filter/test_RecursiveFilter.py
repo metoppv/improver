@@ -606,9 +606,10 @@ class Test_process(Test_RecursiveFilter):
         mask = np.zeros(self.cube.data.shape)
         mask[0][3][2] = 1
         self.cube.data = np.ma.MaskedArray(self.cube.data, mask=mask)
-        result = plugin(self.cube, smoothing_coefficients=self.smoothing_coefficients,)
-        expected = 0.13277836
+        result = plugin(self.cube, smoothing_coefficients=self.smoothing_coefficients)
+        expected = 0.184375
         self.assertAlmostEqual(result.data[0][2][2], expected)
+        self.assertArrayEqual(result.data.mask, mask)
 
     def test_coordinate_reordering_with_different_smoothing_coefficients(self):
         """Test that x and y smoothing_coefficients still apply to the right
