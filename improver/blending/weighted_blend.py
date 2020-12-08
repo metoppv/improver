@@ -58,6 +58,7 @@ from improver.utilities.cube_manipulation import (
     MergeCubes,
     collapsed,
     enforce_coordinate_ordering,
+    get_coord_names,
     get_dim_coord_names,
     sort_coord_in_cube,
 )
@@ -159,13 +160,9 @@ class MergeCubesForWeightedBlending(BasePlugin):
     def _remove_blend_time(cube):
         """If present on input, remove existing blend time coordinate (as this will
         be replaced on blending)"""
-        try:
-            coord = cube.coord("blend_time")
-        except CoordinateNotFoundError:
-            return cube
-        else:
-            cube.remove_coord(coord)
-            return cube
+        if "blend_time" in get_coord_names(cube):
+            cube.remove_coord("blend_time")
+        return cube
 
     def process(self, cubes_in, cycletime=None):
         """
