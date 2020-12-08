@@ -170,7 +170,6 @@ class Test__init__(Test_RecursiveFilter):
         result = RecursiveFilter()
         self.assertIsNone(result.iterations)
         self.assertEqual(result.edge_width, 15)
-        self.assertFalse(result.re_mask)
 
     def test_iterations(self):
         """Test when iterations value less than unity is given (invalid)."""
@@ -193,101 +192,6 @@ class Test__init__(Test_RecursiveFilter):
         RecursiveFilter(iterations=iterations)
         self.assertTrue(any(item.category == UserWarning for item in warning_list))
         self.assertTrue(any(warning_msg in str(item) for item in warning_list))
-
-
-class Test_set_up_cubes(IrisTest):
-
-    """Test the set up of cubes prior to neighbourhooding."""
-
-    def setUp(self):
-        """Set up a 2D cube."""
-        data = np.ones((5, 5), dtype=np.float32)
-        data[2, 2] = 0
-        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
-
-    def test_without_masked_data(self):
-        """Test setting up cubes to be neighbourhooded when the input cube
-        does not contain masked arrays."""
-        expected_mask = np.ones((5, 5), dtype=np.bool)
-        expected_nans = np.zeros((5, 5), dtype=np.bool)
-        cube, mask, nan_array = RecursiveFilter.set_up_cubes(self.cube)
-        self.assertIsInstance(cube, Cube)
-        self.assertIsInstance(mask, Cube)
-        self.assertEqual(cube, self.cube)
-        self.assertArrayEqual(nan_array, expected_nans)
-        self.assertArrayEqual(mask.data, expected_mask)
-
-    def test_with_masked_data(self):
-        """Test setting up cubes to be neighbourhooded when the input cube
-        contains masked arrays."""
-        cube = self.cube
-        data = cube.data
-        cube.data[1, 3] = 0.5
-        cube.data[3, 3] = 0.5
-        cube.data = np.ma.masked_equal(data, 0.5)
-        mask = ~cube.data.mask
-        expected_nans = np.zeros((5, 5), dtype=np.bool)
-        data = cube.data.data * mask
-        result_cube, result_mask, result_nan_array = RecursiveFilter.set_up_cubes(
-            cube.copy()
-        )
-        self.assertArrayAlmostEqual(result_cube.data, data)
-        self.assertArrayAlmostEqual(result_mask.data, mask)
-        self.assertArrayEqual(result_nan_array, expected_nans)
-
-    def test_with_separate_mask_cube(self):
-        """Test for an input cube and an additional mask cube."""
-        self.cube.data[1, 3] = 0.5
-        self.cube.data[3, 3] = 0.5
-        mask_cube = self.cube.copy()
-        mask_cube.data = np.ones((5, 5))
-        mask_cube.data[self.cube.data == 0.5] = 0
-        expected_data = self.cube.data * mask_cube.data
-        expected_mask = np.ones((5, 5))
-        expected_mask[1, 3] = 0.0
-        expected_mask[3, 3] = 0.0
-        expected_nans = np.zeros((5, 5), dtype=np.bool)
-        result_cube, result_mask, result_nan_array = RecursiveFilter.set_up_cubes(
-            self.cube.copy(), mask_cube=mask_cube
-        )
-        self.assertIsInstance(result_cube, Cube)
-        self.assertIsInstance(result_mask, Cube)
-        self.assertArrayAlmostEqual(result_cube.data, expected_data)
-        self.assertArrayAlmostEqual(result_mask.data, expected_mask)
-        self.assertArrayEqual(result_nan_array, expected_nans)
-
-    def test_with_separate_mask_cube_and_nan(self):
-        """Test for an input cube and an additional mask cube."""
-        mask_cube = self.cube.copy()
-        self.cube.data[1, 3] = 0.5
-        self.cube.data[3, 3] = 0.5
-        self.cube.data[1, 2] = np.nan
-        self.cube.data[3, 1] = np.nan
-        mask_cube.data = np.ones((5, 5))
-        mask_cube.data[self.cube.data == 0.5] = 0
-        mask_cube.data = mask_cube.data.astype(int)
-
-        expected_mask = np.ones((5, 5))
-        expected_mask[1, 3] = 0.0
-        expected_mask[3, 3] = 0.0
-        expected_mask[1, 2] = 0.0
-        expected_mask[3, 1] = 0.0
-        expected_data = self.cube.data * expected_mask
-        expected_data[1, 2] = 0.0
-        expected_data[3, 1] = 0.0
-        expected_nans = np.zeros((5, 5), dtype=np.bool)
-        expected_nans[1, 2] = True
-        expected_nans[3, 1] = True
-
-        result_cube, result_mask, result_nan_array = RecursiveFilter.set_up_cubes(
-            self.cube.copy(), mask_cube=mask_cube
-        )
-
-        self.assertIsInstance(result_cube, Cube)
-        self.assertIsInstance(result_mask, Cube)
-        self.assertArrayAlmostEqual(result_cube.data, expected_data)
-        self.assertArrayAlmostEqual(result_mask.data, expected_mask)
-        self.assertArrayEqual(result_nan_array, expected_nans)
 
 
 class Test__validate_coefficients(Test_RecursiveFilter):
@@ -589,21 +493,6 @@ class Test_process(Test_RecursiveFilter):
         plugin = RecursiveFilter(iterations=self.iterations,)
         result = plugin(self.cube, smoothing_coefficients=self.smoothing_coefficients,)
         expected = 0.14994797
-        self.assertAlmostEqual(result.data[0][2][2], expected)
-
-    def test_smoothing_coefficient_nan_in_data(self):
-        """Test that the RecursiveFilter plugin returns the correct data
-        when the data contains nans.
-
-        TODO this is a big one to fix with sensible coding principles.  Need to
-        make smoothing coefficients zero with zero_masked - but independently
-        for each x-y slice.  Check there is a genuine requirement first.
-
-        """
-        plugin = RecursiveFilter(iterations=self.iterations,)
-        self.cube.data[0][3][2] = np.nan
-        result = plugin(self.cube, smoothing_coefficients=self.smoothing_coefficients,)
-        expected = 0.13277836
         self.assertAlmostEqual(result.data[0][2][2], expected)
 
     def test_smoothing_coefficient_cubes_masked_data(self):

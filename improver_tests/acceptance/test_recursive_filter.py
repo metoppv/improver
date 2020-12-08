@@ -53,43 +53,8 @@ def test_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
-def test_external_mask_with_remask(tmp_path):
-    """Test recursive filter with input mask file and remasking"""
-    kgo_dir = acc.kgo_root() / "recursive-filter"
-    kgo_path = kgo_dir / "kgo_external_mask_with_re_mask.nc"
-    input_path = kgo_dir / "input.nc"
-    smoothing_coefficients_path = kgo_dir / "smoothing_coefficients.nc"
-    mask_path = kgo_dir / "mask.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        smoothing_coefficients_path,
-        mask_path,
-        "--remask",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.slow
-def test_external_mask_with_no_remask(tmp_path):
-    """Test recursive filter with input mask file and no remasking"""
-    kgo_dir = acc.kgo_root() / "recursive-filter"
-    kgo_path = kgo_dir / "kgo_external_mask_no_re_mask.nc"
-    input_path = kgo_dir / "input.nc"
-    smoothing_coefficients_path = kgo_dir / "smoothing_coefficients.nc"
-    mask_path = kgo_dir / "mask.nc"
-    output_path = tmp_path / "output.nc"
-    args = [input_path, smoothing_coefficients_path, mask_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_internal_mask_with_remask(tmp_path):
-    """Test recursive filter with internal mask and remasking"""
+def test_internal_mask(tmp_path):
+    """Test recursive filter with masked data"""
     kgo_dir = acc.kgo_root() / "recursive-filter"
     kgo_path = kgo_dir / "kgo_internal_mask_with_re_mask.nc"
     input_path = kgo_dir / "input_masked.nc"
@@ -98,21 +63,8 @@ def test_internal_mask_with_remask(tmp_path):
     args = [
         input_path,
         smoothing_coefficients_path,
-        "--remask",
         "--output",
         output_path,
     ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_internal_mask_with_no_remask(tmp_path):
-    """Test recursive filter with internal mask and no remasking"""
-    kgo_dir = acc.kgo_root() / "recursive-filter"
-    kgo_path = kgo_dir / "kgo_internal_mask_no_re_mask.nc"
-    input_path = kgo_dir / "input_masked.nc"
-    smoothing_coefficients_path = kgo_dir / "smoothing_coefficients.nc"
-    output_path = tmp_path / "output.nc"
-    args = [input_path, smoothing_coefficients_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

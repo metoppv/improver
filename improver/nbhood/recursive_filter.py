@@ -48,9 +48,7 @@ class RecursiveFilter(PostProcessingPlugin):
     Apply a recursive filter to the input cube.
     """
 
-    def __init__(
-        self, iterations=None, edge_width=15, re_mask=False,
-    ):
+    def __init__(self, iterations=None, edge_width=15):
         """
         Initialise the class.
 
@@ -60,13 +58,6 @@ class RecursiveFilter(PostProcessingPlugin):
             edge_width (int):
                 Half the width of the padding halo applied before
                 recursive filtering.
-            re_mask (bool):
-                If re_mask is True, the original un-recursively filtered
-                mask is applied to mask out the recursively filtered cube.
-                If re_mask is False, the original un-recursively filtered
-                mask is not applied. Therefore, the recursive filtering
-                may result in values being present in areas that were
-                originally masked.
         Raises:
             ValueError: If number of iterations is not None and is set such
                         that iterations is less than 1.
@@ -86,64 +77,12 @@ class RecursiveFilter(PostProcessingPlugin):
                 )
         self.iterations = iterations
         self.edge_width = edge_width
-        self.re_mask = re_mask
         self.smoothing_coefficient_name_format = "smoothing_coefficient_{}"
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = "<RecursiveFilter: iterations: {}, edge_width: {}"
         return result.format(self.iterations, self.edge_width)
-
-    @staticmethod
-    def set_up_cubes(cube, mask_cube=None):
-        """
-        Set up cubes ready for recursive filtering.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube that will be checked for whether the data is masked
-                or nan. The cube should contain only x and y dimensions,
-                so will generally be a slice of a cube.
-            mask_cube (iris.cube.Cube):
-                Input Cube containing the array to be used as a mask.
-
-        Returns:
-            (tuple): tuple containing:
-                **cube** (iris.cube.Cube):
-                    Cube with masked or NaN values set to 0.0
-                **mask** (iris.cube.Cube):
-                    Cube with masked or NaN values set to 0.0
-                **nan_array** (numpy.ndarray):
-                    numpy array to be used to set the values within
-                    the data of the output cube to be NaN.
-
-        """
-        # TODO get rid of this - we should NOT be modifying data under a mask
-        # I'm not calling this and will demonstrate why the outputs are better
-        # without it...
-
-        # Set up mask_cube
-        if not mask_cube:
-            mask = cube.copy(np.ones_like(cube.data, dtype=np.bool))
-        else:
-            mask = mask_cube
-        # If there is a mask, fill the data array of the mask_cube with a
-        # logical array, logically inverted compared to the integer version of
-        # the mask within the original data array.
-
-        if isinstance(cube.data, np.ma.MaskedArray):
-            mask.data[cube.data.mask] = 0
-            cube.data = cube.data.data
-        mask.rename("mask_data")
-        cube = iris.util.squeeze(cube)
-        mask = iris.util.squeeze(mask)
-        # Set NaN values to 0 in both the cube data and mask data.
-        nan_array = np.isnan(cube.data)
-        mask.data[nan_array] = 0
-        cube.data[nan_array] = 0.0
-        #  Set cube.data to 0.0 where mask_cube is 0.0
-        cube.data[mask.data == 0] = 0.0
-        return cube, mask, nan_array
 
     @staticmethod
     def _recurse_forward(grid, smoothing_coefficients, axis):
@@ -379,34 +318,26 @@ class RecursiveFilter(PostProcessingPlugin):
         return pad_x, pad_y
 
     @staticmethod
-    def _update_coefficients_from_mask(coeffs_x, coeffs_y, cube_xy):
+    def _update_coefficients_from_mask(coeffs_x, coeffs_y, mask):
         """
-        If input cube is masked, dynamically adjust smoothing coefficients to be
-        zero under the mask.  This ensures data are correctly normalised near the
-        mask boundary.
+        Zero all smoothing coefficients for data points that are masked
 
         Args:
             coeffs_x (iris.cube.Cube)
             coeffs_y (iris.cube.Cube)
-            cube_xy (iris.cube.Cube):
-                Spatial slice of input cube containing masked data
+            mask (iris.cube.Cube)
 
         Returns:
             tuple of iris.cube.Cube:
                 Updated smoothing coefficients
         """
-        # call smoothing functionality to zero all smoothing coefficients for data points
-        # that are masked
         plugin = OrographicSmoothingCoefficients(
             use_mask_boundary=False, invert_mask=False
         )
-        mask_cube = cube_xy.copy(data=cube_xy.data.mask)
-        plugin.zero_masked(coeffs_x, coeffs_y, mask_cube)
+        plugin.zero_masked(coeffs_x, coeffs_y, mask)
         return coeffs_x, coeffs_y
 
-    def process(
-        self, cube, smoothing_coefficients, mask_cube=None,
-    ):
+    def process(self, cube, smoothing_coefficients):
         """
         Set up the smoothing_coefficient parameters and run the recursive
         filter. Smoothing coefficients can be generated using
@@ -444,9 +375,6 @@ class RecursiveFilter(PostProcessingPlugin):
                 A cubelist containing two cubes of smoothing_coefficient values,
                 one corresponding to smoothing in the x-direction, and the other
                 to smoothing in the y-direction.
-            mask_cube (iris.cube.Cube or None):
-                Cube containing an external mask to apply to the cube before
-                applying the recursive filter.
 
         Returns:
             iris.cube.Cube:
@@ -458,14 +386,12 @@ class RecursiveFilter(PostProcessingPlugin):
             cube_format, smoothing_coefficients
         )
 
-        # TODO calculate x-y mask HERE not in loop.  Then pass mask (not data) into
-        # _update_coefficients_from_mask.  Allows for external mask input, eg
-        # topographic bands masks.  But this is never used ... so NOPE.
-
+        mask_cube = None
         if np.ma.is_masked(cube_format.data):
             # assumes mask is the same for each x-y slice
+            mask_cube = cube_format.copy(data=cube_format.data.mask)
             coeffs_x, coeffs_y = self._update_coefficients_from_mask(
-                coeffs_x, coeffs_y, cube_format,
+                coeffs_x, coeffs_y, mask_cube,
             )
 
         padded_coefficients_x, padded_coefficients_y = self._pad_coefficients(
@@ -474,21 +400,6 @@ class RecursiveFilter(PostProcessingPlugin):
 
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
-
-            # Setup cube and mask for processing.
-            # This should set up a mask full of 1.0 if None is provided
-            # and set the data 0.0 where mask is 0.0 or the data is NaN
-            # TODO ABSOLUTELY NOT!  Do a simple strip out and replace mask.
-            # output, mask, nan_array = self.set_up_cubes(output, mask_cube)
-            # mask = mask.data.squeeze()
-
-            mask = None
-            if mask_cube:
-                # TODO this needs inverting BUT results in completely masked data if I do!!
-                # Also this is never used - so nuke it.
-                mask = mask_cube.data
-            if np.ma.is_masked(output.data):
-                mask = output.data.mask.copy()
 
             padded_cube = pad_cube_with_halo(
                 output, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric"
@@ -504,15 +415,8 @@ class RecursiveFilter(PostProcessingPlugin):
                 new_cube, 2 * self.edge_width, 2 * self.edge_width
             )
 
-            """
-            if self.re_mask:
-                new_cube.data[nan_array] = np.nan
-                new_cube.data = np.ma.masked_array(
-                    new_cube.data, mask=np.logical_not(mask), copy=False
-                )
-            """
-            if mask is not None:
-                new_cube.data = np.ma.MaskedArray(new_cube.data, mask=mask)
+            if mask_cube is not None:
+                new_cube.data = np.ma.MaskedArray(new_cube.data, mask=mask_cube.data)
 
             recursed_cube.append(new_cube)
 

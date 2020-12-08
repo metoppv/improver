@@ -39,10 +39,8 @@ from improver import cli
 def process(
     cube: cli.inputcube,
     smoothing_coefficients: cli.inputcubelist,
-    mask: cli.inputcube = None,
     *,
     iterations: int = 1,
-    remask=False,
 ):
     """Module to apply a recursive filter to neighbourhooded data.
 
@@ -60,14 +58,10 @@ def process(
         smoothing_coefficients (iris.cube.CubeList):
             CubeList describing the smoothing_coefficients to be used in the x
             and y directions.
-        mask (iris.cube.Cube):
-            Cube to mask the processed cube.
         iterations (int):
             Number of times to apply the filter. (Typically < 3)
             Number of iterations should be 2 or less, higher values have been
             shown to lead to poorer conservation.
-        remask (bool):
-            Re-apply mask to recursively filtered output.
 
     Returns:
         iris.cube.Cube:
@@ -75,5 +69,5 @@ def process(
     """
     from improver.nbhood.recursive_filter import RecursiveFilter
 
-    plugin = RecursiveFilter(iterations=iterations, re_mask=remask)
-    return plugin(cube, smoothing_coefficients=smoothing_coefficients, mask_cube=mask,)
+    plugin = RecursiveFilter(iterations=iterations)
+    return plugin(cube, smoothing_coefficients=smoothing_coefficients)
