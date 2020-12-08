@@ -400,13 +400,13 @@ class Test_process(IrisTest):
         )
         cube_nowcast.attributes["mosg__model_configuration"] = "nc_det"
 
-        blt_ukv = self.cube_ukv.coord("forecast_reference_time").copy()
-        blt_ukv.rename("blend_time")
-        self.cube_ukv.add_aux_coord(blt_ukv)
+        blend_time_ukv = self.cube_ukv.coord("forecast_reference_time").copy()
+        blend_time_ukv.rename("blend_time")
+        self.cube_ukv.add_aux_coord(blend_time_ukv)
 
-        blt_enuk = self.cube_enuk.coord("forecast_reference_time").copy()
-        blt_enuk.rename("blend_time")
-        self.cube_enuk.add_aux_coord(blt_enuk)
+        blend_time_enuk = self.cube_enuk.coord("forecast_reference_time").copy()
+        blend_time_enuk.rename("blend_time")
+        self.cube_enuk.add_aux_coord(blend_time_enuk)
 
         plugin = MergeCubesForWeightedBlending(
             "model_id", model_id_attr="mosg__model_configuration"
