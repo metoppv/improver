@@ -46,7 +46,9 @@ from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
     MANDATORY_ATTRIBUTES,
 )
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import (
+    add_blend_time,
     forecast_period_coord,
     rebadge_forecasts_as_latest_cycle,
 )
@@ -56,6 +58,7 @@ from improver.utilities.cube_manipulation import (
     MergeCubes,
     collapsed,
     enforce_coordinate_ordering,
+    get_coord_names,
     get_dim_coord_names,
     sort_coord_in_cube,
 )
@@ -153,6 +156,14 @@ class MergeCubesForWeightedBlending(BasePlugin):
         for cube in cubelist:
             cube.attributes[self.model_id_attr] = " ".join(model_titles)
 
+    @staticmethod
+    def _remove_blend_time(cube):
+        """If present on input, remove existing blend time coordinate (as this will
+        be replaced on blending)"""
+        if "blend_time" in get_coord_names(cube):
+            cube.remove_coord("blend_time")
+        return cube
+
     def process(self, cubes_in, cycletime=None):
         """
         Prepares merged input cube for cycle and grid blending
@@ -173,20 +184,24 @@ class MergeCubesForWeightedBlending(BasePlugin):
                 If self.blend_coord is not present on all cubes (unless
                 blending over models)
         """
-        cubes_in = [cubes_in] if isinstance(cubes_in, iris.cube.Cube) else cubes_in
+        cubelist = (
+            [cubes_in.copy()]
+            if isinstance(cubes_in, iris.cube.Cube)
+            else [cube.copy() for cube in cubes_in]
+        )
 
-        if (
-            "model" in self.blend_coord
-            and self.weighting_coord is not None
-            and "forecast_period" in self.weighting_coord
-        ):
-            # if blending models using weights by forecast period, unify
-            # forecast periods (assuming validity times are identical);
-            # method returns a new cubelist with copies of input cubes
-            cubelist = rebadge_forecasts_as_latest_cycle(cubes_in, cycletime=cycletime)
-        else:
-            # copy cubes to avoid modifying inputs
-            cubelist = [cube.copy() for cube in cubes_in]
+        if "model" in self.blend_coord:
+            cubelist = [self._remove_blend_time(cube) for cube in cubelist]
+            if (
+                self.weighting_coord is not None
+                and "forecast_period" in self.weighting_coord
+            ):
+                # if blending models using weights by forecast period, unify
+                # forecast periods (assuming validity times are identical);
+                # method returns a new cubelist with copies of input cubes
+                cubelist = rebadge_forecasts_as_latest_cycle(
+                    cubelist, cycletime=cycletime
+                )
 
         # if input is already a single cube, return here
         if len(cubelist) == 1:
@@ -400,7 +415,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             raise ValueError(msg)
         self.blend_coord = blend_coord
         self.timeblending = timeblending
-        self.cycletime_point = None
+        self.cycletime = None
         self.crds_to_remove = None
 
     def __repr__(self):
@@ -746,34 +761,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
 
         return result
 
-    @staticmethod
-    def _get_cycletime_point(input_cube, cycletime):
-        """
-        For cycle and model blending, establish the single forecast reference
-        time to set on the cube after blending.
-
-        Args:
-            input_cube (iris.cube.Cube):
-                Cube to be blended
-            cycletime (str or None):
-                The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
-                If None, the latest forecast reference time is used.
-
-        Returns:
-            numpy.int64:
-                Forecast reference time point in units of input cube coordinate
-        """
-        frt_coord = input_cube.coord("forecast_reference_time")
-        if cycletime is None:
-            return np.max(frt_coord.points)
-        frt_units = frt_coord.units.origin
-        frt_calendar = frt_coord.units.calendar
-        cycletime_point = cycletime_to_number(
-            cycletime, time_unit=frt_units, calendar=frt_calendar
-        )
-        return round_close(cycletime_point, dtype=np.int64)
-
-    def _set_coords_to_remove(self, input_cube):
+    def _set_coords_to_remove(self, cube):
         """
         Generate a list of coordinate names associated with the blend
         dimension.  Unless these are time-related coordinates, they should be
@@ -783,39 +771,67 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             input_cube (iris.cube.Cube):
                 Cube to be blended
         """
-        time_coords = ["time", "forecast_reference_time", "forecast_period"]
-        (blend_dim,) = input_cube.coord_dims(self.blend_coord)
+        (blend_dim,) = cube.coord_dims(self.blend_coord)
         self.crds_to_remove = []
-        for coord in input_cube.coords():
-            if coord.name() in time_coords:
+        for coord in cube.coords():
+            if coord.name() in TIME_COORDS:
                 continue
-            if blend_dim in input_cube.coord_dims(coord):
+            if blend_dim in cube.coord_dims(coord):
                 self.crds_to_remove.append(coord.name())
 
-    def _set_forecast_reference_time_and_period(self, blended_cube):
+    def _get_cycletime_point(self, cube):
         """
-        For cycle and model blending, update the forecast reference time and
-        forecast period coordinate points to the single most recent value,
-        rather than the blended average, and remove any bounds from the
-        forecast reference time. Modifies cube in place.
+        For cycle and model blending, establish the current cycletime to set on
+        the cube after blending.
+
+        Returns:
+            numpy.int64:
+                Cycle time point in units matching the input cube forecast reference
+                time coordinate
+        """
+        frt_coord = cube.coord("forecast_reference_time")
+        frt_units = frt_coord.units.origin
+        frt_calendar = frt_coord.units.calendar
+        # raises TypeError if cycletime is None
+        cycletime_point = cycletime_to_number(
+            self.cycletime, time_unit=frt_units, calendar=frt_calendar
+        )
+        return round_close(cycletime_point, dtype=np.int64)
+
+    def _set_blended_time_coords(self, blended_cube):
+        """
+        For cycle and model blending:
+        - Update the forecast reference time and forecast period coordinate points
+        to reflect the current cycle time
+        - Remove any bounds from the forecast reference time
+        - Add a "blend_time" coordinate equal to the current cycletime
+
+        Modifies cube in place.
 
         Args:
             blended_cube (iris.cube.Cube)
         """
-        blended_cube.coord("forecast_reference_time").points = [self.cycletime_point]
+        try:
+            cycletime_point = self._get_cycletime_point(blended_cube)
+        except TypeError:
+            raise ValueError(
+                "Current cycle time is required for cycle and model blending"
+            )
+
+        blended_cube.coord("forecast_reference_time").points = [cycletime_point]
         blended_cube.coord("forecast_reference_time").bounds = None
         if blended_cube.coords("forecast_period"):
             blended_cube.remove_coord("forecast_period")
         new_forecast_period = forecast_period_coord(blended_cube)
         time_dim = blended_cube.coord_dims("time")
         blended_cube.add_aux_coord(new_forecast_period, data_dims=time_dim)
+        add_blend_time(blended_cube, self.cycletime)
 
     def _update_blended_metadata(self, blended_cube, attributes_dict):
         """
         Update metadata after blending:
         - For cycle and model blending, set a single forecast reference time
-        and period using self.cycletime_point or the latest cube contributing
-        to the blend
+        and period using current cycletime
         - Remove scalar coordinates that were previously associated with the
         blend dimension
         - Update attributes as specified via process arguments
@@ -827,7 +843,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             attributes_dict (dict or None)
         """
         if self.blend_coord in ["forecast_reference_time", "model_id"]:
-            self._set_forecast_reference_time_and_period(blended_cube)
+            self._set_blended_time_coords(blended_cube)
         for coord in self.crds_to_remove:
             blended_cube.remove_coord(coord)
         if attributes_dict is not None:
@@ -889,6 +905,8 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 "dimension".format(self.blend_coord)
             )
 
+        self.cycletime = cycletime
+
         # Ensure input cube and weights cube are ordered equivalently along
         # blending coordinate.
         cube = sort_coord_in_cube(cube, self.blend_coord)
@@ -901,25 +919,18 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         # Check that the time coordinate is single valued if required.
         self.check_compatible_time_points(cube)
 
-        # Check to see if the data is percentile data
-        perc_coord = self.check_percentile_coord(cube)
-
-        # Establish metadata changes to be made after blending
-        self.cycletime_point = (
-            self._get_cycletime_point(cube, cycletime)
-            if self.blend_coord in ["forecast_reference_time", "model_id"]
-            else None
-        )
+        # Establish coordinates to be removed after blending
         self._set_coords_to_remove(cube)
 
         # Do blending and update metadata
+        perc_coord = self.check_percentile_coord(cube)
         if perc_coord:
             result = self.percentile_weighted_mean(cube, weights, perc_coord)
         else:
             result = self.weighted_mean(cube, weights)
         self._update_blended_metadata(result, attributes_dict)
 
-        # Checks the coordinate dimensions match the first relevant cube in the unblended cubeList.
+        # Reshape result to match input cubes if required
         result = check_cube_coordinates(
             next(cube.slices_over(self.blend_coord)), result
         )

@@ -53,6 +53,8 @@ def test_basic_nonlin(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20170601T0200Z",
         "--weighting-method",
         "nonlinear",
         "--cval",
@@ -75,6 +77,8 @@ def test_basic_lin(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20170601T0200Z",
         "--y0val",
         "20.0",
         "--ynval",
@@ -157,33 +161,13 @@ def test_percentile(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20170601T1000Z",
         "--weighting-method",
         "nonlinear",
         "--cval",
         "1.0",
         input_path,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_cycletime_use_latest_frt(tmp_path):
-    """Test cycletime blending where the output is expected to have time
-    coordinates that match the latest of the input cubes."""
-    kgo_dir = acc.kgo_root() / "weighted_blending/cycletime"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = sorted((kgo_dir.glob("input_temperature*.nc")))
-    output_path = tmp_path / "output.nc"
-    args = [
-        "--coordinate",
-        "forecast_reference_time",
-        "--y0val",
-        "1.0",
-        "--ynval",
-        "4.0",
-        *input_paths,
         "--output",
         output_path,
     ]
@@ -254,6 +238,8 @@ def test_model(tmp_path):
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20171208T0400Z",
         "--ynval",
         "1",
         "--y0val",
@@ -280,6 +266,8 @@ def test_fails_no_model_id(tmp_path):
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20171208T0400Z",
         "--ynval",
         "1",
         "--y0val",
@@ -325,6 +313,8 @@ def test_weights_dict(tmp_path):
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20171208T0400Z",
         "--weighting-method",
         "dict",
         "--weighting-config",
@@ -356,6 +346,8 @@ def test_percentile_weights_dict(tmp_path):
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20170601T1000Z",
         "--weighting-method",
         "dict",
         "--weighting-config",
@@ -382,6 +374,8 @@ def test_accum_cycle_blend(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20181020T2200Z",
         "--y0val=1",
         "--ynval=1",
         *input_paths,
@@ -403,6 +397,8 @@ def test_non_mo_model(tmp_path):
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20171208T0400Z",
         "--y0val",
         "1",
         "--ynval",
@@ -433,6 +429,8 @@ def test_nowcast_cycle_blending(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20181129T0800Z",
         "--y0val",
         "1",
         "--ynval",
@@ -460,6 +458,8 @@ def test_spatial_model_blending(tmp_path):
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20181129T0800Z",
         "--y0val",
         "1",
         "--ynval",
@@ -490,6 +490,8 @@ def test_nowcast_cycle_no_fuzzy(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20181129T0800Z",
         "--y0val",
         "1",
         "--ynval",
@@ -519,6 +521,8 @@ def test_spatial_model_no_fuzzy(tmp_path):
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20181129T0800Z",
         "--y0val",
         "1",
         "--ynval",

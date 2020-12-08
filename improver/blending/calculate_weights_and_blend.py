@@ -46,7 +46,10 @@ from improver.blending.weights import (
     ChooseWeightsLinear,
 )
 from improver.metadata.amend import amend_attributes
-from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
+from improver.metadata.forecast_times import (
+    add_blend_time,
+    rebadge_forecasts_as_latest_cycle,
+)
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area,
     distance_to_number_of_grid_cells,
@@ -174,6 +177,27 @@ class WeightAndBlend(BasePlugin):
         weights = plugin(cube, weights, self.blend_coord)
         return weights
 
+    def _update_metadata_only(self, cube, attributes_dict, cycletime):
+        """
+        If blend_coord has only one value (for example cycle blending with
+        only one cycle available), or is not present (case where only
+        one model has been provided for a model blend), update attributes
+        and time coordinates and return.
+        """
+        result = cube.copy()
+        if attributes_dict is not None:
+            amend_attributes(result, attributes_dict)
+
+        (result,) = rebadge_forecasts_as_latest_cycle([result], cycletime)
+        if self.blend_coord in ["forecast_reference_time", "model_id"]:
+            if cycletime is not None:
+                add_blend_time(result, cycletime)
+            else:
+                msg = "Current cycle time is required for cycle and model blending"
+                raise ValueError(msg)
+
+        return result
+
     def process(
         self,
         cubelist,
@@ -225,27 +249,16 @@ class WeightAndBlend(BasePlugin):
         )
         cube = merger(cubelist, cycletime=cycletime)
 
-        # if blend_coord has only one value (for example cycle blending with
-        # only one cycle available), or is not present (case where only
-        # one model has been provided for a model blend), update attributes
-        # and ensure that the forecast reference time on the returned cube
-        # is set to the current IMPROVER processing cycle.
+        if "model" in self.blend_coord:
+            self.blend_coord = "model_id"
+
         coord_names = [coord.name() for coord in cube.coords()]
         if (
             self.blend_coord not in coord_names
             or len(cube.coord(self.blend_coord).points) == 1
         ):
-            result = cube.copy()
-            if attributes_dict is not None:
-                amend_attributes(result, attributes_dict)
-            (result,) = rebadge_forecasts_as_latest_cycle([result], cycletime)
-
-        # otherwise, calculate weights and blend across specified dimension
+            result = self._update_metadata_only(cube, attributes_dict, cycletime)
         else:
-            # set up special treatment for model blending
-            if "model" in self.blend_coord:
-                self.blend_coord = "model_id"
-
             # calculate blend weights
             weights = self._calculate_blending_weights(cube)
             if spatial_weights:
