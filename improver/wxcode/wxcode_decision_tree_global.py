@@ -110,20 +110,6 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.8, 1)],
             "diagnostic_conditions": ["above"],
         },
-        "heavy_snow_continuous": {
-            "succeed": 27,
-            "fail": "heavy_rain_or_sleet_continuous",
-            "probability_thresholds": [0.0],
-            "threshold_condition": "<",
-            "condition_combination": "",
-            "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE]
-            ],
-            "diagnostic_thresholds": [
-                [(1.0, "mm hr-1"), (1.0, "mm hr-1"), (1.0, "mm hr-1")]
-            ],
-            "diagnostic_conditions": [["above", "above", "above"]],
-        },
         "heavy_snow_shower": {
             "succeed": 26,
             "fail": "heavy_rain_or_sleet_shower",
@@ -138,9 +124,9 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        "heavy_rain_or_sleet_continuous": {
-            "succeed": 15,
-            "fail": 18,
+        "heavy_rain_or_sleet_shower": {
+            "succeed": 14,
+            "fail": 17,
             "probability_thresholds": [0.0],
             "threshold_condition": "<",
             "condition_combination": "",
@@ -152,9 +138,23 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        "heavy_rain_or_sleet_shower": {
-            "succeed": 14,
-            "fail": 17,
+        "heavy_snow_continuous": {
+            "succeed": 27,
+            "fail": "heavy_rain_or_sleet_continuous",
+            "probability_thresholds": [0.0],
+            "threshold_condition": "<",
+            "condition_combination": "",
+            "diagnostic_fields": [
+                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE]
+            ],
+            "diagnostic_thresholds": [
+                [(1.0, "mm hr-1"), (1.0, "mm hr-1"), (1.0, "mm hr-1")]
+            ],
+            "diagnostic_conditions": [["above", "above", "above"]],
+        },
+        "heavy_rain_or_sleet_continuous": {
+            "succeed": 15,
+            "fail": 18,
             "probability_thresholds": [0.0],
             "threshold_condition": "<",
             "condition_combination": "",
@@ -196,20 +196,6 @@ def wxcode_decision_tree_global():
             "diagnostic_thresholds": [(0.8, 1)],
             "diagnostic_conditions": ["above"],
         },
-        "light_snow_continuous": {
-            "succeed": 24,
-            "fail": "light_rain_or_sleet_continuous",
-            "probability_thresholds": [0.0],
-            "threshold_condition": "<",
-            "condition_combination": "",
-            "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE]
-            ],
-            "diagnostic_thresholds": [
-                [(0.1, "mm hr-1"), (0.1, "mm hr-1"), (0.1, "mm hr-1")]
-            ],
-            "diagnostic_conditions": [["above", "above", "above"]],
-        },
         "light_snow_shower": {
             "succeed": 23,
             "fail": "light_rain_or_sleet_shower",
@@ -224,9 +210,9 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        "light_rain_or_sleet_continuous": {
-            "succeed": 12,
-            "fail": 18,
+        "light_rain_or_sleet_shower": {
+            "succeed": 10,
+            "fail": 17,
             "probability_thresholds": [0.0],
             "threshold_condition": "<",
             "condition_combination": "",
@@ -238,9 +224,23 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
-        "light_rain_or_sleet_shower": {
-            "succeed": 10,
-            "fail": 17,
+        "light_snow_continuous": {
+            "succeed": 24,
+            "fail": "light_rain_or_sleet_continuous",
+            "probability_thresholds": [0.0],
+            "threshold_condition": "<",
+            "condition_combination": "",
+            "diagnostic_fields": [
+                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE]
+            ],
+            "diagnostic_thresholds": [
+                [(0.1, "mm hr-1"), (0.1, "mm hr-1"), (0.1, "mm hr-1")]
+            ],
+            "diagnostic_conditions": [["above", "above", "above"]],
+        },
+        "light_rain_or_sleet_continuous": {
+            "succeed": 12,
+            "fail": 18,
             "probability_thresholds": [0.0],
             "threshold_condition": "<",
             "condition_combination": "",
@@ -286,6 +286,26 @@ def wxcode_decision_tree_global():
             ],
             "diagnostic_conditions": [["above", "above", "above"]],
         },
+        "mist_conditions": {
+            "succeed": "fog_conditions",
+            "fail": "no_precipitation_cloud",
+            "probability_thresholds": [0.5],
+            "threshold_condition": ">=",
+            "condition_combination": "",
+            "diagnostic_fields": [VIS_PROB_BELOW],
+            "diagnostic_thresholds": [(5000.0, "m")],
+            "diagnostic_conditions": ["below"],
+        },
+        "fog_conditions": {
+            "succeed": 6,
+            "fail": 5,
+            "probability_thresholds": [0.5],
+            "threshold_condition": ">=",
+            "condition_combination": "",
+            "diagnostic_fields": [VIS_PROB_BELOW],
+            "diagnostic_thresholds": [(1000.0, "m")],
+            "diagnostic_conditions": ["below"],
+        },
         "no_precipitation_cloud": {
             "succeed": "overcast_cloud",
             "fail": "partly_cloudy",
@@ -315,26 +335,6 @@ def wxcode_decision_tree_global():
             "diagnostic_fields": [CLOUD_PROB_ABOVE],
             "diagnostic_thresholds": [(0.1875, 1)],
             "diagnostic_conditions": ["above"],
-        },
-        "mist_conditions": {
-            "succeed": "fog_conditions",
-            "fail": "no_precipitation_cloud",
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [VIS_PROB_BELOW],
-            "diagnostic_thresholds": [(5000.0, "m")],
-            "diagnostic_conditions": ["below"],
-        },
-        "fog_conditions": {
-            "succeed": 6,
-            "fail": 5,
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [VIS_PROB_BELOW],
-            "diagnostic_thresholds": [(1000.0, "m")],
-            "diagnostic_conditions": ["below"],
         },
     }
 
