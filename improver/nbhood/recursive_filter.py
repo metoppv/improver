@@ -38,6 +38,7 @@ from improver import PostProcessingPlugin
 from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
     OrographicSmoothingCoefficients,
 )
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_cube
 
@@ -380,6 +381,10 @@ class RecursiveFilter(PostProcessingPlugin):
             iris.cube.Cube:
                 Cube containing the smoothed field after the recursive filter
                 method has been applied.
+
+        Raises:
+            ValueError:
+                If the cube contains masked data from multiple cycles or times
         """
         cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
         coeffs_x, coeffs_y = self._validate_coefficients(
@@ -387,8 +392,16 @@ class RecursiveFilter(PostProcessingPlugin):
         )
 
         mask_cube = None
-        if np.ma.is_masked(cube_format.data):
-            # assumes mask is the same for each x-y slice
+        if np.ma.is_masked(cube.data):
+            # Assumes mask is the same for each x-y slice.  This may not be
+            # true if there are several time slices in the cube - so throw
+            # an error if this is so.
+            for coord in TIME_COORDS:
+                if cube.coords(coord) and len(cube.coord(coord).points) > 1:
+                    raise ValueError(
+                        "Dealing with masks from multiple time points is unsupported"
+                    )
+
             mask_cube = cube_format.copy(data=cube_format.data.mask)
             coeffs_x, coeffs_y = self._update_coefficients_from_mask(
                 coeffs_x, coeffs_y, mask_cube,

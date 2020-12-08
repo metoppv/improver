@@ -31,6 +31,7 @@
 """Unit tests for the nbhood.RecursiveFilter plugin."""
 
 import unittest
+from datetime import timedelta
 
 import iris
 import numpy as np
@@ -38,7 +39,10 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.nbhood.recursive_filter import RecursiveFilter
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.pad_spatial import pad_cube_with_halo
 from improver.utilities.warnings_handler import ManageWarnings
@@ -534,6 +538,21 @@ class Test_process(Test_RecursiveFilter):
             ["realization", "longitude", "latitude"],
         )
         self.assertArrayAlmostEqual(result.data[0], expected_result)
+
+    def test_error_multiple_times_masked(self):
+        """Test that the plugin raises an error when given a masked cube with
+        multiple time points"""
+        point = self.cube.coord("time").cell(0).point
+        time_points = [point - timedelta(seconds=3600), point]
+        cube = add_coordinate(self.cube, time_points, "time", is_datetime=True)
+        mask = np.zeros(cube.data.shape, dtype=int)
+        mask[0, 0, 2, 2] = 1
+        mask[1, 0, 2, 3] = 1
+        cube.data = np.ma.MaskedArray(cube.data, mask=mask)
+        plugin = RecursiveFilter(iterations=self.iterations,)
+        msg = "multiple time points is unsupported"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin(cube, smoothing_coefficients=self.smoothing_coefficients)
 
 
 if __name__ == "__main__":
