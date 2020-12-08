@@ -28,24 +28,33 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Expected datatypes and units for time-type coordinates"""
+"""Tests for the map-to-timezones CLI."""
 
-from collections import namedtuple
+import pytest
 
-import numpy as np
+from . import acceptance as acc
 
-TimeSpec = namedtuple("TimeSpec", ("calendar", "dtype", "units"))
+pytestmark = [pytest.mark.acc]
 
-_TIME_REFERENCE_SPEC = TimeSpec(
-    calendar="gregorian", dtype=np.int64, units="seconds since 1970-01-01 00:00:00"
-)
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
-_TIME_INTERVAL_SPEC = TimeSpec(calendar=None, dtype=np.int32, units="seconds")
+GRIDS = ["uk", "global"]
 
-TIME_COORDS = {
-    "time": _TIME_REFERENCE_SPEC,
-    "time_in_local_timezone": _TIME_REFERENCE_SPEC,
-    "forecast_reference_time": _TIME_REFERENCE_SPEC,
-    "forecast_period": _TIME_INTERVAL_SPEC,
-    "UTC_offset": _TIME_INTERVAL_SPEC,
-}
+
+@pytest.mark.parametrize("grid", GRIDS)
+def test_basic(tmp_path, grid):
+    """Test collapsing multiple input times into a single local-time output. For global,
+    timezone_mask.nc is a copy of generate-timezone-mask-ancillary/global/grouped_kgo.nc
+    which has 2 time-zones (-6 and +6), so only 2 input files required.
+    For UK, there are 4 timezones (-2 to +1)."""
+
+    kgo_dir = acc.kgo_root() / f"map-to-timezones/{grid}/"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input_*.nc"
+    timezone_path = kgo_dir / "timezone_mask.nc"
+    local_time = "20201203T0000"
+    output_path = tmp_path / "output.nc"
+    args = [timezone_path, local_time, input_path, "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

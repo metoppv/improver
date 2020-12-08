@@ -592,7 +592,7 @@ def add_coordinate(
 
         # recalculate forecast period if time or frt have been updated
         if (
-            "time" in coord_name
+            coord_name in ["time", "forecast_reference_time"]
             and coord_units is not None
             and Unit(coord_units).is_time_reference()
         ):

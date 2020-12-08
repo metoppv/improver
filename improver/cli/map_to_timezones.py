@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2020 Met Office.
@@ -28,24 +29,39 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Expected datatypes and units for time-type coordinates"""
+"""Script to map multiple forecast times into a local time grid"""
 
-from collections import namedtuple
+from improver import cli
 
-import numpy as np
 
-TimeSpec = namedtuple("TimeSpec", ("calendar", "dtype", "units"))
+@cli.clizefy
+@cli.with_output
+def process(
+    timezone_cube: cli.inputcube, local_time: str, *cubes: cli.inputcube,
+):
+    """Calculates timezone-offset data for the specified UTC output times
 
-_TIME_REFERENCE_SPEC = TimeSpec(
-    calendar="gregorian", dtype=np.int64, units="seconds since 1970-01-01 00:00:00"
-)
+    Args:
+        timezone_cube (iris.cube.Cube):
+            Cube describing the UTC offset for the local time at each grid location.
+            Must have the same spatial coords as input_cube.
+            Use generate-timezone-mask-ancillary to create this.
+        local_time (str):
+            The "local" time of the output cube as %Y%m%dT%H%M. This will form a
+            scalar "time_in_local_timezone" coord on the output cube, while the "time"
+            coord will be auxillary to the spatial coords and will show the UTC time
+            that matches the local_time at each point.
+        cubes (list of iris.cube.Cube):
+            Source data to be remapped onto time-zones. Must contain an exact 1-to-1
+            mapping of times to time-zones. Multiple input files will be merged into one
+            cube.
 
-_TIME_INTERVAL_SPEC = TimeSpec(calendar=None, dtype=np.int32, units="seconds")
+    Returns:
+        iris.cube.Cube:
+            Processed cube.
+    """
+    from datetime import datetime
+    from improver.utilities.temporal import TimezoneExtraction
 
-TIME_COORDS = {
-    "time": _TIME_REFERENCE_SPEC,
-    "time_in_local_timezone": _TIME_REFERENCE_SPEC,
-    "forecast_reference_time": _TIME_REFERENCE_SPEC,
-    "forecast_period": _TIME_INTERVAL_SPEC,
-    "UTC_offset": _TIME_INTERVAL_SPEC,
-}
+    local_datetime = datetime.strptime(local_time, "%Y%m%dT%H%M")
+    return TimezoneExtraction()(cubes, timezone_cube, local_datetime)
