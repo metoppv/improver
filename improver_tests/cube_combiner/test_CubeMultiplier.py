@@ -118,6 +118,15 @@ class Test_process(CombinerTest):
         self.assertArrayAlmostEqual(result.data, np.full((2, 3, 3), 0.3))
         self.assertArrayEqual(result.coord("time"), precip_accum.coord("time"))
 
+    def test_exception_for_single_entry_cubelist(self):
+        """Test that the plugin raises an exception if a cubelist containing
+        only one cube is passed in."""
+        plugin = CubeMultiplier()
+        msg = "Expecting 2 or more cubes in cube_list"
+        cubelist = iris.cube.CubeList([self.cube1])
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(cubelist, "new_cube_name")
+
 
 if __name__ == "__main__":
     unittest.main()

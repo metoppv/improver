@@ -153,7 +153,7 @@ class CubeCombiner(BasePlugin):
             iris.cube.Cube
 
         Raises:
-            ValueError: if the operation results in an escalated datatype
+            TypeError: if the operation results in an escalated datatype
         """
         result = cube_list[0].copy()
         for cube in cube_list[1:]:
@@ -191,7 +191,6 @@ class CubeCombiner(BasePlugin):
 
         Raises:
             ValueError: If the cube_list contains only one cube.
-            TypeError: If combining data results in float64 data.
         """
         if len(cube_list) < 2:
             msg = "Expecting 2 or more cubes in cube_list"
@@ -232,12 +231,18 @@ class CubeMultiplier(CubeCombiner):
         match the dimensions, in order, of the first cube in the list
 
         Args:
-            cube_list: (iris.cube.CubeList)
+            cube_list (iris.cube.CubeList or list of iris.cube.Cube)
 
         Returns:
             iris.cube.CubeList
                 Updated version of cube_list
 
+        Raises:
+            CoordinateNotFoundError: if there is no threshold coordinate on the
+                first cube in the list
+            TypeError: if there is a scalar threshold coordinate on any of the
+                later cubes, which would indicate that the cube is only valid for
+                a single threshold and should not be broadcast to all thresholds.
         """
         target_cube = cube_list[0]
         try:
@@ -261,9 +266,6 @@ class CubeMultiplier(CubeCombiner):
                 )
             else:
                 if found_coord not in cube.dim_coords:
-                    # We don't expect the coord to already exist in a scalar form as
-                    # this would indicate that the broadcast-from cube is only valid
-                    # for a single threshold and therefore should be rejected.
                     msg = "Cannot broadcast to coord threshold as it already exists as an AuxCoord"
                     raise TypeError(msg)
             new_list.append(cube)
