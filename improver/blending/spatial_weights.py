@@ -319,9 +319,61 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 Contains the dimensions, blend_coord, y, x.
         """
         template_cube = self.create_template_slice(cube_to_collapse, blend_coord)
+
+        ### NEW METHOD: broadcast, mask, normalise, smooth
+        # Broadcast 1D weights to 3D shape
+        weights = template_cube.copy()
+        for three_dim, one_dim in zip(weights.slices_over(blend_coord),
+                            one_dimensional_weights_cube.slices_over(blend_coord)):
+            point = one_dim.data
+            three_dim.data = np.full(three_dim.shape, point, dtype=np.float32)
+
+        if np.ma.is_masked(template_cube.data):
+            # Set masked weights to zero
+            weights.data = np.where(template_cube.data.mask, 0, weights.data)
+        else:
+            return weights
+
+        # Normalise weights along blend dimension: should add up to 1
+        blend_axis, = template_cube.coord_dims(blend_coord)
+        weights_sum = np.sum(weights.data, axis=blend_axis)
+        for weights_slice in weights.slices_over(blend_coord):
+            weights.data = np.divide(weights.data, weights_sum)
+
+        # Do the fuzzification thing .....
+        # TODO AH NO.  What I need to do is as follows:
+        # 1) Fuzzy transform all slices with masks
+        # 2) Rescale all UNMASKED slices to add up to the remainder (1 - masked total)
+        # So this is a tiny bit ugly if it involves more than one masked input,
+        # as the normalisation factors vary both spatially and with model - however
+        # it can be done.  Tomorrow!
+
+        final_weights = iris.cube.CubeList()
+        for weights_slice in weights.slices_over(blend_coord):
+            dmax = np.amax(weights_slice.data)
+            dmin = np.amin(weights_slice.data)
+
+            data_to_transform = np.where(weights_slice.data > dmin, 1, 0)
+            fuzzy_data = distance_transform_edt(data_to_transform)
+            fuzzy_data = fuzzy_data.astype(np.float32)
+
+            # Clip the data over the fuzzy length
+            scaled_to_distance = rescale(
+                fuzzy_data, data_range=[0.0, self.fuzzy_length], clip=True
+            )
+
+            # Scale up the fuzzy weights according to the original values in the slice
+            scaled_to_weights_range = (dmax - dmin) * scaled_to_distance + dmin
+
+            final_weights.append(weights_slice.copy(data=scaled_to_weights_range))
+
+        final_weights = final_weights.merge_cube()
+
+        """
         weights_from_mask = self.create_initial_weights_from_mask(template_cube)
         weights_from_mask = self.smooth_initial_weights(weights_from_mask)
         final_weights = self.multiply_weights(
             weights_from_mask, one_dimensional_weights_cube, blend_coord
         )
+        """
         return final_weights
