@@ -231,7 +231,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
 
                 # calculate the distance to the nearest invalid point, in grid squares,
                 # for each point on the grid
-                distance = distance_transform_edt(weights_nonzero == 1.0, 1)
+                distance = distance_transform_edt(weights_nonzero)
 
                 # calculate a 0-1 scaling factor based on the distance from the
                 # nearest invalid data point, which scales between 1 at the fuzzy length
