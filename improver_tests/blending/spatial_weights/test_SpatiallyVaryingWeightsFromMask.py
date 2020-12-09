@@ -167,8 +167,7 @@ class Test_process(IrisTest):
     def setUp(self):
         """
         Set up a basic cube and linear weights cube for the process
-        method. Input cube has 2 thresholds on and 3
-        forecast_reference_times
+        method. Input cube has 2 thresholds and 3 forecast_reference_times
         """
         thresholds = [10, 20]
         data = np.ones((2, 2, 3), dtype=np.float32)
@@ -339,7 +338,7 @@ class Test_process(IrisTest):
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_fuzziness_with_one_dimensional_weights(self):
         """Test a simple case where we have some fuzziness in the spatial
-        sweights and with adjustment from the one_dimensional weights."""
+        weights and with adjustment from the one_dimensional weights."""
         expected_result = np.array(
             [
                 [[0.2, 0.0, 0.10], [0.282843, 0.10, 0.141421]],
