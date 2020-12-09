@@ -215,56 +215,64 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 - Binary map of spatial points that have been rescaled in each
                 slice
         """
-        data_is_rescaled = iris.cube.CubeList()
+        is_rescaled = iris.cube.CubeList()
         rescaled_weights = iris.cube.CubeList()
         for weights_slice in weights.slices_over(self.blend_coord):
             weights_nonzero = np.where(weights_slice.data > 0, 1, 0)
             if np.all(weights_nonzero == 1):
+                # if there are no masked points in this slice, keep current weights
+                # and mark as unchanged (not rescaled)
                 rescaled_weights.append(weights_slice)
-                data_is_rescaled.append(
+                is_rescaled.append(
                     weights_slice.copy(data=np.zeros(weights_slice.shape, dtype=int))
                 )
             else:
                 weights_orig = weights_slice.data.copy()
-                distance_from_valid = distance_transform_edt(
-                    weights_nonzero == 1.0, 1
-                ).astype(FLOAT_DTYPE)
+
+                # calculate the distance to the nearest invalid point, in grid squares,
+                # for each point on the grid
+                distance = distance_transform_edt(weights_nonzero == 1.0, 1)
+
                 # calculate a 0-1 scaling factor based on the distance from the
-                # nearest valid data point, with 1 being at the fuzzy length
+                # nearest invalid data point, which scales between 1 at the fuzzy length
+                # towards 0 for points closest to the edge of the mask
                 fuzzy_factor = rescale(
-                    distance_from_valid, data_range=[0.0, self.fuzzy_length], clip=True
+                    distance, data_range=[0.0, self.fuzzy_length], clip=True
                 )
+
+                # multiply existing weights by fuzzy scaling factor
                 rescaled_weights_data = np.multiply(
                     weights_slice.data, fuzzy_factor
                 ).astype(FLOAT_DTYPE)
-
                 rescaled_weights.append(weights_slice.copy(data=rescaled_weights_data))
-                is_rescaled = np.where(
+
+                # identify spatial points where weights have been rescaled
+                is_rescaled_data = np.where(
                     rescaled_weights_data != weights_orig, 1, 0
                 ).astype(int)
-                data_is_rescaled.append(weights_slice.copy(data=is_rescaled))
+                is_rescaled.append(weights_slice.copy(data=is_rescaled_data))
 
         weights = rescaled_weights.merge_cube()
-        rescaled = data_is_rescaled.merge_cube()
+        rescaled = is_rescaled.merge_cube()
 
         return weights, rescaled
 
-    def _rescale_unmasked_weights(self, weights, rescaled):
-        """Increase weights of unmasked slices at locations where masked slices have
-        been smoothed, so that the sum of weights over self.blend_coord remains
-        normalised and the relative weightings of multiple unmasked slices are
-        preserved.  Modifies weights cube in place.
+    def _rescale_unmasked_weights(self, weights, is_rescaled):
+        """Increase weights of unmasked slices at locations where masked slices
+        have been smoothed, so that the sum of weights over self.blend_coord is
+        re-normalised (sums to 1) at each point and the relative weightings of
+        multiple unmasked slices are preserved.  Modifies weights cube in place.
 
         Args:
             weights (iris.cube.Cube):
                 Cube of weights to which fuzzy smoothing has been applied to any
                 masked slices
-            rescaled (iris.cube.Cube):
+            is_rescaled (iris.cube.Cube):
                 Cube matching weights.shape, with value of 1 where masked weights
                 have been rescaled, and 0 where they are unchanged.
         """
-        rescaled_data = np.multiply(weights.data, rescaled.data)
-        unscaled_data = np.multiply(weights.data, (1 - rescaled.data))
+        rescaled_data = np.multiply(weights.data, is_rescaled.data)
+        unscaled_data = np.multiply(weights.data, (1 - is_rescaled.data))
         unscaled_sum = np.sum(unscaled_data, axis=self.blend_axis)
         required_sum = 1.0 - np.sum(rescaled_data, axis=self.blend_axis)
         normalisation_factor = np.where(
@@ -296,9 +304,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                A cube containing non-normalised spatial weights based on the
-                cube_to_collapsemask and the one_dimensional weights supplied.
-                Contains the dimensions, self.blend_coord, y, x.
+                A cube containing normalised spatial weights based on the
+                cube_to_collapse mask and the one_dimensional weights supplied.
+                Has dimensions: self.blend_coord, y, x.
         """
         template_cube = self._create_template_slice(cube_to_collapse)
         (self.blend_axis,) = template_cube.coord_dims(self.blend_coord)
