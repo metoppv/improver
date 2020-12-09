@@ -654,7 +654,7 @@ class Test_process(IrisTest):
             ],
             dtype=np.float32,
         )
-        message = "Input cube to SpatiallyVaryingWeightsFromMask " "must be masked"
+        message = "Expected masked input"
         result = self.plugin.process(
             self.cube_to_collapse,
             self.one_dimensional_weights_cube,
@@ -686,9 +686,9 @@ class Test_process(IrisTest):
         self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array(
             [
-                [[1.0, 0.0, 1.0], [1.0, 1.0, 1.0]],
-                [[0.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
-                [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]],
+                [[0.5, 0.0, 0.333333], [0.5, 0.333333, 0.333333]],
+                [[0.0, 0.0, 0.333333], [0.0, 0.333333, 0.333333]],
+                [[0.5, 1.0, 0.333333], [0.5, 0.333333, 0.333333]],
             ],
             dtype=np.float32,
         )
@@ -709,9 +709,9 @@ class Test_process(IrisTest):
         self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array(
             [
-                [[1.0, 0.0, 1.0], [1.0, 1.0, 1.0]],
-                [[0.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
-                [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]],
+                [[0.5, 0.0, 0.333333], [0.5, 0.333333, 0.333333]],
+                [[0.0, 0.0, 0.333333], [0.0, 0.333333, 0.333333]],
+                [[0.5, 1.0, 0.333333], [0.5, 0.333333, 0.333333]],
             ],
             dtype=np.float32,
         )
@@ -731,9 +731,9 @@ class Test_process(IrisTest):
         plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=1)
         expected_result = np.array(
             [
-                [[0.2, 0.0, 0.2], [0.2, 0.2, 0.2]],
+                [[0.4, 0.0, 0.2], [0.4, 0.2, 0.2]],
                 [[0.0, 0.0, 0.5], [0.0, 0.5, 0.5]],
-                [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3]],
+                [[0.6, 1.0, 0.3], [0.6, 0.3, 0.3]],
             ],
             dtype=np.float32,
         )
@@ -753,9 +753,9 @@ class Test_process(IrisTest):
         self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array(
             [
-                [[0.5, 0.0, 0.5], [0.707107, 0.5, 0.707107]],
-                [[0.0, 0.0, 0.5], [0.0, 0.5, 0.707107]],
-                [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0]],
+                [[0.25, 0.0, 0.166667], [0.353553, 0.166667, 0.235702]],
+                [[0.00, 0.0, 0.166667], [0.000000, 0.166667, 0.235702]],
+                [[0.75, 1.0, 0.666667], [0.646447, 0.666667, 0.528595]],
             ],
             dtype=np.float32,
         )
@@ -774,9 +774,9 @@ class Test_process(IrisTest):
         plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=2)
         expected_result = np.array(
             [
-                [[0.1, 0.0, 0.1], [0.14142136, 0.1, 0.14142136]],
-                [[0.0, 0.0, 0.25], [0.0, 0.25, 0.35355338]],
-                [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3]],
+                [[0.2, 0.0, 0.10], [0.282843, 0.10, 0.141421]],
+                [[0.0, 0.0, 0.25], [0.000000, 0.25, 0.353553]],
+                [[0.8, 1.0, 0.65], [0.717157, 0.65, 0.505025]],
             ],
             dtype=np.float32,
         )
@@ -785,8 +785,8 @@ class Test_process(IrisTest):
             self.one_dimensional_weights_cube,
             "forecast_reference_time",
         )
-        #self.assertArrayAlmostEqual(result.data, expected_result)
-        #self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
+        self.assertArrayAlmostEqual(result.data, expected_result)
+        self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
 
 if __name__ == "__main__":

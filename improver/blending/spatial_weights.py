@@ -326,14 +326,17 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         weights = iris.cube.CubeList()
         for three_dim, one_dim in zip(template_cube.slices_over(blend_coord),
                             one_dimensional_weights_cube.slices_over(blend_coord)):
-            three_dim.data[:, :] = one_dim.data.astype(FLOAT_DTYPE)
+            three_dim.data[:, :] = one_dim.data
             weights.append(three_dim)
         weights = weights.merge_cube()
+        weights.data = weights.data.astype(FLOAT_DTYPE)
 
         if np.ma.is_masked(template_cube.data):
             # Set masked weights to zero
             weights.data = np.where(template_cube.data.mask, 0, weights.data)
         else:
+            message = "Expected masked input to SpatiallyVaryingWeightsFromMask"
+            warnings.warn(message)
             return weights
 
         # Normalise weights along blend dimension: should add up to 1
@@ -341,7 +344,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         weights_sum = np.sum(weights.data, axis=blend_axis)
         normalised_weights = iris.cube.CubeList()
         for weights_slice in weights.slices_over(blend_coord):
-            normalised_data = np.divide(weights_slice.data, weights_sum)
+            normalised_data = np.where(
+                weights_sum > 0, np.divide(weights_slice.data, weights_sum), 0
+            )
             normalised_weights.append(
                 weights_slice.copy(data=normalised_data.astype(FLOAT_DTYPE))
             )
@@ -367,10 +372,10 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 fuzzy_factor = rescale(
                     distance_from_valid, data_range=[0.0, self.fuzzy_length], clip=True
                 )
-
                 rescaled_weights_data = np.multiply(
                     weights_slice.data, fuzzy_factor
                 ).astype(FLOAT_DTYPE)
+
                 rescaled_weights.append(weights_slice.copy(data=rescaled_weights_data))
                 is_rescaled = np.where(
                     rescaled_weights_data != weights_orig, 1, 0
@@ -385,8 +390,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         unscaled_data = np.multiply(weights.data, (1 - rescaled.data))
         unscaled_sum = np.sum(unscaled_data, axis=blend_axis)
         required_sum = 1. - np.sum(rescaled_data, axis=blend_axis)
-        normalisation_factor = np.divide(required_sum, unscaled_sum)
-
+        normalisation_factor = np.where(
+            unscaled_sum > 0, np.divide(required_sum, unscaled_sum), 0
+        )
         normalised_weights = (
             np.multiply(unscaled_data, normalisation_factor) + rescaled_data
         )
