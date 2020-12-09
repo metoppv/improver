@@ -166,9 +166,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         """
         weights = iris.cube.CubeList()
         for tslice, wslice in zip(
-                template.slices_over(self.blend_coord),
-                input_weights.slices_over(self.blend_coord)
-            ):
+            template.slices_over(self.blend_coord),
+            input_weights.slices_over(self.blend_coord),
+        ):
             tslice.data[:, :] = wslice.data
             weights.append(tslice)
         weights = weights.merge_cube()
@@ -266,7 +266,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         rescaled_data = np.multiply(weights.data, rescaled.data)
         unscaled_data = np.multiply(weights.data, (1 - rescaled.data))
         unscaled_sum = np.sum(unscaled_data, axis=self.blend_axis)
-        required_sum = 1. - np.sum(rescaled_data, axis=self.blend_axis)
+        required_sum = 1.0 - np.sum(rescaled_data, axis=self.blend_axis)
         normalisation_factor = np.where(
             unscaled_sum > 0, np.divide(required_sum, unscaled_sum), 0
         )
@@ -301,7 +301,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 Contains the dimensions, self.blend_coord, y, x.
         """
         template_cube = self._create_template_slice(cube_to_collapse)
-        self.blend_axis, = template_cube.coord_dims(self.blend_coord)
+        (self.blend_axis,) = template_cube.coord_dims(self.blend_coord)
 
         weights = self._broadcast_weights(template_cube, one_dimensional_weights_cube)
 

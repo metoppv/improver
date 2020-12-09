@@ -241,8 +241,7 @@ class Test_process(IrisTest):
         )
         message = "Expected masked input"
         result = self.plugin.process(
-            self.cube_to_collapse,
-            self.one_dimensional_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
         )
         self.assertTrue(any(message in str(item) for item in warning_list))
         self.assertArrayEqual(result.data, expected_data)
@@ -254,8 +253,7 @@ class Test_process(IrisTest):
         self.cube_to_collapse.data = np.ones(self.cube_to_collapse.data.shape)
         self.cube_to_collapse.data = np.ma.masked_equal(self.cube_to_collapse.data, 1)
         result = self.plugin.process(
-            self.cube_to_collapse,
-            self.one_dimensional_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
         )
         expected_data = np.zeros((3, 2, 3))
         self.assertArrayAlmostEqual(expected_data, result.data)
@@ -275,8 +273,7 @@ class Test_process(IrisTest):
             dtype=np.float32,
         )
         result = self.plugin_no_fuzzy.process(
-            self.cube_to_collapse,
-            self.one_dimensional_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
         )
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
@@ -297,8 +294,7 @@ class Test_process(IrisTest):
         )
         self.cube_to_collapse.transpose([2, 0, 1, 3])
         result = self.plugin_no_fuzzy.process(
-            self.cube_to_collapse,
-            self.one_dimensional_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
         )
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
@@ -316,8 +312,7 @@ class Test_process(IrisTest):
             dtype=np.float32,
         )
         result = self.plugin_no_fuzzy.process(
-            self.cube_to_collapse,
-            self.one_dimensional_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
         )
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
@@ -336,8 +331,7 @@ class Test_process(IrisTest):
             dtype=np.float32,
         )
         result = self.plugin.process(
-            self.cube_to_collapse,
-            self.one_dimensional_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
         )
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
@@ -355,8 +349,7 @@ class Test_process(IrisTest):
             dtype=np.float32,
         )
         result = self.plugin.process(
-            self.cube_to_collapse,
-            self.one_dimensional_weights_cube,
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
         )
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
