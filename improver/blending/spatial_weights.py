@@ -51,7 +51,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
     in addition to the one dimension in the initial cube of weights.
     """
 
-    def __init__(self, fuzzy_length=10):
+    def __init__(self, blend_coord, fuzzy_length=10):
         """
         Initialise class.
 
@@ -69,6 +69,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 point they are.
         """
         self.fuzzy_length = fuzzy_length
+        self.blend_coord = blend_coord
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -77,8 +78,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         )
         return result
 
-    @staticmethod
-    def create_template_slice(cube_to_collapse, blend_coord):
+    def _create_template_slice(self, cube_to_collapse):
         """
         Create a template cube from a slice of the cube we are collapsing.
         The slice will be over blend_coord, y and x and will remove any other
@@ -91,10 +91,6 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 The cube that will be collapsed along the blend_coord
                 using the spatial weights generated using this plugin. Must
                 be masked where there is invalid data.
-            blend_coord (str):
-                A string containing the name of the coordinate that the
-                cube_to_collapse will be collapsed along. Also matches the
-                coordinate in one_dimensional_weights_cube.
 
         Returns:
             iris.cube.Cube:
@@ -114,7 +110,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         # than using the name of the dim_coord itself.
         # Here we reset blend_coord to the name of the dim_coord to catch the
         # case where blend_coord is an aux_coord.
-        blend_dim = cube_to_collapse.coord_dims(blend_coord)
+        blend_dim = cube_to_collapse.coord_dims(self.blend_coord)
         if len(blend_dim) == 1:
             blend_dim = blend_dim[0]
         else:
@@ -122,9 +118,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 "Blend coordinate must only be across one dimension. "
                 "Coordinate {} is associated with dimensions {}"
             )
-            message = message.format(blend_coord, blend_dim)
+            message = message.format(self.blend_coord, blend_dim)
             raise ValueError(message)
-        blend_coord = cube_to_collapse.coord(
+        self.blend_coord = cube_to_collapse.coord(
             dimensions=blend_dim, dim_coords=True
         ).name()
         # Find original dim coords in input cube
@@ -132,7 +128,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         # Slice over relevant coords.
         x_coord = cube_to_collapse.coord(axis="x").name()
         y_coord = cube_to_collapse.coord(axis="y").name()
-        coords_to_slice_over = [blend_coord, y_coord, x_coord]
+        coords_to_slice_over = [self.blend_coord, y_coord, x_coord]
         slices = cube_to_collapse.slices(coords_to_slice_over)
         # Check they all have the same mask
         first_slice = next(slices)
@@ -153,7 +149,10 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         # Return slice template
         return first_slice
 
-    def process(self, cube_to_collapse, one_dimensional_weights_cube, blend_coord):
+    def _broadcast_weights(template_cube, one_dimensional_weights_cube):
+        pass
+
+    def process(self, cube_to_collapse, one_dimensional_weights_cube):
         """
         Create fuzzy spatial weights based on missing data in the cube we
         are going to collapse and combine these with 1D weights along the
@@ -161,7 +160,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
 
         Args:
             cube_to_collapse (iris.cube.Cube):
-                The cube that will be collapsed along the blend_coord
+                The cube that will be collapsed along self.blend_coord
                 using the spatial weights generated using this plugin. Must
                 be masked where there is invalid data. The mask may only
                 vary along the blend_coord, and not along any other dimensions
@@ -171,24 +170,20 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 name given blend_coord. This cube contains 1D weights
                 that will be applied along the blend_coord but need
                 adjusting spatially based on missing data.
-            blend_coord (str):
-                A string containing the name of the coordinate that the
-                cube_to_collapse will be collapsed along. Also matches the
-                coordinate in one_dimensional_weights_cube.
 
         Returns:
             iris.cube.Cube:
                 A cube containing non-normalised spatial weights based on the
                 cube_to_collapsemask and the one_dimensional weights supplied.
-                Contains the dimensions, blend_coord, y, x.
+                Contains the dimensions, self.blend_coord, y, x.
         """
-        template_cube = self.create_template_slice(cube_to_collapse, blend_coord)
+        template_cube = self._create_template_slice(cube_to_collapse)
 
         ### NEW METHOD: broadcast, mask, normalise, rescale masked, rescale unmasked
         # Broadcast 1D weights to 3D shape
         weights = iris.cube.CubeList()
-        for three_dim, one_dim in zip(template_cube.slices_over(blend_coord),
-                            one_dimensional_weights_cube.slices_over(blend_coord)):
+        for three_dim, one_dim in zip(template_cube.slices_over(self.blend_coord),
+                            one_dimensional_weights_cube.slices_over(self.blend_coord)):
             three_dim.data[:, :] = one_dim.data
             weights.append(three_dim)
         weights = weights.merge_cube()
@@ -203,10 +198,10 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
             return weights
 
         # Normalise weights along blend dimension: should add up to 1
-        blend_axis, = template_cube.coord_dims(blend_coord)
+        blend_axis, = template_cube.coord_dims(self.blend_coord)
         weights_sum = np.sum(weights.data, axis=blend_axis)
         normalised_weights = iris.cube.CubeList()
-        for weights_slice in weights.slices_over(blend_coord):
+        for weights_slice in weights.slices_over(self.blend_coord):
             normalised_data = np.where(
                 weights_sum > 0, np.divide(weights_slice.data, weights_sum), 0
             )
@@ -218,7 +213,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         # Rescale masked data around edges of mask
         data_is_rescaled = iris.cube.CubeList()
         rescaled_weights = iris.cube.CubeList()
-        for weights_slice in weights.slices_over(blend_coord):
+        for weights_slice in weights.slices_over(self.blend_coord):
             weights_nonzero = np.where(weights_slice.data > 0, 1, 0)
             if np.all(weights_nonzero == 1):
                 rescaled_weights.append(weights_slice)

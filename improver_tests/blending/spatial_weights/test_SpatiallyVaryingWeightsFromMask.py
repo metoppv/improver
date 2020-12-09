@@ -54,12 +54,12 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(SpatiallyVaryingWeightsFromMask())
+        result = str(SpatiallyVaryingWeightsFromMask("model_id"))
         msg = "<SpatiallyVaryingWeightsFromMask: fuzzy_length: 10>"
         self.assertEqual(result, msg)
 
 
-class Test_create_template_slice(IrisTest):
+class Test__create_template_slice(IrisTest):
     """Test create_template_slice method"""
 
     def setUp(self):
@@ -104,7 +104,7 @@ class Test_create_template_slice(IrisTest):
             dtype=np.float32,
         )
         self.cube_to_collapse.data = np.ma.masked_equal(self.cube_to_collapse.data, 0)
-        self.plugin = SpatiallyVaryingWeightsFromMask()
+        self.plugin = SpatiallyVaryingWeightsFromMask("forecast_reference_time")
 
     def test_multi_dim_blend_coord_fail(self):
         """Test error is raised when we have a multi-dimensional blend_coord"""
@@ -115,8 +115,9 @@ class Test_create_template_slice(IrisTest):
         )
         self.cube_to_collapse.add_aux_coord(altitudes_coord, data_dims=(2, 3))
         message = "Blend coordinate must only be across one dimension."
+        plugin = SpatiallyVaryingWeightsFromMask("surface_altitude")
         with self.assertRaisesRegex(ValueError, message):
-            self.plugin.create_template_slice(self.cube_to_collapse, "surface_altitude")
+            plugin._create_template_slice(self.cube_to_collapse)
 
     def test_varying_mask_fail(self):
         """Test error is raised when mask varies along collapsing dim"""
@@ -124,25 +125,20 @@ class Test_create_template_slice(IrisTest):
         # varies along this coordinate.
         threshold_coord = find_threshold_coordinate(self.cube_to_collapse)
         message = "The mask on the input cube can only vary along the blend_coord"
+        plugin = SpatiallyVaryingWeightsFromMask(threshold_coord.name())
         with self.assertRaisesRegex(ValueError, message):
-            self.plugin.create_template_slice(
-                self.cube_to_collapse, threshold_coord.name()
-            )
+            plugin._create_template_slice(self.cube_to_collapse)
 
     def test_scalar_blend_coord_fail(self):
         """Test error is raised when blend_coord is scalar"""
         message = "Blend coordinate must only be across one dimension."
         with self.assertRaisesRegex(ValueError, message):
-            self.plugin.create_template_slice(
-                self.cube_to_collapse[0], "forecast_reference_time"
-            )
+            self.plugin._create_template_slice(self.cube_to_collapse[0])
 
     def test_basic(self):
         """Test a correct template slice is returned for simple case"""
         expected = self.cube_to_collapse.copy()[:, 0, :, :]
-        result = self.plugin.create_template_slice(
-            self.cube_to_collapse, "forecast_reference_time"
-        )
+        result = self.plugin._create_template_slice(self.cube_to_collapse)
         self.assertEqual(expected.metadata, result.metadata)
         self.assertArrayAlmostEqual(expected.data, result.data)
 
@@ -151,9 +147,7 @@ class Test_create_template_slice(IrisTest):
            no slicing is needed"""
         input_cube = self.cube_to_collapse.copy()[:, 0, :, :]
         expected = input_cube.copy()
-        result = self.plugin.create_template_slice(
-            self.cube_to_collapse, "forecast_reference_time"
-        )
+        result = self.plugin._create_template_slice(self.cube_to_collapse)
         self.assertEqual(expected.metadata, result.metadata)
         self.assertArrayAlmostEqual(expected.data, result.data)
 
@@ -161,9 +155,8 @@ class Test_create_template_slice(IrisTest):
         """Test a correct template slice is returned when blending_coord is
            an AuxCoord"""
         expected = self.cube_to_collapse.copy()[:, 0, :, :]
-        result = self.plugin.create_template_slice(
-            self.cube_to_collapse, "forecast_period"
-        )
+        plugin = SpatiallyVaryingWeightsFromMask("forecast_period")
+        result = self.plugin._create_template_slice(self.cube_to_collapse)
         self.assertEqual(expected.metadata, result.metadata)
         self.assertArrayAlmostEqual(expected.data, result.data)
 
@@ -226,7 +219,12 @@ class Test_process(IrisTest):
         self.one_dimensional_weights_cube.data = np.array(
             [0.2, 0.5, 0.3], dtype=np.float32
         )
-        self.plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=4)
+        self.plugin = SpatiallyVaryingWeightsFromMask(
+            "forecast_reference_time", fuzzy_length=2
+        )
+        self.plugin_no_fuzzy = SpatiallyVaryingWeightsFromMask(
+            "forecast_reference_time", fuzzy_length=1
+        )
 
     @ManageWarnings(record=True)
     def test_none_masked(self, warning_list=None):
@@ -245,7 +243,6 @@ class Test_process(IrisTest):
         result = self.plugin.process(
             self.cube_to_collapse,
             self.one_dimensional_weights_cube,
-            "forecast_reference_time",
         )
         self.assertTrue(any(message in str(item) for item in warning_list))
         self.assertArrayEqual(result.data, expected_data)
@@ -259,7 +256,6 @@ class Test_process(IrisTest):
         result = self.plugin.process(
             self.cube_to_collapse,
             self.one_dimensional_weights_cube,
-            "forecast_reference_time",
         )
         expected_data = np.zeros((3, 2, 3))
         self.assertArrayAlmostEqual(expected_data, result.data)
@@ -269,7 +265,6 @@ class Test_process(IrisTest):
     def test_no_fuzziness_no_one_dimensional_weights(self):
         """Test a simple case where we have no fuzziness in the spatial
         weights and no adjustment from the one_dimensional weights."""
-        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=1)
         self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array(
             [
@@ -279,10 +274,9 @@ class Test_process(IrisTest):
             ],
             dtype=np.float32,
         )
-        result = plugin.process(
+        result = self.plugin_no_fuzzy.process(
             self.cube_to_collapse,
             self.one_dimensional_weights_cube,
-            "forecast_reference_time",
         )
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
@@ -292,7 +286,6 @@ class Test_process(IrisTest):
         """Test a simple case where we have no fuzziness in the spatial
         weights and no adjustment from the one_dimensional weights and
         transpose the input cube."""
-        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=1)
         self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array(
             [
@@ -303,10 +296,9 @@ class Test_process(IrisTest):
             dtype=np.float32,
         )
         self.cube_to_collapse.transpose([2, 0, 1, 3])
-        result = plugin.process(
+        result = self.plugin_no_fuzzy.process(
             self.cube_to_collapse,
             self.one_dimensional_weights_cube,
-            "forecast_reference_time",
         )
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
@@ -315,7 +307,6 @@ class Test_process(IrisTest):
     def test_no_fuzziness_with_one_dimensional_weights(self):
         """Test a simple case where we have no fuzziness in the spatial
         weights and an adjustment from the one_dimensional weights."""
-        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=1)
         expected_result = np.array(
             [
                 [[0.4, 0.0, 0.2], [0.4, 0.2, 0.2]],
@@ -324,10 +315,9 @@ class Test_process(IrisTest):
             ],
             dtype=np.float32,
         )
-        result = plugin.process(
+        result = self.plugin_no_fuzzy.process(
             self.cube_to_collapse,
             self.one_dimensional_weights_cube,
-            "forecast_reference_time",
         )
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
@@ -336,7 +326,6 @@ class Test_process(IrisTest):
     def test_fuzziness_no_one_dimensional_weights(self):
         """Test a simple case where we have some fuzziness in the spatial
         weights and no adjustment from the one_dimensional weights."""
-        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=2)
         self.one_dimensional_weights_cube.data = np.ones((3))
         expected_result = np.array(
             [
@@ -346,10 +335,9 @@ class Test_process(IrisTest):
             ],
             dtype=np.float32,
         )
-        result = plugin.process(
+        result = self.plugin.process(
             self.cube_to_collapse,
             self.one_dimensional_weights_cube,
-            "forecast_reference_time",
         )
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
@@ -358,7 +346,6 @@ class Test_process(IrisTest):
     def test_fuzziness_with_one_dimensional_weights(self):
         """Test a simple case where we have some fuzziness in the spatial
         sweights and with adjustment from the one_dimensional weights."""
-        plugin = SpatiallyVaryingWeightsFromMask(fuzzy_length=2)
         expected_result = np.array(
             [
                 [[0.2, 0.0, 0.10], [0.282843, 0.10, 0.141421]],
@@ -367,10 +354,9 @@ class Test_process(IrisTest):
             ],
             dtype=np.float32,
         )
-        result = plugin.process(
+        result = self.plugin.process(
             self.cube_to_collapse,
             self.one_dimensional_weights_cube,
-            "forecast_reference_time",
         )
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
