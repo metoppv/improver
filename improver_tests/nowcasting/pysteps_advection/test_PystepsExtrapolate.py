@@ -31,8 +31,8 @@
 """Unit tests for PystepsExtrapolate plugin"""
 
 import datetime
-import unittest
 import pytest
+import unittest
 
 import iris
 import numpy as np
