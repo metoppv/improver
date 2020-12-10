@@ -32,6 +32,7 @@
 
 import datetime
 import unittest
+import pytest
 
 import iris
 import numpy as np
@@ -103,6 +104,9 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up test velocity and rainfall cubes"""
+        # Skip if pysteps not available
+        pytest.importorskip("pysteps")
+
         analysis_time = datetime.datetime(2019, 9, 10, 15)
         wind_data = 4 * np.ones((8, 8), dtype=np.float32)
         self.ucube = set_up_variable_cube(
