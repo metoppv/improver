@@ -31,11 +31,11 @@
 """Unit tests for PystepsExtrapolate plugin"""
 
 import datetime
-import pytest
 import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.tests import IrisTest
 
 from improver.nowcasting.pysteps_advection import PystepsExtrapolate
