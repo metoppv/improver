@@ -55,10 +55,19 @@ def process(*cubes: cli.inputcube):
     from iris.cube import CubeList
 
     cubes = CubeList(cubes)
-    cloud, = cubes.extract("probability_of_low_and_medium_type_cloud_area_fraction_above_threshold") or [None]
-    conv_ratio, = cubes.extract("probability_of_convective_ratio_above_threshold") or [None]
-    cloud_texture, = cubes.extract("probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold") or [None]
+    (cloud,) = cubes.extract(
+        "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold"
+    ) or [None]
+    (conv_ratio,) = cubes.extract(
+        "probability_of_convective_ratio_above_threshold"
+    ) or [None]
+    (cloud_texture,) = cubes.extract(
+        "probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold"
+    ) or [None]
 
     from improver.precipitation_type.shower_condition import ShowerCondition
-    shower_condition = ShowerCondition()(cloud=cloud, conv_ratio=conv_ratio, cloud_texture=cloud_texture)
+
+    shower_condition = ShowerCondition()(
+        cloud=cloud, conv_ratio=conv_ratio, cloud_texture=cloud_texture
+    )
     return shower_condition
