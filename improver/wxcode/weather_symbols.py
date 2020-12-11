@@ -257,7 +257,8 @@ class WeatherSymbols(BasePlugin):
 
     def invert_condition(self, condition):
         """
-        Invert a comparison condition to select the negative case.
+        Invert a comparison condition to allow positive identification of conditions
+        satisfying the negative ('fail') case.
 
         Args:
             condition (dict):
