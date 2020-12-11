@@ -228,12 +228,30 @@ class WeatherSymbols(BasePlugin):
         return optional_node_data_missing
 
     @staticmethod
-    def invert_condition(test_conditions):
+    def _invert_comparator(comparator):
+        """Inverts a single comparator string."""
+        condition_inversions = {
+            ">=": "<",
+            ">": "<=",
+            "==": "==",
+            "OR": "AND",
+            "": "",
+        }
+        reverse_inversions = {}
+        for k, v in condition_inversions.items():
+            reverse_inversions[v] = k
+        condition_inversions.update(reverse_inversions)
+        try:
+            return condition_inversions[comparator]
+        except KeyError:
+            raise KeyError(f"Unexpected condition {comparator}, cannot invert it.")
+
+    def invert_condition(self, condition):
         """
         Invert a comparison condition to select the negative case.
 
         Args:
-            test_conditions (dict):
+            condition (dict):
                 A single query from the decision tree.
         Returns:
             (tuple): tuple containing:
@@ -242,23 +260,10 @@ class WeatherSymbols(BasePlugin):
                 **inverted_combination** (str):
                     A string representing the inverted combination
         """
-        threshold = test_conditions["threshold_condition"]
-        inverted_threshold = threshold
-        if threshold == ">=":
-            inverted_threshold = "<"
-        elif threshold == "<=":
-            inverted_threshold = ">"
-        elif threshold == "<":
-            inverted_threshold = ">="
-        elif threshold == ">":
-            inverted_threshold = "<="
-        combination = test_conditions["condition_combination"]
-        inverted_combination = combination
-        if combination == "OR":
-            inverted_combination = "AND"
-        elif combination == "AND":
-            inverted_combination = "OR"
-
+        inverted_threshold = self._invert_comparator(condition["threshold_condition"])
+        inverted_combination = self._invert_comparator(
+            condition["condition_combination"]
+        )
         return inverted_threshold, inverted_combination
 
     @staticmethod
