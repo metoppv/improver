@@ -363,8 +363,8 @@ class Test_invert_condition(IrisTest):
         """Test invert_condition inverts thresholds correctly."""
         plugin = WeatherSymbols()
         node = {"threshold_condition": ">=", "condition_combination": ""}
-        possible_inputs = [">=", "<=", "<", ">"]
-        inverse_outputs = ["<", ">", ">=", "<="]
+        possible_inputs = [">=", "<=", "<", ">", "=="]
+        inverse_outputs = ["<", ">", ">=", "<=", "=="]
         for i, val in enumerate(possible_inputs):
             node["threshold_condition"] = val
             result = plugin.invert_condition(node)
@@ -380,6 +380,17 @@ class Test_invert_condition(IrisTest):
             node["condition_combination"] = val
             result = plugin.invert_condition(node)
             self.assertEqual(result[1], inverse_outputs[i])
+
+    def test_error(self):
+        """Test that the _invert_comparator method raises an error when the condition
+        cannot be inverted."""
+        plugin = WeatherSymbols()
+        possible_inputs = ["!=", "NOT", "XOR"]
+        for val in possible_inputs:
+            with self.assertRaisesRegex(
+                KeyError, f"Unexpected condition {val}, cannot invert it."
+            ):
+                plugin._invert_comparator(val)
 
 
 class Test_construct_condition(IrisTest):
