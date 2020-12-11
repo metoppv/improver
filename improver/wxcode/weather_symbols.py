@@ -66,7 +66,6 @@ def _define_invertible_conditions():
     invertible_conditions = {
         ">=": "<",
         ">": "<=",
-        "==": "==",
         "OR": "AND",
         "": "",
     }

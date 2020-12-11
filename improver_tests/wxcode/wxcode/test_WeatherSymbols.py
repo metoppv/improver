@@ -363,8 +363,8 @@ class Test_invert_condition(IrisTest):
         """Test invert_condition inverts thresholds correctly."""
         plugin = WeatherSymbols()
         node = {"threshold_condition": ">=", "condition_combination": ""}
-        possible_inputs = [">=", "<=", "<", ">", "=="]
-        inverse_outputs = ["<", ">", ">=", "<=", "=="]
+        possible_inputs = [">=", "<=", "<", ">"]
+        inverse_outputs = ["<", ">", ">=", "<="]
         for i, val in enumerate(possible_inputs):
             node["threshold_condition"] = val
             result = plugin.invert_condition(node)
