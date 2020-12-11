@@ -60,6 +60,27 @@ from improver.wxcode.wxcode_decision_tree_global import (
 )
 
 
+def _define_invertible_conditions():
+    """Returns a dictionary of boolean comparator strings where the value is the
+    logical inverse of the key."""
+    invertible_conditions = {
+        ">=": "<",
+        ">": "<=",
+        "==": "==",
+        "OR": "AND",
+        "": "",
+    }
+    # Add reverse {value: key} entries to invertible_conditions
+    reverse_inversions = {}
+    for k, v in invertible_conditions.items():
+        reverse_inversions[v] = k
+    invertible_conditions.update(reverse_inversions)
+    return invertible_conditions
+
+
+INVERTIBLE_CONDITIONS = _define_invertible_conditions()
+
+
 class WeatherSymbols(BasePlugin):
     """
     Definition and implementation of a weather symbol decision tree. This
@@ -230,19 +251,8 @@ class WeatherSymbols(BasePlugin):
     @staticmethod
     def _invert_comparator(comparator):
         """Inverts a single comparator string."""
-        condition_inversions = {
-            ">=": "<",
-            ">": "<=",
-            "==": "==",
-            "OR": "AND",
-            "": "",
-        }
-        reverse_inversions = {}
-        for k, v in condition_inversions.items():
-            reverse_inversions[v] = k
-        condition_inversions.update(reverse_inversions)
         try:
-            return condition_inversions[comparator]
+            return INVERTIBLE_CONDITIONS[comparator]
         except KeyError:
             raise KeyError(f"Unexpected condition {comparator}, cannot invert it.")
 
