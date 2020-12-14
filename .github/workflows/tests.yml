@@ -4,6 +4,9 @@ on: [pull_request, push]
 jobs:
   Sphinx-Pytest-Coverage:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        envfile: [environment_py3.6_iris2.2.yml, environment_py3.7_iris2.4.yml]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
@@ -13,13 +16,13 @@ jobs:
         CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles('**/environment.yml') }}
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles(envs/${{ matrix.envfile }}) }}
         restore-keys: ${{ runner.OS }}-conda-improver-
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file environment.yml --name improver
+        conda env update -q --file envs/${{ matrix.envfile }} --name improver
         conda list --export
     - name: conda activate
       run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
@@ -35,19 +38,24 @@ jobs:
     - uses: codecov/codecov-action@v1
   Codestyle-and-Pylint:
     runs-on: ubuntu-latest
-    steps:
+    strategy:
+      matrix:
+        envfile: [environment_py3.6_iris2.2.yml, environment_py3.7_iris2.4.yml]
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
       id: cache
+      env:
+        # Increase this value to reset cache
+        CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ hashFiles('**/environment.yml') }}
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles(envs/${{ matrix.envfile }}) }}
         restore-keys: ${{ runner.OS }}-conda-improver-
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file environment.yml --name improver
+        conda env update -q --file envs/${{ matrix.envfile }} --name improver
         conda list --export
     - name: conda activate
       run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
@@ -59,19 +67,25 @@ jobs:
       run: pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests
   Safety-Bandit:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        envfile: [environment_py3.6_iris2.2.yml, environment_py3.7_iris2.4.yml]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
       id: cache
+      env:
+        # Increase this value to reset cache
+        CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ hashFiles('**/environment.yml') }}
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles(envs/${{ matrix.envfile }}) }}
         restore-keys: ${{ runner.OS }}-conda-improver-
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file environment.yml --name improver
+        conda env update -q --file envs/${{ matrix.envfile }} --name improver
         conda list --export
     - name: conda activate
       run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
