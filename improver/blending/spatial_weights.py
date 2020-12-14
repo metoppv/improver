@@ -291,9 +291,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
 
         1. Broadcast 1D weights to the 3D shape of the input cube
         2. Set masked weights to zero.  If there is no mask, return original
-        unnormalised 1D weights with a warning message.
+           unnormalised 1D weights with a warning message.
         3. Normalise 3D weights along the blend axis.  This is needed so that a
-        smooth spatial transition between layers can be achieved near mask boundaries.
+           smooth spatial transition between layers can be achieved near mask boundaries.
         4. Reduce weights of masked layers near the mask boundary.
         5. Increase weights of unmasked layers near the mask boundary.
 
