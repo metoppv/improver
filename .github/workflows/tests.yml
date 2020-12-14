@@ -41,6 +41,7 @@ jobs:
     strategy:
       matrix:
         envfile: [environment_py3.6_iris2.2.yml, environment_py3.7_iris2.4.yml]
+    steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
       id: cache
