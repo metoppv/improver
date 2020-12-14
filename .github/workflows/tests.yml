@@ -16,7 +16,7 @@ jobs:
         CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles(envs/${{ matrix.envfile }}) }}
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles('envs/**.yml') }}
         restore-keys: ${{ runner.OS }}-conda-improver-
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
@@ -50,7 +50,7 @@ jobs:
         CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles(envs/${{ matrix.envfile }}) }}
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles('envs/**.yml') }}
         restore-keys: ${{ runner.OS }}-conda-improver-
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
@@ -80,7 +80,7 @@ jobs:
         CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles(envs/${{ matrix.envfile }}) }}
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles('envs/**.yml') }}
         restore-keys: ${{ runner.OS }}-conda-improver-
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
