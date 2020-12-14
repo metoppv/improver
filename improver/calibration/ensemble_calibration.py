@@ -99,7 +99,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     # as part of the minimisation.
     BAD_VALUE = np.float64(999999)
 
-    def __init__(self, tolerance=0.01, max_iterations=1000):
+    def __init__(self, tolerance=0.02, max_iterations=1000):
         """
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
@@ -267,6 +267,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         forecast_var_data = forecast_var_data.astype(np.float64)
         truth_data = truth_data.astype(np.float64)
         sqrt_pi = np.sqrt(np.pi).astype(np.float64)
+        #from timing_utilities import time_func
+        #print("MINIMIZE TIME")
+        #optimised_coeffs = time_func(minimize,
         optimised_coeffs = minimize(
             minimisation_function,
             initial_guess,
@@ -279,6 +282,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             ),
             method="Nelder-Mead",
             tol=self.tolerance,
+            #tol=0.02,
             options={"maxiter": self.max_iterations, "return_all": True},
         )
 
@@ -398,7 +402,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         """
         if predictor.lower() == "mean":
             a, b, gamma, delta = initial_guess
-            a_b = np.array([a, b], dtype=np.float64)
+            mu = (forecast_predictor*b)+a
+            #a_b = np.array([a, b], dtype=np.float64)
+
         elif predictor.lower() == "realizations":
             a, b, gamma, delta = (
                 initial_guess[0],
@@ -408,19 +414,34 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             )
             a_b = np.array([a] + b.tolist(), dtype=np.float64)
 
-        new_col = np.ones(truth.shape, dtype=np.float32)
-        all_data = np.column_stack((new_col, forecast_predictor))
-        mu = np.dot(all_data, a_b)
+            new_col = np.ones(truth.shape, dtype=np.float32)
+            all_data = np.column_stack((new_col, forecast_predictor))
+            mu = np.dot(all_data, a_b)
+        #a_func = lambda : forecast_predictor*b+a
+        #mu2 = forecast_predictor*b+a
+
+        #mu = (forecast_predictor*b)+a
+
+        #sigma = np.sqrt(gamma * gamma + delta * delta * forecast_var)
         sigma = np.sqrt(gamma ** 2 + delta ** 2 * forecast_var)
+        #inv_sigma = 1/sigma
+        #xz = (truth - mu) * inv_sigma
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
         normal_pdf = norm.pdf(xz)
+        #x0 = mu * inv_sigma
         x0 = mu / sigma
         normal_cdf_0 = norm.cdf(x0)
         normal_cdf_root_two = norm.cdf(np.sqrt(2) * x0)
+
+        #min_mu_over_sigma = np.min(mu * inv_sigma)
+        #min_mu_over_sigma = np.min(mu  / sigma)
+        #if np.isfinite(min_mu_over_sigma) or min_mu_over_sigma >= -3:
         if np.isfinite(np.min(mu / sigma)) or (np.min(mu / sigma) >= -3):
+        #if np.isfinite(np.min(mu * inv_sigma)) or (np.min(mu * inv_sigma) >= -3):
             result = np.nanmean(
                 (sigma / normal_cdf_0 ** 2)
+                #(sigma / (normal_cdf_0*normal_cdf_0))
                 * (
                     xz * normal_cdf_0 * (2 * normal_cdf + normal_cdf_0 - 2)
                     + 2 * normal_pdf * normal_cdf_0
@@ -429,6 +450,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             )
         else:
             result = self.BAD_VALUE
+        #print(a, b, gamma, delta)
         return result
 
 
