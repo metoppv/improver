@@ -33,6 +33,7 @@
 import iris
 import numpy as np
 
+from iris.cube import CubeList
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import (
@@ -125,7 +126,7 @@ class ShowerCondition(BasePlugin):
         attributes = generate_mandatory_attributes(self.cubes)
         return template, attributes
 
-    def process(self, cloud=None, cloud_texture=None, conv_ratio=None):
+    def process(self, *cubes):
         """
         Determine the shower condition from global or UK data depending
         on input fields
@@ -145,6 +146,18 @@ class ShowerCondition(BasePlugin):
         Raises:
             ValueError: if inputs are incomplete
         """
+        cubes = CubeList(cubes)
+        print("This is the plugin: ", cubes)
+        cloud = cubes.extract(
+            "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold"
+        )
+        conv_ratio = cubes.extract(
+            "probability_of_convective_ratio_above_threshold"
+        )
+        cloud_texture = cubes.extract(
+            "probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold"
+        )
+
         if cloud_texture is None:
             if cloud is None or conv_ratio is None:
                 raise ValueError("Incomplete inputs")

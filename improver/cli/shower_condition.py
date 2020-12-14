@@ -41,33 +41,20 @@ def process(*cubes: cli.inputcube):
     Determine the shower condition from global or UK data depending
     on input fields
     Args:
-        cloud (iris.cube.Cube or None):
-            Probability of total cloud amount above threshold
-        cloud_texture (iris.cube.Cube or None):
-            Probability of texture of total cloud amount above threshold
-        conv_ratio (iris.cube.Cube or None):
-            Probability of convective ratio above threshold
+        cubes (iris.cube.CubeList):
+            List of either one cube containing cloud texture for
+            UK, or two cubes containing cloud and convective
+            ratio for global.
     Returns:
         iris.cube.Cube:
             Binary (0/1) "precipitation is showery"
 
     """
     from iris.cube import CubeList
-
-    cubes = CubeList(cubes)
-    (cloud,) = cubes.extract(
-        "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold"
-    ) or [None]
-    (conv_ratio,) = cubes.extract(
-        "probability_of_convective_ratio_above_threshold"
-    ) or [None]
-    (cloud_texture,) = cubes.extract(
-        "probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold"
-    ) or [None]
-
     from improver.precipitation_type.shower_condition import ShowerCondition
-
-    shower_condition = ShowerCondition()(
-        cloud=cloud, conv_ratio=conv_ratio, cloud_texture=cloud_texture
-    )
-    return shower_condition
+    print("This is the CLI: ", cubes)
+    if not cubes:
+        raise RuntimeError(
+            "Not enough input arguments. " "See help for more information."
+        )
+    return ShowerCondition()(CubeList(cubes))
