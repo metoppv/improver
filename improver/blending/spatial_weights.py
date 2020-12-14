@@ -220,14 +220,12 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         is_rescaled = iris.cube.CubeList()
         rescaled_weights = iris.cube.CubeList()
         for weights_slice in weights.slices_over(self.blend_coord):
-            weights_nonzero = np.where(weights_slice.data > 0, 1, 0)
-            if np.all(weights_nonzero == 1):
+            weights_nonzero = np.where(weights_slice.data > 0, True, False)
+            if np.all(weights_nonzero):
                 # if there are no masked points in this slice, keep current weights
                 # and mark as unchanged (not rescaled)
                 rescaled_weights.append(weights_slice)
-                is_rescaled.append(
-                    weights_slice.copy(data=np.zeros(weights_slice.shape, dtype=int))
-                )
+                is_rescaled.append(weights_slice.copy(data=~weights_nonzero))
             else:
                 weights_orig = weights_slice.data.copy()
 
@@ -250,8 +248,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
 
                 # identify spatial points where weights have been rescaled
                 is_rescaled_data = np.where(
-                    rescaled_weights_data != weights_orig, 1, 0
-                ).astype(int)
+                    rescaled_weights_data != weights_orig, True, False
+                )
                 is_rescaled.append(weights_slice.copy(data=is_rescaled_data))
 
         weights = rescaled_weights.merge_cube()
@@ -274,7 +272,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 have been rescaled, and 0 where they are unchanged.
         """
         rescaled_data = np.multiply(weights.data, is_rescaled.data)
-        unscaled_data = np.multiply(weights.data, (1 - is_rescaled.data))
+        unscaled_data = np.multiply(weights.data, ~is_rescaled.data)
         unscaled_sum = np.sum(unscaled_data, axis=self.blend_axis)
         required_sum = 1.0 - np.sum(rescaled_data, axis=self.blend_axis)
         normalisation_factor = np.where(
