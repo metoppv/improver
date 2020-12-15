@@ -51,6 +51,7 @@ below:
 * Simon Jackson (Met Office, UK)
 * Caroline Jones (Met Office, UK)
 * Bruno P. Kinoshita (NIWA, NZ)
+* Lucy Liu (Bureau of Meteorology, Australia)
 * Stephen Moseley (Met Office, UK)
 * Meabh NicGuidhir (Met Office, UK)
 * Tim Pillinger (Met Office, UK)
@@ -61,7 +62,6 @@ below:
 * Eleanor Smith (Met Office, UK)
 * Tomasz Trzeciak (Met Office, UK)
 * Mark Worsfold (Met Office, UK)
-* Lucy Liu (Bureau of Meteorology, Australia)
 
 (All contributors on GitHub are identifiable with email addresses in the
 version control logs or otherwise.)
