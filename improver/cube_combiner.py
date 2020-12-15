@@ -83,14 +83,15 @@ class CubeCombiner(BasePlugin):
     @staticmethod
     def _check_dimensions_match(cube_list, comparators=[eq]):
         """
-        Check all coordinate dimensions on the input cubes are equal or broadcastable
+        Check all coordinate dimensions on the input cubes match according to
+        the comparators specified.
 
         Args:
-            cube_list (iris.cube.CubeList or list):
+            cube_list (list of iris.cube.Cube):
                 List of cubes to compare
             comparators (list of callable):
-                Comparison operators, at least one of which must return "True" for each
-                coordinate in order for the match to be valid
+                Comparison operators, at least one of which must return "True"
+                for each coordinate in order for the match to be valid
         Raises:
             ValueError: If dimension coordinates do not match
         """
@@ -116,7 +117,7 @@ class CubeCombiner(BasePlugin):
         that are present on all input cubes, but have different values.
 
         Args:
-            cube_list (iris.cube.CubeList or list):
+            cube_list (list of iris.cube.Cube):
                 List of cubes to that will be combined
 
         Returns:
@@ -147,7 +148,7 @@ class CubeCombiner(BasePlugin):
         Perform cumulative operation to combine cube data
 
         Args:
-            cube_list (iris.cube.CubeList or list)
+            cube_list (list of iris.cube.Cube)
 
         Returns:
             iris.cube.Cube
@@ -176,7 +177,7 @@ class CubeCombiner(BasePlugin):
         cube metadata.
 
         Args:
-            cube_list (iris.cube.CubeList or list):
+            cube_list (list of iris.cube.Cube):
                 List of cubes to combine.
             new_diagnostic_name (str):
                 New name for the combined diagnostic.
@@ -231,7 +232,7 @@ class CubeMultiplier(CubeCombiner):
         match the dimensions, in order, of the first cube in the list
 
         Args:
-            cube_list (iris.cube.CubeList or list of iris.cube.Cube)
+            cube_list (list of iris.cube.Cube)
 
         Returns:
             iris.cube.CubeList
