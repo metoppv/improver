@@ -46,6 +46,9 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
+# define a name for the "cell_methods" attribute
+CELL_METHODS_ATTRIBUTE = "original_cell_methods"
+
 
 class BasicThreshold(PostProcessingPlugin):
 
@@ -280,7 +283,9 @@ class BasicThreshold(PostProcessingPlugin):
         )
         if cube.cell_methods:
             threshold_cell_methods = format_cell_methods_as_attribute(cube.cell_methods)
-            threshold_coord.attributes.update({"cell_methods": threshold_cell_methods})
+            threshold_coord.attributes.update(
+                {CELL_METHODS_ATTRIBUTE: threshold_cell_methods}
+            )
             cube.cell_methods = ()
 
         cube.rename(

@@ -34,7 +34,7 @@
 import unittest
 
 import numpy as np
-from iris.coords import DimCoord
+from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 
@@ -42,6 +42,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
+from improver.threshold import CELL_METHODS_ATTRIBUTE
 from improver.threshold import BasicThreshold as Threshold
 
 
@@ -481,6 +482,18 @@ class Test_process(IrisTest):
         )
         result = plugin(self.cube)
         self.assertTrue("new_attribute" in result.attributes)
+
+    def test_cell_method_transfer(self):
+        """Test plugin correctly translates cell method onto threshold coordinate"""
+        self.cube.add_cell_method(CellMethod("max", coords="time"))
+        expected_threshold_attrs = {
+            "spp__relative_to_threshold": "greater_than",
+            CELL_METHODS_ATTRIBUTE: "max: time",
+        }
+        plugin = Threshold(2.0, comparison_operator=">")
+        result = plugin(self.cube)
+        threshold_attrs = result.coord("precipitation_amount").attributes
+        self.assertDictEqual(threshold_attrs, expected_threshold_attrs)
 
 
 class Test__init__(IrisTest):
