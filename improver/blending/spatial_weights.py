@@ -56,10 +56,12 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         Initialise class.
 
         Args:
+            blend_coord (str):
+                Coordinate over which the input 1D weights will vary
             fuzzy_length (int or float):
-                The length in terms of number of grid squares, over which the
-                weights from the input data mask are smoothed. This is used
-                when calculating a fuzzy weighting based on how far away each
+                Distance, in grid squares, over which the weights from the input
+                data mask are smoothed. This is used to calculate a fuzzy
+                scaling factor for the input weights based on how far away each
                 grid point is from a masked point. The distance is taken as
                 the euclidean distance from the masked point, so the fuzzy
                 length can be a non-integer value. Any points that are at least

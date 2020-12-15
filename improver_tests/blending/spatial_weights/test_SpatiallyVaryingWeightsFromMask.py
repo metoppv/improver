@@ -353,6 +353,28 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
+    def test_fuzziness_with_unequal_weightings(self):
+        """Simulate the case of two models and a nowcast at short lead times: two
+        unmasked slices with low weights, and one masked slice with high weights"""
+        self.cube_to_collapse.data[0].mask = np.full_like(
+            self.cube_to_collapse.data[0], False
+        )
+        self.one_dimensional_weights_cube.data = np.array(
+            [0.025, 1.0, 0.075], dtype=np.float32
+        )
+        expected_data = np.array(
+            [
+                [[0.25, 0.25, 0.136364], [0.25, 0.136364, 0.0892939]],
+                [[0.0, 0.0, 0.45454544], [0.0, 0.454545, 0.642824]],
+                [[0.75, 0.75, 0.409091], [0.75, 0.409091, 0.267882]],
+            ],
+            dtype=np.float32,
+        )
+        result = self.plugin.process(
+            self.cube_to_collapse, self.one_dimensional_weights_cube,
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
 
 if __name__ == "__main__":
     unittest.main()
