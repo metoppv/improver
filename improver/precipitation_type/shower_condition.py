@@ -32,7 +32,6 @@
 
 import iris
 import numpy as np
-from iris.cube import CubeList
 
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
@@ -124,7 +123,11 @@ class ShowerCondition(BasePlugin):
     def process(self, cubes):
         """
         Determine the shower condition from global or UK data depending
-        on input fields
+        on input fields. Expected inputs for UK:
+        cloud_texture: texture_of_low_and_medium_type_cloud_area_fraction,
+        and for global:
+        cloud: low_and_medium_type_cloud_area_fraction
+        conv_ratio: convective_ratio
 
         Args:
             cubes (iris.cube.CubeList):
