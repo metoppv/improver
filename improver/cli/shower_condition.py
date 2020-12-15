@@ -42,9 +42,7 @@ def process(*cubes: cli.inputcube):
     on input fields
     Args:
         cubes (iris.cube.CubeList):
-            List of either one cube containing cloud texture for
-            UK, or two cubes containing cloud and convective
-            ratio for global.
+            List of cubes.
     Returns:
         iris.cube.Cube:
             Binary (0/1) "precipitation is showery"
@@ -52,9 +50,5 @@ def process(*cubes: cli.inputcube):
     """
     from iris.cube import CubeList
     from improver.precipitation_type.shower_condition import ShowerCondition
-    print("This is the CLI: ", cubes)
-    if not cubes:
-        raise RuntimeError(
-            "Not enough input arguments. " "See help for more information."
-        )
+
     return ShowerCondition()(CubeList(cubes))

@@ -32,8 +32,8 @@
 
 import iris
 import numpy as np
-
 from iris.cube import CubeList
+
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import (
@@ -82,7 +82,6 @@ class ShowerCondition(BasePlugin):
                 "operator": "above",
             },
         }
-        self.relative_to_threshold = "above"
         self.cubes = None
         self.tree = None
 
@@ -91,10 +90,6 @@ class ShowerCondition(BasePlugin):
         showery_points = np.ones(shape, dtype=FLOAT_DTYPE)
         for cube in self.cubes:
             name = extract_diagnostic_name(cube.name())
-            if probability_is_above_or_below(cube) != self.relative_to_threshold:
-                msg = "Expected cube of {} {} threshold"
-                raise ValueError(msg.format(name, self.relative_to_threshold))
-
             slice_constraint = iris.Constraint(
                 coord_values={
                     name: lambda cell: np.isclose(
@@ -126,45 +121,39 @@ class ShowerCondition(BasePlugin):
         attributes = generate_mandatory_attributes(self.cubes)
         return template, attributes
 
-    def process(self, *cubes):
+    def process(self, cubes):
         """
         Determine the shower condition from global or UK data depending
         on input fields
 
         Args:
-            cloud (iris.cube.Cube or None):
-                Probability of total cloud amount above threshold
-            cloud_texture (iris.cube.Cube or None):
-                Probability of texture of total cloud amount above threshold
-            conv_ratio (iris.cube.Cube or None):
-                Probability of convective ratio above threshold
-
+            cubes (iris.cube.CubeList):
+                List of cubes
         Returns:
             iris.cube.Cube:
                 Binary (0/1) "precipitation is showery"
-
         Raises:
-            ValueError: if inputs are incomplete
+            ValueError: If inputs are incomplete
         """
-        cubes = CubeList(cubes)
-        print("This is the plugin: ", cubes)
+
         cloud = cubes.extract(
             "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold"
         )
-        conv_ratio = cubes.extract(
-            "probability_of_convective_ratio_above_threshold"
-        )
+        conv_ratio = cubes.extract("probability_of_convective_ratio_above_threshold")
         cloud_texture = cubes.extract(
             "probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold"
         )
 
-        if cloud_texture is None:
-            if cloud is None or conv_ratio is None:
-                raise ValueError("Incomplete inputs")
-            self.cubes = [cloud, conv_ratio]
+        if not cloud_texture:
+            if not cloud or not conv_ratio:
+                raise ValueError(
+                    "Incomplete inputs: must include either cloud_texture for the UK,"
+                    "or cloud and conv_ratio for global."
+                )
+            self.cubes = cloud + conv_ratio
             self.tree = self.conditions_global
         else:
-            self.cubes = [cloud_texture]
+            self.cubes = cloud_texture
             self.tree = self.conditions_uk
 
         template, attributes = self._output_metadata()

@@ -38,6 +38,7 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
+
 def test_uk_basic(tmp_path):
     """Test shower condition operation with UK arguments."""
 
