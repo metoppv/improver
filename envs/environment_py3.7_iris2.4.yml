@@ -1,5 +1,5 @@
 # Use this file to create a conda environment using:
-# conda create -n <name> --file environment.yml
+# conda create -n <name> --file envs/environment_py3.7_iris2.4.yml
 
 name: improver
 channels:
