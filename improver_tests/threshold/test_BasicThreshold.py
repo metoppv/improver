@@ -64,9 +64,6 @@ class Test__add_threshold_coord(IrisTest):
         )
         threshold_coord = self.cube.coord("air_temperature")
         self.assertEqual(threshold_coord.var_name, "threshold")
-        self.assertEqual(
-            threshold_coord.attributes, {"spp__relative_to_threshold": "greater_than"}
-        )
         self.assertAlmostEqual(threshold_coord.points[0], 1)
         self.assertEqual(threshold_coord.units, self.cube.units)
 
@@ -477,6 +474,7 @@ class Test_process(IrisTest):
     def test_each_threshold_func(self):
         """Test user supplied func is applied on each threshold cube."""
         # Need to copy the cube as we're adjusting the data.
+        # TODO need to use different function since we rename the cube after this operation
         plugin = Threshold(
             2.0, each_threshold_func=lambda cube: cube.rename("new_name") or cube
         )
