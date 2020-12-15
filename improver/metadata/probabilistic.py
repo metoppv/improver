@@ -218,3 +218,48 @@ def find_percentile_coordinate(cube):
         raise ValueError(msg)
 
     return perc_coord
+
+
+def format_cell_methods_as_attribute(cell_methods):
+    """Convert cell methods from an input cube into a string attribute
+    for the threshold coordinate
+
+    Args:
+        cell_methods (iterable):
+            Iterable of iris.coords.CellMethod from input cube
+
+    Returns:
+        str:
+            Concatenated string containing information from all cell methods.
+            The IMPROVER standard requires only method and coordinate names,
+            so intervals are not preserved.
+    """
+    method_string = ""
+    for method in cell_methods:
+        coords = ""
+        for coord in method.coord_names:
+            coords += f"{coord}, "
+        formatted_method = f"{method.method}: {coords[:-2]}"
+        method_string += f"{formatted_method}; "
+    if method_string:
+        method_string = method_string[:-2]
+    return method_string
+
+
+def format_attribute_as_cell_methods(attribute):
+    """Convert a "cell_method" attribute back into a list of iris.coords.CellMethod
+    instances for application to cube data.
+
+    Args:
+        str:
+            Cell method attribute from a threshold-type coordinate
+
+    Returns:
+        list of iris.coord.CellMethod
+    """
+    method_strings = attribute.split("; ")
+    cell_methods = []
+    for ms in method_strings:
+        method, coords = ms.split(": ")
+        cell_methods.append(iris.coords.CellMethod(method, coords=coords.split(", ")))
+    return cell_methods

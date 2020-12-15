@@ -41,6 +41,8 @@ from improver.metadata.probabilistic import (
     extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,
+    format_attribute_as_cell_methods,
+    format_cell_methods_as_attribute,
     in_vicinity_name_format,
     is_probability,
     probability_is_above_or_below,
@@ -341,6 +343,44 @@ class Test_find_percentile_coordinate(IrisTest):
         cube.add_aux_coord(new_perc_coord)
         with self.assertRaisesRegex(ValueError, msg):
             find_percentile_coordinate(cube)
+
+
+class Test_format_cell_methods_as_attribute(unittest.TestCase):
+    """Test conversion of cell methods into attribute string"""
+
+    def test_one_method(self):
+        """Test one method returns the expected string"""
+        input = iris.coords.CellMethod("max", coords="time", intervals="1 hour")
+        result = format_cell_methods_as_attribute([input])
+        self.assertEqual(result, "max: time")
+
+    def test_multiple_methods(self):
+        """Test a list of methods returns the expected string"""
+        input1 = iris.coords.CellMethod("max", coords="time")
+        input2 = iris.coords.CellMethod("min", coords="latitude")
+        result = format_cell_methods_as_attribute([input1, input2])
+        self.assertEqual(result, "max: time; min: latitude")
+
+    def test_multiple_coords(self):
+        """Test multiple coords are formatted correctly"""
+        input1 = iris.coords.CellMethod("max", coords="time")
+        input2 = iris.coords.CellMethod("min", coords=("latitude", "longitude"))
+        result = format_cell_methods_as_attribute([input1, input2])
+        self.assertEqual(result, "max: time; min: latitude, longitude")
+
+
+class Test_format_attribute_as_cell_methods(unittest.TestCase):
+    """Test reconversion of attribute string into cell methods"""
+
+    def test_multiple_methods(self):
+        """Test the output list of cell methods is as expected"""
+        input = "max: time; min: latitude, longitude"
+        result = format_attribute_as_cell_methods(input)
+        self.assertEqual(len(result), 2)
+        self.assertEqual(result[0], iris.coords.CellMethod("max", coords="time"))
+        self.assertEqual(
+            result[1], iris.coords.CellMethod("min", coords=("latitude", "longitude"))
+        )
 
 
 if __name__ == "__main__":

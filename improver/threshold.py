@@ -39,7 +39,10 @@ from cf_units import Unit
 
 from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.metadata.probabilistic import probability_is_above_or_below
+from improver.metadata.probabilistic import (
+    format_cell_methods_as_attribute,
+    probability_is_above_or_below,
+)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
@@ -243,13 +246,22 @@ class BasicThreshold(PostProcessingPlugin):
             np.array([threshold], dtype=FLOAT_DTYPE), units=cube.units
         )
         coord.rename(self.threshold_coord_name)
+
+        # TODO move all this out to be done once, after merging
+        # TODO make this a threshold coordinate not a dimension, and merge rather
+        # than concatenating!
         coord.var_name = "threshold"
 
-        # Use an spp__relative_to_threshold attribute, as an extension to the
-        # CF-conventions.
         coord.attributes.update(
             {"spp__relative_to_threshold": self.comparison_operator["spp_string"]}
         )
+
+        if cube.cell_methods:
+            threshold_cell_methods = format_cell_methods_as_attribute(
+                cube.cell_methods
+            )
+            coord.attributes.update({"cell_methods": threshold_cell_methods})
+            cube.cell_methods = ()
 
         cube.add_aux_coord(coord)
 
