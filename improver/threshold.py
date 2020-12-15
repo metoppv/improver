@@ -279,9 +279,7 @@ class BasicThreshold(PostProcessingPlugin):
             {"spp__relative_to_threshold": self.comparison_operator["spp_string"]}
         )
         if cube.cell_methods:
-            threshold_cell_methods = format_cell_methods_as_attribute(
-                cube.cell_methods
-            )
+            threshold_cell_methods = format_cell_methods_as_attribute(cube.cell_methods)
             threshold_coord.attributes.update({"cell_methods": threshold_cell_methods})
             cube.cell_methods = ()
 

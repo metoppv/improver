@@ -474,12 +474,13 @@ class Test_process(IrisTest):
     def test_each_threshold_func(self):
         """Test user supplied func is applied on each threshold cube."""
         # Need to copy the cube as we're adjusting the data.
-        # TODO need to use different function since we rename the cube after this operation
+        new_attr = {"new_attribute": "narwhal"}
         plugin = Threshold(
-            2.0, each_threshold_func=lambda cube: cube.rename("new_name") or cube
+            2.0,
+            each_threshold_func=lambda cube: cube.attributes.update(new_attr) or cube,
         )
         result = plugin(self.cube)
-        self.assertTrue("new_name" in result.name())
+        self.assertTrue("new_attribute" in result.attributes)
 
 
 class Test__init__(IrisTest):
