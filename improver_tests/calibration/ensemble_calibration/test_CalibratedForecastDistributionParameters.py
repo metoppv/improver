@@ -84,29 +84,16 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             "norm", desired_units="Celsius"
         )
         self.coeffs_from_mean = estimator.create_coefficients_cubelist(
-            self.expected_mean_predictor_norm, self.current_temperature_forecast_cube,
+            self.expected_mean_predictor_norm, self.historic_temperature_forecast_cube,
         )
 
-        index = [
-            self.current_temperature_forecast_cube.coord(axis="y"),
-            self.current_temperature_forecast_cube.coord(axis="x"),
-        ]
-
-        coeff_cubes = iris.cube.CubeList()
-        for ctf_slice in self.current_temperature_forecast_cube.slices_over(index):
-            coeff_cubes.append(
-                estimator.create_coefficients_cubelist(
-                    self.expected_mean_predictor_norm, ctf_slice,
-                )
-            )
-
-        self.coeffs_from_mean_each_point = estimator.reorganise_pointwise_list(
-            coeff_cubes
+        estimator = EstimateCoefficientsForEnsembleCalibration(
+            "norm", each_point=True, desired_units="Celsius"
         )
-        # print("self.current_temperature_forecast_cube = ", self.current_temperature_forecast_cube)
-        # print("self.coeffs_from_mean_each_point = ", self.coeffs_from_mean_each_point)
-        # for cube in self.coeffs_from_mean_each_point:
-        #     print(cube)
+        each_point_predictor = np.array([self.expected_mean_predictor_norm] * 9).T.reshape(4, 3, 3)
+        self.coeffs_from_mean_each_point = estimator.create_coefficients_cubelist(
+            each_point_predictor, self.historic_temperature_forecast_cube,
+        )
 
         # Set up a coefficients cube when using the ensemble realization as the
         # predictor and the coefficients have been estimated using statsmodels.
@@ -115,7 +102,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         )
         self.coeffs_from_statsmodels_realizations = estimator.create_coefficients_cubelist(
             self.expected_realizations_norm_statsmodels,
-            self.current_temperature_forecast_cube,
+            self.historic_temperature_forecast_cube,
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
@@ -126,23 +113,23 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         )
         self.coeffs_from_no_statsmodels_realizations = estimator.create_coefficients_cubelist(
             self.expected_realizations_norm_no_statsmodels,
-            self.current_temperature_forecast_cube,
+            self.historic_temperature_forecast_cube,
         )
 
         # Some expected data that are used in various tests.
         self.expected_loc_param_mean = np.array(
             [
-                [273.7854, 274.6913, 275.4461],
-                [276.8652, 277.6502, 278.405],
-                [279.492, 280.1562, 280.9715],
+                [273.7956, 274.7027, 275.4586],
+                [276.8798, 277.6659, 278.4218],
+                [279.5104, 280.1755, 280.9919],
             ],
             dtype=np.float32,
         )
         self.expected_scale_param_mean = np.array(
             [
-                [0.1952, 0.1974, 0.0117],
-                [0.0226, 0.0197, 0.0117],
-                [0.0532, 0.0029, 0.0007],
+                [0.2087, 0.211, 0.0125],
+                [0.0241, 0.021, 0.0125],
+                [0.0568, 0.0031, 0.0008],
             ],
             dtype=np.float32,
         )
@@ -156,9 +143,9 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         )
         self.expected_loc_param_no_statsmodels_realizations = np.array(
             [
-                [273.4695, 274.4673, 275.3034],
-                [276.8648, 277.733, 278.5632],
-                [279.7562, 280.4913, 281.3889],
+                [273.5327, 274.5308, 275.367],
+                [276.9288, 277.7971, 278.6275],
+                [279.8209, 280.5561, 281.4539],
             ],
             dtype=np.float32,
         )
@@ -454,7 +441,7 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end_each_point(self):
         """An example end-to-end calculation when a separate set of
-        coefficients is computed for each grid point. This repeats the test
+        coefficients are computed for each grid point. This repeats the test
         elements above but all grouped together."""
         calibrated_forecast_predictor, calibrated_forecast_var = self.plugin.process(
             self.current_temperature_forecast_cube, self.coeffs_from_mean_each_point

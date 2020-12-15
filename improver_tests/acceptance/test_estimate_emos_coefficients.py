@@ -232,3 +232,62 @@ def test_land_points_only(tmp_path):
     acc.compare(
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
+
+@pytest.mark.slow
+def test_normal_each_point_sites(tmp_path):
+    """
+    Test estimate-emos-coefficients for diagnostic with assumed
+    normal distribution where coefficients are computed independently at each
+    grid point (initial guess and minimisation).
+    """
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
+    kgo_path = kgo_dir / "each_point" / "kgo.nc"
+    history_path = kgo_dir / "history/*.nc"
+    truth_path = kgo_dir / "truth/*.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "norm",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--each-point",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
+
+@pytest.mark.slow
+def test_normal_minimise_each_point_sites(tmp_path):
+    """
+    Test estimate-emos-coefficients for diagnostic with assumed
+    normal distribution where coefficients are computed independently at each
+    grid point (minimisation only).
+    """
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/"
+    kgo_path = kgo_dir / "minimise_each_point" /"kgo.nc"
+    history_path = kgo_dir / "history/*.nc"
+    truth_path = kgo_dir / "truth/*.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "norm",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )

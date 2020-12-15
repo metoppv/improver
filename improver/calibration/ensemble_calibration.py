@@ -57,6 +57,7 @@ from improver.calibration.utilities import (
     filter_non_matching_cubes,
     flatten_ignoring_masked_data,
     forecast_coords_match,
+    get_statsmodels_availability,
     merge_land_and_sea,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -84,7 +85,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     minimised.
 
     The number of coefficients that will be optimised depend upon the initial
-    guess.
+    guess. The coefficients will be calculated either using all points provided
+    or coefficients will for calculated separately for each point.
 
     Minimisation is performed using the Nelder-Mead algorithm for 200
     iterations to limit the computational expense.
@@ -124,6 +126,10 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 predictor_of_mean is "realizations", then the number of
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
+            each_point (bool):
+                If True, coefficients are calculated independently for each
+                point within the input cube by minimising each grid point
+                independently.
 
         """
         # Dictionary containing the functions that will be minimised,
@@ -137,17 +143,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         # Maximum iterations for minimisation using Nelder-Mead.
         self.max_iterations = max_iterations
         self.each_point = each_point
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        result = (
-            "<ContinuousRankedProbabilityScoreMinimisers: "
-            "minimisation_dict: {}; tolerance: {}; max_iterations: {}>"
-        )
-        print_dict = {}
-        for key in self.minimisation_dict:
-            print_dict.update({key: self.minimisation_dict[key].__name__})
-        return result.format(print_dict, self.tolerance, self.max_iterations)
 
     def process(
         self,
@@ -234,7 +229,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                     allvecs[-2],
                     np.absolute(allvecs[-2] - allvecs[-1]),
                 )
-                # warnings.warn(msg)
+                warnings.warn(msg)
 
         try:
             minimisation_function = self.minimisation_dict[distribution]
@@ -248,9 +243,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         # Ensure predictor is valid.
         check_predictor(predictor)
 
-        preserve_leading_dimension = False
-        if self.each_point:
-            preserve_leading_dimension = True
+        preserve_leading_dimension = True if self.each_point else False
 
         # Flatten the data arrays and remove any missing data.
         truth_data = flatten_ignoring_masked_data(
@@ -604,36 +597,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             raise ValueError(msg)
 
-    def _get_statsmodels_availability(self):
-        """Import the statsmodels module, if available.
-
-        Returns:
-            bool:
-                True if the statsmodels module is available. Otherwise, False.
-
-        Warns:
-            ImportWarning: If the statsmodels module cannot be imported.
-        """
-        import importlib
-
-        try:
-            importlib.import_module("statsmodels")
-        except (ModuleNotFoundError, ImportError):
-            sm = None
-            if self.predictor.lower() == "realizations":
-                msg = (
-                    "The statsmodels module cannot be imported. "
-                    "Will not be able to calculate an initial guess from "
-                    "the individual ensemble realizations. "
-                    "A default initial guess will be used without "
-                    "estimating coefficients from a linear model."
-                )
-                warnings.warn(msg, ImportWarning)
-        else:
-            import statsmodels.api as sm
-
-        return sm
-
     def _set_attributes(self, historic_forecasts):
         """Set attributes for use on the EMOS coefficients cube.
 
@@ -687,28 +650,76 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         return [(frt_coord, None), (fp_coord, None)]
 
-    @staticmethod
-    def _create_spatial_coordinates(historic_forecasts):
-        """Create spatial coordinates for the EMOS coefficients cube.
-
+    def _create_spatial_dim_coordinates(self, historic_forecasts):
+        """Create spatial dimension coordinates for the EMOS coefficients cube.
         Args:
             historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.
-
         Returns:
             list of tuples:
                 List of tuples of the spatial coordinates and the associated
                 dimension. This format is suitable for use by iris.cube.Cube.
         """
-        spatial_coords_and_dims = []
+        if not any([self.each_point, self.minimise_each_point]):
+            return []
+
+        spatial_coord_dims = []
         for axis in ["x", "y"]:
-            spatial_coords_and_dims.append(
-                (historic_forecasts.coord(axis=axis).collapsed(), None)
+            spatial_coord_dims.append(
+                historic_forecasts.coord_dims(
+                    historic_forecasts.coord(axis=axis).name()
+                )
             )
-        return spatial_coords_and_dims
+        dim_coords_and_dims = []
+        # Remove dims where x and y axis share a dimension coordinate (as for a spot forecast cube)
+        spatial_coord_dims = list(set(spatial_coord_dims))
+        for index, dim in enumerate(spatial_coord_dims):
+            (spatial_dim_coord,) = historic_forecasts.coords(
+                dimensions=dim, dim_coords=True
+            )
+            dim_coords_and_dims.append((spatial_dim_coord, index))
+        return dim_coords_and_dims
+
+    def _create_spatial_aux_coordinates(self, historic_forecasts):
+        """Create spatial auxiliary coordinates for the EMOS coefficients cube.
+        Args:
+            historic_forecasts (iris.cube.Cube):
+                Historic forecasts from the training dataset.
+        Returns:
+            list of tuples:
+                List of tuples of the spatial coordinates and the associated
+                dimension. This format is suitable for use by iris.cube.Cube.
+        """
+        if self.each_point | self.minimise_each_point:
+            aux_coords_and_dims = []
+            for index, axis in enumerate(["x", "y"]):
+                spatial_coord_dim = historic_forecasts.coord_dims(
+                    historic_forecasts.coord(axis=axis).name()
+                )
+                for coord in historic_forecasts.coords(
+                    dimensions=spatial_coord_dim, dim_coords=False
+                ):
+                    if not any(
+                        [True if c[0] == coord else False for c in aux_coords_and_dims]
+                    ):
+                        aux_coords_and_dims.append(
+                            (historic_forecasts.coord(coord), index)
+                        )
+        else:
+            aux_coords_and_dims = []
+            for axis in ["x", "y"]:
+                aux_coords_and_dims.append(
+                    (historic_forecasts.coord(axis=axis).collapsed(), None)
+                )
+        return aux_coords_and_dims
 
     def _create_cubelist(
-        self, optimised_coeffs, historic_forecasts, aux_coords_and_dims, attributes
+        self,
+        optimised_coeffs,
+        historic_forecasts,
+        dim_coords_and_dims,
+        aux_coords_and_dims,
+        attributes,
     ):
         """Create a cubelist by combining the optimised coefficients and the
         appropriate metadata. The units of the alpha and gamma coefficients
@@ -720,6 +731,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             optimised_coeffs (numpy.ndarray)
             historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.
+            dim_coords_and_dims (list of tuples):
+                List of tuples of the format [(coord, dim), (coord, dim)]
             aux_coords_and_dims (list of tuples):
                 List of tuples of the format [(coord, dim), (coord, dim)]
             attributes (dict):
@@ -738,16 +751,17 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             coeff_units = "1"
             if coeff_name in ["alpha", "gamma"]:
                 coeff_units = historic_forecasts.units
-            dim_coords_and_dims = []
+            dim_coords_and_dims_updated = dim_coords_and_dims[:]
             if self.predictor.lower() == "realizations" and coeff_name == "beta":
-                dim_coords_and_dims = [
+                dim_coords_and_dims_updated.append(
                     (historic_forecasts.coord("realization").copy(), 0)
-                ]
+                )
+            #print("dim_coords_and_dims_updated = ", dim_coords_and_dims_updated)
             cube = iris.cube.Cube(
                 optimised_coeff,
                 long_name=f"emos_coefficient_{coeff_name}",
                 units=coeff_units,
-                dim_coords_and_dims=dim_coords_and_dims,
+                dim_coords_and_dims=dim_coords_and_dims_updated,
                 aux_coords_and_dims=aux_coords_and_dims,
                 attributes=attributes,
             )
@@ -796,12 +810,19 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             raise ValueError(msg)
 
+        dim_coords_and_dims = self._create_spatial_dim_coordinates(historic_forecasts)
         aux_coords_and_dims = self._create_temporal_coordinates(historic_forecasts)
-        aux_coords_and_dims.extend(self._create_spatial_coordinates(historic_forecasts))
+        aux_coords_and_dims.extend(
+            self._create_spatial_aux_coordinates(historic_forecasts)
+        )
         attributes = self._set_attributes(historic_forecasts)
 
         return self._create_cubelist(
-            optimised_coeffs, historic_forecasts, aux_coords_and_dims, attributes
+            optimised_coeffs,
+            historic_forecasts,
+            dim_coords_and_dims,
+            aux_coords_and_dims,
+            attributes,
         )
 
     def compute_initial_guess(
@@ -811,7 +832,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         predictor,
         estimate_coefficients_from_linear_model_flag,
         number_of_realizations,
-        sm=None
+        sm=None,
     ):
         """
         Function to compute initial guess of the alpha, beta, gamma
@@ -953,7 +974,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Historic forecasts from the training dataset.
             forecast_predictor (iris.cube.Cube):
                 Predictor of the forecast within the minimisation. This
-                is either ensemble mean or the ensemble realizations.
+                is either the ensemble mean or the ensemble realizations.
             forecast_var (iris.cube.Cube):
                 Variance of the forecast for use in the minimisation.
             number_of_realizations (int or None):
@@ -968,7 +989,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 gamma, delta.
 
         """
-        sm = self._get_statsmodels_availability()
+        sm = get_statsmodels_availability(self.predictor)
         if self.each_point:
             index = [
                 forecast_predictor.coord(axis="y"),
@@ -982,7 +1003,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     self.predictor,
                     self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                     number_of_realizations,
-                    sm
+                    sm,
                 )
                 for (truths_slice, fp_slice) in zip(
                     truths.slices_over(index), forecast_predictor.slices_over(index)
@@ -991,8 +1012,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
             with Pool(os.cpu_count()) as pool:
                 initial_guess = pool.starmap(self.compute_initial_guess, argument_list)
-
-            print("initial_guess = ", initial_guess)
         else:
             if self.minimise_each_point:
                 self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
@@ -1004,8 +1023,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 self.predictor,
                 self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                 number_of_realizations,
-                sm=sm
+                sm=sm,
             )
+            # If NaNs in initial guess, use default initial guess.
             if np.any(np.isnan(initial_guess)):
                 initial_guess = self.compute_initial_guess(
                     truths.data,
@@ -1013,12 +1033,17 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     self.predictor,
                     False,
                     number_of_realizations,
-                    sm=sm)
+                    sm=sm,
+                )
 
             if self.minimise_each_point:
                 initial_guess = np.broadcast_to(
                     initial_guess,
-                    (len(truths.coord(axis="y").points) * len(truths.coord(axis="x").points), len(initial_guess)),
+                    (
+                        len(truths.coord(axis="y").points)
+                        * len(truths.coord(axis="x").points),
+                        len(initial_guess),
+                    ),
                 )
 
         # Calculate coefficients if there are no nans in the initial guess.
@@ -1031,6 +1056,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             self.distribution.lower(),
         )
         print("optimised_coeffs = ", optimised_coeffs)
+        print("optimised_coeffs = ", optimised_coeffs.shape)
         coefficients_cubelist = self.create_coefficients_cubelist(
             optimised_coeffs, historic_forecasts
         )

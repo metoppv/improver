@@ -66,22 +66,22 @@ else:
 
 IGNORED_MESSAGES = [
     "Collapsing a non-contiguous coordinate",  # Originating from Iris
-    "The statsmodels module cannot be imported",
     "invalid escape sequence",  # Originating from statsmodels
     "can't resolve package from",  # Originating from statsmodels
     "Minimisation did not result in convergence",  # From calibration code
     "The final iteration resulted in",  # From calibration code
     "Invalid value encountered in",  # From calculating percentage change in
     # calibration code
+    "The statsmodels module cannot be imported",
 ]
 WARNING_TYPES = [
     UserWarning,
-    ImportWarning,
     DeprecationWarning,
     ImportWarning,
     UserWarning,
     UserWarning,
     RuntimeWarning,
+    ImportWarning,
 ]
 
 
@@ -97,24 +97,24 @@ class SetupExpectedCoefficients(IrisTest):
 
         # The expected coefficients for temperature in Kelvin.
         self.expected_mean_predictor_norm = np.array(
-            [25.4302, 0.9058, 0.0013, 0.4675], dtype=np.float32
+            [25.0839, 0.9071, 0.0013, 0.4833], dtype=np.float32
         )
         # The expected coefficients for wind speed in m s^-1.
         self.expected_mean_predictor_truncnorm = np.array(
-            [-0.5185, 0.9408, -0.0025, 1.5457], dtype=np.float32
+            [-0.5744, 0.9529, -0.0069, 1.2312], dtype=np.float32
         )
 
         self.expected_realizations_norm_statsmodels = np.array(
             [-0.2838, -0.0774, 0.3892, 0.9167, -0.0003, 1.0022], dtype=np.float32
         )
         self.expected_realizations_norm_no_statsmodels = np.array(
-            [-0.0, 0.5785, 0.578, 0.5733, 0.0001, 1.0227,], dtype=np.float32
+            [-0.0, 0.5786, 0.578, 0.5734, 0.0001, 1.0175,], dtype=np.float32
         )
         self.expected_realizations_truncnorm_statsmodels = np.array(
             [-0.606, -0.0623, 0.3786, 0.9014, 0.0003, 1.2571], dtype=np.float32
         )
         self.expected_realizations_truncnorm_no_statsmodels = np.array(
-            [-0.0015, 0.7171, -0.0089, 0.585, 0.0007, 1.356], dtype=np.float32
+            [0.0003, 0.56927171, 0.5056, 0.5344, 0.0004, 1.0712], dtype=np.float32
         )
 
 
@@ -132,9 +132,7 @@ class Test__init__(SetupCubes):
         """Test that the plugin instance defines the expected
         coefficient names."""
         expected = ["alpha", "beta", "gamma", "delta"]
-        plugin = Plugin(
-            self.distribution,
-        )
+        plugin = Plugin(self.distribution,)
         self.assertEqual(plugin.coeff_names, expected)
 
     def test_invalid_distribution(self):
@@ -143,62 +141,6 @@ class Test__init__(SetupCubes):
         msg = "Given distribution biscuits not available. "
         with self.assertRaisesRegex(ValueError, msg):
             Plugin(distribution)
-
-    # @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
-    # @ManageWarnings(
-    #     record=True, ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES
-    # )
-    # def test_statsmodels_mean(self, warning_list=None):
-    #     """
-    #     Test that the plugin raises no warnings if the statsmodels module
-    #     is not found for when the predictor is the ensemble mean.
-    #     """
-    #     predictor = "mean"
-    #     statsmodels_warning = "The statsmodels module cannot be imported"
-    #
-    #     Plugin(self.distribution,  predictor=predictor)
-    #     self.assertNotIn(statsmodels_warning, warning_list)
-    #
-    # @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
-    # @ManageWarnings(
-    #     record=True,
-    #     ignored_messages=[
-    #         "Collapsing a non-contiguous coordinate.",
-    #         "Not importing directory .*sphinxcontrib'",
-    #         "The pandas.core.datetools module is deprecated",
-    #         "numpy.dtype size changed",
-    #         "invalid escape sequence",
-    #         "can't resolve package from",
-    #         "Collapsing a non-contiguous coordinate.",
-    #         "Minimisation did not result in" " convergence",
-    #         "\nThe final iteration resulted in a percentage "
-    #         "change that is greater than the"
-    #         " accepted threshold ",
-    #     ],
-    #     warning_types=[
-    #         UserWarning,
-    #         ImportWarning,
-    #         FutureWarning,
-    #         RuntimeWarning,
-    #         DeprecationWarning,
-    #         ImportWarning,
-    #         UserWarning,
-    #         UserWarning,
-    #         UserWarning,
-    #     ],
-    # )
-    # def test_statsmodels_realizations(self, warning_list=None):
-    #     """
-    #     Test that the plugin raises the desired warning if the statsmodels
-    #     module is not found for when the predictor is the ensemble
-    #     realizations.
-    #     """
-    #     predictor = "realizations"
-    #
-    #     Plugin(self.distribution, predictor=predictor)
-    #     warning_msg = "The statsmodels module cannot be imported"
-    #     self.assertTrue(any(item.category == ImportWarning for item in warning_list))
-    #     self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
 
 class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
@@ -557,7 +499,7 @@ class Test_compute_initial_guess(IrisTest):
             self.current_forecast_predictor_mean.data,
             self.predictor,
             estimate_coefficients_from_linear_model_flag,
-            None
+            None,
         )
 
         self.assertArrayAlmostEqual(
@@ -610,7 +552,7 @@ class Test_compute_initial_guess(IrisTest):
             self.current_forecast_predictor_mean_masked_halo.data,
             self.predictor,
             estimate_coefficients_from_linear_model_flag,
-            None
+            None,
         )
         self.assertArrayAlmostEqual(
             self.expected_mean_predictor_with_linear_model, result
@@ -656,7 +598,7 @@ class Test_mask_cube(SetupCubes):
         self.mask_cube = set_up_variable_cube(
             mask_data, name="land_binary_mask", units="1"
         )
-        self.plugin = Plugin("norm", "20171110T0000Z")
+        self.plugin = Plugin("norm")
         # Copy a few slices of the temperature truth cube to test on.
         self.cube3D = self.temperature_truth_cube[0:2, ...].copy()
 
@@ -671,15 +613,17 @@ class Test_mask_cube(SetupCubes):
                     [278.05, 278.35, np.nan],
                 ],
                 [
-                    [np.nan, 273.15, np.nan],
-                    [np.nan, 275.75, 276.55],
-                    [278.05, 278.35, np.nan],
+                    [np.nan, 273.35, np.nan],
+                    [np.nan, 275.95, 276.75],
+                    [278.25, 278.55002, np.nan],
                 ],
             ],
             dtype=np.float32,
         )
         expected_result = np.ma.masked_invalid(expected_result)
         self.plugin.mask_cube(self.cube3D, self.mask_cube)
+        # print("self.cube3D.data.data = ", self.cube3D.data.data)
+        # print("self.temperature_truth_cube = ", self.temperature_truth_cube.data)
         self.assertArrayAlmostEqual(expected_result.data, self.cube3D.data.data)
         self.assertArrayEqual(
             np.ma.getmask(expected_result), np.ma.getmask(self.cube3D.data)
@@ -808,7 +752,7 @@ class Test_process(
         expected values for a normal distribution for when the historic
         forecasts and truths input having some mismatches in validity time.
         """
-        expected = [23.4593, 0.9128, 0.0041, 0.4885]
+        expected = [25.2214, 0.9067, 0.0013, 0.4828]
         partial_historic_forecasts = (
             self.historic_forecasts[:2] + self.historic_forecasts[3:]
         ).merge_cube()
@@ -930,7 +874,7 @@ class Test_process(
         Reducing the value for the tolerance would result in the coefficients
         more closely matching the coefficients created when using a linear
         least-squares regression to construct the initial guess."""
-        expected = [-0.0002, 0.8557, -0.0013, 1.3785]
+        expected = [-0.0, 0.8652, 0.0002, 1.0777]
         distribution = "truncnorm"
 
         plugin = self.plugin(distribution)
@@ -1026,7 +970,12 @@ class Test_process(
         result = plugin.process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
         )
+        # np.set_printoptions(suppress=True)
+        # for cube in result:
+        #     print(cube.data)
+        # #print(np.array([cube.data for cube in result]))
 
+        # print("result = ", result)
         self.assertEMOSCoefficientsAlmostEqual(
             np.concatenate([np.atleast_1d(cube.data) for cube in result]),
             self.expected_realizations_truncnorm_no_statsmodels,
@@ -1035,39 +984,105 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    # @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    # def test_each_point(self):
-    #     """"""
-    #     plugin = Plugin(self.distribution, each_point=True)
-    #     result = plugin.process(
-    #         self.historic_temperature_forecast_cube, self.temperature_truth_cube
-    #     )
-    #     print("self.historic_temperature_forecast_cube = ", self.historic_temperature_forecast_cube)
-    #     print("self.historic_temperature_forecast_cube = ", self.historic_temperature_forecast_cube.data)
-    #     print("self.temperature_truth_cube = ", self.temperature_truth_cube)
-    #     print("self.temperature_truth_cube = ", self.temperature_truth_cube.data)
-    #     print("result = ", result)
-    #     self.assertEMOSCoefficientsAlmostEqual(
-    #         np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
-    #     )
-    #     self.assertArrayEqual(
-    #         [cube.name() for cube in result], self.expected_coeff_names
-    #     )
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_each_point(self):
+        """Test computing coefficients independently for each grid point (initial guess
+        and minimising) returns the expected coefficients and associated metadata."""
+        expected = {
+            "emos_coefficient_alpha": np.array(
+                [
+                    [0.0896, -0.0555, -1.0103],
+                    [-0.8949, -0.8790, -0.9117],
+                    [-0.5823, -1.0073, -1.0740],
+                ]
+            ),
+            "emos_coefficient_beta": np.array(
+                [
+                    [0.9999, 1.0001, 1.0005],
+                    [1.0009, 1.0006, 1.0006],
+                    [1.0005, 1.0005, 1.0004],
+                ]
+            ),
+            "emos_coefficient_gamma": np.array(
+                [
+                    [0.0010, 0.0010, 0.0016],
+                    [0.0010, 0.0014, 0.0013],
+                    [0.0011, 0.0018, 0.0018],
+                ]
+            ),
+            "emos_coefficient_delta": np.array(
+                [
+                    [0.0022, 0.0028, 0.0021],
+                    [-0.0039, 0.0016, 0.0007],
+                    [-0.0029, 0.0043, 0.0030],
+                ]
+            ),
+        }
+        plugin = Plugin(self.distribution, each_point=True)
+        result = plugin.process(
+            self.historic_temperature_forecast_cube, self.temperature_truth_cube
+        )
+        for cube in result:
+            self.assertEMOSCoefficientsAlmostEqual(
+                cube.data, expected[cube.name()],
+            )
+            self.assertIn(cube.name(), self.expected_coeff_names)
+            self.assertEqual(
+                [c.name() for c in cube.coords(dim_coords=True)],
+                ["latitude", "longitude"],
+            )
 
-    # @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    # def test_minimise_each_point(self):
-    #     """"""
-    #     plugin = Plugin(self.distribution, minimise_each_point=True)
-    #     result = plugin.process(
-    #         self.historic_temperature_forecast_cube, self.temperature_truth_cube
-    #     )
-    #     print("result = ", result)
-    #     self.assertEMOSCoefficientsAlmostEqual(
-    #         np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
-    #     )
-    #     self.assertArrayEqual(
-    #         [cube.name() for cube in result], self.expected_coeff_names
-    #     )
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_minimise_each_point(self):
+        """Test computing coefficients independently for each grid point
+        (minimisation only) returns the expected coefficients and associated metadata."""
+        expected = {
+            "emos_coefficient_alpha": np.array(
+                [
+                    [0.0037, 0.0017, -0.0002],
+                    [-0.0002, -0.0001, 0.0],
+                    [0.0031, 0.0051, -0.0001],
+                ]
+            ),
+            "emos_coefficient_beta": np.array(
+                [
+                    [1.0002, 0.9999, 0.9969],
+                    [0.9978, 0.9974, 0.9973],
+                    [0.9984, 0.9969, 0.9966],
+                ]
+            ),
+            "emos_coefficient_gamma": np.array(
+                [
+                    [0.0007, 0.0010, 0.0002],
+                    [0.0002, 0.0001, 0.0002],
+                    [0.0015, -0.0009, 0.0002],
+                ]
+            ),
+            "emos_coefficient_delta": np.array(
+                [
+                    [-0.0009, -0.0016, 1.0320],
+                    [1.0411, 1.0384, 1.0237],
+                    [0.0025, -0.0039, 1.0338],
+                ]
+            ),
+        }
+        plugin = Plugin(self.distribution, minimise_each_point=True)
+        result = plugin.process(
+            self.historic_temperature_forecast_cube, self.temperature_truth_cube
+        )
+        # np.set_printoptions(suppress=True)
+        # for cube in result:
+        #     print("result = ", cube.data)
+        for cube in result:
+            # print("cube = ", cube.data)
+            self.assertEMOSCoefficientsAlmostEqual(
+                cube.data, expected[cube.name()],
+            )
+            self.assertIn(cube.name(), self.expected_coeff_names)
+            self.assertEqual(
+                [c.name() for c in cube.coords(dim_coords=True)],
+                ["latitude", "longitude"],
+            )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_truth_unit_conversion(self):

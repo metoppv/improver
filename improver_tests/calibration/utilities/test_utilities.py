@@ -34,6 +34,7 @@ module.
 
 """
 import datetime
+import importlib
 import unittest
 
 import iris
@@ -51,6 +52,7 @@ from improver.calibration.utilities import (
     flatten_ignoring_masked_data,
     forecast_coords_match,
     get_frt_hours,
+    get_statsmodels_availability,
     merge_land_and_sea,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
@@ -59,11 +61,40 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_variable_cube,
 )
+from improver.utilities.warnings_handler import ManageWarnings
 
 from ..ensemble_calibration.helper_functions import SetupCubes
 from ..reliability_calibration.test_AggregateReliabilityCalibrationTables import (
     Test_Aggregation,
 )
+
+try:
+    importlib.import_module("statsmodels")
+except (ModuleNotFoundError, ImportError):
+    STATSMODELS_FOUND = False
+else:
+    STATSMODELS_FOUND = True
+
+
+IGNORED_MESSAGES = [
+    "Collapsing a non-contiguous coordinate",  # Originating from Iris
+    "invalid escape sequence",  # Originating from statsmodels
+    "can't resolve package from",  # Originating from statsmodels
+    "Minimisation did not result in convergence",  # From calibration code
+    "The final iteration resulted in",  # From calibration code
+    "Invalid value encountered in",  # From calculating percentage change in
+    # calibration code
+    "The statsmodels module cannot be imported",
+]
+WARNING_TYPES = [
+    UserWarning,
+    DeprecationWarning,
+    ImportWarning,
+    UserWarning,
+    UserWarning,
+    RuntimeWarning,
+    ImportWarning,
+]
 
 
 class Test_convert_cube_data_to_2d(IrisTest):
@@ -652,6 +683,44 @@ class Test_check_forecast_consistency(IrisTest):
 
         with self.assertRaisesRegex(ValueError, msg):
             check_forecast_consistency(forecasts)
+
+
+class Test_get_statsmodels_availability(IrisTest):
+    @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
+    @ManageWarnings(
+        record=True, ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES
+    )
+    def test_statsmodels_mean(self, warning_list=None):
+        """
+        Test that the plugin raises no warnings if the statsmodels module
+        is not found for when the predictor is the ensemble mean.
+        """
+        predictor = "mean"
+        statsmodels_warning = "The statsmodels module cannot be imported"
+
+        sm = get_statsmodels_availability(predictor)
+        self.assertIsNone(sm)
+        self.assertNotIn(statsmodels_warning, warning_list)
+
+    @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
+    @ManageWarnings(
+        record=True,
+        ignored_messages=IGNORED_MESSAGES[:-1],
+        warning_types=WARNING_TYPES[:-1],
+    )
+    def test_statsmodels_realizations(self, warning_list=None):
+        """
+        Test that the plugin raises the desired warning if the statsmodels
+        module is not found for when the predictor is the ensemble
+        realizations.
+        """
+        predictor = "realizations"
+
+        sm = get_statsmodels_availability(predictor)
+        self.assertIsNone(sm)
+        warning_msg = "The statsmodels module cannot be imported"
+        self.assertTrue(any(item.category == ImportWarning for item in warning_list))
+        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
 
 if __name__ == "__main__":
