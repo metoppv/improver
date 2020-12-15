@@ -150,55 +150,22 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         # Return slice template
         return first_slice
 
-    def _broadcast_weights(self, template, input_weights):
-        """Broadcast the 1D input weights to the 3D shape required
-
-        Args:
-            template (iris.cube.Cube):
-                3D cube of shape self.blend_coord x 2 spatial dimensions
-            input_weights (iris.cube.Cube):
-                1D cube of shape self.blend_coord
-
-        Returns:
-            iris.cube.Cube:
-                Matching 3D shape of template cube, with values from 1D
-                weights cube
-        """
-        weights = iris.cube.CubeList()
-        for tslice, wslice in zip(
-            template.slices_over(self.blend_coord),
-            input_weights.slices_over(self.blend_coord),
-        ):
-            tslice.data[:, :] = wslice.data
-            weights.append(tslice)
-        weights = weights.merge_cube()
-        weights.data = weights.data.astype(FLOAT_DTYPE)
-        return weights
-
     def _normalise_initial_weights(self, weights):
         """Normalise weights so that they add up to 1 along the blend dimension
         at each spatial point.  This is different from the normalisation that
         happens after the application of fuzzy smoothing near mask boundaries.
+        Modifies weights cube in place.
 
         Args:
-            weights (iris.cube.Cube)
+            weights (iris.cube.Cube):
                 3D weights containing zeros for masked points, but before
                 fuzzy smoothing
-
-        Returns:
-            iris.cube.Cube
         """
         weights_sum = np.sum(weights.data, axis=self.blend_axis)
-        normalised_weights = iris.cube.CubeList()
-        for weights_slice in weights.slices_over(self.blend_coord):
-            normalised_data = np.where(
-                weights_sum > 0, np.divide(weights_slice.data, weights_sum), 0
-            )
-            normalised_weights.append(
-                weights_slice.copy(data=normalised_data.astype(FLOAT_DTYPE))
-            )
-        weights = normalised_weights.merge_cube()
-        return weights
+        weights_sum = np.broadcast_to(weights_sum, weights.shape)
+        weights.data = np.where(
+            weights_sum > 0, np.divide(weights.data, weights_sum), 0
+        ).astype(FLOAT_DTYPE)
 
     def _rescale_masked_weights(self, weights):
         """Apply fuzzy smoothing to weights at the edge of masked areas
@@ -215,7 +182,6 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                     slices have not
                 **rescaled** (iris.cube.Cube):
                     Binary (0/1) map showing which weights have been rescaled
-
         """
         is_rescaled = iris.cube.CubeList()
         rescaled_weights = iris.cube.CubeList()
@@ -319,7 +285,10 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         template_cube = self._create_template_slice(cube_to_collapse)
         (self.blend_axis,) = template_cube.coord_dims(self.blend_coord)
 
-        weights = self._broadcast_weights(template_cube, one_dimensional_weights_cube)
+        weights_data = iris.util.broadcast_to_shape(
+            one_dimensional_weights_cube.data, template_cube.shape, (self.blend_axis,)
+        )
+        weights = template_cube.copy(data=weights_data)
 
         if np.ma.is_masked(template_cube.data):
             # Set masked weights to zero
@@ -329,7 +298,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
             warnings.warn(message)
             return weights
 
-        weights = self._normalise_initial_weights(weights)
+        self._normalise_initial_weights(weights)
         weights, rescaled = self._rescale_masked_weights(weights)
         self._rescale_unmasked_weights(weights, rescaled)
 
