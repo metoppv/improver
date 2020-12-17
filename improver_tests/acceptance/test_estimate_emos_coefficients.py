@@ -238,7 +238,7 @@ def test_normal_each_point_sites(tmp_path):
     """
     Test estimate-emos-coefficients for diagnostic with assumed
     normal distribution where coefficients are computed independently at each
-    grid point (initial guess and minimisation).
+    site location (initial guess and minimisation).
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
     kgo_path = kgo_dir / "each_point" / "kgo.nc"
@@ -268,9 +268,9 @@ def test_normal_minimise_each_point_sites(tmp_path):
     """
     Test estimate-emos-coefficients for diagnostic with assumed
     normal distribution where coefficients are computed independently at each
-    grid point (minimisation only).
+    site location (minimisation only).
     """
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/"
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
     kgo_path = kgo_dir / "minimise_each_point" /"kgo.nc"
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
@@ -284,6 +284,7 @@ def test_normal_minimise_each_point_sites(tmp_path):
         "mosg__model_configuration=uk_det",
         "--tolerance",
         EST_EMOS_TOL,
+        "--minimise-each-point",
         "--output",
         output_path,
     ]
