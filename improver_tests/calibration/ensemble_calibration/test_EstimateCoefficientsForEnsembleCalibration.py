@@ -464,8 +464,8 @@ class Test_compute_initial_guess(IrisTest):
 
         plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth,
-            self.historic_forecast_predictor_mean,
+            self.truth.data,
+            self.historic_forecast_predictor_mean.data,
             self.predictor,
             estimate_coefficients_from_linear_model_flag,
             None,
@@ -489,8 +489,8 @@ class Test_compute_initial_guess(IrisTest):
 
         plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth,
-            self.historic_forecast_predictor_realizations,
+            self.truth.data,
+            self.historic_forecast_predictor_realizations.data,
             predictor,
             estimate_coefficients_from_linear_model_flag,
             self.no_of_realizations,
@@ -514,8 +514,8 @@ class Test_compute_initial_guess(IrisTest):
 
         plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth,
-            self.historic_forecast_predictor_mean,
+            self.truth.data,
+            self.historic_forecast_predictor_mean.data,
             self.predictor,
             estimate_coefficients_from_linear_model_flag,
             None,
@@ -542,8 +542,8 @@ class Test_compute_initial_guess(IrisTest):
 
         plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth,
-            self.historic_forecast_predictor_realizations,
+            self.truth.data,
+            self.historic_forecast_predictor_realizations.data,
             predictor,
             estimate_coefficients_from_linear_model_flag,
             self.no_of_realizations,
@@ -569,8 +569,8 @@ class Test_compute_initial_guess(IrisTest):
 
         plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth_masked_halo,
-            self.historic_forecast_predictor_mean_masked_halo,
+            self.truth_masked_halo.data,
+            self.historic_forecast_predictor_mean_masked_halo.data,
             self.predictor,
             estimate_coefficients_from_linear_model_flag,
             None,
@@ -598,8 +598,8 @@ class Test_compute_initial_guess(IrisTest):
 
         plugin = Plugin(self.distribution, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
-            self.truth_masked_halo,
-            self.historic_forecast_predictor_realizations_masked_halo,
+            self.truth_masked_halo.data,
+            self.historic_forecast_predictor_realizations_masked_halo.data,
             predictor,
             estimate_coefficients_from_linear_model_flag,
             self.no_of_realizations,
@@ -1055,69 +1055,24 @@ class Test_process(
                 ["latitude", "longitude"],
             )
 
-    # @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    # def test_each_point_landsea_mask(self):
-    #     """Ensure that the values for the optimised_coefficients match the
-    #     expected values, and the coefficient names also match
-    #     expected values for a normal distribution. In this case,
-    #     a linear least-squares regression is used to construct the initial
-    #     guess. The original data is surrounded by a halo that is masked
-    #     out by the landsea_mask, giving the same results as the original data.
-    #     """
-    #     expected = {
-    #         "emos_coefficient_alpha": np.array(
-    #             [
-    #                 [0.0896, -0.0555, -1.0103],
-    #                 [-0.8949, -0.8790, -0.9117],
-    #                 [-0.5823, -1.0073, -1.0740],
-    #             ]
-    #         ),
-    #         "emos_coefficient_beta": np.array(
-    #             [
-    #                 [0.9999, 1.0001, 1.0005],
-    #                 [1.0009, 1.0006, 1.0006],
-    #                 [1.0005, 1.0005, 1.0004],
-    #             ]
-    #         ),
-    #         "emos_coefficient_gamma": np.array(
-    #             [
-    #                 [0.0010, 0.0010, 0.0016],
-    #                 [0.0010, 0.0014, 0.0013],
-    #                 [0.0011, 0.0018, 0.0018],
-    #             ]
-    #         ),
-    #         "emos_coefficient_delta": np.array(
-    #             [
-    #                 [0.0022, 0.0028, 0.0021],
-    #                 [-0.0039, 0.0016, 0.0007],
-    #                 [-0.0029, 0.0043, 0.0030],
-    #             ]
-    #         ),
-    #     }
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_each_point_landsea_mask(self):
+        """Ensure that the values for the optimised_coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a normal distribution. In this case,
+        a linear least-squares regression is used to construct the initial
+        guess. The original data is surrounded by a halo that is masked
+        out by the landsea_mask, giving the same results as the original data.
+        """
 
-    #     plugin = Plugin(self.distribution, each_point=True)
-    #     result = plugin.process(
-    #         self.historic_temperature_forecast_cube_halo,
-    #         self.temperature_truth_cube_halo,
-    #         landsea_mask=self.landsea_cube,
-    #     )
-
-    #     for cube in result:
-    #         self.assertEMOSCoefficientsAlmostEqual(
-    #             cube.data, expected[cube.name()],
-    #         )
-    #         self.assertIn(cube.name(), self.expected_coeff_names)
-    #         self.assertEqual(
-    #             [c.name() for c in cube.coords(dim_coords=True)],
-    #             ["latitude", "longitude"],
-    #         )
-
-        # self.assertEMOSCoefficientsAlmostEqual(
-        #     np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
-        # )
-        # self.assertArrayEqual(
-        #     [cube.name() for cube in result], self.expected_coeff_names
-        # )
+        plugin = Plugin(self.distribution, each_point=True)
+        msg = "The use of a landsea mask"
+        with self.assertRaisesRegex(NotImplementedError, msg):
+            plugin.process(
+                self.historic_temperature_forecast_cube_halo,
+                self.temperature_truth_cube_halo,
+                landsea_mask=self.landsea_cube,
+            )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_minimise_each_point(self):

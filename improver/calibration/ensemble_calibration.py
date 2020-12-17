@@ -243,9 +243,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         # Ensure predictor is valid.
         check_predictor(predictor)
 
-        # Preserve leading temporal dimension, if using each_point.
-        coords_to_flatten = ("y", "x") if self.each_point else ("time", "y", "x")
-
         if self.each_point:
             # Increased precision is needed for stable coefficient calculation.
             # The resulting coefficients are cast to float32 prior to output.
@@ -303,21 +300,21 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         # Flatten the data arrays and remove any missing data.
         truth_data = flatten_ignoring_masked_data(
-            truth, coords_to_flatten=coords_to_flatten
+            truth.data
         )
         forecast_var_data = flatten_ignoring_masked_data(
-            forecast_var, coords_to_flatten=coords_to_flatten
+            forecast_var.data
         )
         if predictor.lower() == "mean":
             forecast_predictor_data = flatten_ignoring_masked_data(
-                forecast_predictor, coords_to_flatten=coords_to_flatten,
+                forecast_predictor.data
             )
         elif predictor.lower() == "realizations":
             enforce_coordinate_ordering(forecast_predictor, "realization")
             # Need to transpose this array so there are columns for each
             # ensemble member rather than rows.
             forecast_predictor_data = flatten_ignoring_masked_data(
-                forecast_predictor, coords_to_flatten=coords_to_flatten
+                forecast_predictor.data, preserve_leading_dimension=True
             ).T
 
         # Increased precision is needed for stable coefficient calculation.
@@ -327,39 +324,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         forecast_var_data = forecast_var_data.astype(np.float64)
         truth_data = truth_data.astype(np.float64)
         sqrt_pi = np.sqrt(np.pi).astype(np.float64)
-
-        # print("forecast_predictor = ", forecast_predictor)
-        # print("forecast_predictor_data = ", forecast_predictor_data.shape)
-        # if self.each_point:
-        #     argument_list = []
-        #     # Iterate over the flattened spatial dimensions, so that each
-        #     for index in range(forecast_predictor_data.shape[-1]):
-        #         argument_list.append(
-        #             (
-        #                 minimisation_function,
-        #                 initial_guess[index],
-        #                 forecast_predictor_data[..., index].T,
-        #                 truth_data[:, index],
-        #                 forecast_var_data[:, index],
-        #                 sqrt_pi,
-        #                 predictor,
-        #             )
-        #         )
-        #     print("argument_list = ", argument_list)
-        #     with Pool(os.cpu_count()) as pool:
-        #         optimised_coeffs = pool.starmap(self._minimise_caller, argument_list)
-        #     optimised_coeffs = [x.x.astype(np.float32) for x in optimised_coeffs]
-
-        #     return np.array(np.transpose(optimised_coeffs)).reshape(
-        #         (
-        #             len(initial_guess[0]),
-        #             len(forecast_predictor.coord(axis="y").points),
-        #             len(forecast_predictor.coord(axis="x").points),
-        #         )
-        #     )
-        # else:
-        # if predictor.lower() == "realizations":
-        #     forecast_predictor_data = forecast_predictor_data.T
 
         optimised_coeffs = self._minimise_caller(
             minimisation_function,
@@ -927,10 +891,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         modified based on the results from the linear regression fit.
 
         Args:
-            truths (iris.cube.Cube):
-                Cube containing the truth fields.
-            forecast_predictor (iris.cube.Cube):
-                Cube containing the fields to be used as the predictor,
+            truths (numpy.ndarray):
+                Array containing the truth fields.
+            forecast_predictor (numpy.ndarray):
+                Array containing the fields to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
             predictor (str):
                 String to specify the form of the predictor used to calculate
@@ -981,7 +945,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 initial_guess = [intercept, gradient, 0, 1]
             elif predictor.lower() == "realizations":
                 forecast_predictor_flattened = flatten_ignoring_masked_data(
-                    forecast_predictor
+                    forecast_predictor, preserve_leading_dimension=True
                 )
                 val = sm.add_constant(forecast_predictor_flattened.T)
                 est = sm.OLS(truths_flattened, val).fit()
@@ -1061,8 +1025,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
             argument_list = (
                 (
-                    truths_slice,
-                    fp_slice,
+                    truths_slice.data,
+                    fp_slice.data,
                     self.predictor,
                     self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                     number_of_realizations,
@@ -1072,7 +1036,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     truths.slices_over(index), forecast_predictor.slices_over(index)
                 )
             )
-            print("argument_list = ", argument_list)
+            #print("argument_list = ", argument_list)
             with Pool(os.cpu_count()) as pool:
                 initial_guess = pool.starmap(self.compute_initial_guess, argument_list)
         else:
@@ -1081,8 +1045,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
             # Computing initial guess for EMOS coefficients
             initial_guess = self.compute_initial_guess(
-                truths,
-                forecast_predictor,
+                truths.data,
+                forecast_predictor.data,
                 self.predictor,
                 self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                 number_of_realizations,
@@ -1091,8 +1055,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             # If NaNs in initial guess, use default initial guess.
             if np.any(np.isnan(initial_guess)):
                 initial_guess = self.compute_initial_guess(
-                    truths,
-                    forecast_predictor,
+                    truths.data,
+                    forecast_predictor.data,
                     self.predictor,
                     False,
                     number_of_realizations,
@@ -1172,8 +1136,13 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 match.
 
         """
-        print("historic_forecasts = ", historic_forecasts)
-        print("truths = ", truths)
+        if landsea_mask and (self.each_point or self.minimise_each_point):
+            msg = ("The use of a landsea mask with the option to compute "
+                   "coefficients independently at each point is not implemented.")
+            raise NotImplementedError(msg)
+
+        # print("historic_forecasts = ", historic_forecasts)
+        # print("truths = ", truths)
         if not (historic_forecasts and truths):
             raise ValueError("historic_forecasts and truths cubes must be provided.")
 
