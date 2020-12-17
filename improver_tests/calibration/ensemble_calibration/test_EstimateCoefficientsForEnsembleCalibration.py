@@ -1070,11 +1070,7 @@ class Test_process(
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
-        # np.set_printoptions(suppress=True)
-        # for cube in result:
-        #     print("result = ", cube.data)
         for cube in result:
-            # print("cube = ", cube.data)
             self.assertEMOSCoefficientsAlmostEqual(
                 cube.data, expected[cube.name()],
             )

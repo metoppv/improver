@@ -193,7 +193,13 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         day = 1
         for index, data in enumerate(self.data_array):
             day += index
-            cubes.append(set_up_variable_cube(data, time=datetime.datetime(2017, 11, day, 4, 0), frt=datetime.datetime(2017, 11, day, 0, 0)))
+            cubes.append(
+                set_up_variable_cube(
+                    data,
+                    time=datetime.datetime(2017, 11, day, 4, 0),
+                    frt=datetime.datetime(2017, 11, day, 0, 0),
+                )
+            )
         self.cube = cubes.merge_cube()
 
         mask = np.array(
@@ -206,18 +212,27 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         self.cube_with_mask = self.cube.copy()
         self.cube_with_mask.data = np.ma.MaskedArray(self.data_array, mask)
         self.expected_3D_result = np.array(
-            [[0., 1., 2., 3., 4., 5., 6., 7.],
-             [8., 9., 10., 11., 12., 13., 14., 15.],
-             [16., 17., 18., 19., 20., 21., 22., 23.]], dtype=np.float32,
+            [
+                [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+                [8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0],
+                [16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0],
+            ],
+            dtype=np.float32,
         )
         self.expected_4D_result = np.array(
-            [[[ 0.,  1.,  2.,  3.],
-              [ 8.,  9., 10., 11.],
-              [16., 17., 18., 19.]],
-
-            [[ 0.,  1.,  2.,  3.],
-              [ 8.,  9., 10., 11.],
-              [16., 17., 18., 19.]]], dtype=np.float32,
+            [
+                [
+                    [0.0, 1.0, 2.0, 3.0],
+                    [8.0, 9.0, 10.0, 11.0],
+                    [16.0, 17.0, 18.0, 19.0],
+                ],
+                [
+                    [0.0, 1.0, 2.0, 3.0],
+                    [8.0, 9.0, 10.0, 11.0],
+                    [16.0, 17.0, 18.0, 19.0],
+                ],
+            ],
+            dtype=np.float32,
         )
         self.coords_to_flatten = ("y", "x")
 
@@ -259,16 +274,18 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         """Test empty array is returned when all points are masked."""
         mask = np.ones((3, 2, 4)) * True
         self.cube_with_mask.data = np.ma.MaskedArray(self.cube_with_mask.data, mask)
-        #masked_data_array = np.ma.MaskedArray(data_array, mask)
+        # masked_data_array = np.ma.MaskedArray(data_array, mask)
         expected_result = np.array([], dtype=np.float32)
-        result = flatten_ignoring_masked_data(self.cube_with_mask, )
+        result = flatten_ignoring_masked_data(self.cube_with_mask,)
         self.assertArrayAlmostEqual(result, expected_result)
         self.assertEqual(result.dtype, np.float32)
 
     def test_1D_input(self):
         """Test input array is unchanged when input in 1D"""
         expected_result = self.cube.data[:, 0, 0].flatten()
-        result = flatten_ignoring_masked_data(self.cube[:, 0, 0], coords_to_flatten=("time",))
+        result = flatten_ignoring_masked_data(
+            self.cube[:, 0, 0], coords_to_flatten=("time",)
+        )
         self.assertArrayAlmostEqual(result, expected_result)
         self.assertEqual(result.dtype, np.float32)
 
@@ -278,7 +295,13 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         data_array = self.data_array.reshape((3, 2, 2, 2))
         cubes = iris.cube.CubeList()
         for day in range(1, 3):
-            cubes.append(set_up_variable_cube(data_array[:, 0, :, :], time=datetime.datetime(2017, 11, day, 4, 0), frt=datetime.datetime(2017, 11, day, 0, 0)))
+            cubes.append(
+                set_up_variable_cube(
+                    data_array[:, 0, :, :],
+                    time=datetime.datetime(2017, 11, day, 4, 0),
+                    frt=datetime.datetime(2017, 11, day, 0, 0),
+                )
+            )
         cube = cubes.merge_cube()
         result = flatten_ignoring_masked_data(
             cube, coords_to_flatten=self.coords_to_flatten
@@ -289,8 +312,10 @@ class Test_flatten_ignoring_masked_data(IrisTest):
     def test_coordinate_not_found(self):
         """Test if the coordinate to be flattened is not found as a dimension
         coordinate on the input cube."""
-        expected_message = ("The foo coordinate to flatten is not a dimension "
-                            "coordinate on the input cube.")
+        expected_message = (
+            "The foo coordinate to flatten is not a dimension "
+            "coordinate on the input cube."
+        )
         with self.assertRaisesRegex(CoordinateNotFoundError, expected_message):
             flatten_ignoring_masked_data(
                 self.cube_with_mask, coords_to_flatten=("foo",)

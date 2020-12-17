@@ -36,8 +36,8 @@ specific for ensemble calibration.
 import warnings
 
 import iris
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.temporal import iris_time_to_datetime
 
@@ -114,11 +114,15 @@ def flatten_ignoring_masked_data(cube, coords_to_flatten=("time", "y", "x")):
         elif cube.coords(axis=coord, dim_coords=True):
             coords.append(cube.coord(axis=coord))
         else:
-            msg = (f"The {coord} coordinate to flatten is not a dimension "
-                   "coordinate on the input cube.")
+            msg = (
+                f"The {coord} coordinate to flatten is not a dimension "
+                "coordinate on the input cube."
+            )
             raise CoordinateNotFoundError(msg)
 
-    coords_to_preserve_len = [len(c.points) for c in set(cube.coords(dim_coords=True)) - set(coords)]
+    coords_to_preserve_len = [
+        len(c.points) for c in set(cube.coords(dim_coords=True)) - set(coords)
+    ]
 
     final_shape = (*coords_to_preserve_len, -1)
     reshaped_array = cube.data.reshape(final_shape)

@@ -78,6 +78,7 @@ def test_truncated_normal(tmp_path):
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
+
 def test_normal_each_point_sites(tmp_path):
     """Test using a normal distribution when coefficients have been calculated
     independently at each site (initial guess and minimisation)."""
@@ -97,6 +98,7 @@ def test_normal_each_point_sites(tmp_path):
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
+
 def test_normal_minimise_each_point_sites(tmp_path):
     """Test using a normal distribution when coefficients have been calculated
     independently at each site (minimisation only)."""
@@ -115,6 +117,7 @@ def test_normal_minimise_each_point_sites(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
 
 def test_realizations_input_land_sea(tmp_path):
     """Test realizations as input with a land sea mask"""

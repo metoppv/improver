@@ -255,8 +255,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         )
         if predictor.lower() == "mean":
             forecast_predictor_data = flatten_ignoring_masked_data(
-                forecast_predictor,
-                coords_to_flatten=coords_to_flatten,
+                forecast_predictor, coords_to_flatten=coords_to_flatten,
             )
         elif predictor.lower() == "realizations":
             enforce_coordinate_ordering(forecast_predictor, "realization")
@@ -294,7 +293,11 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             optimised_coeffs = [x.x.astype(np.float32) for x in optimised_coeffs]
 
             return np.array(np.transpose(optimised_coeffs)).reshape(
-                (len(initial_guess[0]), len(forecast_predictor.coord(axis="y").points), len(forecast_predictor.coord(axis="x").points))
+                (
+                    len(initial_guess[0]),
+                    len(forecast_predictor.coord(axis="y").points),
+                    len(forecast_predictor.coord(axis="x").points),
+                )
             )
         else:
             if predictor.lower() == "realizations":
