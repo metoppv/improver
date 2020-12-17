@@ -388,9 +388,17 @@ class Test_process(IrisTest):
             [self.ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertEqual(result.coord("time"), self.ukv_cube_latest.coord("time"))
-        self.assertEqual(result.coord("forecast_reference_time"), self.expected_frt)
-        self.assertEqual(result.coord("forecast_period"), self.expected_fp)
+        self.assertArrayEqual(
+            result.coord("time").points, self.ukv_cube_latest.coord("time").points
+        )
+        self.assertArrayEqual(
+            result.coord("forecast_reference_time").points, self.expected_frt.points
+        )
+        self.assertArrayEqual(
+            result.coord("forecast_period").points, self.expected_fp.points
+        )
+        for coord in ["forecast_reference_time", "forecast_period"]:
+            self.assertIn("deprecation_message", result.coord(coord).attributes)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_model_blend(self):
@@ -409,6 +417,8 @@ class Test_process(IrisTest):
         result_coords = [coord.name() for coord in result.coords()]
         self.assertNotIn("model_id", result_coords)
         self.assertNotIn("model_configuration", result_coords)
+        for coord in ["forecast_reference_time", "forecast_period"]:
+            self.assertIn("deprecation_message", result.coord(coord).attributes)
 
     @ManageWarnings(
         ignored_messages=[
@@ -460,7 +470,26 @@ class Test_process(IrisTest):
         # make sure output cube has the forecast reference time and period
         # from the most recent contributing model
         for coord in ["time", "forecast_period", "forecast_reference_time"]:
-            self.assertEqual(result.coord(coord), self.nowcast_cube.coord(coord))
+            self.assertArrayEqual(
+                result.coord(coord).points, self.nowcast_cube.coord(coord).points
+            )
+
+    def test_forecast_coord_deprecation(self):
+        """Test model blending works if some (but not all) inputs have previously
+        been cycle blended"""
+        for cube in [self.ukv_cube, self.enukx_cube]:
+            for coord in ["forecast_period", "forecast_reference_time"]:
+                cube.coord(coord).attributes.update({"deprecation_message": "blah"})
+        result = self.plugin_model.process(
+            [self.ukv_cube, self.enukx_cube, self.nowcast_cube],
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
+        )
+        for coord in ["forecast_reference_time", "forecast_period"]:
+            self.assertIn("deprecation_message", result.coord(coord).attributes)
+            self.assertIn(
+                "will be removed", result.coord(coord).attributes["deprecation_message"]
+            )
 
     def test_one_cube(self):
         """Test the plugin returns a single input cube with updated attributes
