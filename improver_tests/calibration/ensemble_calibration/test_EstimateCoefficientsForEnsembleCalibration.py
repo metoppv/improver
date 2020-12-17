@@ -46,6 +46,7 @@ from iris.tests import IrisTest
 from improver.calibration.ensemble_calibration import (
     EstimateCoefficientsForEnsembleCalibration as Plugin,
 )
+from improver.calibration.utilities import get_statsmodels_availability
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
@@ -542,8 +543,6 @@ class Test_compute_initial_guess(IrisTest):
         of 0.333333 with different weights for the realizations because
         some of the realizations are closer to the truth, in this instance.
         """
-        import statsmodels.api as sm
-
         predictor = "realizations"
         estimate_coefficients_from_linear_model_flag = True
 
@@ -554,7 +553,7 @@ class Test_compute_initial_guess(IrisTest):
             predictor,
             estimate_coefficients_from_linear_model_flag,
             self.no_of_realizations,
-            sm=sm,
+            sm=get_statsmodels_availability(predictor),
         )
         self.assertArrayAlmostEqual(
             self.expected_realizations_predictor_with_linear_model, result
@@ -599,8 +598,6 @@ class Test_compute_initial_guess(IrisTest):
         this case the original data has been surrounded by a halo of masked
         nans, which gives the same coefficients as the original data.
         """
-        import statsmodels.api as sm
-
         predictor = "realizations"
         estimate_coefficients_from_linear_model_flag = True
 
@@ -611,7 +608,7 @@ class Test_compute_initial_guess(IrisTest):
             predictor,
             estimate_coefficients_from_linear_model_flag,
             self.no_of_realizations,
-            sm=sm,
+            sm=get_statsmodels_availability(predictor),
         )
         self.assertArrayAlmostEqual(
             self.expected_realizations_predictor_with_linear_model, result

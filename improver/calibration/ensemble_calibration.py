@@ -180,15 +180,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             )
             warnings.warn(msg)
 
-    def _set_to_float64(self, initial_guess, forecast_predictor, forecast_var, truth):
-        """Set inputs to the minimisation to float64. The increased precision
-        is needed for stable coefficient calculation.
-        """
-        initial_guess = np.array(initial_guess, dtype=np.float64)
-        forecast_predictor.data = forecast_predictor.data.astype(np.float64)
-        forecast_var.data = forecast_var.data.astype(np.float64)
-        truth.data = truth.data.astype(np.float64)
-
     def _minimise_caller(
         self,
         minimisation_function,
@@ -202,7 +193,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         """Call scipy minimize with the options provided.
 
         Args:
-            minimisation_function ()
+            minimisation_function (method instance)
             initial_guess (list)
             forecast_predictor (iris.cube.Cube)
             truth (iris.cube.Cube)
@@ -262,9 +253,12 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 coefficients array is (number of coefficients, length of spatial dimensions).
                 Order of coefficients is [alpha, beta, gamma, delta].
         """
-        print(minimisation_function)
-        self._set_to_float64(initial_guess, forecast_predictor, forecast_var, truth)
+        initial_guess = np.array(initial_guess, dtype=np.float64)
+        forecast_predictor.data = forecast_predictor.data.astype(np.float64)
+        forecast_var.data = forecast_var.data.astype(np.float64)
+        truth.data = truth.data.astype(np.float64)
         sqrt_pi = np.sqrt(np.pi).astype(np.float64)
+
         argument_list = []
         sindex = [
             forecast_predictor.coord(axis="y"),
@@ -337,7 +331,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             numpy.ndarray:
                 The optimised coefficients. Order of coefficients is [alpha, beta, gamma, delta].
         """
-        print("minimisation_function")
         # Flatten the data arrays and remove any missing data.
         truth_data = flatten_ignoring_masked_data(truth.data)
         forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
@@ -354,7 +347,10 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         # Increased precision is needed for stable coefficient calculation.
         # The resulting coefficients are cast to float32 prior to output.
-        self._set_to_float64(initial_guess, forecast_predictor, forecast_var, truth)
+        initial_guess = np.array(initial_guess, dtype=np.float64)
+        forecast_predictor_data = forecast_predictor_data.astype(np.float64)
+        forecast_var_data = forecast_var_data.astype(np.float64)
+        truth_data = truth_data.astype(np.float64)
         sqrt_pi = np.sqrt(np.pi).astype(np.float64)
 
         optimised_coeffs = self._minimise_caller(
