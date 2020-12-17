@@ -128,7 +128,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 more coefficients to solve for.
             each_point (bool):
                 If True, coefficients are calculated independently for each
-                point within the input cube by minimising each grid point
+                point within the input cube by minimising each point
                 independently.
 
         """
@@ -143,6 +143,240 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         # Maximum iterations for minimisation using Nelder-Mead.
         self.max_iterations = max_iterations
         self.each_point = each_point
+
+    def _calculate_percentage_change_in_last_iteration(self, allvecs):
+        """
+        Calculate the percentage change that has occurred within
+        the last iteration of the minimisation. If the percentage change
+        between the last iteration and the last-but-one iteration exceeds
+        the threshold, a warning message is printed.
+
+        Args:
+            allvecs (list):
+                List of numpy arrays containing the optimised coefficients,
+                after each iteration.
+
+        Warns:
+            Warning: If a satisfactory minimisation has not been achieved.
+        """
+        last_iteration_percentage_change = (
+            np.absolute((allvecs[-1] - allvecs[-2]) / allvecs[-2]) * 100
+        )
+        if np.any(
+            last_iteration_percentage_change > self.TOLERATED_PERCENTAGE_CHANGE
+        ):
+            np.set_printoptions(suppress=True)
+            msg = (
+                "The final iteration resulted in a percentage change "
+                "that is greater than the accepted threshold of 5% "
+                "i.e. {}. "
+                "\nA satisfactory minimisation has not been achieved. "
+                "\nLast iteration: {}, "
+                "\nLast-but-one iteration: {}"
+                "\nAbsolute difference: {}\n"
+            ).format(
+                last_iteration_percentage_change,
+                allvecs[-1],
+                allvecs[-2],
+                np.absolute(allvecs[-2] - allvecs[-1]),
+            )
+            warnings.warn(msg)
+
+    def _set_to_float64(self, initial_guess, forecast_predictor, forecast_var, truth):
+        """Set inputs to the minimisation to float64. The increased precision
+        is needed for stable coefficient calculation.
+        """
+        initial_guess = np.array(initial_guess, dtype=np.float64)
+        forecast_predictor.data = forecast_predictor.data.astype(np.float64)
+        forecast_var.data = forecast_var.data.astype(np.float64)
+        truth.data = truth.data.astype(np.float64)
+
+    def _minimise_caller(
+        self,
+        minimisation_function,
+        initial_guess,
+        forecast_predictor_data,
+        truth_data,
+        forecast_var_data,
+        sqrt_pi,
+        predictor,
+    ):
+        """Call scipy minimize with the options provided.
+
+        Args:
+            minimisation_function ()
+            initial_guess (list)
+            forecast_predictor (iris.cube.Cube)
+            truth (iris.cube.Cube)
+            forecast_var (iris.cube.Cube)
+            sqrt_pi (np.float64):
+                Square root of pi for minimisation.
+            predictor (str)
+
+        Return:
+            numpy.ndarray:
+                A single set of coefficients with the order [alpha, beta, gamma, delta].
+
+        """
+        optimised_coeffs = minimize(
+            minimisation_function,
+            initial_guess,
+            args=(
+                forecast_predictor_data,
+                truth_data,
+                forecast_var_data,
+                sqrt_pi,
+                predictor,
+            ),
+            method="Nelder-Mead",
+            tol=self.tolerance,
+            options={"maxiter": self.max_iterations, "return_all": True},
+        )
+
+        return optimised_coeffs
+
+    def _process_points_independently(self, minimisation_function, initial_guess,
+        forecast_predictor,
+        truth,
+        forecast_var,
+        predictor):
+        """Minimise each point along the spatial dimensions independently to
+        create a set of coefficients for each point. The coefficients returned
+        can be either gridded (i.e. separate dimensions for x and y) or for a
+        list of sites where x and y share a common dimension.
+
+        Args:
+            minimisation_function (method instance):
+                Function to use when minimising.
+            initial_guess (list)
+            forecast_predictor (iris.cube.Cube)
+            truth (iris.cube.Cube)
+            forecast_var (iris.cube.Cube)
+            predictor (str)
+
+        Returns:
+            numpy.ndarray:
+                Separate optimised coefficients for each point. The shape of the
+                coefficients array is (number of coefficients, length of spatial dimensions).
+                Order of coefficients is [alpha, beta, gamma, delta].
+        """
+        print(minimisation_function)
+        self._set_to_float64(initial_guess, forecast_predictor, forecast_var, truth)
+        sqrt_pi = np.sqrt(np.pi).astype(np.float64)
+        argument_list = []
+        sindex = [
+            forecast_predictor.coord(axis="y"),
+            forecast_predictor.coord(axis="x"),
+        ]
+
+        for index, (fp_slice, truth_slice, fv_slice) in enumerate(
+            zip(
+                forecast_predictor.slices_over(sindex),
+                truth.slices_over(sindex),
+                forecast_var.slices_over(sindex),
+            )
+        ):
+            argument_list.append(
+                (
+                    minimisation_function,
+                    initial_guess[index],
+                    fp_slice.data.T,
+                    truth_slice.data,
+                    fv_slice.data,
+                    sqrt_pi,
+                    predictor,
+                )
+            )
+
+        with Pool(os.cpu_count()) as pool:
+            optimised_coeffs = pool.starmap(self._minimise_caller, argument_list)
+        optimised_coeffs = [x.x.astype(np.float32) for x in optimised_coeffs]
+
+        y_coord = forecast_predictor.coord(axis="y")
+        x_coord = forecast_predictor.coord(axis="x")
+
+        if forecast_predictor.coord_dims(y_coord) == forecast_predictor.coord_dims(
+            x_coord
+        ):
+            return np.array(np.transpose(optimised_coeffs)).reshape(
+                (
+                    len(initial_guess[0]),
+                    len(forecast_predictor.coord(axis="y").points),
+                )
+            )
+        else:
+            return np.array(np.transpose(optimised_coeffs)).reshape(
+                (
+                    len(initial_guess[0]),
+                    len(forecast_predictor.coord(axis="y").points),
+                    len(forecast_predictor.coord(axis="x").points),
+                )
+            )
+
+    def _process_points_together(
+            self,
+            minimisation_function,
+            initial_guess,
+        forecast_predictor,
+        truth,
+        forecast_var,
+        predictor):
+        """Minimise all points together in one minimisation to create a single
+        set of coefficients.
+
+        Args:
+            minimisation_function (method instance):
+                Function to use when minimising.
+            initial_guess (list)
+            forecast_predictor (iris.cube.Cube)
+            truth (iris.cube.Cube)
+            forecast_var (iris.cube.Cube)
+            predictor (str)
+
+        Returns:
+            numpy.ndarray:
+                The optimised coefficients. Order of coefficients is [alpha, beta, gamma, delta].
+        """
+        print("minimisation_function")
+        # Flatten the data arrays and remove any missing data.
+        truth_data = flatten_ignoring_masked_data(truth.data)
+        forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
+        if predictor.lower() == "mean":
+            forecast_predictor_data = flatten_ignoring_masked_data(
+                forecast_predictor.data
+            )
+        elif predictor.lower() == "realizations":
+            # Need to transpose this array so there are columns for each
+            # ensemble member rather than rows.
+            forecast_predictor_data = flatten_ignoring_masked_data(
+                forecast_predictor.data, preserve_leading_dimension=True
+            ).T
+
+        # Increased precision is needed for stable coefficient calculation.
+        # The resulting coefficients are cast to float32 prior to output.
+        self._set_to_float64(initial_guess, forecast_predictor, forecast_var, truth)
+        sqrt_pi = np.sqrt(np.pi).astype(np.float64)
+
+        optimised_coeffs = self._minimise_caller(
+            minimisation_function,
+            initial_guess,
+            forecast_predictor_data,
+            truth_data,
+            forecast_var_data,
+            sqrt_pi,
+            predictor,
+        )
+
+        if not optimised_coeffs.success:
+            msg = (
+                "Minimisation did not result in convergence after "
+                "{} iterations. \n{}".format(
+                    self.max_iterations, optimised_coeffs.message
+                )
+            )
+            warnings.warn(msg)
+        self._calculate_percentage_change_in_last_iteration(optimised_coeffs.allvecs)
+        return optimised_coeffs.x.astype(np.float32)
 
     def process(
         self,
@@ -181,9 +415,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 minimisation within self.minimisation_dict.
 
         Returns:
-            list of float:
-                List of optimised coefficients.
-                Order of coefficients is [alpha, beta, gamma, delta].
+            numpy.ndarray:
+                The optimised coefficients. Order of coefficients is [alpha, beta, gamma, delta].
 
         Raises:
             KeyError: If the distribution is not supported.
@@ -192,45 +425,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             Warning: If the minimisation did not converge.
 
         """
-
-        def calculate_percentage_change_in_last_iteration(allvecs):
-            """
-            Calculate the percentage change that has occurred within
-            the last iteration of the minimisation. If the percentage change
-            between the last iteration and the last-but-one iteration exceeds
-            the threshold, a warning message is printed.
-
-            Args:
-                allvecs (list):
-                    List of numpy arrays containing the optimised coefficients,
-                    after each iteration.
-
-            Warns:
-                Warning: If a satisfactory minimisation has not been achieved.
-            """
-            last_iteration_percentage_change = (
-                np.absolute((allvecs[-1] - allvecs[-2]) / allvecs[-2]) * 100
-            )
-            if np.any(
-                last_iteration_percentage_change > self.TOLERATED_PERCENTAGE_CHANGE
-            ):
-                np.set_printoptions(suppress=True)
-                msg = (
-                    "The final iteration resulted in a percentage change "
-                    "that is greater than the accepted threshold of 5% "
-                    "i.e. {}. "
-                    "\nA satisfactory minimisation has not been achieved. "
-                    "\nLast iteration: {}, "
-                    "\nLast-but-one iteration: {}"
-                    "\nAbsolute difference: {}\n"
-                ).format(
-                    last_iteration_percentage_change,
-                    allvecs[-1],
-                    allvecs[-2],
-                    np.absolute(allvecs[-2] - allvecs[-1]),
-                )
-                warnings.warn(msg)
-
         try:
             minimisation_function = self.minimisation_dict[distribution]
         except KeyError as err:
@@ -243,135 +437,21 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         # Ensure predictor is valid.
         check_predictor(predictor)
 
-        if self.each_point:
-            # Increased precision is needed for stable coefficient calculation.
-            # The resulting coefficients are cast to float32 prior to output.
-            initial_guess = np.array(initial_guess, dtype=np.float64)
-            forecast_predictor.data = forecast_predictor.data.astype(np.float64)
-            forecast_var.data = forecast_var.data.astype(np.float64)
-            truth.data = truth.data.astype(np.float64)
-            sqrt_pi = np.sqrt(np.pi).astype(np.float64)
-
-            argument_list = []
-            sindex = [
-                forecast_predictor.coord(axis="y"),
-                forecast_predictor.coord(axis="x"),
-            ]
-            if predictor.lower() == "realizations":
-                enforce_coordinate_ordering(forecast_predictor, "realization")
-
-            for index, (fp_slice, truth_slice, fv_slice) in enumerate(
-                zip(
-                    forecast_predictor.slices_over(sindex),
-                    truth.slices_over(sindex),
-                    forecast_var.slices_over(sindex),
-                )
-            ):
-                argument_list.append(
-                    (
-                        minimisation_function,
-                        initial_guess[index],
-                        fp_slice.data.T,
-                        truth_slice.data,
-                        fv_slice.data,
-                        sqrt_pi,
-                        predictor,
-                    )
-                )
-
-            with Pool(os.cpu_count()) as pool:
-                optimised_coeffs = pool.starmap(self._minimise_caller, argument_list)
-            optimised_coeffs = [x.x.astype(np.float32) for x in optimised_coeffs]
-
-            y_coord = forecast_predictor.coord(axis="y")
-            x_coord = forecast_predictor.coord(axis="x")
-            if forecast_predictor.coord_dims(y_coord) == forecast_predictor.coord_dims(
-                x_coord
-            ):
-                return np.array(np.transpose(optimised_coeffs)).reshape(
-                    (
-                        len(initial_guess[0]),
-                        len(forecast_predictor.coord(axis="y").points),
-                    )
-                )
-            else:
-                return np.array(np.transpose(optimised_coeffs)).reshape(
-                    (
-                        len(initial_guess[0]),
-                        len(forecast_predictor.coord(axis="y").points),
-                        len(forecast_predictor.coord(axis="x").points),
-                    )
-                )
-
-        # Flatten the data arrays and remove any missing data.
-        truth_data = flatten_ignoring_masked_data(truth.data)
-        forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
-        if predictor.lower() == "mean":
-            forecast_predictor_data = flatten_ignoring_masked_data(
-                forecast_predictor.data
-            )
-        elif predictor.lower() == "realizations":
+        if predictor.lower() == "realizations":
             enforce_coordinate_ordering(forecast_predictor, "realization")
-            # Need to transpose this array so there are columns for each
-            # ensemble member rather than rows.
-            forecast_predictor_data = flatten_ignoring_masked_data(
-                forecast_predictor.data, preserve_leading_dimension=True
-            ).T
 
-        # Increased precision is needed for stable coefficient calculation.
-        # The resulting coefficients are cast to float32 prior to output.
-        initial_guess = np.array(initial_guess, dtype=np.float64)
-        forecast_predictor_data = forecast_predictor_data.astype(np.float64)
-        forecast_var_data = forecast_var_data.astype(np.float64)
-        truth_data = truth_data.astype(np.float64)
-        sqrt_pi = np.sqrt(np.pi).astype(np.float64)
-
-        optimised_coeffs = self._minimise_caller(
-            minimisation_function,
-            initial_guess,
-            forecast_predictor_data,
-            truth_data,
-            forecast_var_data,
-            sqrt_pi,
-            predictor,
-        )
-
-        if not optimised_coeffs.success:
-            msg = (
-                "Minimisation did not result in convergence after "
-                "{} iterations. \n{}".format(
-                    self.max_iterations, optimised_coeffs.message
-                )
-            )
-            warnings.warn(msg)
-        calculate_percentage_change_in_last_iteration(optimised_coeffs.allvecs)
-        return optimised_coeffs.x.astype(np.float32)
-
-    def _minimise_caller(
-        self,
-        minimisation_function,
-        initial_guess,
-        forecast_predictor_data,
-        truth_data,
-        forecast_var_data,
-        sqrt_pi,
-        predictor,
-    ):
-        optimised_coeffs = minimize(
-            minimisation_function,
-            initial_guess,
-            args=(
-                forecast_predictor_data,
-                truth_data,
-                forecast_var_data,
-                sqrt_pi,
-                predictor,
-            ),
-            method="Nelder-Mead",
-            tol=self.tolerance,
-            options={"maxiter": self.max_iterations, "return_all": True},
-        )
-
+        if self.each_point:
+            optimised_coeffs = self._process_points_independently(minimisation_function, initial_guess,
+            forecast_predictor,
+            truth,
+            forecast_var,
+            predictor)
+        else:
+            optimised_coeffs = self._process_points_together(minimisation_function, initial_guess,
+            forecast_predictor,
+            truth,
+            forecast_var,
+            predictor)
         return optimised_coeffs
 
     def calculate_normal_crps(

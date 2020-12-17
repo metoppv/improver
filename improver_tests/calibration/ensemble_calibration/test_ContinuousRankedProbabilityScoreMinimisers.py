@@ -34,6 +34,7 @@ Unit tests for the
 class.
 
 """
+import datetime
 import unittest
 
 import iris
@@ -44,6 +45,8 @@ from improver.calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers as Plugin,
 )
 from improver.calibration.utilities import convert_cube_data_to_2d
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
 from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
@@ -237,6 +240,12 @@ class Test_process_normal_distribution(
             ],
             dtype=np.float32,
         )
+
+        self.expected_mean_coefficients_each_point_sites = np.array(
+            [[-0.0008, -0.0046, -0.0015, -0.0011],
+            [ 1.6255,  1.7728,  1.7154,  1.9101],
+            [ 0.0012,  0.    ,  0.0005, -0.0009],
+            [-0.    , -0.    , -0.    ,  0.    ]], dtype=np.float32)
 
         self.expected_realizations_coefficients_each_point = np.array(
             [
@@ -453,9 +462,76 @@ class Test_process_normal_distribution(
             predictor,
             distribution,
         )
-
         self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_mean_coefficients_each_point
+        )
+
+    @ManageWarnings(
+        ignored_messages=[
+            "Collapsing a non-contiguous coordinate.",
+            "Minimisation did not result in convergence",
+            "divide by zero encountered in",
+        ],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning],
+    )
+    def test_mean_predictor_each_point_sites(self):
+        """
+        Test that the plugin returns a list of coefficients
+        equal to specific values, when the ensemble mean is the predictor
+        assuming a normal distribution and the value specified for the
+        max_iterations is overridden. The coefficients are calculated by
+        minimising the CRPS and using a set default value for the
+        initial guess.
+        """
+        data = np.array([1.6, 1.3, 1.4, 1.1])
+        altitude = np.array([10, 20, 30, 40])
+        latitude = np.linspace(58.0, 59.5, 4)
+        longitude = np.linspace(-0.25, 0.5, 4)
+        wmo_id = ["03001", "03002", "03003", "03004"]
+        forecast_spot_cubes = iris.cube.CubeList()
+        for day in range(1, 3):
+            time_coords = construct_scalar_time_coords(datetime.datetime(2020, 12, day, 4, 0), None, datetime.datetime(2020, 12, day, 0, 0))
+            time_coords = [t[0] for t in time_coords]
+            forecast_spot_cubes.append(build_spotdata_cube(
+                data,
+                "air_temperature",
+                "degC",
+                altitude,
+                latitude,
+                longitude,
+                wmo_id,
+                scalar_coords=time_coords
+            ))
+        forecast_spot_cube = forecast_spot_cubes.merge_cube()
+
+        truth_spot_cube = forecast_spot_cube.copy()
+        truth_spot_cube.data = truth_spot_cube.data + 1.
+        forecast_var_spot_cube = forecast_spot_cube.copy()
+        forecast_var_spot_cube.data = forecast_var_spot_cube.data/10.
+
+        predictor = "mean"
+        distribution = "norm"
+
+        initial_guess = np.broadcast_to(
+            self.initial_guess_for_mean,
+            (
+                len(self.truth.coord(axis="y").points)
+                * len(self.truth.coord(axis="x").points),
+                len(self.initial_guess_for_mean),
+            ),
+        )
+
+        plugin = Plugin(tolerance=self.tolerance, each_point=True)
+        result = plugin.process(
+            initial_guess,
+            forecast_spot_cube,
+            truth_spot_cube,
+            forecast_var_spot_cube,
+            predictor,
+            distribution,
+        )
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_mean_coefficients_each_point_sites
         )
 
     @ManageWarnings(
