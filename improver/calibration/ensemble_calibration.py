@@ -243,27 +243,28 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         # Ensure predictor is valid.
         check_predictor(predictor)
 
-        preserve_leading_dimension = True if self.each_point else False
+        # Preserve leading temporal dimension, if using each_point.
+        coords_to_flatten = ("y", "x") if self.each_point else ("time", "y", "x")
 
         # Flatten the data arrays and remove any missing data.
         truth_data = flatten_ignoring_masked_data(
-            truth.data, preserve_leading_dimension=preserve_leading_dimension
+            truth, coords_to_flatten=coords_to_flatten
         )
         forecast_var_data = flatten_ignoring_masked_data(
-            forecast_var.data, preserve_leading_dimension=preserve_leading_dimension
+            forecast_var, coords_to_flatten=coords_to_flatten
         )
         if predictor.lower() == "mean":
             forecast_predictor_data = flatten_ignoring_masked_data(
-                forecast_predictor.data,
-                preserve_leading_dimension=preserve_leading_dimension,
+                forecast_predictor,
+                coords_to_flatten=coords_to_flatten,
             )
         elif predictor.lower() == "realizations":
             enforce_coordinate_ordering(forecast_predictor, "realization")
             # Need to transpose this array so there are columns for each
             # ensemble member rather than rows.
             forecast_predictor_data = flatten_ignoring_masked_data(
-                forecast_predictor.data, preserve_leading_dimension=True
-            ).T
+                forecast_predictor, coords_to_flatten=coords_to_flatten
+            )
 
         # Increased precision is needed for stable coefficient calculation.
         # The resulting coefficients are cast to float32 prior to output.
@@ -275,29 +276,31 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         if self.each_point:
             argument_list = []
-            for index in range(forecast_predictor_data.shape[1]):
+            # Iterate over the flattened spatial dimensions, so that each
+            for index in range(forecast_predictor_data.shape[-1]):
                 argument_list.append(
                     (
                         minimisation_function,
                         initial_guess[index],
-                        forecast_predictor_data[:, index],
+                        forecast_predictor_data[..., index].T,
                         truth_data[:, index],
                         forecast_var_data[:, index],
                         sqrt_pi,
                         predictor,
                     )
                 )
-
             with Pool(os.cpu_count()) as pool:
-                optimised_coeffs = pool.starmap(self.minimise_caller, argument_list)
-
+                optimised_coeffs = pool.starmap(self._minimise_caller, argument_list)
             optimised_coeffs = [x.x.astype(np.float32) for x in optimised_coeffs]
-            return np.array(np.transpose(optimised_coeffs)).reshape(
-                (len(initial_guess[0]),) + forecast_predictor.data.shape[1:]
-            )
 
+            return np.array(np.transpose(optimised_coeffs)).reshape(
+                (len(initial_guess[0]), len(forecast_predictor.coord(axis="y").points), len(forecast_predictor.coord(axis="x").points))
+            )
         else:
-            optimised_coeffs = self.minimise_caller(
+            if predictor.lower() == "realizations":
+                forecast_predictor_data = forecast_predictor_data.T
+
+            optimised_coeffs = self._minimise_caller(
                 minimisation_function,
                 initial_guess,
                 forecast_predictor_data,
@@ -318,7 +321,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             calculate_percentage_change_in_last_iteration(optimised_coeffs.allvecs)
             return optimised_coeffs.x.astype(np.float32)
 
-    def minimise_caller(
+    def _minimise_caller(
         self,
         minimisation_function,
         initial_guess,
@@ -756,7 +759,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 dim_coords_and_dims_updated.append(
                     (historic_forecasts.coord("realization").copy(), 0)
                 )
-            #print("dim_coords_and_dims_updated = ", dim_coords_and_dims_updated)
             cube = iris.cube.Cube(
                 optimised_coeff,
                 long_name=f"emos_coefficient_{coeff_name}",
@@ -1045,6 +1047,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                         len(initial_guess),
                     ),
                 )
+        print("initial_guess = ", initial_guess)
 
         # Calculate coefficients if there are no nans in the initial guess.
         optimised_coeffs = self.minimiser(
@@ -1055,8 +1058,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             self.predictor,
             self.distribution.lower(),
         )
-        print("optimised_coeffs = ", optimised_coeffs)
-        print("optimised_coeffs = ", optimised_coeffs.shape)
         coefficients_cubelist = self.create_coefficients_cubelist(
             optimised_coeffs, historic_forecasts
         )

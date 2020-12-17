@@ -36,6 +36,7 @@ specific for ensemble calibration.
 import warnings
 
 import iris
+from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 
 from improver.utilities.temporal import iris_time_to_datetime
@@ -74,7 +75,7 @@ def convert_cube_data_to_2d(forecast, coord="realization", transpose=True):
     return np.array(forecast_data)
 
 
-def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
+def flatten_ignoring_masked_data(cube, coords_to_flatten=("time", "y", "x")):
     """
     Flatten an array, selecting only valid data if the array is masked. There
     is also the option to reshape the resulting array so it has the same
@@ -89,7 +90,7 @@ def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
             An array or masked array to be flattened. If it is masked and the
             leading dimension is preserved the mask must be the same for every
             slice along the leading dimension.
-        preserve_leading_dimension (bool):
+        coords_to_flatten (tuple):
             Default False.
             If True the flattened array is reshaped so it has the same leading
             dimension as the input array. If False the returned array is 1D.
@@ -103,30 +104,82 @@ def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
                     input array is not the same for every slice along the
                     leading dimension.
     """
-    if np.ma.is_masked(data_array):
-        # If we have multiple 2D x-y slices check that the mask is the same for
-        # each slice along the leading dimension.
-        if data_array.ndim > 2:
-            first_slice_mask = data_array[0].mask
+    coords = []
+    for coord in coords_to_flatten:
+        if cube.coords(coord, dim_coords=True):
+            coords.append(cube.coord(coord))
+        elif cube.coords(axis=coord, dim_coords=True):
+            coords.append(cube.coord(axis=coord))
+        else:
+            msg = (f"The {coord} coordinate to flatten is not a dimension "
+                   "coordinate on the input cube.")
+            raise CoordinateNotFoundError(msg)
 
-            for i in range(1, data_array.shape[0]):
-                if not np.all(first_slice_mask == data_array[i].mask):
+    coords_to_preserve = set(cube.coords(dim_coords=True)) - set(coords)
+    coords_to_preserve_len = [len(c.points) for c in coords_to_preserve]
+
+    final_shape = (*coords_to_preserve_len, -1)
+    reshaped_array = cube.data.reshape(final_shape)
+
+    if np.ma.is_masked(reshaped_array):
+
+        if len(final_shape) == 1:
+            # Select mask and simultaneously flatten
+            reshaped_array = reshaped_array[~reshaped_array.mask]
+        else:
+            first_slice_mask = reshaped_array[0].mask
+            for i in range(1, reshaped_array.shape[0]):
+                if not np.all(first_slice_mask == reshaped_array[i].mask):
                     msg = (
                         "The mask on the input array is not the same for "
                         "every slice along the leading dimension."
                     )
                     raise ValueError(msg)
-        # If the mask is ok, select the unmasked data, flattening it at
-        # the same time.
-        result = data_array[~data_array.mask]
-    else:
-        result = data_array.flatten()
-    if preserve_leading_dimension:
-        # Reshape back to give the same leading dimension in the array. The 2nd
-        # dimension is inferred through the use of -1.
-        final_shape = (data_array.shape[0], -1)
-        result = result.reshape(final_shape)
-    return result
+            # If the mask is ok, select the unmasked data and reshape
+            reshaped_array = reshaped_array[:, ~first_slice_mask]
+
+    return reshaped_array
+
+
+
+    # flattened_array = []
+    # for cube_slice in cube.slices(coords):
+    #     print("cube_slice = ", cube_slice)
+    #     if np.ma.is_masked(cube_slice.data):
+    #         # If we have multiple 2D x-y slices check that the mask is the same for
+    #         # each slice along the leading dimension.
+    #         if cube_slice.data.ndim > 2:
+    #             first_slice_mask = cube_slice.data[0].mask
+
+    #             for i in range(1, cube_slice.data.shape[0]):
+    #                 if not np.all(first_slice_mask == cube_slice.data[i].mask):
+    #                     msg = (
+    #                         "The mask on the input array is not the same for "
+    #                         "every slice along the leading dimension."
+    #                     )
+    #                     raise ValueError(msg)
+    #         # If the mask is ok, select the unmasked data, flattening it at
+    #         # the same time.
+    #         flattened_array.append(cube_slice.data[~cube_slice.data.mask])
+    #     else:
+    #         flattened_array.append(cube_slice.data.reshape(final_shape))
+
+    # if len(flattened_array) == 1:
+    #     flattened_array, = flattened_array
+
+    # flattened_array = np.array(flattened_array).reshape(3, 2, 4)
+
+    # #flattened_array = flattened_array if len(flattened_array) == 0 else np.stack(flattened_array)
+
+    # print("flattened_array = ", flattened_array)
+    # # if coords_to_flatten:
+    # #     # Reshape back to give the same leading dimension in the array. The 2nd
+    # #     # dimension is inferred through the use of -1.
+    # #     print("input shape = ", data_array.shape)
+    # #     final_shape = (data_array.shape[0], -1)
+    # #     result = result.reshape(final_shape)
+    # #     print("result shape = ", result.shape)
+    # return flattened_array
 
 
 def check_predictor(predictor):
