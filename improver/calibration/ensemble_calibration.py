@@ -162,9 +162,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         last_iteration_percentage_change = (
             np.absolute((allvecs[-1] - allvecs[-2]) / allvecs[-2]) * 100
         )
-        if np.any(
-            last_iteration_percentage_change > self.TOLERATED_PERCENTAGE_CHANGE
-        ):
+        if np.any(last_iteration_percentage_change > self.TOLERATED_PERCENTAGE_CHANGE):
             np.set_printoptions(suppress=True)
             msg = (
                 "The final iteration resulted in a percentage change "
@@ -235,11 +233,15 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         return optimised_coeffs
 
-    def _process_points_independently(self, minimisation_function, initial_guess,
+    def _process_points_independently(
+        self,
+        minimisation_function,
+        initial_guess,
         forecast_predictor,
         truth,
         forecast_var,
-        predictor):
+        predictor,
+    ):
         """Minimise each point along the spatial dimensions independently to
         create a set of coefficients for each point. The coefficients returned
         can be either gridded (i.e. separate dimensions for x and y) or for a
@@ -299,10 +301,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             x_coord
         ):
             return np.array(np.transpose(optimised_coeffs)).reshape(
-                (
-                    len(initial_guess[0]),
-                    len(forecast_predictor.coord(axis="y").points),
-                )
+                (len(initial_guess[0]), len(forecast_predictor.coord(axis="y").points),)
             )
         else:
             return np.array(np.transpose(optimised_coeffs)).reshape(
@@ -314,13 +313,14 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             )
 
     def _process_points_together(
-            self,
-            minimisation_function,
-            initial_guess,
+        self,
+        minimisation_function,
+        initial_guess,
         forecast_predictor,
         truth,
         forecast_var,
-        predictor):
+        predictor,
+    ):
         """Minimise all points together in one minimisation to create a single
         set of coefficients.
 
@@ -441,17 +441,23 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             enforce_coordinate_ordering(forecast_predictor, "realization")
 
         if self.each_point:
-            optimised_coeffs = self._process_points_independently(minimisation_function, initial_guess,
-            forecast_predictor,
-            truth,
-            forecast_var,
-            predictor)
+            optimised_coeffs = self._process_points_independently(
+                minimisation_function,
+                initial_guess,
+                forecast_predictor,
+                truth,
+                forecast_var,
+                predictor,
+            )
         else:
-            optimised_coeffs = self._process_points_together(minimisation_function, initial_guess,
-            forecast_predictor,
-            truth,
-            forecast_var,
-            predictor)
+            optimised_coeffs = self._process_points_together(
+                minimisation_function,
+                initial_guess,
+                forecast_predictor,
+                truth,
+                forecast_var,
+                predictor,
+            )
         return optimised_coeffs
 
     def calculate_normal_crps(

@@ -242,10 +242,14 @@ class Test_process_normal_distribution(
         )
 
         self.expected_mean_coefficients_each_point_sites = np.array(
-            [[-0.0008, -0.0046, -0.0015, -0.0011],
-            [ 1.6255,  1.7728,  1.7154,  1.9101],
-            [ 0.0012,  0.    ,  0.0005, -0.0009],
-            [-0.    , -0.    , -0.    ,  0.    ]], dtype=np.float32)
+            [
+                [-0.0008, -0.0046, -0.0015, -0.0011],
+                [1.6255, 1.7728, 1.7154, 1.9101],
+                [0.0012, 0.0, 0.0005, -0.0009],
+                [-0.0, -0.0, -0.0, 0.0],
+            ],
+            dtype=np.float32,
+        )
 
         self.expected_realizations_coefficients_each_point = np.array(
             [
@@ -490,24 +494,30 @@ class Test_process_normal_distribution(
         wmo_id = ["03001", "03002", "03003", "03004"]
         forecast_spot_cubes = iris.cube.CubeList()
         for day in range(1, 3):
-            time_coords = construct_scalar_time_coords(datetime.datetime(2020, 12, day, 4, 0), None, datetime.datetime(2020, 12, day, 0, 0))
+            time_coords = construct_scalar_time_coords(
+                datetime.datetime(2020, 12, day, 4, 0),
+                None,
+                datetime.datetime(2020, 12, day, 0, 0),
+            )
             time_coords = [t[0] for t in time_coords]
-            forecast_spot_cubes.append(build_spotdata_cube(
-                data,
-                "air_temperature",
-                "degC",
-                altitude,
-                latitude,
-                longitude,
-                wmo_id,
-                scalar_coords=time_coords
-            ))
+            forecast_spot_cubes.append(
+                build_spotdata_cube(
+                    data,
+                    "air_temperature",
+                    "degC",
+                    altitude,
+                    latitude,
+                    longitude,
+                    wmo_id,
+                    scalar_coords=time_coords,
+                )
+            )
         forecast_spot_cube = forecast_spot_cubes.merge_cube()
 
         truth_spot_cube = forecast_spot_cube.copy()
-        truth_spot_cube.data = truth_spot_cube.data + 1.
+        truth_spot_cube.data = truth_spot_cube.data + 1.0
         forecast_var_spot_cube = forecast_spot_cube.copy()
-        forecast_var_spot_cube.data = forecast_var_spot_cube.data/10.
+        forecast_var_spot_cube.data = forecast_var_spot_cube.data / 10.0
 
         predictor = "mean"
         distribution = "norm"
