@@ -190,6 +190,7 @@ def _create_frt_type_coord(cube, point, name="forecast_reference_time"):
     new_points = round_close([coord_units.date2num(point)], dtype=coord_type_spec.dtype)
     new_coord = cube.coord(frt_coord_name).copy(points=new_points)
     new_coord.rename(name)
+    new_coord.attributes = {}
     return new_coord
 
 
