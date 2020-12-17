@@ -312,13 +312,14 @@ class Test_flatten_ignoring_masked_data(IrisTest):
     def test_coordinate_not_found(self):
         """Test if the coordinate to be flattened is not found as a dimension
         coordinate on the input cube."""
+        print("self.cube = ", self.cube)
         expected_message = (
             "The foo coordinate to flatten is not a dimension "
             "coordinate on the input cube."
         )
         with self.assertRaisesRegex(CoordinateNotFoundError, expected_message):
             flatten_ignoring_masked_data(
-                self.cube_with_mask, coords_to_flatten=("foo",)
+                self.cube, coords_to_flatten=("foo",)
             )
 
     def test_inconsistent_mask_along_leading_coord(self):

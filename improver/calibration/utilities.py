@@ -83,7 +83,8 @@ def flatten_ignoring_masked_data(cube, coords_to_flatten=("time", "y", "x")):
     flattened are masked then it is assumed that each of the slices
     along the leading dimension are masked in the same way. This functionality
     is used in EstimateCoefficientsForEnsembleCalibration when realizations
-    are used as predictors.
+    are used as predictors and when computing the initial guess for the EMOS
+    coefficients.
 
     Args:
         cube (iris.cube.Cube):
@@ -93,10 +94,8 @@ def flatten_ignoring_masked_data(cube, coords_to_flatten=("time", "y", "x")):
         coords_to_flatten (tuple):
             Tuple specifying the coordinates to be flattened. The coordinates
             can either be specified using the name of the coordinate or the axis
-            of the desired coordinate. The coordinates must be dimension
-            coordinates within the input cube. The dimensions of dimension
-            coordinates within the input cube but not within this list will be
-            preserved.
+            of the desired coordinate. The dimensions of dimension coordinates
+            within the input cube but not within this list will be preserved.
     Returns:
         numpy.ndarray:
             A reshaped array containing only valid data. The dimensions relating
@@ -109,9 +108,11 @@ def flatten_ignoring_masked_data(cube, coords_to_flatten=("time", "y", "x")):
     """
     coords = []
     for coord in coords_to_flatten:
-        if cube.coords(coord, dim_coords=True):
+        if cube.coords(coord):
+            cube.coord_dims(coord)
             coords.append(cube.coord(coord))
-        elif cube.coords(axis=coord, dim_coords=True):
+        elif cube.coords(axis=coord):
+
             coords.append(cube.coord(axis=coord))
         else:
             msg = (
@@ -119,12 +120,13 @@ def flatten_ignoring_masked_data(cube, coords_to_flatten=("time", "y", "x")):
                 "coordinate on the input cube."
             )
             raise CoordinateNotFoundError(msg)
-
+    #print("coords = ", coords)
     coords_to_preserve_len = [
         len(c.points) for c in set(cube.coords(dim_coords=True)) - set(coords)
     ]
 
     final_shape = (*coords_to_preserve_len, -1)
+    #print("final_shape = ", final_shape)
     reshaped_array = cube.data.reshape(final_shape)
 
     if np.ma.is_masked(reshaped_array):
