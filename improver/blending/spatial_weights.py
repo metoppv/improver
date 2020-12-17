@@ -38,6 +38,7 @@ from scipy.ndimage.morphology import distance_transform_edt
 
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
+from improver.utilities.cube_manipulation import get_dim_coord_names
 from improver.utilities.rescale import rescale
 
 
@@ -97,8 +98,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
 
         Returns:
             iris.cube.Cube:
-                A cube containing dimension coordinates blend_coord, y, x,
-                with all other dimensions stripped out.
+                A cube with dimensions blend_coord, y, x, on which to shape the
+                output weights cube.
 
         Raises:
             ValueError: if the blend coordinate is associated with more than
@@ -107,12 +108,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                         dimension other than the dimension associated with
                         blend_coord.
         """
-        # Takes slices over x, y coord_to_collapse
-        # Find blend dim coord associated with blend coord, sometimes we name a
-        # blend_coord that is a aux_coord associated with a dim coord rather
-        # than using the name of the dim_coord itself.
-        # Here we reset blend_coord to the name of the dim_coord to catch the
-        # case where blend_coord is an aux_coord.
+        # Find dimension coordinate associated with blend coord (which may be an
+        # auxiliary coordinate)
         blend_dim = cube_to_collapse.coord_dims(self.blend_coord)
         if len(blend_dim) == 1:
             blend_dim = blend_dim[0]
@@ -127,13 +124,17 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
             dimensions=blend_dim, dim_coords=True
         ).name()
         # Find original dim coords in input cube
-        original_dim_coords = [coord.name() for coord in cube_to_collapse.dim_coords]
-        # Slice over relevant coords.
+        original_dim_coords = get_dim_coord_names(cube_to_collapse)
+        # Slice over required coords
         x_coord = cube_to_collapse.coord(axis="x").name()
         y_coord = cube_to_collapse.coord(axis="y").name()
         coords_to_slice_over = [self.blend_coord, y_coord, x_coord]
+        # If the dimensions are already as required, return cube unchanged
+        if original_dim_coords == coords_to_slice_over:
+            return cube_to_collapse
+
+        # Check mask does not vary over additional dimensions
         slices = cube_to_collapse.slices(coords_to_slice_over)
-        # Check they all have the same mask
         first_slice = next(slices)
         if np.ma.is_masked(first_slice.data):
             first_mask = first_slice.data.mask
@@ -145,7 +146,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                         "along another dimension"
                     )
                     raise ValueError(message)
-        # Remove old dim coords
+        # Remove non-spatial non-blend dimensions, returning a 3D template cube without
+        # additional scalar coordinates (eg realization)
         for coord in original_dim_coords:
             if coord not in coords_to_slice_over:
                 first_slice.remove_coord(coord)
@@ -156,7 +158,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         """Normalise weights so that they add up to 1 along the blend dimension
         at each spatial point.  This is different from the normalisation that
         happens after the application of fuzzy smoothing near mask boundaries.
-        Modifies weights cube in place.
+        Modifies weights cube in place.  Array broadcasting relies on blend_coord
+        being the leading dimension, as enforced in self._create_template_slice.
 
         Args:
             weights (iris.cube.Cube):
@@ -164,7 +167,6 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 fuzzy smoothing
         """
         weights_sum = np.sum(weights.data, axis=self.blend_axis)
-        weights_sum = np.broadcast_to(weights_sum, weights.shape)
         weights.data = np.where(
             weights_sum > 0, np.divide(weights.data, weights_sum), 0
         ).astype(FLOAT_DTYPE)
