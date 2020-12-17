@@ -260,10 +260,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             if predictor.lower() == "realizations":
                 enforce_coordinate_ordering(forecast_predictor, "realization")
 
-            for index, (fp_slice, truth_slice, fv_slice) in enumerate(zip(
+            for index, (fp_slice, truth_slice, fv_slice) in enumerate(
+                zip(
                     forecast_predictor.slices_over(sindex),
                     truth.slices_over(sindex),
-                    forecast_var.slices_over(sindex))):
+                    forecast_var.slices_over(sindex),
+                )
+            ):
                 argument_list.append(
                     (
                         minimisation_function,
@@ -282,7 +285,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
             y_coord = forecast_predictor.coord(axis="y")
             x_coord = forecast_predictor.coord(axis="x")
-            if forecast_predictor.coord_dims(y_coord) == forecast_predictor.coord_dims(x_coord):
+            if forecast_predictor.coord_dims(y_coord) == forecast_predictor.coord_dims(
+                x_coord
+            ):
                 return np.array(np.transpose(optimised_coeffs)).reshape(
                     (
                         len(initial_guess[0]),
@@ -299,12 +304,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 )
 
         # Flatten the data arrays and remove any missing data.
-        truth_data = flatten_ignoring_masked_data(
-            truth.data
-        )
-        forecast_var_data = flatten_ignoring_masked_data(
-            forecast_var.data
-        )
+        truth_data = flatten_ignoring_masked_data(truth.data)
+        forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
         if predictor.lower() == "mean":
             forecast_predictor_data = flatten_ignoring_masked_data(
                 forecast_predictor.data
@@ -1036,7 +1037,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     truths.slices_over(index), forecast_predictor.slices_over(index)
                 )
             )
-            #print("argument_list = ", argument_list)
+            # print("argument_list = ", argument_list)
             with Pool(os.cpu_count()) as pool:
                 initial_guess = pool.starmap(self.compute_initial_guess, argument_list)
         else:
@@ -1137,8 +1138,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         """
         if landsea_mask and (self.each_point or self.minimise_each_point):
-            msg = ("The use of a landsea mask with the option to compute "
-                   "coefficients independently at each point is not implemented.")
+            msg = (
+                "The use of a landsea mask with the option to compute "
+                "coefficients independently at each point is not implemented."
+            )
             raise NotImplementedError(msg)
 
         # print("historic_forecasts = ", historic_forecasts)
