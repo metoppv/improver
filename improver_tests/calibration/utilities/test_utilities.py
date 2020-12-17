@@ -39,6 +39,7 @@ import unittest
 
 import iris
 import numpy as np
+from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 from iris.util import squeeze
 from numpy.testing import assert_array_equal
@@ -284,6 +285,16 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         )
         self.assertArrayAlmostEqual(result, self.expected_4D_result)
         self.assertEqual(result.dtype, np.float32)
+
+    def test_coordinate_not_found(self):
+        """Test if the coordinate to be flattened is not found as a dimension
+        coordinate on the input cube."""
+        expected_message = ("The foo coordinate to flatten is not a dimension "
+                            "coordinate on the input cube.")
+        with self.assertRaisesRegex(CoordinateNotFoundError, expected_message):
+            flatten_ignoring_masked_data(
+                self.cube_with_mask, coords_to_flatten=("foo",)
+            )
 
     def test_inconsistent_mask_along_leading_coord(self):
         """Test an inconsistently masked array raises an error."""
