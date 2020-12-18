@@ -867,6 +867,10 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         self.cycletime = cycletime
         output_dims = get_dim_coord_names(next(cube.slices_over(self.blend_coord)))
 
+        # Find name of blend DIMENSION coordinate (if blend_coord is auxiliary)
+        blend_dim = cube.coord_dims(self.blend_coord)
+        self.blend_coord = cube.coord(dimensions=blend_dim, dim_coords=True).name()
+
         # Ensure input cube and weights cube are ordered equivalently along
         # blending coordinate.
         cube = sort_coord_in_cube(cube, self.blend_coord)
@@ -885,10 +889,10 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         # Do blending and update metadata
         perc_coord = self.check_percentile_coord(cube)
         if perc_coord:
-            enforce_coordinate_ordering(cube, [self.blend_coord])            
+            enforce_coordinate_ordering(cube, [self.blend_coord, "percentile"])
             result = self.percentile_weighted_mean(cube, weights)
         else:
-            enforce_coordinate_ordering(cube, [self.blend_coord, "percentile"]) 
+            enforce_coordinate_ordering(cube, [self.blend_coord])
             result = self.weighted_mean(cube, weights)
         self._update_blended_metadata(result, attributes_dict)
 

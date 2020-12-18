@@ -110,6 +110,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         """
         # Find dimension coordinate associated with blend coord (which may be an
         # auxiliary coordinate)
+        # TODO factor this out into blending utilities (also used in weighted blending)
         blend_dim = cube_to_collapse.coord_dims(self.blend_coord)
         if len(blend_dim) == 1:
             blend_dim = blend_dim[0]
@@ -123,6 +124,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         self.blend_coord = cube_to_collapse.coord(
             dimensions=blend_dim, dim_coords=True
         ).name()
+        # END TODO
+
         # Find original dim coords in input cube
         original_dim_coords = get_dim_coord_names(cube_to_collapse)
 
