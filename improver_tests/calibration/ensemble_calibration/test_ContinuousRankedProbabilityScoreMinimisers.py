@@ -551,6 +551,8 @@ class Test_process_normal_distribution(
             ),
         )
 
+        # Use a larger value for the tolerance to terminate sooner to avoid
+        # minimising in computational noise.
         plugin = Plugin(tolerance=0.01, each_point=True)
         result = plugin.process(
             initial_guess,
@@ -560,14 +562,9 @@ class Test_process_normal_distribution(
             predictor,
             distribution,
         )
-        np.set_printoptions(precision=2, suppress=True)
-        print("result = ", repr(result))
         self.assertArrayAlmostEqual(
             result, self.expected_realizations_coefficients_each_point, decimal=2
         )
-        # self.assertEMOSCoefficientsAlmostEqual(
-        #     result, self.expected_realizations_coefficients_each_point
-        # )
 
     @ManageWarnings(
         ignored_messages=[

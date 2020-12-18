@@ -1119,7 +1119,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     truths.slices_over(index), forecast_predictor.slices_over(index)
                 )
             )
-            # print("argument_list = ", argument_list)
+
             with Pool(os.cpu_count()) as pool:
                 initial_guess = pool.starmap(self.compute_initial_guess, argument_list)
         else:
@@ -1155,7 +1155,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                         len(initial_guess),
                     ),
                 )
-        print("initial_guess = ", initial_guess)
+
         # Calculate coefficients if there are no nans in the initial guess.
         optimised_coeffs = self.minimiser(
             initial_guess,
@@ -1226,8 +1226,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             raise NotImplementedError(msg)
 
-        # print("historic_forecasts = ", historic_forecasts)
-        # print("truths = ", truths)
         if not (historic_forecasts and truths):
             raise ValueError("historic_forecasts and truths cubes must be provided.")
 
