@@ -50,7 +50,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
-from improver.utilities.cube_manipulation import MergeCubes
+from improver.utilities.cube_manipulation import MergeCubes, enforce_coordinate_ordering
 from improver.utilities.warnings_handler import ManageWarnings
 
 from .test_PercentileBlendingAggregator import (
@@ -209,15 +209,9 @@ class Test_check_percentile_coord(Test_weighted_blend):
 
     def test_basic(self):
         """Tests the basic use of check_percentile_coord"""
-        expected = DimCoord(
-            np.array([0.0, 20.0], dtype="float32"),
-            standard_name=None,
-            units="%",
-            long_name="percentile",
-        )
         cube = self.perc_cube[:2]
-        x = WeightedBlendAcrossWholeDimension.check_percentile_coord(cube)
-        self.assertEqual(x, expected)
+        has_perc = WeightedBlendAcrossWholeDimension.check_percentile_coord(cube)
+        self.assertTrue(has_perc)
 
     def test_fails_perc_coord_not_dim(self):
         """Test it raises a Value Error if percentile coord not a dim."""
@@ -369,17 +363,10 @@ class Test_percentile_weights(Test_weighted_blend):
         a weights array that will equally weight all fields along the blending
         coordinate."""
         plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        perc_coord = self.perc_cube.coord("percentile")
-        (coord_dim,) = self.perc_cube.coord_dims(self.coord)
-        (perc_dim,) = self.perc_cube.coord_dims(perc_coord)
-
+        enforce_coordinate_ordering(self.perc_cube, [self.coord])
         (blending_coord_length,) = self.perc_cube.coord(self.coord).shape
-        expected = np.empty_like(self.perc_cube.data)
-        expected = np.moveaxis(expected, [coord_dim, perc_dim], [0, 1])
-        expected = np.full_like(expected, 1.0 / blending_coord_length)
-
-        result = plugin.percentile_weights(self.perc_cube, None, perc_coord)
-
+        expected = np.full_like(self.perc_cube.data, 1.0 / blending_coord_length)
+        result = plugin.percentile_weights(self.perc_cube, None)
         self.assertEqual(expected.shape, result.shape)
         self.assertArrayEqual(expected, result)
 
@@ -389,13 +376,9 @@ class Test_percentile_weights(Test_weighted_blend):
         coordinate is moved to the leading position and the percentile
         coordinate is second."""
         plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        perc_coord = self.perc_cube.coord("percentile")
-        (coord_dim,) = self.perc_cube.coord_dims(self.coord)
-        (perc_dim,) = self.perc_cube.coord_dims(perc_coord)
+        enforce_coordinate_ordering(self.perc_cube, [self.coord])
         expected = np.empty_like(self.perc_cube.data)
-        expected = np.moveaxis(expected, [coord_dim, perc_dim], [0, 1])
-
-        result = plugin.percentile_weights(self.perc_cube, self.weights1d, perc_coord)
+        result = plugin.percentile_weights(self.perc_cube, self.weights1d)
         self.assertEqual(expected.shape, result.shape)
         self.assertArrayEqual(self.weights1d.data, result[:, 0, 0, 0])
 
@@ -404,13 +387,9 @@ class Test_percentile_weights(Test_weighted_blend):
         same shape as the data cube. In this case the cube is a percentile
         cube and so has an additional dimension that must be accounted for."""
         plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        perc_coord = self.perc_cube.coord("percentile")
-        (coord_dim,) = self.perc_cube.coord_dims(self.coord)
-        (perc_dim,) = self.perc_cube.coord_dims(perc_coord)
+        enforce_coordinate_ordering(self.perc_cube, [self.coord])
         expected = np.empty_like(self.perc_cube.data)
-        expected = np.moveaxis(expected, [coord_dim, perc_dim], [0, 1])
-
-        result = plugin.percentile_weights(self.perc_cube, self.weights3d, perc_coord)
+        result = plugin.percentile_weights(self.perc_cube, self.weights3d)
         self.assertEqual(expected.shape, result.shape)
         self.assertArrayEqual(self.weights3d.data, result[:, 0, :, :])
 
@@ -477,26 +456,10 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
     def test_with_weights(self):
         """Test function when a data cube and a weights cube are provided."""
         plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        perc_coord = self.perc_cube.coord("percentile")
-        result = plugin.percentile_weighted_mean(
-            self.perc_cube, self.weights1d, perc_coord
-        )
+        enforce_coordinate_ordering(self.perc_cube, [self.coord])
+        result = plugin.percentile_weighted_mean(self.perc_cube, self.weights1d)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA)
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_with_weights_perc_as_float64(self):
-        """Test function when a data cube and a weights cube are provided. But with
-        a percentile coord that is float64"""
-        plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        perc_coord = self.perc_cube.coord("percentile")
-        perc_coord.points = perc_coord.points.astype(np.float64)
-        result = plugin.percentile_weighted_mean(
-            self.perc_cube, self.weights1d, perc_coord
-        )
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA)
-        self.assertEqual(result.coord("percentile").points.dtype, np.float64)
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_spatially_varying_weights(self):
@@ -505,10 +468,8 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         position is weighted differently in each slice along the blending
         coordinate."""
         plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        perc_coord = self.perc_cube.coord("percentile")
-        result = plugin.percentile_weighted_mean(
-            self.perc_cube, self.weights3d, perc_coord
-        )
+        enforce_coordinate_ordering(self.perc_cube, [self.coord])
+        result = plugin.percentile_weighted_mean(self.perc_cube, self.weights3d)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.data, BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS
@@ -519,58 +480,10 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         """Test function when a data cube is provided, but no weights cube
         which should result in equal weightings."""
         plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        perc_coord = self.perc_cube.coord("percentile")
-        result = plugin.percentile_weighted_mean(self.perc_cube, None, perc_coord)
+        enforce_coordinate_ordering(self.perc_cube, [self.coord])
+        result = plugin.percentile_weighted_mean(self.perc_cube, None)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS)
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_percentiles_different_coordinate_orders(self):
-        """Test the result of the percentile aggregation is the same
-        regardless of the coordinate order in the input cube. Most
-        importantly, the result should be the same regardless of on which
-        side of the collapsing coordinate the percentile coordinate falls."""
-        plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        weights = None
-        percentile_leading = self.perc_cube
-        time_leading = self.perc_cube.copy()
-        time_leading.transpose([1, 0, 2, 3])
-
-        pl_perc_coord = percentile_leading.coord("percentile")
-        tl_perc_coord = time_leading.coord("percentile")
-
-        result_percentile_leading = plugin.percentile_weighted_mean(
-            percentile_leading, weights, pl_perc_coord
-        )
-        result_time_leading = plugin.percentile_weighted_mean(
-            time_leading, weights, tl_perc_coord
-        )
-
-        self.assertArrayAlmostEqual(
-            result_percentile_leading.data, BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS
-        )
-        self.assertArrayAlmostEqual(
-            result_time_leading.data, BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS
-        )
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_percentiles_another_coordinate_order(self):
-        """Test the result of the percentile aggregation is the same
-        regardless of the coordinate order in the input cube. In this case a
-        spatial coordinate is moved to the leading position. The resulting
-        array is of a different shape, but the data is the same. We reorder
-        the expected values to confirm this."""
-        plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        weights = None
-        longitude_leading = self.perc_cube
-        longitude_leading.transpose([3, 0, 1, 2])
-        perc_coord = longitude_leading.coord("percentile")
-
-        result = plugin.percentile_weighted_mean(longitude_leading, weights, perc_coord)
-
-        self.assertArrayAlmostEqual(
-            result.data, np.moveaxis(BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS, [2], [0])
-        )
 
 
 class Test_weighted_mean(Test_weighted_blend):
@@ -620,20 +533,12 @@ class Test_weighted_mean(Test_weighted_blend):
 
         plugin = WeightedBlendAcrossWholeDimension(self.coord)
 
-        result_blend_coord_second = plugin.weighted_mean(new_cube, self.weights1d)
-
-        # Reorder the axis to move the blending coordinate to the front.
         order = np.array([1, 0, 2, 3])
         new_cube.transpose(order)
         result_blend_coord_first = plugin.weighted_mean(new_cube, self.weights1d)
 
         expected = np.full((2, 2), 1.5)
-
         self.assertIsInstance(result_blend_coord_first, iris.cube.Cube)
-        self.assertIsInstance(result_blend_coord_second, iris.cube.Cube)
-        self.assertArrayAlmostEqual(
-            result_blend_coord_first.data, result_blend_coord_second.data
-        )
         self.assertArrayAlmostEqual(result_blend_coord_first.data, expected)
 
 
@@ -807,21 +712,6 @@ class Test_process(Test_weighted_blend):
         result = plugin(self.cube_threshold, self.weights1d, cycletime=self.cycletime)
         expected_result_array = np.ones((2, 2, 2)) * 0.3
         expected_result_array[1, :, :] = 0.5
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-        self.assertEqual(result.attributes, self.expected_attributes)
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_threshold_cube_with_promoted_dimension_weighted_mean(self):
-        """Test weighted_mean method works with an additional promoted dimension with size 1."""
-        plugin = WeightedBlendAcrossWholeDimension(self.coord)
-
-        # Set up an input cube with one threshold as a dimension coordinate
-        input_cube = self.cube_threshold[0]
-        input_cube = iris.util.new_axis(input_cube, "precipitation_amount")
-
-        result = plugin(input_cube, self.weights1d, cycletime=self.cycletime)
-
-        expected_result_array = np.ones((1, 2, 2)) * 0.3
         self.assertArrayAlmostEqual(result.data, expected_result_array)
         self.assertEqual(result.attributes, self.expected_attributes)
 
