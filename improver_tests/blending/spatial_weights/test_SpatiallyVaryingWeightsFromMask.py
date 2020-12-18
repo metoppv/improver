@@ -147,7 +147,7 @@ class Test__create_template_slice(IrisTest):
            no slicing is needed"""
         input_cube = self.cube_to_collapse.copy()[:, 0, :, :]
         expected = input_cube.copy()
-        result = self.plugin._create_template_slice(self.cube_to_collapse)
+        result = self.plugin._create_template_slice(input_cube)
         self.assertEqual(expected.metadata, result.metadata)
         self.assertArrayAlmostEqual(expected.data, result.data)
 
