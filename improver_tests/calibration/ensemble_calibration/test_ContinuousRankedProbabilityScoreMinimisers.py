@@ -253,32 +253,12 @@ class Test_process_normal_distribution(
 
         self.expected_realizations_coefficients_each_point = np.array(
             [
-                [
-                    [0.0011, -0.0016, 0.0042],
-                    [0.001, 0.0022, -0.0036],
-                    [0.0005, 0.0047, 0.0041],
-                ],
-                [
-                    [0.5746, 0.652, 0.5783],
-                    [0.6051, 0.5706, 0.5908],
-                    [0.6263, 0.5586, 0.5825],
-                ],
-                [
-                    [0.4436, 0.5455, 0.5659],
-                    [0.5856, 0.5724, 0.5598],
-                    [0.618, 0.6166, 0.5731],
-                ],
-                [
-                    [0.6901, 0.5304, 0.5881],
-                    [0.5408, 0.5897, 0.5818],
-                    [0.4777, 0.5552, 0.5765],
-                ],
-                [
-                    [-0.0003, 0.0013, 0.0001],
-                    [0.0024, -0.0015, 0.001],
-                    [-0.0003, -0.0009, 0.0],
-                ],
-                [[-0.001, -0.0, -0.0], [0.0, 0.0, 0.0], [-0.0014, 0.0001, 0.0002]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.58, 0.58, 0.58], [0.58, 0.58, 0.58], [0.58, 0.58, 0.58]],
+                [[0.58, 0.58, 0.58], [0.58, 0.58, 0.58], [0.58, 0.58, 0.58]],
+                [[0.58, 0.58, 0.58], [0.58, 0.58, 0.58], [0.58, 0.58, 0.58]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[1.02, 1.01, 0.99], [1.02, 1.02, 1.01], [1.01, 1.02, 1.0]],
             ],
             dtype=np.float32,
         )
@@ -571,7 +551,7 @@ class Test_process_normal_distribution(
             ),
         )
 
-        plugin = Plugin(tolerance=self.tolerance, each_point=True)
+        plugin = Plugin(tolerance=0.01, each_point=True)
         result = plugin.process(
             initial_guess,
             self.forecast_predictor_realizations,
@@ -580,10 +560,10 @@ class Test_process_normal_distribution(
             predictor,
             distribution,
         )
-        np.set_printoptions(precision=4, suppress=True)
+        np.set_printoptions(precision=2, suppress=True)
         print("result = ", repr(result))
         self.assertArrayAlmostEqual(
-            result, self.expected_realizations_coefficients_each_point, decimal=1
+            result, self.expected_realizations_coefficients_each_point, decimal=2
         )
         # self.assertEMOSCoefficientsAlmostEqual(
         #     result, self.expected_realizations_coefficients_each_point
