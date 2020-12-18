@@ -46,12 +46,6 @@ from improver.utilities.spatial import (
 )
 from improver.utilities.temporal import datetime_to_iris_time, iris_time_to_datetime
 
-# PySteps prints a message on import to stdout - trap this
-# This should be removed for PySteps v1.1.0 which has a configuration setting
-# for this
-with redirect_stdout():
-    from pysteps.extrapolation.semilagrangian import extrapolate
-
 
 class PystepsExtrapolate(BasePlugin):
     """Wrapper for the pysteps semi-Lagrangian extrapolation method
@@ -268,6 +262,12 @@ class PystepsExtrapolate(BasePlugin):
         # calculate displacement in grid squares per time step
         displacement = self._generate_displacement_array(ucube, vcube)
 
+        # PySteps prints a message on import to stdout - trap this
+        # This should be removed for PySteps v1.1.0 which has a configuration setting
+        # for this
+        # Import here to minimise dependencies
+        with redirect_stdout():
+            from pysteps.extrapolation.semilagrangian import extrapolate
         # call pysteps extrapolation method
         all_forecasts = extrapolate(
             precip_rate, displacement, self.num_timesteps, allow_nonfinite_values=True
