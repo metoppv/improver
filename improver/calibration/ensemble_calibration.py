@@ -741,7 +741,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Historic forecasts from the training dataset.
 
         Returns:
-            list of tuples:
+            List[Tuple[iris.coords.Coord, None]]:
                 List of tuples of the temporal coordinates and the associated
                 dimension. This format is suitable for use by iris.cube.Cube.
         """
@@ -767,7 +767,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.
         Returns:
-            list of tuples:
+            List[Tuple[iris.coords.Coord, int]]:
                 List of tuples of the spatial coordinates and the associated
                 dimension. This format is suitable for use by iris.cube.Cube.
         """
@@ -797,7 +797,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.
         Returns:
-            list of tuples:
+            List[Tuple[iris.coords.Coord, int or None]]:
                 List of tuples of the spatial coordinates and the associated
                 dimension. This format is suitable for use by iris.cube.Cube.
         """
@@ -842,9 +842,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             optimised_coeffs (numpy.ndarray)
             historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.
-            dim_coords_and_dims (list of tuples):
+            dim_coords_and_dims (List[Tuple[iris.coords.Coord, int]]):
                 List of tuples of the format [(coord, dim), (coord, dim)]
-            aux_coords_and_dims (list of tuples):
+            aux_coords_and_dims (List[Tuple[iris.coords.Coord, int or None]]):
                 List of tuples of the format [(coord, dim), (coord, dim)]
             attributes (dict):
                 Attributes for an EMOS coefficients cube including
@@ -1531,6 +1531,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         """
         self.current_forecast = current_forecast
         self.coefficients_cubelist = coefficients_cubelist
+
         # Check coefficients_cube and forecast cube are compatible.
         self._diagnostic_match()
         for cube in coefficients_cubelist:

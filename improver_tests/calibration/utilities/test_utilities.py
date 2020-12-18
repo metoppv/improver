@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the utilities within the `ensemble_calibration_utilities`
+Unit tests for the utilities within the `calibration.utilities`
 module.
 
 """
@@ -39,7 +39,6 @@ import unittest
 
 import iris
 import numpy as np
-from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 from iris.util import squeeze
 from numpy.testing import assert_array_equal

@@ -76,13 +76,14 @@ def process(
             If True, coefficients are calculated independently for each point
             within the input cube by creating an initial guess and minimising
             each grid point independently. If False, a single set of
-            coefficients are calculated using all points.
+            coefficients is calculated using all points.
             Warning: This option is memory intensive and is unsuitable for
             gridded input, please consider using the minimise_each_point option.
         minimise_each_point (bool):
             If True, coefficients are calculated independently for each point
             within the input cube by minimising each grid point independently.
-            If False, a single set of coefficients are calculated using all
+            The default initial guess is used for each point.
+            If False, a single set of coefficients is calculated using all
             points.
         units (str):
             The units that calibration should be undertaken in. The historical

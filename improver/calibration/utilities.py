@@ -37,7 +37,6 @@ import warnings
 
 import iris
 import numpy as np
-from iris.exceptions import CoordinateNotFoundError
 
 from improver.utilities.temporal import iris_time_to_datetime
 
@@ -354,12 +353,17 @@ def check_forecast_consistency(forecasts):
 def get_statsmodels_availability(predictor):
     """Import the statsmodels module, if available.
 
+    Args:
+        predictor (str):
+            Form of predictor ("mean" or "realizations") for Ensemble Model Output Statistics.
+
     Returns:
-        bool:
+        module instance:
             True if the statsmodels module is available. Otherwise, False.
 
     Warns:
-        ImportWarning: If the statsmodels module cannot be imported.
+        ImportWarning: If the statsmodels module cannot be imported when the
+        "realizations" are the predictor.
     """
     import importlib
 

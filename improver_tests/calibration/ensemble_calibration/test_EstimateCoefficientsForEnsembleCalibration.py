@@ -650,8 +650,6 @@ class Test_mask_cube(SetupCubes):
         )
         expected_result = np.ma.masked_invalid(expected_result)
         self.plugin.mask_cube(self.cube3D, self.mask_cube)
-        # print("self.cube3D.data.data = ", self.cube3D.data.data)
-        # print("self.temperature_truth_cube = ", self.temperature_truth_cube.data)
         self.assertArrayAlmostEqual(expected_result.data, self.cube3D.data.data)
         self.assertArrayEqual(
             np.ma.getmask(expected_result), np.ma.getmask(self.cube3D.data)
@@ -998,12 +996,6 @@ class Test_process(
         result = plugin.process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
         )
-        # np.set_printoptions(suppress=True)
-        # for cube in result:
-        #     print(cube.data)
-        # #print(np.array([cube.data for cube in result]))
-
-        # print("result = ", result)
         self.assertEMOSCoefficientsAlmostEqual(
             np.concatenate([np.atleast_1d(cube.data) for cube in result]),
             self.expected_realizations_truncnorm_no_statsmodels,
