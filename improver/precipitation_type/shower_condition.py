@@ -120,18 +120,13 @@ class ShowerCondition(BasePlugin):
         attributes = generate_mandatory_attributes(self.cubes)
         return template, attributes
 
-    @staticmethod
-    def _probability_name(name, operator_dict):
-        """Convert name into cube diagnostic name"""
-        return "probability_of_{}_{}_threshold".format(name, operator_dict["operator"])
-
     def _extract_cubes(self, conditions, cubes):
         """For a given set of conditions, put all matching cubes onto self.cubes and
         put conditions onto self.tree. If ALL conditions are not satisfied, the function
         exits without updating self.cubes or self.tree."""
         matched_cubes = []
         for name in conditions:
-            found_cubes = cubes.extract(self._probability_name(name, conditions[name]))
+            found_cubes = cubes.extract(f"probability_of_{name}_above_threshold")
             if not found_cubes:
                 return False
             found_cube, = found_cubes  # We expect exactly one cube here

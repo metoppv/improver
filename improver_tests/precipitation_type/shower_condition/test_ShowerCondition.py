@@ -93,7 +93,6 @@ def cloud_fixture():
         variable_name=name,
         threshold_units="1",
         spatial_grid="equalarea",
-        spp__relative_to_threshold="below",
     )
 
 
