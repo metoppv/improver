@@ -48,7 +48,11 @@ from improver.calibration.ensemble_calibration import (
 )
 from improver.calibration.utilities import get_statsmodels_availability
 from improver.metadata.utilities import generate_mandatory_attributes
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    construct_scalar_time_coords,
+    set_up_variable_cube,
+)
 from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import (
@@ -818,6 +822,31 @@ class Test_process(
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_coefficients_norm_distribution_nan_initial_guess(self):
+        """Ensure that the values for the optimised_coefficients match the
+        expected values, and the coefficient names also match
+        expected values for a normal distribution, where a NaN is present in the
+        historic forecast cube that forces the default values for the
+        initial guess to be used, rather than using a linear least-squares
+        regression to construct an initial guess. Reducing the value for the
+        tolerance would result in the coefficients more closely matching the
+        coefficients created when using a linear least-squares regression to
+        construct the initial guess."""
+        expected = [-0.0001, 0.9974, 0.0001, 1.0374]
+        self.historic_temperature_forecast_cube.data[0, 0] = np.nan
+        plugin = Plugin(self.distribution)
+        result = plugin.process(
+            self.historic_temperature_forecast_cube, self.temperature_truth_cube
+        )
+
+        self.assertEMOSCoefficientsAlmostEqual(
+            np.array([cube.data for cube in result]), expected
+        )
+        self.assertArrayEqual(
+            [cube.name() for cube in result], self.expected_coeff_names
+        )
+
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_norm_distribution_max_iterations(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
@@ -1050,6 +1079,64 @@ class Test_process(
             self.assertEqual(
                 [c.name() for c in cube.coords(dim_coords=True)],
                 ["latitude", "longitude"],
+            )
+
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_each_point_sites(self):
+        """Test computing coefficients independently for each site location
+        (initial guess and minimising) returns the expected coefficients and
+        associated metadata."""
+        data = np.array([1.6, 1.3, 1.4, 1.1])
+        altitude = np.array([10, 20, 30, 40])
+        latitude = np.linspace(58.0, 59.5, 4)
+        longitude = np.linspace(-0.25, 0.5, 4)
+        wmo_id = ["03001", "03002", "03003", "03004"]
+        forecast_spot_cubes = iris.cube.CubeList()
+        for realization in range(1, 3):
+            realization_coord = [
+                iris.coords.DimCoord(realization, standard_name="realization")
+            ]
+            for day in range(1, 3):
+                time_coords = construct_scalar_time_coords(
+                    datetime.datetime(2020, 12, day, 4, 0),
+                    None,
+                    datetime.datetime(2020, 12, day, 0, 0),
+                )
+                time_coords = [t[0] for t in time_coords]
+                forecast_spot_cubes.append(
+                    build_spotdata_cube(
+                        data + 0.2 * day,
+                        "air_temperature",
+                        "degC",
+                        altitude,
+                        latitude,
+                        longitude,
+                        wmo_id,
+                        scalar_coords=time_coords + realization_coord,
+                    )
+                )
+        forecast_spot_cube = forecast_spot_cubes.merge_cube()
+
+        truth_spot_cube = forecast_spot_cube[0].copy()
+        truth_spot_cube.remove_coord("realization")
+        truth_spot_cube.data = truth_spot_cube.data + 1.0
+
+        expected = {
+            "emos_coefficient_alpha": np.array([1.0, 1.0, 1.0, 1.0]),
+            "emos_coefficient_beta": np.array([1.0, 1.0, 1.0, 1.0]),
+            "emos_coefficient_gamma": np.array([0.0003, 0.0003, 0.0003, 0.0003]),
+            "emos_coefficient_delta": np.array([1.0, 1.0, 1.0, 1.0]),
+        }
+
+        plugin = Plugin(self.distribution, each_point=True)
+        result = plugin.process(forecast_spot_cube, truth_spot_cube)
+        for cube in result:
+            self.assertEMOSCoefficientsAlmostEqual(
+                cube.data, expected[cube.name()],
+            )
+            self.assertIn(cube.name(), self.expected_coeff_names)
+            self.assertEqual(
+                [c.name() for c in cube.coords(dim_coords=True)], ["spot_index"],
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
