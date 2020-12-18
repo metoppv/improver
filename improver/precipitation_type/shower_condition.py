@@ -129,7 +129,7 @@ class ShowerCondition(BasePlugin):
             found_cubes = cubes.extract(f"probability_of_{name}_above_threshold")
             if not found_cubes:
                 return False
-            found_cube, = found_cubes  # We expect exactly one cube here
+            (found_cube,) = found_cubes  # We expect exactly one cube here
             matched_cubes.append(found_cube)
         self.cubes = matched_cubes
         self.tree = conditions
