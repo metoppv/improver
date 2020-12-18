@@ -181,17 +181,6 @@ def generate_matching_weights_array(weights, shape):
     return weights_array.astype(np.float32)
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(PercentileBlendingAggregator())
-        msg = "<PercentileBlendingAggregator>"
-        self.assertEqual(result, msg)
-
-
 class Test_aggregate(IrisTest):
     """Test the aggregate method"""
 
@@ -203,41 +192,11 @@ class Test_aggregate(IrisTest):
 
         percentiles = np.array([0, 20, 40, 60, 80, 100]).astype(np.float32)
         result = PercentileBlendingAggregator.aggregate(
-            PERCENTILE_DATA, 1, percentiles, weights, 0
+            PERCENTILE_DATA, 1, percentiles, weights
         )
         self.assertArrayAlmostEqual(
             result, BLENDED_PERCENTILE_DATA,
         )
-
-    def test_blend_percentile_aggregate_reorder1(self):
-        """Test blend_percentile_aggregate works with out of order dims 1"""
-        weights = np.array([0.6, 0.3, 0.1])
-        weights = generate_matching_weights_array(weights, (4, 6, 3))
-        weights = np.moveaxis(weights, (0, 1, 2), (2, 1, 0))
-
-        percentiles = np.array([0, 20, 40, 60, 80, 100])
-        perc_data = np.moveaxis(PERCENTILE_DATA, [0, 1], [3, 1])
-        result = PercentileBlendingAggregator.aggregate(
-            perc_data, 1, percentiles, weights, 3
-        )
-        expected_result_array = BLENDED_PERCENTILE_DATA
-        expected_result_array = np.moveaxis(expected_result_array, 0, 2)
-        self.assertArrayAlmostEqual(result, expected_result_array)
-
-    def test_blend_percentile_aggregate_reorder2(self):
-        """Test blend_percentile_aggregate works with out of order dims 2"""
-        weights = np.array([0.6, 0.3, 0.1])
-        weights = generate_matching_weights_array(weights, (4, 6, 3))
-        weights = np.moveaxis(weights, (0, 1, 2), (2, 1, 0))
-
-        percentiles = np.array([0, 20, 40, 60, 80, 100])
-        perc_data = np.moveaxis(PERCENTILE_DATA, [0, 1], [1, 2])
-        result = PercentileBlendingAggregator.aggregate(
-            perc_data, 2, percentiles, weights, 1
-        )
-        expected_result_array = BLENDED_PERCENTILE_DATA
-        expected_result_array = np.moveaxis(expected_result_array, 0, 1)
-        self.assertArrayAlmostEqual(result, expected_result_array)
 
     def test_2D_simple_case(self):
         """ Test that for a simple case with only one point in the resulting
@@ -248,7 +207,7 @@ class Test_aggregate(IrisTest):
         percentiles = np.array([0, 50, 100])
         perc_data = np.array([[1.0, 2.0], [5.0, 5.0], [10.0, 9.0]])
         result = PercentileBlendingAggregator.aggregate(
-            perc_data, 1, percentiles, weights, 0
+            perc_data, 1, percentiles, weights
         )
         expected_result = np.array([1.0, 5.0, 10.0])
         self.assertArrayAlmostEqual(result, expected_result)
@@ -262,7 +221,7 @@ class Test_aggregate(IrisTest):
         percentiles = np.array([0, 50, 100])
         perc_data = np.array([[[1.0], [2.0]], [[5.0], [6.0]], [[10.0], [9.0]]])
         result = PercentileBlendingAggregator.aggregate(
-            perc_data, 1, percentiles, weights, 0
+            perc_data, 1, percentiles, weights
         )
         expected_result = np.array([[1.0], [5.555555], [10.0]])
         self.assertArrayAlmostEqual(result, expected_result)
@@ -278,7 +237,7 @@ class Test_aggregate(IrisTest):
         input_shape = (3, 2, 1, 1)
         perc_data = perc_data.reshape(input_shape)
         result = PercentileBlendingAggregator.aggregate(
-            perc_data, 1, percentiles, weights, 0
+            perc_data, 1, percentiles, weights
         )
         expected_result = np.array([[[1.0]], [[3.5]], [[6.0]]])
         expected_result_shape = (3, 1, 1)
