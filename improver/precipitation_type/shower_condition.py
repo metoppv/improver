@@ -131,7 +131,7 @@ class ShowerCondition(BasePlugin):
 
         Args:
             cubes (iris.cube.CubeList):
-                List of cubes
+                List of input cubes
         Returns:
             iris.cube.Cube:
                 Binary (0/1) "precipitation is showery"

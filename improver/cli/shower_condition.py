@@ -42,7 +42,9 @@ def process(*cubes: cli.inputcube):
     on input fields
     Args:
         cubes (iris.cube.CubeList):
-            List of cubes.
+            List of cubes to input into shower diagnosis. These should
+            contain probabilities of EITHER cloud texture from a high-resolution model,
+            OR cloud area fraction and convective ratio from a low-resolution model.
     Returns:
         iris.cube.Cube:
             Binary (0/1) "precipitation is showery"
