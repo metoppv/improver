@@ -173,8 +173,10 @@ class WeightAndBlend(BasePlugin):
         grid_cells = distance_to_number_of_grid_cells(
             cube, fuzzy_length, return_int=False
         )
-        plugin = SpatiallyVaryingWeightsFromMask(grid_cells)
-        weights = plugin(cube, weights, self.blend_coord)
+        plugin = SpatiallyVaryingWeightsFromMask(
+            self.blend_coord, fuzzy_length=grid_cells
+        )
+        weights = plugin(cube, weights)
         return weights
 
     def _update_metadata_only(self, cube, attributes_dict, cycletime):

@@ -35,6 +35,10 @@ import iris
 import numpy as np
 
 from improver import PostProcessingPlugin
+from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
+    OrographicSmoothingCoefficients,
+)
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_cube
 
@@ -45,9 +49,7 @@ class RecursiveFilter(PostProcessingPlugin):
     Apply a recursive filter to the input cube.
     """
 
-    def __init__(
-        self, iterations=None, edge_width=15, re_mask=False,
-    ):
+    def __init__(self, iterations=None, edge_width=15):
         """
         Initialise the class.
 
@@ -57,13 +59,6 @@ class RecursiveFilter(PostProcessingPlugin):
             edge_width (int):
                 Half the width of the padding halo applied before
                 recursive filtering.
-            re_mask (bool):
-                If re_mask is True, the original un-recursively filtered
-                mask is applied to mask out the recursively filtered cube.
-                If re_mask is False, the original un-recursively filtered
-                mask is not applied. Therefore, the recursive filtering
-                may result in values being present in areas that were
-                originally masked.
         Raises:
             ValueError: If number of iterations is not None and is set such
                         that iterations is less than 1.
@@ -83,60 +78,12 @@ class RecursiveFilter(PostProcessingPlugin):
                 )
         self.iterations = iterations
         self.edge_width = edge_width
-        self.re_mask = re_mask
         self.smoothing_coefficient_name_format = "smoothing_coefficient_{}"
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
         result = "<RecursiveFilter: iterations: {}, edge_width: {}"
         return result.format(self.iterations, self.edge_width)
-
-    @staticmethod
-    def set_up_cubes(cube, mask_cube=None):
-        """
-        Set up cubes ready for recursive filtering.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube that will be checked for whether the data is masked
-                or nan. The cube should contain only x and y dimensions,
-                so will generally be a slice of a cube.
-            mask_cube (iris.cube.Cube):
-                Input Cube containing the array to be used as a mask.
-
-        Returns:
-            (tuple): tuple containing:
-                **cube** (iris.cube.Cube):
-                    Cube with masked or NaN values set to 0.0
-                **mask** (iris.cube.Cube):
-                    Cube with masked or NaN values set to 0.0
-                **nan_array** (numpy.ndarray):
-                    numpy array to be used to set the values within
-                    the data of the output cube to be NaN.
-
-        """
-        # Set up mask_cube
-        if not mask_cube:
-            mask = cube.copy(np.ones_like(cube.data, dtype=np.bool))
-        else:
-            mask = mask_cube
-        # If there is a mask, fill the data array of the mask_cube with a
-        # logical array, logically inverted compared to the integer version of
-        # the mask within the original data array.
-
-        if isinstance(cube.data, np.ma.MaskedArray):
-            mask.data[cube.data.mask] = 0
-            cube.data = cube.data.data
-        mask.rename("mask_data")
-        cube = iris.util.squeeze(cube)
-        mask = iris.util.squeeze(mask)
-        # Set NaN values to 0 in both the cube data and mask data.
-        nan_array = np.isnan(cube.data)
-        mask.data[nan_array] = 0
-        cube.data[nan_array] = 0.0
-        #  Set cube.data to 0.0 where mask_cube is 0.0
-        cube.data[mask.data == 0] = 0.0
-        return cube, mask, nan_array
 
     @staticmethod
     def _recurse_forward(grid, smoothing_coefficients, axis):
@@ -281,7 +228,7 @@ class RecursiveFilter(PostProcessingPlugin):
             cube.data = output
         return cube
 
-    def _validate_and_pad_coefficients(self, cube, smoothing_coefficients):
+    def _validate_coefficients(self, cube, smoothing_coefficients):
         """Validate the smoothing coefficients cubes.
 
         Args:
@@ -297,8 +244,6 @@ class RecursiveFilter(PostProcessingPlugin):
         Returns:
             list:
                 A list of smoothing coefficients cubes ordered: [x-coeffs, y-coeffs].
-                The coefficients are padded to match the size of the padded cube
-                to which they will be applied.
 
         Raises:
             ValueError: Smoothing coefficient cubes are not named correctly.
@@ -361,21 +306,39 @@ class RecursiveFilter(PostProcessingPlugin):
                     )
                     raise ValueError(msg)
 
-            # Pad the smoothing coefficients to match the padded data shape
-            padded_coefficients.append(
-                pad_cube_with_halo(
-                    smoothing_coefficient,
-                    2 * self.edge_width,
-                    2 * self.edge_width,
-                    pad_method="symmetric",
-                )
+        return smoothing_coefficients
+
+    def _pad_coefficients(self, coeff_x, coeff_y):
+        """Pad smoothing coefficients"""
+        pad_x, pad_y = [
+            pad_cube_with_halo(
+                coeff, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric",
             )
+            for coeff in [coeff_x, coeff_y]
+        ]
+        return pad_x, pad_y
 
-        return padded_coefficients
+    @staticmethod
+    def _update_coefficients_from_mask(coeffs_x, coeffs_y, mask):
+        """
+        Zero all smoothing coefficients for data points that are masked
 
-    def process(
-        self, cube, smoothing_coefficients, mask_cube=None,
-    ):
+        Args:
+            coeffs_x (iris.cube.Cube)
+            coeffs_y (iris.cube.Cube)
+            mask (iris.cube.Cube)
+
+        Returns:
+            tuple of iris.cube.Cube:
+                Updated smoothing coefficients
+        """
+        plugin = OrographicSmoothingCoefficients(
+            use_mask_boundary=False, invert_mask=False
+        )
+        plugin.zero_masked(coeffs_x, coeffs_y, mask)
+        return coeffs_x, coeffs_y
+
+    def process(self, cube, smoothing_coefficients):
         """
         Set up the smoothing_coefficient parameters and run the recursive
         filter. Smoothing coefficients can be generated using
@@ -413,29 +376,43 @@ class RecursiveFilter(PostProcessingPlugin):
                 A cubelist containing two cubes of smoothing_coefficient values,
                 one corresponding to smoothing in the x-direction, and the other
                 to smoothing in the y-direction.
-            mask_cube (iris.cube.Cube or None):
-                Cube containing an external mask to apply to the cube before
-                applying the recursive filter.
 
         Returns:
             iris.cube.Cube:
                 Cube containing the smoothed field after the recursive filter
                 method has been applied.
+
+        Raises:
+            ValueError:
+                If the cube contains masked data from multiple cycles or times
         """
         cube_format = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]))
-        (
-            smoothing_coefficients_x,
-            smoothing_coefficients_y,
-        ) = self._validate_and_pad_coefficients(cube_format, smoothing_coefficients)
+        coeffs_x, coeffs_y = self._validate_coefficients(
+            cube_format, smoothing_coefficients
+        )
+
+        mask_cube = None
+        if np.ma.is_masked(cube.data):
+            # Assumes mask is the same for each x-y slice.  This may not be
+            # true if there are several time slices in the cube - so throw
+            # an error if this is so.
+            for coord in TIME_COORDS:
+                if cube.coords(coord) and len(cube.coord(coord).points) > 1:
+                    raise ValueError(
+                        "Dealing with masks from multiple time points is unsupported"
+                    )
+
+            mask_cube = cube_format.copy(data=cube_format.data.mask)
+            coeffs_x, coeffs_y = self._update_coefficients_from_mask(
+                coeffs_x, coeffs_y, mask_cube,
+            )
+
+        padded_coefficients_x, padded_coefficients_y = self._pad_coefficients(
+            coeffs_x, coeffs_y
+        )
 
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
-
-            # Setup cube and mask for processing.
-            # This should set up a mask full of 1.0 if None is provided
-            # and set the data 0.0 where mask is 0.0 or the data is NaN
-            output, mask, nan_array = self.set_up_cubes(output, mask_cube)
-            mask = mask.data.squeeze()
 
             padded_cube = pad_cube_with_halo(
                 output, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric"
@@ -443,18 +420,16 @@ class RecursiveFilter(PostProcessingPlugin):
 
             new_cube = self._run_recursion(
                 padded_cube,
-                smoothing_coefficients_x,
-                smoothing_coefficients_y,
+                padded_coefficients_x,
+                padded_coefficients_y,
                 self.iterations,
             )
             new_cube = remove_halo_from_cube(
                 new_cube, 2 * self.edge_width, 2 * self.edge_width
             )
-            if self.re_mask:
-                new_cube.data[nan_array] = np.nan
-                new_cube.data = np.ma.masked_array(
-                    new_cube.data, mask=np.logical_not(mask), copy=False
-                )
+
+            if mask_cube is not None:
+                new_cube.data = np.ma.MaskedArray(new_cube.data, mask=mask_cube.data)
 
             recursed_cube.append(new_cube)
 

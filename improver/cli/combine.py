@@ -71,19 +71,22 @@ def process(
         result (iris.cube.Cube):
             Returns a cube with the combined data.
     """
-    from improver.cube_combiner import CubeCombiner
+    from improver.cube_combiner import CubeCombiner, CubeMultiplier
     from iris.cube import CubeList
 
     if not cubes:
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubes[0].name()
-    broadcast_to_coords = ["threshold"] if broadcast_to_threshold else None
-    result = CubeCombiner(operation, warnings_on=check_metadata)(
-        CubeList(cubes),
-        new_name,
-        broadcast_to_coords=broadcast_to_coords,
-        use_midpoint=use_midpoint,
-    )
+
+    if operation == "*" or operation == "multiply":
+        result = CubeMultiplier()(
+            CubeList(cubes), new_name, broadcast_to_threshold=broadcast_to_threshold,
+        )
+
+    else:
+        result = CubeCombiner(operation)(
+            CubeList(cubes), new_name, use_midpoint=use_midpoint,
+        )
 
     return result
