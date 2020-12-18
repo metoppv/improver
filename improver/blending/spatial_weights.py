@@ -125,10 +125,14 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         ).name()
         # Find original dim coords in input cube
         original_dim_coords = get_dim_coord_names(cube_to_collapse)
+
         # Slice over required coords
         x_coord = cube_to_collapse.coord(axis="x").name()
         y_coord = cube_to_collapse.coord(axis="y").name()
         coords_to_slice_over = [self.blend_coord, y_coord, x_coord]
+
+        if original_dim_coords == coords_to_slice_over:
+            return cube_to_collapse
 
         # Check mask does not vary over additional dimensions
         slices = cube_to_collapse.slices(coords_to_slice_over)
