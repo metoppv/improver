@@ -81,7 +81,7 @@ class ShowerCondition(BasePlugin):
                 "operator": "above",
             },
         }
-        self.cubes = None
+        self.cubes = []
         self.tree = None
 
     def _calculate_shower_condition(self, shape):
@@ -120,14 +120,34 @@ class ShowerCondition(BasePlugin):
         attributes = generate_mandatory_attributes(self.cubes)
         return template, attributes
 
+    @staticmethod
+    def _probability_name(name, operator_dict):
+        """Convert name into cube diagnostic name"""
+        return "probability_of_{}_{}_threshold".format(name, operator_dict["operator"])
+
+    def _extract_cubes(self, conditions, cubes):
+        """For a given set of conditions, put all matching cubes onto self.cubes and
+        put conditions onto self.tree. If ALL conditions are not satisfied, the function
+        exits without updating self.cubes or self.tree."""
+        matched_cubes = []
+        for name in conditions:
+            found_cubes = cubes.extract(self._probability_name(name, conditions[name]))
+            if not found_cubes:
+                return False
+            found_cube, = found_cubes  # We expect exactly one cube here
+            matched_cubes.append(found_cube)
+        self.cubes = matched_cubes
+        self.tree = conditions
+        return True
+
     def process(self, cubes):
         """
         Determine the shower condition from global or UK data depending
         on input fields. Expected inputs for UK:
-        cloud_texture: texture_of_low_and_medium_type_cloud_area_fraction,
+        cloud_texture: probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold,
         and for global:
-        cloud: low_and_medium_type_cloud_area_fraction
-        conv_ratio: convective_ratio
+        cloud: probability_of_low_and_medium_type_cloud_area_fraction_above_threshold
+        conv_ratio: probability_of_convective_ratio_above_threshold
 
         Args:
             cubes (iris.cube.CubeList):
@@ -138,26 +158,14 @@ class ShowerCondition(BasePlugin):
         Raises:
             ValueError: If inputs are incomplete
         """
-
-        cloud = cubes.extract(
-            "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold"
-        )
-        conv_ratio = cubes.extract("probability_of_convective_ratio_above_threshold")
-        cloud_texture = cubes.extract(
-            "probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold"
-        )
-
-        if not cloud_texture:
-            if not cloud or not conv_ratio:
-                raise ValueError(
-                    "Incomplete inputs: must include either cloud_texture for the UK,"
-                    "or cloud and conv_ratio for global."
-                )
-            self.cubes = cloud + conv_ratio
-            self.tree = self.conditions_global
-        else:
-            self.cubes = cloud_texture
-            self.tree = self.conditions_uk
+        for conditions in [self.conditions_uk, self.conditions_global]:
+            if self._extract_cubes(conditions, cubes):
+                break
+        else:  # no break
+            raise ValueError(
+                "Incomplete inputs: must include either cloud_texture for the UK,"
+                "or cloud and conv_ratio for global."
+            )
 
         template, attributes = self._output_metadata()
         showery_points = self._calculate_shower_condition(template.shape)

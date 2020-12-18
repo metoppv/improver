@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for ShowerCondition plugin"""
 
-import iris
 import numpy as np
 import pytest
 from iris.cube import CubeList
@@ -94,6 +93,7 @@ def cloud_fixture():
         variable_name=name,
         threshold_units="1",
         spatial_grid="equalarea",
+        spp__relative_to_threshold="below",
     )
 
 
@@ -152,7 +152,7 @@ def test_global_tree(cloud_cube, conv_ratio_cube):
 
 def test_too_many_inputs(cloud_texture_cube, cloud_cube, conv_ratio_cube):
     """Test default behaviour using UK tree if all fields are provided"""
-    cubes = [cloud_texture_cube, cloud_cube]
+    cubes = [cloud_texture_cube, cloud_cube, conv_ratio_cube]
     result = ShowerCondition()(CubeList(cubes))
     np.testing.assert_allclose(result.data, EXPECTED_UK)
 
