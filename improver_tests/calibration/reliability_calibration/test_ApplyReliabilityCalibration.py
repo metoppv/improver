@@ -131,7 +131,7 @@ class Test__extract_matching_reliability_table(Test_ReliabilityCalibrate):
         result = self.plugin._extract_matching_reliability_table(
             self.forecast[0], self.reliability_cube
         )
-        self.assertEqual(result.xml, self.reliability_cube[0].xml)
+        self.assertEqual(result.xml(), self.reliability_cube[0].xml())
 
     def test_matching_coords_cubelist(self):
         """Test that no exception is raised in the case that the forecast
@@ -141,7 +141,7 @@ class Test__extract_matching_reliability_table(Test_ReliabilityCalibrate):
         result = self.plugin._extract_matching_reliability_table(
             self.forecast[0], self.reliability_cubelist
         )
-        self.assertEqual(result.xml, self.reliability_cubelist[0].xml)
+        self.assertEqual(result.xml(), self.reliability_cubelist[0].xml())
 
     def test_unmatching_coords(self):
         """Test that an exception is raised in the case that the forecast
