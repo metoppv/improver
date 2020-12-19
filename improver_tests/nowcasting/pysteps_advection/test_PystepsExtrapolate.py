@@ -248,7 +248,7 @@ class Test_process(IrisTest):
                 # the final step (i==8) has no data (as initialised); the
                 # original rain field has been advected out of the domain
                 pass
-            self.assertTrue(np.allclose(cube.data.data, expected_data, equal_nan=True))
+            np.testing.assert_allclose(cube.data.data, expected_data, equal_nan=True)
 
     def test_values_noninteger_step(self):
         """Test values for an advection speed of 0.6 grid squares per time
@@ -270,15 +270,9 @@ class Test_process(IrisTest):
         self.vcube.data = 0.6 * self.vcube.data
         result = self.plugin(self.rain_cube, self.ucube, self.vcube, self.orogenh_cube)
 
-        self.assertTrue(
-            np.allclose(result[1].data.data, expected_data_1, equal_nan=True)
-        )
-        self.assertTrue(
-            np.allclose(result[2].data.data, expected_data_2, equal_nan=True)
-        )
-        self.assertTrue(
-            np.allclose(result[3].data.data, expected_data_3, equal_nan=True)
-        )
+        np.testing.assert_allclose(result[1].data.data, expected_data_1, equal_nan=True)
+        np.testing.assert_allclose(result[2].data.data, expected_data_2, equal_nan=True)
+        np.testing.assert_allclose(result[3].data.data, expected_data_3, equal_nan=True)
 
     def test_error_non_rate_cube(self):
         """Test plugin rejects cube of non-rate data"""
