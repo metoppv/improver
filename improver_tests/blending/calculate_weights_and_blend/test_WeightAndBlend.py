@@ -419,6 +419,9 @@ class Test_process(IrisTest):
         self.assertNotIn("model_configuration", result_coords)
         for coord in ["forecast_reference_time", "forecast_period"]:
             self.assertIn("deprecation_message", result.coord(coord).attributes)
+            self.assertIn(
+                "will be removed", result.coord(coord).attributes["deprecation_message"]
+            )
 
     @ManageWarnings(
         ignored_messages=[
