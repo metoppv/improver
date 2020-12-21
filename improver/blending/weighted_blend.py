@@ -311,7 +311,7 @@ class PercentileBlendingAggregator:
         # Loop over the flattened data, i.e. across all the data points in
         # each slice of the coordinate we are collapsing over, finding the
         # blended percentile values at each point.
-        pdb.set_trace()
+        #pdb.set_trace()
         for i in range(data.shape[-1]):
             result[:, i] = PercentileBlendingAggregator.blend_percentiles(
                 data[:, :, i], arr_percent, arr_weights[:, :, i]
@@ -363,6 +363,11 @@ class PercentileBlendingAggregator:
                     )
                 # Add the resulting probabilities multiplied by the right
                 # weight to the running total for the combined pdf.
+
+                # TODO weights are always the same across percentiles - can reduce
+                # dimensionality here
+                # Is this actually the CDF? The probability of exceeding each percentile
+                # combined across models?
                 combined_pdf[i] += recalc_values_in_pdf * weights[j]
 
         # Combine and sort the threshold values for all the points
