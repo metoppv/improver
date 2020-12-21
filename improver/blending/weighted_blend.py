@@ -64,6 +64,9 @@ from improver.utilities.round import round_close
 from improver.utilities.temporal import cycletime_to_number
 
 
+import pdb
+
+
 class MergeCubesForWeightedBlending(BasePlugin):
     """Prepares cubes for cycle and grid blending"""
 
@@ -308,6 +311,7 @@ class PercentileBlendingAggregator:
         # Loop over the flattened data, i.e. across all the data points in
         # each slice of the coordinate we are collapsing over, finding the
         # blended percentile values at each point.
+        pdb.set_trace()
         for i in range(data.shape[-1]):
             result[:, i] = PercentileBlendingAggregator.blend_percentiles(
                 data[:, :, i], arr_percent, arr_weights[:, :, i]

@@ -576,6 +576,9 @@ class Test_process(Test_weighted_blend):
             result.coord("forecast_period").points, expected_forecast_period
         )
 
+    # TODO write a percentile blending test with sane data (correctly ordered so
+    # that diagnostic values vary monotonically with percentile value)
+
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_perc(self):
         """Test that the plugin returns a percentile cube"""
