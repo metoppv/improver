@@ -40,6 +40,7 @@ from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin, PostProcessingPlugin
+from improver.blending.utilities import find_blend_dim_coord
 from improver.metadata.amend import amend_attributes
 from improver.metadata.constants import FLOAT_DTYPE, PERC_COORD
 from improver.metadata.constants.attributes import (
@@ -866,19 +867,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             msg = "Coordinate to be collapsed not found in cube."
             raise CoordinateNotFoundError(msg)
 
-        blend_coord_dims = cube.coord_dims(self.blend_coord)
-        if not blend_coord_dims:
-            raise ValueError(
-                "Blending coordinate {} has no associated "
-                "dimension".format(self.blend_coord)
-            )
-
         self.cycletime = cycletime
         output_dims = get_dim_coord_names(next(cube.slices_over(self.blend_coord)))
-
-        # Find name of blend DIMENSION coordinate (if blend_coord is auxiliary)
-        blend_dim = cube.coord_dims(self.blend_coord)
-        self.blend_coord = cube.coord(dimensions=blend_dim, dim_coords=True).name()
+        self.blend_coord = find_blend_dim_coord(cube, self.blend_coord)
 
         # Ensure input cube and weights cube are ordered equivalently along
         # blending coordinate.
