@@ -192,6 +192,10 @@ class WeightAndBlend(BasePlugin):
 
         (result,) = rebadge_forecasts_as_latest_cycle([result], cycletime)
         if self.blend_coord in ["forecast_reference_time", "model_id"]:
+            for coord in ["forecast_period", "forecast_reference_time"]:
+                msg = f"{coord} will be removed in future and should not be used"
+                result.coord(coord).attributes.update({"deprecation_message": msg})
+
             if cycletime is not None:
                 add_blend_time(result, cycletime)
             else:

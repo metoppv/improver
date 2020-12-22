@@ -164,9 +164,19 @@ class MergeCubesForWeightedBlending(BasePlugin):
             cube.remove_coord("blend_time")
         return cube
 
+    @staticmethod
+    def _remove_deprecation_warnings(cube):
+        """Remove deprecation warnings from forecast period and forecast reference
+        time coordinates so that these can be merged before blending"""
+        for coord in ["forecast_period", "forecast_reference_time"]:
+            cube.coord(coord).attributes.pop("deprecation_message", None)
+        return cube
+
     def process(self, cubes_in, cycletime=None):
         """
-        Prepares merged input cube for cycle and grid blending
+        Prepares merged input cube for cycle and grid blending. Makes updates to
+        metadata (attributes and time-type coordinates) ONLY in so far as these are
+        needed to ensure inputs can be merged into a single cube.
 
         Args:
             cubes_in (iris.cube.CubeList or iris.cube.Cube):
@@ -192,6 +202,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
 
         if "model" in self.blend_coord:
             cubelist = [self._remove_blend_time(cube) for cube in cubelist]
+            cubelist = [self._remove_deprecation_warnings(cube) for cube in cubelist]
             if (
                 self.weighting_coord is not None
                 and "forecast_period" in self.weighting_coord
@@ -801,10 +812,11 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
     def _set_blended_time_coords(self, blended_cube):
         """
         For cycle and model blending:
-        - Update the forecast reference time and forecast period coordinate points
-        to reflect the current cycle time
-        - Remove any bounds from the forecast reference time
         - Add a "blend_time" coordinate equal to the current cycletime
+        - Update the forecast reference time and forecast period coordinate points
+        to reflect the current cycle time (behaviour is DEPRECATED)
+        - Remove any bounds from the forecast reference time (behaviour is DEPRECATED)
+        - Mark the forecast reference time and forecast period as DEPRECATED
 
         Modifies cube in place.
 
@@ -818,6 +830,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 "Current cycle time is required for cycle and model blending"
             )
 
+        add_blend_time(blended_cube, self.cycletime)
         blended_cube.coord("forecast_reference_time").points = [cycletime_point]
         blended_cube.coord("forecast_reference_time").bounds = None
         if blended_cube.coords("forecast_period"):
@@ -825,7 +838,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         new_forecast_period = forecast_period_coord(blended_cube)
         time_dim = blended_cube.coord_dims("time")
         blended_cube.add_aux_coord(new_forecast_period, data_dims=time_dim)
-        add_blend_time(blended_cube, self.cycletime)
+        for coord in ["forecast_period", "forecast_reference_time"]:
+            msg = f"{coord} will be removed in future and should not be used"
+            blended_cube.coord(coord).attributes.update({"deprecation_message": msg})
 
     def _update_blended_metadata(self, blended_cube, attributes_dict):
         """

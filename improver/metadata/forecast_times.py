@@ -35,6 +35,7 @@ import warnings
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.coords import AuxCoord, DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.check_datatypes import check_mandatory_standards
@@ -67,7 +68,7 @@ def forecast_period_coord(cube, force_lead_time_calculation=False):
     """
     create_dim_coord = False
     if cube.coords("forecast_period"):
-        if isinstance(cube.coord("forecast_period"), iris.coords.DimCoord):
+        if isinstance(cube.coord("forecast_period"), DimCoord):
             create_dim_coord = True
 
     if cube.coords("forecast_period") and not force_lead_time_calculation:
@@ -138,7 +139,7 @@ def _calculate_forecast_period(
     else:
         required_lead_time_bounds = None
 
-    coord_type = iris.coords.DimCoord if dim_coord else iris.coords.AuxCoord
+    coord_type = DimCoord if dim_coord else AuxCoord
     result_coord = coord_type(
         required_lead_times,
         standard_name="forecast_period",
@@ -188,8 +189,10 @@ def _create_frt_type_coord(cube, point, name="forecast_reference_time"):
     coord_type_spec = TIME_COORDS[frt_coord_name]
     coord_units = Unit(coord_type_spec.units)
     new_points = round_close([coord_units.date2num(point)], dtype=coord_type_spec.dtype)
-    new_coord = cube.coord(frt_coord_name).copy(points=new_points)
-    new_coord.rename(name)
+    try:
+        new_coord = DimCoord(new_points, standard_name=name, units=coord_units)
+    except ValueError:
+        new_coord = DimCoord(new_points, long_name=name, units=coord_units)
     return new_coord
 
 
