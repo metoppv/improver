@@ -398,7 +398,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         """
         if predictor.lower() == "mean":
             a, b, gamma, delta = initial_guess
-            mu = (forecast_predictor*b)+a
+            mu = (forecast_predictor * b) + a
 
         elif predictor.lower() == "realizations":
             a, b, gamma, delta = (
