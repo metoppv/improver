@@ -270,25 +270,27 @@ class PercentileBlendingAggregator:
     @staticmethod
     def aggregate(data, axis, arr_percent, arr_weights):
         """
-        Blend percentile aggregate function to blend percentile data
-        along a given axis of a cube.  The input data must be provided
-        with the blend coord as the first axis and the percentile coord
-        as the second (these are re-ordered after aggregator initialisation
-        at the start of this function).
+        Function to blend percentile data over a given dimension.
+        The input percentile data must be provided with the blend coord as the
+        first axis and the percentile coord as the second (these are re-ordered
+        after aggregator initialisation at the start of this function).  Weights
+        data must be provided with the blend coord as the first dimension.
 
         Args:
             data (numpy.ndarray):
-                Array containing the data to blend
+                Array containing the data to blend.
             axis (int):
                 The index of the coordinate dimension in the cube. This
                 dimension will be aggregated over.
-            arr_percent(numpy.ndarray):
+            arr_percent (numpy.ndarray):
                 Array of percentile values e.g [0, 20.0, 50.0, 70.0, 100.0],
                 same size as the percentile dimension of data.
-            arr_weights(numpy.ndarray):
-                Array of weights, same size as the axis dimension of data.
-            (Note percent and weights have special meaning in Aggregator
-             hence the rename.)
+            arr_weights (numpy.ndarray):
+                Array of weights, same shape as data, but without the percentile
+                dimension (weights do not vary with percentile).
+
+            (Note "percent" and "weights" have special meaning in Aggregator,
+             hence using different names for these variables.)
 
         Returns:
             numpy.ndarray:
@@ -302,20 +304,22 @@ class PercentileBlendingAggregator:
         # Blend coordinate is moved to the -1 position in initialisation; move
         # this back to the leading coordinate
         data = np.moveaxis(data, [axis], [0])
-        # Flatten over all other dimensions
+
+        if len(data) != len(arr_weights):
+            raise ValueError("Weights shape does not match data")
+
+        # Flatten data and weights over non-blend and percentile dimensions
         shape = data.shape[2:]
         flattened_shape = [data.shape[0], data.shape[1], np.prod(shape, dtype=int)]
         data = data.reshape(flattened_shape)
-        arr_weights = arr_weights.reshape(flattened_shape)
-        # Create flattened array to accomodated collapsed data
+        weights_shape = [data.shape[0], np.prod(shape, dtype=int)]
+        arr_weights = arr_weights.reshape(weights_shape)
+
+        # Find the blended percentile values at each point in the flattened data
         result = np.zeros(flattened_shape[1:], dtype=FLOAT_DTYPE)
-        # Loop over the flattened data, i.e. across all the data points in
-        # each slice of the coordinate we are collapsing over, finding the
-        # blended percentile values at each point.
-        #pdb.set_trace()
         for i in range(data.shape[-1]):
             result[:, i] = PercentileBlendingAggregator.blend_percentiles(
-                data[:, :, i], arr_percent, arr_weights[:, :, i]
+                data[:, :, i], arr_percent, arr_weights[:, i]
             )
         # Reshape the data with a leading percentile dimension
         shape = arr_percent.shape + shape
@@ -346,7 +350,7 @@ class PercentileBlendingAggregator:
         # Find the size of the dimension we want to blend over.
         num = perc_values.shape[0]
         # Create an array to store the weighted blending pdf
-        combined_pdf = np.zeros((num, len(percentiles)), dtype=FLOAT_DTYPE)
+        combined_cdf = np.zeros((num, len(percentiles)), dtype=FLOAT_DTYPE)
         # Loop over the axis we are blending over finding the values for the
         # probability at each threshold in the pdf, for each of the other
         # points in the axis we are blending over. Use the values from the
@@ -357,26 +361,21 @@ class PercentileBlendingAggregator:
         for i in range(0, num):
             for j in range(0, num):
                 if i == j:
-                    recalc_values_in_pdf = percentiles
+                    values_in_cdf = percentiles
                 else:
-                    recalc_values_in_pdf = np.interp(
+                    values_in_cdf = np.interp(
                         perc_values[i], perc_values[j], percentiles
                     )
                 # Add the resulting probabilities multiplied by the right
-                # weight to the running total for the combined pdf.
-
-                # TODO weights are always the same across percentiles - can reduce
-                # dimensionality here
-                # Is this actually the CDF? The probability of exceeding each percentile
-                # combined across models?
-                combined_pdf[i] += recalc_values_in_pdf * weights[j]
+                # weight to the running total for the combined cdf
+                combined_cdf[i] += values_in_cdf * weights[j]
 
         # Combine and sort the threshold values for all the points
         # we are blending.
         combined_perc_thres_data = np.sort(perc_values.flatten())
 
         # Combine and sort blended probability values.
-        combined_perc_values = np.sort(combined_pdf.flatten())
+        combined_perc_values = np.sort(combined_cdf.flatten())
 
         # Find the percentile values from this combined data by interpolating
         # back from probability values to the original percentiles.
@@ -662,7 +661,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 The cube with percentile values blended over self.blend_coord,
                 with suitable weightings applied.
         """
-        weights_array = self.percentile_weights(cube, weights)
+        # weights_array = self.percentile_weights(cube, weights)
+        non_perc_slice = next(cube.slices_over(PERC_COORD))
+        weights_array = self.non_percentile_weights(non_perc_slice, weights)
 
         # Check the weights add up to 1 across the blending dimension
         self.check_weights(weights_array, 0)

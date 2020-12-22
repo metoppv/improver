@@ -58,7 +58,7 @@ def find_blend_dim_coord(cube, blend_coord):
             msg = (
                 "Blend coordinate must only be across one dimension. Coordinate "
                 f"{blend_coord} is associated with dimensions {blend_dim}."
-            )  
+            )
         raise ValueError(msg)
 
     return cube.coord(dimensions=blend_dim[0], dim_coords=True).name()

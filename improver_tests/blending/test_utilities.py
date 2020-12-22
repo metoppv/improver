@@ -45,17 +45,21 @@ def input_cube_fixture():
     thresholds = [10, 20]
     data = np.ones((2, 2, 2), dtype=np.float32)
     frt_list = [
-        datetime(2017, 11, 10, 0), datetime(2017, 11, 10, 1), datetime(2017, 11, 10, 2)
+        datetime(2017, 11, 10, 0),
+        datetime(2017, 11, 10, 1),
+        datetime(2017, 11, 10, 2),
     ]
     cycle_cubes = iris.cube.CubeList([])
     for frt in frt_list:
-        cycle_cubes.append(set_up_probability_cube(
-            data,
-            thresholds,
-            spatial_grid="equalarea",
-            time=datetime(2017, 11, 10, 4, 0),
-            frt=frt,
-        ))
+        cycle_cubes.append(
+            set_up_probability_cube(
+                data,
+                thresholds,
+                spatial_grid="equalarea",
+                time=datetime(2017, 11, 10, 4, 0),
+                frt=frt,
+            )
+        )
     return cycle_cubes.merge_cube()
 
 
