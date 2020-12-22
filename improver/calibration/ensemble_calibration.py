@@ -99,7 +99,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     # as part of the minimisation.
     BAD_VALUE = np.float64(999999)
 
-    def __init__(self, tolerance=0.01, max_iterations=1000):
+    def __init__(self, tolerance=0.02, max_iterations=1000):
         """
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
@@ -398,7 +398,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         """
         if predictor.lower() == "mean":
             a, b, gamma, delta = initial_guess
-            a_b = np.array([a, b], dtype=np.float64)
+            mu = (forecast_predictor * b) + a
+
         elif predictor.lower() == "realizations":
             a, b, gamma, delta = (
                 initial_guess[0],
@@ -408,9 +409,10 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             )
             a_b = np.array([a] + b.tolist(), dtype=np.float64)
 
-        new_col = np.ones(truth.shape, dtype=np.float32)
-        all_data = np.column_stack((new_col, forecast_predictor))
-        mu = np.dot(all_data, a_b)
+            new_col = np.ones(truth.shape, dtype=np.float32)
+            all_data = np.column_stack((new_col, forecast_predictor))
+            mu = np.dot(all_data, a_b)
+
         sigma = np.sqrt(gamma ** 2 + delta ** 2 * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
@@ -418,6 +420,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         x0 = mu / sigma
         normal_cdf_0 = norm.cdf(x0)
         normal_cdf_root_two = norm.cdf(np.sqrt(2) * x0)
+
         if np.isfinite(np.min(mu / sigma)) or (np.min(mu / sigma) >= -3):
             result = np.nanmean(
                 (sigma / normal_cdf_0 ** 2)
