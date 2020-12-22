@@ -474,7 +474,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             ValueError : If blending over forecast reference time on a cube
                          with multiple times.
         """
-        if self.timeblending is True:
+        if self.timeblending:
             return
 
         time_points = cube.coord("time").points
@@ -488,7 +488,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
     @staticmethod
     def shape_weights(cube, weights):
         """
-        The function shapes weights to match the diagnostic cube. A 1D cube of
+        The function shapes weights to match the diagnostic cube. A cube of
         weights that vary across the blending coordinate will be broadcast to
         match the complete multidimensional cube shape. A multidimensional cube
         of weights will be checked to ensure that the coordinate names match
@@ -532,6 +532,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                         "found on the cube we are trying to collapse."
                     )
                     raise ValueError(message.format(dim_coord))
+
             try:
                 weights_array = iris.util.broadcast_to_shape(
                     np.array(weights.data, dtype=FLOAT_DTYPE),
@@ -572,72 +573,24 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         if not (np.isclose(sum_of_non_zero_weights, 1)).all():
             raise ValueError(msg)
 
-    def non_percentile_weights(self, cube, weights):
+    def get_weights_array(self, cube, weights):
         """
         Given a 1 or multidimensional cube of weights, reshape and broadcast
-        these in such a way as to make them applicable to the data cube. If no
-        weights are provided, an array of weights is returned that equally
-        weights all slices across the blending coordinate of the cube.
+        these to the shape of the data cube. If no weights are provided, an
+        array of weights is returned that equally weights all slices across
+        the blending coordinate.
 
         Args:
             cube (iris.cube.Cube):
-                The data cube on which a coordinate is being blended.
+                Template cube to reshape weights, with a leading blend coordinate
             weights (iris.cube.Cube or None):
-                Cube of blending weights or None.
+                Cube of initial blending weights or None
         Returns:
             numpy.ndarray:
-                An array of weights that matches the cube data shape.
+                An array of weights that matches the template cube shape.
         """
         if weights:
             weights_array = self.shape_weights(cube, weights)
-        else:
-            (number_of_fields,) = cube.coord(self.blend_coord).shape
-            weight = FLOAT_DTYPE(1.0 / number_of_fields)
-            weights_array = np.broadcast_to(weight, cube.shape)
-
-        return weights_array
-
-    def percentile_weights(self, cube, weights):
-        """
-        Given a 1, or multidimensional cube of weights, reshape and broadcast
-        these in such a way as to make them applicable to the data cube. If no
-        weights are provided, an array of weights is returned that equally
-        weights all slices across the blending coordinate of the cube.
-
-        For percentiles the dimensionality of the weights cube is checked
-        against the cube without including the percentile coordinate for
-        which no weights are likely to ever be provided (e.g. we don't want to
-        weight different percentiles differently across the blending
-        coordinate). Reshape and broadcast to match the data shape excluding
-        the percentile dimension before finally broadcasting to match at the
-        end.
-
-        Args:
-            cube (iris.cube.Cube):
-                The data cube on which a coordinate is being blended.
-            weights (iris.cube.Cube or None):
-                Cube of blending weights or None.
-
-        Returns:
-            numpy.ndarray:
-                An array of weights that matches the cube data shape.
-        """
-        non_perc_crds = [
-            crd.name()
-            for crd in cube.coords(dim_coords=True)
-            if not crd.name() == PERC_COORD
-        ]
-        non_perc_slice = next(cube.slices(non_perc_crds))
-        crd_dims = [cube.coord_dims(crd)[0] for crd in non_perc_crds]
-
-        # Broadcast weights to shape of input cube excluding percentile
-        # coordinate (eg to self.blend_coord, y, x for an input cube of
-        # self.blend_coord, perc, y, x)
-        if weights:
-            weights_array = self.shape_weights(non_perc_slice, weights)
-            weights_array = iris.util.broadcast_to_shape(
-                weights_array, cube.shape, tuple(crd_dims)
-            )
         else:
             (number_of_fields,) = cube.coord(self.blend_coord).shape
             weight = FLOAT_DTYPE(1.0 / number_of_fields)
@@ -661,9 +614,8 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 The cube with percentile values blended over self.blend_coord,
                 with suitable weightings applied.
         """
-        # weights_array = self.percentile_weights(cube, weights)
         non_perc_slice = next(cube.slices_over(PERC_COORD))
-        weights_array = self.non_percentile_weights(non_perc_slice, weights)
+        weights_array = self.get_weights_array(non_perc_slice, weights)
 
         # Check the weights add up to 1 across the blending dimension
         self.check_weights(weights_array, 0)
@@ -700,7 +652,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 The cube with values blended over self.blend_coord, with
                 suitable weightings applied.
         """
-        weights_array = self.non_percentile_weights(cube, weights)
+        weights_array = self.get_weights_array(cube, weights)
 
         slice_dim = 1
         allow_slicing = cube.ndim > 3

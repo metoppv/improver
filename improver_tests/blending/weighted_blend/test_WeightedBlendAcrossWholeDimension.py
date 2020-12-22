@@ -354,62 +354,42 @@ class Test_shape_weights(Test_weighted_blend):
             plugin.shape_weights(self.cube[:1], self.weights1d)
 
 
-class Test_percentile_weights(Test_weighted_blend):
+class Test_get_weights_array(Test_weighted_blend):
 
-    """Test the percentile_weights function."""
-
-    def test_no_weights_cube_provided(self):
-        """Test that if a weights cube is not provided, the function generates
-        a weights array that will equally weight all fields along the blending
-        coordinate."""
-        plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        enforce_coordinate_ordering(self.perc_cube, [self.coord])
-        (blending_coord_length,) = self.perc_cube.coord(self.coord).shape
-        expected = np.full_like(self.perc_cube.data, 1.0 / blending_coord_length)
-        result = plugin.percentile_weights(self.perc_cube, None)
-        self.assertEqual(expected.shape, result.shape)
-        self.assertArrayEqual(expected, result)
-
-    def test_1D_weights_3D_cube_percentile_weighted_mean(self):
-        """Test a 1D cube of weights results in a 3D array of weights of an
-        appropriate shape for a percentile cube. In this case the collapse
-        coordinate is moved to the leading position and the percentile
-        coordinate is second."""
-        plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        enforce_coordinate_ordering(self.perc_cube, [self.coord])
-        expected = np.empty_like(self.perc_cube.data)
-        result = plugin.percentile_weights(self.perc_cube, self.weights1d)
-        self.assertEqual(expected.shape, result.shape)
-        self.assertArrayEqual(self.weights1d.data, result[:, 0, 0, 0])
-
-    def test_3D_weights_3D_cube_percentile_weighted_mean(self):
-        """Test a 3D cube of weights results in a 3D array of weights of the
-        same shape as the data cube. In this case the cube is a percentile
-        cube and so has an additional dimension that must be accounted for."""
-        plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        enforce_coordinate_ordering(self.perc_cube, [self.coord])
-        expected = np.empty_like(self.perc_cube.data)
-        result = plugin.percentile_weights(self.perc_cube, self.weights3d)
-        self.assertEqual(expected.shape, result.shape)
-        self.assertArrayEqual(self.weights3d.data, result[:, 0, :, :])
-
-
-class Test_non_percentile_weights(Test_weighted_blend):
-
-    """Test the non_percentile_weights function."""
+    """Test the get_weights_array function."""
 
     def test_no_weights_cube_provided(self):
         """Test that if a weights cube is not provided, the function generates
         a weights array that will equally weight all fields along the blending
         coordinate."""
         plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        result = plugin.non_percentile_weights(self.cube, None)
+        result = plugin.get_weights_array(self.cube, None)
         (blending_coord_length,) = self.cube.coord(self.coord).shape
         expected = (np.ones(blending_coord_length) / blending_coord_length).astype(
             np.float32
         )
         self.assertEqual(self.cube.shape, result.shape)
         self.assertArrayEqual(expected, result[:, 0, 0])
+
+    def test_1D_weights(self):
+        """Test a 1D cube of weights results in a 3D array of weights of an
+        appropriate shape."""
+        plugin = WeightedBlendAcrossWholeDimension(self.coord)
+        enforce_coordinate_ordering(self.perc_cube, [self.coord])
+        expected = np.empty_like(self.cube.data)
+        result = plugin.get_weights_array(self.cube, self.weights1d)
+        self.assertEqual(expected.shape, result.shape)
+        self.assertArrayEqual(self.weights1d.data, result[:, 0, 0])
+
+    def test_3D_weights(self):
+        """Test a 3D cube of weights results in a 3D array of weights of the
+        same shape as the data cube."""
+        plugin = WeightedBlendAcrossWholeDimension(self.coord)
+        enforce_coordinate_ordering(self.perc_cube, [self.coord])
+        expected = np.empty_like(self.cube.data)
+        result = plugin.get_weights_array(self.cube, self.weights3d)
+        self.assertEqual(expected.shape, result.shape)
+        self.assertArrayEqual(self.weights3d.data, result[:, :, :])
 
 
 class Test_check_weights(Test_weighted_blend):
