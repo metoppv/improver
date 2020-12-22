@@ -65,9 +65,6 @@ from improver.utilities.round import round_close
 from improver.utilities.temporal import cycletime_to_number
 
 
-import pdb
-
-
 class MergeCubesForWeightedBlending(BasePlugin):
     """Prepares cubes for cycle and grid blending"""
 
@@ -268,7 +265,7 @@ class PercentileBlendingAggregator:
     """
 
     @staticmethod
-    def aggregate(data, axis, arr_percent, arr_weights):
+    def aggregate(data, axis, percentiles, arr_weights):
         """
         Function to blend percentile data over a given dimension.
         The input percentile data must be provided with the blend coord as the
@@ -282,15 +279,15 @@ class PercentileBlendingAggregator:
             axis (int):
                 The index of the coordinate dimension in the cube. This
                 dimension will be aggregated over.
-            arr_percent (numpy.ndarray):
+            percentiles (numpy.ndarray):
                 Array of percentile values e.g [0, 20.0, 50.0, 70.0, 100.0],
-                same size as the percentile dimension of data.
+                same size as the percentile (second) dimension of data.
             arr_weights (numpy.ndarray):
                 Array of weights, same shape as data, but without the percentile
                 dimension (weights do not vary with percentile).
 
-            (Note "percent" and "weights" have special meaning in Aggregator,
-             hence using different names for these variables.)
+        Note "weights" has special meaning in Aggregator, hence
+        using a different name for this variable.
 
         Returns:
             numpy.ndarray:
@@ -319,10 +316,10 @@ class PercentileBlendingAggregator:
         result = np.zeros(flattened_shape[1:], dtype=FLOAT_DTYPE)
         for i in range(data.shape[-1]):
             result[:, i] = PercentileBlendingAggregator.blend_percentiles(
-                data[:, :, i], arr_percent, arr_weights[:, i]
+                data[:, :, i], percentiles, arr_weights[:, i]
             )
         # Reshape the data with a leading percentile dimension
-        shape = arr_percent.shape + shape
+        shape = percentiles.shape + shape
         result = result.reshape(shape)
         return result
 
@@ -347,10 +344,8 @@ class PercentileBlendingAggregator:
                 Array containing the weighted percentile blend data
                 across the chosen coord
         """
-        # Find the size of the dimension we want to blend over.
-        num = perc_values.shape[0]
-        # Create an array to store the weighted blending pdf
-        combined_cdf = np.zeros((num, len(percentiles)), dtype=FLOAT_DTYPE)
+        inputs_to_blend = perc_values.shape[0]
+        combined_cdf = np.zeros((inputs_to_blend, len(percentiles)), dtype=FLOAT_DTYPE)
         # Loop over the axis we are blending over finding the values for the
         # probability at each threshold in the pdf, for each of the other
         # points in the axis we are blending over. Use the values from the
@@ -358,8 +353,8 @@ class PercentileBlendingAggregator:
         # interpolation.
         # Then add the probabilities multiplied by the correct weight to the
         # running total.
-        for i in range(0, num):
-            for j in range(0, num):
+        for i in range(0, inputs_to_blend):
+            for j in range(0, inputs_to_blend):
                 if i == j:
                     values_in_cdf = percentiles
                 else:
@@ -630,7 +625,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             cube,
             self.blend_coord,
             PERCENTILE_BLEND,
-            arr_percent=cube.coord(PERC_COORD).points,
+            percentiles=cube.coord(PERC_COORD).points,
             arr_weights=weights_array,
         )
 

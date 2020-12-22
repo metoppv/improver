@@ -30,10 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Test utilities to support weighted blending"""
 
+from datetime import datetime
+
 import iris
 import numpy as np
 import pytest
-from datetime import datetime
 
 from improver.blending.utilities import find_blend_dim_coord
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
