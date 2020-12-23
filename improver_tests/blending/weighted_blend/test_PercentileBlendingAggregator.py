@@ -253,7 +253,7 @@ class Test_aggregate(IrisTest):
 
         percentiles = np.array([0, 20, 40, 60, 80, 100]).astype(np.float32)
         result = PercentileBlendingAggregator.aggregate(
-            np.reshape(PERCENTILE_DATA, (6, 3, 2, 2)), 1, percentiles, weights, 0
+            PERCENTILE_DATA, 1, percentiles, weights, 0
         )
         self.assertArrayAlmostEqual(
             result, BLENDED_PERCENTILE_DATA,
@@ -266,8 +266,7 @@ class Test_aggregate(IrisTest):
         weights = np.moveaxis(weights, (0, 1, 2), (2, 1, 0))
 
         percentiles = np.array([0, 20, 40, 60, 80, 100])
-        perc_data = np.reshape(PERCENTILE_DATA, (6, 3, 2, 2))
-        perc_data = np.moveaxis(perc_data, [0, 1], [3, 1])
+        perc_data = np.moveaxis(PERCENTILE_DATA, [0, 1], [3, 1])
         result = PercentileBlendingAggregator.aggregate(
             perc_data, 1, percentiles, weights, 3
         )
@@ -282,8 +281,7 @@ class Test_aggregate(IrisTest):
         weights = np.moveaxis(weights, (0, 1, 2), (2, 1, 0))
 
         percentiles = np.array([0, 20, 40, 60, 80, 100])
-        perc_data = np.reshape(PERCENTILE_DATA, (6, 3, 2, 2))
-        perc_data = np.moveaxis(perc_data, [0, 1], [1, 2])
+        perc_data = np.moveaxis(PERCENTILE_DATA, [0, 1], [1, 2])
         result = PercentileBlendingAggregator.aggregate(
             perc_data, 2, percentiles, weights, 1
         )

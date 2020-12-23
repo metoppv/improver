@@ -80,7 +80,7 @@ def percentile_cube(frt_points, time, frt):
         is_datetime=True,
         order=(1, 0, 2, 3),
     )
-    cube.data = np.reshape(PERCENTILE_DATA, (6, 3, 2, 2)).astype(np.float32)
+    cube.data = PERCENTILE_DATA
     return cube
 
 
