@@ -5,6 +5,7 @@ jobs:
   Sphinx-Pytest-Coverage:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         env: [py36_iris22, py37_iris24]
     steps:
@@ -50,6 +51,7 @@ jobs:
   Codestyle-and-Pylint:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         env: [py36_iris22, py37_iris24]
     steps:
@@ -91,6 +93,7 @@ jobs:
   Safety-Bandit:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         env: [py36_iris22, py37_iris24]
     steps:
