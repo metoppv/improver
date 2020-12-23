@@ -1,7 +1,7 @@
 # Use this file to create a conda environment using:
-# conda create -n <name> --file envs/environment_py37_iris24.yml
+# conda env create --file envs/environment_py37_iris24.yml
 
-name: improver
+name: improver_py37_iris24
 channels:
   - conda-forge
 dependencies:

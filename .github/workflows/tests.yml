@@ -21,11 +21,12 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver
+        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
     - name: conda activate
       run: |
+        echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate improver
+        conda activate improver_${{ matrix.env }}
         conda info
         conda list
     - name: sphinx-build
@@ -58,11 +59,12 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver
+        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
     - name: conda activate
       run: |
+        echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate improver
+        conda activate improver_${{ matrix.env }}
         conda info
         conda list
     - name: isort
@@ -90,11 +92,12 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver
+        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
     - name: conda activate
       run: |
+        echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate improver
+        conda activate improver_${{ matrix.env }}
         conda info
         conda list
     - name: safety
