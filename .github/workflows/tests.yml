@@ -22,21 +22,28 @@ jobs:
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
-    - name: conda activate
+    - name: conda info
       run: |
-        echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda activate improver_${{ matrix.env }}
         conda info
         conda list
     - name: sphinx-build
-      run: make -C doc html SPHINXOPTS="-W --keep-going"
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        make -C doc html SPHINXOPTS="-W --keep-going"
     - name: pytest unit-tests & cov-report
       run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
         pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
     - name: codacy-coverage
       if: env.CODACY_PROJECT_TOKEN
-      run: python-codacy-coverage -v -r coverage.xml
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        python-codacy-coverage -v -r coverage.xml
       env:
         CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
     - uses: codecov/codecov-action@v1
@@ -60,19 +67,27 @@ jobs:
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
-    - name: conda activate
+    - name: conda info
       run: |
-        echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda activate improver_${{ matrix.env }}
         conda info
         conda list
     - name: isort
-      run:  isort --check-only --recursive .
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        isort --check-only --recursive .
     - name: black
-      run:  black --check .
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        black --check .
     - name: pylint
-      run: pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests
   Safety-Bandit:
     runs-on: ubuntu-latest
     strategy:
@@ -93,14 +108,19 @@ jobs:
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
-    - name: conda activate
+    - name: conda info
       run: |
-        echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda activate improver_${{ matrix.env }}
         conda info
         conda list
     - name: safety
-      run:  safety check || true
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        safety check || true
     - name: bandit
-      run:  bandit -r improver || true
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        bandit -r improver || true
