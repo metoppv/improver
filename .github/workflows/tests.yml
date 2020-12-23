@@ -13,10 +13,10 @@ jobs:
       id: cache
       env:
         # Increase this value to reset cache
-        CACHE_NUMBER: 1
+        CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles('envs/${{ matrix.envfile }}') }}
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ matrix.envfile }}-${{ hashFiles('envs/**.yml') }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
@@ -24,11 +24,12 @@ jobs:
         conda env update -q --file envs/${{ matrix.envfile }} --name improver
     - name: conda activate
       run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
+    - name: conda list
+      run: conda list --export
     - name: sphinx-build
       run: make -C doc html SPHINXOPTS="-W --keep-going"
     - name: pytest unit-tests & cov-report
       run: |
-        conda list --export
         pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
     - name: codacy-coverage
       if: env.CODACY_PROJECT_TOKEN
@@ -47,10 +48,10 @@ jobs:
       id: cache
       env:
         # Increase this value to reset cache
-        CACHE_NUMBER: 1
+        CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles('envs/${{ matrix.envfile }}') }}
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ matrix.envfile }}-${{ hashFiles('envs/**.yml') }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
@@ -58,6 +59,8 @@ jobs:
         conda env update -q --file envs/${{ matrix.envfile }} --name improver
     - name: conda activate
       run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
+    - name: conda list
+      run: conda list --export
     - name: isort
       run:  isort --check-only --recursive .
     - name: black
@@ -75,10 +78,10 @@ jobs:
       id: cache
       env:
         # Increase this value to reset cache
-        CACHE_NUMBER: 1
+        CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles('envs/${{ matrix.envfile }}') }}
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ matrix.envfile }}-${{ hashFiles('envs/**.yml') }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
@@ -86,6 +89,8 @@ jobs:
         conda env update -q --file envs/${{ matrix.envfile }} --name improver
     - name: conda activate
       run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
+    - name: conda list
+      run: conda list --export
     - name: safety
       run:  safety check || true
     - name: bandit
