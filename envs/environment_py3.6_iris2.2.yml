@@ -21,6 +21,8 @@ dependencies:
   - pysteps
   - isort=4.3.21
   - black=19.10b0
+  - bandit
+  - safety
   - pip
   - pip:
     - od
