@@ -16,20 +16,20 @@ jobs:
         CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles('envs/**.yml') }}
-        restore-keys: ${{ runner.OS }}-conda-improver-
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles(envs/${{ matrix.envfile }}) }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda env update -q --file envs/${{ matrix.envfile }} --name improver
-        conda list --export
     - name: conda activate
       run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
     - name: sphinx-build
       run: make -C doc html SPHINXOPTS="-W --keep-going"
     - name: pytest unit-tests & cov-report
-      run: pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
+      run: |
+        conda list --export
+        pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
     - name: codacy-coverage
       if: env.CODACY_PROJECT_TOKEN
       run: python-codacy-coverage -v -r coverage.xml
@@ -50,14 +50,12 @@ jobs:
         CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles('envs/**.yml') }}
-        restore-keys: ${{ runner.OS }}-conda-improver-
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles(envs/${{ matrix.envfile }}) }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda env update -q --file envs/${{ matrix.envfile }} --name improver
-        conda list --export
     - name: conda activate
       run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
     - name: isort
@@ -80,14 +78,12 @@ jobs:
         CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles('envs/**.yml') }}
-        restore-keys: ${{ runner.OS }}-conda-improver-
+        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles(envs/${{ matrix.envfile }}) }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda env update -q --file envs/${{ matrix.envfile }} --name improver
-        conda list --export
     - name: conda activate
       run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
     - name: safety
