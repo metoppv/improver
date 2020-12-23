@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        envfile: [environment_py3.6_iris2.2.yml, environment_py3.7_iris2.4.yml]
+        env: [py36_iris22, py37_iris24]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
@@ -16,16 +16,18 @@ jobs:
         CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ matrix.envfile }}-${{ hashFiles('envs/**.yml') }}
+        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/environment_{0}.yml', matrix.env))) }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file envs/${{ matrix.envfile }} --name improver
+        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver
     - name: conda activate
-      run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
-    - name: conda list
-      run: conda list --export
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver
+        conda info
+        conda list
     - name: sphinx-build
       run: make -C doc html SPHINXOPTS="-W --keep-going"
     - name: pytest unit-tests & cov-report
@@ -41,7 +43,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        envfile: [environment_py3.6_iris2.2.yml, environment_py3.7_iris2.4.yml]
+        env: [py36_iris22, py37_iris24]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
@@ -51,16 +53,18 @@ jobs:
         CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ matrix.envfile }}-${{ hashFiles('envs/**.yml') }}
+        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/environment_{0}.yml', matrix.env))) }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file envs/${{ matrix.envfile }} --name improver
+        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver
     - name: conda activate
-      run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
-    - name: conda list
-      run: conda list --export
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver
+        conda info
+        conda list
     - name: isort
       run:  isort --check-only --recursive .
     - name: black
@@ -71,7 +75,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        envfile: [environment_py3.6_iris2.2.yml, environment_py3.7_iris2.4.yml]
+        env: [py36_iris22, py37_iris24]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
@@ -81,16 +85,18 @@ jobs:
         CACHE_NUMBER: 0
       with:
         path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ matrix.envfile }}-${{ hashFiles('envs/**.yml') }}
+        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/environment_{0}.yml', matrix.env))) }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file envs/${{ matrix.envfile }} --name improver
+        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver
     - name: conda activate
-      run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
-    - name: conda list
-      run: conda list --export
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver
+        conda info
+        conda list
     - name: safety
       run:  safety check || true
     - name: bandit
