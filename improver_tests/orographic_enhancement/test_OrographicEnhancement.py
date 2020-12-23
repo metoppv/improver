@@ -610,7 +610,7 @@ class Test__get_point_distances(IrisTest):
         expected_data = np.array([slice_0, slice_1, slice_2, slice_3, slice_4])
 
         distance = self.plugin._get_point_distances(self.wind_speed, self.max_sin_cos)
-        self.assertTrue(np.allclose(distance, expected_data, equal_nan=True))
+        np.testing.assert_allclose(distance, expected_data, equal_nan=True)
 
 
 class Test__locate_source_points(IrisTest):
