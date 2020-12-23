@@ -39,12 +39,19 @@ from iris.tests import IrisTest
 from improver.blending.weighted_blend import PercentileBlendingAggregator
 
 
-def gen_percentile_data(shape, perc_axis=0):
+def gen_percentile_data():
     """
     The initial data below were generated using a call to np.random.rand.
     The numbers were then scaled between 12 and 18, envisaged as Spring or
     Autumn temperatures in Celsius.  These data are reshaped and sorted so that
-    the data are in ascending order along the "percentile" axis.
+    the data are in ascending order along the first axis, suitable for a cube
+    with a leading "percentile" dimension.
+
+    Returns:
+        np.ndarray:
+            4D array of shape (6, 3, 2, 2) with a leading "percentile" dimension,
+            along which data values are sorted in ascending order
+
     """
     initial_data = np.array(
         [
@@ -123,11 +130,11 @@ def gen_percentile_data(shape, perc_axis=0):
         ],
         dtype=np.float32,
     )
-    reshaped_data = initial_data.reshape(shape)
-    return np.sort(reshaped_data, axis=perc_axis)
+    reshaped_data = initial_data.reshape((6, 3, 2, 2))
+    return np.sort(reshaped_data, axis=0)
 
 
-PERCENTILE_DATA = gen_percentile_data((6, 3, 2, 2))
+PERCENTILE_DATA = gen_percentile_data()
 
 WEIGHTS = np.array(
     [[[0.8, 0.8], [0.8, 0.8]], [[0.5, 0.5], [0.5, 0.5]], [[0.2, 0.2], [0.2, 0.2]]],
