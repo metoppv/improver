@@ -239,6 +239,15 @@ class Test_aggregate(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
         self.assertEqual(result.shape, expected_result_shape)
 
+    def test_error_unmatched_weights(self):
+        """Test error when weights shape doesn't match length of blend dimension
+        (in this case 3 weights for 2 blend slices)"""
+        weights = generate_matching_weights_array([0.7, 0.1, 0.2], 1)
+        percentiles = np.array([0, 50, 100])
+        perc_data = np.array([[1.0, 2.0], [5.0, 5.0], [10.0, 9.0]])
+        with self.assertRaisesRegex(ValueError, "Weights shape does not match data"):
+            PercentileBlendingAggregator.aggregate(perc_data, 1, percentiles, weights)
+
 
 class Test_blend_percentiles(IrisTest):
     """Test the blend_percentiles method"""
