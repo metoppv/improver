@@ -53,7 +53,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [py36_iris22, py37_iris24]
+        env: [py36_iris22]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
