@@ -107,9 +107,9 @@ def process(
     """
     import numpy as np
 
-    from improver.blending.calculate_weights_and_blend import WeightAndBlend
     from improver.metadata.probabilistic import in_vicinity_name_format
     from improver.threshold import BasicThreshold
+    from improver.utilities.cube_manipulation import collapse_realizations
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
     if threshold_config and threshold_values:
@@ -141,11 +141,12 @@ def process(
         # smooth thresholded occurrences over local vicinity
         each_threshold_func_list.append(OccurrenceWithinVicinity(vicinity))
 
-    if collapse_coord is not None:
-        # Take a weighted mean across realizations with equal weights
-        each_threshold_func_list.append(
-            WeightAndBlend(collapse_coord, "linear", y0val=1.0, ynval=1.0)
-        )
+    if collapse_coord == "realization":
+        # TODO change collapse_coord argument to boolean "collapse_realizations"
+        # (requires suite change)
+        each_threshold_func_list.append(collapse_realizations)
+    elif collapse_coord is not None:
+        raise ValueError("Cannot collapse over non-realization coordinate")
 
     result = BasicThreshold(
         thresholds,
