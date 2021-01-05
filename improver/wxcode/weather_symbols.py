@@ -60,6 +60,26 @@ from improver.wxcode.wxcode_decision_tree_global import (
 )
 
 
+def _define_invertible_conditions():
+    """Returns a dictionary of boolean comparator strings where the value is the
+    logical inverse of the key."""
+    invertible_conditions = {
+        ">=": "<",
+        ">": "<=",
+        "OR": "AND",
+        "": "",
+    }
+    # Add reverse {value: key} entries to invertible_conditions
+    reverse_inversions = {}
+    for k, v in invertible_conditions.items():
+        reverse_inversions[v] = k
+    invertible_conditions.update(reverse_inversions)
+    return invertible_conditions
+
+
+INVERTIBLE_CONDITIONS = _define_invertible_conditions()
+
+
 class WeatherSymbols(BasePlugin):
     """
     Definition and implementation of a weather symbol decision tree. This
@@ -228,12 +248,20 @@ class WeatherSymbols(BasePlugin):
         return optional_node_data_missing
 
     @staticmethod
-    def invert_condition(test_conditions):
+    def _invert_comparator(comparator):
+        """Inverts a single comparator string."""
+        try:
+            return INVERTIBLE_CONDITIONS[comparator]
+        except KeyError:
+            raise KeyError(f"Unexpected condition {comparator}, cannot invert it.")
+
+    def invert_condition(self, condition):
         """
-        Invert a comparison condition to select the negative case.
+        Invert a comparison condition to allow positive identification of conditions
+        satisfying the negative ('fail') case.
 
         Args:
-            test_conditions (dict):
+            condition (dict):
                 A single query from the decision tree.
         Returns:
             (tuple): tuple containing:
@@ -242,23 +270,10 @@ class WeatherSymbols(BasePlugin):
                 **inverted_combination** (str):
                     A string representing the inverted combination
         """
-        threshold = test_conditions["threshold_condition"]
-        inverted_threshold = threshold
-        if threshold == ">=":
-            inverted_threshold = "<"
-        elif threshold == "<=":
-            inverted_threshold = ">"
-        elif threshold == "<":
-            inverted_threshold = ">="
-        elif threshold == ">":
-            inverted_threshold = "<="
-        combination = test_conditions["condition_combination"]
-        inverted_combination = combination
-        if combination == "OR":
-            inverted_combination = "AND"
-        elif combination == "AND":
-            inverted_combination = "OR"
-
+        inverted_threshold = self._invert_comparator(condition["threshold_condition"])
+        inverted_combination = self._invert_comparator(
+            condition["condition_combination"]
+        )
         return inverted_threshold, inverted_combination
 
     @staticmethod

@@ -196,6 +196,16 @@ class Test_process(IrisTest):
 
         self.cubelist = iris.cube.CubeList([self.cube_enuk, self.cube_ukv])
 
+        # set up a nowcast cube
+        self.cube_nowcast = set_up_probability_cube(
+            data.copy(),
+            thresholds,
+            standard_grid_metadata="nc_det",
+            time=time_point,
+            frt=dt(2015, 11, 23, 3, 15),
+            time_bounds=time_bounds,
+        )
+
         # set up some non-UK test cubes
         cube_non_mo_ens = self.cube_enuk.copy()
         cube_non_mo_ens.attributes.pop("mosg__model_configuration")
@@ -391,15 +401,6 @@ class Test_process(IrisTest):
     def test_handling_blend_time(self):
         """Test merging works with mismatched and / or missing blend time
         coordinates"""
-        cube_nowcast = self.cube_ukv.copy()
-        cube_nowcast.coord("forecast_reference_time").points = (
-            cube_nowcast.coord("forecast_reference_time").points[0] + 900
-        )
-        cube_nowcast.coord("forecast_period").points = (
-            cube_nowcast.coord("forecast_period").points[0] - 900
-        )
-        cube_nowcast.attributes["mosg__model_configuration"] = "nc_det"
-
         blend_time_ukv = self.cube_ukv.coord("forecast_reference_time").copy()
         blend_time_ukv.rename("blend_time")
         self.cube_ukv.add_aux_coord(blend_time_ukv)
@@ -411,8 +412,22 @@ class Test_process(IrisTest):
         plugin = MergeCubesForWeightedBlending(
             "model_id", model_id_attr="mosg__model_configuration"
         )
-        result = plugin([cube_nowcast, self.cube_ukv, self.cube_enuk])
+        result = plugin([self.cube_nowcast, self.cube_ukv, self.cube_enuk])
         self.assertNotIn("blend_time", get_coord_names(result))
+
+    def test_forecast_coord_deprecation(self):
+        """Test merging works if some (but not all) inputs have previously been cycle
+        blended"""
+        for cube in [self.cube_ukv, self.cube_enuk]:
+            for coord in ["forecast_period", "forecast_reference_time"]:
+                cube.coord(coord).attributes.update({"deprecation_message": "blah"})
+
+        plugin = MergeCubesForWeightedBlending(
+            "model_id", model_id_attr="mosg__model_configuration"
+        )
+        result = plugin([self.cube_nowcast, self.cube_ukv, self.cube_enuk])
+        for coord in ["forecast_period", "forecast_reference_time"]:
+            self.assertNotIn("deprecation_message", result.coord(coord).attributes)
 
 
 if __name__ == "__main__":

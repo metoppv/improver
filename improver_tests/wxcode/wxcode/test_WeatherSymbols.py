@@ -381,6 +381,17 @@ class Test_invert_condition(IrisTest):
             result = plugin.invert_condition(node)
             self.assertEqual(result[1], inverse_outputs[i])
 
+    def test_error(self):
+        """Test that the _invert_comparator method raises an error when the condition
+        cannot be inverted."""
+        plugin = WeatherSymbols()
+        possible_inputs = ["==", "!=", "NOT", "XOR"]
+        for val in possible_inputs:
+            with self.assertRaisesRegex(
+                KeyError, f"Unexpected condition {val}, cannot invert it."
+            ):
+                plugin._invert_comparator(val)
+
 
 class Test_construct_condition(IrisTest):
 

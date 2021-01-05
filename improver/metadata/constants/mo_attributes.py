@@ -35,7 +35,7 @@ STAGE_VERSION = "1.3.0"
 
 MOSG_GRID_ATTRIBUTES = {"mosg__grid_type", "mosg__grid_version", "mosg__grid_domain"}
 
-# Define current StaGE grid metadata
+# Define current StaGE and MONOW grid metadata
 MOSG_GRID_DEFINITION = {
     "uk_ens": {
         "mosg__grid_type": GRID_TYPE,
@@ -61,6 +61,7 @@ MOSG_GRID_DEFINITION = {
         "mosg__grid_domain": "global",
         "mosg__grid_version": STAGE_VERSION,
     },
+    "nc_det": {"mosg__model_configuration": "nc_det",},
 }
 
 # Map correct metadata from StaGE v1.1.0

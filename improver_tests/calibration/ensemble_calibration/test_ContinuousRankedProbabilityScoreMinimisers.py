@@ -60,7 +60,7 @@ class Test__repr__(IrisTest):
             "<ContinuousRankedProbabilityScoreMinimisers: "
             "minimisation_dict: {'norm': 'calculate_normal_crps', "
             "'truncnorm': 'calculate_truncated_normal_crps'}; "
-            "tolerance: 0.01; max_iterations: 1000>"
+            "tolerance: 0.02; max_iterations: 1000>"
         )
         self.assertEqual(result, msg)
 

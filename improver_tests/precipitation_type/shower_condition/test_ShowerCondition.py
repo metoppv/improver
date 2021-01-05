@@ -30,9 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for ShowerCondition plugin"""
 
-import iris
 import numpy as np
 import pytest
+from iris.cube import CubeList
 
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.precipitation_type.shower_condition import ShowerCondition
@@ -121,8 +121,8 @@ def test_basic(cloud_texture_cube):
         "source": "IMPROVER",
         "title": "unknown",
     }
-
-    result = ShowerCondition()(cloud_texture=cloud_texture_cube)
+    cubes = [cloud_texture_cube]
+    result = ShowerCondition()(CubeList(cubes))
     dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
     aux_coords = {coord.name() for coord in result.coords(dim_coords=False)}
 
@@ -137,38 +137,34 @@ def test_basic(cloud_texture_cube):
 
 def test_uk_tree(cloud_texture_cube):
     """Test correct shower diagnosis using UK decision tree"""
-    result = ShowerCondition()(cloud_texture=cloud_texture_cube)
+    cubes = [cloud_texture_cube]
+    result = ShowerCondition()(CubeList(cubes))
     np.testing.assert_allclose(result.data, EXPECTED_UK)
 
 
 def test_global_tree(cloud_cube, conv_ratio_cube):
     """Test correct shower diagnosis using global decision tree"""
-    result = ShowerCondition()(cloud=cloud_cube, conv_ratio=conv_ratio_cube)
+    cubes = [cloud_cube, conv_ratio_cube]
+    result = ShowerCondition()(CubeList(cubes))
     np.testing.assert_allclose(result.data, EXPECTED_GLOBAL)
 
 
 def test_too_many_inputs(cloud_texture_cube, cloud_cube, conv_ratio_cube):
     """Test default behaviour using UK tree if all fields are provided"""
-    result = ShowerCondition()(
-        cloud_texture=cloud_texture_cube, cloud=cloud_cube, conv_ratio=conv_ratio_cube
-    )
+    cubes = [cloud_texture_cube, cloud_cube, conv_ratio_cube]
+    result = ShowerCondition()(CubeList(cubes))
     np.testing.assert_allclose(result.data, EXPECTED_UK)
 
 
 def test_too_few_inputs(cloud_cube):
     """Test error if too few inputs are provided"""
+    cubes = [cloud_cube]
     with pytest.raises(ValueError, match="Incomplete inputs"):
-        ShowerCondition()(cloud=cloud_cube)
+        ShowerCondition()(CubeList(cubes))
 
 
 def test_missing_threshold(cloud_texture_cube):
     """Test error if the required threshold is missing"""
-    cube = cloud_texture_cube[0]
+    cubes = [cloud_texture_cube[0]]
     with pytest.raises(ValueError, match="contain required threshold"):
-        ShowerCondition()(cloud_texture=cube)
-
-
-def test_below_threshold(below_threshold_cube):
-    """Test error if the cube contains probabilities below threshold"""
-    with pytest.raises(ValueError, match="Expected.*above threshold"):
-        ShowerCondition()(cloud_texture=below_threshold_cube)
+        ShowerCondition()(CubeList(cubes))

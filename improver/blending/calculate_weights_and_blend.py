@@ -173,8 +173,10 @@ class WeightAndBlend(BasePlugin):
         grid_cells = distance_to_number_of_grid_cells(
             cube, fuzzy_length, return_int=False
         )
-        plugin = SpatiallyVaryingWeightsFromMask(grid_cells)
-        weights = plugin(cube, weights, self.blend_coord)
+        plugin = SpatiallyVaryingWeightsFromMask(
+            self.blend_coord, fuzzy_length=grid_cells
+        )
+        weights = plugin(cube, weights)
         return weights
 
     def _update_metadata_only(self, cube, attributes_dict, cycletime):
@@ -190,6 +192,10 @@ class WeightAndBlend(BasePlugin):
 
         (result,) = rebadge_forecasts_as_latest_cycle([result], cycletime)
         if self.blend_coord in ["forecast_reference_time", "model_id"]:
+            for coord in ["forecast_period", "forecast_reference_time"]:
+                msg = f"{coord} will be removed in future and should not be used"
+                result.coord(coord).attributes.update({"deprecation_message": msg})
+
             if cycletime is not None:
                 add_blend_time(result, cycletime)
             else:

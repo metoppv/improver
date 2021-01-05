@@ -81,8 +81,7 @@ class ShowerCondition(BasePlugin):
                 "operator": "above",
             },
         }
-        self.relative_to_threshold = "above"
-        self.cubes = None
+        self.cubes = []
         self.tree = None
 
     def _calculate_shower_condition(self, shape):
@@ -90,10 +89,6 @@ class ShowerCondition(BasePlugin):
         showery_points = np.ones(shape, dtype=FLOAT_DTYPE)
         for cube in self.cubes:
             name = extract_diagnostic_name(cube.name())
-            if probability_is_above_or_below(cube) != self.relative_to_threshold:
-                msg = "Expected cube of {} {} threshold"
-                raise ValueError(msg.format(name, self.relative_to_threshold))
-
             slice_constraint = iris.Constraint(
                 coord_values={
                     name: lambda cell: np.isclose(
@@ -125,34 +120,47 @@ class ShowerCondition(BasePlugin):
         attributes = generate_mandatory_attributes(self.cubes)
         return template, attributes
 
-    def process(self, cloud=None, cloud_texture=None, conv_ratio=None):
+    def _extract_cubes(self, conditions, cubes):
+        """For a given set of conditions, put all matching cubes onto self.cubes and
+        put conditions onto self.tree. If ALL conditions are not satisfied, the function
+        exits without updating self.cubes or self.tree."""
+        matched_cubes = []
+        for name in conditions:
+            found_cubes = cubes.extract(f"probability_of_{name}_above_threshold")
+            if not found_cubes:
+                return False
+            (found_cube,) = found_cubes  # We expect exactly one cube here
+            matched_cubes.append(found_cube)
+        self.cubes = matched_cubes
+        self.tree = conditions
+        return True
+
+    def process(self, cubes):
         """
         Determine the shower condition from global or UK data depending
-        on input fields
+        on input fields. Expected inputs for UK:
+        cloud_texture: probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold,
+        and for global:
+        cloud: probability_of_low_and_medium_type_cloud_area_fraction_above_threshold
+        conv_ratio: probability_of_convective_ratio_above_threshold
 
         Args:
-            cloud (iris.cube.Cube or None):
-                Probability of total cloud amount above threshold
-            cloud_texture (iris.cube.Cube or None):
-                Probability of texture of total cloud amount above threshold
-            conv_ratio (iris.cube.Cube or None):
-                Probability of convective ratio above threshold
-
+            cubes (iris.cube.CubeList):
+                List of input cubes
         Returns:
             iris.cube.Cube:
                 Binary (0/1) "precipitation is showery"
-
         Raises:
-            ValueError: if inputs are incomplete
+            ValueError: If inputs are incomplete
         """
-        if cloud_texture is None:
-            if cloud is None or conv_ratio is None:
-                raise ValueError("Incomplete inputs")
-            self.cubes = [cloud, conv_ratio]
-            self.tree = self.conditions_global
-        else:
-            self.cubes = [cloud_texture]
-            self.tree = self.conditions_uk
+        for conditions in [self.conditions_uk, self.conditions_global]:
+            if self._extract_cubes(conditions, cubes):
+                break
+        else:  # no break
+            raise ValueError(
+                "Incomplete inputs: must include either cloud_texture for the UK,"
+                "or cloud and conv_ratio for global."
+            )
 
         template, attributes = self._output_metadata()
         showery_points = self._calculate_shower_condition(template.shape)
