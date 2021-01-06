@@ -128,12 +128,9 @@ class BasicThreshold(PostProcessingPlugin):
                         as this is ambiguous.
         """
         self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
-
-        if threshold_units is None:
-            self.threshold_units = None
-        else:
-            self.threshold_units = Unit(threshold_units)
-
+        self.threshold_units = (
+            None if threshold_units is None else Unit(threshold_units)
+        )
         self.threshold_coord_name = None
 
         # read fuzzy factor or set to 1 (basic thresholding)
