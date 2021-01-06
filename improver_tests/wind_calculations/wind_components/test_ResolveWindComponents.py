@@ -225,8 +225,8 @@ class Test_process(IrisTest):
         ucube, vcube = self.plugin.process(
             self.wind_speed_cube, self.wind_direction_cube
         )
-        self.assertArrayAlmostEqual(ucube.data, self.expected_u)
-        self.assertArrayAlmostEqual(vcube.data, self.expected_v)
+        self.assertArrayAlmostEqual(ucube.data, self.expected_u, decimal=5)
+        self.assertArrayAlmostEqual(vcube.data, self.expected_v, decimal=5)
 
     def test_coordinate_value_mismatch(self):
         """Test an error is raised if coordinate values are different for wind
@@ -253,8 +253,8 @@ class Test_process(IrisTest):
         )
         ucube, vcube = self.plugin.process(wind_speed_3d, wind_direction_3d)
         self.assertSequenceEqual(ucube.shape, (3, 3, 4))
-        self.assertArrayAlmostEqual(ucube[1].data, self.expected_u)
-        self.assertArrayAlmostEqual(vcube[2].data, self.expected_v)
+        self.assertArrayAlmostEqual(ucube[1].data, self.expected_u, decimal=5)
+        self.assertArrayAlmostEqual(vcube[2].data, self.expected_v, decimal=5)
 
     def test_wind_from_direction(self):
         """Test correct behaviour when wind direction is 'from' not 'to'.

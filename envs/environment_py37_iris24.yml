@@ -1,0 +1,32 @@
+# Use this file to create a conda environment using:
+# conda env create --file envs/environment_py37_iris24.yml
+
+name: improver_py37_iris24
+channels:
+  - conda-forge
+dependencies:
+  - python=3.7
+  - iris=2.4
+  - numpy
+  - scipy=1.3.3
+  - cftime=1.0.1
+  - python-stratify
+  - sphinx
+  - pytest
+  - pytest-cov
+  - codacy-coverage
+  - pylint
+  - astroid
+  - filelock
+  - mock
+  - pysteps=1.3.2
+  - isort=4.3.21
+  - black=19.10b0
+  - bandit
+  - safety
+  - pip
+  - pip:
+    - od
+    - sigtools
+    - clize
+    - timezonefinder

@@ -4,78 +4,126 @@ on: [pull_request, push]
 jobs:
   Sphinx-Pytest-Coverage:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [py36_iris22, py37_iris24]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
       id: cache
       env:
         # Increase this value to reset cache
-        CACHE_NUMBER: 0
+        CACHE_NUMBER: 1
       with:
-        path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ env.CACHE_NUMBER }}-${{ hashFiles('**/environment.yml') }}
-        restore-keys: ${{ runner.OS }}-conda-improver-
+        path: /usr/share/miniconda/envs/improver_${{ matrix.env }}
+        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/environment_{0}.yml', matrix.env))) }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file environment.yml --name improver
-        conda list --export
-    - name: conda activate
-      run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
+        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
+    - name: conda info
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        conda info
+        conda list
     - name: sphinx-build
-      run: make -C doc html SPHINXOPTS="-W --keep-going"
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        make -C doc html SPHINXOPTS="-W --keep-going"
     - name: pytest unit-tests & cov-report
-      run: pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
     - name: codacy-coverage
       if: env.CODACY_PROJECT_TOKEN
-      run: python-codacy-coverage -v -r coverage.xml
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        python-codacy-coverage -v -r coverage.xml
       env:
         CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
     - uses: codecov/codecov-action@v1
   Codestyle-and-Pylint:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [py36_iris22]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
       id: cache
+      env:
+        # Increase this value to reset cache
+        CACHE_NUMBER: 1
       with:
-        path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ hashFiles('**/environment.yml') }}
-        restore-keys: ${{ runner.OS }}-conda-improver-
+        path: /usr/share/miniconda/envs/improver_${{ matrix.env }}
+        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/environment_{0}.yml', matrix.env))) }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file environment.yml --name improver
-        conda list --export
-    - name: conda activate
-      run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
+        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
+    - name: conda info
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        conda info
+        conda list
     - name: isort
-      run:  isort --check-only --recursive .
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        isort --check-only --recursive .
     - name: black
-      run:  black --check .
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        black --check .
     - name: pylint
-      run: pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests
   Safety-Bandit:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [py36_iris22, py37_iris24]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v1
       id: cache
+      env:
+        # Increase this value to reset cache
+        CACHE_NUMBER: 1
       with:
-        path: /usr/share/miniconda/envs/improver
-        key: ${{ runner.os }}-conda-improver-${{ hashFiles('**/environment.yml') }}
-        restore-keys: ${{ runner.OS }}-conda-improver-
+        path: /usr/share/miniconda/envs/improver_${{ matrix.env }}
+        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/environment_{0}.yml', matrix.env))) }}
     - name: conda env update
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file environment.yml --name improver
-        conda list --export
-    - name: conda activate
-      run:  echo "/usr/share/miniconda/envs/improver/bin" >>$GITHUB_PATH
+        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
+    - name: conda info
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        conda info
+        conda list
     - name: safety
-      run:  safety check || true
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        safety check || true
     - name: bandit
-      run:  bandit -r improver || true
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        bandit -r improver || true
