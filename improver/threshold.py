@@ -94,38 +94,35 @@ class BasicThreshold(PostProcessingPlugin):
                 7.5     |   1.0
 
         Args:
-            thresholds (list of float or float):
-                The threshold points for 'significant' datapoints.
+            thresholds (float or list of float):
+                Values at which to evaluate the input data using the specified
+                comparison operator.
             fuzzy_factor (float):
-                Specifies lower bound for fuzzy membership value when
+                Optional: specifies lower bound for fuzzy membership value when
                 multiplied by each threshold. Upper bound is equivalent linear
-                distance above threshold. If None, no fuzzy_factor is applied.
-            fuzzy_bounds (list of tuple):
-                Lower and upper bounds for fuzziness.
-                List should be of same length as thresholds.
-                Each entry in list should be a tuple of two floats
-                representing the lower and upper bounds respectively.
-                If None, no fuzzy_bounds are applied.
+                distance above threshold.
+            fuzzy_bounds (tuple or list of tuple):
+                Optional: lower and upper bounds for fuzziness. Each entry in list
+                should be a tuple of two floats representing the lower and upper
+                bounds respectively. Tuple or list should match length of (or scalar)
+                'thresholds' argument. Should not be set if fuzzy_factor is set.
             threshold_units (str):
                 Units of the threshold values. If not provided the units are
                 assumed to be the same as those of the input cube.
             comparison_operator (str):
                 Indicates the comparison_operator to use with the threshold.
-                e.g. 'ge' or '>=' to evaluate data >= threshold or '<' to
-                evaluate data < threshold. When using fuzzy thresholds, there
+                e.g. 'ge' or '>=' to evaluate 'data >= threshold' or '<' to
+                evaluate 'data < threshold'. When using fuzzy thresholds, there
                 is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
             each_threshold_func (callable or sequence of callables):
-                Callable or sequence of callables to apply to each threshold
-                cube before concatenating.
+                Callable or sequence of callables to apply after thresholding.
+                Eg vicinity processing or collapse over ensemble realizations.
 
         Raises:
-            ValueError: If a threshold of 0.0 is requested when using a fuzzy
-                        factor.
-            ValueError: If the fuzzy_factor is not greater than 0 and less
-                        than 1.
-            ValueError: If both fuzzy_factor and fuzzy_bounds are set
-                        as this is ambiguous.
+            ValueError: If using a fuzzy factor with a threshold of 0.0.
+            ValueError: If the fuzzy_factor is not strictly between 0 and 1.
+            ValueError: If both fuzzy_factor and fuzzy_bounds are set.
         """
         self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
         self.threshold_units = (
