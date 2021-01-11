@@ -38,7 +38,11 @@ from iris.tests import IrisTest
 
 from improver.blending.weighted_blend import PercentileBlendingAggregator
 
-
+# The PERCENTILE_DATA below were generated using a call to np.random.rand
+# The numbers were then scaled between 12 and 18, envisaged as Spring or
+# Autumn temperatures in Celsius. These data have been reshaped and sorted so that
+# the data are in ascending order along the first axis, suitable for a cube
+# with a leading "percentile" dimension.
 PERCENTILE_DATA = np.array(
     [
         [
