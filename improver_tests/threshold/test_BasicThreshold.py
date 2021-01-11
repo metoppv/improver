@@ -483,17 +483,15 @@ class Test_process(IrisTest):
         result = plugin(self.cube)
         self.assertTrue("new_attribute" in result.attributes)
 
-    def test_cell_method_transfer(self):
-        """Test plugin correctly translates cell method onto threshold coordinate"""
+    def test_cell_method_updates(self):
+        """Test plugin adds correct information to cell methods"""
         self.cube.add_cell_method(CellMethod("max", coords="time"))
-        expected_threshold_attrs = {
-            "spp__relative_to_threshold": "greater_than",
-            CELL_METHODS_ATTRIBUTE: "max: time",
-        }
         plugin = Threshold(2.0, comparison_operator=">")
         result = plugin(self.cube)
-        threshold_attrs = result.coord("precipitation_amount").attributes
-        self.assertDictEqual(threshold_attrs, expected_threshold_attrs)
+        (cell_method,) = result.cell_methods
+        self.assertEqual(cell_method.method, "max")
+        self.assertEqual(cell_method.coord_names, ("time",))
+        self.assertEqual(cell_method.comments, ("of precipitation_amount",))
 
 
 class Test__init__(IrisTest):

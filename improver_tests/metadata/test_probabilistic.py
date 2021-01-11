@@ -41,8 +41,8 @@ from improver.metadata.probabilistic import (
     extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,
-    format_attribute_as_cell_methods,
-    format_cell_methods_as_attribute,
+    format_cell_methods_for_diagnostic,
+    format_cell_methods_for_probability,
     in_vicinity_name_format,
     is_probability,
     probability_is_above_or_below,
@@ -345,42 +345,55 @@ class Test_find_percentile_coordinate(IrisTest):
             find_percentile_coordinate(cube)
 
 
-class Test_format_cell_methods_as_attribute(unittest.TestCase):
-    """Test conversion of cell methods into attribute string"""
+class Test_format_cell_methods_for_probability(unittest.TestCase):
+    """Test addition of coordinate information to probability cell methods"""
+
+    def setUp(self):
+        """Set up a test input cube"""
+        self.cube = set_up_probability_cube(
+            np.zeros((3, 3, 3), dtype=np.float32),
+            np.array([298, 300, 302], dtype=np.float32),
+        )
 
     def test_one_method(self):
-        """Test one method returns the expected string"""
+        """Test when the input cube has one cell method"""
         input = iris.coords.CellMethod("max", coords="time", intervals="1 hour")
-        result = format_cell_methods_as_attribute([input])
-        self.assertEqual(result, "max: time")
+        self.cube.add_cell_method(input)
+        format_cell_methods_for_probability(self.cube, "air_temperature")
+        result = self.cube.cell_methods[0]
+        self.assertEqual(result.method, input.method)
+        self.assertEqual(result.coord_names, input.coord_names)
+        self.assertEqual(result.intervals, input.intervals)
+        self.assertEqual(result.comments, ("of air_temperature",))
 
     def test_multiple_methods(self):
         """Test a list of methods returns the expected string"""
         input1 = iris.coords.CellMethod("max", coords="time")
-        input2 = iris.coords.CellMethod("min", coords="latitude")
-        result = format_cell_methods_as_attribute([input1, input2])
-        self.assertEqual(result, "max: time; min: latitude")
-
-    def test_multiple_coords(self):
-        """Test multiple coords are formatted correctly"""
-        input1 = iris.coords.CellMethod("max", coords="time")
         input2 = iris.coords.CellMethod("min", coords=("latitude", "longitude"))
-        result = format_cell_methods_as_attribute([input1, input2])
-        self.assertEqual(result, "max: time; min: latitude, longitude")
+        for method in [input1, input2]:
+            self.cube.add_cell_method(method)
+        format_cell_methods_for_probability(self.cube, "air_temperature")
+        for method in self.cube.cell_methods:
+            self.assertEqual(method.comments, ("of air_temperature",))
 
 
-class Test_format_attribute_as_cell_methods(unittest.TestCase):
-    """Test reconversion of attribute string into cell methods"""
+class Test_format_cell_methods_for_diagnostic(unittest.TestCase):
+    """Test removal of coordinate information from probability cell methods"""
 
-    def test_multiple_methods(self):
-        """Test the output list of cell methods is as expected"""
-        input = "max: time; min: latitude, longitude"
-        result = format_attribute_as_cell_methods(input)
-        self.assertEqual(len(result), 2)
-        self.assertEqual(result[0], iris.coords.CellMethod("max", coords="time"))
-        self.assertEqual(
-            result[1], iris.coords.CellMethod("min", coords=("latitude", "longitude"))
+    def setUp(self):
+        """Set up a test input cube"""
+        self.cube = set_up_probability_cube(
+            np.zeros((3, 3, 3), dtype=np.float32),
+            np.array([298, 300, 302], dtype=np.float32),
         )
+        self.cube.add_cell_method(
+            iris.coords.CellMethod("max", coords="time", comments="of air_temperature")
+        )
+
+    def test_one_method(self):
+        """Test the output list of cell methods is as expected"""
+        format_cell_methods_for_diagnostic(self.cube)
+        self.assertFalse(self.cube.cell_methods[0].comments)
 
 
 if __name__ == "__main__":

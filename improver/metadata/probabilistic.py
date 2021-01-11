@@ -220,46 +220,41 @@ def find_percentile_coordinate(cube):
     return perc_coord
 
 
-def format_cell_methods_as_attribute(cell_methods):
-    """Convert cell methods from an input cube into a string attribute
-    for the threshold coordinate
+def format_cell_methods_for_probability(cube, threshold_name):
+    """Update cell methods on a diagnostic cube to reflect the fact that the
+    data to which they now refer is on a coordinate.  Modifies cube in place.
 
     Args:
-        cell_methods (iterable):
-            Iterable of iris.coords.CellMethod from input cube
-
-    Returns:
-        str:
-            Concatenated string containing information from all cell methods.
-            The IMPROVER standard requires only method and coordinate names,
-            so intervals are not preserved.
+        cube (iris.cube.Cube):
+            Cube to update
+        threshold_name (str):
+            Name of the threshold-type coordinate to which the cell
+            method now refers
     """
-    method_string = ""
-    for method in cell_methods:
-        coords = ""
-        for coord in method.coord_names:
-            coords += f"{coord}, "
-        formatted_method = f"{method.method}: {coords[:-2]}"
-        method_string += f"{formatted_method}; "
-    if method_string:
-        method_string = method_string[:-2]
-    return method_string
-
-
-def format_attribute_as_cell_methods(attribute):
-    """Convert a "cell_method" attribute back into a list of iris.coords.CellMethod
-    instances for application to cube data.
-
-    Args:
-        str:
-            Cell method attribute from a threshold-type coordinate
-
-    Returns:
-        list of iris.coord.CellMethod
-    """
-    method_strings = attribute.split("; ")
     cell_methods = []
-    for ms in method_strings:
-        method, coords = ms.split(": ")
-        cell_methods.append(iris.coords.CellMethod(method, coords=coords.split(", ")))
-    return cell_methods
+    for cell_method in cube.cell_methods:
+        new_cell_method = iris.coords.CellMethod(
+            cell_method.method,
+            coords=cell_method.coord_names,
+            intervals=cell_method.intervals,
+            comments=f"of {threshold_name}",
+        )
+        cell_methods.append(new_cell_method)
+    cube.cell_methods = cell_methods
+
+
+def format_cell_methods_for_diagnostic(cube):
+    """Remove reference to threshold-type coordinate from cell methods on a
+    probability cube.  Modifies cube in place.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to update
+    """
+    cell_methods = []
+    for cell_method in cube.cell_methods:
+        new_cell_method = iris.coords.CellMethod(
+            cell_method.method, coords=cell_method.coord_names,
+        )
+        cell_methods.append(new_cell_method)
+    cube.cell_methods = cell_methods

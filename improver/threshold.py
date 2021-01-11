@@ -40,7 +40,7 @@ from cf_units import Unit
 from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import (
-    format_cell_methods_as_attribute,
+    format_cell_methods_for_probability,
     probability_is_above_or_below,
 )
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
@@ -282,11 +282,7 @@ class BasicThreshold(PostProcessingPlugin):
             {"spp__relative_to_threshold": self.comparison_operator["spp_string"]}
         )
         if cube.cell_methods:
-            threshold_cell_methods = format_cell_methods_as_attribute(cube.cell_methods)
-            threshold_coord.attributes.update(
-                {CELL_METHODS_ATTRIBUTE: threshold_cell_methods}
-            )
-            cube.cell_methods = ()
+            format_cell_methods_for_probability(cube, self.threshold_coord_name)
 
         cube.rename(
             "probability_of_{}_{}_threshold".format(
