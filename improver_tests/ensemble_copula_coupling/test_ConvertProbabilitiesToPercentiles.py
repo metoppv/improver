@@ -37,7 +37,7 @@ from datetime import datetime
 
 import cf_units as unit
 import numpy as np
-from iris.coords import DimCoord
+from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
@@ -580,6 +580,21 @@ class Test_process(IrisTest):
         msg = "Cannot specify both no_of_percentiles and percentiles"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin().process(self.cube, no_of_percentiles=3, percentiles=[25, 50, 75])
+
+    def test_metadata(self):
+        """Test name and cell methods are updated as expected after conversion"""
+        threshold_coord = find_threshold_coordinate(self.cube)
+        expected_name = threshold_coord.name()
+        expected_units = threshold_coord.units
+        # add a cell method indicating "max in period" for the underlying data
+        self.cube.add_cell_method(
+            CellMethod("max", coords="time", comments=f"of {expected_name}")
+        )
+        expected_cell_method = CellMethod("max", coords="time")
+        result = Plugin().process(self.cube)
+        self.assertEqual(result.name(), expected_name)
+        self.assertEqual(result.units, expected_units)
+        self.assertEqual(result.cell_methods[0], expected_cell_method)
 
 
 if __name__ == "__main__":

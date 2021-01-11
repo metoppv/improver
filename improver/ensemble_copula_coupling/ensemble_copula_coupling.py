@@ -53,6 +53,7 @@ from improver.metadata.probabilistic import (
     extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,
+    format_cell_methods_for_diagnostic,
     probability_is_above_or_below,
 )
 from improver.utilities.cube_checker import (
@@ -658,6 +659,11 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 )
             )
         forecast_at_percentiles = cubelist.merge_cube()
+
+        # Update cell methods on final cube
+        if forecast_at_percentiles.cell_methods:
+            format_cell_methods_for_diagnostic(forecast_at_percentiles)
+
         return forecast_at_percentiles
 
 
