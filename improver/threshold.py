@@ -46,9 +46,6 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
-# define a name for the "cell_methods" attribute
-CELL_METHODS_ATTRIBUTE = "original_cell_methods"
-
 
 class BasicThreshold(PostProcessingPlugin):
 

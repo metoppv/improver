@@ -42,7 +42,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
-from improver.threshold import CELL_METHODS_ATTRIBUTE
 from improver.threshold import BasicThreshold as Threshold
 
 

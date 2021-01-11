@@ -254,7 +254,9 @@ def format_cell_methods_for_diagnostic(cube):
     cell_methods = []
     for cell_method in cube.cell_methods:
         new_cell_method = iris.coords.CellMethod(
-            cell_method.method, coords=cell_method.coord_names,
+            cell_method.method,
+            coords=cell_method.coord_names,
+            intervals=cell_method.intervals,
         )
         cell_methods.append(new_cell_method)
     cube.cell_methods = cell_methods
