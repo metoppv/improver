@@ -45,109 +45,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.threshold import BasicThreshold as Threshold
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method returns the expected strings after initialising
-    the plugin."""
-
-    def test_single_threshold(self):
-        """Test that the __repr__ returns the expected string."""
-        threshold = [0.6]
-        fuzzy_bounds = [(0.6, 0.6)]
-        comparison_operator = "gt"
-        expected_comparison_operator = "gt"
-        result = str(Threshold(threshold, comparison_operator=comparison_operator))
-        msg = (
-            "<BasicThreshold: thresholds {}, "
-            "fuzzy_bounds {}, "
-            "method: data {} threshold>".format(
-                threshold, fuzzy_bounds, expected_comparison_operator
-            )
-        )
-        self.assertEqual(result, msg)
-
-    def test_multiple_thresholds(self):
-        """Test that the __repr__ returns the expected string."""
-        threshold = [0.6, 0.8]
-        fuzzy_bounds = [(0.6, 0.6), (0.8, 0.8)]
-        comparison_operator = "gt"
-        expected_comparison_operator = "gt"
-        result = str(Threshold(threshold, comparison_operator=comparison_operator))
-        msg = (
-            "<BasicThreshold: thresholds {}, "
-            "fuzzy_bounds {}, "
-            "method: data {} threshold>".format(
-                threshold, fuzzy_bounds, expected_comparison_operator
-            )
-        )
-        self.assertEqual(result, msg)
-
-    def test_below_fuzzy_threshold(self):
-        """Test that the __repr__ returns the expected string."""
-        threshold = 0.6
-        fuzzy_factor = 0.2
-        fuzzy_bounds = [(0.12, 1.08)]
-        comparison_operator = "LT"
-        expected_comparison_operator = "LT"
-        result = str(
-            Threshold(
-                threshold,
-                fuzzy_factor=fuzzy_factor,
-                comparison_operator=comparison_operator,
-            )
-        )
-        msg = (
-            "<BasicThreshold: thresholds [{}], "
-            "fuzzy_bounds {}, "
-            "method: data {} threshold>".format(
-                threshold, fuzzy_bounds, expected_comparison_operator
-            )
-        )
-        self.assertEqual(result, msg)
-
-    def test_fuzzy_bounds_scalar(self):
-        """Test that the __repr__ returns the expected string."""
-        threshold = 0.6
-        fuzzy_bounds = (0.4, 0.8)
-        comparison_operator = ">"
-        result = str(
-            Threshold(
-                threshold,
-                fuzzy_bounds=fuzzy_bounds,
-                comparison_operator=comparison_operator,
-            )
-        )
-        msg = (
-            "<BasicThreshold: thresholds [{}], "
-            "fuzzy_bounds [{}], "
-            "method: data {} threshold>".format(
-                threshold, fuzzy_bounds, comparison_operator
-            )
-        )
-        self.assertEqual(result, msg)
-
-    def test_fuzzy_bounds_list(self):
-        """Test that the __repr__ returns the expected string."""
-        threshold = [0.6, 2.0]
-        fuzzy_bounds = [(0.4, 0.8), (1.8, 2.1)]
-        comparison_operator = ">"
-        result = str(
-            Threshold(
-                threshold,
-                fuzzy_bounds=fuzzy_bounds,
-                comparison_operator=comparison_operator,
-            )
-        )
-        msg = (
-            "<BasicThreshold: thresholds {}, "
-            "fuzzy_bounds {}, "
-            "method: data {} threshold>".format(
-                threshold, fuzzy_bounds, comparison_operator
-            )
-        )
-        self.assertEqual(result, msg)
-
-
 class Test__add_threshold_coord(IrisTest):
     """Test the _add_threshold_coord method"""
 
@@ -159,13 +56,13 @@ class Test__add_threshold_coord(IrisTest):
 
     def test_basic(self):
         """Test a scalar threshold coordinate is created"""
-        result = self.plugin._add_threshold_coord(self.cube, 1)
-        self.assertEqual(result.ndim, 3)
+        self.plugin._add_threshold_coord(self.cube, 1)
+        self.assertEqual(self.cube.ndim, 2)
         self.assertIn(
             "air_temperature",
-            [coord.standard_name for coord in result.coords(dim_coords=True)],
+            [coord.standard_name for coord in self.cube.coords(dim_coords=False)],
         )
-        threshold_coord = result.coord("air_temperature")
+        threshold_coord = self.cube.coord("air_temperature")
         self.assertEqual(threshold_coord.var_name, "threshold")
         self.assertEqual(
             threshold_coord.attributes, {"spp__relative_to_threshold": "greater_than"}
@@ -177,10 +74,10 @@ class Test__add_threshold_coord(IrisTest):
         """Test coordinate is created with non-standard diagnostic name"""
         self.cube.rename("sky_temperature")
         self.plugin.threshold_coord_name = self.cube.name()
-        result = self.plugin._add_threshold_coord(self.cube, 1)
+        self.plugin._add_threshold_coord(self.cube, 1)
         self.assertIn(
             "sky_temperature",
-            [coord.long_name for coord in result.coords(dim_coords=True)],
+            [coord.long_name for coord in self.cube.coords(dim_coords=False)],
         )
 
     def test_value_error(self):
@@ -238,18 +135,6 @@ class Test_process(IrisTest):
         expected_title = "Post-Processed UKV Model Forecast"
         result = self.plugin(self.cube)
         self.assertEqual(result.attributes["title"], expected_title)
-
-    def test_data_precision_preservation(self):
-        """Test that the plugin returns an iris.cube.Cube of the same float
-        precision as the input cube."""
-        threshold = 0.1
-        plugin = Threshold(threshold, fuzzy_factor=self.fuzzy_factor)
-        f64cube = self.cube.copy(data=self.cube.data.astype(np.float64))
-        f32cube = self.cube.copy(data=self.cube.data.astype(np.float32))
-        f64result = plugin(f64cube)
-        f32result = plugin(f32cube)
-        self.assertEqual(f64cube.dtype, f64result.dtype)
-        self.assertEqual(f32cube.dtype, f32result.dtype)
 
     def test_data_type_change_for_ints(self):
         """Test that the plugin returns an iris.cube.Cube of float32 type

@@ -94,54 +94,43 @@ class BasicThreshold(PostProcessingPlugin):
                 7.5     |   1.0
 
         Args:
-            thresholds (list of float or float):
-                The threshold points for 'significant' datapoints.
+            thresholds (float or list of float):
+                Values at which to evaluate the input data using the specified
+                comparison operator.
             fuzzy_factor (float):
-                Specifies lower bound for fuzzy membership value when
+                Optional: specifies lower bound for fuzzy membership value when
                 multiplied by each threshold. Upper bound is equivalent linear
-                distance above threshold. If None, no fuzzy_factor is applied.
-            fuzzy_bounds (list of tuple):
-                Lower and upper bounds for fuzziness.
-                List should be of same length as thresholds.
-                Each entry in list should be a tuple of two floats
-                representing the lower and upper bounds respectively.
-                If None, no fuzzy_bounds are applied.
+                distance above threshold.
+            fuzzy_bounds (tuple or list of tuple):
+                Optional: lower and upper bounds for fuzziness. Each entry in list
+                should be a tuple of two floats representing the lower and upper
+                bounds respectively. Tuple or list should match length of (or scalar)
+                'thresholds' argument. Should not be set if fuzzy_factor is set.
             threshold_units (str):
                 Units of the threshold values. If not provided the units are
                 assumed to be the same as those of the input cube.
             comparison_operator (str):
                 Indicates the comparison_operator to use with the threshold.
-                e.g. 'ge' or '>=' to evaluate data >= threshold or '<' to
-                evaluate data < threshold. When using fuzzy thresholds, there
+                e.g. 'ge' or '>=' to evaluate 'data >= threshold' or '<' to
+                evaluate 'data < threshold'. When using fuzzy thresholds, there
                 is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
             each_threshold_func (callable or sequence of callables):
-                Callable or sequence of callables to apply to each threshold
-                cube before concatenating.
+                Callable or sequence of callables to apply after thresholding.
+                Eg vicinity processing or collapse over ensemble realizations.
 
         Raises:
-            ValueError: If a threshold of 0.0 is requested when using a fuzzy
-                        factor.
-            ValueError: If the fuzzy_factor is not greater than 0 and less
-                        than 1.
-            ValueError: If both fuzzy_factor and fuzzy_bounds are set
-                        as this is ambiguous.
+            ValueError: If using a fuzzy factor with a threshold of 0.0.
+            ValueError: If the fuzzy_factor is not strictly between 0 and 1.
+            ValueError: If both fuzzy_factor and fuzzy_bounds are set.
         """
-        # ensure threshold is a list, even if only a single value is provided
-        self.thresholds = thresholds
-        if np.isscalar(thresholds):
-            self.thresholds = [thresholds]
-
-        # if necessary, set threshold units
-        if threshold_units is None:
-            self.threshold_units = None
-        else:
-            self.threshold_units = Unit(threshold_units)
-
-        # initialise threshold coordinate name as None
+        self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
+        self.threshold_units = (
+            None if threshold_units is None else Unit(threshold_units)
+        )
         self.threshold_coord_name = None
 
-        # read fuzzy factor or set (default) to 1 (no smoothing)
+        # read fuzzy factor or set to 1 (basic thresholding)
         fuzzy_factor_loc = 1.0
         if fuzzy_factor is not None:
             if fuzzy_bounds is not None:
@@ -160,26 +149,39 @@ class BasicThreshold(PostProcessingPlugin):
                 )
             fuzzy_factor_loc = fuzzy_factor
 
-        # Set fuzzy-bounds.  If neither fuzzy_factor nor fuzzy_bounds is set,
-        # both lower_thr and upper_thr default to the threshold value.  A test
-        # of this equality is used later to determine whether to process with
-        # a sharp threshold or fuzzy bounds.
         if fuzzy_bounds is None:
-            self.fuzzy_bounds = []
-            for thr in self.thresholds:
-                lower_thr = thr * fuzzy_factor_loc
-                upper_thr = thr * (2.0 - fuzzy_factor_loc)
-                if thr < 0:
-                    lower_thr, upper_thr = upper_thr, lower_thr
-                self.fuzzy_bounds.append((lower_thr, upper_thr))
+            self.fuzzy_bounds = self._generate_fuzzy_bounds(fuzzy_factor_loc)
         else:
-            self.fuzzy_bounds = fuzzy_bounds
+            self.fuzzy_bounds = (
+                [fuzzy_bounds] if isinstance(fuzzy_bounds, tuple) else fuzzy_bounds
+            )
+            self._check_fuzzy_bounds()
 
-        # ensure fuzzy_bounds is a list of tuples
-        if isinstance(fuzzy_bounds, tuple):
-            self.fuzzy_bounds = [fuzzy_bounds]
+        self.comparison_operator_dict = self._comparison_operator_dict()
+        self.comparison_operator_string = comparison_operator
+        self._decode_comparison_operator_string()
 
-        # check that thresholds and fuzzy_bounds are self-consistent
+        if callable(each_threshold_func):
+            each_threshold_func = (each_threshold_func,)
+        self.each_threshold_func = each_threshold_func
+
+    def _generate_fuzzy_bounds(self, fuzzy_factor_loc):
+        """Construct fuzzy bounds from a fuzzy factor.  If the fuzzy factor is 1,
+        the fuzzy bounds match the threshold values for basic thresholding.
+        """
+        fuzzy_bounds = []
+        for thr in self.thresholds:
+            lower_thr = thr * fuzzy_factor_loc
+            upper_thr = thr * (2.0 - fuzzy_factor_loc)
+            if thr < 0:
+                lower_thr, upper_thr = upper_thr, lower_thr
+            fuzzy_bounds.append((lower_thr, upper_thr))
+        return fuzzy_bounds
+
+    def _check_fuzzy_bounds(self):
+        """If fuzzy bounds have been set from the command line, check they
+        are consistent with the required thresholds
+        """
         for thr, bounds in zip(self.thresholds, self.fuzzy_bounds):
             if len(bounds) != 2:
                 raise ValueError(
@@ -193,62 +195,49 @@ class BasicThreshold(PostProcessingPlugin):
                 )
                 raise ValueError(bounds_msg)
 
-        # Dict of known logical comparisons. Each key contains a dict of
-        # {'function': The operator function for this comparison_operator,
-        #  'spp_string': Comparison_Operator string for use in CF-convention
-        #                meta-data}
-        self.comparison_operator_dict = {}
-        self.comparison_operator_dict.update(
+    @staticmethod
+    def _comparison_operator_dict():
+        """Generate dictionary linking string comparison operators to functions.
+        Each key contains a dict of:
+        - 'function': The operator function for this comparison_operator,
+        - 'spp_string': Comparison_Operator string for use in CF-convention metadata
+        """
+        comparison_operator_dict = {}
+        comparison_operator_dict.update(
             dict.fromkeys(
                 ["ge", "GE", ">="],
                 {"function": operator.ge, "spp_string": "greater_than_or_equal_to"},
             )
         )
-        self.comparison_operator_dict.update(
+        comparison_operator_dict.update(
             dict.fromkeys(
                 ["gt", "GT", ">"],
                 {"function": operator.gt, "spp_string": "greater_than"},
             )
         )
-        self.comparison_operator_dict.update(
+        comparison_operator_dict.update(
             dict.fromkeys(
                 ["le", "LE", "<="],
                 {"function": operator.le, "spp_string": "less_than_or_equal_to"},
             )
         )
-        self.comparison_operator_dict.update(
+        comparison_operator_dict.update(
             dict.fromkeys(
                 ["lt", "LT", "<"], {"function": operator.lt, "spp_string": "less_than"}
             )
         )
-        self.comparison_operator_string = comparison_operator
-        self._decode_comparison_operator_string()
-
-        if callable(each_threshold_func):
-            each_threshold_func = (each_threshold_func,)
-        self.each_threshold_func = each_threshold_func
-
-    def __repr__(self):
-        """Represent the configured plugin instance as a string."""
-        return (
-            "<BasicThreshold: thresholds {}, fuzzy_bounds {}, method: data {} threshold>"
-        ).format(self.thresholds, self.fuzzy_bounds, self.comparison_operator_string)
+        return comparison_operator_dict
 
     def _add_threshold_coord(self, cube, threshold):
         """
         Add a scalar threshold-type coordinate to a cube containing
-        thresholded data and promote the new coordinate to be the
-        leading dimension of the cube.
+        thresholded data.
 
         Args:
             cube (iris.cube.Cube):
                 Cube containing thresholded data (1s and 0s)
             threshold (float):
                 Value at which the data has been thresholded
-
-        Returns:
-            iris.cube.Cube:
-                With new "threshold" axis
         """
         coord = iris.coords.DimCoord(
             np.array([threshold], dtype=FLOAT_DTYPE), units=cube.units
@@ -263,7 +252,6 @@ class BasicThreshold(PostProcessingPlugin):
         )
 
         cube.add_aux_coord(coord)
-        return iris.util.new_axis(cube, coord)
 
     def _decode_comparison_operator_string(self):
         """Sets self.comparison_operator based on
@@ -317,17 +305,9 @@ class BasicThreshold(PostProcessingPlugin):
             ValueError: if a np.nan value is detected within the input cube.
 
         """
-        # Record input cube data type to ensure consistent output, though
-        # integer data must become float to enable fuzzy thresholding.
-        input_cube_dtype = input_cube.dtype
-        if input_cube.dtype.kind == "i":
-            input_cube_dtype = FLOAT_DTYPE
-
-        thresholded_cubes = iris.cube.CubeList()
         if np.isnan(input_cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
 
-        # if necessary, convert thresholds and fuzzy bounds into cube units
         if self.threshold_units is not None:
             self.thresholds = [
                 self.threshold_units.convert(threshold, input_cube.units)
@@ -343,10 +323,9 @@ class BasicThreshold(PostProcessingPlugin):
                 for bounds in self.fuzzy_bounds
             ]
 
-        # set name of threshold coordinate to match input diagnostic
         self.threshold_coord_name = input_cube.name()
 
-        # apply fuzzy thresholding
+        thresholded_cubes = iris.cube.CubeList()
         for threshold, bounds in zip(self.thresholds, self.fuzzy_bounds):
             cube = input_cube.copy()
             # if upper and lower bounds are equal, set a deterministic 0/1
@@ -377,25 +356,22 @@ class BasicThreshold(PostProcessingPlugin):
                 # the exceedance probability
                 if "less_than" in self.comparison_operator["spp_string"]:
                     truth_value = 1.0 - truth_value
-            truth_value = np.ma.masked_where(np.ma.getmask(cube.data), truth_value)
-            truth_value = truth_value.astype(input_cube_dtype)
 
-            cube.data = truth_value
-            # Overwrite masked values that have been thresholded
-            # with the un-thresholded values from the input cube.
+            truth_value = truth_value.astype(FLOAT_DTYPE)
+
             if np.ma.is_masked(cube.data):
-                cube.data[input_cube.data.mask] = input_cube.data[input_cube.data.mask]
-            cube = self._add_threshold_coord(cube, threshold)
+                # update unmasked points only
+                cube.data[~input_cube.data.mask] = truth_value[~input_cube.data.mask]
+            else:
+                cube.data = truth_value
+            self._add_threshold_coord(cube, threshold)
 
             for func in self.each_threshold_func:
                 cube = func(cube)
 
             thresholded_cubes.append(cube)
 
-        (cube,) = thresholded_cubes.concatenate()
-        if len(self.thresholds) == 1:
-            # if only one threshold has been provided, this should be scalar
-            cube = next(cube.slices_over(cube.coord(var_name="threshold")))
+        (cube,) = thresholded_cubes.merge()
 
         cube.rename(
             "probability_of_{}_{}_threshold".format(
