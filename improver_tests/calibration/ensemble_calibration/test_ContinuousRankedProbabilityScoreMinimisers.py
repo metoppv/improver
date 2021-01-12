@@ -243,10 +243,10 @@ class Test_process_normal_distribution(
 
         self.expected_mean_coefficients_each_point_sites = np.array(
             [
-                [-0.0008, -0.0046, -0.0015, -0.0011],
-                [1.6255, 1.7728, 1.7154, 1.9101],
-                [0.0012, 0.0, 0.0005, -0.0009],
-                [-0.0, -0.0, -0.0, 0.0],
+                [0.0503, 1.0000, 0.4038, 1.0000],
+                [1.4982, 1.0000, 1.3493, 1.0000],
+                [-0.0636, -0.0000, -0.0672, -0.0000],
+                [-0.0018, -0.0000, -0.0016, -0.0000],
             ],
             dtype=np.float32,
         )
@@ -465,35 +465,9 @@ class Test_process_normal_distribution(
         calculated by minimising the CRPS and using a set default value for the
         initial guess.
         """
-        data = np.array([1.6, 1.3, 1.4, 1.1])
-        altitude = np.array([10, 20, 30, 40])
-        latitude = np.linspace(58.0, 59.5, 4)
-        longitude = np.linspace(-0.25, 0.5, 4)
-        wmo_id = ["03001", "03002", "03003", "03004"]
-        forecast_spot_cubes = iris.cube.CubeList()
-        for day in range(1, 3):
-            time_coords = construct_scalar_time_coords(
-                datetime.datetime(2020, 12, day, 4, 0),
-                None,
-                datetime.datetime(2020, 12, day, 0, 0),
-            )
-            time_coords = [t[0] for t in time_coords]
-            forecast_spot_cubes.append(
-                build_spotdata_cube(
-                    data,
-                    "air_temperature",
-                    "degC",
-                    altitude,
-                    latitude,
-                    longitude,
-                    wmo_id,
-                    scalar_coords=time_coords,
-                )
-            )
-        forecast_spot_cube = forecast_spot_cubes.merge_cube()
-
-        truth_spot_cube = forecast_spot_cube.copy()
-        truth_spot_cube.data = truth_spot_cube.data + 1.0
+        forecast_spot_cube = self.forecast_spot_cube.collapsed(
+            "realization", iris.analysis.MEAN
+        )
         forecast_var_spot_cube = forecast_spot_cube.copy()
         forecast_var_spot_cube.data = forecast_var_spot_cube.data / 10.0
 
@@ -513,7 +487,7 @@ class Test_process_normal_distribution(
         result = plugin.process(
             initial_guess,
             forecast_spot_cube,
-            truth_spot_cube,
+            self.truth_spot_cube,
             forecast_var_spot_cube,
             predictor,
             distribution,

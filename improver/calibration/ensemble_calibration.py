@@ -863,16 +863,26 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             if coeff_name in ["alpha", "gamma"]:
                 coeff_units = historic_forecasts.units
             dim_coords_and_dims_updated = dim_coords_and_dims[:]
+            aux_coords_and_dims_updated = aux_coords_and_dims[:]
             if self.predictor.lower() == "realizations" and coeff_name == "beta":
+                # Ensure realization is the zeroth dimension.
+                # Shift spatial dimension and auxiliary coordinates to first dimension.
+                aux_coords_and_dims_updated = [
+                    (d[0], 1) if d[1] == 0 else d for d in aux_coords_and_dims
+                ]
+                dim_coords_and_dims_updated = [
+                    (d[0], 1) if d[1] == 0 else d for d in dim_coords_and_dims_updated
+                ]
                 dim_coords_and_dims_updated.append(
                     (historic_forecasts.coord("realization").copy(), 0)
                 )
+
             cube = iris.cube.Cube(
                 optimised_coeff,
                 long_name=f"emos_coefficient_{coeff_name}",
                 units=coeff_units,
                 dim_coords_and_dims=dim_coords_and_dims_updated,
-                aux_coords_and_dims=aux_coords_and_dims,
+                aux_coords_and_dims=aux_coords_and_dims_updated,
                 attributes=attributes,
             )
             cubelist.append(cube)

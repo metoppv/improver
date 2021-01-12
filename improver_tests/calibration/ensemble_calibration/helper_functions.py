@@ -38,7 +38,13 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.metadata.probabilistic import extract_diagnostic_name
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    construct_scalar_time_coords,
+    set_up_variable_cube,
+)
+
 from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate"]
@@ -202,6 +208,41 @@ class SetupCubes(IrisTest):
         self.wind_speed_truth_cube_halo = _create_truth(
             base_data, time_dt, name="wind_speed", units="m s-1"
         ).merge_cube()
+
+        data = np.array([1.6, 1.3, 1.4, 1.1])
+        altitude = np.array([10, 20, 30, 40])
+        latitude = np.linspace(58.0, 59.5, 4)
+        longitude = np.linspace(-0.25, 0.5, 4)
+        wmo_id = ["03001", "03002", "03003", "03004"]
+        forecast_spot_cubes = iris.cube.CubeList()
+        for realization in range(1, 3):
+            realization_coord = [
+                iris.coords.DimCoord(realization, standard_name="realization")
+            ]
+            for day in range(1, 3):
+                time_coords = construct_scalar_time_coords(
+                    datetime.datetime(2020, 12, day, 4, 0),
+                    None,
+                    datetime.datetime(2020, 12, day, 0, 0),
+                )
+                time_coords = [t[0] for t in time_coords]
+                forecast_spot_cubes.append(
+                    build_spotdata_cube(
+                        data + 0.2 * day,
+                        "air_temperature",
+                        "degC",
+                        altitude,
+                        latitude,
+                        longitude,
+                        wmo_id,
+                        scalar_coords=time_coords + realization_coord,
+                    )
+                )
+        self.forecast_spot_cube = forecast_spot_cubes.merge_cube()
+
+        self.truth_spot_cube = self.forecast_spot_cube[0].copy()
+        self.truth_spot_cube.remove_coord("realization")
+        self.truth_spot_cube.data = self.truth_spot_cube.data + 1.0
 
 
 def _create_historic_forecasts(

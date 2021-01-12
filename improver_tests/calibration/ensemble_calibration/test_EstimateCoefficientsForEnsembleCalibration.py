@@ -48,11 +48,7 @@ from improver.calibration.ensemble_calibration import (
 )
 from improver.calibration.utilities import get_statsmodels_availability
 from improver.metadata.utilities import generate_mandatory_attributes
-from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-from improver.synthetic_data.set_up_test_cubes import (
-    construct_scalar_time_coords,
-    set_up_variable_cube,
-)
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import (
@@ -1086,41 +1082,6 @@ class Test_process(
         """Test computing coefficients independently for each site location
         (initial guess and minimising) returns the expected coefficients and
         associated metadata."""
-        data = np.array([1.6, 1.3, 1.4, 1.1])
-        altitude = np.array([10, 20, 30, 40])
-        latitude = np.linspace(58.0, 59.5, 4)
-        longitude = np.linspace(-0.25, 0.5, 4)
-        wmo_id = ["03001", "03002", "03003", "03004"]
-        forecast_spot_cubes = iris.cube.CubeList()
-        for realization in range(1, 3):
-            realization_coord = [
-                iris.coords.DimCoord(realization, standard_name="realization")
-            ]
-            for day in range(1, 3):
-                time_coords = construct_scalar_time_coords(
-                    datetime.datetime(2020, 12, day, 4, 0),
-                    None,
-                    datetime.datetime(2020, 12, day, 0, 0),
-                )
-                time_coords = [t[0] for t in time_coords]
-                forecast_spot_cubes.append(
-                    build_spotdata_cube(
-                        data + 0.2 * day,
-                        "air_temperature",
-                        "degC",
-                        altitude,
-                        latitude,
-                        longitude,
-                        wmo_id,
-                        scalar_coords=time_coords + realization_coord,
-                    )
-                )
-        forecast_spot_cube = forecast_spot_cubes.merge_cube()
-
-        truth_spot_cube = forecast_spot_cube[0].copy()
-        truth_spot_cube.remove_coord("realization")
-        truth_spot_cube.data = truth_spot_cube.data + 1.0
-
         expected = {
             "emos_coefficient_alpha": np.array([1.0, 1.0, 1.0, 1.0]),
             "emos_coefficient_beta": np.array([1.0, 1.0, 1.0, 1.0]),
@@ -1129,7 +1090,7 @@ class Test_process(
         }
 
         plugin = Plugin(self.distribution, each_point=True)
-        result = plugin.process(forecast_spot_cube, truth_spot_cube)
+        result = plugin.process(self.forecast_spot_cube, self.truth_spot_cube)
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
                 cube.data, expected[cube.name()],
@@ -1137,6 +1098,38 @@ class Test_process(
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
                 [c.name() for c in cube.coords(dim_coords=True)], ["spot_index"],
+            )
+
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_each_point_sites_realizations(self):
+        """Test computing coefficients independently for each site location
+        (initial guess and minimising) using realizations as the predictor
+        returns the expected coefficients and associated metadata."""
+        expected = {
+            "emos_coefficient_alpha": np.array([-0.0003, -0.0005, -0.0005, -0.0006]),
+            "emos_coefficient_beta": np.array(
+                [[0.9506, 0.9908, 0.9815, 1.0216], [0.7727, 0.7806, 0.7700, 0.7904]]
+            ),
+            "emos_coefficient_gamma": np.array([0.0005, 0.0005, 0.0004, 0.0004]),
+            "emos_coefficient_delta": np.array([0.5407, 0.4939, 0.5291, 0.4619]),
+        }
+        expected_dim_coords = {
+            "emos_coefficient_alpha": ["spot_index"],
+            "emos_coefficient_beta": ["realization", "spot_index"],
+            "emos_coefficient_gamma": ["spot_index"],
+            "emos_coefficient_delta": ["spot_index"],
+        }
+
+        plugin = Plugin(self.distribution, predictor="realizations", each_point=True)
+        result = plugin.process(self.forecast_spot_cube, self.truth_spot_cube)
+        for cube in result:
+            self.assertEMOSCoefficientsAlmostEqual(
+                cube.data, expected[cube.name()],
+            )
+            self.assertIn(cube.name(), self.expected_coeff_names)
+            self.assertEqual(
+                [c.name() for c in cube.coords(dim_coords=True)],
+                expected_dim_coords[cube.name()],
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
