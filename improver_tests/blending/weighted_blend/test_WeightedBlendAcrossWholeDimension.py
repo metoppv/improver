@@ -565,58 +565,6 @@ class Test_process(Test_weighted_blend):
         self.assertIn("percentile", [x.name() for x in result.dim_coords])
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_perc_realistic_data(self):
-        """Test percentile blending test with diagnostic values that increase
-        monotonically along the percentile coordinate.  Output data are also
-        monotonic."""
-        perc_slices = iris.cube.CubeList()
-        for subcube in self.perc_cube.slices("percentile"):
-            perc_slices.append(subcube.copy(data=sorted(subcube.data)))
-        perc_cube = perc_slices.merge_cube()
-        enforce_coordinate_ordering(perc_cube, "percentile")
-        expected_data = np.array(
-            [
-                [[12.968588, 12.984587], [12.5601810, 12.503394]],
-                [[13.818380, 14.144759], [14.1076450, 13.893876]],
-                [[14.521132, 15.050104], [15.0750885, 14.874123]],
-                [[15.715300, 15.560184], [15.9895330, 16.090520]],
-                [[17.251623, 16.184650], [16.6090450, 16.474388]],
-                [[17.458706, 17.408987], [17.4812870, 17.038500]],
-            ],
-            dtype=np.float32,
-        )
-        plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        result = plugin(perc_cube, cycletime=self.cycletime)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_perc_weights(self):
-        """Test percentile blending test with diagnostic values that increase
-        monotonically along the percentile coordinate, and weights that vary
-        with model.  This demonstrates the result are the same for 0 and 100th
-        percentiles, but differ in the middle as a result of different weights
-        to the different input distributions."""
-        perc_slices = iris.cube.CubeList()
-        for subcube in self.perc_cube.slices("percentile"):
-            perc_slices.append(subcube.copy(data=sorted(subcube.data)))
-        perc_cube = perc_slices.merge_cube()
-        enforce_coordinate_ordering(perc_cube, "percentile")
-        expected_data = np.array(
-            [
-                [[12.968588, 12.984587], [12.560181, 12.5033940]],
-                [[14.513496, 13.983413], [14.521752, 13.8438090]],
-                [[15.451672, 15.030349], [14.965419, 14.0301210]],
-                [[16.899292, 15.662327], [15.876251, 15.6937685]],
-                [[17.333557, 16.205572], [16.516674, 16.4788550]],
-                [[17.458706, 17.408989], [17.481285, 17.0385000]],
-            ],
-            dtype=np.float32,
-        )
-        plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        result = plugin(perc_cube, self.weights1d, cycletime=self.cycletime)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_specific_cycletime(self):
         """Test that the plugin setup with a specific cycletime returns a cube
         in which the forecast reference time has been changed to match the
