@@ -210,8 +210,7 @@ class Test_check_percentile_coord(Test_weighted_blend):
     def test_basic(self):
         """Tests the basic use of check_percentile_coord"""
         cube = self.perc_cube[:2]
-        has_perc = WeightedBlendAcrossWholeDimension.check_percentile_coord(cube)
-        self.assertTrue(has_perc)
+        self.assertTrue(WeightedBlendAcrossWholeDimension.check_percentile_coord(cube))
 
     def test_fails_perc_coord_not_dim(self):
         """Test it raises a Value Error if percentile coord not a dim."""

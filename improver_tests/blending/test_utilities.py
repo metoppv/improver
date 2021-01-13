@@ -64,15 +64,12 @@ def input_cube_fixture():
     return cycle_cubes.merge_cube()
 
 
-def test_find_blend_dim_coord_noop(input_cube):
-    """Test no impact if called on dimension"""
-    result = find_blend_dim_coord(input_cube, "forecast_reference_time")
-    assert result == "forecast_reference_time"
-
-
-def test_find_blend_dim_coord_from_aux(input_cube):
-    """Test returns correctly if given aux coord"""
-    result = find_blend_dim_coord(input_cube, "forecast_period")
+@pytest.mark.parametrize(
+    "input_coord_name", ("forecast_reference_time", "forecast_period")
+)
+def test_find_blend_dim_coord_noop(input_cube, input_coord_name):
+    """Test no impact and returns correctly if called on dimension"""
+    result = find_blend_dim_coord(input_cube, input_coord_name)
     assert result == "forecast_reference_time"
 
 
