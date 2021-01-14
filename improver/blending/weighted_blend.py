@@ -546,27 +546,27 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         return weights_array
 
     @staticmethod
-    def check_weights(weights, blend_dim):
+    def _normalise_weights(weights):
         """
-        Checks that weights across the blending dimension sum up to 1.
+        Checks that weights across the leading blend dimension sum up to 1.  If
+        not, normalise across the blending dimension ignoring any points at which
+        the sum of weights is zero.
 
         Args:
             weights (numpy.ndarray):
                 Array of weights shaped to match the data cube.
-            blend_dim (int):
-                The dimension in the weights array that is being collapsed.
-        Raises:
-            ValueError: Raised if the weights do not sum to 1 over the blending
-                        dimension.
+
+        Returns:
+            numpy.ndarray:
+                Weights normalised along the (leading) blend dimension
         """
-        sum_of_weights = np.sum(weights, axis=blend_dim)
-        msg = (
-            "Weights do not sum to 1 over the blending coordinate. Max sum "
-            "of weights: {}".format(sum_of_weights.max())
-        )
+        sum_of_weights = np.sum(weights, axis=0)
         sum_of_non_zero_weights = sum_of_weights[sum_of_weights > 0]
         if not (np.isclose(sum_of_non_zero_weights, 1)).all():
-            raise ValueError(msg)
+            weights = np.where(
+                sum_of_weights > 0, np.divide(weights, sum_of_weights), 0
+            )
+        return weights
 
     def get_weights_array(self, cube, weights):
         """
@@ -611,9 +611,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         """
         non_perc_slice = next(cube.slices_over(PERC_COORD))
         weights_array = self.get_weights_array(non_perc_slice, weights)
-
-        # Check the weights add up to 1 across the blending dimension
-        self.check_weights(weights_array, 0)
+        weights_array = self._normalise_weights(weights_array)
 
         # Set up aggregator
         PERCENTILE_BLEND = Aggregator(
