@@ -306,10 +306,11 @@ class PercentileBlendingAggregator:
             raise ValueError("Weights shape does not match data")
 
         # Flatten data and weights over non-blend and percentile dimensions
-        shape = data.shape[2:]
-        flattened_shape = [data.shape[0], data.shape[1], np.prod(shape, dtype=int)]
+        grid_shape = data.shape[2:]
+        grid_points = np.prod(grid_shape, dtype=int)
+        flattened_shape = [data.shape[0], data.shape[1], grid_points]
         data = data.reshape(flattened_shape)
-        weights_shape = [data.shape[0], np.prod(shape, dtype=int)]
+        weights_shape = [data.shape[0], grid_points]
         arr_weights = arr_weights.reshape(weights_shape)
 
         # Find the blended percentile values at each point in the flattened data
@@ -319,7 +320,7 @@ class PercentileBlendingAggregator:
                 data[:, :, i], percentiles, arr_weights[:, i]
             )
         # Reshape the data with a leading percentile dimension
-        shape = percentiles.shape + shape
+        shape = percentiles.shape + grid_shape
         result = result.reshape(shape)
         return result
 
