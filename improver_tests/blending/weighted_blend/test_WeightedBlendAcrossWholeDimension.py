@@ -179,9 +179,13 @@ class Test_weighted_blend(IrisTest):
         self.cube_threshold.data[1, 1, :, :] = 0.6
         self.cube_threshold.data[1, 2, :, :] = 0.8
 
+        # percentile cube dimensions that would be input to process
         self.perc_cube = percentile_cube(
             frt_points, datetime(2015, 11, 19, 2), datetime(2015, 11, 19, 0)
         )
+        # plugin internals assume leading blend coord (enforced in process)
+        self.reordered_perc_cube = self.perc_cube.copy()
+        enforce_coordinate_ordering(self.reordered_perc_cube, [self.coord])
 
         # Weights cubes
         # 3D varying in space and forecast reference time.
@@ -365,7 +369,6 @@ class Test_get_weights_array(Test_weighted_blend):
     def test_1D_weights(self):
         """Test a 1D cube of weights results in a 3D array of weights of an
         appropriate shape."""
-        enforce_coordinate_ordering(self.perc_cube, [self.coord])
         expected = np.empty_like(self.cube.data)
         result = self.plugin.get_weights_array(self.cube, self.weights1d)
         self.assertEqual(expected.shape, result.shape)
@@ -374,7 +377,6 @@ class Test_get_weights_array(Test_weighted_blend):
     def test_3D_weights(self):
         """Test a 3D cube of weights results in a 3D array of weights of the
         same shape as the data cube."""
-        enforce_coordinate_ordering(self.perc_cube, [self.coord])
         expected = np.empty_like(self.cube.data)
         result = self.plugin.get_weights_array(self.cube, self.weights3d)
         self.assertEqual(expected.shape, result.shape)
@@ -412,7 +414,7 @@ class Test__normalise_weights(Test_weighted_blend):
             [
                 [[0.1, 0.5625], [0.2, 0.4]],
                 [[0.1, 0.1875], [0.2, 0.4]],
-                [[0.8, 0.25], [0.6, 0.2]]
+                [[0.8, 0.25], [0.6, 0.2]],
             ],
         )
         result = self.plugin._normalise_weights(weights)
@@ -426,8 +428,9 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_weights(self):
         """Test function when a data cube and a weights cube are provided."""
-        enforce_coordinate_ordering(self.perc_cube, [self.coord])
-        result = self.plugin.percentile_weighted_mean(self.perc_cube, self.weights1d)
+        result = self.plugin.percentile_weighted_mean(
+            self.reordered_perc_cube, self.weights1d
+        )
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA)
 
@@ -437,8 +440,9 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         are provided. This tests spatially varying weights, where each x-y
         position is weighted differently in each slice along the blending
         coordinate."""
-        enforce_coordinate_ordering(self.perc_cube, [self.coord])
-        result = self.plugin.percentile_weighted_mean(self.perc_cube, self.weights3d)
+        result = self.plugin.percentile_weighted_mean(
+            self.reordered_perc_cube, self.weights3d
+        )
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
             result.data, BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS
@@ -448,8 +452,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
     def test_without_weights(self):
         """Test function when a data cube is provided, but no weights cube
         which should result in equal weightings."""
-        enforce_coordinate_ordering(self.perc_cube, [self.coord])
-        result = self.plugin.percentile_weighted_mean(self.perc_cube, None)
+        result = self.plugin.percentile_weighted_mean(self.reordered_perc_cube, None)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA_EQUAL_WEIGHTS)
 
@@ -662,7 +665,9 @@ class Test_process(Test_weighted_blend):
         """Test weighted_mean method works collapsing a cube with a threshold
         dimension when the blending is over a different coordinate. Note that
         this test is in process to include the slicing."""
-        result = self.plugin(self.cube_threshold, self.weights1d, cycletime=self.cycletime)
+        result = self.plugin(
+            self.cube_threshold, self.weights1d, cycletime=self.cycletime
+        )
         expected_result_array = np.ones((2, 2, 2)) * 0.3
         expected_result_array[1, :, :] = 0.5
         self.assertArrayAlmostEqual(result.data, expected_result_array)
