@@ -34,7 +34,7 @@
 import unittest
 
 import numpy as np
-from iris.coords import DimCoord
+from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
 
@@ -64,9 +64,6 @@ class Test__add_threshold_coord(IrisTest):
         )
         threshold_coord = self.cube.coord("air_temperature")
         self.assertEqual(threshold_coord.var_name, "threshold")
-        self.assertEqual(
-            threshold_coord.attributes, {"spp__relative_to_threshold": "greater_than"}
-        )
         self.assertAlmostEqual(threshold_coord.points[0], 1)
         self.assertEqual(threshold_coord.units, self.cube.units)
 
@@ -477,11 +474,23 @@ class Test_process(IrisTest):
     def test_each_threshold_func(self):
         """Test user supplied func is applied on each threshold cube."""
         # Need to copy the cube as we're adjusting the data.
+        new_attr = {"new_attribute": "narwhal"}
         plugin = Threshold(
-            2.0, each_threshold_func=lambda cube: cube.rename("new_name") or cube
+            2.0,
+            each_threshold_func=lambda cube: cube.attributes.update(new_attr) or cube,
         )
         result = plugin(self.cube)
-        self.assertTrue("new_name" in result.name())
+        self.assertTrue("new_attribute" in result.attributes)
+
+    def test_cell_method_updates(self):
+        """Test plugin adds correct information to cell methods"""
+        self.cube.add_cell_method(CellMethod("max", coords="time"))
+        plugin = Threshold(2.0, comparison_operator=">")
+        result = plugin(self.cube)
+        (cell_method,) = result.cell_methods
+        self.assertEqual(cell_method.method, "max")
+        self.assertEqual(cell_method.coord_names, ("time",))
+        self.assertEqual(cell_method.comments, ("of precipitation_amount",))
 
 
 class Test__init__(IrisTest):

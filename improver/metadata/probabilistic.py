@@ -218,3 +218,45 @@ def find_percentile_coordinate(cube):
         raise ValueError(msg)
 
     return perc_coord
+
+
+def format_cell_methods_for_probability(cube, threshold_name):
+    """Update cell methods on a diagnostic cube to reflect the fact that the
+    data to which they now refer is on a coordinate.  Modifies cube in place.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to update
+        threshold_name (str):
+            Name of the threshold-type coordinate to which the cell
+            method now refers
+    """
+    cell_methods = []
+    for cell_method in cube.cell_methods:
+        new_cell_method = iris.coords.CellMethod(
+            cell_method.method,
+            coords=cell_method.coord_names,
+            intervals=cell_method.intervals,
+            comments=f"of {threshold_name}",
+        )
+        cell_methods.append(new_cell_method)
+    cube.cell_methods = cell_methods
+
+
+def format_cell_methods_for_diagnostic(cube):
+    """Remove reference to threshold-type coordinate from cell method comments that
+    were previously on a probability cube.  Modifies cube in place.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to update
+    """
+    cell_methods = []
+    for cell_method in cube.cell_methods:
+        new_cell_method = iris.coords.CellMethod(
+            cell_method.method,
+            coords=cell_method.coord_names,
+            intervals=cell_method.intervals,
+        )
+        cell_methods.append(new_cell_method)
+    cube.cell_methods = cell_methods

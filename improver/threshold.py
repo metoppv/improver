@@ -39,7 +39,10 @@ from cf_units import Unit
 
 from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.metadata.probabilistic import probability_is_above_or_below
+from improver.metadata.probabilistic import (
+    format_cell_methods_for_probability,
+    probability_is_above_or_below,
+)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.rescale import rescale
 
@@ -230,8 +233,8 @@ class BasicThreshold(PostProcessingPlugin):
 
     def _add_threshold_coord(self, cube, threshold):
         """
-        Add a scalar threshold-type coordinate to a cube containing
-        thresholded data.
+        Add a scalar threshold-type coordinate with correct name and units
+        to a 2D slice containing thresholded data.
 
         Args:
             cube (iris.cube.Cube):
@@ -244,13 +247,6 @@ class BasicThreshold(PostProcessingPlugin):
         )
         coord.rename(self.threshold_coord_name)
         coord.var_name = "threshold"
-
-        # Use an spp__relative_to_threshold attribute, as an extension to the
-        # CF-conventions.
-        coord.attributes.update(
-            {"spp__relative_to_threshold": self.comparison_operator["spp_string"]}
-        )
-
         cube.add_aux_coord(coord)
 
     def _decode_comparison_operator_string(self):
@@ -273,6 +269,25 @@ class BasicThreshold(PostProcessingPlugin):
                 "does not match any known comparison_operator method"
             )
             raise ValueError(msg)
+
+    def _update_metadata(self, cube):
+        """Rename the cube and add attributes to the threshold coordinate
+        after merging
+        """
+        threshold_coord = cube.coord(self.threshold_coord_name)
+        threshold_coord.attributes.update(
+            {"spp__relative_to_threshold": self.comparison_operator["spp_string"]}
+        )
+        if cube.cell_methods:
+            format_cell_methods_for_probability(cube, self.threshold_coord_name)
+
+        cube.rename(
+            "probability_of_{parameter}_{relative_to}_threshold".format(
+                parameter=self.threshold_coord_name,
+                relative_to=probability_is_above_or_below(cube),
+            )
+        )
+        cube.units = Unit(1)
 
     def process(self, input_cube):
         """Convert each point to a truth value based on provided threshold
@@ -364,6 +379,7 @@ class BasicThreshold(PostProcessingPlugin):
                 cube.data[~input_cube.data.mask] = truth_value[~input_cube.data.mask]
             else:
                 cube.data = truth_value
+
             self._add_threshold_coord(cube, threshold)
 
             for func in self.each_threshold_func:
@@ -373,13 +389,7 @@ class BasicThreshold(PostProcessingPlugin):
 
         (cube,) = thresholded_cubes.merge()
 
-        cube.rename(
-            "probability_of_{}_{}_threshold".format(
-                cube.name(), probability_is_above_or_below(cube)
-            )
-        )
-        cube.units = Unit(1)
-
+        self._update_metadata(cube)
         enforce_coordinate_ordering(cube, ["realization", "percentile"])
 
         return cube
