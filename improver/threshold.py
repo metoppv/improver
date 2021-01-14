@@ -282,8 +282,9 @@ class BasicThreshold(PostProcessingPlugin):
             format_cell_methods_for_probability(cube, self.threshold_coord_name)
 
         cube.rename(
-            "probability_of_{}_{}_threshold".format(
-                self.threshold_coord_name, probability_is_above_or_below(cube)
+            "probability_of_{parameter}_{relative_to}_threshold".format(
+                parameter=self.threshold_coord_name,
+                relative_to=probability_is_above_or_below(cube),
             )
         )
         cube.units = Unit(1)

@@ -244,8 +244,8 @@ def format_cell_methods_for_probability(cube, threshold_name):
 
 
 def format_cell_methods_for_diagnostic(cube):
-    """Remove reference to threshold-type coordinate from cell methods on a
-    probability cube.  Modifies cube in place.
+    """Remove reference to threshold-type coordinate from cell method comments that
+    were previously on a probability cube.  Modifies cube in place.
 
     Args:
         cube (iris.cube.Cube):
