@@ -37,6 +37,7 @@ Statistics (EMOS).
    ensemble_calibration.rst
 
 """
+import importlib
 import os
 import warnings
 from multiprocessing import Pool
@@ -1007,9 +1008,11 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """
         if predictor.lower() == "realizations":
             try:
-                import statsmodels.api as sm
+                importlib.import_module("statsmodels")
             except ModuleNotFoundError:
                 sm = False
+            else:
+                import statsmodels.api as sm
 
         if (
             predictor.lower() == "mean"
