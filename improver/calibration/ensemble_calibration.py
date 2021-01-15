@@ -57,7 +57,6 @@ from improver.calibration.utilities import (
     filter_non_matching_cubes,
     flatten_ignoring_masked_data,
     forecast_coords_match,
-    get_statsmodels_availability,
     merge_land_and_sea,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -952,7 +951,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         predictor,
         estimate_coefficients_from_linear_model_flag,
         number_of_realizations,
-        sm=None,
     ):
         """
         Function to compute initial guess of the alpha, beta, gamma
@@ -1000,8 +998,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             number_of_realizations (int or None):
                 Number of realizations within the forecast predictor. If no
                 realizations are present, this option is None.
-            sm (Optional[statsmodels.api]):
-                Statsmodels instance.
 
         Returns:
             list of float:
@@ -1009,6 +1005,12 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Order of coefficients is [alpha, beta, gamma, delta].
 
         """
+        if predictor.lower() == "realizations":
+            try:
+                import statsmodels.api as sm
+            except ModuleNotFoundError:
+                sm = False
+
         if (
             predictor.lower() == "mean"
             and not estimate_coefficients_from_linear_model_flag
@@ -1109,8 +1111,12 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 gamma, delta.
 
         """
-        sm = get_statsmodels_availability(self.predictor)
         if self.each_point:
+            # Disable ordinary least squares fit when computing each point
+            # independently due to potential for too few data points to create
+            # a reliable fit.
+            if self.predictor == "realizations":
+                self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
             index = [
                 forecast_predictor.coord(axis="y"),
                 forecast_predictor.coord(axis="x"),
@@ -1123,7 +1129,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     self.predictor,
                     self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                     number_of_realizations,
-                    sm,
                 )
                 for (truths_slice, fp_slice) in zip(
                     truths.slices_over(index), forecast_predictor.slices_over(index)
@@ -1143,7 +1148,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 self.predictor,
                 self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                 number_of_realizations,
-                sm=sm,
             )
             # If NaNs in initial guess, use default initial guess.
             if np.any(np.isnan(initial_guess)):
@@ -1153,7 +1157,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     self.predictor,
                     False,
                     number_of_realizations,
-                    sm=sm,
                 )
 
             if self.minimise_each_point:
@@ -1416,24 +1419,33 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 as the predictor.
         """
         forecast_predictor = self.current_forecast
-
         # Calculate location parameter = a + b1*X1 .... + bn*Xn, where X is the
         # ensemble realizations. The number of b and X terms depends upon the
         # number of ensemble realizations. In this case, b = beta^2.
-        beta_values = np.array([], dtype=np.float32)
-        beta_values = self.coefficients_cubelist.extract_strict(
-            "emos_coefficient_beta"
-        ).data.copy()
-        a_and_b = np.append(
-            self.coefficients_cubelist.extract_strict("emos_coefficient_alpha").data,
-            beta_values ** 2,
-        )
+        beta_cube = self.coefficients_cubelist.extract_strict("emos_coefficient_beta")
+        beta_values = beta_cube.data ** 2
+        a_and_b = np.hstack(
+            (
+                np.atleast_2d(
+                    self.coefficients_cubelist.extract_strict(
+                        "emos_coefficient_alpha"
+                    ).data
+                ).T,
+                np.array(beta_values).reshape(
+                    -1, len(beta_cube.coord("realization").points)
+                ),
+            )
+        ).T
+
         forecast_predictor_flat = convert_cube_data_to_2d(forecast_predictor)
         xy_shape = next(forecast_predictor.slices_over("realization")).shape
         col_of_ones = np.ones(np.prod(xy_shape), dtype=np.float32)
         ones_and_predictor = np.column_stack((col_of_ones, forecast_predictor_flat))
+
         location_parameter = (
-            np.dot(ones_and_predictor, a_and_b).reshape(xy_shape).astype(np.float32)
+            np.sum(ones_and_predictor * a_and_b.T, axis=-1)
+            .reshape(xy_shape)
+            .astype(np.float32)
         )
         return location_parameter
 

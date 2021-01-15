@@ -219,7 +219,7 @@ class SetupCubes(IrisTest):
             realization_coord = [
                 iris.coords.DimCoord(realization, standard_name="realization")
             ]
-            for day in range(1, 3):
+            for day in range(1, 5):
                 time_coords = construct_scalar_time_coords(
                     datetime.datetime(2020, 12, day, 4, 0),
                     None,
@@ -238,9 +238,17 @@ class SetupCubes(IrisTest):
                         scalar_coords=time_coords + realization_coord,
                     )
                 )
-        self.forecast_spot_cube = forecast_spot_cubes.merge_cube()
+        forecast_spot_cube = forecast_spot_cubes.merge_cube()
 
-        self.truth_spot_cube = self.forecast_spot_cube[0].copy()
+        self.historic_forecast_spot_cube = forecast_spot_cube[:, :2, :]
+        self.historic_forecast_spot_cube.convert_units("Kelvin")
+        self.historic_forecast_spot_cube.attributes = MANDATORY_ATTRIBUTE_DEFAULTS
+
+        self.current_forecast_spot_cube = forecast_spot_cube[:, 3, :]
+        self.current_forecast_spot_cube.convert_units("Kelvin")
+        self.current_forecast_spot_cube.attributes = MANDATORY_ATTRIBUTE_DEFAULTS
+
+        self.truth_spot_cube = self.historic_forecast_spot_cube[0].copy()
         self.truth_spot_cube.remove_coord("realization")
         self.truth_spot_cube.data = self.truth_spot_cube.data + 1.0
 

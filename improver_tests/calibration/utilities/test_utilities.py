@@ -52,7 +52,6 @@ from improver.calibration.utilities import (
     flatten_ignoring_masked_data,
     forecast_coords_match,
     get_frt_hours,
-    get_statsmodels_availability,
     merge_land_and_sea,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
@@ -683,44 +682,6 @@ class Test_check_forecast_consistency(IrisTest):
 
         with self.assertRaisesRegex(ValueError, msg):
             check_forecast_consistency(forecasts)
-
-
-class Test_get_statsmodels_availability(IrisTest):
-    @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
-    @ManageWarnings(
-        record=True, ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES
-    )
-    def test_statsmodels_mean(self, warning_list=None):
-        """
-        Test that the plugin raises no warnings if the statsmodels module
-        is not found for when the predictor is the ensemble mean.
-        """
-        predictor = "mean"
-        statsmodels_warning = "The statsmodels module cannot be imported"
-
-        sm = get_statsmodels_availability(predictor)
-        self.assertIsNone(sm)
-        self.assertNotIn(statsmodels_warning, warning_list)
-
-    @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
-    @ManageWarnings(
-        record=True,
-        ignored_messages=IGNORED_MESSAGES[:-1],
-        warning_types=WARNING_TYPES[:-1],
-    )
-    def test_statsmodels_realizations(self, warning_list=None):
-        """
-        Test that the plugin raises the desired warning if the statsmodels
-        module is not found for when the predictor is the ensemble
-        realizations.
-        """
-        predictor = "realizations"
-
-        sm = get_statsmodels_availability(predictor)
-        self.assertIsNone(sm)
-        warning_msg = "The statsmodels module cannot be imported"
-        self.assertTrue(any(item.category == ImportWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
 
 if __name__ == "__main__":

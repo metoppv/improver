@@ -243,10 +243,10 @@ class Test_process_normal_distribution(
 
         self.expected_mean_coefficients_each_point_sites = np.array(
             [
-                [0.0503, 1.0000, 0.4038, 1.0000],
-                [1.4982, 1.0000, 1.3493, 1.0000],
-                [-0.0636, -0.0000, -0.0672, -0.0000],
-                [-0.0018, -0.0000, -0.0016, -0.0000],
+                [0.0017, 0.0017, 0.0017, 0.0017],
+                [1.0036, 1.0036, 1.0036, 1.0036],
+                [0.0017, 0.0017, 0.0016, 0.0016],
+                [0.0000, 0.0000, 0.0000, 0.0000],
             ],
             dtype=np.float32,
         )
@@ -465,7 +465,7 @@ class Test_process_normal_distribution(
         calculated by minimising the CRPS and using a set default value for the
         initial guess.
         """
-        forecast_spot_cube = self.forecast_spot_cube.collapsed(
+        forecast_spot_cube = self.historic_forecast_spot_cube.collapsed(
             "realization", iris.analysis.MEAN
         )
         forecast_var_spot_cube = forecast_spot_cube.copy()

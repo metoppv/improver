@@ -348,39 +348,3 @@ def check_forecast_consistency(forecasts):
     if len(forecasts.coord("forecast_period").points) != 1:
         msg = "Forecasts have been provided with differing forecast periods {}"
         raise ValueError(msg.format(forecasts.coord("forecast_period").points))
-
-
-def get_statsmodels_availability(predictor):
-    """Import the statsmodels module, if available.
-
-    Args:
-        predictor (str):
-            Form of predictor ("mean" or "realizations") for Ensemble Model Output Statistics.
-
-    Returns:
-        module instance:
-            True if the statsmodels module is available. Otherwise, False.
-
-    Warns:
-        ImportWarning: If the statsmodels module cannot be imported when the
-        "realizations" are the predictor.
-    """
-    import importlib
-
-    try:
-        importlib.import_module("statsmodels")
-    except (ModuleNotFoundError, ImportError):
-        sm = None
-        if predictor.lower() == "realizations":
-            msg = (
-                "The statsmodels module cannot be imported. "
-                "Will not be able to calculate an initial guess from "
-                "the individual ensemble realizations. "
-                "A default initial guess will be used without "
-                "estimating coefficients from a linear model."
-            )
-            warnings.warn(msg, ImportWarning)
-    else:
-        import statsmodels.api as sm
-
-    return sm
