@@ -35,6 +35,7 @@ import warnings
 import numpy as np
 
 from improver import BasePlugin
+from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.blending.weighted_blend import (
     MergeCubesForWeightedBlending,
@@ -132,7 +133,7 @@ class WeightAndBlend(BasePlugin):
         """
         if self.wts_calc_method == "dict":
             if "model" in self.blend_coord:
-                config_coord = "model_configuration"
+                config_coord = MODEL_NAME_COORD
             else:
                 config_coord = self.blend_coord
 
@@ -191,7 +192,7 @@ class WeightAndBlend(BasePlugin):
             amend_attributes(result, attributes_dict)
 
         (result,) = rebadge_forecasts_as_latest_cycle([result], cycletime)
-        if self.blend_coord in ["forecast_reference_time", "model_id"]:
+        if self.blend_coord in ["forecast_reference_time", MODEL_BLEND_COORD]:
             for coord in ["forecast_period", "forecast_reference_time"]:
                 msg = f"{coord} will be removed in future and should not be used"
                 result.coord(coord).attributes.update({"deprecation_message": msg})
@@ -244,10 +245,11 @@ class WeightAndBlend(BasePlugin):
             UserWarning: If blending masked data without spatial weights.
                          This has not been fully tested.
         """
-        # Prepare cubes for weighted blending, including creating model_id and
-        # model_configuration coordinates for multi-model blending. The merged
-        # cube has a monotonically ascending blend coordinate. Plugin raises an
-        # error if blend_coord is not present on all input cubes.
+        # Prepare cubes for weighted blending, including creating a numerical
+        # MODEL_BLEND_COORD and a string MODEL_NAME_COORD coordinate (containing
+        # the model identifier) for multi-model blending. The merged cube has
+        # a monotonically ascending blend coordinate. Plugin raises an error
+        # if blend_coord is not present on all input cubes.
         merger = MergeCubesForWeightedBlending(
             self.blend_coord,
             weighting_coord=self.weighting_coord,
@@ -256,7 +258,7 @@ class WeightAndBlend(BasePlugin):
         cube = merger(cubelist, cycletime=cycletime)
 
         if "model" in self.blend_coord:
-            self.blend_coord = "model_id"
+            self.blend_coord = MODEL_BLEND_COORD
 
         coord_names = [coord.name() for coord in cube.coords()]
         if (
@@ -267,6 +269,9 @@ class WeightAndBlend(BasePlugin):
         else:
             # calculate blend weights
             weights = self._calculate_blending_weights(cube)
+
+            # TODO here, slice out any inputs with zero weightings
+
             if spatial_weights:
                 weights = self._update_spatial_weights(cube, weights, fuzzy_length)
             elif np.ma.is_masked(cube.data):
@@ -283,6 +288,7 @@ class WeightAndBlend(BasePlugin):
                 weights=weights,
                 cycletime=cycletime,
                 attributes_dict=attributes_dict,
+                model_id_attr=model_id_attr,
             )
 
         return result

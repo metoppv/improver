@@ -40,6 +40,7 @@ from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin, PostProcessingPlugin
+from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.utilities import find_blend_dim_coord
 from improver.metadata.amend import amend_attributes
 from improver.metadata.constants import FLOAT_DTYPE, PERC_COORD
@@ -142,18 +143,16 @@ class MergeCubesForWeightedBlending(BasePlugin):
             model_titles.append(model_title)
 
             new_model_id_coord = AuxCoord(
-                np.array([1000 * i], dtype=np.int32), units="1", long_name="model_id"
+                np.array([1000 * i], dtype=np.int32),
+                units="1",
+                long_name=MODEL_BLEND_COORD,
             )
             new_model_coord = AuxCoord(
-                [model_title], units="no_unit", long_name="model_configuration"
+                [model_title], units="no_unit", long_name=MODEL_NAME_COORD
             )
 
             cube.add_aux_coord(new_model_id_coord)
             cube.add_aux_coord(new_model_coord)
-
-        model_titles.sort()
-        for cube in cubelist:
-            cube.attributes[self.model_id_attr] = " ".join(model_titles)
 
     @staticmethod
     def _remove_blend_time(cube):
@@ -741,11 +740,12 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             msg = f"{coord} will be removed in future and should not be used"
             blended_cube.coord(coord).attributes.update({"deprecation_message": msg})
 
-    def _update_blended_metadata(self, blended_cube, attributes_dict):
+    def _update_blended_metadata(self, blended_cube, attributes_dict, model_id_attr):
         """
         Update metadata after blending:
         - For cycle and model blending, set a single forecast reference time
         and period using current cycletime
+        - For model blending, add attribute detailing the contributing models
         - Remove scalar coordinates that were previously associated with the
         blend dimension
         - Update attributes as specified via process arguments
@@ -756,17 +756,33 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             blended_cube (iris.cube.Cube)
             attributes_dict (dict or None)
         """
-        if self.blend_coord in ["forecast_reference_time", "model_id"]:
+        if self.blend_coord in ["forecast_reference_time", MODEL_BLEND_COORD]:
             self._set_blended_time_coords(blended_cube)
+
+        if self.blend_coord == MODEL_BLEND_COORD:
+            contributing_models, = blended_cube.coord(MODEL_NAME_COORD).points
+            # iris concatenates string coordinates as a "|"-separated string
+            blended_cube.attributes[model_id_attr] = " ".join(
+                sorted(contributing_models.split("|"))
+            )
+
         for coord in self.crds_to_remove:
             blended_cube.remove_coord(coord)
+
         if attributes_dict is not None:
             amend_attributes(blended_cube, attributes_dict)
         for attr in MANDATORY_ATTRIBUTES:
             if attr not in blended_cube.attributes:
                 blended_cube.attributes[attr] = MANDATORY_ATTRIBUTE_DEFAULTS[attr]
 
-    def process(self, cube, weights=None, cycletime=None, attributes_dict=None):
+    def process(
+        self,
+        cube,
+        weights=None,
+        cycletime=None,
+        attributes_dict=None,
+        model_id_attr=None,
+    ):
         """Calculate weighted blend across the chosen coord, for either
            probabilistic or percentile data. If there is a percentile
            coordinate on the cube, it will blend using the
@@ -783,13 +799,16 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 is blended with equal weights across the blending dimension.
             cycletime (str):
                 The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z, required
-                for cycle or model blending.  This is used to manually set the a "blend
+                for cycle or model blending.  This is used to manually set a "blend
                 time" coordinate on a model or cycle blended cube.
             attributes_dict (dict or None):
                 Changes to cube attributes to be applied after blending. See
                 :func:`~improver.metadata.amend.amend_attributes` for required
                 format. If mandatory attributes are not set here, default
                 values are used.
+           model_id_attr (str or None):
+                If blending models, name of attribute on which to record names of all
+                contributing models.
 
         Returns:
             iris.cube.Cube:
@@ -818,6 +837,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         output_dims = get_dim_coord_names(next(cube.slices_over(self.blend_coord)))
         self.blend_coord = find_blend_dim_coord(cube, self.blend_coord)
 
+        if self.blend_coord == MODEL_BLEND_COORD and model_id_attr is None:
+            raise ValueError("model_id_attr is required for model blending")
+
         # Ensure input cube and weights cube are ordered equivalently along
         # blending coordinate.
         cube = sort_coord_in_cube(cube, self.blend_coord)
@@ -834,14 +856,13 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         self._set_coords_to_remove(cube)
 
         # Do blending and update metadata
-        perc_coord = self.check_percentile_coord(cube)
-        if perc_coord:
+        if self.check_percentile_coord(cube):
             enforce_coordinate_ordering(cube, [self.blend_coord, "percentile"])
             result = self.percentile_weighted_mean(cube, weights)
         else:
             enforce_coordinate_ordering(cube, [self.blend_coord])
             result = self.weighted_mean(cube, weights)
-        self._update_blended_metadata(result, attributes_dict)
+        self._update_blended_metadata(result, attributes_dict, model_id_attr)
 
         # Reorder resulting dimensions to match input
         enforce_coordinate_ordering(result, output_dims)

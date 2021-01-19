@@ -42,6 +42,7 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
+from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import (
@@ -554,26 +555,22 @@ class Test_process(Test_weighted_blend):
         be given relative to this time.
 
         For this we need a single time in our cube and so to blend over
-        something else. In this case we create a "model_id" coordinate as if we
+        something else. In this case we create coordinates as if we
         are model blending."""
 
-        coord_name = "model_id"
+        cubes = iris.cube.CubeList()
+        for index, name in zip([0, 1], ["uk_det", "uk_ens"]):
+            cube = self.cube[0].copy()
+            cube.add_aux_coord(iris.coords.DimCoord([index], long_name=MODEL_BLEND_COORD))
+            cube.add_aux_coord(iris.coords.AuxCoord([name], long_name=MODEL_NAME_COORD))
+            cubes.append(cube)
 
-        cube1 = self.cube[0].copy()
-        model_crd1 = iris.coords.DimCoord([0], long_name=coord_name, units=1)
-        cube1.add_aux_coord(model_crd1)
-
-        cube2 = self.cube[0].copy()
-        model_crd2 = iris.coords.DimCoord([1], long_name=coord_name, units=1)
-        cube2.add_aux_coord(model_crd2)
-
-        cubes = iris.cube.CubeList([cube1, cube2])
         cube = MergeCubes()(cubes)
 
-        plugin = WeightedBlendAcrossWholeDimension(coord_name)
+        plugin = WeightedBlendAcrossWholeDimension("model_id")
         expected_frt = 1447837200
         expected_forecast_period = 61200
-        result = plugin(cube, cycletime="20151118T0900Z")
+        result = plugin(cube, cycletime="20151118T0900Z", model_id_attr="mosg__model_configuration")
 
         self.assertEqual(result.coord("forecast_reference_time").points, expected_frt)
         self.assertEqual(
@@ -678,19 +675,20 @@ class Test_process(Test_weighted_blend):
         """Test model_id and model_configuration coordinates are both removed
         after model blending"""
         cube_model = set_up_variable_cube(282 * np.zeros((2, 2), dtype=np.float32))
-        cube_model = add_coordinate(cube_model, [0, 1], "model_id")
+        cube_model = add_coordinate(cube_model, [0, 1], MODEL_BLEND_COORD)
         cube_model.add_aux_coord(
-            AuxCoord(["uk_ens", "uk_det"], long_name="model_configuration"), data_dims=0
+            AuxCoord(["uk_ens", "uk_det"], long_name=MODEL_NAME_COORD), data_dims=0
         )
         weights_model = Cube(
             np.array([0.5, 0.5]),
             long_name="weights",
-            dim_coords_and_dims=[(cube_model.coord("model_id"), 0)],
+            dim_coords_and_dims=[(cube_model.coord(MODEL_BLEND_COORD), 0)],
         )
         plugin = WeightedBlendAcrossWholeDimension("model_id")
-        result = plugin(cube_model, weights_model, cycletime=self.cycletime)
-        for coord_name in ["model_id", "model_configuration"]:
+        result = plugin(cube_model, weights_model, cycletime=self.cycletime, model_id_attr="mosg__model_configuration")
+        for coord_name in [MODEL_BLEND_COORD, MODEL_NAME_COORD]:
             self.assertNotIn(coord_name, [coord.name() for coord in result.coords()])
+        self.assertEqual(result.attributes["mosg__model_configuration"], "uk_det uk_ens")
 
 
 if __name__ == "__main__":
