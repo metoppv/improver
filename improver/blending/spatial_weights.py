@@ -37,6 +37,7 @@ import numpy as np
 from scipy.ndimage.morphology import distance_transform_edt
 
 from improver import BasePlugin
+from improver.blending.utilities import find_blend_dim_coord
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.utilities.cube_manipulation import get_dim_coord_names
 from improver.utilities.rescale import rescale
@@ -108,21 +109,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                         dimension other than the dimension associated with
                         blend_coord.
         """
-        # Find dimension coordinate associated with blend coord (which may be an
-        # auxiliary coordinate)
-        blend_dim = cube_to_collapse.coord_dims(self.blend_coord)
-        if len(blend_dim) == 1:
-            blend_dim = blend_dim[0]
-        else:
-            message = (
-                "Blend coordinate must only be across one dimension. "
-                "Coordinate {} is associated with dimensions {}"
-            )
-            message = message.format(self.blend_coord, blend_dim)
-            raise ValueError(message)
-        self.blend_coord = cube_to_collapse.coord(
-            dimensions=blend_dim, dim_coords=True
-        ).name()
+        self.blend_coord = find_blend_dim_coord(cube_to_collapse, self.blend_coord)
+
         # Find original dim coords in input cube
         original_dim_coords = get_dim_coord_names(cube_to_collapse)
 

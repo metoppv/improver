@@ -165,31 +165,24 @@ PERCENTILE_VALUES = np.array(
 )
 
 
-def generate_matching_weights_array(weights, shape):
-    """Create an array of weights that matches the shape of the cube.
+def generate_matching_weights_array(weights, other_dim_length):
+    """Broadcast an array of 1D weights (varying along the blend dimension) to
+    the shape required to match the percentile cube
 
     Args:
         weights (numpy.ndarray):
-            An array of weights that needs to be broadcast to match the
-            specified shape.
-        shape (tuple):
-            A tuple that specifies the shape to which weights should be
-            broadcast. If broadcasting to this shape is not possible numpy will
-            raise a broadcast error.
+            A 1D array of weights varying along the blend dimension
+        other_dim_length (int):
+            Length of second dimension required to match percentile cube
+
+    Returns:
+        numpy.ndarray:
+            Weights that vary along the first (blend) dimension, with second
+            dimension of required length
     """
-    weights_array = np.broadcast_to(weights, shape)
-    return weights_array.astype(np.float32)
-
-
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(PercentileBlendingAggregator())
-        msg = "<PercentileBlendingAggregator>"
-        self.assertEqual(result, msg)
+    shape_t = (other_dim_length, len(weights))
+    weights_array = np.broadcast_to(weights, shape_t)
+    return weights_array.astype(np.float32).T
 
 
 class Test_aggregate(IrisTest):
@@ -197,58 +190,23 @@ class Test_aggregate(IrisTest):
 
     def test_blend_percentile_aggregate(self):
         """Test blend_percentile_aggregate function works"""
-        weights = np.array([0.6, 0.3, 0.1])
-        weights = generate_matching_weights_array(weights, (4, 6, 3))
-        weights = np.moveaxis(weights, (0, 1, 2), (2, 1, 0))
-
+        weights = generate_matching_weights_array([0.6, 0.3, 0.1], 4)
         percentiles = np.array([0, 20, 40, 60, 80, 100]).astype(np.float32)
         result = PercentileBlendingAggregator.aggregate(
-            PERCENTILE_DATA, 1, percentiles, weights, 0
+            PERCENTILE_DATA, 1, percentiles, weights
         )
         self.assertArrayAlmostEqual(
             result, BLENDED_PERCENTILE_DATA,
         )
 
-    def test_blend_percentile_aggregate_reorder1(self):
-        """Test blend_percentile_aggregate works with out of order dims 1"""
-        weights = np.array([0.6, 0.3, 0.1])
-        weights = generate_matching_weights_array(weights, (4, 6, 3))
-        weights = np.moveaxis(weights, (0, 1, 2), (2, 1, 0))
-
-        percentiles = np.array([0, 20, 40, 60, 80, 100])
-        perc_data = np.moveaxis(PERCENTILE_DATA, [0, 1], [3, 1])
-        result = PercentileBlendingAggregator.aggregate(
-            perc_data, 1, percentiles, weights, 3
-        )
-        expected_result_array = BLENDED_PERCENTILE_DATA
-        expected_result_array = np.moveaxis(expected_result_array, 0, 2)
-        self.assertArrayAlmostEqual(result, expected_result_array)
-
-    def test_blend_percentile_aggregate_reorder2(self):
-        """Test blend_percentile_aggregate works with out of order dims 2"""
-        weights = np.array([0.6, 0.3, 0.1])
-        weights = generate_matching_weights_array(weights, (4, 6, 3))
-        weights = np.moveaxis(weights, (0, 1, 2), (2, 1, 0))
-
-        percentiles = np.array([0, 20, 40, 60, 80, 100])
-        perc_data = np.moveaxis(PERCENTILE_DATA, [0, 1], [1, 2])
-        result = PercentileBlendingAggregator.aggregate(
-            perc_data, 2, percentiles, weights, 1
-        )
-        expected_result_array = BLENDED_PERCENTILE_DATA
-        expected_result_array = np.moveaxis(expected_result_array, 0, 1)
-        self.assertArrayAlmostEqual(result, expected_result_array)
-
     def test_2D_simple_case(self):
         """ Test that for a simple case with only one point in the resulting
             array the function behaves as expected"""
-        weights = np.array([0.8, 0.2])
-        weights = generate_matching_weights_array(weights, (1, 3, 2))
-
+        weights = generate_matching_weights_array([0.8, 0.2], 1)
         percentiles = np.array([0, 50, 100])
         perc_data = np.array([[1.0, 2.0], [5.0, 5.0], [10.0, 9.0]])
         result = PercentileBlendingAggregator.aggregate(
-            perc_data, 1, percentiles, weights, 0
+            perc_data, 1, percentiles, weights
         )
         expected_result = np.array([1.0, 5.0, 10.0])
         self.assertArrayAlmostEqual(result, expected_result)
@@ -256,13 +214,11 @@ class Test_aggregate(IrisTest):
     def test_3D_simple_case(self):
         """ Test that for a simple case with only one point and an extra
             internal dimension behaves as expected"""
-        weights = np.array([0.5, 0.5])
-        weights = generate_matching_weights_array(weights, (1, 3, 2))
-
+        weights = generate_matching_weights_array([0.5, 0.5], 1)
         percentiles = np.array([0, 50, 100])
         perc_data = np.array([[[1.0], [2.0]], [[5.0], [6.0]], [[10.0], [9.0]]])
         result = PercentileBlendingAggregator.aggregate(
-            perc_data, 1, percentiles, weights, 0
+            perc_data, 1, percentiles, weights
         )
         expected_result = np.array([[1.0], [5.555555], [10.0]])
         self.assertArrayAlmostEqual(result, expected_result)
@@ -270,20 +226,27 @@ class Test_aggregate(IrisTest):
     def test_4D_simple_case(self):
         """ Test that for a simple case with only one point and 4D input data
             it behaves as expected"""
-        weights = np.array([0.5, 0.5])
-        weights = generate_matching_weights_array(weights, (1, 3, 2))
-
+        weights = generate_matching_weights_array([0.5, 0.5], 1)
         percentiles = np.array([0, 50, 100])
         perc_data = np.array([1.0, 3.0, 2.0, 4.0, 5.0, 6.0])
         input_shape = (3, 2, 1, 1)
         perc_data = perc_data.reshape(input_shape)
         result = PercentileBlendingAggregator.aggregate(
-            perc_data, 1, percentiles, weights, 0
+            perc_data, 1, percentiles, weights
         )
         expected_result = np.array([[[1.0]], [[3.5]], [[6.0]]])
         expected_result_shape = (3, 1, 1)
         self.assertArrayAlmostEqual(result, expected_result)
         self.assertEqual(result.shape, expected_result_shape)
+
+    def test_error_unmatched_weights(self):
+        """Test error when weights shape doesn't match length of blend dimension
+        (in this case 3 weights for 2 blend slices)"""
+        weights = generate_matching_weights_array([0.7, 0.1, 0.2], 1)
+        percentiles = np.array([0, 50, 100])
+        perc_data = np.array([[1.0, 2.0], [5.0, 5.0], [10.0, 9.0]])
+        with self.assertRaisesRegex(ValueError, "Weights shape does not match data"):
+            PercentileBlendingAggregator.aggregate(perc_data, 1, percentiles, weights)
 
 
 class Test_blend_percentiles(IrisTest):

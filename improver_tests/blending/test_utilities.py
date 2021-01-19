@@ -28,11 +28,53 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Constants associated with metadata"""
+"""Test utilities to support weighted blending"""
 
+from datetime import datetime
+
+import iris
 import numpy as np
+import pytest
 
-FLOAT_DTYPE = np.float32
-FLOAT_TYPES = [np.float32, np.float64]
+from improver.blending.utilities import find_blend_dim_coord
+from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
-PERC_COORD = "percentile"
+
+@pytest.fixture(name="input_cube")
+def input_cube_fixture():
+    """Set up a cube for cycle blending"""
+    thresholds = [10, 20]
+    data = np.ones((2, 2, 2), dtype=np.float32)
+    frt_list = [
+        datetime(2017, 11, 10, 0),
+        datetime(2017, 11, 10, 1),
+        datetime(2017, 11, 10, 2),
+    ]
+    cycle_cubes = iris.cube.CubeList([])
+    for frt in frt_list:
+        cycle_cubes.append(
+            set_up_probability_cube(
+                data,
+                thresholds,
+                spatial_grid="equalarea",
+                time=datetime(2017, 11, 10, 4, 0),
+                frt=frt,
+            )
+        )
+    return cycle_cubes.merge_cube()
+
+
+@pytest.mark.parametrize(
+    "input_coord_name", ("forecast_reference_time", "forecast_period")
+)
+def test_find_blend_dim_coord_noop(input_cube, input_coord_name):
+    """Test no impact and returns correctly if called on dimension"""
+    result = find_blend_dim_coord(input_cube, input_coord_name)
+    assert result == "forecast_reference_time"
+
+
+def test_find_blend_dim_coord_error_no_dim(input_cube):
+    """Test error if blend coordinate has no dimension"""
+    cube = next(input_cube.slices_over("forecast_reference_time"))
+    with pytest.raises(ValueError, match="no associated dimension"):
+        find_blend_dim_coord(cube, "forecast_reference_time")

@@ -28,11 +28,37 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Constants associated with metadata"""
+"""Utilities to support weighted blending"""
 
-import numpy as np
 
-FLOAT_DTYPE = np.float32
-FLOAT_TYPES = [np.float32, np.float64]
+def find_blend_dim_coord(cube, blend_coord):
+    """
+    Find the name of the dimension coordinate across which to perform the blend,
+    since the input "blend_coord" may be an auxiliary coordinate.
 
-PERC_COORD = "percentile"
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be blended
+        blend_coord (str):
+            Name of coordinate to blend over
+
+    Returns:
+        str:
+            Name of dimension coordinate associated with blend dimension
+
+    Raises:
+        ValueError:
+            If blend coordinate is associated with more or less than one dimension
+    """
+    blend_dim = cube.coord_dims(blend_coord)
+    if len(blend_dim) != 1:
+        if len(blend_dim) < 1:
+            msg = f"Blend coordinate {blend_coord} has no associated dimension"
+        else:
+            msg = (
+                "Blend coordinate must only be across one dimension. Coordinate "
+                f"{blend_coord} is associated with dimensions {blend_dim}."
+            )
+        raise ValueError(msg)
+
+    return cube.coord(dimensions=blend_dim[0], dim_coords=True).name()

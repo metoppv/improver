@@ -232,38 +232,6 @@ class Test_process(IrisTest):
         self.assertEqual(cube, original_cube)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_promoted_dimension(self):
-        """Test that the plugin retains the single height point from the input
-           cube and promotes it to a dim coord."""
-
-        # Creates a cube containing the expected outputs.
-        fill_value = 1 + 1 / 3.0
-        data = np.full((2, 2), fill_value)
-
-        # Take a slice of the time coordinate.
-        expected_cube = self.cube[0].copy(data.astype(np.float32))
-
-        # Add height axis to expected output cube.
-        expected_cube = add_coordinate(expected_cube, [0.5], "height", coord_units="m")
-        expected_cube = iris.util.new_axis(expected_cube, "height")
-
-        # Add height axis to standard input cube.
-        cube = add_coordinate(self.cube.copy(), [0.5], "height", coord_units="m")
-        cube = iris.util.new_axis(cube, "height")
-
-        width = 2.0
-        plugin = TriangularWeightedBlendAcrossAdjacentPoints(
-            "forecast_period", self.forecast_period, "hours", width
-        )
-        result = plugin(cube)
-
-        # Test that the result cube retains height co-ordinates
-        # from original cube.
-        self.assertEqual(expected_cube.coord("height"), result.coord("height"))
-        self.assertArrayEqual(expected_cube.data, result.data)
-        self.assertEqual(expected_cube, result)
-
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_extra_dimension(self):
         """Test that the plugin retains the single height point from the input
            cube."""
@@ -302,7 +270,6 @@ class Test_process(IrisTest):
             thresh_cube, [0.25, 0.5, 0.75], "precipitation_amount", coord_units="mm"
         )
         thresh_cubes.coord("precipitation_amount").var_name = "threshold"
-
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             "forecast_period", self.forecast_period, "hours", width
         )

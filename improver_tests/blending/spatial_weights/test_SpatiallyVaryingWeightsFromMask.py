@@ -114,7 +114,7 @@ class Test__create_template_slice(IrisTest):
             altitudes, standard_name="surface_altitude", units="m"
         )
         self.cube_to_collapse.add_aux_coord(altitudes_coord, data_dims=(2, 3))
-        message = "Blend coordinate must only be across one dimension."
+        message = "Blend coordinate must only be across one dimension"
         plugin = SpatiallyVaryingWeightsFromMask("surface_altitude")
         with self.assertRaisesRegex(ValueError, message):
             plugin._create_template_slice(self.cube_to_collapse)
@@ -131,7 +131,7 @@ class Test__create_template_slice(IrisTest):
 
     def test_scalar_blend_coord_fail(self):
         """Test error is raised when blend_coord is scalar"""
-        message = "Blend coordinate must only be across one dimension."
+        message = "Blend coordinate .* has no associated dimension"
         with self.assertRaisesRegex(ValueError, message):
             self.plugin._create_template_slice(self.cube_to_collapse[0])
 
