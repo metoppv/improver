@@ -760,7 +760,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             self._set_blended_time_coords(blended_cube)
 
         if self.blend_coord == MODEL_BLEND_COORD:
-            contributing_models, = blended_cube.coord(MODEL_NAME_COORD).points
+            (contributing_models,) = blended_cube.coord(MODEL_NAME_COORD).points
             # iris concatenates string coordinates as a "|"-separated string
             blended_cube.attributes[model_id_attr] = " ".join(
                 sorted(contributing_models.split("|"))

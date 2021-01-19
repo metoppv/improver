@@ -561,7 +561,9 @@ class Test_process(Test_weighted_blend):
         cubes = iris.cube.CubeList()
         for index, name in zip([0, 1], ["uk_det", "uk_ens"]):
             cube = self.cube[0].copy()
-            cube.add_aux_coord(iris.coords.DimCoord([index], long_name=MODEL_BLEND_COORD))
+            cube.add_aux_coord(
+                iris.coords.DimCoord([index], long_name=MODEL_BLEND_COORD)
+            )
             cube.add_aux_coord(iris.coords.AuxCoord([name], long_name=MODEL_NAME_COORD))
             cubes.append(cube)
 
@@ -570,7 +572,9 @@ class Test_process(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension("model_id")
         expected_frt = 1447837200
         expected_forecast_period = 61200
-        result = plugin(cube, cycletime="20151118T0900Z", model_id_attr="mosg__model_configuration")
+        result = plugin(
+            cube, cycletime="20151118T0900Z", model_id_attr="mosg__model_configuration"
+        )
 
         self.assertEqual(result.coord("forecast_reference_time").points, expected_frt)
         self.assertEqual(
@@ -685,10 +689,17 @@ class Test_process(Test_weighted_blend):
             dim_coords_and_dims=[(cube_model.coord(MODEL_BLEND_COORD), 0)],
         )
         plugin = WeightedBlendAcrossWholeDimension("model_id")
-        result = plugin(cube_model, weights_model, cycletime=self.cycletime, model_id_attr="mosg__model_configuration")
+        result = plugin(
+            cube_model,
+            weights_model,
+            cycletime=self.cycletime,
+            model_id_attr="mosg__model_configuration",
+        )
         for coord_name in [MODEL_BLEND_COORD, MODEL_NAME_COORD]:
             self.assertNotIn(coord_name, [coord.name() for coord in result.coords()])
-        self.assertEqual(result.attributes["mosg__model_configuration"], "uk_det uk_ens")
+        self.assertEqual(
+            result.attributes["mosg__model_configuration"], "uk_det uk_ens"
+        )
 
 
 if __name__ == "__main__":
