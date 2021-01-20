@@ -41,7 +41,11 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
-from improver.blending.utilities import find_blend_dim_coord
+from improver.blending.utilities import (
+    find_blend_dim_coord,
+    get_coords_to_remove,
+    update_blended_metadata,
+)
 from improver.metadata.amend import amend_attributes
 from improver.metadata.constants import FLOAT_DTYPE, PERC_COORD
 from improver.metadata.constants.attributes import (
@@ -198,6 +202,8 @@ class MergeCubesForWeightedBlending(BasePlugin):
             else [cube.copy() for cube in cubes_in]
         )
 
+        print(self.blend_coord)
+
         if "model" in self.blend_coord:
             cubelist = [self._remove_blend_time(cube) for cube in cubelist]
             cubelist = [self._remove_deprecation_warnings(cube) for cube in cubelist]
@@ -211,10 +217,6 @@ class MergeCubesForWeightedBlending(BasePlugin):
                 cubelist = rebadge_forecasts_as_latest_cycle(
                     cubelist, cycletime=cycletime
                 )
-
-        # if input is already a single cube, return here
-        if len(cubelist) == 1:
-            return cubelist[0]
 
         # check all input cubes have the blend coordinate
         for cube in cubelist:
@@ -782,6 +784,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         cycletime=None,
         attributes_dict=None,
         model_id_attr=None,
+        coords_to_remove=None,
     ):
         """Calculate weighted blend across the chosen coord, for either
            probabilistic or percentile data. If there is a percentile
@@ -853,7 +856,10 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         self.check_compatible_time_points(cube)
 
         # Establish coordinates to be removed after blending
-        self._set_coords_to_remove(cube)
+        #self._set_coords_to_remove(cube)
+        #print(self.blend_coord)
+        #self.coords_to_remove = get_coords_to_remove(cube, self.blend_coord)
+        #print(self.coords_to_remove)
 
         # Do blending and update metadata
         if self.check_percentile_coord(cube):
@@ -862,7 +868,15 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         else:
             enforce_coordinate_ordering(cube, [self.blend_coord])
             result = self.weighted_mean(cube, weights)
-        self._update_blended_metadata(result, attributes_dict, model_id_attr)
+        #self._update_blended_metadata(result, attributes_dict, model_id_attr)
+        update_blended_metadata(
+            result,
+            self.blend_coord,
+            coords_to_remove=coords_to_remove,
+            cycletime=self.cycletime,
+            attributes_dict=attributes_dict,
+            model_id_attr=model_id_attr
+        )
 
         # Reorder resulting dimensions to match input
         enforce_coordinate_ordering(result, output_dims)

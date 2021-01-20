@@ -52,6 +52,12 @@ MODEL_WEIGHTS = {
     "uk_ens": {"forecast_period": [0, 4, 8], "weights": [0, 1, 1], "units": "hours"},
 }
 
+MODEL_WEIGHTS_WITH_ZERO ={
+    "nc_det": {"forecast_period": [0, 4, 8], "weights": [1, 0, 0], "units": "hours"},
+    "uk_det": {"forecast_period": [0, 4, 8], "weights": [0, 0, 0], "units": "hours"},
+    "uk_ens": {"forecast_period": [0, 4, 8], "weights": [0, 1, 1], "units": "hours"},
+}
+
 
 def set_up_masked_cubes():
     """
@@ -476,6 +482,42 @@ class Test_process(IrisTest):
             self.assertArrayEqual(
                 result.coord(coord).points, self.nowcast_cube.coord(coord).points
             )
+
+    def test_blend_with_zero_weight(self):
+        """Test plugin produces correct attributes when some models read into the
+        plugin have zero weighting"""
+        plugin = WeightAndBlend(
+            "model_id",
+            "dict",
+            weighting_coord="forecast_period",
+            wts_dict=MODEL_WEIGHTS_WITH_ZERO,
+        )
+        expected_data = np.array([[[0.85]], [[0.45]], [[0.1]]], dtype=np.float32)
+        result = plugin.process(
+            [self.ukv_cube, self.enukx_cube, self.nowcast_cube],
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(result.attributes["mosg__model_configuration"], "nc_det uk_ens")
+
+    def test_blend_with_zero_weight_one_model(self):
+        """Test plugin can cope with only one remaining model in the list to blend"""
+        plugin = WeightAndBlend(
+            "model_id",
+            "dict",
+            weighting_coord="forecast_period",
+            wts_dict=MODEL_WEIGHTS_WITH_ZERO,
+        )
+        expected_data = self.nowcast_cube.data.copy()
+        result = plugin.process(
+            [self.ukv_cube, self.nowcast_cube],
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
+        )
+        print(result)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(result.attributes["mosg__model_configuration"], "nc_det")
 
     def test_forecast_coord_deprecation(self):
         """Test model blending works if some (but not all) inputs have previously

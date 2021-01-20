@@ -31,7 +31,9 @@
 """Plugin to calculate blend weights and blend data across a dimension"""
 
 import warnings
+import copy
 
+import iris
 import numpy as np
 
 from improver import BasePlugin
@@ -45,6 +47,10 @@ from improver.blending.weights import (
     ChooseDefaultWeightsLinear,
     ChooseDefaultWeightsNonLinear,
     ChooseWeightsLinear,
+)
+from improver.blending.utilities import (
+    get_coords_to_remove,
+    update_blended_metadata,
 )
 from improver.metadata.amend import amend_attributes
 from improver.metadata.forecast_times import (
@@ -205,6 +211,38 @@ class WeightAndBlend(BasePlugin):
 
         return result
 
+    def _remove_zero_weighted_slices(self, cube, weights):
+        """Removes any cube and weights slices where the 1D weighting factor
+        is zero
+
+        Args:
+            cube (iris.cube.Cube):
+                The data cube to be blended
+            weights (iris.cube.Cube):
+                1D cube of weights varying along self.blend_coord
+
+        Returns:
+            (tuple): tuple containing:
+                **cube** (iris.cube.Cube):
+                    Data cube without zero-weighted slices
+                **weights** (iris.cube.Cube):
+                    Weights without zeroes
+        """
+        slice_out_vals = []
+        for wslice in weights.slices_over(self.blend_coord):
+            if np.sum(wslice.data) == 0:
+                slice_out_vals.append(wslice.coord(self.blend_coord).points[0])
+
+        if not slice_out_vals:
+            return cube, weights
+
+        constraint = iris.Constraint(
+            coord_values={self.blend_coord: lambda x: x not in slice_out_vals}
+        )
+        cube = cube.extract(constraint)
+        weights = weights.extract(constraint)
+        return cube, weights
+
     def process(
         self,
         cubelist,
@@ -258,37 +296,59 @@ class WeightAndBlend(BasePlugin):
         cube = merger(cubelist, cycletime=cycletime)
 
         if "model" in self.blend_coord:
-            self.blend_coord = MODEL_BLEND_COORD
+            self.blend_coord = copy.copy(MODEL_BLEND_COORD)
+
+        coords_to_remove = get_coords_to_remove(cube, self.blend_coord)
 
         coord_names = [coord.name() for coord in cube.coords()]
+        # deal with cases where only one cube has been input to the blend
         if (
             self.blend_coord not in coord_names
             or len(cube.coord(self.blend_coord).points) == 1
         ):
-            result = self._update_metadata_only(cube, attributes_dict, cycletime)
-        else:
-            # calculate blend weights
-            weights = self._calculate_blending_weights(cube)
-
-            # TODO here, slice out any inputs with zero weightings
-
-            if spatial_weights:
-                weights = self._update_spatial_weights(cube, weights, fuzzy_length)
-            elif np.ma.is_masked(cube.data):
-                # Raise warning if blending masked arrays using non-spatial weights.
-                warnings.warn(
-                    "Blending masked data without spatial weights has not been"
-                    " fully tested."
-                )
-
-            # blend across specified dimension
-            BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
-            result = BlendingPlugin(
+            update_blended_metadata(
                 cube,
-                weights=weights,
+                self.blend_coord,
+                coords_to_remove=coords_to_remove,
                 cycletime=cycletime,
                 attributes_dict=attributes_dict,
-                model_id_attr=model_id_attr,
+                model_id_attr=model_id_attr
             )
+            return cube
+
+        weights = self._calculate_blending_weights(cube)
+        cube, weights = self._remove_zero_weighted_slices(cube, weights)
+
+        # deal with case of only one non-zero-weighted slice
+        if len(cube.coord(self.blend_coord).points) == 1:
+            update_blended_metadata(
+                cube,
+                self.blend_coord,
+                coords_to_remove=coords_to_remove,
+                cycletime=cycletime,
+                attributes_dict=attributes_dict,
+                model_id_attr=model_id_attr
+            )
+            return cube
+
+        if spatial_weights:
+            weights = self._update_spatial_weights(cube, weights, fuzzy_length)
+        elif np.ma.is_masked(cube.data):
+            # Raise warning if blending masked arrays using non-spatial weights.
+            warnings.warn(
+                "Blending masked data without spatial weights has not been"
+                " fully tested."
+            )
+
+        # blend across specified dimension
+        BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
+        result = BlendingPlugin(
+            cube,
+            weights=weights,
+            cycletime=cycletime,
+            attributes_dict=attributes_dict,
+            model_id_attr=model_id_attr,
+            coords_to_remove=coords_to_remove,
+        )
 
         return result
