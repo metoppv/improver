@@ -484,8 +484,8 @@ class Test_process(IrisTest):
             )
 
     def test_blend_with_zero_weight(self):
-        """Test plugin produces correct attributes when some models read into the
-        plugin have zero weighting"""
+        """Test plugin produces correct values and attributes when some models read
+        into the plugin have zero weighting"""
         plugin = WeightAndBlend(
             "model_id",
             "dict",

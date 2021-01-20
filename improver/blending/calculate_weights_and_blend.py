@@ -49,11 +49,6 @@ from improver.blending.weights import (
     ChooseDefaultWeightsNonLinear,
     ChooseWeightsLinear,
 )
-from improver.metadata.amend import amend_attributes
-from improver.metadata.forecast_times import (
-    add_blend_time,
-    rebadge_forecasts_as_latest_cycle,
-)
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area,
     distance_to_number_of_grid_cells,

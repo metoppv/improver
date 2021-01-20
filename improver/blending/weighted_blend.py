@@ -46,18 +46,8 @@ from improver.blending.utilities import (
     get_coords_to_remove,
     update_blended_metadata,
 )
-from improver.metadata.amend import amend_attributes
 from improver.metadata.constants import FLOAT_DTYPE, PERC_COORD
-from improver.metadata.constants.attributes import (
-    MANDATORY_ATTRIBUTE_DEFAULTS,
-    MANDATORY_ATTRIBUTES,
-)
-from improver.metadata.constants.time_types import TIME_COORDS
-from improver.metadata.forecast_times import (
-    add_blend_time,
-    forecast_period_coord,
-    rebadge_forecasts_as_latest_cycle,
-)
+from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.cube_manipulation import (
     MergeCubes,
     collapsed,
@@ -66,8 +56,6 @@ from improver.utilities.cube_manipulation import (
     get_dim_coord_names,
     sort_coord_in_cube,
 )
-from improver.utilities.round import round_close
-from improver.utilities.temporal import cycletime_to_number
 
 
 class MergeCubesForWeightedBlending(BasePlugin):
