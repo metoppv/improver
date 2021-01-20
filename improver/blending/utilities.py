@@ -30,8 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities to support weighted blending"""
 
-import numpy as np
 from copy import copy
+
+import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -41,10 +42,7 @@ from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTES,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
-from improver.metadata.forecast_times import (
-    add_blend_time,
-    forecast_period_coord,
-)
+from improver.metadata.forecast_times import add_blend_time, forecast_period_coord
 from improver.utilities.round import round_close
 from improver.utilities.temporal import cycletime_to_number
 

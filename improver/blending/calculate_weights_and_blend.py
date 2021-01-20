@@ -39,6 +39,7 @@ import numpy as np
 from improver import BasePlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
+from improver.blending.utilities import get_coords_to_remove, update_blended_metadata
 from improver.blending.weighted_blend import (
     MergeCubesForWeightedBlending,
     WeightedBlendAcrossWholeDimension,
@@ -47,10 +48,6 @@ from improver.blending.weights import (
     ChooseDefaultWeightsLinear,
     ChooseDefaultWeightsNonLinear,
     ChooseWeightsLinear,
-)
-from improver.blending.utilities import (
-    get_coords_to_remove,
-    update_blended_metadata,
 )
 from improver.metadata.amend import amend_attributes
 from improver.metadata.forecast_times import (
@@ -276,12 +273,8 @@ class WeightAndBlend(BasePlugin):
         coords_to_remove = get_coords_to_remove(cube, self.blend_coord)
 
         coord_names = [coord.name() for coord in cube.coords()]
-        # deal with cases where only one cube has been input to the blend
-        if (
-            # self.blend_coord not in coord_names or
-            len(cube.coord(self.blend_coord).points)
-            == 1
-        ):
+        # deal with case where only one cube has been input to the blend
+        if len(cube.coord(self.blend_coord).points) == 1:
             update_blended_metadata(
                 cube,
                 self.blend_coord,
