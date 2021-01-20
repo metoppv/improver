@@ -267,8 +267,7 @@ class WeightAndBlend(BasePlugin):
 
         coords_to_remove = get_coords_to_remove(cube, self.blend_coord)
 
-        coord_names = [coord.name() for coord in cube.coords()]
-        # deal with case where only one cube has been input to the blend
+        # Deal with case where only one cube has been input to the blend
         if len(cube.coord(self.blend_coord).points) == 1:
             update_blended_metadata(
                 cube,
@@ -283,7 +282,7 @@ class WeightAndBlend(BasePlugin):
         weights = self._calculate_blending_weights(cube)
         cube, weights = self._remove_zero_weighted_slices(cube, weights)
 
-        # deal with case of only one non-zero-weighted slice
+        # Deal with case of only one non-zero-weighted slice
         if len(cube.coord(self.blend_coord).points) == 1:
             update_blended_metadata(
                 cube,
@@ -304,7 +303,7 @@ class WeightAndBlend(BasePlugin):
                 " fully tested."
             )
 
-        # blend across specified dimension
+        # Blend across specified dimension
         BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
         result = BlendingPlugin(
             cube,

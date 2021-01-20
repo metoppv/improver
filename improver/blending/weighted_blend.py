@@ -32,6 +32,7 @@
    whole dimension."""
 
 import warnings
+from copy import copy
 
 import iris
 import numpy as np
@@ -189,8 +190,6 @@ class MergeCubesForWeightedBlending(BasePlugin):
             if isinstance(cubes_in, iris.cube.Cube)
             else [cube.copy() for cube in cubes_in]
         )
-
-        print(self.blend_coord)
 
         if "model" in self.blend_coord:
             cubelist = [self._remove_blend_time(cube) for cube in cubelist]
@@ -719,12 +718,17 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             msg = "Coordinate to be collapsed not found in cube."
             raise CoordinateNotFoundError(msg)
 
-        self.cycletime = cycletime
-        output_dims = get_dim_coord_names(next(cube.slices_over(self.blend_coord)))
-        self.blend_coord = find_blend_dim_coord(cube, self.blend_coord)
-
         if self.blend_coord == MODEL_BLEND_COORD and model_id_attr is None:
             raise ValueError("model_id_attr is required for model blending")
+
+        self.cycletime = cycletime
+        # If blending over models without forecast period weightings, the blend
+        # dimension coordinate returned below will be "forecast_reference_time".
+        # It is necessary to record the original blend coordinate to identify where
+        # model-specific metadata changes are required after blending.
+        original_blend_coord = copy(self.blend_coord)
+        output_dims = get_dim_coord_names(next(cube.slices_over(self.blend_coord)))
+        self.blend_coord = find_blend_dim_coord(cube, self.blend_coord)
 
         # Ensure input cube and weights cube are ordered equivalently along
         # blending coordinate.
@@ -748,7 +752,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
 
         update_blended_metadata(
             result,
-            self.blend_coord,
+            original_blend_coord,
             coords_to_remove=coords_to_remove,
             cycletime=self.cycletime,
             attributes_dict=attributes_dict,
