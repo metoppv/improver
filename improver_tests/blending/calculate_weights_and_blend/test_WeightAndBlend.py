@@ -52,7 +52,7 @@ MODEL_WEIGHTS = {
     "uk_ens": {"forecast_period": [0, 4, 8], "weights": [0, 1, 1], "units": "hours"},
 }
 
-MODEL_WEIGHTS_WITH_ZERO ={
+MODEL_WEIGHTS_WITH_ZERO = {
     "nc_det": {"forecast_period": [0, 4, 8], "weights": [1, 0, 0], "units": "hours"},
     "uk_det": {"forecast_period": [0, 4, 8], "weights": [0, 0, 0], "units": "hours"},
     "uk_ens": {"forecast_period": [0, 4, 8], "weights": [0, 1, 1], "units": "hours"},
@@ -499,7 +499,9 @@ class Test_process(IrisTest):
             cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertEqual(result.attributes["mosg__model_configuration"], "nc_det uk_ens")
+        self.assertEqual(
+            result.attributes["mosg__model_configuration"], "nc_det uk_ens"
+        )
 
     def test_blend_with_zero_weight_one_model(self):
         """Test plugin can cope with only one remaining model in the list to blend"""
@@ -515,7 +517,6 @@ class Test_process(IrisTest):
             model_id_attr="mosg__model_configuration",
             cycletime=self.cycletime,
         )
-        print(result)
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(result.attributes["mosg__model_configuration"], "nc_det")
 

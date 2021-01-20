@@ -31,7 +31,7 @@
 """Plugin to calculate blend weights and blend data across a dimension"""
 
 import warnings
-import copy
+from copy import copy
 
 import iris
 import numpy as np
@@ -186,31 +186,6 @@ class WeightAndBlend(BasePlugin):
         weights = plugin(cube, weights)
         return weights
 
-    def _update_metadata_only(self, cube, attributes_dict, cycletime):
-        """
-        If blend_coord has only one value (for example cycle blending with
-        only one cycle available), or is not present (case where only
-        one model has been provided for a model blend), update attributes
-        and time coordinates and return.
-        """
-        result = cube.copy()
-        if attributes_dict is not None:
-            amend_attributes(result, attributes_dict)
-
-        (result,) = rebadge_forecasts_as_latest_cycle([result], cycletime)
-        if self.blend_coord in ["forecast_reference_time", MODEL_BLEND_COORD]:
-            for coord in ["forecast_period", "forecast_reference_time"]:
-                msg = f"{coord} will be removed in future and should not be used"
-                result.coord(coord).attributes.update({"deprecation_message": msg})
-
-            if cycletime is not None:
-                add_blend_time(result, cycletime)
-            else:
-                msg = "Current cycle time is required for cycle and model blending"
-                raise ValueError(msg)
-
-        return result
-
     def _remove_zero_weighted_slices(self, cube, weights):
         """Removes any cube and weights slices where the 1D weighting factor
         is zero
@@ -296,15 +271,16 @@ class WeightAndBlend(BasePlugin):
         cube = merger(cubelist, cycletime=cycletime)
 
         if "model" in self.blend_coord:
-            self.blend_coord = copy.copy(MODEL_BLEND_COORD)
+            self.blend_coord = copy(MODEL_BLEND_COORD)
 
         coords_to_remove = get_coords_to_remove(cube, self.blend_coord)
 
         coord_names = [coord.name() for coord in cube.coords()]
         # deal with cases where only one cube has been input to the blend
         if (
-            self.blend_coord not in coord_names
-            or len(cube.coord(self.blend_coord).points) == 1
+            # self.blend_coord not in coord_names or
+            len(cube.coord(self.blend_coord).points)
+            == 1
         ):
             update_blended_metadata(
                 cube,
@@ -312,7 +288,7 @@ class WeightAndBlend(BasePlugin):
                 coords_to_remove=coords_to_remove,
                 cycletime=cycletime,
                 attributes_dict=attributes_dict,
-                model_id_attr=model_id_attr
+                model_id_attr=model_id_attr,
             )
             return cube
 
@@ -327,7 +303,7 @@ class WeightAndBlend(BasePlugin):
                 coords_to_remove=coords_to_remove,
                 cycletime=cycletime,
                 attributes_dict=attributes_dict,
-                model_id_attr=model_id_attr
+                model_id_attr=model_id_attr,
             )
             return cube
 

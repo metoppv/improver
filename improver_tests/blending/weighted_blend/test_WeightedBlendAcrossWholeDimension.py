@@ -675,9 +675,8 @@ class Test_process(Test_weighted_blend):
         self.assertEqual(result.attributes, self.expected_attributes)
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_remove_unnecessary_scalar_coordinates(self):
-        """Test model_id and model_configuration coordinates are both removed
-        after model blending"""
+    def test_model_blending_metadata(self):
+        """Test model configuration attribute is set correctly after model blending"""
         cube_model = set_up_variable_cube(282 * np.zeros((2, 2), dtype=np.float32))
         cube_model = add_coordinate(cube_model, [0, 1], MODEL_BLEND_COORD)
         cube_model.add_aux_coord(
@@ -694,6 +693,7 @@ class Test_process(Test_weighted_blend):
             weights_model,
             cycletime=self.cycletime,
             model_id_attr="mosg__model_configuration",
+            coords_to_remove=[MODEL_BLEND_COORD, MODEL_NAME_COORD],
         )
         for coord_name in [MODEL_BLEND_COORD, MODEL_NAME_COORD]:
             self.assertNotIn(coord_name, [coord.name() for coord in result.coords()])

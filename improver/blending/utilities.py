@@ -31,6 +31,7 @@
 """Utilities to support weighted blending"""
 
 import numpy as np
+from copy import copy
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -102,7 +103,7 @@ def get_coords_to_remove(cube, blend_coord):
     except ValueError:
         # occurs if the blend coordinate is scalar
         if blend_coord == MODEL_BLEND_COORD:
-            return [MODEL_BLEND_COORD, MODEL_NAME_COORD]
+            return [copy(MODEL_BLEND_COORD), copy(MODEL_NAME_COORD)]
         return None
 
     crds_to_remove = []
@@ -115,13 +116,13 @@ def get_coords_to_remove(cube, blend_coord):
 
 
 def update_blended_metadata(
-        cube,
-        blend_coord,
-        coords_to_remove=None,
-        cycletime=None,
-        attributes_dict=None,
-        model_id_attr=None
-    ):
+    cube,
+    blend_coord,
+    coords_to_remove=None,
+    cycletime=None,
+    attributes_dict=None,
+    model_id_attr=None,
+):
     """
     Update metadata as required after blending
     - For cycle and model blending, set a single forecast reference time
@@ -153,7 +154,6 @@ def update_blended_metadata(
         _set_blended_time_coords(cube, cycletime)
 
     if blend_coord == MODEL_BLEND_COORD:
-        print(cube.coord(MODEL_NAME_COORD).points)
         (contributing_models,) = cube.coord(MODEL_NAME_COORD).points
         # iris concatenates string coordinates as a "|"-separated string
         cube.attributes[model_id_attr] = " ".join(
@@ -191,9 +191,7 @@ def _set_blended_time_coords(blended_cube, cycletime):
     try:
         cycletime_point = _get_cycletime_point(blended_cube, cycletime)
     except TypeError:
-        raise ValueError(
-            "Current cycle time is required for cycle and model blending"
-        )
+        raise ValueError("Current cycle time is required for cycle and model blending")
 
     add_blend_time(blended_cube, cycletime)
     blended_cube.coord("forecast_reference_time").points = [cycletime_point]
