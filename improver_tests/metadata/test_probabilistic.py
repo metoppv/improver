@@ -227,7 +227,7 @@ class Test_extract_diagnostic_name(unittest.TestCase):
             f"probability_of_{diagnostic}_in_vicinity_above_threshold",
             check_vicinity=True,
         )
-        self.assertEqual(result, f"{diagnostic}_in_vicinity")      
+        self.assertEqual(result, f"{diagnostic}_in_vicinity")
 
     def test_check_vicinity_noop(self):
         """Test correct name is returned from a standard probability if the

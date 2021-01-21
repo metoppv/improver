@@ -561,7 +561,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         )
 
         template_cube = next(forecast_probabilities.slices_over(threshold_coord.name()))
-        template_cube.rename(extract_diagnostic_name(template_cube.name(), check_vicinity=True))
+        template_cube.rename(
+            extract_diagnostic_name(template_cube.name(), check_vicinity=True)
+        )
         template_cube.remove_coord(threshold_coord.name())
 
         percentile_cube = create_cube_with_percentiles(

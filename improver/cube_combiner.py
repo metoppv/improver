@@ -297,7 +297,9 @@ class CubeMultiplier(CubeCombiner):
             cube_list (iris.cube.CubeList or list):
                 List of cubes to combine.
             new_diagnostic_name (str):
-                New name for the combined diagnostic.
+                New name for the combined diagnostic.  This should be the diagnostic
+                name, eg rainfall_rate or rainfall_rate_in_vicinity, rather than the
+                name of the probabilistic output cube.
             broadcast_to_threshold (bool):
                 True if the first cube has a threshold coordinate to which the
                 following cube(s) need(s) to be broadcast prior to combining data.
@@ -325,15 +327,20 @@ class CubeMultiplier(CubeCombiner):
 
         if broadcast_to_threshold:
             probabilistic_name = cube_list[0].name()
-            threshold_coord_name = extract_diagnostic_name(probabilistic_name)
             diagnostic_name = extract_diagnostic_name(
                 probabilistic_name, check_vicinity=True
             )
 
+            new_threshold_name = (
+                new_diagnostic_name[:-12]
+                if "vicinity" in new_diagnostic_name
+                else new_diagnostic_name
+            )
+
             # Rename the threshold coordinate to match the name of the diagnostic
             # that results from the combine operation.
-            result.coord(var_name="threshold").rename(threshold_coord_name)
-            result.coord(threshold_coord_name).var_name = "threshold"
+            result.coord(var_name="threshold").rename(new_threshold_name)
+            result.coord(new_threshold_name).var_name = "threshold"
 
             new_diagnostic_name = probabilistic_name.replace(
                 diagnostic_name, new_diagnostic_name
