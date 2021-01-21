@@ -36,7 +36,7 @@ from copy import copy
 import iris
 import numpy as np
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.blending.utilities import get_coords_to_remove, update_blended_metadata
@@ -55,7 +55,7 @@ from improver.utilities.spatial import (
 )
 
 
-class WeightAndBlend(BasePlugin):
+class WeightAndBlend(PostProcessingPlugin):
     """
     Wrapper class to calculate weights and blend data across cycles or models
     """
@@ -250,11 +250,10 @@ class WeightAndBlend(BasePlugin):
             UserWarning: If blending masked data without spatial weights.
                          This has not been fully tested.
         """
-        # Prepare cubes for weighted blending, including creating a numerical
-        # MODEL_BLEND_COORD and a string MODEL_NAME_COORD coordinate (containing
-        # the model identifier) for multi-model blending. The merged cube has
-        # a monotonically ascending blend coordinate. Plugin raises an error
-        # if blend_coord is not present on all input cubes.
+        # Prepare cubes for weighted blending, including creating custom metadata
+        # for multi-model blending. The merged cube has a monotonically ascending
+        # blend coordinate. Plugin raises an error if blend_coord is not present on
+        # all input cubes.
         merger = MergeCubesForWeightedBlending(
             self.blend_coord,
             weighting_coord=self.weighting_coord,
@@ -267,51 +266,37 @@ class WeightAndBlend(BasePlugin):
 
         coords_to_remove = get_coords_to_remove(cube, self.blend_coord)
 
-        # Deal with case where only one cube has been input to the blend
-        if len(cube.coord(self.blend_coord).points) == 1:
-            update_blended_metadata(
-                cube,
-                self.blend_coord,
-                coords_to_remove=coords_to_remove,
-                cycletime=cycletime,
-                attributes_dict=attributes_dict,
-                model_id_attr=model_id_attr,
-            )
-            return cube
-
         weights = self._calculate_blending_weights(cube)
         cube, weights = self._remove_zero_weighted_slices(cube, weights)
 
-        # Deal with case of only one non-zero-weighted slice
+        # Deal with case of only one input cube or non-zero-weighted slice
         if len(cube.coord(self.blend_coord).points) == 1:
-            update_blended_metadata(
-                cube,
-                self.blend_coord,
-                coords_to_remove=coords_to_remove,
-                cycletime=cycletime,
-                attributes_dict=attributes_dict,
-                model_id_attr=model_id_attr,
-            )
-            return cube
+            result = cube
+        else:
+            if spatial_weights:
+                weights = self._update_spatial_weights(cube, weights, fuzzy_length)
+            elif np.ma.is_masked(cube.data):
+                # Raise warning if blending masked arrays using non-spatial weights.
+                warnings.warn(
+                    "Blending masked data without spatial weights has not been"
+                    " fully tested."
+                )
 
-        if spatial_weights:
-            weights = self._update_spatial_weights(cube, weights, fuzzy_length)
-        elif np.ma.is_masked(cube.data):
-            # Raise warning if blending masked arrays using non-spatial weights.
-            warnings.warn(
-                "Blending masked data without spatial weights has not been"
-                " fully tested."
-            )
+            # Blend across specified dimension
+            BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
+            result = BlendingPlugin(cube, weights=weights)
 
-        # Blend across specified dimension
-        BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
-        result = BlendingPlugin(
-            cube,
-            weights=weights,
+        # Remove custom metadata and and update time-type coordinates.  Remove
+        # non-time-type coordinate that were previously associated with the blend
+        # dimension (coords_to_remove).  Add user-specified and standard blend
+        # attributes.
+        update_blended_metadata(
+            result,
+            self.blend_coord,
+            coords_to_remove=coords_to_remove,
             cycletime=cycletime,
             attributes_dict=attributes_dict,
             model_id_attr=model_id_attr,
-            coords_to_remove=coords_to_remove,
         )
 
         return result
