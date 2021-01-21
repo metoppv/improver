@@ -36,7 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube,):
+def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """ Calculate the convection ratio from convective and dynamic (stratiform)
     precipitation rate components.
 
@@ -48,6 +48,9 @@ def process(*cubes: cli.inputcube,):
         cubes (iris.cube.CubeList):
             Cubes of "lwe_convective_precipitation_rate" and "lwe_stratiform_precipitation_rate"
             in units that can be converted to "m s-1"
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
 
     Returns:
         iris.cube.Cube:
@@ -58,4 +61,4 @@ def process(*cubes: cli.inputcube,):
 
     if len(cubes) != 2:
         raise IOError(f"Expected 2 input cubes, received {len(cubes)}")
-    return ConvectionRatioFromComponents()(cubes)
+    return ConvectionRatioFromComponents()(cubes, model_id_attr=model_id_attr)
