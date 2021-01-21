@@ -187,7 +187,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         """
         output_cube.rename(
             "probability_of_{}_between_thresholds".format(
-                extract_diagnostic_name(self.cube.name())
+                extract_diagnostic_name(self.cube.name(), check_vicinity=True)
             )
         )
         new_thresh_coord = output_cube.coord(self.thresh_coord.name())

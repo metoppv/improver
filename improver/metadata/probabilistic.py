@@ -76,7 +76,7 @@ def in_vicinity_name_format(cube_name):
     return new_cube_name
 
 
-def extract_diagnostic_name(cube_name):
+def extract_diagnostic_name(cube_name, check_vicinity=False):
     """
     Extract the standard or long name X of the diagnostic from a probability
     cube name of the form 'probability_of_X_above/below_threshold',
@@ -86,6 +86,12 @@ def extract_diagnostic_name(cube_name):
     Args:
         cube_name (str):
             The probability cube name
+        check_vicinity (bool):
+            If False the function will return X as described above, which matches
+            the name of the threshold-type coordinate on the cube.  If True, the
+            cube name is checked to see whether it is a vicinity diagnostic, and
+            if so the function returns "X_in_vicinity".  This is the name of the
+            equivalent diagnostic in percentile or realization space.
 
     Returns:
         str:
@@ -101,6 +107,10 @@ def extract_diagnostic_name(cube_name):
         raise ValueError(
             "Input {} is not a valid probability cube name".format(cube_name)
         )
+
+    if check_vicinity and "_in_vicinity" in cube_name:
+        diagnostic_name += "_in_vicinity"
+
     return diagnostic_name
 
 

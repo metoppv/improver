@@ -325,12 +325,15 @@ class CubeMultiplier(CubeCombiner):
 
         if broadcast_to_threshold:
             probabilistic_name = cube_list[0].name()
-            diagnostic_name = extract_diagnostic_name(probabilistic_name)
+            threshold_coord_name = extract_diagnostic_name(probabilistic_name)
+            diagnostic_name = extract_diagnostic_name(
+                probabilistic_name, check_vicinity=True
+            )
 
             # Rename the threshold coordinate to match the name of the diagnostic
             # that results from the combine operation.
-            result.coord(var_name="threshold").rename(new_diagnostic_name)
-            result.coord(new_diagnostic_name).var_name = "threshold"
+            result.coord(var_name="threshold").rename(threshold_coord_name)
+            result.coord(threshold_coord_name).var_name = "threshold"
 
             new_diagnostic_name = probabilistic_name.replace(
                 diagnostic_name, new_diagnostic_name

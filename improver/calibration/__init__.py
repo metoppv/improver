@@ -70,7 +70,7 @@ def split_forecasts_and_truth(cubes, truth_attribute):
     grouped_cubes = {}
     for cube in cubes:
         try:
-            cube_name = extract_diagnostic_name(cube.name())
+            cube_name = extract_diagnostic_name(cube.name(), check_vicinity=True)
         except ValueError:
             cube_name = cube.name()
         grouped_cubes.setdefault(cube_name, []).append(cube)

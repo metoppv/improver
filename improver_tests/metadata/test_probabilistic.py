@@ -215,7 +215,26 @@ class Test_extract_diagnostic_name(unittest.TestCase):
         cannot be removed with "rstrip"."""
         diagnostic = "cloud_height"
         result = extract_diagnostic_name(
-            "probability_of_{}_in_vicinity_above_threshold".format(diagnostic)
+            f"probability_of_{diagnostic}_in_vicinity_above_threshold"
+        )
+        self.assertEqual(result, diagnostic)
+
+    def test_in_vicinity_check_vicinity(self):
+        """Test the full vicinity name is returned if the "check_vicinity"
+        argument is set"""
+        diagnostic = "precipitation_rate"
+        result = extract_diagnostic_name(
+            f"probability_of_{diagnostic}_in_vicinity_above_threshold",
+            check_vicinity=True,
+        )
+        self.assertEqual(result, f"{diagnostic}_in_vicinity")      
+
+    def test_check_vicinity_noop(self):
+        """Test correct name is returned from a standard probability if the
+        "check_vicinity" argument is set"""
+        diagnostic = "air_temperature"
+        result = extract_diagnostic_name(
+            f"probability_of_{diagnostic}_above_threshold", check_vicinity=True
         )
         self.assertEqual(result, diagnostic)
 
