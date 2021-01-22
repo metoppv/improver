@@ -230,8 +230,7 @@ class Test_get_diagnostic_cube_name_from_probability_name(unittest.TestCase):
     """Test utility to derive diagnostic cube name from probability cube name"""
 
     def test_basic(self):
-        """Test correct name is returned from a standard probability if the
-        "check_vicinity" argument is set"""
+        """Test correct name is returned from a point probability field"""
         diagnostic = "air_temperature"
         result = get_diagnostic_cube_name_from_probability_name(
             f"probability_of_{diagnostic}_above_threshold"
@@ -239,8 +238,8 @@ class Test_get_diagnostic_cube_name_from_probability_name(unittest.TestCase):
         self.assertEqual(result, diagnostic)
 
     def test_in_vicinity(self):
-        """Test the full vicinity name is returned if the "check_vicinity"
-        argument is set"""
+        """Test the full vicinity name is returned from a vicinity probability
+        field"""
         diagnostic = "precipitation_rate"
         result = get_diagnostic_cube_name_from_probability_name(
             f"probability_of_{diagnostic}_in_vicinity_above_threshold"
