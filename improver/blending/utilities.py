@@ -101,7 +101,7 @@ def get_coords_to_remove(cube, blend_coord):
     except ValueError:
         # occurs if the blend coordinate is scalar
         if blend_coord == MODEL_BLEND_COORD:
-            return [copy(MODEL_BLEND_COORD), copy(MODEL_NAME_COORD)]
+            return [MODEL_BLEND_COORD, MODEL_NAME_COORD]
         return None
 
     crds_to_remove = []
@@ -154,7 +154,6 @@ def update_blended_metadata(
     if blend_coord == MODEL_BLEND_COORD:
         (contributing_models,) = cube.coord(MODEL_NAME_COORD).points
         # iris concatenates string coordinates as a "|"-separated string
-        blended_attribute_value = " ".join(sorted(contributing_models.split("|")))
         cube.attributes[model_id_attr] = " ".join(
             sorted(contributing_models.split("|"))
         )
