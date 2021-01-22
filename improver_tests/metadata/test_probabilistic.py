@@ -40,10 +40,10 @@ from iris.tests import IrisTest
 from improver.metadata.probabilistic import (
     find_percentile_coordinate,
     find_threshold_coordinate,
-    get_diagnostic_cube_name_from_probability_name,
-    get_threshold_coord_name_from_probability_name,
     format_cell_methods_for_diagnostic,
     format_cell_methods_for_probability,
+    get_diagnostic_cube_name_from_probability_name,
+    get_threshold_coord_name_from_probability_name,
     in_vicinity_name_format,
     is_probability,
     probability_is_above_or_below,
