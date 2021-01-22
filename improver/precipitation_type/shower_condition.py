@@ -36,8 +36,8 @@ import numpy as np
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name,
     find_threshold_coordinate,
+    get_diagnostic_cube_name_from_probability_name,
     probability_is_above_or_below,
 )
 from improver.metadata.utilities import (
@@ -88,7 +88,7 @@ class ShowerCondition(BasePlugin):
         """Calculate deterministic "precipitation is showery" field"""
         showery_points = np.ones(shape, dtype=FLOAT_DTYPE)
         for cube in self.cubes:
-            name = extract_diagnostic_name(cube.name())
+            name = get_diagnostic_cube_name_from_probability_name(cube.name())
             slice_constraint = iris.Constraint(
                 coord_values={
                     name: lambda cell: np.isclose(

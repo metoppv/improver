@@ -40,8 +40,8 @@ from iris.exceptions import CoordinateNotFoundError
 from improver import BasePlugin
 from improver.metadata.check_datatypes import enforce_dtype
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name,
     find_threshold_coordinate,
+    get_diagnostic_cube_name_from_probability_name,
 )
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
@@ -327,8 +327,8 @@ class CubeMultiplier(CubeCombiner):
 
         if broadcast_to_threshold:
             probabilistic_name = cube_list[0].name()
-            diagnostic_name = extract_diagnostic_name(
-                probabilistic_name, check_vicinity=True
+            diagnostic_name = get_diagnostic_cube_name_from_probability_name(
+                probabilistic_name
             )
 
             new_threshold_name = (

@@ -42,7 +42,6 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.metadata.probabilistic import extract_diagnostic_name
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 
