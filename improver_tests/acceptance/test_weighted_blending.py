@@ -42,6 +42,10 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
+ATTRIBUTES_PATH = acc.kgo_root() / "weighted_blending/attributes.json"
+BLEND_WEIGHTS_PATH = acc.kgo_root() / "weighted_blending/blending_weights.json"
+
+
 @pytest.mark.slow
 def test_basic_nonlin(tmp_path):
     """Test basic non linear weights"""
@@ -231,7 +235,6 @@ def test_model(tmp_path):
     """Test multi-model blending"""
     kgo_dir = acc.kgo_root() / "weighted_blending/model"
     kgo_path = kgo_dir / "kgo.nc"
-    attr_path = kgo_dir / "../attributes.json"
     ukv_path = kgo_dir / "ukv_input.nc"
     enuk_path = kgo_dir / "enuk_input.nc"
     output_path = tmp_path / "output.nc"
@@ -247,7 +250,7 @@ def test_model(tmp_path):
         "--model-id-attr",
         "mosg__model_configuration",
         "--attributes-config",
-        attr_path,
+        ATTRIBUTES_PATH,
         ukv_path,
         enuk_path,
         "--output",
@@ -307,8 +310,6 @@ def test_weights_dict(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     ukv_path = kgo_dir / "../model/ukv_input.nc"
     enuk_path = kgo_dir / "../model/enuk_input.nc"
-    dict_path = kgo_dir / "input_dict.json"
-    attr_path = kgo_dir / "../attributes.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--coordinate",
@@ -318,13 +319,13 @@ def test_weights_dict(tmp_path):
         "--weighting-method",
         "dict",
         "--weighting-config",
-        dict_path,
+        BLEND_WEIGHTS_PATH,
         "--weighting-coord",
         "forecast_period",
         "--model-id-attr",
         "mosg__model_configuration",
         "--attributes-config",
-        attr_path,
+        ATTRIBUTES_PATH,
         ukv_path,
         enuk_path,
         "--output",
@@ -341,7 +342,6 @@ def test_percentile_weights_dict(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     ukv_path = kgo_dir / "ukv_input.nc"
     enuk_path = kgo_dir / "enuk_input.nc"
-    dict_path = kgo_dir / "../weights_from_dict/input_dict.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--coordinate",
@@ -351,7 +351,7 @@ def test_percentile_weights_dict(tmp_path):
         "--weighting-method",
         "dict",
         "--weighting-config",
-        dict_path,
+        BLEND_WEIGHTS_PATH,
         "--weighting-coord",
         "forecast_period",
         "--model-id-attr",
@@ -453,7 +453,6 @@ def test_spatial_model_blending(tmp_path):
         (kgo_dir / f"{t}_data/20181129T1000Z-PT0002H00M-{PRECIP}.nc")
         for t in ("nowcast", "ukvx")
     ]
-    attr_path = kgo_dir / "../attributes.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--coordinate",
@@ -468,7 +467,7 @@ def test_spatial_model_blending(tmp_path):
         "--model-id-attr",
         "mosg__model_configuration",
         "--attributes-config",
-        attr_path,
+        ATTRIBUTES_PATH,
         *input_files,
         "--output",
         output_path,
@@ -516,7 +515,6 @@ def test_spatial_model_no_fuzzy(tmp_path):
         (kgo_dir / f"{t}_data/20181129T1000Z-PT0002H00M-{PRECIP}.nc")
         for t in ("nowcast", "ukvx")
     ]
-    attr_path = kgo_dir / "../attributes.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--coordinate",
@@ -533,7 +531,7 @@ def test_spatial_model_no_fuzzy(tmp_path):
         "--model-id-attr",
         "mosg__model_configuration",
         "--attributes-config",
-        attr_path,
+        ATTRIBUTES_PATH,
         *input_files,
         "--output",
         output_path,
@@ -551,8 +549,6 @@ def test_three_model_blending(tmp_path):
         (kgo_dir / f"{t}/20190101T0400Z-PT{l:04}H00M-precip_rate.nc")
         for t, l in (("enukxhrly", 4), ("nc", 1), ("ukvx", 2))
     ]
-    attr_path = kgo_dir / "../attributes.json"
-    dict_path = kgo_dir / "blending-weights-preciprate.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--coordinate",
@@ -567,9 +563,9 @@ def test_three_model_blending(tmp_path):
         "--model-id-attr",
         "mosg__model_configuration",
         "--attributes-config",
-        attr_path,
+        ATTRIBUTES_PATH,
         "--weighting-config",
-        dict_path,
+        BLEND_WEIGHTS_PATH,
         *input_files,
         "--output",
         output_path,

@@ -38,6 +38,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from improver import BasePlugin
+from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.utilities.cube_manipulation import (
     check_cube_coordinates,
     sort_coord_in_cube,
@@ -145,7 +146,7 @@ class ChooseWeightsLinear(BasePlugin):
     original weights are provided as a configuration dictionary"""
 
     def __init__(
-        self, weighting_coord_name, config_dict, config_coord_name="model_configuration"
+        self, weighting_coord_name, config_dict, config_coord_name=MODEL_NAME_COORD
     ):
         """
         Set up for calculating linear weights from a dictionary or input cube
@@ -166,7 +167,7 @@ class ChooseWeightsLinear(BasePlugin):
                 Name of the coordinate used to select the configuration.
                 For example, if the intention is to create weights that scale
                 differently with the weighting_coord for different models, then
-                "model_configuration" would be the config_coord.
+                MODEL_NAME_COORD would be the config_coord.
 
         Dictionary of format::
 
@@ -354,8 +355,8 @@ class ChooseWeightsLinear(BasePlugin):
             "time",
             "forecast_period",
             "forecast_reference_time",
-            "model_id",
-            "model_configuration",
+            MODEL_BLEND_COORD,
+            MODEL_NAME_COORD,
             self.weighting_coord_name,
             self.config_coord_name,
         ]

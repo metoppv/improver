@@ -37,6 +37,7 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
+from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.weighted_blend import MergeCubesForWeightedBlending
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
@@ -122,27 +123,14 @@ class Test__create_model_coordinates(IrisTest):
             model_id_attr="mosg__model_configuration",
         )
 
-    def test_basic(self):
-        """Test model ID and model configuration coords are created and that
-        the model_id_attr (in this case 'mosg__model_configuration') is
-        correctly updated"""
-        self.plugin._create_model_coordinates(self.cubelist)
-        for cube in self.cubelist:
-            cube_coords = [coord.name() for coord in cube.coords()]
-            self.assertIn("model_id", cube_coords)
-            self.assertIn("model_configuration", cube_coords)
-            self.assertEqual(
-                cube.attributes["mosg__model_configuration"], "uk_det uk_ens"
-            )
-
     def test_values(self):
         """Test values of model coordinates are as expected"""
         expected_id = [0, 1000]
         expected_config = ["uk_ens", "uk_det"]
         self.plugin._create_model_coordinates(self.cubelist)
         for cube, m_id, m_conf in zip(self.cubelist, expected_id, expected_config):
-            self.assertEqual(cube.coord("model_id").points, [m_id])
-            self.assertEqual(cube.coord("model_configuration").points, [m_conf])
+            self.assertEqual(cube.coord(MODEL_BLEND_COORD).points, [m_id])
+            self.assertEqual(cube.coord(MODEL_NAME_COORD).points, [m_conf])
 
     def test_unmatched_model_id_attr(self):
         """Test error if model_id_attr is not present on both input cubes"""
@@ -223,33 +211,13 @@ class Test_process(IrisTest):
             model_id_attr="mosg__model_configuration",
         )
 
-    def test_basic(self):
-        """Test single cube is returned unchanged"""
-        cube = self.cube_enuk.copy()
-        result = self.plugin.process(cube)
-        self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
-        self.assertEqual(result.metadata, self.cube_enuk.metadata)
-
-    def test_single_item_list(self):
-        """Test cube from single item list is returned unchanged"""
-        cubelist = iris.cube.CubeList([self.cube_enuk.copy()])
-        result = self.plugin.process(cubelist)
-        self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
-        self.assertEqual(result.metadata, self.cube_enuk.metadata)
-
-    def test_single_item_list_attributes(self):
-        """Test cube from single item list attributes are as expected"""
-        cubelist = iris.cube.CubeList([self.cube_enuk.copy()])
-        result = self.plugin.process(cubelist)
-        self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
-
     def test_multi_model_merge(self):
         """Test models merge OK and have expected model coordinates"""
         result = self.plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.coord("model_id").points, [0, 1000])
+        self.assertArrayEqual(result.coord(MODEL_BLEND_COORD).points, [0, 1000])
         self.assertArrayEqual(
-            result.coord("model_configuration").points, ["uk_ens", "uk_det"]
+            result.coord(MODEL_NAME_COORD).points, ["uk_ens", "uk_det"]
         )
 
     def test_time_coords(self):
@@ -284,9 +252,9 @@ class Test_process(IrisTest):
         )
         # check no model coordinates have been added
         with self.assertRaises(iris.exceptions.CoordinateNotFoundError):
-            result.coord("model_id")
+            result.coord(MODEL_BLEND_COORD)
         with self.assertRaises(iris.exceptions.CoordinateNotFoundError):
-            result.coord("model_configuration")
+            result.coord(MODEL_NAME_COORD)
 
     def test_blend_coord_ascending(self):
         """Test the order of the output blend coordinate is always ascending,
@@ -330,7 +298,7 @@ class Test_process(IrisTest):
         )
         result = plugin.process(self.non_mo_cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.coord("model_id").points, [0, 1000])
+        self.assertArrayEqual(result.coord(MODEL_BLEND_COORD).points, [0, 1000])
 
     def test_model_id_attr_mismatch(self):
         """Test that when a model ID attribute string is specified that does

@@ -42,6 +42,7 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
+from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import (
@@ -124,9 +125,6 @@ class Test_weighted_blend(IrisTest):
         self.coord = "forecast_reference_time"
         self.plugin = WeightedBlendAcrossWholeDimension(self.coord)
 
-        # cycletime matches latest frt point on input cubes
-        self.cycletime = "20151119T0200Z"
-
         frt_points = [
             datetime(2015, 11, 19, 0),
             datetime(2015, 11, 19, 1),
@@ -148,11 +146,6 @@ class Test_weighted_blend(IrisTest):
         self.cube.data[0][:][:] = 1.0
         self.cube.data[1][:][:] = 2.0
         self.cube.data[2][:][:] = 3.0
-        self.expected_attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
-        self.expected_attributes.update(self.cube.attributes)
-        self.expected_attributes[
-            "title"
-        ] = "Post-Processed Operational ENGL Model Forecast"
 
         cube_threshold = set_up_probability_cube(
             np.zeros((2, 2, 2), dtype=np.float32),
@@ -520,109 +513,23 @@ class Test_process(Test_weighted_blend):
         expected_scalar_coords = {
             coord.name() for coord in self.cube.coords(dim_coords=False)
         }
-        expected_scalar_coords.update({self.coord, "blend_time"})
+        expected_scalar_coords.update({self.coord, self.coord})
 
-        expected_frt = int(self.cube.coord("forecast_reference_time").points[-1])
-        expected_forecast_period = int(self.cube.coord("forecast_period").points[-1])
-
-        result = self.plugin(self.cube, cycletime=self.cycletime)
+        result = self.plugin(self.cube)
 
         dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
         aux_coords = {coord.name() for coord in result.coords(dim_coords=False)}
 
         self.assertIsInstance(result, Cube)
-        self.assertEqual(result.attributes, self.expected_attributes)
         self.assertSequenceEqual(dim_coords, expected_dim_coords)
         self.assertSetEqual(aux_coords, expected_scalar_coords)
-        self.assertEqual(result.coord("forecast_reference_time").points, expected_frt)
-        self.assertEqual(
-            result.coord("forecast_period").points, expected_forecast_period
-        )
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_perc(self):
         """Test that the plugin returns a percentile cube"""
         self.perc_cube.attributes = self.cube.attributes
-        result = self.plugin(self.perc_cube, cycletime=self.cycletime)
+        result = self.plugin(self.perc_cube)
         self.assertIn("percentile", [x.name() for x in result.dim_coords])
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_specific_cycletime(self):
-        """Test that the plugin setup with a specific cycletime returns a cube
-        in which the forecast reference time has been changed to match the
-        given cycletime. The forecast period should also have been adjusted to
-        be given relative to this time.
-
-        For this we need a single time in our cube and so to blend over
-        something else. In this case we create a "model_id" coordinate as if we
-        are model blending."""
-
-        coord_name = "model_id"
-
-        cube1 = self.cube[0].copy()
-        model_crd1 = iris.coords.DimCoord([0], long_name=coord_name, units=1)
-        cube1.add_aux_coord(model_crd1)
-
-        cube2 = self.cube[0].copy()
-        model_crd2 = iris.coords.DimCoord([1], long_name=coord_name, units=1)
-        cube2.add_aux_coord(model_crd2)
-
-        cubes = iris.cube.CubeList([cube1, cube2])
-        cube = MergeCubes()(cubes)
-
-        plugin = WeightedBlendAcrossWholeDimension(coord_name)
-        expected_frt = 1447837200
-        expected_forecast_period = 61200
-        result = plugin(cube, cycletime="20151118T0900Z")
-
-        self.assertEqual(result.coord("forecast_reference_time").points, expected_frt)
-        self.assertEqual(
-            result.coord("forecast_period").points, expected_forecast_period
-        )
-        self.assertEqual(result.coord("time").points, cube.coord("time").points)
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_error_no_cycletime(self):
-        """Test error is raised if cycletime is not provided for cycle blending"""
-        msg = "Current cycle time is required"
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin(self.cube)
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_cycletime_not_updated(self):
-        """Test changes to forecast period and forecast reference time are not
-        made when not blending over cycle or model."""
-        cube = set_up_variable_cube(
-            278 * np.ones((3, 5, 5), dtype=np.float32),
-            time=datetime(2019, 10, 11, 1),
-            frt=datetime(2019, 10, 10, 21),
-        )
-        expected_frt = cube.coord("forecast_reference_time").points[0]
-        expected_fp = cube.coord("forecast_period").points[0]
-        plugin = WeightedBlendAcrossWholeDimension("realization")
-        result = plugin(cube, cycletime="20191011T0000Z")
-        self.assertEqual(
-            result.coord("forecast_reference_time").points[0], expected_frt
-        )
-        self.assertEqual(result.coord("forecast_period").points[0], expected_fp)
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_attributes_dict(self):
-        """Test updates to attributes on output cube"""
-        attributes_dict = {"source": "IMPROVER", "history": "cycle blended"}
-        for key in self.cube.attributes:
-            if "mosg__" in key:
-                attributes_dict[key] = "remove"
-        expected_attributes = {
-            "source": "IMPROVER",
-            "history": "cycle blended",
-            "title": "Post-Processed " + self.cube.attributes["title"],
-            "institution": MANDATORY_ATTRIBUTE_DEFAULTS["institution"],
-        }
-        result = self.plugin(
-            self.cube, attributes_dict=attributes_dict, cycletime=self.cycletime
-        )
-        self.assertDictEqual(result.attributes, expected_attributes)
 
     def test_fails_coord_not_in_cube(self):
         """Test it raises CoordinateNotFoundError if the blending coord is not
@@ -631,7 +538,7 @@ class Test_process(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(coord)
         msg = "Coordinate to be collapsed not found in cube."
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            plugin(self.cube, cycletime=self.cycletime)
+            plugin(self.cube)
 
     def test_fails_coord_not_in_weights_cube(self):
         """Test it raises CoordinateNotFoundError if the blending coord is not
@@ -639,7 +546,7 @@ class Test_process(Test_weighted_blend):
         self.weights1d.remove_coord(self.coord)
         msg = "Coordinate to be collapsed not found in weights cube."
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            self.plugin(self.cube, self.weights1d, cycletime=self.cycletime)
+            self.plugin(self.cube, self.weights1d)
 
     def test_fails_input_not_a_cube(self):
         """Test it raises a Type Error if not supplied with a cube."""
@@ -665,32 +572,10 @@ class Test_process(Test_weighted_blend):
         """Test weighted_mean method works collapsing a cube with a threshold
         dimension when the blending is over a different coordinate. Note that
         this test is in process to include the slicing."""
-        result = self.plugin(
-            self.cube_threshold, self.weights1d, cycletime=self.cycletime
-        )
+        result = self.plugin(self.cube_threshold, self.weights1d)
         expected_result_array = np.ones((2, 2, 2)) * 0.3
         expected_result_array[1, :, :] = 0.5
         self.assertArrayAlmostEqual(result.data, expected_result_array)
-        self.assertEqual(result.attributes, self.expected_attributes)
-
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
-    def test_remove_unnecessary_scalar_coordinates(self):
-        """Test model_id and model_configuration coordinates are both removed
-        after model blending"""
-        cube_model = set_up_variable_cube(282 * np.zeros((2, 2), dtype=np.float32))
-        cube_model = add_coordinate(cube_model, [0, 1], "model_id")
-        cube_model.add_aux_coord(
-            AuxCoord(["uk_ens", "uk_det"], long_name="model_configuration"), data_dims=0
-        )
-        weights_model = Cube(
-            np.array([0.5, 0.5]),
-            long_name="weights",
-            dim_coords_and_dims=[(cube_model.coord("model_id"), 0)],
-        )
-        plugin = WeightedBlendAcrossWholeDimension("model_id")
-        result = plugin(cube_model, weights_model, cycletime=self.cycletime)
-        for coord_name in ["model_id", "model_configuration"]:
-            self.assertNotIn(coord_name, [coord.name() for coord in result.coords()])
 
 
 if __name__ == "__main__":
