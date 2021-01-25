@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities to support weighted blending"""
 
-from copy import copy
-
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
 

@@ -266,8 +266,9 @@ class WeightAndBlend(PostProcessingPlugin):
 
         coords_to_remove = get_coords_to_remove(cube, self.blend_coord)
 
-        weights = self._calculate_blending_weights(cube)
-        cube, weights = self._remove_zero_weighted_slices(cube, weights)
+        if len(cube.coord(self.blend_coord).points) > 1:
+            weights = self._calculate_blending_weights(cube)
+            cube, weights = self._remove_zero_weighted_slices(cube, weights)
 
         # Deal with case of only one input cube or non-zero-weighted slice
         if len(cube.coord(self.blend_coord).points) == 1:

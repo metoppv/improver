@@ -503,7 +503,7 @@ class Test_process(IrisTest):
             result.attributes["mosg__model_configuration"], "nc_det uk_ens"
         )
 
-    def test_blend_with_zero_weight_one_model(self):
+    def test_blend_with_zero_weight_one_model_valid(self):
         """Test plugin can cope with only one remaining model in the list to blend"""
         plugin = WeightAndBlend(
             "model_id",
@@ -519,6 +519,24 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(result.attributes["mosg__model_configuration"], "nc_det")
+
+    def test_blend_with_zero_weight_one_model_input(self):
+        """Test plugin returns data unchanged from a single model, even if that
+        model had zero weight"""
+        plugin = WeightAndBlend(
+            "model_id",
+            "dict",
+            weighting_coord="forecast_period",
+            wts_dict=MODEL_WEIGHTS_WITH_ZERO,
+        )
+        expected_data = self.ukv_cube.data.copy()
+        result = plugin.process(
+            self.ukv_cube,
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(result.attributes["mosg__model_configuration"], "uk_det")
 
     def test_forecast_coord_deprecation(self):
         """Test model blending works if some (but not all) inputs have previously
