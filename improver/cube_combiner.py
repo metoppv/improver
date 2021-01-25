@@ -331,14 +331,9 @@ class CubeMultiplier(CubeCombiner):
                 probabilistic_name
             )
 
-            new_threshold_name = (
-                new_diagnostic_name[:-12]
-                if "vicinity" in new_diagnostic_name
-                else new_diagnostic_name
-            )
-
             # Rename the threshold coordinate to match the name of the diagnostic
             # that results from the combine operation.
+            new_threshold_name = new_diagnostic_name.replace("_in_vicinity", "")
             result.coord(var_name="threshold").rename(new_threshold_name)
             result.coord(new_threshold_name).var_name = "threshold"
 
