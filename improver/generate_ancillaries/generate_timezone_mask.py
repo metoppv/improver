@@ -367,7 +367,8 @@ class GenerateTimezoneMask(BasePlugin):
         timezone_mask.coord("UTC_offset").points = timezone_mask.coord(
             "UTC_offset"
         ).points.astype(TIME_COORDS["UTC_offset"].dtype)
-        timezone_mask.coord("UTC_offset").bounds = timezone_mask.coord(
-            "UTC_offset"
-        ).bounds.astype(TIME_COORDS["UTC_offset"].dtype)
+        if timezone_mask.coord("UTC_offset").bounds is not None:
+            timezone_mask.coord("UTC_offset").bounds = timezone_mask.coord(
+                "UTC_offset"
+            ).bounds.astype(TIME_COORDS["UTC_offset"].dtype)
         return timezone_mask

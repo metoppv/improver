@@ -242,7 +242,7 @@ def test__create_template_cube(request, grid_fixture, include_dst):
     assert result.coord("time").points[0] == time.timestamp()
     assert result.coord("time").dtype == np.int64
     assert result.shape == expected[grid_fixture]["shape"]
-    assert result.dtype == np.int32
+    assert result.dtype == np.int8
     assert result.attributes == expected[grid_fixture]["attributes"]
 
 
@@ -294,14 +294,14 @@ def process_expected_fixture() -> callable:
             None: {
                 "global_grid": {
                     "shape": (27, 19, 37),
-                    "min": -12,
-                    "max": 14,
+                    "min": -12 * 3600,
+                    "max": 14 * 3600,
                     "data": np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1]),
                 },
                 "uk_grid": {
                     "shape": (4, 21, 22),
-                    "min": -2,
-                    "max": 1,
+                    "min": -2 * 3600,
+                    "max": 1 * 3600,
                     "data": np.array([1, 1, 0, 0, 0, 1]),
                 },
                 "expected_time": 1510286400,
@@ -309,14 +309,14 @@ def process_expected_fixture() -> callable:
             "20200716T1500Z": {
                 "global_grid": {
                     "shape": (27, 19, 37),
-                    "min": -12,
-                    "max": 14,
+                    "min": -12 * 3600,
+                    "max": 14 * 3600,
                     "data": np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
                 },
                 "uk_grid": {
                     "shape": (5, 21, 22),
-                    "min": -2,
-                    "max": 2,
+                    "min": -2 * 3600,
+                    "max": 2 * 3600,
                     "data": np.array([1, 1, 1, 1, 0, 1]),
                 },
                 "expected_time": 1594911600,
