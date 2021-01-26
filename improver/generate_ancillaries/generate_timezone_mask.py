@@ -305,7 +305,11 @@ class GenerateTimezoneMask(BasePlugin):
                 subset.coord("UTC_offset").points = [offset]
             else:
                 (point,) = subset.coord("UTC_offset").points
-                subset.coord("UTC_offset").bounds = [point, point]
+                subset.coord("UTC_offset").points = [offset]
+                subset.coord("UTC_offset").bounds = [
+                    min(point, offset),
+                    max(point, offset),
+                ]
             grouped_timezone_masks.append(subset)
         return grouped_timezone_masks
 

@@ -246,12 +246,21 @@ def test__create_template_cube(request, grid_fixture, include_dst):
     assert result.attributes == expected[grid_fixture]["attributes"]
 
 
-@pytest.mark.parametrize("groups", ({0: [0, 1], 3: [2, 3]}, {0: [0, 2], 3: [3]}))
+@pytest.mark.parametrize(
+    "groups", ({0: [0, 1], 3: [2, 3]}, {0: [0, 2], 3: [3]}, {1: [0, 2], 4: [3, 4]})
+)
 def test__group_timezones(timezone_mask, groups):
     """Test the grouping of different UTC offsets into larger groups using a
     user provided specification. The input cube list contains cubes corresponding
-    to 4 UTC offsets. Two tests are run, grouping these first into equal sized
-    groups, and then into unequally sized groups."""
+    to 4 UTC offsets. Three tests are run, first grouping these into equal sized
+    groups, then into unequally sized groups. Finally the timezones are grouped
+    around a point beyond the end of the timezone range found in the timezone
+    mask.
+
+    This final test replicates what we want to achieve when grouping data
+    to extract from data available at non-hourly intervals. For example we
+    want to round UTC+14 data to UTC+15 as that is nearest available 3-hourly
+    data interval, though there is no timezone at UTC+15."""
 
     plugin = GenerateTimezoneMask(groupings=groups)
     result = plugin._group_timezones(timezone_mask)
