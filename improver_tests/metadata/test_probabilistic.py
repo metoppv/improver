@@ -187,7 +187,7 @@ class Test_in_vicinity_name_format(unittest.TestCase):
 class Test_get_threshold_coord_name_from_probability_name(unittest.TestCase):
     """Test utility to derive threshold coordinate name from probability cube name"""
 
-    def test_basic(self):
+    def test_above_threshold(self):
         """Test correct name is returned from a standard (above threshold)
         probability field"""
         result = get_threshold_coord_name_from_probability_name(
