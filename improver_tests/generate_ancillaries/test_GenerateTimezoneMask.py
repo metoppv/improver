@@ -40,6 +40,7 @@ from iris.cube import Cube, CubeList
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from improver.generate_ancillaries.generate_timezone_mask import GenerateTimezoneMask
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 pytest.importorskip("timezonefinder")
@@ -68,6 +69,21 @@ def global_grid_fixture() -> Cube:
         name="template",
         grid_spacing=10,
         domain_corner=(-90, -180),
+        attributes=GLOBAL_ATTRIBUTES,
+    )
+    return cube
+
+
+@pytest.fixture(name="global_grid_360")
+def global_grid_fixture_360() -> Cube:
+    """Global grid template with longitude running 0 to 360"""
+
+    data = np.zeros((19, 37), dtype=np.float32)
+    cube = set_up_variable_cube(
+        data,
+        name="template",
+        grid_spacing=10,
+        domain_corner=(-90, 0),
         attributes=GLOBAL_ATTRIBUTES,
     )
     return cube
@@ -134,15 +150,16 @@ def test__set_time(uk_grid):
         plugin._set_time(uk_grid)
 
 
-@pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
+@pytest.mark.parametrize("grid_fixture", ["global_grid", "global_grid_360", "uk_grid"])
 def test__get_coordinate_pairs(request, grid_fixture):
     """Test that a selection of the points returned by _get_coordinate_pairs
-    have the expected values. Tests are for both a native lat-long grid and for
+    have the expected values. Tests are for both native lat-long grids and for
     an equal areas grid that must be transformed."""
 
     sample_points = [0, 10, -1]
     expected_data = {
         "global_grid": [[-90.0, -180.0], [-90.0, -80.0], [90.0, 180.0]],
+        "global_grid_360": [[-90.0, -180.0], [-90.0, -80.0], [90.0, 180.0]],
         "uk_grid": [[44.517, -17.117], [45.548, -4.913], [62.026, 14.410]],
     }
 
@@ -342,7 +359,7 @@ def process_expected_fixture() -> callable:
 
 
 @pytest.mark.parametrize("time", [None, "20200716T1500Z"])
-@pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
+@pytest.mark.parametrize("grid_fixture", ["global_grid", "global_grid_360", "uk_grid"])
 def test_process(request, grid_fixture, time, process_expected):
     """Test that the process method returns cubes that take the expected form
     for different grids and different dates.
@@ -351,7 +368,9 @@ def test_process(request, grid_fixture, time, process_expected):
     large number of data points are required to reliably check it. Here we check
     only a small sample."""
 
-    expected, expected_time, index = process_expected(time, grid_fixture)
+    expected, expected_time, index = process_expected(
+        time, grid_fixture.replace("_360", "")
+    )
     grid = request.getfixturevalue(grid_fixture)
 
     result = GenerateTimezoneMask(time=time, include_dst=True)(grid)
@@ -360,4 +379,7 @@ def test_process(request, grid_fixture, time, process_expected):
     assert result.shape == expected["shape"]
     assert result.coord("UTC_offset").points.min() == expected["min"]
     assert result.coord("UTC_offset").points.max() == expected["max"]
+    assert result.coord("UTC_offset").points.dtype == TIME_COORDS["UTC_offset"].dtype
+
+
     assert_array_equal(result.data[index][::4], expected["data"])

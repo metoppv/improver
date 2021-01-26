@@ -148,8 +148,8 @@ class GenerateTimezoneMask(BasePlugin):
             longitudes = cube.coord("longitude").points.copy()
 
             # timezone finder works using -180 to 180 longitudes.
-            if (longitudes > 180).any():
-                longitudes[longitudes > 180] -= 180
+            if (longitudes > 180).any() and (longitudes >= 0).all():
+                longitudes -= 180
                 if ((longitudes > 180) | (longitudes < -180)).any():
                     msg = (
                         "TimezoneFinder requires longitudes between -180 "
