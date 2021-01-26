@@ -596,6 +596,12 @@ class Test_process(IrisTest):
         self.assertEqual(result.units, expected_units)
         self.assertEqual(result.cell_methods[0], expected_cell_method)
 
+    def test_vicinity_metadata(self):
+        """Test vicinity cube name is correctly regenerated after processing"""
+        self.cube.rename("probability_of_air_temperature_in_vicinity_above_threshold")
+        result = Plugin().process(self.cube)
+        self.assertEqual(result.name(), "air_temperature_in_vicinity")
+
 
 if __name__ == "__main__":
     unittest.main()

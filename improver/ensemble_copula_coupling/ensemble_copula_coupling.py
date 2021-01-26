@@ -50,10 +50,11 @@ from improver.ensemble_copula_coupling.utilities import (
     restore_non_percentile_dimensions,
 )
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,
     format_cell_methods_for_diagnostic,
+    get_diagnostic_cube_name_from_probability_name,
+    get_threshold_coord_name_from_probability_name,
     probability_is_above_or_below,
 )
 from improver.utilities.cube_checker import (
@@ -561,7 +562,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         )
 
         template_cube = next(forecast_probabilities.slices_over(threshold_coord.name()))
-        template_cube.rename(extract_diagnostic_name(template_cube.name()))
+        template_cube.rename(
+            get_diagnostic_cube_name_from_probability_name(template_cube.name())
+        )
         template_cube.remove_coord(threshold_coord.name())
 
         percentile_cube = create_cube_with_percentiles(
@@ -626,7 +629,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             )
 
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
-        phenom_name = extract_diagnostic_name(forecast_probabilities.name())
+        phenom_name = get_threshold_coord_name_from_probability_name(
+            forecast_probabilities.name()
+        )
 
         if no_of_percentiles is None:
             no_of_percentiles = len(

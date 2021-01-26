@@ -65,6 +65,23 @@ class Test_process(CombinerTest):
         self.assertArrayAlmostEqual(result.data, self.cube4.data)
         self.assertCubeListEqual(input_copy, cubelist)
 
+    def test_vicinity_names(self):
+        """Test plugin names the cube and threshold coordinate correctly for a
+        vicinity diagnostic"""
+        input = "lwe_thickness_of_precipitation_amount_in_vicinity"
+        output = "thickness_of_rainfall_amount_in_vicinity"
+        self.cube4.rename(f"probability_of_{input}_above_threshold")
+        cube = self.cube4[:, 0, ...].copy()
+        cube.data = np.ones_like(cube.data)
+        cube.remove_coord("lwe_thickness_of_precipitation_amount")
+        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
+        input_copy = deepcopy(cubelist)
+        result = CubeMultiplier()(cubelist, output, broadcast_to_threshold=True)
+        self.assertEqual(result.name(), f"probability_of_{output}_above_threshold")
+        self.assertEqual(
+            result.coord(var_name="threshold").name(), "thickness_of_rainfall_amount"
+        )
+
     def test_error_broadcast_coord_not_found(self):
         """Test that plugin throws an error if asked to broadcast to a threshold coord
         that is not present on the first cube"""

@@ -40,8 +40,8 @@ from iris.exceptions import CoordinateNotFoundError
 from improver import BasePlugin
 from improver.metadata.check_datatypes import enforce_dtype
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name,
     find_threshold_coordinate,
+    get_diagnostic_cube_name_from_probability_name,
 )
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
@@ -297,7 +297,9 @@ class CubeMultiplier(CubeCombiner):
             cube_list (iris.cube.CubeList or list):
                 List of cubes to combine.
             new_diagnostic_name (str):
-                New name for the combined diagnostic.
+                New name for the combined diagnostic.  This should be the diagnostic
+                name, eg rainfall_rate or rainfall_rate_in_vicinity, rather than the
+                name of the probabilistic output cube.
             broadcast_to_threshold (bool):
                 True if the first cube has a threshold coordinate to which the
                 following cube(s) need(s) to be broadcast prior to combining data.
@@ -325,12 +327,15 @@ class CubeMultiplier(CubeCombiner):
 
         if broadcast_to_threshold:
             probabilistic_name = cube_list[0].name()
-            diagnostic_name = extract_diagnostic_name(probabilistic_name)
+            diagnostic_name = get_diagnostic_cube_name_from_probability_name(
+                probabilistic_name
+            )
 
             # Rename the threshold coordinate to match the name of the diagnostic
             # that results from the combine operation.
-            result.coord(var_name="threshold").rename(new_diagnostic_name)
-            result.coord(new_diagnostic_name).var_name = "threshold"
+            new_threshold_name = new_diagnostic_name.replace("_in_vicinity", "")
+            result.coord(var_name="threshold").rename(new_threshold_name)
+            result.coord(new_threshold_name).var_name = "threshold"
 
             new_diagnostic_name = probabilistic_name.replace(
                 diagnostic_name, new_diagnostic_name

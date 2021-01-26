@@ -38,8 +38,8 @@ import numpy as np
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name,
     find_threshold_coordinate,
+    get_threshold_coord_name_from_probability_name,
     probability_is_above_or_below,
 )
 from improver.metadata.utilities import (
@@ -197,7 +197,10 @@ class WeatherSymbols(BasePlugin):
 
                 # Check cube and threshold coordinate names match according to
                 # expected convention.  If not, add to exception dictionary.
-                if extract_diagnostic_name(diagnostic) != threshold_name:
+                if (
+                    get_threshold_coord_name_from_probability_name(diagnostic)
+                    != threshold_name
+                ):
                     self.threshold_coord_names[diagnostic] = threshold_name
 
                 # Set flag to check for old threshold coordinate names
@@ -488,7 +491,9 @@ class WeatherSymbols(BasePlugin):
             elif diagnostic in self.threshold_coord_names:
                 threshold_coord_name = self.threshold_coord_names[diagnostic]
             else:
-                threshold_coord_name = extract_diagnostic_name(diagnostic)
+                threshold_coord_name = get_threshold_coord_name_from_probability_name(
+                    diagnostic
+                )
             threshold_val = threshold.points.item()
             constraints.append(
                 _constraint_string(diagnostic, threshold_coord_name, threshold_val)

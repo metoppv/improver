@@ -37,7 +37,6 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name,
     find_threshold_coordinate,
     probability_is_above_or_below,
 )
@@ -185,11 +184,12 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
             original_units (str):
                 Required threshold-type coordinate units
         """
-        output_cube.rename(
-            "probability_of_{}_between_thresholds".format(
-                extract_diagnostic_name(self.cube.name())
-            )
+        new_name = self.cube.name().replace(
+            "{}_threshold".format(probability_is_above_or_below(self.cube)),
+            "between_thresholds",
         )
+        output_cube.rename(new_name)
+
         new_thresh_coord = output_cube.coord(self.thresh_coord.name())
         new_thresh_coord.convert_units(original_units)
         new_thresh_coord.attributes["spp__relative_to_threshold"] = "between_thresholds"

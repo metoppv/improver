@@ -38,11 +38,12 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,
     format_cell_methods_for_diagnostic,
     format_cell_methods_for_probability,
+    get_diagnostic_cube_name_from_probability_name,
+    get_threshold_coord_name_from_probability_name,
     in_vicinity_name_format,
     is_probability,
     probability_is_above_or_below,
@@ -183,20 +184,20 @@ class Test_in_vicinity_name_format(unittest.TestCase):
         self.assertEqual(result, "probability_of_X_in_vicinity")
 
 
-class Test_extract_diagnostic_name(unittest.TestCase):
-    """Test utility to extract diagnostic name from probability cube name"""
+class Test_get_threshold_coord_name_from_probability_name(unittest.TestCase):
+    """Test utility to derive threshold coordinate name from probability cube name"""
 
-    def test_basic(self):
+    def test_above_threshold(self):
         """Test correct name is returned from a standard (above threshold)
         probability field"""
-        result = extract_diagnostic_name(
+        result = get_threshold_coord_name_from_probability_name(
             "probability_of_air_temperature_above_threshold"
         )
         self.assertEqual(result, "air_temperature")
 
     def test_below_threshold(self):
         """Test correct name is returned from a probability below threshold"""
-        result = extract_diagnostic_name(
+        result = get_threshold_coord_name_from_probability_name(
             "probability_of_air_temperature_below_threshold"
         )
         self.assertEqual(result, "air_temperature")
@@ -204,7 +205,7 @@ class Test_extract_diagnostic_name(unittest.TestCase):
     def test_between_thresholds(self):
         """Test correct name is returned from a probability between thresholds
         """
-        result = extract_diagnostic_name(
+        result = get_threshold_coord_name_from_probability_name(
             "probability_of_visibility_in_air_between_thresholds"
         )
         self.assertEqual(result, "visibility_in_air")
@@ -214,15 +215,41 @@ class Test_extract_diagnostic_name(unittest.TestCase):
         Name "cloud_height" is used in this test to illustrate why suffix
         cannot be removed with "rstrip"."""
         diagnostic = "cloud_height"
-        result = extract_diagnostic_name(
-            "probability_of_{}_in_vicinity_above_threshold".format(diagnostic)
+        result = get_threshold_coord_name_from_probability_name(
+            f"probability_of_{diagnostic}_in_vicinity_above_threshold"
         )
         self.assertEqual(result, diagnostic)
 
     def test_error_not_probability(self):
         """Test exception if input is not a probability cube name"""
         with self.assertRaises(ValueError):
-            extract_diagnostic_name("lwe_precipitation_rate")
+            get_threshold_coord_name_from_probability_name("lwe_precipitation_rate")
+
+
+class Test_get_diagnostic_cube_name_from_probability_name(unittest.TestCase):
+    """Test utility to derive diagnostic cube name from probability cube name"""
+
+    def test_basic(self):
+        """Test correct name is returned from a point probability field"""
+        diagnostic = "air_temperature"
+        result = get_diagnostic_cube_name_from_probability_name(
+            f"probability_of_{diagnostic}_above_threshold"
+        )
+        self.assertEqual(result, diagnostic)
+
+    def test_in_vicinity(self):
+        """Test the full vicinity name is returned from a vicinity probability
+        field"""
+        diagnostic = "precipitation_rate"
+        result = get_diagnostic_cube_name_from_probability_name(
+            f"probability_of_{diagnostic}_in_vicinity_above_threshold"
+        )
+        self.assertEqual(result, f"{diagnostic}_in_vicinity")
+
+    def test_error_not_probability(self):
+        """Test exception if input is not a probability cube name"""
+        with self.assertRaises(ValueError):
+            get_diagnostic_cube_name_from_probability_name("lwe_precipitation_rate")
 
 
 class Test_is_probability(IrisTest):
