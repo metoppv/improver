@@ -29,4 +29,5 @@ dependencies:
     - od
     - sigtools>=2.0
     - clize
-    - timezonefinder==4.2.0
+    - timezonefinder==5.1.0
+    - pytz==2020.5
