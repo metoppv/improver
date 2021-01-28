@@ -308,74 +308,63 @@ def test__group_timezones_empty_group(timezone_mask):
         assert_array_equal(cube.coord("UTC_offset").bounds[0], group)
 
 
-@pytest.fixture(name="process_expected")
-def process_expected_fixture() -> callable:
-    """Returns expected results for parameterized process tests."""
+# Expected data for process tests
 
-    def _make_expected(grouping, time, grid) -> dict:
+# ungrouped
+GLOBAL_GRID = {"shape": (27, 19, 37), "min": -12 * 3600, "max": 14 * 3600}
+# grouped
+GLOBAL_GRID_GR = {"shape": (2, 19, 37), "min": -6 * 3600, "max": 6 * 3600}
+UK_GRID_GR = {"shape": (2, 21, 22), "min": -6 * 3600, "max": 6 * 3600}
 
-        expected_time = {None: 1510286400, "20200716T1500Z": 1594911600}
-
-        # ungrouped
-        global_grid = {"shape": (27, 19, 37), "min": -12 * 3600, "max": 14 * 3600}
-        uk_grid_winter = {"shape": (4, 21, 22), "min": -2 * 3600, "max": 1 * 3600}
-        uk_grid_summer = {"shape": (5, 21, 22), "min": -2 * 3600, "max": 2 * 3600}
-
-        global_winter_data = {"data": np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1])}
-        global_summer_data = {"data": np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1])}
-        uk_winter_data = {"data": np.array([1, 1, 0, 0, 0, 1])}
-        uk_summer_data = {"data": np.array([1, 1, 1, 1, 0, 1])}
-
-        # grouped
-        global_grid_gr = {"shape": (2, 19, 37), "min": -6 * 3600, "max": 6 * 3600}
-        uk_grid_winter_gr = {"shape": (2, 21, 22), "min": -6 * 3600, "max": 6 * 3600}
-        uk_grid_summer_gr = {"shape": (2, 21, 22), "min": -6 * 3600, "max": 6 * 3600}
-
-        global_winter_data_gr = {"data": np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 1])}
-        global_summer_data_gr = {"data": np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])}
-        uk_winter_data_gr = {"data": np.array([0, 0, 0, 0, 0, 1])}
-        uk_summer_data_gr = {"data": np.array([0, 0, 1, 1, 0, 1])}
-
-        expected = {
-            "ungrouped": {
-                "global": {
-                    None: {**global_grid, **global_winter_data},
-                    "20200716T1500Z": {**global_grid, **global_summer_data},
-                    "indices": (12, 2),
-                },
-                "uk": {
-                    None: {**uk_grid_winter, **uk_winter_data},
-                    "20200716T1500Z": {**uk_grid_summer, **uk_summer_data},
-                    "indices": (2, 10),
-                },
+EXPECTED_TIME = {None: 1510286400, "20200716T1500Z": 1594911600}
+EXPECTED = {
+    "ungrouped": {
+        "global": {
+            None: {**GLOBAL_GRID, "data": np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1])},
+            "20200716T1500Z": {
+                **GLOBAL_GRID,
+                "data": np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
             },
-            "grouped": {
-                "global": {
-                    None: {**global_grid_gr, **global_winter_data_gr},
-                    "20200716T1500Z": {**global_grid_gr, **global_summer_data_gr},
-                    "indices": (0, 2),
-                },
-                "uk": {
-                    None: {**uk_grid_winter_gr, **uk_winter_data_gr},
-                    "20200716T1500Z": {**uk_grid_summer_gr, **uk_summer_data_gr},
-                    "indices": (0, 9),
-                },
+            "indices": (12, 2),
+        },
+        "uk": {
+            None: {
+                "shape": (4, 21, 22),
+                "min": -2 * 3600,
+                "max": 1 * 3600,
+                "data": np.array([1, 1, 0, 0, 0, 1]),
             },
-        }
-
-        return (
-            expected[grouping][grid][time],
-            expected_time[time],
-            expected[grouping][grid]["indices"],
-        )
-
-    return _make_expected
+            "20200716T1500Z": {
+                "shape": (5, 21, 22),
+                "min": -2 * 3600,
+                "max": 2 * 3600,
+                "data": np.array([1, 1, 1, 1, 0, 1]),
+            },
+            "indices": (2, 10),
+        },
+    },
+    "grouped": {
+        "global": {
+            None: {**GLOBAL_GRID_GR, "data": np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 1])},
+            "20200716T1500Z": {
+                **GLOBAL_GRID_GR,
+                "data": np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1]),
+            },
+            "indices": (0, 2),
+        },
+        "uk": {
+            None: {**UK_GRID_GR, "data": np.array([0, 0, 0, 0, 0, 1])},
+            "20200716T1500Z": {**UK_GRID_GR, "data": np.array([0, 0, 1, 1, 0, 1])},
+            "indices": (0, 9),
+        },
+    },
+}
 
 
 @pytest.mark.parametrize("grouping", ["ungrouped", "grouped"])
 @pytest.mark.parametrize("time", [None, "20200716T1500Z"])
 @pytest.mark.parametrize("grid_fixture", ["global_grid", "global_grid_360", "uk_grid"])
-def test_process(request, grid_fixture, time, grouping, process_expected):
+def test_process(request, grid_fixture, time, grouping):
     """Test that the process method returns cubes that take the expected form
     for different grids and different dates.
 
@@ -388,7 +377,10 @@ def test_process(request, grid_fixture, time, grouping, process_expected):
     if grouping == "grouped":
         groupings = {-6: [-12, 0], 6: [1, 14]}
 
-    expected, expected_time, index = process_expected(grouping, time, domain)
+    expected = EXPECTED[grouping][domain][time]
+    expected_time = EXPECTED_TIME[time]
+    index = EXPECTED[grouping][domain]["indices"]
+
     grid = request.getfixturevalue(grid_fixture)
 
     result = GenerateTimezoneMask(time=time, include_dst=True, groupings=groupings)(
