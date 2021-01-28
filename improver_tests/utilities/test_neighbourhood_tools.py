@@ -42,7 +42,7 @@ class Test_rolling_window(IrisTest):
     """Test the padding of a coordinate."""
 
     def setUp(self):
-        """Set up a 10 * 10 * 10 array."""
+        """Set up a 5 * 5 array."""
         self.array = np.arange(25).astype(np.int32).reshape((5, 5))
 
     def test_neighbourhood_size_2(self):
