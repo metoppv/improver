@@ -58,7 +58,9 @@ def rolling_window(input_array, shape, writeable=False):
     num_window_dims = len(shape)
     num_arr_dims = len(input_array.shape)
     if num_arr_dims < num_window_dims:
-        raise ValueError("Number of dimensions of input_array must be greater than or equal to length of shape")
+        raise ValueError(
+            "Number of dimensions of input_array must be greater than or equal to length of shape"
+        )
     adjshp = (
         *input_array.shape[:-num_window_dims],
         *(
