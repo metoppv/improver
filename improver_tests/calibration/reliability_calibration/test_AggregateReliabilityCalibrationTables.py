@@ -115,9 +115,10 @@ class Test__check_frt_coord(Test_Aggregation):
     def test_matching_bounds(self):
         """Test that no exception is raised in the input cubes if a cube
         contains matching bounds."""
-        reliability_cube = self.reliability_cube.copy()
-        lower_bound = reliability_cube.coord("forecast_reference_time").bounds[0][0]
-        reliability_cube.coord("forecast_reference_time").bounds = [
+        lower_bound = self.reliability_cube.coord("forecast_reference_time").bounds[0][
+            0
+        ]
+        self.reliability_cube.coord("forecast_reference_time").bounds = [
             [lower_bound, lower_bound]
         ]
         plugin = Plugin()
