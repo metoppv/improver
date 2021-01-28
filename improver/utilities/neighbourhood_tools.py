@@ -57,7 +57,8 @@ def rolling_window(input_array, shape, writeable=False):
     """
     num_window_dims = len(shape)
     num_arr_dims = len(input_array.shape)
-    assert num_arr_dims >= num_window_dims
+    if num_arr_dims < num_window_dims:
+        raise ValueError("Number of dimensions of input_array must be greater than or equal to length of shape")
     adjshp = (
         *input_array.shape[:-num_window_dims],
         *(
@@ -66,7 +67,8 @@ def rolling_window(input_array, shape, writeable=False):
         ),
         *shape,
     )
-    assert all(arr_dims > 0 for arr_dims in adjshp)
+    if any(arr_dims <= 0 for arr_dims in adjshp):
+        raise RuntimeError("New shape contains a dimension that is negative or zero")
     strides = input_array.strides + input_array.strides[-num_window_dims:]
     return np.lib.stride_tricks.as_strided(
         input_array, shape=adjshp, strides=strides, writeable=writeable
