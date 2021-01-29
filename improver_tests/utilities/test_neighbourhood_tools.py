@@ -31,6 +31,7 @@
 """Unit tests for spatial padding utilities"""
 
 import unittest
+
 import numpy as np
 from iris.tests import IrisTest
 
