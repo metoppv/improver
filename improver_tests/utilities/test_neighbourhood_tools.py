@@ -56,16 +56,33 @@ class Test_creating_rolling_window_neighbourhoods(IrisTest):
 
     def test_exception_too_many_dims(self):
         """Test an exception is raised if shape has too many dimensions."""
-        msg = "Number of dimensions of input_array must be greater than or equal to length of shape"
+        msg = (
+            "Number of dimensions of the input array must be greater than or equal to "
+            "the length of the neighbourhood shape used for constructing rolling window neighbourhoods"
+        )
         with self.assertRaisesRegex(ValueError, msg):
             rolling_window(self.array, (2, 2, 2))
 
     def test_exception_dims_too_large(self):
         """Test an exception is raised if dimensions of shape are larger than 
         corresponding dimensions of input array."""
-        msg = "New shape contains a dimension that is negative or zero"
+        msg = (
+            "The calculated shape of the output array view contains a dimension that is negative or zero. "
+            "Each dimension of the neighbourhood shape must be less than or equal to the corresponding "
+            "dimension of the input array."
+        )
         with self.assertRaisesRegex(RuntimeError, msg):
             rolling_window(self.array, (2, 6))
+
+    def test_writable(self):
+        """Test that result is writable if and only if `writable` is True."""
+        windows = rolling_window(self.array, (2, 2))
+        msg = "assignment destination is read-only"
+        with self.assertRaisesRegex(ValueError, msg):
+            windows[0, 0, 0, 0] = -1
+        windows = rolling_window(self.array, (2, 2), writeable=True)
+        windows[0, 0, 0, 0] = -1
+        self.assertEqual(windows[0, 0, 0, 0], -1)
 
 
 if __name__ == "__main__":

@@ -75,10 +75,10 @@ def rolling_window(input_array, shape, writeable=False):
     )
     if any(arr_dims <= 0 for arr_dims in adjshp):
         raise RuntimeError(
-    "The calculated shape of the output array view contains a dimension that is negative or zero. "
-    "Each dimension of the neighbourhood shape must be less than or equal to the corresponding "
-    "dimension of the input array."
-    )
+            "The calculated shape of the output array view contains a dimension that is negative or zero. "
+            "Each dimension of the neighbourhood shape must be less than or equal to the corresponding "
+            "dimension of the input array."
+        )
     strides = input_array.strides + input_array.strides[-num_window_dims:]
     return np.lib.stride_tricks.as_strided(
         input_array, shape=adjshp, strides=strides, writeable=writeable
