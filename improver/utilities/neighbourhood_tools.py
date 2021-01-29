@@ -34,14 +34,13 @@ import numpy as np
 
 
 def rolling_window(input_array, shape, writeable=False):
-    """Creates a rolling window neighbourhoods of the given `shape` from the
-    last `len(shape)` axes of the input array. avoids creating large output
+    """Creates a rolling window neighbourhood of the given `shape` from the
+    last `len(shape)` axes of the input array. Avoids creating a large output
     array by constructing a non-continuous view mapped onto the input array.
 
     args:
         input_array (numpy.ndarray):
-            A 2-D array padded with nans for half the
-            neighbourhood size.
+            An array from which rolling window neighbourhoods will be created.
         shape (tuple(int)):
             The neighbourhood shape e.g. if the neighbourhood
             size is 3, the shape would be (3, 3) to create a
@@ -59,7 +58,8 @@ def rolling_window(input_array, shape, writeable=False):
     num_arr_dims = len(input_array.shape)
     if num_arr_dims < num_window_dims:
         raise ValueError(
-            "Number of dimensions of input_array must be greater than or equal to length of shape"
+            "Number of dimensions of the input array must be greater than or equal to "
+            "the length of the neighbourhood shape used for constructing rolling window neighbourhoods"
         )
     adjshp = (
         *input_array.shape[:-num_window_dims],
@@ -70,7 +70,11 @@ def rolling_window(input_array, shape, writeable=False):
         *shape,
     )
     if any(arr_dims <= 0 for arr_dims in adjshp):
-        raise RuntimeError("New shape contains a dimension that is negative or zero")
+        raise RuntimeError(
+    "The calculated shape of the output array view contains a dimension that is negative or zero. "
+    "Each dimension of the neighbourhood shape must be less than or equal to the corresponding "
+    "dimension of the input array."
+    )
     strides = input_array.strides + input_array.strides[-num_window_dims:]
     return np.lib.stride_tricks.as_strided(
         input_array, shape=adjshp, strides=strides, writeable=writeable

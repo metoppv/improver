@@ -37,7 +37,7 @@ from iris.tests import IrisTest
 from improver.utilities.neighbourhood_tools import rolling_window
 
 
-class Test_rolling_window(IrisTest):
+class Test_creating_rolling_window_neighbourhoods(IrisTest):
 
     """Test the padding of a coordinate."""
 
@@ -61,7 +61,8 @@ class Test_rolling_window(IrisTest):
             rolling_window(self.array, (2, 2, 2))
 
     def test_exception_dims_too_large(self):
-        """Test an exception is raised if dimensions of shape are larger than corresponding dimensions of input array."""
+        """Test an exception is raised if dimensions of shape are larger than 
+        corresponding dimensions of input array."""
         msg = "New shape contains a dimension that is negative or zero"
         with self.assertRaisesRegex(RuntimeError, msg):
             rolling_window(self.array, (2, 6))
