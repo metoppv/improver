@@ -196,6 +196,10 @@ def boxsum(data, boxsize, cumsum=True, **pad_options):
     Returns:
         numpy.ndarray:
             Array containing the calculated neighbourhood total.
+
+    Raises:
+        ValueError: If `boxsize` has non-integer type.
+        ValueError: If any member of `boxsize` is not an odd number.
     """
     boxsize = np.atleast_1d(boxsize)
     if not issubclass(boxsize.dtype.type, np.integer):
