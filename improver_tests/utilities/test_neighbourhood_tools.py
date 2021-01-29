@@ -40,7 +40,7 @@ from improver.utilities.neighbourhood_tools import rolling_window
 
 class Test_creating_rolling_window_neighbourhoods(IrisTest):
 
-    """Test the padding of a coordinate."""
+    """Test creating rolling window neighbourhoods of an array."""
 
     def setUp(self):
         """Set up a 5 * 5 array."""
