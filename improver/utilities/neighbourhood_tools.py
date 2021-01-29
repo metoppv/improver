@@ -53,6 +53,10 @@ def rolling_window(input_array, shape, writeable=False):
         numpy.ndarray:
             "views" into the data, each view represents
             a neighbourhood of points.
+
+    Raises:
+        ValueError: If `input_array` has fewer dimensions than `shape`.
+        RuntimeError: If any dimension of `input_array` is larger than the corresponding dimension of `shape`.
     """
     num_window_dims = len(shape)
     num_arr_dims = len(input_array.shape)
