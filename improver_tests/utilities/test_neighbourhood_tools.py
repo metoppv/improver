@@ -101,7 +101,7 @@ class Test_padding_and_creating_rolling_window_neighbourhoods(IrisTest):
 
     def test_neighbourhood_size_2(self):
         """Test that result is same as result of rolling_window with a border of zeros"""
-        padded = pad_and_roll(self.array, (2, 2))
+        padded = pad_and_roll(self.array, (2, 2), mode="constant")
         window = rolling_window(self.array, (2, 2))
         inner_part = padded[1:-1, 1:-1, ::]
         self.assertArrayEqual(inner_part, window)
