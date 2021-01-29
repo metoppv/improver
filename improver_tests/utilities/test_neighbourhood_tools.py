@@ -35,8 +35,10 @@ import unittest
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.utilities.neighbourhood_tools import rolling_window
-
+from improver.utilities.neighbourhood_tools import (
+    rolling_window, 
+    pad_and_roll
+)
 
 class Test_creating_rolling_window_neighbourhoods(IrisTest):
 
@@ -84,6 +86,38 @@ class Test_creating_rolling_window_neighbourhoods(IrisTest):
         windows = rolling_window(self.array, (2, 2), writeable=True)
         windows[0, 0, 0, 0] = -1
         self.assertEqual(windows[0, 0, 0, 0], -1)
+
+
+class Test_padding_and_creating_rolling_window_neighbourhoods(IrisTest):
+
+    """Test creating rolling window neighbourhoods with padding."""
+
+    def setUp(self):
+        """Set up a 5 * 5 array."""
+        self.array = np.arange(25).astype(np.int32).reshape((5, 5))
+
+    def test_neighbourhood_size_2(self):
+        """Test that result is same as result of rolling_window with a border of zeros"""
+        padded = pad_and_roll(self.array, (2, 2))
+        window = rolling_window(self.array, (2, 2))
+        inner_part = padded[1: -1, 1: -1, : :]
+        self.assertArrayEqual(inner_part, window)
+        border_index = [[0, i, 0, j] for i in range(5) for j in [0, 1]] \
+                       + [[5, i, 1, j] for i in range(5) for j in [0, 1]] \
+                       + [[i, 0, j, 0] for i in range(5) for j in [0, 1]] \
+                       + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
+        outer_part = padded[list(zip(*border_index))]
+        self.assertArrayEqual(outer_part, np.zeros(40, dtype=np.int32))
+
+    def test_non_zero_padding(self):
+        """Test padding with a number other than the default of 0"""
+        padded = pad_and_roll(self.array, (2, 2), mode='constant', constant_values=1)
+        border_index = [[0, i, 0, j] for i in range(5) for j in [0, 1]] \
+                       + [[5, i, 1, j] for i in range(5) for j in [0, 1]] \
+                       + [[i, 0, j, 0] for i in range(5) for j in [0, 1]] \
+                       + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
+        outer_part = padded[list(zip(*border_index))]
+        self.assertArrayEqual(outer_part, np.ones(40, dtype=np.int32))
 
 
 if __name__ == "__main__":
