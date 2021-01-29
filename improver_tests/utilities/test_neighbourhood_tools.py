@@ -144,5 +144,49 @@ class Test_padding_for_boxsum(IrisTest):
         expected[2:5, 2:5] = self.array
         self.assertArrayEqual(padded, expected)
 
+
+class Test_boxsum(IrisTest):
+
+    """Test calculating neighbourhood sums with `boxsum`."""
+
+    def setUp(self):
+        """Set up a 3 * 3 array."""
+        self.array = np.arange(25).astype(np.int32).reshape((5, 5))
+
+    def test_no_cumsum(self):
+        """Test that boxsum correctly calculates neighbourhood sums using raw array."""
+        result = boxsum(self.array, 3)
+        expected = np.array([[np.sum(self.array[i - 1: i + 2, j - 1: j + 2]) 
+                              for j in [2, 3]] for i in [2, 3]])
+        self.assertArrayEqual(result, expected)
+
+    def test_with_cumsum(self):
+        """Test that boxsum correctly calculates neighbourhood sums using pre-calculated cumsum."""
+        cumsum_arr = np.array([[np.sum(self.array[:i + 1, :j + 1]) 
+                                for j in range(5)] for i in range(5)])
+        result = boxsum(cumsum_arr, 3, cumsum=False)
+        expected = np.array([[np.sum(self.array[i - 1: i + 2, j - 1: j + 2]) 
+                              for j in [2, 3]] for i in [2, 3]])
+        self.assertArrayEqual(result, expected)
+
+    def test_padding(self):
+        """Test that boxsum correctly calculates neighbourhood sums when adding padding to array."""
+        result = boxsum(self.array, 3, mode='constant', constant_values=0)
+        expected = np.array([[np.sum(self.array[max(0, i - 1): i + 2, max(0, j - 1): j + 2]) 
+                              for j in range(5)] for i in range(5)])
+        self.assertArrayEqual(result, expected)
+
+    def test_exception_non_integer(self):
+        """Test that an exception is raised if `boxsize` is not an integer."""
+        msg = "The size of the neighbourhood must be of an integer type."
+        with self.assertRaisesRegex(ValueError, msg):
+            boxsum(self.array, 1.5)
+
+    def test_exception_not_odd(self):
+        """Test that an exception is raised if `boxsize` contains a number that is not odd."""
+        msg = "The size of the neighbourhood must be an odd number."
+        with self.assertRaisesRegex(ValueError, msg):
+            boxsum(self.array, (1, 2))
+
 if __name__ == "__main__":
     unittest.main()
