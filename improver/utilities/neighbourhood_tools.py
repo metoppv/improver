@@ -145,7 +145,7 @@ def boxsum(data, boxsize, cumsum=True, **pad_options):
 
     This function makes use of the summed-area table method. An input
     array is accumulated top to bottom and left to right. This accumulated
-    array can then be used to efficiently calculated the total within a
+    array can then be used to efficiently calculate the total within a
     neighbourhood about any point. An example input data array::
 
         | 1 | 1 | 1 | 1 | 1 |
