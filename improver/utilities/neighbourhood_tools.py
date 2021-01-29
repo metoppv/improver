@@ -56,7 +56,8 @@ def rolling_window(input_array, shape, writeable=False):
 
     Raises:
         ValueError: If `input_array` has fewer dimensions than `shape`.
-        RuntimeError: If any dimension of `input_array` is larger than the corresponding dimension of `shape`.
+        RuntimeError: If any dimension of `input_array` is larger than 
+            the corresponding dimension of `shape`.
     """
     num_window_dims = len(shape)
     num_arr_dims = len(input_array.shape)
