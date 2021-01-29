@@ -42,6 +42,7 @@ from improver.utilities.neighbourhood_tools import (
     rolling_window,
 )
 
+
 class Test_creating_rolling_window_neighbourhoods(IrisTest):
 
     """Test creating rolling window neighbourhoods of an array."""
@@ -102,22 +103,26 @@ class Test_padding_and_creating_rolling_window_neighbourhoods(IrisTest):
         """Test that result is same as result of rolling_window with a border of zeros"""
         padded = pad_and_roll(self.array, (2, 2))
         window = rolling_window(self.array, (2, 2))
-        inner_part = padded[1: -1, 1: -1, : :]
+        inner_part = padded[1:-1, 1:-1, ::]
         self.assertArrayEqual(inner_part, window)
-        border_index = [[0, i, 0, j] for i in range(5) for j in [0, 1]] \
-                       + [[5, i, 1, j] for i in range(5) for j in [0, 1]] \
-                       + [[i, 0, j, 0] for i in range(5) for j in [0, 1]] \
-                       + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
+        border_index = (
+            [[0, i, 0, j] for i in range(5) for j in [0, 1]]
+            + [[5, i, 1, j] for i in range(5) for j in [0, 1]]
+            + [[i, 0, j, 0] for i in range(5) for j in [0, 1]]
+            + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
+        )
         outer_part = padded[list(zip(*border_index))]
         self.assertArrayEqual(outer_part, np.zeros(40, dtype=np.int32))
 
     def test_non_zero_padding(self):
         """Test padding with a number other than the default of 0"""
-        padded = pad_and_roll(self.array, (2, 2), mode='constant', constant_values=1)
-        border_index = [[0, i, 0, j] for i in range(5) for j in [0, 1]] \
-                       + [[5, i, 1, j] for i in range(5) for j in [0, 1]] \
-                       + [[i, 0, j, 0] for i in range(5) for j in [0, 1]] \
-                       + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
+        padded = pad_and_roll(self.array, (2, 2), mode="constant", constant_values=1)
+        border_index = (
+            [[0, i, 0, j] for i in range(5) for j in [0, 1]]
+            + [[5, i, 1, j] for i in range(5) for j in [0, 1]]
+            + [[i, 0, j, 0] for i in range(5) for j in [0, 1]]
+            + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
+        )
         outer_part = padded[list(zip(*border_index))]
         self.assertArrayEqual(outer_part, np.ones(40, dtype=np.int32))
 
@@ -139,7 +144,7 @@ class Test_padding_for_boxsum(IrisTest):
 
     def test_padding_non_zero(self):
         """Test padding with a number other than the default of 0"""
-        padded = pad_boxsum(self.array, 3, mode='constant', constant_values=2)
+        padded = pad_boxsum(self.array, 3, mode="constant", constant_values=2)
         expected = 2 * np.ones((6, 6), dtype=np.int32)
         expected[2:5, 2:5] = self.array
         self.assertArrayEqual(padded, expected)
@@ -156,24 +161,40 @@ class Test_boxsum(IrisTest):
     def test_no_cumsum(self):
         """Test that boxsum correctly calculates neighbourhood sums using raw array."""
         result = boxsum(self.array, 3)
-        expected = np.array([[np.sum(self.array[i - 1: i + 2, j - 1: j + 2]) 
-                              for j in [2, 3]] for i in [2, 3]])
+        expected = np.array(
+            [
+                [np.sum(self.array[i - 1 : i + 2, j - 1 : j + 2]) for j in [2, 3]]
+                for i in [2, 3]
+            ]
+        )
         self.assertArrayEqual(result, expected)
 
     def test_with_cumsum(self):
         """Test that boxsum correctly calculates neighbourhood sums using pre-calculated cumsum."""
-        cumsum_arr = np.array([[np.sum(self.array[:i + 1, :j + 1]) 
-                                for j in range(5)] for i in range(5)])
+        cumsum_arr = np.array(
+            [[np.sum(self.array[: i + 1, : j + 1]) for j in range(5)] for i in range(5)]
+        )
         result = boxsum(cumsum_arr, 3, cumsum=False)
-        expected = np.array([[np.sum(self.array[i - 1: i + 2, j - 1: j + 2]) 
-                              for j in [2, 3]] for i in [2, 3]])
+        expected = np.array(
+            [
+                [np.sum(self.array[i - 1 : i + 2, j - 1 : j + 2]) for j in [2, 3]]
+                for i in [2, 3]
+            ]
+        )
         self.assertArrayEqual(result, expected)
 
     def test_padding(self):
         """Test that boxsum correctly calculates neighbourhood sums when adding padding to array."""
-        result = boxsum(self.array, 3, mode='constant', constant_values=0)
-        expected = np.array([[np.sum(self.array[max(0, i - 1): i + 2, max(0, j - 1): j + 2]) 
-                              for j in range(5)] for i in range(5)])
+        result = boxsum(self.array, 3, mode="constant", constant_values=0)
+        expected = np.array(
+            [
+                [
+                    np.sum(self.array[max(0, i - 1) : i + 2, max(0, j - 1) : j + 2])
+                    for j in range(5)
+                ]
+                for i in range(5)
+            ]
+        )
         self.assertArrayEqual(result, expected)
 
     def test_exception_non_integer(self):
@@ -187,6 +208,7 @@ class Test_boxsum(IrisTest):
         msg = "The size of the neighbourhood must be an odd number."
         with self.assertRaisesRegex(ValueError, msg):
             boxsum(self.array, (1, 2))
+
 
 if __name__ == "__main__":
     unittest.main()
