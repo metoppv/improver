@@ -137,7 +137,7 @@ class Test_padding_for_boxsum(IrisTest):
 
     def test_padding(self):
         """Test that padded array consists of input array surrounded by border of zeros."""
-        padded = pad_boxsum(self.array, 3)
+        padded = pad_boxsum(self.array, 3, mode='constant')
         expected = np.zeros((6, 6), dtype=np.int32)
         expected[2:5, 2:5] = self.array
         self.assertArrayEqual(padded, expected)
