@@ -36,8 +36,10 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.utilities.neighbourhood_tools import (
-    rolling_window, 
-    pad_and_roll
+    boxsum,
+    pad_and_roll,
+    pad_boxsum,
+    rolling_window,
 )
 
 class Test_creating_rolling_window_neighbourhoods(IrisTest):
@@ -119,6 +121,28 @@ class Test_padding_and_creating_rolling_window_neighbourhoods(IrisTest):
         outer_part = padded[list(zip(*border_index))]
         self.assertArrayEqual(outer_part, np.ones(40, dtype=np.int32))
 
+
+class Test_padding_for_boxsum(IrisTest):
+
+    """Test padding an array to shape suitable for `boxsum`."""
+
+    def setUp(self):
+        """Set up a 3 * 3 array."""
+        self.array = np.arange(9).astype(np.int32).reshape((3, 3))
+
+    def test_padding(self):
+        """Test that padded array consists of input array surrounded by border of zeros."""
+        padded = pad_boxsum(self.array, 3)
+        expected = np.zeros((6, 6), dtype=np.int32)
+        expected[2:5, 2:5] = self.array
+        self.assertArrayEqual(padded, expected)
+
+    def test_padding_non_zero(self):
+        """Test padding with a number other than the default of 0"""
+        padded = pad_boxsum(self.array, 3, mode='constant', constant_values=2)
+        expected = 2 * np.ones((6, 6), dtype=np.int32)
+        expected[2:5, 2:5] = self.array
+        self.assertArrayEqual(padded, expected)
 
 if __name__ == "__main__":
     unittest.main()
