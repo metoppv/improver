@@ -56,15 +56,16 @@ def rolling_window(input_array, shape, writeable=False):
 
     Raises:
         ValueError: If `input_array` has fewer dimensions than `shape`.
-        RuntimeError: If any dimension of `input_array` is larger than 
-            the corresponding dimension of `shape`.
+        RuntimeError: If any dimension of `shape` is larger than 
+            the corresponding dimension of `input_array`.
     """
     num_window_dims = len(shape)
     num_arr_dims = len(input_array.shape)
     if num_arr_dims < num_window_dims:
         raise ValueError(
-            "Number of dimensions of the input array must be greater than or equal to "
-            "the length of the neighbourhood shape used for constructing rolling window neighbourhoods"
+            "Number of dimensions of the input array must be greater than or "
+            "equal to  the length of the neighbourhood shape used for "
+            "constructing rolling window neighbourhoods"
         )
     adjshp = (
         *input_array.shape[:-num_window_dims],
@@ -76,9 +77,10 @@ def rolling_window(input_array, shape, writeable=False):
     )
     if any(arr_dims <= 0 for arr_dims in adjshp):
         raise RuntimeError(
-            "The calculated shape of the output array view contains a dimension that is negative or zero. "
-            "Each dimension of the neighbourhood shape must be less than or equal to the corresponding "
-            "dimension of the input array."
+            "The calculated shape of the output array view contains a "
+            "dimension that is negative or zero. Each dimension of the "
+            "neighbourhood shape must be less than or equal to the "
+            "corresponding dimension of the input array."
         )
     strides = input_array.strides + input_array.strides[-num_window_dims:]
     return np.lib.stride_tricks.as_strided(
