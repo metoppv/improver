@@ -58,8 +58,9 @@ class Test_creating_rolling_window_neighbourhoods(IrisTest):
     def test_exception_too_many_dims(self):
         """Test an exception is raised if shape has too many dimensions."""
         msg = (
-            "Number of dimensions of the input array must be greater than or equal to "
-            "the length of the neighbourhood shape used for constructing rolling window neighbourhoods"
+            "Number of dimensions of the input array must be greater than or "
+            "equal to  the length of the neighbourhood shape used for "
+            "constructing rolling window neighbourhoods"
         )
         with self.assertRaisesRegex(ValueError, msg):
             rolling_window(self.array, (2, 2, 2))
@@ -68,9 +69,10 @@ class Test_creating_rolling_window_neighbourhoods(IrisTest):
         """Test an exception is raised if dimensions of shape are larger than 
         corresponding dimensions of input array."""
         msg = (
-            "The calculated shape of the output array view contains a dimension that is negative or zero. "
-            "Each dimension of the neighbourhood shape must be less than or equal to the corresponding "
-            "dimension of the input array."
+            "The calculated shape of the output array view contains a "
+            "dimension that is negative or zero. Each dimension of the "
+            "neighbourhood shape must be less than or equal to the "
+            "corresponding dimension of the input array."
         )
         with self.assertRaisesRegex(RuntimeError, msg):
             rolling_window(self.array, (2, 6))
