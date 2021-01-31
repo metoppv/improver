@@ -65,7 +65,7 @@ def rolling_window(input_array, shape, writeable=False):
         raise ValueError(
             "Number of dimensions of the input array must be greater than or "
             "equal to  the length of the neighbourhood shape used for "
-            "constructing rolling window neighbourhoods"
+            "constructing rolling window neighbourhoods."
         )
     adjshp = (
         *input_array.shape[:-num_window_dims],

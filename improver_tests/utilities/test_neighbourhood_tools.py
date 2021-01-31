@@ -60,7 +60,7 @@ class Test_creating_rolling_window_neighbourhoods(IrisTest):
         msg = (
             "Number of dimensions of the input array must be greater than or "
             "equal to  the length of the neighbourhood shape used for "
-            "constructing rolling window neighbourhoods"
+            "constructing rolling window neighbourhoods."
         )
         with self.assertRaisesRegex(ValueError, msg):
             rolling_window(self.array, (2, 2, 2))
