@@ -31,6 +31,8 @@
 """Module containing plugin base class."""
 from abc import ABC, abstractmethod
 
+__version__ = "0.14.1"
+
 
 class BasePlugin(ABC):
     """An abstract class for IMPROVER plugins.
