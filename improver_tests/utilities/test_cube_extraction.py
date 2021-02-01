@@ -39,7 +39,11 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 from improver.utilities.cube_extraction import (
     apply_extraction,
     create_constraint,
@@ -47,6 +51,7 @@ from improver.utilities.cube_extraction import (
     extract_subcube,
     is_complex_parsing_required,
     parse_constraint_list,
+    subset_data,
 )
 
 
@@ -481,6 +486,68 @@ class Test_extract_subcube(IrisTest):
         self.assertEqual(
             expected.coord("precipitation_rate"), result.coord("precipitation_rate")
         )
+
+
+class Test_subset_data(IrisTest):
+    """Tests for the subset_data function"""
+
+    def setUp(self):
+        """Set up spot and gridded cubes for testing"""
+        # details pulled from verification site list
+        alts = np.array([15, 82, 0, 4, 15, 269], dtype=np.float32)
+        lats = np.array([60.75, 60.13, 58.95, 57.37, 58.22, 57.72], dtype=np.float32)
+        lons = np.array([-0.85, -1.18, -2.9, -7.40, -6.32, -4.90], dtype=np.float32)
+        wmo_ids = np.array(["3002", "3005", "3017", "3023", "3026", "3031"])
+
+        self.spot_cube = build_spotdata_cube(
+            np.arange(6).astype(np.float32),
+            "screen_temperature",
+            "degC",
+            alts,
+            lats,
+            lons,
+            wmo_ids
+        )
+
+        data = np.arange(56).reshape((7, 8)).astype(np.float32)
+        self.uk_cube = set_up_variable_cube(
+            data, name="screen_temperature", units="degC", spatial_grid="equalarea",
+            domain_corner=(-5000, -5000),
+            grid_spacing=2000
+        )
+
+        self.gl_cube = set_up_variable_cube(
+            data, name="screen_temperature", units="degC", spatial_grid="latlon",
+            domain_corner=(45, -2),
+            grid_spacing=2
+        )
+
+        self.grid_spec = {
+            "longitude": {"min": 0, "max": 7, "thin": 2},
+            "latitude": {"min": 42, "max": 52, "thin": 2},
+            "projection_x_coordinate": {"min": 0, "max": 10000, "thin": 3},
+            "projection_y_coordinate": {"min": 0, "max": 10000, "thin": 3},
+        }
+
+    def test_subset_spot_cube(self):
+        """Extract a list of spot sites"""
+        site_list = ["3005", "3023"]
+        result = subset_data(self.spot_cube, site_list=site_list)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayEqual(result.coord("wmo_id").points, site_list)
+        self.assertArrayAlmostEqual(result.data, [1, 3])
+
+    def test_subset_uk_grid(self):
+        """Extract subset of UK equal area grid"""
+        expected_data = np.array([[27, 30], [51, 54]])
+        result = subset_data(self.uk_cube, grid_spec=self.grid_spec)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_subset_global_grid(self):
+        """Extract subset of global lat-lon grid"""
+        expected_data = np.array([[1, 3, 5], [17, 19, 21]])
+        result = subset_data(self.gl_cube, grid_spec=self.grid_spec)
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
 
 if __name__ == "__main__":

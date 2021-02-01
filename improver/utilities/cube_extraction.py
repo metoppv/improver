@@ -32,7 +32,9 @@
 
 from ast import literal_eval
 
-import iris
+#import iris
+from iris import Constraint
+from iris.cube import CubeList
 import numpy as np
 
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
@@ -250,3 +252,70 @@ def extract_subcube(cube, constraints, units=None, use_original_units=True):
         cube, constraints, units=units, use_original_units=use_original_units
     )
     return output_cube
+
+
+def subset_data(cube, grid_spec=None, site_list=None):
+    """Extract a spatial cutout or subset of sites from data
+    to generate suite reference outputs.
+
+    Args:
+        cube (iris.cube.Cube):
+            Input dataset
+        grid_spec (dict):
+            Dictionary containing bounding grid points and an integer "thinning
+            factor" for each of UK and global grid, to create cutouts.  Eg a
+            "thinning factor" of 10 would mean every 10th point being taken for
+            the cutout.
+        site_list (list of str):
+            List of WMO site IDs to extract
+
+    Returns:
+        iris.cube.Cube:
+            Subset of input cube as specified by dictionary constraints
+
+    Raises:
+        ValueError:
+            If data are gridded but not on a UK standard or lat-lon grid
+    """
+    # generate iris constraint for extraction based on cube type
+    if cube.coords("spot_index"):
+        # get restricted list of wmo_ids
+        constraint = Constraint(coord_values={"wmo_id": lambda x: x in site_list})
+        result = cube.extract(constraint)
+
+    else:
+        x_coord = cube.coord(axis="x").name()
+        y_coord = cube.coord(axis="y").name()
+
+        coord_values = {}
+        for coord in [x_coord, y_coord]:
+            try:
+                coord_values[coord] = (
+                    lambda x: grid_spec[coord]["min"] <= x.point <= grid_spec[coord]["max"]
+                )
+            except KeyError:
+                raise ValueError(
+                    f"Cube coordinates {y_coord}, {x_coord} do not match "
+                    "expected values"
+                )
+
+        # need to use cube intersection for circular coordinates (longitude)
+        if x_coord == "longitude":
+            cutout = cube.extract(
+                Constraint(coord_values={"latitude": coord_values["latitude"]})
+            )
+            cutout = cutout.intersection(
+                longitude=(grid_spec["longitude"]["min"], grid_spec["longitude"]["max"])
+            )
+        else:  
+            cutout = cube.extract(Constraint(coord_values=coord_values))
+
+        # thin the data assuming spatial axes are the last
+        thin_x = grid_spec[x_coord]["thin"]
+        thin_y = grid_spec[y_coord]["thin"]
+        result_list = CubeList()
+        for subcube in cutout.slices([y_coord, x_coord]):
+            result_list.append(subcube[::thin_y, ::thin_x])
+        result = result_list.merge_cube()
+
+    return result
