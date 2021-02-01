@@ -30,9 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for spatial padding utilities"""
 
-import pytest
-
 import numpy as np
+import pytest
 
 from improver.utilities.neighbourhood_tools import rolling_window
 
