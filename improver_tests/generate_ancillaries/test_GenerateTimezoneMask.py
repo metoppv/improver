@@ -323,7 +323,7 @@ EXPECTED = {
             None: {**GLOBAL_GRID, "data": np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1])},
             "20200716T1500Z": {
                 **GLOBAL_GRID,
-                "data": np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
+                "data": np.ones([10]),
             },
             "indices": (12, 2),
         },
