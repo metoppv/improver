@@ -30,63 +30,61 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for spatial padding utilities"""
 
-import unittest
+import pytest
 
 import numpy as np
-from iris.tests import IrisTest
 
 from improver.utilities.neighbourhood_tools import rolling_window
 
 
-class Test_creating_rolling_window_neighbourhoods(IrisTest):
+@pytest.fixture
+def array_size_5():
+    return np.arange(25).astype(np.int32).reshape((5, 5))
 
-    """Test creating rolling window neighbourhoods of an array."""
 
-    def setUp(self):
-        """Set up a 5 * 5 array."""
-        self.array = np.arange(25).astype(np.int32).reshape((5, 5))
+def test_rolling_window_neighbourhood_size_2(array_size_5):
+    """Test producing a 2 * 2 neighbourhood."""
+    windows = rolling_window(array_size_5, (2, 2))
+    expected = np.zeros((4, 4, 2, 2), dtype=np.int32)
+    for i in range(4):
+        for j in range(4):
+            expected[i, j] = array_size_5[i : i + 2, j : j + 2]
+    np.testing.assert_array_equal(windows, expected)
 
-    def test_neighbourhood_size_2(self):
-        """Test producing a 2 * 2 neighbourhood."""
-        windows = rolling_window(self.array, (2, 2))
-        expected = np.zeros((4, 4, 2, 2), dtype=np.int32)
-        for i in range(4):
-            for j in range(4):
-                expected[i, j] = self.array[i : i + 2, j : j + 2]
-        self.assertArrayEqual(windows, expected)
 
-    def test_exception_too_many_dims(self):
-        """Test an exception is raised if shape has too many dimensions."""
-        msg = (
-            "Number of dimensions of the input array must be greater than or "
-            "equal to the length of the neighbourhood shape used for "
-            "constructing rolling window neighbourhoods."
-        )
-        with self.assertRaisesRegex(ValueError, msg):
-            rolling_window(self.array, (2, 2, 2))
+def test_rolling_window_exception_too_many_dims(array_size_5):
+    """Test an exception is raised if shape has too many dimensions."""
+    msg = (
+        "Number of dimensions of the input array must be greater than or "
+        "equal to the length of the neighbourhood shape used for "
+        "constructing rolling window neighbourhoods."
+    )
+    with pytest.raises(ValueError) as exc_info:
+        rolling_window(array_size_5, (2, 2, 2))
+    assert msg in str(exc_info.value)
 
-    def test_exception_dims_too_large(self):
-        """Test an exception is raised if dimensions of shape are larger than 
-        corresponding dimensions of input array."""
-        msg = (
-            "The calculated shape of the output array view contains a "
-            "dimension that is negative or zero. Each dimension of the "
-            "neighbourhood shape must be less than or equal to the "
-            "corresponding dimension of the input array."
-        )
-        with self.assertRaisesRegex(RuntimeError, msg):
-            rolling_window(self.array, (2, 6))
 
-    def test_writable(self):
-        """Test that result is writable if and only if `writable` is True."""
-        windows = rolling_window(self.array, (2, 2))
-        msg = "assignment destination is read-only"
-        with self.assertRaisesRegex(ValueError, msg):
-            windows[0, 0, 0, 0] = -1
-        windows = rolling_window(self.array, (2, 2), writeable=True)
+def test_rolling_window_exception_dims_too_large(array_size_5):
+    """Test an exception is raised if dimensions of shape are larger than 
+    corresponding dimensions of input array."""
+    msg = (
+        "The calculated shape of the output array view contains a "
+        "dimension that is negative or zero. Each dimension of the "
+        "neighbourhood shape must be less than or equal to the "
+        "corresponding dimension of the input array."
+    )
+    with pytest.raises(RuntimeError) as exc_info:
+        rolling_window(array_size_5, (2, 6))
+    assert msg in str(exc_info.value)
+
+
+def test_rolling_window_writable(array_size_5):
+    """Test that result is writable if and only if `writable` is True."""
+    windows = rolling_window(array_size_5, (2, 2))
+    msg = "assignment destination is read-only"
+    with pytest.raises(ValueError) as exc_info:
         windows[0, 0, 0, 0] = -1
-        self.assertEqual(windows[0, 0, 0, 0], -1)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    assert msg in str(exc_info.value)
+    windows = rolling_window(array_size_5, (2, 2), writeable=True)
+    windows[0, 0, 0, 0] = -1
+    assert windows[0, 0, 0, 0] == -1
