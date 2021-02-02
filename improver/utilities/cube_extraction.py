@@ -253,6 +253,43 @@ def extract_subcube(cube, constraints, units=None, use_original_units=True):
     return output_cube
 
 
+def _create_cutout(cube, grid_spec):
+    """Given a gridded data cube and boundary limits for cutout dimensions,
+    create cutout.  Expects cube on either lat-lon or equal area grid.
+    """
+    # need to use cube intersection for circular coordinates (longitude)
+    if cube.coord(axis="x").name() == "longitude":
+        lat_constraint = Constraint(
+            latitude=lambda x: grid_spec["latitude"]["min"]
+            <= x.point
+            <= grid_spec["latitude"]["max"]
+        )
+
+        cutout = cube.extract(lat_constraint)
+        if cutout is None:
+            return cutout
+
+        cutout = cutout.intersection(
+            longitude=(grid_spec["longitude"]["min"], grid_spec["longitude"]["max"])
+        )
+    else:
+        xmin = grid_spec["projection_x_coordinate"]["min"]
+        xmax = grid_spec["projection_x_coordinate"]["max"]
+        x_constraint = Constraint(
+            projection_x_coordinate=lambda x: xmin <= x.point <= xmax
+        )
+
+        ymin = grid_spec["projection_y_coordinate"]["min"]
+        ymax = grid_spec["projection_y_coordinate"]["max"]
+        y_constraint = Constraint(
+            projection_y_coordinate=lambda x: ymin <= x.point <= ymax
+        )
+
+        cutout = cube.extract(x_constraint & y_constraint)
+
+    return cutout
+
+
 def subset_data(cube, grid_spec=None, site_list=None):
     """Extract a spatial cutout or subset of sites from data
     to generate suite reference outputs.
@@ -270,48 +307,49 @@ def subset_data(cube, grid_spec=None, site_list=None):
 
     Returns:
         iris.cube.Cube:
-            Subset of input cube as specified by dictionary constraints
+            Subset of input cube as specified by input constraints
 
     Raises:
         ValueError:
-            If data are gridded but not on a UK standard or lat-lon grid
+            If grid_spec does not contain cutout parameters for the coordinates on
+            the input gridded data.
+        ValueError:
+            If the grid_spec or site_list aren't present in the cube, so that the
+            subset cube returned would be None.
     """
-    # generate iris constraint for extraction based on cube type
     if cube.coords("spot_index"):
-        # get restricted list of wmo_ids
+        if site_list is None:
+            raise ValueError("site_list required to extract from spot data")
+
         constraint = Constraint(coord_values={"wmo_id": lambda x: x in site_list})
         result = cube.extract(constraint)
+        if result is None:
+            raise ValueError(
+                f"Cube does not contain any of the required sites: {site_list}"
+            )
 
     else:
+        if grid_spec is None:
+            raise ValueError("grid_spec required to extract from gridded data")
+
         x_coord = cube.coord(axis="x").name()
         y_coord = cube.coord(axis="y").name()
 
-        coord_values = {}
-        for coord in [x_coord, y_coord]:
-            try:
-                coord_values[coord] = (
-                    lambda x: grid_spec[coord]["min"]
-                    <= x.point
-                    <= grid_spec[coord]["max"]
-                )
-            except KeyError:
+        for coord in [y_coord, x_coord]:
+            if coord not in grid_spec:
                 raise ValueError(
                     f"Cube coordinates {y_coord}, {x_coord} do not match "
                     "expected values"
                 )
 
-        # need to use cube intersection for circular coordinates (longitude)
-        if x_coord == "longitude":
-            cutout = cube.extract(
-                Constraint(coord_values={"latitude": coord_values["latitude"]})
-            )
-            cutout = cutout.intersection(
-                longitude=(grid_spec["longitude"]["min"], grid_spec["longitude"]["max"])
-            )
-        else:
-            cutout = cube.extract(Constraint(coord_values=coord_values))
+        cutout = _create_cutout(cube, grid_spec)
 
-        # thin the data assuming spatial axes are the last
+        if cutout is None:
+            raise ValueError(
+                "Cube domain does not overlap with cutout specified:\n"
+                f"{x_coord}: {grid_spec[x_coord]}, {y_coord}: {grid_spec[y_coord]}"
+            )
+
         thin_x = grid_spec[x_coord]["thin"]
         thin_y = grid_spec[y_coord]["thin"]
         result_list = CubeList()

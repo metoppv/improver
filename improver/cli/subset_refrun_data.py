@@ -40,9 +40,7 @@ from improver.cli import parameters
 def process(
     cube: cli.inputcube, grid_spec: cli.inputjson, site_list: cli.comma_separated_list,
 ):
-    """Extract a spatial cutout or subset of sites from data
-    to generate suite reference outputs.
-
+    """Extract a thinned spatial cutout or subset of sites from a data file.
     Args:
         cube (iris.cube.Cube):
             Input dataset
@@ -56,11 +54,7 @@ def process(
 
     Returns:
         iris.cube.Cube:
-            Subset of input cube as specified by dictionary constraints
-
-    Raises:
-        ValueError:
-            If data are gridded but not on a UK standard or lat-lon grid
+            Subset of input cube as specified by input constraints
     """
     from improver.utilities.cube_extraction import subset_data
 

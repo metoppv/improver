@@ -555,6 +555,47 @@ class Test_subset_data(IrisTest):
         result = subset_data(self.gl_cube, grid_spec=self.grid_spec)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
+    def test_error_no_site_list(self):
+        """Test error when required site_list is not provided"""
+        msg = "site_list required"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.spot_cube)
+
+    def test_error_no_grid_spec(self):
+        """Test error when required grid_spec is not provided"""
+        msg = "grid_spec required"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.uk_cube)
+
+    def test_error_no_sites_available(self):
+        """Test error raised when none of the required sites are present in
+        the input spot cube"""
+        msg = "Cube does not contain any of the required sites"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.spot_cube, site_list=["3100"])
+
+    def test_error_wrong_grid_spec(self):
+        """Test error raised when required coordinates are not in the grid
+        spec dictionary"""
+        grid_spec_latlon = {
+            "longitude": {"min": 0, "max": 7, "thin": 2},
+            "latitude": {"min": 42, "max": 52, "thin": 2},
+        }
+        msg = "Cube coordinates .* do not match expected values"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.uk_cube, grid_spec=grid_spec_latlon)
+
+    def test_error_non_overlapping_grid_spec(self):
+        """Test error raised when defined cutout does not overlap with input
+        cube"""
+        grid_spec_xy = {
+            "projection_x_coordinate": {"min": -10000, "max": -6000, "thin": 3},
+            "projection_y_coordinate": {"min": 0, "max": 10000, "thin": 3},
+        }
+        msg = "Cube domain does not overlap with cutout specified"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.uk_cube, grid_spec=grid_spec_xy)
+
 
 if __name__ == "__main__":
     unittest.main()
