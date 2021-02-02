@@ -30,10 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for spatial padding utilities"""
 
-import unittest
-
 import numpy as np
-from iris.tests import IrisTest
+import pytest
 
 from improver.utilities.neighbourhood_tools import (
     boxsum,
@@ -43,172 +41,162 @@ from improver.utilities.neighbourhood_tools import (
 )
 
 
-class Test_creating_rolling_window_neighbourhoods(IrisTest):
+@pytest.fixture
+def array_size_5():
+    return np.arange(25).astype(np.int32).reshape((5, 5))
 
-    """Test creating rolling window neighbourhoods of an array."""
 
-    def setUp(self):
-        """Set up a 5 * 5 array."""
-        self.array = np.arange(25).astype(np.int32).reshape((5, 5))
+@pytest.fixture
+def array_size_3():
+    return np.arange(9).astype(np.int32).reshape((3, 3))
 
-    def test_neighbourhood_size_2(self):
-        """Test producing a 2 * 2 neighbourhood."""
-        windows = rolling_window(self.array, (2, 2))
-        expected = np.zeros((4, 4, 2, 2), dtype=np.int32)
-        for i in range(4):
-            for j in range(4):
-                expected[i, j] = self.array[i : i + 2, j : j + 2]
-        self.assertArrayEqual(windows, expected)
 
-    def test_exception_too_many_dims(self):
-        """Test an exception is raised if shape has too many dimensions."""
-        msg = (
-            "Number of dimensions of the input array must be greater than or equal to "
-            "the length of the neighbourhood shape used for constructing rolling window neighbourhoods"
-        )
-        with self.assertRaisesRegex(ValueError, msg):
-            rolling_window(self.array, (2, 2, 2))
+def test_rolling_window_neighbourhood_size_2(array_size_5):
+    """Test producing a 2 * 2 neighbourhood."""
+    windows = rolling_window(array_size_5, (2, 2))
+    expected = np.zeros((4, 4, 2, 2), dtype=np.int32)
+    for i in range(4):
+        for j in range(4):
+            expected[i, j] = array_size_5[i : i + 2, j : j + 2]
+    np.testing.assert_array_equal(windows, expected)
 
-    def test_exception_dims_too_large(self):
-        """Test an exception is raised if dimensions of shape are larger than 
-        corresponding dimensions of input array."""
-        msg = (
-            "The calculated shape of the output array view contains a dimension that is negative or zero. "
-            "Each dimension of the neighbourhood shape must be less than or equal to the corresponding "
-            "dimension of the input array."
-        )
-        with self.assertRaisesRegex(RuntimeError, msg):
-            rolling_window(self.array, (2, 6))
 
-    def test_writable(self):
-        """Test that result is writable if and only if `writable` is True."""
-        windows = rolling_window(self.array, (2, 2))
-        msg = "assignment destination is read-only"
-        with self.assertRaisesRegex(ValueError, msg):
-            windows[0, 0, 0, 0] = -1
-        windows = rolling_window(self.array, (2, 2), writeable=True)
+def test_rolling_window_exception_too_many_dims(array_size_5):
+    """Test an exception is raised if shape has too many dimensions."""
+    msg = (
+        "Number of dimensions of the input array must be greater than or "
+        "equal to the length of the neighbourhood shape used for "
+        "constructing rolling window neighbourhoods."
+    )
+    with pytest.raises(ValueError) as exc_info:
+        rolling_window(array_size_5, (2, 2, 2))
+    assert msg in str(exc_info.value)
+
+
+def test_rolling_window_exception_dims_too_large(array_size_5):
+    """Test an exception is raised if dimensions of shape are larger than 
+    corresponding dimensions of input array."""
+    msg = (
+        "The calculated shape of the output array view contains a "
+        "dimension that is negative or zero. Each dimension of the "
+        "neighbourhood shape must be less than or equal to the "
+        "corresponding dimension of the input array."
+    )
+    with pytest.raises(RuntimeError) as exc_info:
+        rolling_window(array_size_5, (2, 6))
+    assert msg in str(exc_info.value)
+
+
+def test_rolling_window_writable(array_size_5):
+    """Test that result is writable if and only if `writable` is True."""
+    windows = rolling_window(array_size_5, (2, 2))
+    msg = "assignment destination is read-only"
+    with pytest.raises(ValueError) as exc_info:
         windows[0, 0, 0, 0] = -1
-        self.assertEqual(windows[0, 0, 0, 0], -1)
+    assert msg in str(exc_info.value)
+    windows = rolling_window(array_size_5, (2, 2), writeable=True)
+    windows[0, 0, 0, 0] = -1
+    assert windows[0, 0, 0, 0] == -1
 
 
-class Test_padding_and_creating_rolling_window_neighbourhoods(IrisTest):
-
-    """Test creating rolling window neighbourhoods with padding."""
-
-    def setUp(self):
-        """Set up a 5 * 5 array."""
-        self.array = np.arange(25).astype(np.int32).reshape((5, 5))
-
-    def test_neighbourhood_size_2(self):
-        """Test that result is same as result of rolling_window with a border of zeros"""
-        padded = pad_and_roll(self.array, (2, 2), mode="constant")
-        window = rolling_window(self.array, (2, 2))
-        inner_part = padded[1:-1, 1:-1, ::]
-        self.assertArrayEqual(inner_part, window)
-        border_index = (
-            [[0, i, 0, j] for i in range(5) for j in [0, 1]]
-            + [[5, i, 1, j] for i in range(5) for j in [0, 1]]
-            + [[i, 0, j, 0] for i in range(5) for j in [0, 1]]
-            + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
-        )
-        outer_part = padded[list(zip(*border_index))]
-        self.assertArrayEqual(outer_part, np.zeros(40, dtype=np.int32))
-
-    def test_non_zero_padding(self):
-        """Test padding with a number other than the default of 0"""
-        padded = pad_and_roll(self.array, (2, 2), mode="constant", constant_values=1)
-        border_index = (
-            [[0, i, 0, j] for i in range(5) for j in [0, 1]]
-            + [[5, i, 1, j] for i in range(5) for j in [0, 1]]
-            + [[i, 0, j, 0] for i in range(5) for j in [0, 1]]
-            + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
-        )
-        outer_part = padded[list(zip(*border_index))]
-        self.assertArrayEqual(outer_part, np.ones(40, dtype=np.int32))
+def test_padding_neighbourhood_size_2(array_size_5):
+    """Test that result is same as result of rolling_window with a border of zeros"""
+    padded = pad_and_roll(array_size_5, (2, 2), mode="constant")
+    window = rolling_window(array_size_5, (2, 2))
+    inner_part = padded[1:-1, 1:-1, ::]
+    np.testing.assert_array_equal(inner_part, window)
+    border_index = (
+        [[0, i, 0, j] for i in range(5) for j in [0, 1]]
+        + [[5, i, 1, j] for i in range(5) for j in [0, 1]]
+        + [[i, 0, j, 0] for i in range(5) for j in [0, 1]]
+        + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
+    )
+    outer_part = padded[list(zip(*border_index))]
+    np.testing.assert_array_equal(outer_part, np.zeros(40, dtype=np.int32))
 
 
-class Test_padding_for_boxsum(IrisTest):
-
-    """Test padding an array to shape suitable for `boxsum`."""
-
-    def setUp(self):
-        """Set up a 3 * 3 array."""
-        self.array = np.arange(9).astype(np.int32).reshape((3, 3))
-
-    def test_padding(self):
-        """Test that padded array consists of input array surrounded by border of zeros."""
-        padded = pad_boxsum(self.array, 3, mode="constant")
-        expected = np.zeros((6, 6), dtype=np.int32)
-        expected[2:5, 2:5] = self.array
-        self.assertArrayEqual(padded, expected)
-
-    def test_padding_non_zero(self):
-        """Test padding with a number other than the default of 0"""
-        padded = pad_boxsum(self.array, 3, mode="constant", constant_values=2)
-        expected = 2 * np.ones((6, 6), dtype=np.int32)
-        expected[2:5, 2:5] = self.array
-        self.assertArrayEqual(padded, expected)
+def test_padding_non_zero(array_size_5):
+    """Test padding with a number other than the default of 0"""
+    padded = pad_and_roll(array_size_5, (2, 2), mode="constant", constant_values=1)
+    border_index = (
+        [[0, i, 0, j] for i in range(5) for j in [0, 1]]
+        + [[5, i, 1, j] for i in range(5) for j in [0, 1]]
+        + [[i, 0, j, 0] for i in range(5) for j in [0, 1]]
+        + [[i, 5, j, 1] for i in range(5) for j in [0, 1]]
+    )
+    outer_part = padded[list(zip(*border_index))]
+    np.testing.assert_array_equal(outer_part, np.ones(40, dtype=np.int32))
 
 
-class Test_boxsum(IrisTest):
+def test_pad_boxsum(array_size_3):
+    """Test that padded array consists of input array surrounded by border of zeros."""
+    padded = pad_boxsum(array_size_3, 3, mode="constant")
+    expected = np.zeros((6, 6), dtype=np.int32)
+    expected[2:5, 2:5] = array_size_3
+    np.testing.assert_array_equal(padded, expected)
 
-    """Test calculating neighbourhood sums with `boxsum`."""
 
-    def setUp(self):
-        """Set up a 3 * 3 array."""
-        self.array = np.arange(25).astype(np.int32).reshape((5, 5))
+def test_pad_boxsum_non_zero(array_size_3):
+    """Test padding with a number other than the default of 0"""
+    padded = pad_boxsum(array_size_3, 3, mode="constant", constant_values=2)
+    expected = 2 * np.ones((6, 6), dtype=np.int32)
+    expected[2:5, 2:5] = array_size_3
+    np.testing.assert_array_equal(padded, expected)
 
-    def test_no_cumsum(self):
-        """Test that boxsum correctly calculates neighbourhood sums using raw array."""
-        result = boxsum(self.array, 3)
-        expected = np.array(
+
+def test_boxsum_no_cumsum(array_size_5):
+    """Test that boxsum correctly calculates neighbourhood sums using raw array."""
+    result = boxsum(array_size_5, 3)
+    expected = np.array(
+        [
+            [np.sum(array_size_5[i - 1 : i + 2, j - 1 : j + 2]) for j in [2, 3]]
+            for i in [2, 3]
+        ]
+    )
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_boxsum_with_cumsum(array_size_5):
+    """Test that boxsum correctly calculates neighbourhood sums using pre-calculated cumsum."""
+    cumsum_arr = np.array(
+        [[np.sum(array_size_5[: i + 1, : j + 1]) for j in range(5)] for i in range(5)]
+    )
+    result = boxsum(cumsum_arr, 3, cumsum=False)
+    expected = np.array(
+        [
+            [np.sum(array_size_5[i - 1 : i + 2, j - 1 : j + 2]) for j in [2, 3]]
+            for i in [2, 3]
+        ]
+    )
+    np.testing.assert_array_equal(result, expected)
+
+
+def test_boxsum_with_padding(array_size_5):
+    """Test that boxsum correctly calculates neighbourhood sums when adding padding to array."""
+    result = boxsum(array_size_5, 3, mode="constant", constant_values=0)
+    expected = np.array(
+        [
             [
-                [np.sum(self.array[i - 1 : i + 2, j - 1 : j + 2]) for j in [2, 3]]
-                for i in [2, 3]
+                np.sum(array_size_5[max(0, i - 1) : i + 2, max(0, j - 1) : j + 2])
+                for j in range(5)
             ]
-        )
-        self.assertArrayEqual(result, expected)
-
-    def test_with_cumsum(self):
-        """Test that boxsum correctly calculates neighbourhood sums using pre-calculated cumsum."""
-        cumsum_arr = np.array(
-            [[np.sum(self.array[: i + 1, : j + 1]) for j in range(5)] for i in range(5)]
-        )
-        result = boxsum(cumsum_arr, 3, cumsum=False)
-        expected = np.array(
-            [
-                [np.sum(self.array[i - 1 : i + 2, j - 1 : j + 2]) for j in [2, 3]]
-                for i in [2, 3]
-            ]
-        )
-        self.assertArrayEqual(result, expected)
-
-    def test_padding(self):
-        """Test that boxsum correctly calculates neighbourhood sums when adding padding to array."""
-        result = boxsum(self.array, 3, mode="constant", constant_values=0)
-        expected = np.array(
-            [
-                [
-                    np.sum(self.array[max(0, i - 1) : i + 2, max(0, j - 1) : j + 2])
-                    for j in range(5)
-                ]
-                for i in range(5)
-            ]
-        )
-        self.assertArrayEqual(result, expected)
-
-    def test_exception_non_integer(self):
-        """Test that an exception is raised if `boxsize` is not an integer."""
-        msg = "The size of the neighbourhood must be of an integer type."
-        with self.assertRaisesRegex(ValueError, msg):
-            boxsum(self.array, 1.5)
-
-    def test_exception_not_odd(self):
-        """Test that an exception is raised if `boxsize` contains a number that is not odd."""
-        msg = "The size of the neighbourhood must be an odd number."
-        with self.assertRaisesRegex(ValueError, msg):
-            boxsum(self.array, (1, 2))
+            for i in range(5)
+        ]
+    )
+    np.testing.assert_array_equal(result, expected)
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_boxsum_exception_non_integer(array_size_5):
+    """Test that an exception is raised if `boxsize` is not an integer."""
+    msg = "The size of the neighbourhood must be of an integer type."
+    with pytest.raises(ValueError) as exc_info:
+        boxsum(array_size_5, 1.5)
+    assert msg in str(exc_info.value)
+
+
+def test_boxsum_exception_not_odd(array_size_5):
+    """Test that an exception is raised if `boxsize` contains a number that is not odd."""
+    msg = "The size of the neighbourhood must be an odd number."
+    with pytest.raises(ValueError) as exc_info:
+        boxsum(array_size_5, (1, 2))
+    assert msg in str(exc_info.value)
