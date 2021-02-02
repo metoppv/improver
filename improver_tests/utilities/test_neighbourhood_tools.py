@@ -148,7 +148,7 @@ def test_boxsum_no_cumsum(array_size_5):
     """Test that boxsum correctly calculates neighbourhood sums using raw array."""
     result = boxsum(array_size_5, 3)
     expected = np.array(
-        [
+        [  # pylint: disable=E1136
             [np.sum(array_size_5[i - 1 : i + 2, j - 1 : j + 2]) for j in [2, 3]]
             for i in [2, 3]
         ]
@@ -159,11 +159,13 @@ def test_boxsum_no_cumsum(array_size_5):
 def test_boxsum_with_cumsum(array_size_5):
     """Test that boxsum correctly calculates neighbourhood sums using pre-calculated cumsum."""
     cumsum_arr = np.array(
-        [[np.sum(array_size_5[: i + 1, : j + 1]) for j in range(5)] for i in range(5)]
+        [  # pylint: disable=E1136
+            [np.sum(array_size_5[: i + 1, : j + 1]) for j in range(5)] for i in range(5)
+        ]
     )
     result = boxsum(cumsum_arr, 3, cumsum=False)
     expected = np.array(
-        [
+        [  # pylint: disable=E1136
             [np.sum(array_size_5[i - 1 : i + 2, j - 1 : j + 2]) for j in [2, 3]]
             for i in [2, 3]
         ]
@@ -176,7 +178,7 @@ def test_boxsum_with_padding(array_size_5):
     result = boxsum(array_size_5, 3, mode="constant", constant_values=0)
     expected = np.array(
         [
-            [
+            [  # pylint: disable=E1136
                 np.sum(array_size_5[max(0, i - 1) : i + 2, max(0, j - 1) : j + 2])
                 for j in range(5)
             ]
