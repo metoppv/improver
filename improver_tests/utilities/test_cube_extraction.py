@@ -596,6 +596,20 @@ class Test_subset_data(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             subset_data(self.uk_cube, grid_spec=grid_spec_xy)
 
+    def test_error_order_agnostic(self):
+        """Test non-overlapping grid error is correctly raised regardless of
+        which coordinate is non-overlapping. This is needed because there are
+        ways of calling iris.extract that appear to modify the input constraints,
+        such that the output of this function was not always correct depending on
+        which coordinate did not match."""
+        grid_spec_xy = {
+            "projection_y_coordinate": {"min": -10000, "max": -6000, "thin": 3},
+            "projection_x_coordinate": {"min": 0, "max": 10000, "thin": 3},
+        }
+        msg = "Cube domain does not overlap with cutout specified"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.uk_cube, grid_spec=grid_spec_xy)
+
 
 if __name__ == "__main__":
     unittest.main()
