@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,16 +33,12 @@
 import numpy as np
 import pytest
 
-<<<<<<< HEAD
 from improver.utilities.neighbourhood_tools import (
     boxsum,
     pad_and_roll,
     pad_boxsum,
     rolling_window,
 )
-=======
-from improver.utilities.neighbourhood_tools import rolling_window
->>>>>>> upstream/master
 
 
 @pytest.fixture
@@ -50,14 +46,11 @@ def array_size_5():
     return np.arange(25).astype(np.int32).reshape((5, 5))
 
 
-<<<<<<< HEAD
 @pytest.fixture
 def array_size_3():
     return np.arange(9).astype(np.int32).reshape((3, 3))
 
 
-=======
->>>>>>> upstream/master
 def test_rolling_window_neighbourhood_size_2(array_size_5):
     """Test producing a 2 * 2 neighbourhood."""
     windows = rolling_window(array_size_5, (2, 2))
@@ -104,7 +97,6 @@ def test_rolling_window_writable(array_size_5):
     windows = rolling_window(array_size_5, (2, 2), writeable=True)
     windows[0, 0, 0, 0] = -1
     assert windows[0, 0, 0, 0] == -1
-<<<<<<< HEAD
 
 
 def test_padding_neighbourhood_size_2(array_size_5):
@@ -210,5 +202,3 @@ def test_boxsum_exception_not_odd(array_size_5):
     with pytest.raises(ValueError) as exc_info:
         boxsum(array_size_5, (1, 2))
     assert msg in str(exc_info.value)
-=======
->>>>>>> upstream/master
