@@ -453,7 +453,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         distribution,
         desired_units=None,
         predictor="mean",
-        tolerance=0.01,
+        tolerance=0.02,
         max_iterations=1000,
     ):
         """
