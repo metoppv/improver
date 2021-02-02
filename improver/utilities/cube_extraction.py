@@ -32,10 +32,9 @@
 
 from ast import literal_eval
 
-#import iris
+import numpy as np
 from iris import Constraint
 from iris.cube import CubeList
-import numpy as np
 
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 
@@ -164,7 +163,7 @@ def parse_constraint_list(constraints, units=None):
             units_dict[key] = unit_val.strip(" ")
 
     if simple_constraints_dict:
-        simple_constraints = iris.Constraint(**simple_constraints_dict)
+        simple_constraints = Constraint(**simple_constraints_dict)
     else:
         simple_constraints = None
 
@@ -291,7 +290,9 @@ def subset_data(cube, grid_spec=None, site_list=None):
         for coord in [x_coord, y_coord]:
             try:
                 coord_values[coord] = (
-                    lambda x: grid_spec[coord]["min"] <= x.point <= grid_spec[coord]["max"]
+                    lambda x: grid_spec[coord]["min"]
+                    <= x.point
+                    <= grid_spec[coord]["max"]
                 )
             except KeyError:
                 raise ValueError(
@@ -307,7 +308,7 @@ def subset_data(cube, grid_spec=None, site_list=None):
             cutout = cutout.intersection(
                 longitude=(grid_spec["longitude"]["min"], grid_spec["longitude"]["max"])
             )
-        else:  
+        else:
             cutout = cube.extract(Constraint(coord_values=coord_values))
 
         # thin the data assuming spatial axes are the last

@@ -506,20 +506,26 @@ class Test_subset_data(IrisTest):
             alts,
             lats,
             lons,
-            wmo_ids
+            wmo_ids,
         )
 
         data = np.arange(56).reshape((7, 8)).astype(np.float32)
         self.uk_cube = set_up_variable_cube(
-            data, name="screen_temperature", units="degC", spatial_grid="equalarea",
+            data,
+            name="screen_temperature",
+            units="degC",
+            spatial_grid="equalarea",
             domain_corner=(-5000, -5000),
-            grid_spacing=2000
+            grid_spacing=2000,
         )
 
         self.gl_cube = set_up_variable_cube(
-            data, name="screen_temperature", units="degC", spatial_grid="latlon",
+            data,
+            name="screen_temperature",
+            units="degC",
+            spatial_grid="latlon",
             domain_corner=(45, -2),
-            grid_spacing=2
+            grid_spacing=2,
         )
 
         self.grid_spec = {

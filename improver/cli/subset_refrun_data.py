@@ -38,10 +38,8 @@ from improver.cli import parameters
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube,
-    grid_spec: cli.inputjson,
-    site_list: cli.comma_separated_list,
-    )
+    cube: cli.inputcube, grid_spec: cli.inputjson, site_list: cli.comma_separated_list,
+):
     """Extract a spatial cutout or subset of sites from data
     to generate suite reference outputs.
 
@@ -65,4 +63,5 @@ def process(
             If data are gridded but not on a UK standard or lat-lon grid
     """
     from improver.utilities.cube_extraction import subset_data
+
     return subset_data(cube, grid_spec=grid_spec, site_list=site_list)
