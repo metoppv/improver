@@ -100,7 +100,7 @@ def test_rolling_window_writable(array_size_5):
 
 
 def test_padding_neighbourhood_size_2(array_size_5):
-    """Test that result is same as result of rolling_window with a border of zeros"""
+    """Test that result is same as result of rolling_window with a border of zeros."""
     padded = pad_and_roll(array_size_5, (2, 2), mode="constant")
     window = rolling_window(array_size_5, (2, 2))
     inner_part = padded[1:-1, 1:-1, ::]
@@ -116,7 +116,7 @@ def test_padding_neighbourhood_size_2(array_size_5):
 
 
 def test_padding_non_zero(array_size_5):
-    """Test padding with a number other than the default of 0"""
+    """Test padding with a number other than the default of 0."""
     padded = pad_and_roll(array_size_5, (2, 2), mode="constant", constant_values=1)
     border_index = (
         [[0, i, 0, j] for i in range(5) for j in [0, 1]]
@@ -137,7 +137,7 @@ def test_pad_boxsum(array_size_3):
 
 
 def test_pad_boxsum_non_zero(array_size_3):
-    """Test padding with a number other than the default of 0"""
+    """Test padding with a number other than the default of 0."""
     padded = pad_boxsum(array_size_3, 3, mode="constant", constant_values=2)
     expected = 2 * np.ones((6, 6), dtype=np.int32)
     expected[2:5, 2:5] = array_size_3
