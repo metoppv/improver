@@ -412,7 +412,8 @@ def run_apidoc(_):
 
     output_dir = os.path.dirname(os.path.abspath(__file__))
     exclude_dir = os.path.join(SOURCE_DIR, "improver_tests")
-    main(["-e", "-P", "-f", "-o", output_dir, SOURCE_DIR, exclude_dir])
+    setup_code = os.path.join(SOURCE_DIR, "setup.py")
+    main(["-e", "-P", "-f", "-o", output_dir, SOURCE_DIR, exclude_dir, setup_code])
 
 
 def setup(app):
