@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin base class."""
 from abc import ABC, abstractmethod
+
+__version__ = "0.14.1"
 
 
 class BasePlugin(ABC):
