@@ -30,8 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin base class."""
 from abc import ABC, abstractmethod
+from pkg_resources import get_distribution, DistributionNotFound
 
-__version__ = "0.14.1"
+try:
+    __version__ = get_distribution("improver").version
+except DistributionNotFound:
+    # package is not installed
+    pass
 
 
 class BasePlugin(ABC):
