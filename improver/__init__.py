@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin base class."""
 from abc import ABC, abstractmethod
+
 from pkg_resources import DistributionNotFound, get_distribution
 
 try:
