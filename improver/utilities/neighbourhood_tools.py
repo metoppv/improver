@@ -125,7 +125,7 @@ def pad_and_roll(input_array, shape, **kwargs):
 def pad_boxsum(data, boxsize, **pad_options):
     """Pad an array to shape suitable for `boxsum`.
 
-    Note that padding is not symmetric: there is and extra row/column at
+    Note that padding is not symmetric: there is an extra row/column at
     the top/left (as required for calculating the boxsum).
 
     Args:
