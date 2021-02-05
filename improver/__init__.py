@@ -31,7 +31,13 @@
 """Module containing plugin base class."""
 from abc import ABC, abstractmethod
 
-__version__ = "0.14.1"
+from pkg_resources import DistributionNotFound, get_distribution
+
+try:
+    __version__ = get_distribution("improver").version
+except DistributionNotFound:
+    # package is not installed
+    pass
 
 
 class BasePlugin(ABC):
