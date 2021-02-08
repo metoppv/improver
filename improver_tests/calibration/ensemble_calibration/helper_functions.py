@@ -43,7 +43,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
     set_up_variable_cube,
 )
-
 from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate"]
