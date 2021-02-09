@@ -257,34 +257,29 @@ def _create_cutout(cube, grid_spec):
     """Given a gridded data cube and boundary limits for cutout dimensions,
     create cutout.  Expects cube on either lat-lon or equal area grid.
     """
-    # need to use cube intersection for circular coordinates (longitude)
-    if cube.coord(axis="x").name() == "longitude":
-        lat_constraint = Constraint(
-            latitude=lambda x: grid_spec["latitude"]["min"]
-            <= x.point
-            <= grid_spec["latitude"]["max"]
-        )
+    x_coord = cube.coord(axis="x").name()
+    y_coord = cube.coord(axis="y").name()
 
+    xmin = grid_spec[x_coord]["min"]
+    xmax = grid_spec[x_coord]["max"]
+    ymin = grid_spec[y_coord]["min"]
+    ymax = grid_spec[y_coord]["max"]
+
+    # need to use cube intersection for circular coordinates (longitude)
+    if x_coord == "longitude":
+        lat_constraint = Constraint(latitude=lambda x: ymin <= x.point <= ymax)
         cutout = cube.extract(lat_constraint)
         if cutout is None:
             return cutout
 
-        cutout = cutout.intersection(
-            longitude=(grid_spec["longitude"]["min"], grid_spec["longitude"]["max"])
-        )
+        cutout = cutout.intersection(longitude=(xmin, xmax))
     else:
-        xmin = grid_spec["projection_x_coordinate"]["min"]
-        xmax = grid_spec["projection_x_coordinate"]["max"]
         x_constraint = Constraint(
             projection_x_coordinate=lambda x: xmin <= x.point <= xmax
         )
-
-        ymin = grid_spec["projection_y_coordinate"]["min"]
-        ymax = grid_spec["projection_y_coordinate"]["max"]
         y_constraint = Constraint(
             projection_y_coordinate=lambda x: ymin <= x.point <= ymax
         )
-
         cutout = cube.extract(x_constraint & y_constraint)
 
     return cutout
