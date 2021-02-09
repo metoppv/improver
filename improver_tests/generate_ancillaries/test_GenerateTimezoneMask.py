@@ -321,10 +321,7 @@ EXPECTED = {
     "ungrouped": {
         "global": {
             None: {**GLOBAL_GRID, "data": np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1])},
-            "20200716T1500Z": {
-                **GLOBAL_GRID,
-                "data": np.ones([10]),
-            },
+            "20200716T1500Z": {**GLOBAL_GRID, "data": np.ones([10]),},
             "indices": (12, 2),
         },
         "uk": {
