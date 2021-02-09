@@ -36,6 +36,7 @@ import numpy as np
 from iris import Constraint
 from iris.cube import CubeList
 
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 
 
@@ -273,6 +274,17 @@ def _create_cutout(cube, grid_spec):
             return cutout
 
         cutout = cutout.intersection(longitude=(xmin, xmax))
+
+        # intersection creates a new coordinate with default datatype - we
+        # therefore need to re-cast to meet the IMPROVER standard
+        cutout.coord("longitude").points = (
+            cutout.coord("longitude").points.astype(FLOAT_DTYPE)
+        )
+        if cutout.coord("longitude").bounds is not None:
+            cutout.coord("longitude").bounds = (
+                cutout.coord("longitude").bounds.astype(FLOAT_DTYPE)
+            )
+
     else:
         x_constraint = Constraint(
             projection_x_coordinate=lambda x: xmin <= x.point <= xmax

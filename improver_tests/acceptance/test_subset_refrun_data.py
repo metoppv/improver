@@ -76,4 +76,17 @@ def test_uk_grid(tmp_path):
 
 def test_lat_lon_grid(tmp_path):
     """Test subsetting of data on a lat-lon grid"""
-    pass
+    kgo_dir = acc.kgo_root() / "subset-refrun-data"
+    kgo_path = kgo_dir / "kgo_grid_latlon.nc"
+    input_path = kgo_dir / "input_grid_latlon.nc"
+    grid_spec_path = kgo_dir / "grid_spec.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--grid-spec",
+        grid_spec_path,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
