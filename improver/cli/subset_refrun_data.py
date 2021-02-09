@@ -38,9 +38,14 @@ from improver.cli import parameters
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube, grid_spec: cli.inputjson, site_list: cli.comma_separated_list,
+    cube: cli.inputcube,
+    *,
+    grid_spec: cli.inputjson = None,
+    site_list: cli.comma_separated_list = None,
 ):
-    """Extract a thinned spatial cutout or subset of sites from a data file.
+    """
+    Extract a thinned spatial cutout or subset of sites from a data file.
+
     Args:
         cube (iris.cube.Cube):
             Input dataset

@@ -41,12 +41,37 @@ run_cli = acc.run_cli(CLI)
 
 def test_spot(tmp_path):
     """Test extraction from spot file"""
-    pass
+    kgo_dir = acc.kgo_root() / "subset-refrun-data"
+    kgo_path = kgo_dir / "kgo_spot.nc"
+    input_path = kgo_dir / "input_spot.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--site-list",
+        "700,845,996,3346,3382",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
 
 
 def test_uk_grid(tmp_path):
     """Test subsetting of UK standard gridded data"""
-    pass
+    kgo_dir = acc.kgo_root() / "subset-refrun-data"
+    kgo_path = kgo_dir / "kgo_grid_uk.nc"
+    input_path = kgo_dir / "input_grid_uk.nc"
+    grid_spec_path = kgo_dir / "grid_spec.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--grid-spec",
+        grid_spec_path,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
 
 
 def test_lat_lon_grid(tmp_path):
