@@ -112,6 +112,18 @@ class Test__check_frt_coord(Test_Aggregation):
         plugin = Plugin()
         plugin._check_frt_coord([self.reliability_cube, self.different_frt])
 
+    def test_matching_bounds(self):
+        """Test that no exception is raised in the input cubes if a cube
+        contains matching bounds."""
+        lower_bound = self.reliability_cube.coord("forecast_reference_time").bounds[0][
+            0
+        ]
+        self.reliability_cube.coord("forecast_reference_time").bounds = [
+            [lower_bound, lower_bound]
+        ]
+        plugin = Plugin()
+        plugin._check_frt_coord([self.reliability_cube, self.different_frt])
+
     def test_invalid_bounds(self):
         """Test that an exception is raised if the input cubes have forecast
         reference time bounds that overlap."""
