@@ -277,12 +277,12 @@ def _create_cutout(cube, grid_spec):
 
         # intersection creates a new coordinate with default datatype - we
         # therefore need to re-cast to meet the IMPROVER standard
-        cutout.coord("longitude").points = (
-            cutout.coord("longitude").points.astype(FLOAT_DTYPE)
+        cutout.coord("longitude").points = cutout.coord("longitude").points.astype(
+            FLOAT_DTYPE
         )
         if cutout.coord("longitude").bounds is not None:
-            cutout.coord("longitude").bounds = (
-                cutout.coord("longitude").bounds.astype(FLOAT_DTYPE)
+            cutout.coord("longitude").bounds = cutout.coord("longitude").bounds.astype(
+                FLOAT_DTYPE
             )
 
     else:
