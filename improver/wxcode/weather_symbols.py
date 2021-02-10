@@ -35,11 +35,12 @@ import copy
 
 import iris
 import numpy as np
+import operator
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
-    get_threshold_coord_name_from_probability_name,
+    get_diagnostic_cube_name_from_probability_name,
     probability_is_above_or_below,
 )
 from improver.metadata.utilities import (
@@ -198,7 +199,7 @@ class WeatherSymbols(BasePlugin):
                 # Check cube and threshold coordinate names match according to
                 # expected convention.  If not, add to exception dictionary.
                 if (
-                    get_threshold_coord_name_from_probability_name(diagnostic)
+                    get_diagnostic_cube_name_from_probability_name(diagnostic)
                     != threshold_name
                 ):
                     self.threshold_coord_names[diagnostic] = threshold_name
@@ -279,95 +280,17 @@ class WeatherSymbols(BasePlugin):
         )
         return inverted_threshold, inverted_combination
 
-    @staticmethod
-    def construct_condition(extract_constraint, condition, probability_threshold):
-        """
-        Create a string representing a comparison condition.
-
-        Args:
-            extract_constraint (str or list of str):
-                A string, or list of strings, encoding iris constraints
-                that will be used to extract the correct diagnostic cube
-                (by name) from the input cube list and the correct threshold
-                from that cube.
-                A list should contain only cube names, operators and numbers,
-                e.g. ["probability_of_lwe_snowfall_rate_above_threshold", "-",
-                "probability_of_rainfall_rate_above_threshold", "*", "0.7"]
-            condition (str):
-                The condition statement (e.g. greater than, >).
-            probability_threshold (float):
-                The probability value to use in the comparison.
-
-        Returns:
-            string:
-                The formatted condition statement,
-                e.g.::
-
-                  cubes.extract(Constraint(
-                          name='probability_of_rainfall_rate_above_threshold',
-                          coord_values={'threshold': 0.03})
-                                )[0].data < 0.5)
-        """
-        if isinstance(extract_constraint, list):
-            formatted_str = ""
-
-            for item in extract_constraint:
-                if is_variable(item):
-                    formatted_str += f" cubes.extract({item})[0].data"
-                else:
-                    formatted_str += " " + item
-            return f"({formatted_str}) {condition} {probability_threshold}"
-        return "cubes.extract({})[0].data {} {}".format(
-            extract_constraint, condition, probability_threshold
-        )
-
-    @staticmethod
-    def format_condition_chain(conditions, condition_combination="AND"):
-        """
-        Chain individual condition statements together in a format that
-        numpy.where can use to make a series of comparisons.
-
-        Args:
-            conditions (list):
-                A list of conditions to be combined into a single comparison
-                statement.
-            condition_combination (str):
-                The method by which multiple conditions should be combined,
-                either AND or OR.
-        Returns:
-            string:
-                A string formatted as a chain of conditions suitable for use in
-                a numpy.where statement.
-                e.g. (condition 1) & (condition 2)
-        """
-        combinator = " | " if condition_combination == "OR" else " & "
-        return combinator.join(map("({})".format, conditions))
-
     def create_condition_chain(self, test_conditions):
         """
-        A wrapper to call the construct_condition function for all the
-        conditions specified in a single query.
+        Construct a list of all the conditions specified in a single query.
 
         Args:
             test_conditions (dict):
                 A query from the decision tree.
         Returns:
-            list of str:
-                A list of strings that describe the conditions comprising the
-                query.
-                e.g.::
-
-                  [
-                    "(cubes.extract(Constraint(
-                          name='probability_of_rainfall_rate_above_threshold',
-                          coord_values={'threshold': 0.03})
-                     )[0].data < 0.5) |
-                     (cubes.extract(Constraint(
-                          name=
-                          'probability_of_lwe_snowfall_rate_above_threshold',
-                          coord_values={'threshold': 0.03})
-                     )[0].data < 0.5)"
-                  ]
+            list:
+                A valid condition chain, suitable for passing to 
+                `evaluate_condition_chain`.
         """
         conditions = []
         loop = 0
@@ -402,21 +325,19 @@ class WeatherSymbols(BasePlugin):
                         # Add this operator or variable as-is
                         extract_constraint.append(item)
             else:
-                # Non-lists are assumed to be strings containing one variable name.
+                # Non-lists are assumed to be constraints containing one variable.
                 extract_constraint = self.construct_extract_constraint(
                     diagnostic, d_threshold, self.coord_named_threshold
                 )
             conditions.append(
-                self.construct_condition(
+                [
                     extract_constraint,
                     test_conditions["threshold_condition"],
                     p_threshold,
-                )
+                ]
             )
-        condition_chain = WeatherSymbols.format_condition_chain(
-            conditions, condition_combination=test_conditions["condition_combination"]
-        )
-        return [condition_chain]
+        condition_chain = [conditions, test_conditions["condition_combination"]]
+        return condition_chain
 
     def construct_extract_constraint(
         self, diagnostics, thresholds, coord_named_threshold
@@ -437,13 +358,13 @@ class WeatherSymbols(BasePlugin):
                 coordinate name from diagnostic name
 
         Returns:
-            str or list of str:
-                String, or list of strings, encoding iris cube constraints.
+            iris.Constraint or list of iris.Constraint:
+                Each constraint contains one variable.
         """
 
-        def _constraint_string(diagnostic, threshold_name, threshold_val):
+        def _get_constraint(diagnostic, threshold_name, threshold_val):
             """
-            Return iris constraint as a string for deferred creation of the
+            Return iris constraint for deferred creation of the
             lambda functions.
             Args:
                 diagnostic (str):
@@ -452,35 +373,26 @@ class WeatherSymbols(BasePlugin):
                     Name of threshold coordinate on input cubes
                 threshold_val (float):
                     Value of threshold coordinate required
-            Returns: (str)
+            Returns: iris.Constraint
             """
             if abs(threshold_val) < WeatherSymbols().float_abs_tolerance:
-                cell_constraint_str = (
-                    " -{float_abs_tol} < cell < "
-                    "{float_abs_tol}".format(
-                        float_abs_tol=WeatherSymbols().float_abs_tolerance
-                    )
-                )
+                float_abs_tol = WeatherSymbols().float_abs_tolerance
+                cell_constraint = lambda cell: -float_abs_tol < cell < float_abs_tol
             else:
-                cell_constraint_str = (
-                    "{threshold_val} * {float_min} < cell < "
-                    "{threshold_val} * {float_max}".format(
-                        threshold_val=threshold_val,
-                        float_min=(1.0 - WeatherSymbols().float_tolerance),
-                        float_max=(1.0 + WeatherSymbols().float_tolerance),
-                    )
+                float_min = 1.0 - WeatherSymbols().float_tolerance
+                float_max = 1.0 + WeatherSymbols().float_tolerance
+                cell_constraint = (
+                    lambda cell: threshold_val * float_min
+                    < cell
+                    < threshold_val * float_max
                 )
-            constraint_str = (
-                "iris.Constraint(name='{diagnostic}', {threshold_name}="
-                "lambda cell: {cell_constraint})".format(
-                    diagnostic=diagnostic,
-                    threshold_name=threshold_name,
-                    cell_constraint=cell_constraint_str,
-                )
-            )
-            return constraint_str
 
-        # if input is list, loop over and return a list of strings
+            kw_dict = {"{}".format(threshold_name): cell_constraint}
+            constraint = iris.Constraint(name=diagnostic, **kw_dict)
+
+            return constraint
+
+        # if input is list, loop over and return a list of constraints
         if not isinstance(diagnostics, list):
             diagnostics = [diagnostics]
             thresholds = [thresholds]
@@ -491,17 +403,17 @@ class WeatherSymbols(BasePlugin):
             elif diagnostic in self.threshold_coord_names:
                 threshold_coord_name = self.threshold_coord_names[diagnostic]
             else:
-                threshold_coord_name = get_threshold_coord_name_from_probability_name(
+                threshold_coord_name = get_diagnostic_cube_name_from_probability_name(
                     diagnostic
                 )
             threshold_val = threshold.points.item()
             constraints.append(
-                _constraint_string(diagnostic, threshold_coord_name, threshold_val)
+                _get_constraint(diagnostic, threshold_coord_name, threshold_val)
             )
         if len(constraints) > 1:
             return constraints
 
-        # otherwise, return a string
+        # otherwise, return a constraint
         return constraints[0]
 
     @staticmethod
@@ -607,23 +519,19 @@ class WeatherSymbols(BasePlugin):
         """
         # Check input cubes contain required data
         optional_node_data_missing = self.check_input_cubes(cubes)
-
         # Construct graph nodes dictionary
         graph = {
             key: [self.queries[key]["succeed"], self.queries[key]["fail"]]
             for key in self.queries
         }
-
         # Search through tree for all leaves (weather code end points)
         defined_symbols = []
         for item in self.queries.values():
             for value in item.values():
                 if isinstance(value, int):
                     defined_symbols.append(value)
-
         # Create symbol cube
         symbols = self.create_symbol_cube(cubes)
-
         # Loop over possible symbols
         for symbol_code in defined_symbols:
 
@@ -653,12 +561,172 @@ class WeatherSymbols(BasePlugin):
                             current["condition_combination"],
                         ) = self.invert_condition(current)
 
-                    conditions.extend(self.create_condition_chain(current))
-
-                test_chain = self.format_condition_chain(conditions)
+                    conditions.append(self.create_condition_chain(current))
+                test_chain = [conditions, "AND"]
 
                 # Set grid locations to suitable weather symbol
-                symbols.data[np.ma.where(eval(test_chain))] = symbol_code
+                symbols.data[
+                    np.ma.where(self.evaluate_condition_chain(cubes, test_chain))
+                ] = symbol_code
         # Update symbols for day or night.
         symbols = update_daynight(symbols)
         return symbols
+
+    @staticmethod
+    def compare_array_to_threshold(arr, comparator, threshold):
+        """Compare two arrays element-wise and return a boolean array.
+
+        Args:
+            arr (numpy.array)
+
+            comparator (string):
+                One of  '<', '>', '<=', '>='.
+
+            threshold (float)
+
+        Returns:
+            np.array:
+                Array of booleans.
+
+        Raises:
+            ValueError: If comparator is not one of '<', '>', '<=', '>='.
+        """
+        if comparator == "<":
+            return arr < threshold
+        elif comparator == ">":
+            return arr > threshold
+        elif comparator == "<=":
+            return arr <= threshold
+        elif comparator == ">=":
+            return arr >= threshold
+        else:
+            raise ValueError(
+                "Invalid comparator: {}. ".format(comparator),
+                "Comparator must be one of '<', '>', '<=', '>='.",
+            )
+
+    def evaluate_extract_expression(self, cubes, expression):
+        """Evaluate a single condition.
+
+        Args:
+            cubes (iris.cube.CubeList):
+                A cubelist containing the diagnostics required for the
+                weather symbols decision tree, these at co-incident times.
+            expression (iris.Constraint or list):
+                Defined recursively:
+                A list consisting of an iris.Constraint or a list of 
+                iris.Constraint, strings (representing operators) and floats 
+                is a valid expression.
+                A list consisting of valid expressions, strings (representing 
+                operators) and floats is a valid expression.
+        
+        Returns:
+            numpy.array:
+                An array or masked array of booleans
+        """
+        operator_map = {
+            "+": operator.add,
+            "-": operator.sub,
+            "*": operator.mul,
+            "/": operator.truediv,
+        }
+        if isinstance(expression, iris.Constraint):
+            return cubes.extract(expression)[0].data
+        else:
+            curr_expression = copy.deepcopy(expression)
+            # evaluate sub-expressions first
+            for idx, item in enumerate(expression):
+                if isinstance(item, list):
+                    curr_expression = (
+                        curr_expression[:idx]
+                        + [self.evaluate_extract_expression(cubes, item)]
+                        + curr_expression[idx + 1 :]
+                    )
+            # evaluate operators in order of precedence
+            for op_str in ["/", "*", "+", "-"]:
+                while len(curr_expression) > 1:
+                    for idx, item in enumerate(curr_expression):
+                        if isinstance(item, str) and (item == op_str):
+                            left_arg = curr_expression[idx - 1]
+                            right_arg = curr_expression[idx + 1]
+                            if isinstance(left_arg, iris.Constraint):
+                                left_eval = cubes.extract(left_arg)[0].data
+                            else:
+                                left_eval = left_arg
+                            if isinstance(right_arg, iris.Constraint):
+                                right_eval = cubes.extract(right_arg)[0].data
+                            else:
+                                right_eval = right_arg
+                            op = operator_map[op_str]
+                            res = op(left_eval, right_eval)
+                            curr_expression = (
+                                curr_expression[: idx - 1]
+                                + [res]
+                                + curr_expression[idx + 2 :]
+                            )
+                            break
+                    else:
+                        break
+            if isinstance(curr_expression[0], iris.Constraint):
+                res = cubes.extract(curr_expression[0])[0].data
+            return res
+
+    def evaluate_condition_chain(self, cubes, condition_chain):
+        """Recursively evaluate the list of conditions.
+
+        We can safely use recursion here since the depth will be small.
+
+        Args:
+            cubes (iris.cube.CubeList):
+                A cubelist containing the diagnostics required for the
+                weather symbols decision tree, these at co-incident times.
+            condition_chain (list):
+                A valid condition chain is defined recursively:
+                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a 
+                constraint, or a list of constraints, 
+                operator strings and floats), and b is either "AND", "OR" or "", 
+                then [[a1, ..., an], b] is a valid condition chain.
+                (2) If a1, ..., an are each valid conditions chain, and b is 
+                either "AND" or "OR", then [[a1, ..., an], b] is a valid 
+                condition chain.
+            
+        Returns:
+            numpy.array:
+                An array of masked array of booleans
+        """
+
+        def is_chain(item):
+            return (
+                isinstance(item, list)
+                and isinstance(item[1], str)
+                and (item[1] in ["AND", "OR", ""])
+            )
+
+        items_list, comb = condition_chain
+        item = items_list[0]
+        if is_chain(item):
+            res = self.evaluate_condition_chain(cubes, item)
+        else:
+            condition, comparator, threshold = item
+            res = self.compare_array_to_threshold(
+                self.evaluate_extract_expression(cubes, condition),
+                comparator,
+                threshold,
+            )
+        for item in items_list[1:]:
+            if is_chain(item):
+                new_res = self.evaluate_condition_chain(cubes, item)
+            else:
+                condition, comparator, threshold = item
+                new_res = self.compare_array_to_threshold(
+                    self.evaluate_extract_expression(cubes, condition),
+                    comparator,
+                    threshold,
+                )
+            # If comb is "", then items_list has length 1, so here we can
+            # assume comb is either "AND" or "OR"
+            if comb == "AND":
+                res = res & new_res
+            else:
+                res = res | new_res
+        return res

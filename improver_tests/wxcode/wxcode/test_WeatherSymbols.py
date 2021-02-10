@@ -32,6 +32,7 @@
 
 import unittest
 from datetime import datetime as dt
+from numbers import Number
 
 import iris
 import numpy as np
@@ -189,7 +190,7 @@ class Test_WXCode(IrisTest):
         lightning = set_up_probability_cube(
             data_lightning,
             thresholds,
-            variable_name=("number_of_lightning_flashes_per_unit_area_in_" "vicinity"),
+            variable_name="number_of_lightning_flashes_per_unit_area_in_vicinity",
             threshold_units="m-2",
             time=time,
             frt=frt,
@@ -393,93 +394,13 @@ class Test_invert_condition(IrisTest):
                 plugin._invert_comparator(val)
 
 
-class Test_construct_condition(IrisTest):
-
-    """Test the construct condition method."""
-
-    def test_basic(self):
-        """Test that the construct_condition method returns a string."""
-        plugin = WeatherSymbols()
-        constraint_value = iris.Constraint(
-            name="probability_of_rainfall_rate_above_threshold",
-            coord_values={"threshold": 0.03},
-        )
-        condition = "<"
-        prob_threshold = 0.5
-        expected = (
-            "cubes.extract(Constraint(name="
-            "'probability_of_rainfall_rate_above_threshold',"
-            " coord_values={'threshold': 0.03})"
-            ")[0].data < 0.5"
-        )
-        result = plugin.construct_condition(constraint_value, condition, prob_threshold)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_works_with_lists(self):
-        """Test that the construct_condition method works with a list
-        of Constraints. """
-        plugin = WeatherSymbols()
-        constraint_list = [
-            str(
-                iris.Constraint(
-                    name="probability_of_lwe_snowfall_rate_above_threshold",
-                    coord_values={"threshold": 0.03},
-                )
-            ),
-            "-",
-            str(
-                iris.Constraint(
-                    name="probability_of_rainfall_rate_above_threshold",
-                    coord_values={"threshold": 0.03},
-                )
-            ),
-            "*",
-            "0.7",
-        ]
-        condition = "<"
-        prob_threshold = 0.5
-        expected = (
-            "( cubes.extract(Constraint(name="
-            "'probability_of_lwe_snowfall_rate_above_threshold', "
-            "coord_values={'threshold': 0.03}))[0].data - "
-            "cubes.extract(Constraint(name="
-            "'probability_of_rainfall_rate_above_threshold', "
-            "coord_values={'threshold': 0.03}))[0].data * 0.7) < 0.5"
-        )
-        result = plugin.construct_condition(constraint_list, condition, prob_threshold)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-
-class Test_format_condition_chain(IrisTest):
-
-    """Test the format_condition_chain method."""
-
-    def test_basic(self):
-        """Test that the format_condition_chain method returns a string."""
-        plugin = WeatherSymbols()
-        conditions = ["condition1", "condition2"]
-        expected = "(condition1) & (condition2)"
-        result = plugin.format_condition_chain(conditions)
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-    def test_works_with_or(self):
-        """Test that the format_condition_chain method works with OR."""
-        plugin = WeatherSymbols()
-        conditions = ["condition1", "condition2"]
-        expected = "(condition1) | (condition2)"
-        result = plugin.format_condition_chain(conditions, condition_combination="OR")
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
-
-
-class Test_create_condition_chain(IrisTest):
+class Test_create_condition_chain(Test_WXCode):
     """Test the create_condition_chain method."""
 
     def setUp(self):
         """ Set up queries for testing"""
+        super().setUp()
+        plugin = WeatherSymbols()
         self.dummy_queries = {
             "significant_precipitation": {
                 "succeed": "heavy_precipitation",
@@ -503,24 +424,48 @@ class Test_create_condition_chain(IrisTest):
         """Test create_condition_chain returns a list of strings."""
         plugin = WeatherSymbols()
         test_condition = self.dummy_queries["significant_precipitation"]
+        for t in test_condition["diagnostic_thresholds"]:
+            t.convert_units("m s-1")
+        thresholds = [t.points.item() for t in test_condition["diagnostic_thresholds"]]
         result = plugin.create_condition_chain(test_condition)
-        expected = (
-            "(cubes.extract(iris.Constraint(name='probability_of_"
-            "rainfall_rate_above_threshold', rainfall_rate=lambda "
-            "cell: 0.03 * {t_min} < "
-            "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
-            "(iris.Constraint("
-            "name='probability_of_lwe_snowfall_rate_above_threshold',"
-            " lwe_snowfall_rate=lambda cell: 0.03 * {t_min} < cell < "
-            "0.03 * {t_max}))[0].data >= 0.5)".format(
-                t_min=(1.0 - WeatherSymbols().float_tolerance),
-                t_max=(1.0 + WeatherSymbols().float_tolerance),
-            )
-        )
+        t_min = 1.0 - WeatherSymbols().float_tolerance
+        t_max = 1.0 + WeatherSymbols().float_tolerance
+        expected = [
+            [
+                [
+                    iris.Constraint(
+                        name="probability_of_rainfall_rate_above_threshold",
+                        rainfall_rate=lambda cell: thresholds[0] * t_min
+                        < cell
+                        < thresholds[0] * t_max,
+                    ),
+                    ">=",
+                    0.5,
+                ],
+                [
+                    iris.Constraint(
+                        name="probability_of_lwe_snowfall_rate_above_threshold",
+                        lwe_snowfall_rate=lambda cell: thresholds[1] * t_min
+                        < cell
+                        < thresholds[1] * t_max,
+                    ),
+                    ">=",
+                    0.5,
+                ],
+            ],
+            "OR",
+        ]
         self.assertIsInstance(result, list)
-        self.assertTrue(all([isinstance(s, str) for s in result]))
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], expected)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], list)
+        for i in range(2):
+            constraint_exp = expected[0][i][0]
+            constraint_res = result[0][i][0]
+            self.assertArrayEqual(
+                self.cubes.extract(constraint_res)[0].data,
+                self.cubes.extract(constraint_exp)[0].data,
+            )
+            self.assertEqual(result[0][i][1:], expected[0][i][1:])
 
     def test_old_naming_convention(self):
         """Test create_condition_chain can return conditions using old
@@ -528,24 +473,45 @@ class Test_create_condition_chain(IrisTest):
         plugin = WeatherSymbols()
         plugin.coord_named_threshold = True
         test_condition = self.dummy_queries["significant_precipitation"]
+        for t in test_condition["diagnostic_thresholds"]:
+            t.convert_units("m s-1")
+        thresholds = [t.points.item() for t in test_condition["diagnostic_thresholds"]]
         result = plugin.create_condition_chain(test_condition)
-        expected = (
-            "(cubes.extract(iris.Constraint(name='probability_of_"
-            "rainfall_rate_above_threshold', threshold=lambda "
-            "cell: 0.03 * {t_min} < "
-            "cell < 0.03 * {t_max}))[0].data >= 0.5) | (cubes.extract"
-            "(iris.Constraint("
-            "name='probability_of_lwe_snowfall_rate_above_threshold',"
-            " threshold=lambda cell: 0.03 * {t_min} < cell < "
-            "0.03 * {t_max}))[0].data >= 0.5)".format(
-                t_min=(1.0 - WeatherSymbols().float_tolerance),
-                t_max=(1.0 + WeatherSymbols().float_tolerance),
-            )
-        )
+        t_min = 1.0 - WeatherSymbols().float_tolerance
+        t_max = 1.0 + WeatherSymbols().float_tolerance
+        expected = [
+            [
+                [
+                    iris.Constraint(
+                        name="probability_of_rainfall_rate_above_threshold",
+                        threshold=lambda cell: thresholds[0] * t_min
+                        < cell
+                        < thresholds[0] * t_max,
+                    ),
+                    ">=",
+                    0.5,
+                ],
+                [
+                    iris.Constraint(
+                        name="probability_of_lwe_snowfall_rate_above_threshold",
+                        threshold=lambda cell: thresholds[1] * t_min
+                        < cell
+                        < thresholds[1] * t_max,
+                    ),
+                    ">=",
+                    0.5,
+                ],
+            ],
+            "OR",
+        ]
         self.assertIsInstance(result, list)
-        self.assertTrue(all([isinstance(s, str) for s in result]))
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], expected)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], list)
+        for i in range(2):
+            constraint_res = result[0][i][0]
+            self.assertTrue("threshold" in constraint_res.__dict__["_coord_values"])
+            self.assertEqual(result[0][i][1:], expected[0][i][1:])
+        self.assertEqual(result[1], expected[1])
 
     def test_complex_condition(self):
         """Test with a condition that uses an operator"""
@@ -574,34 +540,78 @@ class Test_create_condition_chain(IrisTest):
         ]
         plugin = WeatherSymbols()
         test_condition = query["rain_or_snow"]
+        for t in (
+            test_condition["diagnostic_thresholds"][0]
+            + test_condition["diagnostic_thresholds"][1]
+        ):
+            t.convert_units("m s-1")
         result = plugin.create_condition_chain(test_condition)
-        expected = (
-            "(( cubes.extract(iris.Constraint(name='probability_of_"
-            "lwe_sleetfall_rate_above_threshold', lwe_sleetfall_rate="
-            "lambda cell: 0.1 * {t_min} < cell < 0.1 * {t_max})"
-            ")[0].data - cubes.extract(iris.Constraint("
-            "name='probability_of_rainfall_rate_above_threshold', "
-            "rainfall_rate=lambda cell: 0.1 * {t_min} < cell < "
-            "0.1 * {t_max}))[0].data) >= 0.5) | "
-            "(( cubes.extract(iris.Constraint(name="
-            "'probability_of_lwe_sleetfall_rate_above_threshold', "
-            "lwe_sleetfall_rate=lambda cell: 0.1 * {t_min} < cell "
-            "< 0.1 * {t_max}))[0].data - "
-            "cubes.extract(iris.Constraint(name="
-            "'probability_of_lwe_snowfall_rate_above_threshold', "
-            "lwe_snowfall_rate=lambda cell: 0.1 * {t_min} < cell "
-            "< 0.1 * {t_max}))[0].data) >= 0.5)".format(
-                t_min=(1.0 - WeatherSymbols().float_tolerance),
-                t_max=(1.0 + WeatherSymbols().float_tolerance),
-            )
-        )
+        thresholds = [
+            t.points.item() for t in test_condition["diagnostic_thresholds"][0]
+        ] + [t.points.item() for t in test_condition["diagnostic_thresholds"][1]]
+        t_min = 1.0 - WeatherSymbols().float_tolerance
+        t_max = 1.0 + WeatherSymbols().float_tolerance
+        expected = [
+            [
+                [
+                    [
+                        iris.Constraint(
+                            name="probability_of_lwe_sleetfall_rate_above_threshold",
+                            lwe_sleetfall_rate=lambda cell: thresholds[0] * t_min
+                            < cell
+                            < thresholds[0] * t_max,
+                        ),
+                        "-",
+                        iris.Constraint(
+                            name="probability_of_rainfall_rate_above_threshold",
+                            rainfall_rate=lambda cell: thresholds[1] * t_min
+                            < cell
+                            < thresholds[1] * t_max,
+                        ),
+                    ],
+                    ">=",
+                    0.5,
+                ],
+                [
+                    [
+                        iris.Constraint(
+                            name="probability_of_lwe_sleetfall_rate_above_threshold",
+                            lwe_sleetfall_rate=lambda cell: thresholds[2] * t_min
+                            < cell
+                            < thresholds[2] * t_max,
+                        ),
+                        "-",
+                        iris.Constraint(
+                            name="probability_of_lwe_snowfall_rate_above_threshold",
+                            lwe_snowfall_rate=lambda cell: thresholds[3] * t_min
+                            < cell
+                            < thresholds[3] * t_max,
+                        ),
+                    ],
+                    ">=",
+                    0.5,
+                ],
+            ],
+            "OR",
+        ]
         self.assertIsInstance(result, list)
-        self.assertTrue(all([isinstance(s, str) for s in result]))
-        self.assertEqual(len(result), 1)
-        self.assertEqual(result[0], expected)
+        self.assertEqual(len(result), 2)
+        self.assertIsInstance(result[0], list)
+        for i in range(2):
+            for j in range(2):
+                for k in [0, 2]:
+                    constraint_exp = expected[0][i][0][k]
+                    constraint_res = result[0][i][0][k]
+                    self.assertArrayEqual(
+                        self.cubes.extract(constraint_res)[0].data,
+                        self.cubes.extract(constraint_exp)[0].data,
+                    )
+                self.assertEqual(result[0][i][0][1], expected[0][i][0][1])
+            self.assertEqual(result[0][j][1:], expected[0][j][1:])
+        self.assertEqual(result[1], expected[1])
 
 
-class Test_construct_extract_constraint(IrisTest):
+class Test_construct_extract_constraint(Test_WXCode):
 
     """Test the construct_extract_constraint method ."""
 
@@ -610,18 +620,20 @@ class Test_construct_extract_constraint(IrisTest):
         plugin = WeatherSymbols()
         diagnostic = "probability_of_rainfall_rate_above_threshold"
         threshold = AuxCoord(0.03, units="mm hr-1")
+        threshold.convert_units("m s-1")
         result = plugin.construct_extract_constraint(diagnostic, threshold, False)
-        expected = (
-            "iris.Constraint("
-            "name='probability_of_rainfall_rate_above_threshold', "
-            "rainfall_rate=lambda cell: 0.03 * {t_min} < cell < "
-            "0.03 * {t_max})".format(
-                t_min=(1.0 - WeatherSymbols().float_tolerance),
-                t_max=(1.0 + WeatherSymbols().float_tolerance),
-            )
+        t_min = 1.0 - WeatherSymbols().float_tolerance
+        t_max = 1.0 + WeatherSymbols().float_tolerance
+        expected = iris.Constraint(
+            name="probability_of_rainfall_rate_above_threshold",
+            rainfall_rate=lambda cell: threshold.points[0] * t_min
+            < cell
+            < threshold.points[0] * t_max,
         )
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
+        self.assertIsInstance(result, iris.Constraint)
+        self.assertArrayEqual(
+            self.cubes.extract(result)[0].data, self.cubes.extract(expected)[0].data
+        )
 
     def test_old_naming_convention(self):
         """Test construct_extract_constraint can return a constraint with a
@@ -630,31 +642,25 @@ class Test_construct_extract_constraint(IrisTest):
         diagnostic = "probability_of_rainfall_rate_above_threshold"
         threshold = AuxCoord(0.03, units="mm hr-1")
         result = plugin.construct_extract_constraint(diagnostic, threshold, True)
-        expected = (
-            "iris.Constraint("
-            "name='probability_of_rainfall_rate_above_threshold', "
-            "threshold=lambda cell: 0.03 * {t_min} < cell < 0.03 * "
-            "{t_max})".format(
-                t_min=(1.0 - WeatherSymbols().float_tolerance),
-                t_max=(1.0 + WeatherSymbols().float_tolerance),
-            )
-        )
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
+        self.assertIsInstance(result, iris.Constraint)
+        self.assertTrue("threshold" in result.__dict__["_coord_values"])
 
     def test_zero_threshold(self):
         """Test construct_extract_constraint when threshold is zero."""
         plugin = WeatherSymbols()
-        diagnostic = "probability_of_rainfall_rate_above_threshold"
-        threshold = AuxCoord(0.0, units="mm hr-1")
+        diagnostic = "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold"
+        threshold = AuxCoord(0.0, units="m-2")
         result = plugin.construct_extract_constraint(diagnostic, threshold, False)
-        expected = (
-            "iris.Constraint("
-            "name='probability_of_rainfall_rate_above_threshold', "
-            "rainfall_rate=lambda cell:  -1e-12 < cell < 1e-12)"
+        expected = iris.Constraint(
+            name="probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold",
+            number_of_lightning_flashes_per_unit_area_in_vicinity=lambda cell: -1e-12
+            < cell
+            < 1e-12,
         )
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, expected)
+        self.assertIsInstance(result, iris.Constraint)
+        self.assertArrayEqual(
+            self.cubes.extract(result)[0].data, self.cubes.extract(expected)[0].data
+        )
 
     def test_list_of_constraints(self):
         """Test construct_extract_constraint returns a list
@@ -665,21 +671,300 @@ class Test_construct_extract_constraint(IrisTest):
             "probability_of_lwe_snowfall_rate_above_threshold",
         ]
         thresholds = [AuxCoord(0.03, units="mm hr-1"), AuxCoord(0.03, units="mm hr-1")]
+        for t in thresholds:
+            t.convert_units("m s-1")
         result = plugin.construct_extract_constraint(diagnostics, thresholds, False)
-
-        expected = (
-            "iris.Constraint("
-            "name='probability_of_lwe_snowfall_rate_above_threshold', "
-            "lwe_snowfall_rate=lambda cell: 0.03 * {t_min} < cell "
-            "< 0.03 * {t_max})".format(
-                t_min=(1.0 - WeatherSymbols().float_tolerance),
-                t_max=(1.0 + WeatherSymbols().float_tolerance),
-            )
-        )
         self.assertIsInstance(result, list)
-        self.assertIsInstance(result[1], str)
         self.assertEqual(len(result), 2)
-        self.assertEqual(result[1], expected)
+        self.assertIsInstance(result[0], iris.Constraint)
+        self.assertIsInstance(result[1], iris.Constraint)
+        t_min = 1.0 - WeatherSymbols().float_tolerance
+        t_max = 1.0 + WeatherSymbols().float_tolerance
+        expected = iris.Constraint(
+            name="probability_of_rainfall_rate_above_threshold",
+            rainfall_rate=lambda cell: thresholds[0].points[0] * t_min
+            < cell
+            < thresholds[0].points[0] * t_max,
+        )
+        self.assertArrayEqual(
+            self.cubes.extract(result[0])[0].data, self.cubes.extract(expected)[0].data
+        )
+        expected = iris.Constraint(
+            name="probability_of_lwe_snowfall_rate_above_threshold",
+            lwe_snowfall_rate=lambda cell: thresholds[1].points[0] * t_min
+            < cell
+            < thresholds[1].points[0] * t_max,
+        )
+        self.assertArrayEqual(
+            self.cubes.extract(result[1])[0].data, self.cubes.extract(expected)[0].data
+        )
+
+
+class Test_evaluate_extract_expression(Test_WXCode):
+    """Test the evaluate_extract_expression method ."""
+
+    def test_basic(self):
+        """Test evaluating a basic expression consisting of constraints, 
+        operators, and constants."""
+        t_min = 1.0 - WeatherSymbols().float_tolerance
+        t_max = 1.0 + WeatherSymbols().float_tolerance
+        t = AuxCoord(0.1, units="mm hr-1")
+        t.convert_units("m s-1")
+        expression = [
+            iris.Constraint(
+                name="probability_of_lwe_sleetfall_rate_above_threshold",
+                lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
+                < cell
+                < t.points[0] * t_max,
+            ),
+            "-",
+            0.5,
+            "*",
+            iris.Constraint(
+                name="probability_of_rainfall_rate_above_threshold",
+                rainfall_rate=lambda cell: t.points[0] * t_min
+                < cell
+                < t.points[0] * t_max,
+            ),
+        ]
+        plugin = WeatherSymbols()
+        result = plugin.evaluate_extract_expression(self.cubes, expression)
+        expected = (
+            self.cubes.extract(expression[0])[0].data
+            - 0.5 * self.cubes.extract(expression[4])[0].data
+        )
+        self.assertArrayEqual(result, expected)
+
+    def test_sub_expresssions(self):
+        """Test evaluating an expression containing sub-expressions."""
+        t_min = 1.0 - WeatherSymbols().float_tolerance
+        t_max = 1.0 + WeatherSymbols().float_tolerance
+        t = AuxCoord(0.1, units="mm hr-1")
+        t.convert_units("m s-1")
+        expression = [
+            0.5,
+            "*",
+            iris.Constraint(
+                name="probability_of_lwe_sleetfall_rate_above_threshold",
+                lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
+                < cell
+                < t.points[0] * t_max,
+            ),
+            "+",
+            [
+                iris.Constraint(
+                    name="probability_of_rainfall_rate_above_threshold",
+                    rainfall_rate=lambda cell: t.points[0] * t_min
+                    < cell
+                    < t.points[0] * t_max,
+                ),
+                "-",
+                iris.Constraint(
+                    name="probability_of_lwe_snowfall_rate_above_threshold",
+                    lwe_snowfall_rate=lambda cell: t.points[0] * t_min
+                    < cell
+                    < t.points[0] * t_max,
+                ),
+            ],
+        ]
+        expected = 0.5 * self.cubes.extract(expression[2])[0].data + (
+            self.cubes.extract(expression[4][0])[0].data
+            - self.cubes.extract(expression[4][2])[0].data
+        )
+        plugin = WeatherSymbols()
+        result = plugin.evaluate_extract_expression(self.cubes, expression)
+        self.assertArrayEqual(result, expected)
+
+
+class Test_evaluate_condition_chain(Test_WXCode):
+    """Test the evaluate_condition_chain method ."""
+
+    def test_basic(self):
+        """Test a simple condition chain with 2 simple expressions joined by "OR"."""
+        t_min = 1.0 - WeatherSymbols().float_tolerance
+        t_max = 1.0 + WeatherSymbols().float_tolerance
+        t = AuxCoord(0.1, units="mm hr-1")
+        t.convert_units("m s-1")
+        chain = [
+            [
+                [
+                    iris.Constraint(
+                        name="probability_of_lwe_sleetfall_rate_above_threshold",
+                        lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
+                        < cell
+                        < t.points[0] * t_max,
+                    ),
+                    ">=",
+                    0.5,
+                ],
+                [
+                    iris.Constraint(
+                        name="probability_of_rainfall_rate_above_threshold",
+                        rainfall_rate=lambda cell: t.points[0] * t_min
+                        < cell
+                        < t.points[0] * t_max,
+                    ),
+                    ">=",
+                    0.5,
+                ],
+            ],
+            "OR",
+        ]
+        plugin = WeatherSymbols()
+        result = plugin.evaluate_condition_chain(self.cubes, chain)
+        c1 = chain[0][0][0]
+        c2 = chain[0][1][0]
+        expected = (self.cubes.extract(c1)[0].data >= 0.5) | (
+            self.cubes.extract(c2)[0].data >= 0.5
+        )
+        self.assertArrayEqual(result, expected)
+
+    def test_with_operators(self):
+        """Test a condition chain where the expressions contain operators."""
+        t_min = 1.0 - WeatherSymbols().float_tolerance
+        t_max = 1.0 + WeatherSymbols().float_tolerance
+        t = AuxCoord(0.1, units="mm hr-1")
+        t.convert_units("m s-1")
+        chain = [
+            [
+                [
+                    [
+                        iris.Constraint(
+                            name="probability_of_rainfall_rate_above_threshold",
+                            rainfall_rate=lambda cell: t.points[0] * t_min
+                            < cell
+                            < t.points[0] * t_max,
+                        ),
+                        "-",
+                        iris.Constraint(
+                            name="probability_of_lwe_snowfall_rate_above_threshold",
+                            lwe_snowfall_rate=lambda cell: t.points[0] * t_min
+                            < cell
+                            < t.points[0] * t_max,
+                        ),
+                    ],
+                    ">=",
+                    0.5,
+                ],
+                [
+                    iris.Constraint(
+                        name="probability_of_lwe_sleetfall_rate_above_threshold",
+                        lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
+                        < cell
+                        < t.points[0] * t_max,
+                    ),
+                    ">=",
+                    0.5,
+                ],
+            ],
+            "OR",
+        ]
+        plugin = WeatherSymbols()
+        result = plugin.evaluate_condition_chain(self.cubes, chain)
+        c1 = chain[0][0][0]
+        c2 = chain[0][1][0]
+        expected = (self.cubes.extract(c1)[0].data >= 0.5) | (
+            self.cubes.extract(c2)[0].data >= 0.5
+        )
+        self.assertArrayEqual(result, expected)
+
+    def test_with_subconditions(self):
+        """Test "AND" condition chain with sub-chain containing "OR"."""
+        t_min = 1.0 - WeatherSymbols().float_tolerance
+        t_max = 1.0 + WeatherSymbols().float_tolerance
+        t = AuxCoord(0.1, units="mm hr-1")
+        t.convert_units("m s-1")
+        chain = [
+            [
+                [
+                    [
+                        [
+                            iris.Constraint(
+                                name="probability_of_lwe_sleetfall_rate_above_threshold",
+                                lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
+                                < cell
+                                < t.points[0] * t_max,
+                            ),
+                            ">=",
+                            0.5,
+                        ],
+                        [
+                            iris.Constraint(
+                                name="probability_of_lwe_snowfall_rate_above_threshold",
+                                lwe_snowfall_rate=lambda cell: t.points[0] * t_min
+                                < cell
+                                < t.points[0] * t_max,
+                            ),
+                            ">=",
+                            0.5,
+                        ],
+                    ],
+                    "OR",
+                ],
+                [
+                    iris.Constraint(
+                        name="probability_of_rainfall_rate_above_threshold",
+                        rainfall_rate=lambda cell: t.points[0] * t_min
+                        < cell
+                        < t.points[0] * t_max,
+                    ),
+                    ">=",
+                    0.5,
+                ],
+            ],
+            "AND",
+        ]
+        plugin = WeatherSymbols()
+        result = plugin.evaluate_condition_chain(self.cubes, chain)
+        c1 = chain[0][0][0][0][0]
+        c2 = chain[0][0][0][1][0]
+        c3 = chain[0][1][0]
+        expected = (
+            (self.cubes.extract(c1)[0].data >= 0.5)
+            | (self.cubes.extract(c2)[0].data >= 0.5)
+        ) & (self.cubes.extract(c3)[0].data >= 0.5)
+        self.assertArrayEqual(result, expected)
+
+    def test_blank_condition(self):
+        """Test a condition chain where the combination condition is ""."""
+        t_min = 1.0 - WeatherSymbols().float_tolerance
+        t_max = 1.0 + WeatherSymbols().float_tolerance
+        t = AuxCoord(0.1, units="mm hr-1")
+        t.convert_units("m s-1")
+        chain = [
+            [
+                [
+                    [
+                        iris.Constraint(
+                            name="probability_of_lwe_sleetfall_rate_above_threshold",
+                            lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
+                            < cell
+                            < t.points[0] * t_max,
+                        ),
+                        "-",
+                        0.5,
+                        "*",
+                        iris.Constraint(
+                            name="probability_of_rainfall_rate_above_threshold",
+                            rainfall_rate=lambda cell: t.points[0] * t_min
+                            < cell
+                            < t.points[0] * t_max,
+                        ),
+                    ],
+                    ">=",
+                    0.0,
+                ]
+            ],
+            "",
+        ]
+        plugin = WeatherSymbols()
+        result = plugin.evaluate_condition_chain(self.cubes, chain)
+        expression = chain[0][0][0]
+        expected = (
+            self.cubes.extract(expression[0])[0].data
+            - 0.5 * self.cubes.extract(expression[4])[0].data
+        ) >= 0.0
+        self.assertArrayEqual(result, expected)
 
 
 class Test_find_all_routes(IrisTest):
@@ -811,6 +1096,38 @@ class Test_create_symbol_cube(IrisTest):
         result = WeatherSymbols().create_symbol_cube([self.cube])
         self.assertIsNone(result.coord("time").bounds)
         self.assertIsNone(result.coord("forecast_period").bounds)
+
+
+class Test_compare_to_threshold(IrisTest):
+    """Test the compare_to_threshold method ."""
+
+    def test_array(self):
+        """Test that compare_to_threshold produces the correct array of 
+        booleans."""
+        arr = np.array([0, 1, 2], dtype=np.int32)
+        threshold = 1
+        plugin = WeatherSymbols()
+        test_case_map = {
+            "<": [True, False, False],
+            "<=": [True, True, False],
+            ">": [False, False, True],
+            ">=": [False, True, True],
+        }
+        for item in test_case_map:
+            result = plugin.compare_array_to_threshold(arr, item, 1)
+            self.assertArrayEqual(result, test_case_map[item])
+
+    def test_error_on_unexpected_comparison(self):
+        """Test that an error is raised if the comparison operator is not 
+        one of the expected strings."""
+        arr = np.array([0, 1, 2], dtype=np.int32)
+        plugin = WeatherSymbols()
+        msg = (
+            "Invalid comparator: !=. ",
+            "Comparator must be one of '<', '>', '<=', '>='.",
+        )
+        with self.assertRaises(ValueError, msg=msg):
+            plugin.compare_array_to_threshold(arr, "!=", 1)
 
 
 class Test_process(Test_WXCode):
