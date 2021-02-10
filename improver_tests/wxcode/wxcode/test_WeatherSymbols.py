@@ -466,6 +466,7 @@ class Test_create_condition_chain(Test_WXCode):
                 self.cubes.extract(constraint_exp)[0].data,
             )
             self.assertEqual(result[0][i][1:], expected[0][i][1:])
+        self.assertEqual(result[1], result[1])
 
     def test_old_naming_convention(self):
         """Test create_condition_chain can return conditions using old
