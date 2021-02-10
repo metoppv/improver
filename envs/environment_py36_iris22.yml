@@ -8,6 +8,7 @@ dependencies:
   - python=3.6
   - iris=2.2
   - numpy=1.15.4
+  - numba=0.42.0
   - scipy=1.3.3
   - cftime=1.0.1
   - python-stratify=0.1
@@ -30,3 +31,4 @@ dependencies:
     - sigtools>=2.0
     - clize
     - timezonefinder==4.2.0
+    - pytz==2020.5
