@@ -709,6 +709,20 @@ class Test_set_up_probability_cube(IrisTest):
         dim_coords = get_dim_coord_names(result)
         self.assertNotIn("air_temperature", dim_coords)
 
+    def test_vicinity_cube(self):
+        """Test an in-vicinity cube gets the correct name and threshold coordinate"""
+        result = set_up_probability_cube(
+            self.data,
+            self.thresholds,
+            variable_name="air_temperature_in_vicinity",
+        )
+        thresh_coord = find_threshold_coordinate(result)
+        self.assertEqual(
+            result.name(), "probability_of_air_temperature_in_vicinity_above_threshold"
+        )
+        self.assertEqual(thresh_coord.name(), "air_temperature")
+        self.assertEqual(thresh_coord.var_name, "threshold")
+
 
 class Test_add_coordinate(IrisTest):
     """Test the add_coordinate utility"""
