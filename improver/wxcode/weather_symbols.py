@@ -129,9 +129,6 @@ class WeatherSymbols(BasePlugin):
         # flag to indicate whether to expect "threshold" as a coordinate name
         # (defaults to False, checked on reading input cubes)
         self.coord_named_threshold = False
-        # dictionary to contain names of threshold coordinates that do not
-        # match expected convention
-        self.threshold_coord_names = {}
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
@@ -194,14 +191,6 @@ class WeatherSymbols(BasePlugin):
                 # cube, and that the thresholding is relative to it correctly.
                 threshold = threshold.points.item()
                 threshold_name = find_threshold_coordinate(matched_cube[0]).name()
-
-                # Check cube and threshold coordinate names match according to
-                # expected convention.  If not, add to exception dictionary.
-                if (
-                    get_threshold_coord_name_from_probability_name(diagnostic)
-                    != threshold_name
-                ):
-                    self.threshold_coord_names[diagnostic] = threshold_name
 
                 # Set flag to check for old threshold coordinate names
                 if threshold_name == "threshold" and not self.coord_named_threshold:
@@ -488,8 +477,6 @@ class WeatherSymbols(BasePlugin):
         for diagnostic, threshold in zip(diagnostics, thresholds):
             if coord_named_threshold:
                 threshold_coord_name = "threshold"
-            elif diagnostic in self.threshold_coord_names:
-                threshold_coord_name = self.threshold_coord_names[diagnostic]
             else:
                 threshold_coord_name = get_threshold_coord_name_from_probability_name(
                     diagnostic

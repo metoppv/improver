@@ -712,9 +712,7 @@ class Test_set_up_probability_cube(IrisTest):
     def test_vicinity_cube(self):
         """Test an in-vicinity cube gets the correct name and threshold coordinate"""
         result = set_up_probability_cube(
-            self.data,
-            self.thresholds,
-            variable_name="air_temperature_in_vicinity",
+            self.data, self.thresholds, variable_name="air_temperature_in_vicinity",
         )
         thresh_coord = find_threshold_coordinate(result)
         self.assertEqual(
