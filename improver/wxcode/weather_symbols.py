@@ -504,74 +504,6 @@ class WeatherSymbols(BasePlugin):
         )
         return symbols
 
-    def process(self, cubes):
-        """Apply the decision tree to the input cubes to produce weather
-        symbol output.
-
-        Args:
-            cubes (iris.cube.CubeList):
-                A cubelist containing the diagnostics required for the
-                weather symbols decision tree, these at co-incident times.
-
-        Returns:
-            iris.cube.Cube:
-                A cube of weather symbols.
-        """
-        # Check input cubes contain required data
-        optional_node_data_missing = self.check_input_cubes(cubes)
-        # Construct graph nodes dictionary
-        graph = {
-            key: [self.queries[key]["succeed"], self.queries[key]["fail"]]
-            for key in self.queries
-        }
-        # Search through tree for all leaves (weather code end points)
-        defined_symbols = []
-        for item in self.queries.values():
-            for value in item.values():
-                if isinstance(value, int):
-                    defined_symbols.append(value)
-        # Create symbol cube
-        symbols = self.create_symbol_cube(cubes)
-        # Loop over possible symbols
-        for symbol_code in defined_symbols:
-
-            # In current decision tree
-            # start node is heavy_precipitation
-            routes = self.find_all_routes(
-                graph,
-                self.start_node,
-                symbol_code,
-                omit_nodes=optional_node_data_missing,
-            )
-            # Loop over possible routes from root to leaf
-
-            for route in routes:
-                conditions = []
-                for i_node in range(len(route) - 1):
-                    current_node = route[i_node]
-                    current = copy.copy(self.queries[current_node])
-                    try:
-                        next_node = route[i_node + 1]
-                    except KeyError:
-                        next_node = symbol_code
-
-                    if current["fail"] == next_node:
-                        (
-                            current["threshold_condition"],
-                            current["condition_combination"],
-                        ) = self.invert_condition(current)
-
-                    conditions.append(self.create_condition_chain(current))
-                test_chain = [conditions, "AND"]
-
-                # Set grid locations to suitable weather symbol
-                symbols.data[
-                    np.ma.where(self.evaluate_condition_chain(cubes, test_chain))
-                ] = symbol_code
-        # Update symbols for day or night.
-        symbols = update_daynight(symbols)
-        return symbols
-
     @staticmethod
     def compare_array_to_threshold(arr, comparator, threshold):
         """Compare two arrays element-wise and return a boolean array.
@@ -730,3 +662,71 @@ class WeatherSymbols(BasePlugin):
             else:
                 res = res | new_res
         return res
+
+    def process(self, cubes):
+        """Apply the decision tree to the input cubes to produce weather
+        symbol output.
+
+        Args:
+            cubes (iris.cube.CubeList):
+                A cubelist containing the diagnostics required for the
+                weather symbols decision tree, these at co-incident times.
+
+        Returns:
+            iris.cube.Cube:
+                A cube of weather symbols.
+        """
+        # Check input cubes contain required data
+        optional_node_data_missing = self.check_input_cubes(cubes)
+        # Construct graph nodes dictionary
+        graph = {
+            key: [self.queries[key]["succeed"], self.queries[key]["fail"]]
+            for key in self.queries
+        }
+        # Search through tree for all leaves (weather code end points)
+        defined_symbols = []
+        for item in self.queries.values():
+            for value in item.values():
+                if isinstance(value, int):
+                    defined_symbols.append(value)
+        # Create symbol cube
+        symbols = self.create_symbol_cube(cubes)
+        # Loop over possible symbols
+        for symbol_code in defined_symbols:
+
+            # In current decision tree
+            # start node is heavy_precipitation
+            routes = self.find_all_routes(
+                graph,
+                self.start_node,
+                symbol_code,
+                omit_nodes=optional_node_data_missing,
+            )
+            # Loop over possible routes from root to leaf
+
+            for route in routes:
+                conditions = []
+                for i_node in range(len(route) - 1):
+                    current_node = route[i_node]
+                    current = copy.copy(self.queries[current_node])
+                    try:
+                        next_node = route[i_node + 1]
+                    except KeyError:
+                        next_node = symbol_code
+
+                    if current["fail"] == next_node:
+                        (
+                            current["threshold_condition"],
+                            current["condition_combination"],
+                        ) = self.invert_condition(current)
+
+                    conditions.append(self.create_condition_chain(current))
+                test_chain = [conditions, "AND"]
+
+                # Set grid locations to suitable weather symbol
+                symbols.data[
+                    np.ma.where(self.evaluate_condition_chain(cubes, test_chain))
+                ] = symbol_code
+        # Update symbols for day or night.
+        symbols = update_daynight(symbols)
+        return symbols
