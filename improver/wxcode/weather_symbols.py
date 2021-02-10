@@ -32,10 +32,10 @@
 
 
 import copy
+import operator
 
 import iris
 import numpy as np
-import operator
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
