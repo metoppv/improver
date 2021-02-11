@@ -10,7 +10,7 @@ jobs:
         env: [py36_iris22, py37_iris24]
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v1
+    - uses: actions/cache@v2
       id: cache
       env:
         # Increase this value to reset cache
@@ -57,7 +57,7 @@ jobs:
         env: [py36_iris22]
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v1
+    - uses: actions/cache@v2
       id: cache
       env:
         # Increase this value to reset cache
@@ -100,7 +100,7 @@ jobs:
         env: [py36_iris22, py37_iris24]
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v1
+    - uses: actions/cache@v2
       id: cache
       env:
         # Increase this value to reset cache
