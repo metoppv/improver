@@ -196,8 +196,8 @@ class WeatherSymbols(BasePlugin):
                 threshold = threshold.points.item()
                 threshold_name = find_threshold_coordinate(matched_cube[0]).name()
 
-                # Check cube and threshold coordinate names match according to
-                # expected convention.  If not, add to exception dictionary.
+                # Check threshold coordinate name matches expected convention
+                # If not, add to exception dictionary.
                 if (
                     get_threshold_coord_name_from_probability_name(diagnostic)
                     != threshold_name
