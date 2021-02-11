@@ -673,7 +673,7 @@ class Test_construct_extract_constraint(Test_WXCode):
         result = plugin.construct_extract_constraint(diagnostic, threshold, False)
         expected = iris.Constraint(
             name="probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold",
-            number_of_lightning_flashes_per_unit_area_in_vicinity=lambda cell: np.isclose(
+            number_of_lightning_flashes_per_unit_area=lambda cell: np.isclose(
                 cell.point,
                 threshold.points[0],
                 rtol=0,
@@ -681,6 +681,10 @@ class Test_construct_extract_constraint(Test_WXCode):
             ),
         )
         self.assertIsInstance(result, iris.Constraint)
+        print(result)
+        print(self.cubes)
+        print(self.cubes.extract(result))
+        print(self.cubes.extract(expected))
         self.assertArrayEqual(
             self.cubes.extract(result)[0].data, self.cubes.extract(expected)[0].data
         )
