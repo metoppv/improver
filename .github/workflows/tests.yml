@@ -22,7 +22,8 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
+        conda install -c conda-forge mamba
+        mamba env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
@@ -68,7 +69,8 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
+        conda install -c conda-forge mamba
+        mamba env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
@@ -110,7 +112,8 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
+        conda install -c conda-forge mamba
+        mamba env update -q --file envs/environment_${{ matrix.env }}.yml --name improver_${{ matrix.env }}
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
