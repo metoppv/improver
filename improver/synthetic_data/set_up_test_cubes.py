@@ -511,12 +511,13 @@ def set_up_probability_cube(
     cube = set_up_variable_cube(
         data, name=name, units="1", realizations=thresholds, **kwargs,
     )
-    cube.coord("realization").rename(variable_name)
-    cube.coord(variable_name).var_name = "threshold"
-    cube.coord(variable_name).attributes.update(coord_attributes)
-    cube.coord(variable_name).units = Unit(threshold_units)
+    threshold_name = variable_name.replace("_in_vicinity", "")
+    cube.coord("realization").rename(threshold_name)
+    cube.coord(threshold_name).var_name = "threshold"
+    cube.coord(threshold_name).attributes.update(coord_attributes)
+    cube.coord(threshold_name).units = Unit(threshold_units)
     if len(thresholds) == 1:
-        cube = next(cube.slices_over(variable_name))
+        cube = next(cube.slices_over(threshold_name))
     return cube
 
 
