@@ -428,16 +428,17 @@ class Test_create_condition_chain(Test_WXCode):
             t.convert_units("m s-1")
         thresholds = [t.points.item() for t in test_condition["diagnostic_thresholds"]]
         result = plugin.create_condition_chain(test_condition)
-        t_min = 1.0 - WeatherSymbols().float_tolerance
-        t_max = 1.0 + WeatherSymbols().float_tolerance
         expected = [
             [
                 [
                     iris.Constraint(
                         name="probability_of_rainfall_rate_above_threshold",
-                        rainfall_rate=lambda cell: thresholds[0] * t_min
-                        < cell
-                        < thresholds[0] * t_max,
+                        rainfall_rate=lambda cell: np.isclose(
+                            cell.point,
+                            thresholds[0],
+                            rtol=WeatherSymbols().float_tolerance,
+                            atol=0,
+                        ),
                     ),
                     ">=",
                     0.5,
@@ -445,9 +446,12 @@ class Test_create_condition_chain(Test_WXCode):
                 [
                     iris.Constraint(
                         name="probability_of_lwe_snowfall_rate_above_threshold",
-                        lwe_snowfall_rate=lambda cell: thresholds[1] * t_min
-                        < cell
-                        < thresholds[1] * t_max,
+                        lwe_snowfall_rate=lambda cell: np.isclose(
+                            cell.point,
+                            thresholds[1],
+                            rtol=WeatherSymbols().float_tolerance,
+                            atol=0,
+                        ),
                     ),
                     ">=",
                     0.5,
@@ -478,16 +482,17 @@ class Test_create_condition_chain(Test_WXCode):
             t.convert_units("m s-1")
         thresholds = [t.points.item() for t in test_condition["diagnostic_thresholds"]]
         result = plugin.create_condition_chain(test_condition)
-        t_min = 1.0 - WeatherSymbols().float_tolerance
-        t_max = 1.0 + WeatherSymbols().float_tolerance
         expected = [
             [
                 [
                     iris.Constraint(
                         name="probability_of_rainfall_rate_above_threshold",
-                        threshold=lambda cell: thresholds[0] * t_min
-                        < cell
-                        < thresholds[0] * t_max,
+                        threshold=lambda cell: np.isclose(
+                            cell.point,
+                            thresholds[0],
+                            rtol=WeatherSymbols().float_tolerance,
+                            atol=0,
+                        ),
                     ),
                     ">=",
                     0.5,
@@ -495,9 +500,12 @@ class Test_create_condition_chain(Test_WXCode):
                 [
                     iris.Constraint(
                         name="probability_of_lwe_snowfall_rate_above_threshold",
-                        threshold=lambda cell: thresholds[1] * t_min
-                        < cell
-                        < thresholds[1] * t_max,
+                        threshold=lambda cell: np.isclose(
+                            cell.point,
+                            thresholds[1],
+                            rtol=WeatherSymbols().float_tolerance,
+                            atol=0,
+                        ),
                     ),
                     ">=",
                     0.5,
@@ -550,24 +558,28 @@ class Test_create_condition_chain(Test_WXCode):
         thresholds = [
             t.points.item() for t in test_condition["diagnostic_thresholds"][0]
         ] + [t.points.item() for t in test_condition["diagnostic_thresholds"][1]]
-        t_min = 1.0 - WeatherSymbols().float_tolerance
-        t_max = 1.0 + WeatherSymbols().float_tolerance
         expected = [
             [
                 [
                     [
                         iris.Constraint(
                             name="probability_of_lwe_sleetfall_rate_above_threshold",
-                            lwe_sleetfall_rate=lambda cell: thresholds[0] * t_min
-                            < cell
-                            < thresholds[0] * t_max,
+                            lwe_sleetfall_rate=lambda cell: np.isclose(
+                                cell.point,
+                                thresholds[0],
+                                rtol=WeatherSymbols().float_tolerance,
+                                atol=0,
+                            ),
                         ),
                         "-",
                         iris.Constraint(
                             name="probability_of_rainfall_rate_above_threshold",
-                            rainfall_rate=lambda cell: thresholds[1] * t_min
-                            < cell
-                            < thresholds[1] * t_max,
+                            rainfall_rate=lambda cell: np.isclose(
+                                cell.point,
+                                thresholds[1],
+                                rtol=WeatherSymbols().float_tolerance,
+                                atol=0,
+                            ),
                         ),
                     ],
                     ">=",
@@ -577,16 +589,22 @@ class Test_create_condition_chain(Test_WXCode):
                     [
                         iris.Constraint(
                             name="probability_of_lwe_sleetfall_rate_above_threshold",
-                            lwe_sleetfall_rate=lambda cell: thresholds[2] * t_min
-                            < cell
-                            < thresholds[2] * t_max,
+                            lwe_sleetfall_rate=lambda cell: np.isclose(
+                                cell.point,
+                                thresholds[2],
+                                rtol=WeatherSymbols().float_tolerance,
+                                atol=0,
+                            ),
                         ),
                         "-",
                         iris.Constraint(
                             name="probability_of_lwe_snowfall_rate_above_threshold",
-                            lwe_snowfall_rate=lambda cell: thresholds[3] * t_min
-                            < cell
-                            < thresholds[3] * t_max,
+                            lwe_snowfall_rate=lambda cell: np.isclose(
+                                cell.point,
+                                thresholds[3],
+                                rtol=WeatherSymbols().float_tolerance,
+                                atol=0,
+                            ),
                         ),
                     ],
                     ">=",
@@ -623,13 +641,14 @@ class Test_construct_extract_constraint(Test_WXCode):
         threshold = AuxCoord(0.03, units="mm hr-1")
         threshold.convert_units("m s-1")
         result = plugin.construct_extract_constraint(diagnostic, threshold, False)
-        t_min = 1.0 - WeatherSymbols().float_tolerance
-        t_max = 1.0 + WeatherSymbols().float_tolerance
         expected = iris.Constraint(
             name="probability_of_rainfall_rate_above_threshold",
-            rainfall_rate=lambda cell: threshold.points[0] * t_min
-            < cell
-            < threshold.points[0] * t_max,
+            rainfall_rate=lambda cell: np.isclose(
+                cell.point,
+                threshold.points[0],
+                rtol=WeatherSymbols().float_tolerance,
+                atol=0,
+            ),
         )
         self.assertIsInstance(result, iris.Constraint)
         self.assertArrayEqual(
@@ -654,9 +673,12 @@ class Test_construct_extract_constraint(Test_WXCode):
         result = plugin.construct_extract_constraint(diagnostic, threshold, False)
         expected = iris.Constraint(
             name="probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold",
-            number_of_lightning_flashes_per_unit_area_in_vicinity=lambda cell: -1e-12
-            < cell
-            < 1e-12,
+            number_of_lightning_flashes_per_unit_area_in_vicinity=lambda cell: np.isclose(
+                cell.point,
+                threshold.points[0],
+                rtol=0,
+                atol=WeatherSymbols().float_abs_tolerance,
+            ),
         )
         self.assertIsInstance(result, iris.Constraint)
         self.assertArrayEqual(
@@ -679,22 +701,26 @@ class Test_construct_extract_constraint(Test_WXCode):
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], iris.Constraint)
         self.assertIsInstance(result[1], iris.Constraint)
-        t_min = 1.0 - WeatherSymbols().float_tolerance
-        t_max = 1.0 + WeatherSymbols().float_tolerance
         expected = iris.Constraint(
             name="probability_of_rainfall_rate_above_threshold",
-            rainfall_rate=lambda cell: thresholds[0].points[0] * t_min
-            < cell
-            < thresholds[0].points[0] * t_max,
+            rainfall_rate=lambda cell: np.isclose(
+                cell.point,
+                thresholds[0].points[0],
+                rtol=WeatherSymbols().float_tolerance,
+                atol=0,
+            ),
         )
         self.assertArrayEqual(
             self.cubes.extract(result[0])[0].data, self.cubes.extract(expected)[0].data
         )
         expected = iris.Constraint(
             name="probability_of_lwe_snowfall_rate_above_threshold",
-            lwe_snowfall_rate=lambda cell: thresholds[1].points[0] * t_min
-            < cell
-            < thresholds[1].points[0] * t_max,
+            lwe_snowfall_rate=lambda cell: np.isclose(
+                cell.point,
+                thresholds[1].points[0],
+                rtol=WeatherSymbols().float_tolerance,
+                atol=0,
+            ),
         )
         self.assertArrayEqual(
             self.cubes.extract(result[1])[0].data, self.cubes.extract(expected)[0].data
@@ -707,25 +733,29 @@ class Test_evaluate_extract_expression(Test_WXCode):
     def test_basic(self):
         """Test evaluating a basic expression consisting of constraints, 
         operators, and constants."""
-        t_min = 1.0 - WeatherSymbols().float_tolerance
-        t_max = 1.0 + WeatherSymbols().float_tolerance
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
         expression = [
             iris.Constraint(
                 name="probability_of_lwe_sleetfall_rate_above_threshold",
-                lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
-                < cell
-                < t.points[0] * t_max,
+                lwe_sleetfall_rate=lambda cell: np.isclose(
+                    cell.point,
+                    t.points[0],
+                    rtol=WeatherSymbols().float_tolerance,
+                    atol=0,
+                ),
             ),
             "-",
             0.5,
             "*",
             iris.Constraint(
                 name="probability_of_rainfall_rate_above_threshold",
-                rainfall_rate=lambda cell: t.points[0] * t_min
-                < cell
-                < t.points[0] * t_max,
+                rainfall_rate=lambda cell: np.isclose(
+                    cell.point,
+                    t.points[0],
+                    rtol=WeatherSymbols().float_tolerance,
+                    atol=0,
+                ),
             ),
         ]
         plugin = WeatherSymbols()
@@ -738,8 +768,6 @@ class Test_evaluate_extract_expression(Test_WXCode):
 
     def test_sub_expresssions(self):
         """Test evaluating an expression containing sub-expressions."""
-        t_min = 1.0 - WeatherSymbols().float_tolerance
-        t_max = 1.0 + WeatherSymbols().float_tolerance
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
         expression = [
@@ -747,24 +775,33 @@ class Test_evaluate_extract_expression(Test_WXCode):
             "*",
             iris.Constraint(
                 name="probability_of_lwe_sleetfall_rate_above_threshold",
-                lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
-                < cell
-                < t.points[0] * t_max,
+                lwe_sleetfall_rate=lambda cell: np.isclose(
+                    cell.point,
+                    t.points[0],
+                    rtol=WeatherSymbols().float_tolerance,
+                    atol=0,
+                ),
             ),
             "+",
             [
                 iris.Constraint(
                     name="probability_of_rainfall_rate_above_threshold",
-                    rainfall_rate=lambda cell: t.points[0] * t_min
-                    < cell
-                    < t.points[0] * t_max,
+                    rainfall_rate=lambda cell: np.isclose(
+                        cell.point,
+                        t.points[0],
+                        rtol=WeatherSymbols().float_tolerance,
+                        atol=0,
+                    ),
                 ),
                 "-",
                 iris.Constraint(
                     name="probability_of_lwe_snowfall_rate_above_threshold",
-                    lwe_snowfall_rate=lambda cell: t.points[0] * t_min
-                    < cell
-                    < t.points[0] * t_max,
+                    lwe_snowfall_rate=lambda cell: np.isclose(
+                        cell.point,
+                        t.points[0],
+                        rtol=WeatherSymbols().float_tolerance,
+                        atol=0,
+                    ),
                 ),
             ],
         ]
@@ -782,8 +819,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
 
     def test_basic(self):
         """Test a simple condition chain with 2 simple expressions joined by "OR"."""
-        t_min = 1.0 - WeatherSymbols().float_tolerance
-        t_max = 1.0 + WeatherSymbols().float_tolerance
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
         chain = [
@@ -791,9 +826,12 @@ class Test_evaluate_condition_chain(Test_WXCode):
                 [
                     iris.Constraint(
                         name="probability_of_lwe_sleetfall_rate_above_threshold",
-                        lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
-                        < cell
-                        < t.points[0] * t_max,
+                        lwe_sleetfall_rate=lambda cell: np.isclose(
+                            cell.point,
+                            t.points[0],
+                            rtol=WeatherSymbols().float_tolerance,
+                            atol=0,
+                        ),
                     ),
                     ">=",
                     0.5,
@@ -801,9 +839,12 @@ class Test_evaluate_condition_chain(Test_WXCode):
                 [
                     iris.Constraint(
                         name="probability_of_rainfall_rate_above_threshold",
-                        rainfall_rate=lambda cell: t.points[0] * t_min
-                        < cell
-                        < t.points[0] * t_max,
+                        rainfall_rate=lambda cell: np.isclose(
+                            cell.point,
+                            t.points[0],
+                            rtol=WeatherSymbols().float_tolerance,
+                            atol=0,
+                        ),
                     ),
                     ">=",
                     0.5,
@@ -822,8 +863,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
 
     def test_with_operators(self):
         """Test a condition chain where the expressions contain operators."""
-        t_min = 1.0 - WeatherSymbols().float_tolerance
-        t_max = 1.0 + WeatherSymbols().float_tolerance
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
         chain = [
@@ -832,16 +871,22 @@ class Test_evaluate_condition_chain(Test_WXCode):
                     [
                         iris.Constraint(
                             name="probability_of_rainfall_rate_above_threshold",
-                            rainfall_rate=lambda cell: t.points[0] * t_min
-                            < cell
-                            < t.points[0] * t_max,
+                            rainfall_rate=lambda cell: np.isclose(
+                                cell.point,
+                                t.points[0],
+                                rtol=WeatherSymbols().float_tolerance,
+                                atol=0,
+                            ),
                         ),
                         "-",
                         iris.Constraint(
                             name="probability_of_lwe_snowfall_rate_above_threshold",
-                            lwe_snowfall_rate=lambda cell: t.points[0] * t_min
-                            < cell
-                            < t.points[0] * t_max,
+                            lwe_snowfall_rate=lambda cell: np.isclose(
+                                cell.point,
+                                t.points[0],
+                                rtol=WeatherSymbols().float_tolerance,
+                                atol=0,
+                            ),
                         ),
                     ],
                     ">=",
@@ -850,9 +895,12 @@ class Test_evaluate_condition_chain(Test_WXCode):
                 [
                     iris.Constraint(
                         name="probability_of_lwe_sleetfall_rate_above_threshold",
-                        lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
-                        < cell
-                        < t.points[0] * t_max,
+                        lwe_sleetfall_rate=lambda cell: np.isclose(
+                            cell.point,
+                            t.points[0],
+                            rtol=WeatherSymbols().float_tolerance,
+                            atol=0,
+                        ),
                     ),
                     ">=",
                     0.5,
@@ -871,8 +919,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
 
     def test_with_subconditions(self):
         """Test "AND" condition chain with sub-chain containing "OR"."""
-        t_min = 1.0 - WeatherSymbols().float_tolerance
-        t_max = 1.0 + WeatherSymbols().float_tolerance
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
         chain = [
@@ -882,9 +928,12 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         [
                             iris.Constraint(
                                 name="probability_of_lwe_sleetfall_rate_above_threshold",
-                                lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
-                                < cell
-                                < t.points[0] * t_max,
+                                lwe_sleetfall_rate=lambda cell: np.isclose(
+                                    cell.point,
+                                    t.points[0],
+                                    rtol=WeatherSymbols().float_tolerance,
+                                    atol=0,
+                                ),
                             ),
                             ">=",
                             0.5,
@@ -892,9 +941,12 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         [
                             iris.Constraint(
                                 name="probability_of_lwe_snowfall_rate_above_threshold",
-                                lwe_snowfall_rate=lambda cell: t.points[0] * t_min
-                                < cell
-                                < t.points[0] * t_max,
+                                lwe_snowfall_rate=lambda cell: np.isclose(
+                                    cell.point,
+                                    t.points[0],
+                                    rtol=WeatherSymbols().float_tolerance,
+                                    atol=0,
+                                ),
                             ),
                             ">=",
                             0.5,
@@ -905,9 +957,12 @@ class Test_evaluate_condition_chain(Test_WXCode):
                 [
                     iris.Constraint(
                         name="probability_of_rainfall_rate_above_threshold",
-                        rainfall_rate=lambda cell: t.points[0] * t_min
-                        < cell
-                        < t.points[0] * t_max,
+                        rainfall_rate=lambda cell: np.isclose(
+                            cell.point,
+                            t.points[0],
+                            rtol=WeatherSymbols().float_tolerance,
+                            atol=0,
+                        ),
                     ),
                     ">=",
                     0.5,
@@ -928,8 +983,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
 
     def test_blank_condition(self):
         """Test a condition chain where the combination condition is ""."""
-        t_min = 1.0 - WeatherSymbols().float_tolerance
-        t_max = 1.0 + WeatherSymbols().float_tolerance
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
         chain = [
@@ -938,18 +991,24 @@ class Test_evaluate_condition_chain(Test_WXCode):
                     [
                         iris.Constraint(
                             name="probability_of_lwe_sleetfall_rate_above_threshold",
-                            lwe_sleetfall_rate=lambda cell: t.points[0] * t_min
-                            < cell
-                            < t.points[0] * t_max,
+                            lwe_sleetfall_rate=lambda cell: np.isclose(
+                                cell.point,
+                                t.points[0],
+                                rtol=WeatherSymbols().float_tolerance,
+                                atol=0,
+                            ),
                         ),
                         "-",
                         0.5,
                         "*",
                         iris.Constraint(
                             name="probability_of_rainfall_rate_above_threshold",
-                            rainfall_rate=lambda cell: t.points[0] * t_min
-                            < cell
-                            < t.points[0] * t_max,
+                            rainfall_rate=lambda cell: np.isclose(
+                                cell.point,
+                                t.points[0],
+                                rtol=WeatherSymbols().float_tolerance,
+                                atol=0,
+                            ),
                         ),
                     ],
                     ">=",

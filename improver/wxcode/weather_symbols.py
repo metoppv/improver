@@ -211,16 +211,14 @@ class WeatherSymbols(BasePlugin):
                 # Check threshold == 0.0
                 if abs(threshold) < self.float_abs_tolerance:
                     coord_constraint = {
-                        threshold_name: lambda cell: (
-                            -self.float_abs_tolerance < cell < self.float_abs_tolerance
+                        threshold_name: lambda cell: np.isclose(
+                            cell.point, 0, rtol=0, atol=self.float_abs_tolerance
                         )
                     }
                 else:
                     coord_constraint = {
-                        threshold_name: lambda cell: (
-                            threshold * (1.0 - self.float_tolerance)
-                            < cell
-                            < threshold * (1.0 + self.float_tolerance)
+                        threshold_name: lambda cell: np.isclose(
+                            cell.point, threshold, rtol=self.float_tolerance, atol=0
                         )
                     }
 
@@ -376,15 +374,18 @@ class WeatherSymbols(BasePlugin):
             Returns: iris.Constraint
             """
             if abs(threshold_val) < WeatherSymbols().float_abs_tolerance:
-                float_abs_tol = WeatherSymbols().float_abs_tolerance
-                cell_constraint = lambda cell: -float_abs_tol < cell < float_abs_tol
+                cell_constraint = lambda cell: np.isclose(
+                    cell.point,
+                    threshold_val,
+                    rtol=0,
+                    atol=WeatherSymbols().float_abs_tolerance,
+                )
             else:
-                float_min = 1.0 - WeatherSymbols().float_tolerance
-                float_max = 1.0 + WeatherSymbols().float_tolerance
-                cell_constraint = (
-                    lambda cell: threshold_val * float_min
-                    < cell
-                    < threshold_val * float_max
+                cell_constraint = lambda cell: np.isclose(
+                    cell.point,
+                    threshold_val,
+                    rtol=WeatherSymbols().float_tolerance,
+                    atol=0,
                 )
 
             kw_dict = {"{}".format(threshold_name): cell_constraint}
