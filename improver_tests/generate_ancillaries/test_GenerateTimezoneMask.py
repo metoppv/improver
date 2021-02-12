@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@ from iris.cube import Cube, CubeList
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from improver.generate_ancillaries.generate_timezone_mask import GenerateTimezoneMask
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 pytest.importorskip("timezonefinder")
@@ -68,6 +69,21 @@ def global_grid_fixture() -> Cube:
         name="template",
         grid_spacing=10,
         domain_corner=(-90, -180),
+        attributes=GLOBAL_ATTRIBUTES,
+    )
+    return cube
+
+
+@pytest.fixture(name="global_grid_360")
+def global_grid_fixture_360() -> Cube:
+    """Global grid template with longitude running 0 to 360"""
+
+    data = np.zeros((19, 37), dtype=np.float32)
+    cube = set_up_variable_cube(
+        data,
+        name="template",
+        grid_spacing=10,
+        domain_corner=(-90, 0),
         attributes=GLOBAL_ATTRIBUTES,
     )
     return cube
@@ -134,15 +150,16 @@ def test__set_time(uk_grid):
         plugin._set_time(uk_grid)
 
 
-@pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
+@pytest.mark.parametrize("grid_fixture", ["global_grid", "global_grid_360", "uk_grid"])
 def test__get_coordinate_pairs(request, grid_fixture):
     """Test that a selection of the points returned by _get_coordinate_pairs
-    have the expected values. Tests are for both a native lat-long grid and for
+    have the expected values. Tests are for both native lat-long grids and for
     an equal areas grid that must be transformed."""
 
     sample_points = [0, 10, -1]
     expected_data = {
         "global_grid": [[-90.0, -180.0], [-90.0, -80.0], [90.0, 180.0]],
+        "global_grid_360": [[-90.0, -180.0], [-90.0, -80.0], [90.0, 180.0]],
         "uk_grid": [[44.517, -17.117], [45.548, -4.913], [62.026, 14.410]],
     }
 
@@ -242,16 +259,25 @@ def test__create_template_cube(request, grid_fixture, include_dst):
     assert result.coord("time").points[0] == time.timestamp()
     assert result.coord("time").dtype == np.int64
     assert result.shape == expected[grid_fixture]["shape"]
-    assert result.dtype == np.int32
+    assert result.dtype == np.int8
     assert result.attributes == expected[grid_fixture]["attributes"]
 
 
-@pytest.mark.parametrize("groups", ({0: [0, 1], 3: [2, 3]}, {0: [0, 2], 3: [3]}))
+@pytest.mark.parametrize(
+    "groups", ({0: [0, 1], 3: [2, 3]}, {0: [0, 2], 3: [3]}, {1: [0, 2], 4: [3, 4]})
+)
 def test__group_timezones(timezone_mask, groups):
     """Test the grouping of different UTC offsets into larger groups using a
     user provided specification. The input cube list contains cubes corresponding
-    to 4 UTC offsets. Two tests are run, grouping these first into equal sized
-    groups, and then into unequally sized groups."""
+    to 4 UTC offsets. Three tests are run, first grouping these into equal sized
+    groups, then into unequally sized groups. Finally the timezones are grouped
+    around a point beyond the end of the timezone range found in the timezone
+    mask.
+
+    This final test replicates what we want to achieve when grouping data
+    to extract from data available at non-hourly intervals. For example we
+    want to round UTC+14 data to UTC+15 as that is nearest available 3-hourly
+    data interval, though there is no timezone at UTC+15."""
 
     plugin = GenerateTimezoneMask(groupings=groups)
     result = plugin._group_timezones(timezone_mask)
@@ -282,59 +308,60 @@ def test__group_timezones_empty_group(timezone_mask):
         assert_array_equal(cube.coord("UTC_offset").bounds[0], group)
 
 
-@pytest.fixture(name="process_expected")
-def process_expected_fixture() -> callable:
-    """Returns expected results for parameterized process tests."""
+# Expected data for process tests
 
-    def _make_expected(time, grid) -> dict:
+# ungrouped
+GLOBAL_GRID = {"shape": (27, 19, 37), "min": -12 * 3600, "max": 14 * 3600}
+# grouped
+GLOBAL_GRID_GR = {"shape": (2, 19, 37), "min": -6 * 3600, "max": 6 * 3600}
+UK_GRID_GR = {"shape": (2, 21, 22), "min": -6 * 3600, "max": 6 * 3600}
 
-        data_indices = {"global_grid": (12, 2), "uk_grid": (2, 10)}
-
-        expected = {
+EXPECTED_TIME = {None: 1510286400, "20200716T1500Z": 1594911600}
+EXPECTED = {
+    "ungrouped": {
+        "global": {
+            None: {**GLOBAL_GRID, "data": np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1])},
+            "20200716T1500Z": {**GLOBAL_GRID, "data": np.ones([10]),},
+            "indices": (12, 2),
+        },
+        "uk": {
             None: {
-                "global_grid": {
-                    "shape": (27, 19, 37),
-                    "min": -12,
-                    "max": 14,
-                    "data": np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1]),
-                },
-                "uk_grid": {
-                    "shape": (4, 21, 22),
-                    "min": -2,
-                    "max": 1,
-                    "data": np.array([1, 1, 0, 0, 0, 1]),
-                },
-                "expected_time": 1510286400,
+                "shape": (4, 21, 22),
+                "min": -2 * 3600,
+                "max": 1 * 3600,
+                "data": np.array([1, 1, 0, 0, 0, 1]),
             },
             "20200716T1500Z": {
-                "global_grid": {
-                    "shape": (27, 19, 37),
-                    "min": -12,
-                    "max": 14,
-                    "data": np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
-                },
-                "uk_grid": {
-                    "shape": (5, 21, 22),
-                    "min": -2,
-                    "max": 2,
-                    "data": np.array([1, 1, 1, 1, 0, 1]),
-                },
-                "expected_time": 1594911600,
+                "shape": (5, 21, 22),
+                "min": -2 * 3600,
+                "max": 2 * 3600,
+                "data": np.array([1, 1, 1, 1, 0, 1]),
             },
-        }
+            "indices": (2, 10),
+        },
+    },
+    "grouped": {
+        "global": {
+            None: {**GLOBAL_GRID_GR, "data": np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 1])},
+            "20200716T1500Z": {
+                **GLOBAL_GRID_GR,
+                "data": np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1]),
+            },
+            "indices": (0, 2),
+        },
+        "uk": {
+            None: {**UK_GRID_GR, "data": np.array([0, 0, 0, 0, 0, 1])},
+            "20200716T1500Z": {**UK_GRID_GR, "data": np.array([0, 0, 1, 1, 0, 1])},
+            "indices": (0, 9),
+        },
+    },
+}
 
-        return (
-            expected[time][grid],
-            expected[time]["expected_time"],
-            data_indices[grid],
-        )
 
-    return _make_expected
-
-
+@pytest.mark.parametrize("grouping", ["ungrouped", "grouped"])
 @pytest.mark.parametrize("time", [None, "20200716T1500Z"])
-@pytest.mark.parametrize("grid_fixture", ["global_grid", "uk_grid"])
-def test_process(request, grid_fixture, time, process_expected):
+@pytest.mark.parametrize("grid_fixture", ["global_grid", "global_grid_360", "uk_grid"])
+def test_process(request, grid_fixture, time, grouping):
     """Test that the process method returns cubes that take the expected form
     for different grids and different dates.
 
@@ -342,13 +369,29 @@ def test_process(request, grid_fixture, time, process_expected):
     large number of data points are required to reliably check it. Here we check
     only a small sample."""
 
-    expected, expected_time, index = process_expected(time, grid_fixture)
+    domain = grid_fixture.split("_")[0]
+    groupings = None
+    if grouping == "grouped":
+        groupings = {-6: [-12, 0], 6: [1, 14]}
+
+    expected = EXPECTED[grouping][domain][time]
+    expected_time = EXPECTED_TIME[time]
+    index = EXPECTED[grouping][domain]["indices"]
+
     grid = request.getfixturevalue(grid_fixture)
 
-    result = GenerateTimezoneMask(time=time, include_dst=True)(grid)
+    result = GenerateTimezoneMask(time=time, include_dst=True, groupings=groupings)(
+        grid
+    )
 
     assert result.coord("time").points[0] == expected_time
     assert result.shape == expected["shape"]
     assert result.coord("UTC_offset").points.min() == expected["min"]
     assert result.coord("UTC_offset").points.max() == expected["max"]
+    assert result.coord("UTC_offset").points.dtype == TIME_COORDS["UTC_offset"].dtype
+    if grouping == "grouped":
+        assert (
+            result.coord("UTC_offset").bounds.dtype == TIME_COORDS["UTC_offset"].dtype
+        )
+
     assert_array_equal(result.data[index][::4], expected["data"])

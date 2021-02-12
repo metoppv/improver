@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin base class."""
 from abc import ABC, abstractmethod
+
+from pkg_resources import DistributionNotFound, get_distribution
+
+try:
+    __version__ = get_distribution("improver").version
+except DistributionNotFound:
+    # package is not installed
+    pass
 
 
 class BasePlugin(ABC):

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -148,8 +148,8 @@ class GenerateTimezoneMask(BasePlugin):
             longitudes = cube.coord("longitude").points.copy()
 
             # timezone finder works using -180 to 180 longitudes.
-            if (longitudes > 180).any():
-                longitudes[longitudes > 180] -= 180
+            if (longitudes > 180).any() and (longitudes >= 0).all():
+                longitudes -= 180
                 if ((longitudes > 180) | (longitudes < -180)).any():
                     msg = (
                         "TimezoneFinder requires longitudes between -180 "
@@ -305,7 +305,11 @@ class GenerateTimezoneMask(BasePlugin):
                 subset.coord("UTC_offset").points = [offset]
             else:
                 (point,) = subset.coord("UTC_offset").points
-                subset.coord("UTC_offset").bounds = [point, point]
+                subset.coord("UTC_offset").points = [offset]
+                subset.coord("UTC_offset").bounds = [
+                    min(point, offset),
+                    max(point, offset),
+                ]
             grouped_timezone_masks.append(subset)
         return grouped_timezone_masks
 
@@ -367,7 +371,8 @@ class GenerateTimezoneMask(BasePlugin):
         timezone_mask.coord("UTC_offset").points = timezone_mask.coord(
             "UTC_offset"
         ).points.astype(TIME_COORDS["UTC_offset"].dtype)
-        timezone_mask.coord("UTC_offset").bounds = timezone_mask.coord(
-            "UTC_offset"
-        ).bounds.astype(TIME_COORDS["UTC_offset"].dtype)
+        if timezone_mask.coord("UTC_offset").bounds is not None:
+            timezone_mask.coord("UTC_offset").bounds = timezone_mask.coord(
+                "UTC_offset"
+            ).bounds.astype(TIME_COORDS["UTC_offset"].dtype)
         return timezone_mask
