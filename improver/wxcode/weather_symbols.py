@@ -333,16 +333,16 @@ class WeatherSymbols(BasePlugin):
         return condition_chain
 
     def construct_extract_constraint(
-        self, diagnostics, thresholds, coord_named_threshold
+        self, diagnostic, threshold, coord_named_threshold
     ):
         """
         Construct an iris constraint.
 
         Args:
-            diagnostics (str or list of str):
-                The names of the diagnostics to be extracted from the CubeList.
-            thresholds (iris.AuxCoord or list of iris.AuxCoord):
-                All thresholds within the given diagnostic cubes that are
+            diagnostic (str):
+                The name of the diagnostic to be extracted from the CubeList.
+            threshold (iris.AuxCoord):
+                The thresholds within the given diagnostic cube that is
                 needed, including units.  Note these are NOT coords from the
                 original cubes, just constructs to associate units with values.
             coord_named_threshold (bool):
@@ -351,63 +351,35 @@ class WeatherSymbols(BasePlugin):
                 coordinate name from diagnostic name
 
         Returns:
-            iris.Constraint or list of iris.Constraint:
+            iris.Constraint
         """
 
-        def _get_constraint(diagnostic, threshold_name, threshold_val):
-            """
-            Return iris constraint for deferred creation of the
-            lambda functions.
-            Args:
-                diagnostic (str):
-                    Name of diagnostic
-                threshold_name (str):
-                    Name of threshold coordinate on input cubes
-                threshold_val (float):
-                    Value of threshold coordinate required
-            Returns: iris.Constraint
-            """
-            if abs(threshold_val) < WeatherSymbols().float_abs_tolerance:
-                cell_constraint = lambda cell: np.isclose(
-                    cell.point,
-                    threshold_val,
-                    rtol=0,
-                    atol=WeatherSymbols().float_abs_tolerance,
-                )
-            else:
-                cell_constraint = lambda cell: np.isclose(
-                    cell.point,
-                    threshold_val,
-                    rtol=WeatherSymbols().float_tolerance,
-                    atol=0,
-                )
-
-            kw_dict = {"{}".format(threshold_name): cell_constraint}
-            constraint = iris.Constraint(name=diagnostic, **kw_dict)
-
-            return constraint
-
-        # if input is list, loop over and return a list of constraints
-        if not isinstance(diagnostics, list):
-            diagnostics = [diagnostics]
-            thresholds = [thresholds]
-        constraints = []
-        for diagnostic, threshold in zip(diagnostics, thresholds):
-            if coord_named_threshold:
-                threshold_coord_name = "threshold"
-            else:
-                threshold_coord_name = get_threshold_coord_name_from_probability_name(
-                    diagnostic
-                )
-            threshold_val = threshold.points.item()
-            constraints.append(
-                _get_constraint(diagnostic, threshold_coord_name, threshold_val)
+        if coord_named_threshold:
+            threshold_coord_name = "threshold"
+        else:
+            threshold_coord_name = get_threshold_coord_name_from_probability_name(
+                diagnostic
             )
-        if len(constraints) > 1:
-            return constraints
 
-        # otherwise, return a constraint
-        return constraints[0]
+        threshold_val = threshold.points.item()
+        if abs(threshold_val) < WeatherSymbols().float_abs_tolerance:
+            cell_constraint = lambda cell: np.isclose(
+                cell.point,
+                threshold_val,
+                rtol=0,
+                atol=WeatherSymbols().float_abs_tolerance,
+            )
+        else:
+            cell_constraint = lambda cell: np.isclose(
+                cell.point,
+                threshold_val,
+                rtol=WeatherSymbols().float_tolerance,
+                atol=0,
+            )
+
+        kw_dict = {"{}".format(threshold_coord_name): cell_constraint}
+        constraint = iris.Constraint(name=diagnostic, **kw_dict)
+        return constraint
 
     @staticmethod
     def find_all_routes(graph, start, end, omit_nodes=None, route=None):

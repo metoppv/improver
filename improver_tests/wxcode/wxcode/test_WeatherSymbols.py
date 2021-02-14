@@ -686,47 +686,6 @@ class Test_construct_extract_constraint(Test_WXCode):
             self.cubes.extract(result)[0].data, self.cubes.extract(expected)[0].data
         )
 
-    def test_list_of_constraints(self):
-        """Test construct_extract_constraint returns a list
-           of iris.Constraint."""
-        plugin = WeatherSymbols()
-        diagnostics = [
-            "probability_of_rainfall_rate_above_threshold",
-            "probability_of_lwe_snowfall_rate_above_threshold",
-        ]
-        thresholds = [AuxCoord(0.03, units="mm hr-1"), AuxCoord(0.03, units="mm hr-1")]
-        for t in thresholds:
-            t.convert_units("m s-1")
-        result = plugin.construct_extract_constraint(diagnostics, thresholds, False)
-        self.assertIsInstance(result, list)
-        self.assertEqual(len(result), 2)
-        self.assertIsInstance(result[0], iris.Constraint)
-        self.assertIsInstance(result[1], iris.Constraint)
-        expected = iris.Constraint(
-            name="probability_of_rainfall_rate_above_threshold",
-            rainfall_rate=lambda cell: np.isclose(
-                cell.point,
-                thresholds[0].points[0],
-                rtol=WeatherSymbols().float_tolerance,
-                atol=0,
-            ),
-        )
-        self.assertArrayEqual(
-            self.cubes.extract(result[0])[0].data, self.cubes.extract(expected)[0].data
-        )
-        expected = iris.Constraint(
-            name="probability_of_lwe_snowfall_rate_above_threshold",
-            lwe_snowfall_rate=lambda cell: np.isclose(
-                cell.point,
-                thresholds[1].points[0],
-                rtol=WeatherSymbols().float_tolerance,
-                atol=0,
-            ),
-        )
-        self.assertArrayEqual(
-            self.cubes.extract(result[1])[0].data, self.cubes.extract(expected)[0].data
-        )
-
 
 class Test_evaluate_extract_expression(Test_WXCode):
     """Test the evaluate_extract_expression method ."""
