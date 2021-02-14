@@ -421,7 +421,8 @@ class Test_create_condition_chain(Test_WXCode):
         }
 
     def test_basic(self):
-        """Test create_condition_chain returns a list of strings."""
+        """Test create_condition_chain returns a nested list of iris.Constraint, 
+        floats, and strings representing operators that extracts the correct data."""
         plugin = WeatherSymbols()
         test_condition = self.dummy_queries["significant_precipitation"]
         for t in test_condition["diagnostic_thresholds"]:
@@ -470,7 +471,7 @@ class Test_create_condition_chain(Test_WXCode):
                 self.cubes.extract(constraint_exp)[0].data,
             )
             self.assertEqual(result[0][i][1:], expected[0][i][1:])
-        self.assertEqual(result[1], result[1])
+        self.assertEqual(result[1], expected[1])
 
     def test_old_naming_convention(self):
         """Test create_condition_chain can return conditions using old
@@ -681,10 +682,6 @@ class Test_construct_extract_constraint(Test_WXCode):
             ),
         )
         self.assertIsInstance(result, iris.Constraint)
-        print(result)
-        print(self.cubes)
-        print(self.cubes.extract(result))
-        print(self.cubes.extract(expected))
         self.assertArrayEqual(
             self.cubes.extract(result)[0].data, self.cubes.extract(expected)[0].data
         )

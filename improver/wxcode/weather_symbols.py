@@ -276,8 +276,14 @@ class WeatherSymbols(BasePlugin):
                 A query from the decision tree.
         Returns:
             list:
-                A valid condition chain, suitable for passing to 
-                `evaluate_condition_chain`.
+                A valid condition chain is defined recursively:
+                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a 
+                constraint, or a list of constraints, 
+                operator strings and floats), and b is either "AND", "OR" or "", 
+                then [[a1, ..., an], b] is a valid condition chain.
+                (2) If a1, ..., an are each valid conditions chain, and b is 
+                either "AND" or "OR", then [[a1, ..., an], b] is a valid 
+                condition chain.
         """
         conditions = []
         loop = 0
@@ -312,7 +318,7 @@ class WeatherSymbols(BasePlugin):
                         # Add this operator or variable as-is
                         extract_constraint.append(item)
             else:
-                # Non-lists are assumed to be constraints containing one variable.
+                # Non-lists are assumed to be constraints on a single variable.
                 extract_constraint = self.construct_extract_constraint(
                     diagnostic, d_threshold, self.coord_named_threshold
                 )
@@ -346,7 +352,6 @@ class WeatherSymbols(BasePlugin):
 
         Returns:
             iris.Constraint or list of iris.Constraint:
-                Each constraint contains one variable.
         """
 
         def _get_constraint(diagnostic, threshold_name, threshold_val):
