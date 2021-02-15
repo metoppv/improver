@@ -7,6 +7,7 @@ channels:
 dependencies:
   - python=3.6
   - iris=2.2
+  - proj=7.0.0
   - numpy=1.15.4
   - numba=0.42.0
   - scipy=1.3.3
