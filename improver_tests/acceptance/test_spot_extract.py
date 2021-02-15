@@ -270,7 +270,9 @@ def test_percentile_deterministic(tmp_path):
         "--extract-percentiles",
         "50",
     ]
-    with pytest.warns(UserWarning, match="Diagnostic cube is not a known probabilistic type."):
+    with pytest.warns(
+        UserWarning, match="Diagnostic cube is not a known probabilistic type."
+    ):
         run_cli(args)
     acc.compare(output_path, kgo_path)
 
