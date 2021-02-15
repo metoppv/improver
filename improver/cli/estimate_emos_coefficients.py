@@ -44,7 +44,7 @@ def process(
     truth_attribute,
     units=None,
     predictor="mean",
-    tolerance: float = 0.01,
+    tolerance: float = 0.02,
     max_iterations: int = 1000,
 ):
     """Estimate coefficients for Ensemble Model Output Statistics.
