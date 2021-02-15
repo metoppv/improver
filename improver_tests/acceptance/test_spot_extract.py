@@ -278,7 +278,11 @@ def test_percentile_deterministic(tmp_path):
 
 
 def test_percentile_deterministic_quiet(tmp_path):
-    """Test extracting percentiles from deterministic input"""
+    """Test extracting percentiles from deterministic input. In this case the
+    --suppress-warnings flag is enabled. This excludes the warning raised when
+    spot-extract is set to extract percentiles and used with deterministic data.
+    This is intended to reduce output in logs when this warning is expected and
+    thus not useful."""
     kgo_dir = acc.kgo_root() / "spot-extract"
     neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
