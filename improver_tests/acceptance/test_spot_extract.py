@@ -270,13 +270,8 @@ def test_percentile_deterministic(tmp_path):
         "--extract-percentiles",
         "50",
     ]
-    with pytest.warns(UserWarning) as collected_warns:
+    with pytest.warns(UserWarning, match="Diagnostic cube is not a known probabilistic type."):
         run_cli(args)
-    assert len(collected_warns) == 1
-    assert (
-        "Diagnostic cube is not a known probabilistic type."
-        in collected_warns[0].message.args[0]
-    )
     acc.compare(output_path, kgo_path)
 
 
@@ -298,8 +293,9 @@ def test_percentile_deterministic_quiet(tmp_path):
     ]
     with pytest.warns(None) as collected_warns:
         run_cli(args)
-    # check that no warning is collected
-    assert len(collected_warns) == 0
+
+    msg = "Diagnostic cube is not a known probabilistic type."
+    assert all([msg not in str(warning.message) for warning in collected_warns])
     acc.compare(output_path, kgo_path)
 
 
