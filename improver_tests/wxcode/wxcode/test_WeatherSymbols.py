@@ -32,7 +32,6 @@
 
 import unittest
 from datetime import datetime as dt
-from numbers import Number
 
 import iris
 import numpy as np
@@ -400,7 +399,6 @@ class Test_create_condition_chain(Test_WXCode):
     def setUp(self):
         """ Set up queries for testing"""
         super().setUp()
-        plugin = WeatherSymbols()
         self.dummy_queries = {
             "significant_precipitation": {
                 "succeed": "heavy_precipitation",
