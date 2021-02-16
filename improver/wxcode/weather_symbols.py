@@ -362,19 +362,13 @@ class WeatherSymbols(BasePlugin):
             )
 
         threshold_val = threshold.points.item()
-        if abs(threshold_val) < WeatherSymbols().float_abs_tolerance:
+        if abs(threshold_val) < self.float_abs_tolerance:
             cell_constraint = lambda cell: np.isclose(
-                cell.point,
-                threshold_val,
-                rtol=0,
-                atol=WeatherSymbols().float_abs_tolerance,
+                cell.point, threshold_val, rtol=0, atol=self.float_abs_tolerance,
             )
         else:
             cell_constraint = lambda cell: np.isclose(
-                cell.point,
-                threshold_val,
-                rtol=WeatherSymbols().float_tolerance,
-                atol=0,
+                cell.point, threshold_val, rtol=self.float_tolerance, atol=0,
             )
 
         kw_dict = {"{}".format(threshold_coord_name): cell_constraint}
