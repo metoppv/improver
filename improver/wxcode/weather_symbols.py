@@ -624,8 +624,13 @@ class WeatherSymbols(BasePlugin):
             # assume comb is either "AND" or "OR"
             if comb == "AND":
                 res = res & new_res
-            else:
+            elif comb == "OR":
                 res = res | new_res
+            else:
+                raise RuntimeError(
+                    "Invalid condition chain found. First element has length > 1 ",
+                    "but second element is not 'AND' or 'OR'.",
+                )
         return res
 
     def process(self, cubes):
