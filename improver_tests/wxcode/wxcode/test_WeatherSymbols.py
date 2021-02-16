@@ -800,6 +800,50 @@ class Test_evaluate_condition_chain(Test_WXCode):
         )
         self.assertArrayEqual(result, expected)
 
+    def test_error(self):
+        """Test that we get an error if first element of the chain has length > 1 
+        and second element is ""."""
+        t = AuxCoord(0.1, units="mm hr-1")
+        t.convert_units("m s-1")
+        plugin = WeatherSymbols()
+        chain = [
+            [
+                [
+                    iris.Constraint(
+                        name="probability_of_lwe_sleetfall_rate_above_threshold",
+                        lwe_sleetfall_rate=lambda cell: np.isclose(
+                            cell.point,
+                            t.points[0],
+                            rtol=plugin.float_tolerance,
+                            atol=0,
+                        ),
+                    ),
+                    ">=",
+                    0.5,
+                ],
+                [
+                    iris.Constraint(
+                        name="probability_of_rainfall_rate_above_threshold",
+                        rainfall_rate=lambda cell: np.isclose(
+                            cell.point,
+                            t.points[0],
+                            rtol=plugin.float_tolerance,
+                            atol=0,
+                        ),
+                    ),
+                    ">=",
+                    0.5,
+                ],
+            ],
+            "",
+        ]
+        msg = (
+            "Invalid condition chain found. First element has length > 1 ",
+            "but second element is not 'AND' or 'OR'.",
+        )
+        with self.assertRaises(RuntimeError, msg=msg):
+            plugin.evaluate_condition_chain(self.cubes, chain)
+
     def test_with_operators(self):
         """Test a condition chain where the expressions contain operators."""
         t = AuxCoord(0.1, units="mm hr-1")
