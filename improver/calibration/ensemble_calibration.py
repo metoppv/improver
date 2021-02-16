@@ -86,7 +86,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
     The number of coefficients that will be optimised depend upon the initial
     guess. The coefficients will be calculated either using all points provided
-    or coefficients will for calculated separately for each point.
+    or coefficients will be calculated separately for each point.
 
     Minimisation is performed using the Nelder-Mead algorithm for 200
     iterations to limit the computational expense.
@@ -103,7 +103,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     # as part of the minimisation.
     BAD_VALUE = np.float64(999999)
 
-    def __init__(self, tolerance=0.01, max_iterations=1000, each_point=False):
+    def __init__(self, tolerance=0.01, max_iterations=1000, point_by_point=False):
         """
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
@@ -126,7 +126,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 predictor_of_mean is "realizations", then the number of
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
-            each_point (bool):
+            point_by_point (bool):
                 If True, coefficients are calculated independently for each
                 point within the input cube by minimising each point
                 independently.
@@ -142,7 +142,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         self.tolerance = tolerance
         # Maximum iterations for minimisation using Nelder-Mead.
         self.max_iterations = max_iterations
-        self.each_point = each_point
+        self.point_by_point = point_by_point
 
     def _calculate_percentage_change_in_last_iteration(self, allvecs):
         """
@@ -166,17 +166,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             np.set_printoptions(suppress=True)
             msg = (
                 "The final iteration resulted in a percentage change "
-                "that is greater than the accepted threshold of 5% "
-                "i.e. {}. "
+                f"that is greater than the accepted threshold of "
+                f"{self.TOLERATED_PERCENTAGE_CHANGE}% "
+                f"i.e. {last_iteration_percentage_change}. "
                 "\nA satisfactory minimisation has not been achieved. "
-                "\nLast iteration: {}, "
-                "\nLast-but-one iteration: {}"
-                "\nAbsolute difference: {}\n"
-            ).format(
-                last_iteration_percentage_change,
-                allvecs[-1],
-                allvecs[-2],
-                np.absolute(allvecs[-2] - allvecs[-1]),
+                f"\nLast iteration: {allvecs[-1]}, "
+                f"\nLast-but-one iteration: {allvecs[-2]}"
+                f"\nAbsolute difference: {np.absolute(allvecs[-2] - allvecs[-1])}\n"
             )
             warnings.warn(msg)
 
@@ -253,6 +249,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 coefficients array is (number of coefficients, length of spatial dimensions).
                 Order of coefficients is [alpha, beta, gamma, delta].
         """
+        # Increased precision is needed for stable coefficient calculation.
+        # The resulting coefficients are cast to float32 prior to output.
         initial_guess = np.array(initial_guess, dtype=np.float64)
         forecast_predictor.data = forecast_predictor.data.astype(np.float64)
         forecast_var.data = forecast_var.data.astype(np.float64)
@@ -436,7 +434,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         if predictor.lower() == "realizations":
             enforce_coordinate_ordering(forecast_predictor, "realization")
 
-        if self.each_point:
+        if self.point_by_point:
             optimised_coeffs = self._process_points_independently(
                 minimisation_function,
                 initial_guess,
@@ -684,7 +682,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
             tolerance=self.tolerance,
             max_iterations=self.max_iterations,
-            each_point=self.each_point | self.minimise_each_point,
+            point_by_point=self.each_point | self.minimise_each_point,
         )
 
         # Setting default values for coeff_names.
@@ -761,34 +759,42 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         return [(frt_coord, None), (fp_coord, None)]
 
-    def _create_spatial_dim_coordinates(self, historic_forecasts):
-        """Create spatial dimension coordinates for the EMOS coefficients cube.
+    def _create_dim_coordinates(self, historic_forecasts):
+        """Create dimension coordinates for the EMOS coefficients cube. These
+        are either the realization coordinate, or the x and y coordinates.
         Args:
             historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.
         Returns:
             List[Tuple[iris.coords.Coord, int]]:
-                List of tuples of the spatial coordinates and the associated
+                List of tuples of the coordinates and the associated
                 dimension. This format is suitable for use by iris.cube.Cube.
         """
-        if not any([self.each_point, self.minimise_each_point]):
-            return []
+        dim_coords_and_dims = []
+        if self.predictor.lower() == "realizations":
+            dim_coords_and_dims.append(
+                (historic_forecasts.coord("realization", dim_coords=True), 0)
+            )
 
+        if not any([self.each_point, self.minimise_each_point]):
+            return dim_coords_and_dims
+
+        # Set-up spatial dimension coordinates for the coefficients cube.
         spatial_coord_dims = []
-        for axis in ["x", "y"]:
+        for axis in ["y", "x"]:
             spatial_coord_dims.append(
                 historic_forecasts.coord_dims(
                     historic_forecasts.coord(axis=axis).name()
                 )
             )
-        dim_coords_and_dims = []
+
         # Remove dims where x and y axis share a dimension coordinate (as for a spot forecast cube)
         spatial_coord_dims = list(set(spatial_coord_dims))
-        for index, dim in enumerate(spatial_coord_dims):
+        for dim in spatial_coord_dims:
             (spatial_dim_coord,) = historic_forecasts.coords(
                 dimensions=dim, dim_coords=True
             )
-            dim_coords_and_dims.append((spatial_dim_coord, index))
+            dim_coords_and_dims.append((spatial_dim_coord, len(dim_coords_and_dims)))
         return dim_coords_and_dims
 
     def _create_spatial_aux_coordinates(self, historic_forecasts):
@@ -803,22 +809,25 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """
         if self.each_point | self.minimise_each_point:
             aux_coords_and_dims = []
-            for index, axis in enumerate(["x", "y"]):
+            spatial_coord_dims = []
+            # Offset associated dimension if a realizations coordinate will be present.
+            index = 1 if self.predictor.lower() == "realizations" else 0
+            for axis in ["y", "x"]:
                 spatial_coord_dim = historic_forecasts.coord_dims(
                     historic_forecasts.coord(axis=axis).name()
                 )
-                for coord in historic_forecasts.coords(
-                    dimensions=spatial_coord_dim, dim_coords=False
-                ):
-                    if not any(
-                        [True if c[0] == coord else False for c in aux_coords_and_dims]
+                if spatial_coord_dim not in spatial_coord_dims:
+                    # Multiple spatial coordinates will have the same dimension
+                    # for spot forecast cubes.
+                    for coord in historic_forecasts.coords(
+                        dimensions=spatial_coord_dim, dim_coords=False
                     ):
-                        aux_coords_and_dims.append(
-                            (historic_forecasts.coord(coord), index)
-                        )
+                        aux_coords_and_dims.append((coord, index))
+                spatial_coord_dims.append(spatial_coord_dim)
+                index += 1
         else:
             aux_coords_and_dims = []
-            for axis in ["x", "y"]:
+            for axis in ["y", "x"]:
                 aux_coords_and_dims.append(
                     (historic_forecasts.coord(axis=axis).collapsed(), None)
                 )
@@ -864,18 +873,18 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 coeff_units = historic_forecasts.units
             dim_coords_and_dims_updated = dim_coords_and_dims[:]
             aux_coords_and_dims_updated = aux_coords_and_dims[:]
-            if self.predictor.lower() == "realizations" and coeff_name == "beta":
-                # Ensure realization is the zeroth dimension.
-                # Shift spatial dimension and auxiliary coordinates to first dimension.
+            if self.predictor.lower() == "realizations" and coeff_name != "beta":
+                # Alter the dimension associated with the non-realization coordinates
+                # for the non-beta coefficients.
                 aux_coords_and_dims_updated = [
-                    (d[0], 1) if d[1] == 0 else d for d in aux_coords_and_dims
+                    (c[0], c[1] - 1) if c[0].name() != "realization" and c[1] else c
+                    for c in aux_coords_and_dims
                 ]
                 dim_coords_and_dims_updated = [
-                    (d[0], 1) if d[1] == 0 else d for d in dim_coords_and_dims_updated
+                    (c[0], c[1] - 1)
+                    for c in dim_coords_and_dims
+                    if c[0].name() != "realization"
                 ]
-                dim_coords_and_dims_updated.append(
-                    (historic_forecasts.coord("realization").copy(), 0)
-                )
 
             cube = iris.cube.Cube(
                 optimised_coeff,
@@ -930,7 +939,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             raise ValueError(msg)
 
-        dim_coords_and_dims = self._create_spatial_dim_coordinates(historic_forecasts)
+        dim_coords_and_dims = self._create_dim_coordinates(historic_forecasts)
         aux_coords_and_dims = self._create_temporal_coordinates(historic_forecasts)
         aux_coords_and_dims.extend(
             self._create_spatial_aux_coordinates(historic_forecasts)
@@ -1115,33 +1124,35 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         """
         if self.each_point:
-            # Disable ordinary least squares fit when computing each point
-            # independently due to potential for too few data points to create
-            # a reliable fit.
-            if self.predictor == "realizations":
-                self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
             index = [
                 forecast_predictor.coord(axis="y"),
                 forecast_predictor.coord(axis="x"),
             ]
-
             argument_list = (
                 (
                     truths_slice.data,
                     fp_slice.data,
                     self.predictor,
-                    self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
+                    False
+                    if np.any(np.isnan(truths_slice.data))
+                    or np.any(np.isnan(fp_slice.data))
+                    else self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                     number_of_realizations,
                 )
                 for (truths_slice, fp_slice) in zip(
                     truths.slices_over(index), forecast_predictor.slices_over(index)
                 )
             )
-
             with Pool(os.cpu_count()) as pool:
                 initial_guess = pool.starmap(self.compute_initial_guess, argument_list)
         else:
             if self.minimise_each_point:
+                self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
+
+            # If NaNs in truth or forecast, use default initial guess.
+            if np.any(np.isnan(truths.data)) or np.any(
+                np.isnan(forecast_predictor.data)
+            ):
                 self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
 
             # Computing initial guess for EMOS coefficients
@@ -1152,15 +1163,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                 number_of_realizations,
             )
-            # If NaNs in initial guess, use default initial guess.
-            if np.any(np.isnan(initial_guess)):
-                initial_guess = self.compute_initial_guess(
-                    truths.data,
-                    forecast_predictor.data,
-                    self.predictor,
-                    False,
-                    number_of_realizations,
-                )
 
             if self.minimise_each_point:
                 initial_guess = np.broadcast_to(
@@ -1426,7 +1428,9 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # ensemble realizations. The number of b and X terms depends upon the
         # number of ensemble realizations. In this case, b = beta^2.
         beta_cube = self.coefficients_cubelist.extract_strict("emos_coefficient_beta")
-        beta_values = beta_cube.data ** 2
+        beta_values = np.atleast_2d(beta_cube.data ** 2)
+        beta_values = beta_values.T if beta_cube.data.ndim != 1 else beta_values
+
         a_and_b = np.hstack(
             (
                 np.atleast_2d(
@@ -1434,11 +1438,9 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                         "emos_coefficient_alpha"
                     ).data
                 ).T,
-                np.array(beta_values).reshape(
-                    -1, len(beta_cube.coord("realization").points)
-                ),
+                beta_values
             )
-        ).T
+        )
 
         forecast_predictor_flat = convert_cube_data_to_2d(forecast_predictor)
         xy_shape = next(forecast_predictor.slices_over("realization")).shape
@@ -1446,10 +1448,11 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         ones_and_predictor = np.column_stack((col_of_ones, forecast_predictor_flat))
 
         location_parameter = (
-            np.sum(ones_and_predictor * a_and_b.T, axis=-1)
+            np.sum(ones_and_predictor * a_and_b, axis=-1)
             .reshape(xy_shape)
             .astype(np.float32)
         )
+
         return location_parameter
 
     def _calculate_scale_parameter(self):

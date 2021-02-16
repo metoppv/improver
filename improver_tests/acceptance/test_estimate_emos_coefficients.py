@@ -150,7 +150,7 @@ def test_units(tmp_path):
 def test_using_realizations_as_predictor_no_sm(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    kgo_path = kgo_dir / "realizations/without_statsmodels_kgo.nc"
+    kgo_path = kgo_dir / "normal/realizations/without_statsmodels_kgo.nc"
     history_path = kgo_dir / "normal/history/*.nc"
     truth_path = kgo_dir / "normal/truth/*.nc"
     output_path = tmp_path / "output.nc"
@@ -180,7 +180,7 @@ def test_using_realizations_as_predictor_no_sm(tmp_path):
 def test_using_realizations_as_predictor_sm(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    kgo_path = kgo_dir / "realizations/with_statsmodels_kgo.nc"
+    kgo_path = kgo_dir / "normal/realizations/with_statsmodels_kgo.nc"
     history_path = kgo_dir / "normal/history/*.nc"
     truth_path = kgo_dir / "normal/truth/*.nc"
     output_path = tmp_path / "output.nc"
@@ -253,6 +253,39 @@ def test_normal_each_point_sites(tmp_path):
         "norm",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--each-point",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
+
+
+@pytest.mark.slow
+def test_normal_realizations_each_point_sites(tmp_path):
+    """
+    Test estimate-emos-coefficients for diagnostic with assumed
+    normal distribution where coefficients are computed independently at each
+    site location (initial guess and minimisation).
+    """
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
+    kgo_path = kgo_dir / "each_point" / "realizations_kgo.nc"
+    history_path = kgo_dir / "history/*.nc"
+    truth_path = kgo_dir / "truth/*.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "norm",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--predictor",
+        "realizations",
         "--tolerance",
         EST_EMOS_TOL,
         "--each-point",

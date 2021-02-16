@@ -116,6 +116,9 @@ class SetupCubes(IrisTest):
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
 
+        time_dt = time_dt - datetime.timedelta(days=5)
+        frt_dt = frt_dt - datetime.timedelta(days=5)
+
         # Create historic forecasts and truth
         self.historic_forecasts = _create_historic_forecasts(
             temperature_data, time_dt, frt_dt, realizations=[0, 1, 2]
@@ -217,11 +220,11 @@ class SetupCubes(IrisTest):
             realization_coord = [
                 iris.coords.DimCoord(realization, standard_name="realization")
             ]
-            for day in range(1, 5):
+            for day in range(5, 11):
                 time_coords = construct_scalar_time_coords(
-                    datetime.datetime(2020, 12, day, 4, 0),
+                    datetime.datetime(2017, 11, day, 4, 0),
                     None,
-                    datetime.datetime(2020, 12, day, 0, 0),
+                    datetime.datetime(2017, 11, day, 0, 0),
                 )
                 time_coords = [t[0] for t in time_coords]
                 forecast_spot_cubes.append(
@@ -238,11 +241,11 @@ class SetupCubes(IrisTest):
                 )
         forecast_spot_cube = forecast_spot_cubes.merge_cube()
 
-        self.historic_forecast_spot_cube = forecast_spot_cube[:, :2, :]
+        self.historic_forecast_spot_cube = forecast_spot_cube[:, :5, :]
         self.historic_forecast_spot_cube.convert_units("Kelvin")
         self.historic_forecast_spot_cube.attributes = MANDATORY_ATTRIBUTE_DEFAULTS
 
-        self.current_forecast_spot_cube = forecast_spot_cube[:, 3, :]
+        self.current_forecast_spot_cube = forecast_spot_cube[:, 5, :]
         self.current_forecast_spot_cube.convert_units("Kelvin")
         self.current_forecast_spot_cube.attributes = MANDATORY_ATTRIBUTE_DEFAULTS
 

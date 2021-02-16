@@ -122,7 +122,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         # Set up a coefficients cube when using the ensemble realization as the
         # predictor and the coefficients have been estimated using statsmodels.
         expected_realizations_each_site = np.vstack(
-            list(self.expected_realizations_each_site.values())
+            list(self.expected_realizations_each_site_statsmodels.values())
         )
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "norm", predictor="realizations", each_point=True
@@ -165,7 +165,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             dtype=np.float32,
         )
         self.expected_loc_param_realizations_sites = np.array(
-            [282.8405, 282.7298, 270.0743, 269.626], dtype=np.float32,
+            [277.7531, 277.4529, 277.5530, 277.2528], dtype=np.float32,
         )
 
         self.expected_scale_param_realizations_sites = np.array(
@@ -327,6 +327,7 @@ class Test__calculate_location_parameter_from_realizations(
         ensemble mean and when statsmodels is not used to ensure that the
         results are similar."""
         self.plugin.coefficients_cubelist = self.coeffs_from_statsmodels_realizations
+        print("self.coeffs_from_statsmodels_realizations = ", self.coeffs_from_statsmodels_realizations)
         location_parameter = (
             self.plugin._calculate_location_parameter_from_realizations()
         )
