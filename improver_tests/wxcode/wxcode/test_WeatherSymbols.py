@@ -867,10 +867,11 @@ class Test_evaluate_condition_chain(Test_WXCode):
             "OR",
         ]
         result = plugin.evaluate_condition_chain(self.cubes, chain)
-        c1 = chain[0][0][0]
-        c2 = chain[0][1][0]
-        expected = (self.cubes.extract(c1)[0].data >= 0.5) | (
-            self.cubes.extract(c2)[0].data >= 0.5
+        c1 = chain[0][0][0][0]
+        c2 = chain[0][0][0][2]
+        c3 = chain[0][1][0]
+        expected = (self.cubes.extract(c1)[0].data - self.cubes.extract(c2)[0].data >= 0.5) | (
+            self.cubes.extract(c3)[0].data >= 0.5
         )
         self.assertArrayEqual(result, expected)
 
@@ -1122,7 +1123,6 @@ class Test_compare_to_threshold(IrisTest):
         """Test that compare_to_threshold produces the correct array of 
         booleans."""
         arr = np.array([0, 1, 2], dtype=np.int32)
-        threshold = 1
         plugin = WeatherSymbols()
         test_case_map = {
             "<": [True, False, False],
