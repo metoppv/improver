@@ -437,7 +437,7 @@ class Test_create_condition_chain(Test_WXCode):
                         rainfall_rate=lambda cell: np.isclose(
                             cell.point,
                             thresholds[0],
-                            rtol=WeatherSymbols().float_tolerance,
+                            rtol=plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -450,7 +450,7 @@ class Test_create_condition_chain(Test_WXCode):
                         lwe_snowfall_rate=lambda cell: np.isclose(
                             cell.point,
                             thresholds[1],
-                            rtol=WeatherSymbols().float_tolerance,
+                            rtol=plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -491,7 +491,7 @@ class Test_create_condition_chain(Test_WXCode):
                         threshold=lambda cell: np.isclose(
                             cell.point,
                             thresholds[0],
-                            rtol=WeatherSymbols().float_tolerance,
+                            rtol=plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -504,7 +504,7 @@ class Test_create_condition_chain(Test_WXCode):
                         threshold=lambda cell: np.isclose(
                             cell.point,
                             thresholds[1],
-                            rtol=WeatherSymbols().float_tolerance,
+                            rtol=plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -568,7 +568,7 @@ class Test_create_condition_chain(Test_WXCode):
                             lwe_sleetfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 thresholds[0],
-                                rtol=WeatherSymbols().float_tolerance,
+                                rtol=plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -578,7 +578,7 @@ class Test_create_condition_chain(Test_WXCode):
                             rainfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 thresholds[1],
-                                rtol=WeatherSymbols().float_tolerance,
+                                rtol=plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -593,7 +593,7 @@ class Test_create_condition_chain(Test_WXCode):
                             lwe_sleetfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 thresholds[2],
-                                rtol=WeatherSymbols().float_tolerance,
+                                rtol=plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -603,7 +603,7 @@ class Test_create_condition_chain(Test_WXCode):
                             lwe_snowfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 thresholds[3],
-                                rtol=WeatherSymbols().float_tolerance,
+                                rtol=plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -647,7 +647,7 @@ class Test_construct_extract_constraint(Test_WXCode):
             rainfall_rate=lambda cell: np.isclose(
                 cell.point,
                 threshold.points[0],
-                rtol=WeatherSymbols().float_tolerance,
+                rtol=plugin.float_tolerance,
                 atol=0,
             ),
         )
@@ -678,7 +678,7 @@ class Test_construct_extract_constraint(Test_WXCode):
                 cell.point,
                 threshold.points[0],
                 rtol=0,
-                atol=WeatherSymbols().float_abs_tolerance,
+                atol=plugin.float_abs_tolerance,
             ),
         )
         self.assertIsInstance(result, iris.Constraint)
@@ -693,6 +693,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
     def test_basic(self):
         """Test evaluating a basic expression consisting of constraints, 
         operators, and constants."""
+        plugin = WeatherSymbols()
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
         expression = [
@@ -701,7 +702,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
                 lwe_sleetfall_rate=lambda cell: np.isclose(
                     cell.point,
                     t.points[0],
-                    rtol=WeatherSymbols().float_tolerance,
+                    rtol=plugin.float_tolerance,
                     atol=0,
                 ),
             ),
@@ -713,12 +714,11 @@ class Test_evaluate_extract_expression(Test_WXCode):
                 rainfall_rate=lambda cell: np.isclose(
                     cell.point,
                     t.points[0],
-                    rtol=WeatherSymbols().float_tolerance,
+                    rtol=plugin.float_tolerance,
                     atol=0,
                 ),
             ),
         ]
-        plugin = WeatherSymbols()
         result = plugin.evaluate_extract_expression(self.cubes, expression)
         expected = (
             self.cubes.extract(expression[0])[0].data
@@ -730,6 +730,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
         """Test evaluating an expression containing sub-expressions."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
+        plugin = WeatherSymbols()
         expression = [
             0.5,
             "*",
@@ -738,7 +739,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
                 lwe_sleetfall_rate=lambda cell: np.isclose(
                     cell.point,
                     t.points[0],
-                    rtol=WeatherSymbols().float_tolerance,
+                    rtol=plugin.float_tolerance,
                     atol=0,
                 ),
             ),
@@ -749,7 +750,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
                     rainfall_rate=lambda cell: np.isclose(
                         cell.point,
                         t.points[0],
-                        rtol=WeatherSymbols().float_tolerance,
+                        rtol=plugin.float_tolerance,
                         atol=0,
                     ),
                 ),
@@ -759,7 +760,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
                     lwe_snowfall_rate=lambda cell: np.isclose(
                         cell.point,
                         t.points[0],
-                        rtol=WeatherSymbols().float_tolerance,
+                        rtol=plugin.float_tolerance,
                         atol=0,
                     ),
                 ),
@@ -769,7 +770,6 @@ class Test_evaluate_extract_expression(Test_WXCode):
             self.cubes.extract(expression[4][0])[0].data
             - self.cubes.extract(expression[4][2])[0].data
         )
-        plugin = WeatherSymbols()
         result = plugin.evaluate_extract_expression(self.cubes, expression)
         self.assertArrayEqual(result, expected)
 
@@ -781,6 +781,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
         """Test a simple condition chain with 2 simple expressions joined by "OR"."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
+        plugin = WeatherSymbols()
         chain = [
             [
                 [
@@ -789,7 +790,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         lwe_sleetfall_rate=lambda cell: np.isclose(
                             cell.point,
                             t.points[0],
-                            rtol=WeatherSymbols().float_tolerance,
+                            rtol=plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -802,7 +803,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         rainfall_rate=lambda cell: np.isclose(
                             cell.point,
                             t.points[0],
-                            rtol=WeatherSymbols().float_tolerance,
+                            rtol=plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -812,7 +813,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
             ],
             "OR",
         ]
-        plugin = WeatherSymbols()
         result = plugin.evaluate_condition_chain(self.cubes, chain)
         c1 = chain[0][0][0]
         c2 = chain[0][1][0]
@@ -825,6 +825,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
         """Test a condition chain where the expressions contain operators."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
+        plugin = WeatherSymbols()
         chain = [
             [
                 [
@@ -834,7 +835,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                             rainfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 t.points[0],
-                                rtol=WeatherSymbols().float_tolerance,
+                                rtol=plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -844,7 +845,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                             lwe_snowfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 t.points[0],
-                                rtol=WeatherSymbols().float_tolerance,
+                                rtol=plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -858,7 +859,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         lwe_sleetfall_rate=lambda cell: np.isclose(
                             cell.point,
                             t.points[0],
-                            rtol=WeatherSymbols().float_tolerance,
+                            rtol=plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -868,7 +869,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
             ],
             "OR",
         ]
-        plugin = WeatherSymbols()
         result = plugin.evaluate_condition_chain(self.cubes, chain)
         c1 = chain[0][0][0]
         c2 = chain[0][1][0]
@@ -881,6 +881,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
         """Test "AND" condition chain with sub-chain containing "OR"."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
+        plugin = WeatherSymbols()
         chain = [
             [
                 [
@@ -891,7 +892,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                                 lwe_sleetfall_rate=lambda cell: np.isclose(
                                     cell.point,
                                     t.points[0],
-                                    rtol=WeatherSymbols().float_tolerance,
+                                    rtol=plugin.float_tolerance,
                                     atol=0,
                                 ),
                             ),
@@ -904,7 +905,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                                 lwe_snowfall_rate=lambda cell: np.isclose(
                                     cell.point,
                                     t.points[0],
-                                    rtol=WeatherSymbols().float_tolerance,
+                                    rtol=plugin.float_tolerance,
                                     atol=0,
                                 ),
                             ),
@@ -920,7 +921,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         rainfall_rate=lambda cell: np.isclose(
                             cell.point,
                             t.points[0],
-                            rtol=WeatherSymbols().float_tolerance,
+                            rtol=plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -930,7 +931,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
             ],
             "AND",
         ]
-        plugin = WeatherSymbols()
         result = plugin.evaluate_condition_chain(self.cubes, chain)
         c1 = chain[0][0][0][0][0]
         c2 = chain[0][0][0][1][0]
@@ -945,6 +945,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
         """Test a condition chain where the combination condition is ""."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
+        plugin = WeatherSymbols()
         chain = [
             [
                 [
@@ -954,7 +955,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                             lwe_sleetfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 t.points[0],
-                                rtol=WeatherSymbols().float_tolerance,
+                                rtol=plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -966,7 +967,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                             rainfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 t.points[0],
-                                rtol=WeatherSymbols().float_tolerance,
+                                rtol=plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -977,7 +978,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
             ],
             "",
         ]
-        plugin = WeatherSymbols()
         result = plugin.evaluate_condition_chain(self.cubes, chain)
         expression = chain[0][0][0]
         expected = (
