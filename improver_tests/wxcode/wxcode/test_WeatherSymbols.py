@@ -642,10 +642,7 @@ class Test_construct_extract_constraint(Test_WXCode):
         expected = iris.Constraint(
             name="probability_of_rainfall_rate_above_threshold",
             rainfall_rate=lambda cell: np.isclose(
-                cell.point,
-                threshold.points[0],
-                rtol=plugin.float_tolerance,
-                atol=0,
+                cell.point, threshold.points[0], rtol=plugin.float_tolerance, atol=0,
             ),
         )
         self.assertIsInstance(result, iris.Constraint)
@@ -697,10 +694,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
             iris.Constraint(
                 name="probability_of_lwe_sleetfall_rate_above_threshold",
                 lwe_sleetfall_rate=lambda cell: np.isclose(
-                    cell.point,
-                    t.points[0],
-                    rtol=plugin.float_tolerance,
-                    atol=0,
+                    cell.point, t.points[0], rtol=plugin.float_tolerance, atol=0,
                 ),
             ),
             "-",
@@ -709,10 +703,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
             iris.Constraint(
                 name="probability_of_rainfall_rate_above_threshold",
                 rainfall_rate=lambda cell: np.isclose(
-                    cell.point,
-                    t.points[0],
-                    rtol=plugin.float_tolerance,
-                    atol=0,
+                    cell.point, t.points[0], rtol=plugin.float_tolerance, atol=0,
                 ),
             ),
         ]
@@ -734,10 +725,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
             iris.Constraint(
                 name="probability_of_lwe_sleetfall_rate_above_threshold",
                 lwe_sleetfall_rate=lambda cell: np.isclose(
-                    cell.point,
-                    t.points[0],
-                    rtol=plugin.float_tolerance,
-                    atol=0,
+                    cell.point, t.points[0], rtol=plugin.float_tolerance, atol=0,
                 ),
             ),
             "+",
@@ -745,20 +733,14 @@ class Test_evaluate_extract_expression(Test_WXCode):
                 iris.Constraint(
                     name="probability_of_rainfall_rate_above_threshold",
                     rainfall_rate=lambda cell: np.isclose(
-                        cell.point,
-                        t.points[0],
-                        rtol=plugin.float_tolerance,
-                        atol=0,
+                        cell.point, t.points[0], rtol=plugin.float_tolerance, atol=0,
                     ),
                 ),
                 "-",
                 iris.Constraint(
                     name="probability_of_lwe_snowfall_rate_above_threshold",
                     lwe_snowfall_rate=lambda cell: np.isclose(
-                        cell.point,
-                        t.points[0],
-                        rtol=plugin.float_tolerance,
-                        atol=0,
+                        cell.point, t.points[0], rtol=plugin.float_tolerance, atol=0,
                     ),
                 ),
             ],
@@ -870,9 +852,9 @@ class Test_evaluate_condition_chain(Test_WXCode):
         c1 = chain[0][0][0][0]
         c2 = chain[0][0][0][2]
         c3 = chain[0][1][0]
-        expected = (self.cubes.extract(c1)[0].data - self.cubes.extract(c2)[0].data >= 0.5) | (
-            self.cubes.extract(c3)[0].data >= 0.5
-        )
+        expected = (
+            self.cubes.extract(c1)[0].data - self.cubes.extract(c2)[0].data >= 0.5
+        ) | (self.cubes.extract(c3)[0].data >= 0.5)
         self.assertArrayEqual(result, expected)
 
     def test_with_subconditions(self):
