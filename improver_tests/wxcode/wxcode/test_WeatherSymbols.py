@@ -616,16 +616,15 @@ class Test_create_condition_chain(Test_WXCode):
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], list)
         for i in range(2):
-            for j in range(2):
-                for k in [0, 2]:
-                    constraint_exp = expected[0][i][0][k]
-                    constraint_res = result[0][i][0][k]
-                    self.assertArrayEqual(
-                        self.cubes.extract(constraint_res)[0].data,
-                        self.cubes.extract(constraint_exp)[0].data,
-                    )
-                self.assertEqual(result[0][i][0][1], expected[0][i][0][1])
-            self.assertEqual(result[0][j][1:], expected[0][j][1:])
+            for k in [0, 2]:
+                constraint_exp = expected[0][i][0][k]
+                constraint_res = result[0][i][0][k]
+                self.assertArrayEqual(
+                    self.cubes.extract(constraint_res)[0].data,
+                    self.cubes.extract(constraint_exp)[0].data,
+                )
+            self.assertEqual(result[0][i][0][1], expected[0][i][0][1])
+            self.assertEqual(result[0][i][1:], expected[0][i][1:])
         self.assertEqual(result[1], expected[1])
 
 
