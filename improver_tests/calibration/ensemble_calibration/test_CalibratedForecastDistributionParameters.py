@@ -158,9 +158,9 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         )
         self.expected_loc_param_no_statsmodels_realizations = np.array(
             [
-                [273.3461, 274.3437, 275.1823],
-                [276.7423, 277.6121, 278.4414],
-                [279.6318, 280.3687, 281.2658],
+                [273.5327, 274.5308, 275.367],
+                [276.9288, 277.7971, 278.6275],
+                [279.8209, 280.5561, 281.4539],
             ],
             dtype=np.float32,
         )
