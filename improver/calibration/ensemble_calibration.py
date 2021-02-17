@@ -1438,7 +1438,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                         "emos_coefficient_alpha"
                     ).data
                 ).T,
-                beta_values
+                beta_values,
             )
         )
 

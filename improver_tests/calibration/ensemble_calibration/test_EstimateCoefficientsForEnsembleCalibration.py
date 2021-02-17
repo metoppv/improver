@@ -109,117 +109,109 @@ class SetupExpectedCoefficients(IrisTest):
             [-0.3019, -0.0778, 0.3897, 0.9165, -0.0003, 1.0017], dtype=np.float32
         )
         self.expected_realizations_norm_no_statsmodels = np.array(
-            [-0.0, 0.5786, 0.578, 0.5734, 0.0001, 1.0175,], dtype=np.float32
+            [-0.0, 0.5795, 0.5786, 0.5713, 0.0001, 1.0165,], dtype=np.float32
         )
         self.expected_realizations_truncnorm_statsmodels = np.array(
             [-0.6761, -0.0808, 0.3763, 0.9094, -0.0002, 1.1046], dtype=np.float32
         )
         self.expected_realizations_truncnorm_no_statsmodels = np.array(
-            [0.0003, 0.56927171, 0.5056, 0.5344, 0.0004, 1.0712], dtype=np.float32
+            [0.0003, 0.564, 0.5082, 0.5402, 0.0004, 1.08], dtype=np.float32
         )
         self.expected_mean_predictor_each_grid_point = {
             "emos_coefficient_alpha": np.array(
-                [
-                    [0.0896, -0.0555, -1.0103],
-                    [-0.8949, -0.8790, -0.9117],
-                    [-0.5823, -1.0073, -1.0740],
-                ]
+[[ 0.0896, -0.0558, -1.0096],
+       [-0.8934, -0.881 , -0.9066],
+       [-0.5847, -1.0071, -1.0738]]
             ),
             "emos_coefficient_beta": np.array(
-                [
-                    [0.9999, 1.0001, 1.0005],
-                    [1.0009, 1.0006, 1.0006],
-                    [1.0005, 1.0005, 1.0004],
-                ]
+[[0.9999, 1.0001, 1.0005],
+       [1.0009, 1.0006, 1.0006],
+       [1.0005, 1.0005, 1.0004]],
             ),
             "emos_coefficient_gamma": np.array(
-                [
-                    [0.0010, 0.0010, 0.0016],
-                    [0.0010, 0.0014, 0.0013],
-                    [0.0011, 0.0018, 0.0018],
-                ]
+[[0.001, 0.001 , 0.0016],
+       [0.001 , 0.0014, 0.0013],
+       [0.0011, 0.0018, 0.0018]]
             ),
             "emos_coefficient_delta": np.array(
-                [
-                    [0.0022, 0.0028, 0.0021],
-                    [-0.0039, 0.0016, 0.0007],
-                    [-0.0029, 0.0043, 0.0030],
-                ]
+[[0.01, -0.002 ,  0.0062],
+       [ 0.0039,  0.0012,  0.0061],
+       [-0.0083,  0.0038,  0.003 ]]
             ),
         }
         self.expected_mean_predictor_minimise_each_grid_point = {
             "emos_coefficient_alpha": np.array(
                 [
                     [0.0037, 0.0017, -0.0002],
-                    [-0.0002, -0.0001, 0.0],
+                    [-0.0005, -0.0001, -0.0],
                     [0.0031, 0.0051, -0.0001],
                 ]
             ),
             "emos_coefficient_beta": np.array(
                 [
                     [1.0002, 0.9999, 0.9969],
-                    [0.9978, 0.9974, 0.9973],
+                    [0.9977, 0.9976, 0.9974],
                     [0.9984, 0.9969, 0.9966],
                 ]
             ),
             "emos_coefficient_gamma": np.array(
                 [
-                    [0.0007, 0.0010, 0.0002],
+                    [0.0007, 0.001, 0.0002],
                     [0.0002, 0.0001, 0.0002],
                     [0.0015, -0.0009, 0.0002],
                 ]
             ),
             "emos_coefficient_delta": np.array(
                 [
-                    [-0.0009, -0.0016, 1.0320],
-                    [1.0411, 1.0384, 1.0237],
-                    [0.0025, -0.0039, 1.0338],
+                    [-0.0035, 0.0038, 1.032],
+                    [1.0475, 1.0388, 1.0211],
+                    [0.0059, -0.006, 1.0338],
                 ]
             ),
         }
         self.expected_realizations_predictor_minimise_each_grid_point = {
             "emos_coefficient_alpha": np.array(
-                [[0.0019, 0.0006, 0], [0, 0, 0], [0, 0, 0],]
+                [[0.0019, 0.0006, -0.0], [-0.0, -0.0, 0.0], [0.0, -0.0, -0.0]]
             ),
             "emos_coefficient_beta": np.array(
                 [
                     [
-                        [0.5562, 0.5817, 0.5794],
-                        [0.5789, 0.5772, 0.5769],
-                        [0.5771, 0.5718, 0.5764],
+                        [0.5559, 0.5817, 0.5794],
+                        [0.5783, 0.5775, 0.5769],
+                        [0.5774, 0.5718, 0.5764],
                     ],
                     [
-                        [0.5584, 0.5818, 0.5774],
-                        [0.5782, 0.5732, 0.5728],
-                        [0.578, 0.5794, 0.5717],
+                        [0.5586, 0.5817, 0.5774],
+                        [0.5778, 0.573, 0.5728],
+                        [0.577, 0.5794, 0.5709],
                     ],
                     [
-                        [0.6155, 0.5685, 0.5726],
-                        [0.5728, 0.5794, 0.5798],
-                        [0.5755, 0.5783, 0.581],
+                        [0.6156, 0.5685, 0.5726],
+                        [0.5742, 0.5791, 0.5798],
+                        [0.5761, 0.5783, 0.5818],
                     ],
                 ]
             ),
             "emos_coefficient_gamma": np.array(
                 [
-                    [0.0017, 0.0027, 0.0001],
+                    [0.0016, 0.0027, 0.0001],
                     [0.0001, 0.0001, 0.0001],
                     [0.0001, 0.0001, 0.0001],
                 ]
             ),
             "emos_coefficient_delta": np.array(
                 [
-                    [0.0030, -0.0016, 1.0172],
-                    [1.0181, 1.0200, 1.0181],
-                    [1.0173, 1.0237, 1.0204],
+                    [0.0063, -0.0025, 1.0172],
+                    [1.0268, 1.0211, 1.0181],
+                    [1.0162, 1.0237, 1.0227],
                 ]
             ),
         }
         self.expected_mean_predictor_each_site = {
             "emos_coefficient_alpha": np.array([0.9958, 0.9958, 1.0042, 0.9958]),
-            "emos_coefficient_beta": np.array([1.0001, 0.9999, 0.9999, 1.0001]),
+            "emos_coefficient_beta": np.array([1., 1., 1., 1.]),
             "emos_coefficient_gamma": np.array([0.0003, 0.0003, 0.0003, 0.0003]),
-            "emos_coefficient_delta": np.array([1.0, 1.0, 1.0, 1.0]),
+            "emos_coefficient_delta": np.array([1., 1., 1., 1.]),
         }
         self.expected_realizations_each_site_statsmodels = {
             "emos_coefficient_alpha": np.array([0.8126, 0.8126, 0.8126, 0.8126]),
@@ -232,10 +224,10 @@ class SetupExpectedCoefficients(IrisTest):
         self.expected_realizations_each_site_no_statsmodels = {
             "emos_coefficient_alpha": np.array([-0.0000, -0.0000, -0.0000, -0.0000]),
             "emos_coefficient_beta": np.array(
-                [[0.7164, 0.7164, 0.7164, 0.7164], [0.7004, 0.7003, 0.7003, 0.7002]]
+                [[0.7165, 0.7165, 0.7165, 0.7164], [0.7001, 0.7001, 0.7001, 0.7004]]
             ),
             "emos_coefficient_gamma": np.array([0.0002, 0.0002, 0.0002, 0.0002]),
-            "emos_coefficient_delta": np.array([0.9797, 0.9801, 0.9801, 0.9799]),
+            "emos_coefficient_delta": np.array([0.9799, 0.9798, 0.9798, 0.9804]),
         }
 
 
@@ -903,7 +895,6 @@ class Test_process(
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
-        print("result = ", result[0])
         self.assertEMOSCoefficientsAlmostEqual(
             np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
         )
@@ -991,7 +982,7 @@ class Test_process(
         tolerance would result in the coefficients more closely matching the
         coefficients created when using a linear least-squares regression to
         construct the initial guess."""
-        expected = [-0.0001, 0.9974, 0.0001, 1.0374]
+        expected = [-0.0001, 0.9974, 0.0002, 1.043]
         self.historic_temperature_forecast_cube.data[0, 0] = np.nan
         plugin = Plugin(self.distribution)
         result = plugin.process(
@@ -1216,7 +1207,7 @@ class Test_process(
         and minimising) returns the expected coefficients and associated metadata,
         if one grid point has a NaN value."""
         self.historic_temperature_forecast_cube.data[0, 0, 0, 0] = np.nan
-        replacements = [0.0037, 1.0002, 0.0007, -0.0009]
+        replacements = [0.0037, 1.0002, 0.0007, -0.0035]
         for index, key in enumerate(
             self.expected_mean_predictor_each_grid_point.keys()
         ):
