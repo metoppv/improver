@@ -7,12 +7,13 @@ channels:
 dependencies:
   - python=3.6
   - iris=2.2
+  - proj=7.0.0
   - numpy=1.15.4
   - numba=0.42.0
   - scipy=1.3.3
   - cftime=1.0.1
   - python-stratify=0.1
-  - sphinx
+  - sphinx=3.4.3
   - pytest
   - pytest-cov
   - codacy-coverage
