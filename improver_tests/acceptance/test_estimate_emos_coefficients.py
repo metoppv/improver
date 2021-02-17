@@ -266,6 +266,7 @@ def test_normal_each_point_sites(tmp_path):
 
 
 @pytest.mark.slow
+@acc.skip_if_statsmodels
 def test_normal_realizations_each_point_sites(tmp_path):
     """
     Test estimate-emos-coefficients for diagnostic with assumed
