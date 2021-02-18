@@ -251,11 +251,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         """
         # Increased precision is needed for stable coefficient calculation.
         # The resulting coefficients are cast to float32 prior to output.
+        print("forecast_predictor = ", forecast_predictor.data)
         initial_guess = np.array(initial_guess, dtype=np.float64)
         forecast_predictor.data = forecast_predictor.data.astype(np.float64)
         forecast_var.data = forecast_var.data.astype(np.float64)
         truth.data = truth.data.astype(np.float64)
         sqrt_pi = np.sqrt(np.pi).astype(np.float64)
+        print("forecast_predictor = ", forecast_predictor.data)
 
         argument_list = []
         sindex = [
@@ -284,6 +286,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         with Pool(os.cpu_count()) as pool:
             optimised_coeffs = pool.starmap(self._minimise_caller, argument_list)
+        np.set_printoptions(suppress=True, precision=4)
+        print("optimised_coeffs = ", optimised_coeffs)
         optimised_coeffs = [x.x.astype(np.float32) for x in optimised_coeffs]
 
         y_coord = forecast_predictor.coord(axis="y")
