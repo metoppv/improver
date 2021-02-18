@@ -49,7 +49,10 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 def orography_fixture() -> Cube:
     """Orography cube with three gradients in each dimension."""
 
-    data = np.array([[0, 0, 0], [1, 3, 5], [2, 6, 10]], dtype=np.float32,)
+    data = np.array(
+        [[0, 0, 0], [1, 3, 5], [2, 6, 10]],
+        dtype=np.float32,
+    )
     cube = set_up_variable_cube(
         data,
         name="surface_altitude",

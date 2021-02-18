@@ -561,7 +561,7 @@ class Test_create_template_slice(IrisTest):
 
     def test_basic_no_change(self):
         """Test a correct template slice is returned for a case where
-           no slicing is needed"""
+        no slicing is needed"""
         input_cube = self.cube_to_collapse.copy()[:, 0, :, :]
         expected = input_cube.copy()
         result = self.plugin.create_template_slice(
@@ -572,7 +572,7 @@ class Test_create_template_slice(IrisTest):
 
     def test_aux_blending_coord(self):
         """Test a correct template slice is returned when blending_coord is
-           an AuxCoord"""
+        an AuxCoord"""
         expected = self.cube_to_collapse.copy()[:, 0, :, :]
         result = self.plugin.create_template_slice(
             self.cube_to_collapse, "forecast_period"

@@ -104,8 +104,10 @@ class SetupNormalInputs(SetupInputs, SetupCubes):
         """Set up expected inputs."""
         super().setUp()
         # Set up cubes and associated data arrays for temperature.
-        self.forecast_predictor_mean = self.historic_temperature_forecast_cube.collapsed(
-            "realization", iris.analysis.MEAN
+        self.forecast_predictor_mean = (
+            self.historic_temperature_forecast_cube.collapsed(
+                "realization", iris.analysis.MEAN
+            )
         )
         self.forecast_predictor_realizations = (
             self.historic_temperature_forecast_cube.copy()
@@ -116,8 +118,8 @@ class SetupNormalInputs(SetupInputs, SetupCubes):
         self.truth = self.historic_temperature_forecast_cube.collapsed(
             "realization", iris.analysis.MAX
         )
-        self.forecast_predictor_data = self.forecast_predictor_mean.data.flatten().astype(
-            np.float64
+        self.forecast_predictor_data = (
+            self.forecast_predictor_mean.data.flatten().astype(np.float64)
         )
         self.forecast_predictor_data_realizations = convert_cube_data_to_2d(
             self.historic_temperature_forecast_cube.copy()
@@ -464,8 +466,8 @@ class SetupTruncatedNormalInputs(SetupInputs, SetupCubes):
         self.truth = self.historic_wind_speed_forecast_cube.collapsed(
             "realization", iris.analysis.MAX
         )
-        self.forecast_predictor_data = self.forecast_predictor_mean.data.flatten().astype(
-            np.float64
+        self.forecast_predictor_data = (
+            self.forecast_predictor_mean.data.flatten().astype(np.float64)
         )
         self.forecast_predictor_data_realizations = convert_cube_data_to_2d(
             self.historic_wind_speed_forecast_cube.copy()

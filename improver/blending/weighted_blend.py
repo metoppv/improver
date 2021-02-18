@@ -213,30 +213,30 @@ class MergeCubesForWeightedBlending(BasePlugin):
 class PercentileBlendingAggregator:
     """Class for the percentile blending aggregator
 
-       This class implements the method described by Combining Probabilities
-       by Caroline Jones, 2017. This method implements blending in probability
-       space.
+    This class implements the method described by Combining Probabilities
+    by Caroline Jones, 2017. This method implements blending in probability
+    space.
 
-       The steps are:
-           1. At each geographic point in the cube we take the percentile
-              threshold's values across the percentile dimensional coordinate.
-              We recalculate, using linear interpolation, their probabilities
-              in the pdf of the other points across the coordinate we are
-              blending over. Thus at each point we have a set of thresholds
-              and their corresponding probability values in each of the
-              probability spaces across the blending coordinate.
-           2. We do a weighted blend across all the probability spaces,
-              combining all the thresholds in all the points in the coordinate
-              we are blending over. This gives us an array of thresholds and an
-              array of blended probabilities for each of the grid points.
-           3. We convert back to the original percentile values, again using
-              linear interpolation, resulting in blended values at each of the
-              original percentiles.
+    The steps are:
+        1. At each geographic point in the cube we take the percentile
+           threshold's values across the percentile dimensional coordinate.
+           We recalculate, using linear interpolation, their probabilities
+           in the pdf of the other points across the coordinate we are
+           blending over. Thus at each point we have a set of thresholds
+           and their corresponding probability values in each of the
+           probability spaces across the blending coordinate.
+        2. We do a weighted blend across all the probability spaces,
+           combining all the thresholds in all the points in the coordinate
+           we are blending over. This gives us an array of thresholds and an
+           array of blended probabilities for each of the grid points.
+        3. We convert back to the original percentile values, again using
+           linear interpolation, resulting in blended values at each of the
+           original percentiles.
 
-       References:
-            Combining Probabilities by Caroline Jones, 2017:
-            https://github.com/metoppv/improver/files/1128018/
-            Combining_Probabilities.pdf
+    References:
+         Combining Probabilities by Caroline Jones, 2017:
+         https://github.com/metoppv/improver/files/1128018/
+         Combining_Probabilities.pdf
     """
 
     def __repr__(self):
@@ -246,7 +246,7 @@ class PercentileBlendingAggregator:
 
     @staticmethod
     def aggregate(data, axis, arr_percent, arr_weights, perc_dim):
-        """ Blend percentile aggregate function to blend percentile data
+        """Blend percentile aggregate function to blend percentile data
             along a given axis of a cube.
 
         Args:
@@ -316,7 +316,7 @@ class PercentileBlendingAggregator:
 
     @staticmethod
     def blend_percentiles(perc_values, percentiles, weights):
-        """ Blend percentiles function, to calculate the weighted blend across
+        """Blend percentiles function, to calculate the weighted blend across
             a given axis of percentile data for a single grid point.
 
         Args:
@@ -375,8 +375,8 @@ class PercentileBlendingAggregator:
 
 class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
     """Apply a Weighted blend to a cube, collapsing across the whole
-       dimension. Uses one of two methods, either weighted average, or
-       the maximum of the weighted probabilities."""
+    dimension. Uses one of two methods, either weighted average, or
+    the maximum of the weighted probabilities."""
 
     def __init__(self, blend_coord, timeblending=False):
         """Set up for a Weighted Blending plugin

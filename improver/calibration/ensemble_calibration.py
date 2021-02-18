@@ -1065,15 +1065,12 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         for axis in ["x", "y"]:
             for coeff_cube in self.coefficients_cubelist:
                 if (
-                    (
-                        self.current_forecast.coord(axis=axis).collapsed().points
-                        != coeff_cube.coord(axis=axis).collapsed().points
-                    ).all()
-                    or (
-                        self.current_forecast.coord(axis=axis).collapsed().bounds
-                        != coeff_cube.coord(axis=axis).collapsed().bounds
-                    ).all()
-                ):
+                    self.current_forecast.coord(axis=axis).collapsed().points
+                    != coeff_cube.coord(axis=axis).collapsed().points
+                ).all() or (
+                    self.current_forecast.coord(axis=axis).collapsed().bounds
+                    != coeff_cube.coord(axis=axis).collapsed().bounds
+                ).all():
                     raise ValueError(
                         msg.format(
                             axis,

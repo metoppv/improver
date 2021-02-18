@@ -69,14 +69,17 @@ class Test__repr__(IrisTest):
 class Test_make_percentile_cube(IrisTest):
 
     """Test the make_percentile_cube method from
-       GeneratePercentilesFromACircularNeighbourhood."""
+    GeneratePercentilesFromACircularNeighbourhood."""
 
     def setUp(self):
         """Set up a 2D cube."""
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        self.cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -126,7 +129,10 @@ class Test_pad_and_unpad_cube(IrisTest):
         """Set up a 2D cube."""
 
         data = np.ones((5, 5), dtype=np.float32)
-        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        self.cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
     def test_2d_slice(self):
         """Test a 2D slice."""
@@ -204,7 +210,10 @@ class Test_pad_and_unpad_cube(IrisTest):
 
         data = np.ones((3, 3), dtype=np.float32)
         data[1, 1] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
         # Just within range of the edge.
 
@@ -356,7 +365,10 @@ class Test_run(IrisTest):
         """Set up a 2D cube."""
 
         data = np.ones((5, 5), dtype=np.float32)
-        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        self.cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -397,7 +409,10 @@ class Test_run(IrisTest):
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
         percentiles = np.array([10, 50, 90])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
@@ -409,13 +424,19 @@ class Test_run(IrisTest):
         """Test behaviour for points over multiple times."""
 
         data = np.ones((5, 5), dtype=np.float32)
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
         time_points = [
             datetime(2017, 11, 10, 2),
             datetime(2017, 11, 10, 3),
         ]
         cube = add_coordinate(
-            cube, coord_points=time_points, coord_name="time", is_datetime="true",
+            cube,
+            coord_points=time_points,
+            coord_name="time",
+            is_datetime="true",
         )
         cube.data[0, 2, 2] = 0
         cube.data[1, 2, 1] = 0
@@ -484,7 +505,10 @@ class Test_run(IrisTest):
 
         data = np.ones((16, 16), dtype=np.float32)
         data[7, 7] = 0
-        cube = set_up_variable_cube(data, spatial_grid="latlon",)
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="latlon",
+        )
 
         msg = "Unable to convert from"
         radius = 6000.0
@@ -706,7 +730,10 @@ class Test_run(IrisTest):
 
         data = np.ones((7, 7), dtype=np.float32)
         data[3, 3] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
         percentiles = np.array([5, 10, 15, 20, 25])
         radius = 2000.0
         result = GeneratePercentilesFromACircularNeighbourhood(
@@ -814,7 +841,10 @@ class Test_run(IrisTest):
 
         data = np.ones((7, 7), dtype=np.float32)
         data[3, 3] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
         percentiles = np.array([2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25])
         radius = 2000.0

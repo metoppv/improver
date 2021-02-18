@@ -419,7 +419,9 @@ def set_up_variable_cube(
 
 
 def set_up_percentile_cube(
-    data, percentiles, **kwargs,
+    data,
+    percentiles,
+    **kwargs,
 ):
     """
     Set up a cube containing percentiles of a variable with:
@@ -442,7 +444,11 @@ def set_up_percentile_cube(
         iris.cube.Cube:
             Cube containing percentiles
     """
-    cube = set_up_variable_cube(data, realizations=percentiles, **kwargs,)
+    cube = set_up_variable_cube(
+        data,
+        realizations=percentiles,
+        **kwargs,
+    )
     cube.coord("realization").rename("percentile")
     cube.coord("percentile").units = Unit("%")
     return cube
@@ -503,7 +509,11 @@ def set_up_probability_cube(
         raise ValueError(msg)
 
     cube = set_up_variable_cube(
-        data, name=name, units="1", realizations=thresholds, **kwargs,
+        data,
+        name=name,
+        units="1",
+        realizations=thresholds,
+        **kwargs,
     )
     cube.coord("realization").rename(variable_name)
     cube.coord(variable_name).var_name = "threshold"

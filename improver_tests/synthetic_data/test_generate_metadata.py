@@ -70,8 +70,8 @@ SPATIAL_GRID_ATTRIBUTE_DEFAULTS = {
 
 
 def _check_cube_shape_different(cube):
-    """ Asserts that cube shape has been changed from default but name, units and
-    attributes are unchanged """
+    """Asserts that cube shape has been changed from default but name, units and
+    attributes are unchanged"""
     default_cube = generate_metadata()
     assert cube.shape != default_cube.shape
     assert iris.util.describe_diff(cube, default_cube) is None
@@ -113,8 +113,8 @@ def test_default():
 
 
 def test_set_name_no_units():
-    """ Tests cube generated with specified name, automatically setting units, and the
-    rest of the values set as default values """
+    """Tests cube generated with specified name, automatically setting units, and the
+    rest of the values set as default values"""
     name = "air_pressure"
     cube = generate_metadata(name=name)
 
@@ -132,7 +132,7 @@ def test_set_name_no_units():
 
 
 def test_set_name_units():
-    """ Tests cube generated with specified name and units, and the rest of the values
+    """Tests cube generated with specified name and units, and the rest of the values
     set as default values"""
     name = "air_pressure"
     units = "pascal"
@@ -152,8 +152,8 @@ def test_set_name_units():
 
 
 def test_name_unknown_no_units():
-    """ Tests error raised if output variable name not in iris.std_names.STD_NAMES and
-    no unit provided """
+    """Tests error raised if output variable name not in iris.std_names.STD_NAMES and
+    no unit provided"""
     name = "temperature"
 
     with pytest.raises(ValueError, match=name):
@@ -161,7 +161,7 @@ def test_name_unknown_no_units():
 
 
 def test_name_unknown_with_units():
-    """ Tests cube generated with specified name which isn't a CF standard name,
+    """Tests cube generated with specified name which isn't a CF standard name,
     specified units, and the rest of the values set as default values"""
     name = "lapse_rate"
     units = "K m-1"
@@ -184,8 +184,8 @@ def test_name_unknown_with_units():
 
 @pytest.mark.parametrize("spatial_grid", ["latlon", "equalarea"])
 def test_set_spatial_grid(spatial_grid):
-    """ Tests different spatial grids generates cubes with default values for that
-    spatial grid """
+    """Tests different spatial grids generates cubes with default values for that
+    spatial grid"""
     cube = generate_metadata(spatial_grid=spatial_grid)
 
     expected_spatial_grid_attributes = SPATIAL_GRID_ATTRIBUTE_DEFAULTS[spatial_grid]
@@ -237,8 +237,8 @@ def test_spatial_grid_not_supported():
 
 
 def test_set_time():
-    """ Tests cube generated with specified time and the rest of the values set as
-    default values """
+    """Tests cube generated with specified time and the rest of the values set as
+    default values"""
     time = datetime(2020, 1, 1, 0, 0)
     cube = generate_metadata(time=time)
 
@@ -255,8 +255,8 @@ def test_set_time():
 
 
 def test_set_time_period():
-    """ Tests cube generated with time bounds calculated using specified time_period
-    and the rest of the values set as default values """
+    """Tests cube generated with time bounds calculated using specified time_period
+    and the rest of the values set as default values"""
     time_period = 150
     cube = generate_metadata(time_period=time_period)
 
@@ -277,8 +277,8 @@ def test_set_time_period():
 
 
 def test_set_frt():
-    """ Tests cube generated with specified forecast reference time and the rest of the
-    values set as default values """
+    """Tests cube generated with specified forecast reference time and the rest of the
+    values set as default values"""
     frt = datetime(2017, 1, 1, 0, 0)
     cube = generate_metadata(frt=frt)
 
@@ -330,11 +330,12 @@ def test_disable_ensemble(ensemble_members):
     "cube_type", ("variable", "percentile", "probability", "other")
 )
 @pytest.mark.parametrize(
-    "spp__relative_to_threshold", ("above", "below", None),
+    "spp__relative_to_threshold",
+    ("above", "below", None),
 )
 def test_leading_dimension(cube_type, spp__relative_to_threshold):
-    """ Tests cube generated with leading dimension specified using percentile and
-    probability flags, and different values for spp__relative_to_threshold """
+    """Tests cube generated with leading dimension specified using percentile and
+    probability flags, and different values for spp__relative_to_threshold"""
     if cube_type == "other":
         # Tests that error is raised when cube type isn't supported
         msg = 'Cube type {} not supported. Specify one of "variable", "percentile" or "probability".'.format(
@@ -357,7 +358,8 @@ def test_leading_dimension(cube_type, spp__relative_to_threshold):
             )
         else:
             cube = generate_metadata(
-                leading_dimension=leading_dimension, cube_type=cube_type,
+                leading_dimension=leading_dimension,
+                cube_type=cube_type,
             )
             spp__relative_to_threshold = RELATIVE_TO_THRESHOLD_DEFAULT
 
@@ -398,8 +400,8 @@ def test_leading_dimension(cube_type, spp__relative_to_threshold):
 
 
 def test_set_attributes():
-    """ Tests cube generated with specified attributes and the rest of the values set
-    as default values """
+    """Tests cube generated with specified attributes and the rest of the values set
+    as default values"""
     attributes = {"source": "IMPROVER"}
     cube = generate_metadata(attributes=attributes)
 
@@ -414,8 +416,8 @@ def test_set_attributes():
 
 
 def test_set_grid_spacing():
-    """ Tests cube generated with specified grid_spacing and the rest of the values set
-    as default values """
+    """Tests cube generated with specified grid_spacing and the rest of the values set
+    as default values"""
     grid_spacing = 5
     cube = generate_metadata(grid_spacing=grid_spacing)
 
@@ -433,8 +435,8 @@ def test_set_grid_spacing():
 
 
 def test_set_domain_corner():
-    """ Tests cube generated with specified domain corner and the rest of the values
-    set as default values """
+    """Tests cube generated with specified domain corner and the rest of the values
+    set as default values"""
     domain_corner = (0, 0)
     cube = generate_metadata(domain_corner=domain_corner)
 
@@ -498,13 +500,17 @@ def test_set_height_levels():
 
 
 def test_set_height_levels_single_value():
-    """ Tests cube generated with single height level is demoted from dimension to
-    scalar coordinate """
+    """Tests cube generated with single height level is demoted from dimension to
+    scalar coordinate"""
     height_levels = [1.5]
     cube = generate_metadata(height_levels=height_levels)
 
     assert cube.ndim == 3
-    assert cube.shape == (ENSEMBLE_MEMBERS_DEFAULT, NPOINTS_DEFAULT, NPOINTS_DEFAULT,)
+    assert cube.shape == (
+        ENSEMBLE_MEMBERS_DEFAULT,
+        NPOINTS_DEFAULT,
+        NPOINTS_DEFAULT,
+    )
 
     expected_spatial_grid_attributes = SPATIAL_GRID_ATTRIBUTE_DEFAULTS[
         SPATIAL_GRID_DEFAULT
@@ -531,7 +537,11 @@ def test_disable_ensemble_set_height_levels():
     )
 
     assert cube.ndim == 3
-    assert cube.shape == (len(height_levels), NPOINTS_DEFAULT, NPOINTS_DEFAULT,)
+    assert cube.shape == (
+        len(height_levels),
+        NPOINTS_DEFAULT,
+        NPOINTS_DEFAULT,
+    )
 
     expected_spatial_grid_attributes = SPATIAL_GRID_ATTRIBUTE_DEFAULTS[
         SPATIAL_GRID_DEFAULT

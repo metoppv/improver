@@ -110,7 +110,14 @@ def compare_netcdfs(
 
 
 def compare_datasets(
-    name, actual_ds, desired_ds, rtol, atol, exclude_vars, ignored_attributes, reporter,
+    name,
+    actual_ds,
+    desired_ds,
+    rtol,
+    atol,
+    exclude_vars,
+    ignored_attributes,
+    reporter,
 ):
     """
     Compare netCDF datasets.
@@ -209,7 +216,14 @@ def compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter):
 
 
 def compare_vars(
-    name, actual_ds, desired_ds, rtol, atol, exclude_vars, ignored_attributes, reporter,
+    name,
+    actual_ds,
+    desired_ds,
+    rtol,
+    atol,
+    exclude_vars,
+    ignored_attributes,
+    reporter,
 ):
     """
     Compare variables in a netCDF dataset/group.
@@ -251,7 +265,11 @@ def compare_vars(
         actual_var = actual_ds.variables[var]
         desired_var = desired_ds.variables[var]
         compare_attributes(
-            var_path, actual_var, desired_var, ignored_attributes, reporter,
+            var_path,
+            actual_var,
+            desired_var,
+            ignored_attributes,
+            reporter,
         )
         if var in coord_vars:
             compare_data(var_path, actual_var, desired_var, 0.0, 0.0, reporter)

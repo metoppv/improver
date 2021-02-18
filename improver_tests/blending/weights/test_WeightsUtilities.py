@@ -106,7 +106,7 @@ class Test_normalise_weights(IrisTest):
 
     def test_returns_correct_values_2darray_zero_weights(self):
         """Test normalizing along the columns of the array when there are
-           zeros in the input array."""
+        zeros in the input array."""
         weights_in = np.array([[6.0, 3.0, 0.0], [0.0, 1.0, 3.0]])
         result = WeightsUtilities.normalise_weights(weights_in, axis=0)
         expected_result = np.array([[1.0, 0.75, 0.0], [0.0, 0.25, 1.0]])

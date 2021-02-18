@@ -214,7 +214,7 @@ class FillRadarHoles(BasePlugin):
 class ApplyOrographicEnhancement(BasePlugin):
 
     """Apply orographic enhancement to precipitation rate input, either to
-     add or subtract an orographic enhancement component."""
+    add or subtract an orographic enhancement component."""
 
     def __init__(self, operation):
         """Initialise class.

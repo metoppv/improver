@@ -37,7 +37,9 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    reliability_table: cli.inputcube, *, minimum_forecast_count: int = 200,
+    reliability_table: cli.inputcube,
+    *,
+    minimum_forecast_count: int = 200,
 ):
     """
     Manipulate a reliability table to ensure sufficient sample counts in

@@ -55,7 +55,7 @@ Z0M_SEA = 0.0001
 
 
 class FrictionVelocity(BasePlugin):
-    """"Class to calculate the friction velocity.
+    """ "Class to calculate the friction velocity.
 
     This holds the function to calculate the friction velocity u_star,
     given a reference height h_ref, the velocity at the reference

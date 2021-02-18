@@ -267,7 +267,10 @@ class Test_process(IrisTest):
         """Set up cube."""
         data = np.ones((16, 16), dtype=np.float32)
         data[7, 7] = 0
-        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        self.cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
         time_points = [
             datetime(2017, 11, 10, 2),
@@ -275,7 +278,10 @@ class Test_process(IrisTest):
             datetime(2017, 11, 10, 4),
         ]
         self.multi_time_cube = add_coordinate(
-            self.cube, coord_points=time_points, coord_name="time", is_datetime="true",
+            self.cube,
+            coord_points=time_points,
+            coord_name="time",
+            is_datetime="true",
         )
 
     def test_basic(self):
@@ -366,7 +372,9 @@ class Test_process(IrisTest):
         data = np.ones((2, 16, 16), dtype=np.float32)
         data[1, 7, 7] = 0
         cube = set_up_probability_cube(
-            data, thresholds=[278, 279], spatial_grid="equalarea",
+            data,
+            thresholds=[278, 279],
+            spatial_grid="equalarea",
         )
 
         time_points = [
@@ -472,7 +480,10 @@ class Test_process(IrisTest):
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
         mask_cube = cube.copy(data=np.ones((5, 5), dtype=np.float32))
 
@@ -488,7 +499,10 @@ class Test_process(IrisTest):
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
         expected_data = data
         mask_cube = cube.copy()
@@ -514,7 +528,10 @@ class Test_process(IrisTest):
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
         mask_cube = cube.copy()
         mask_cube.data = np.array(

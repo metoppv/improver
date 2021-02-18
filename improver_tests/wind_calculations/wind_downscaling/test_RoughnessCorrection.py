@@ -341,25 +341,37 @@ class Test1D(IrisTest):
 
     def test_section0a(self):
         """Test AoS is RMDI, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(AoS=RMDI, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(
+            AoS=RMDI,
+            heightlevels=self.hls,
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0b(self):
         """Test AoS is np.nan, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(AoS=np.nan, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(
+            AoS=np.nan,
+            heightlevels=self.hls,
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0c(self):
         """Test Sigma is RMDI, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(Sigma=RMDI, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(
+            Sigma=RMDI,
+            heightlevels=self.hls,
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0d(self):
         """Test Sigma is np.nan, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(Sigma=np.nan, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(
+            Sigma=np.nan,
+            heightlevels=self.hls,
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
@@ -370,7 +382,9 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            z_0=RMDI, pporog=230.0, heightlevels=self.hls,
+            z_0=RMDI,
+            pporog=230.0,
+            heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
@@ -382,7 +396,9 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            z_0=np.nan, pporog=230.0, heightlevels=self.hls,
+            z_0=np.nan,
+            pporog=230.0,
+            heightlevels=self.hls,
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
@@ -393,7 +409,10 @@ class Test1D(IrisTest):
         modeloro < pporo, so point should do positive HC, uin < uout.
 
         """
-        landpointtests_hc_rc = TestSinglePoint(z_0=RMDI, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(
+            z_0=RMDI,
+            heightlevels=self.hls,
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue((land_hc_rc.data > landpointtests_hc_rc.w_cube.data).all())
 
@@ -406,7 +425,10 @@ class Test1D(IrisTest):
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(pporog=RMDI, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(
+            pporog=RMDI,
+            heightlevels=self.hls,
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -422,7 +444,10 @@ class Test1D(IrisTest):
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(pporog=np.nan, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(
+            pporog=np.nan,
+            heightlevels=self.hls,
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -438,7 +463,10 @@ class Test1D(IrisTest):
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(modelorog=RMDI, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(
+            modelorog=RMDI,
+            heightlevels=self.hls,
+        )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()

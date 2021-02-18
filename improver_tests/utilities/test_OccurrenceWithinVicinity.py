@@ -211,7 +211,11 @@ class Test_process(IrisTest):
             ]
         )
         cube = add_coordinate(
-            self.cube, self.timesteps, "time", order=[1, 0, 2, 3], is_datetime=True,
+            self.cube,
+            self.timesteps,
+            "time",
+            order=[1, 0, 2, 3],
+            is_datetime=True,
         )
         cube.data[0, 0, 2, 1] = 1.0
         cube.data[1, 1, 1, 3] = 1.0
@@ -266,7 +270,12 @@ class Test_process(IrisTest):
             ]
         )
         cube = self.cube[0]
-        cube = add_coordinate(cube, self.timesteps, "time", is_datetime=True,)
+        cube = add_coordinate(
+            cube,
+            self.timesteps,
+            "time",
+            is_datetime=True,
+        )
         cube.data[0, 2, 1] = 1.0
         cube.data[1, 1, 3] = 1.0
         orig_shape = cube.data.shape

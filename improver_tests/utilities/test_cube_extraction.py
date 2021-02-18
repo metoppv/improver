@@ -251,7 +251,7 @@ class Test_parse_constraint_list(IrisTest):
         self.assertTrue(cdict["threshold"](self.t_crd.cell(0)))
 
     def test_string_constraint(self):
-        """ Test that a string constraint results in a simple iris constraint,
+        """Test that a string constraint results in a simple iris constraint,
         not a lambda function. This is created via the literal_eval ValueError.
         """
         constraints = ["percentile=kittens"]
@@ -331,8 +331,8 @@ class Test_apply_extraction(IrisTest):
         self.assertArrayEqual(cube.data, reference_data)
 
     def test_basic_without_reconverting_units(self):
-        """ Test cube extraction for single constraint with units,
-         where the coordinates are not reconverted into the original units."""
+        """Test cube extraction for single constraint with units,
+        where the coordinates are not reconverted into the original units."""
         constraint_dict = {
             self.threshold_coord: lambda cell: any(np.isclose(cell.point, [0.1]))
         }
@@ -358,17 +358,17 @@ class Test_apply_extraction(IrisTest):
         self.assertArrayEqual(cube.data, reference_data)
 
     def test_error_non_coord_units(self):
-        """ Test error raised if units are provided for a non-coordinate
-        constraint """
+        """Test error raised if units are provided for a non-coordinate
+        constraint"""
         constraint_dict = {"name": "probability_of_precipitation_rate_above_threshold"}
         units_dict = {"name": "1"}
         with self.assertRaises(CoordinateNotFoundError):
             apply_extraction(self.precip_cube, constraint_dict, units_dict)
 
     def test_allow_none(self):
-        """ Test function returns None rather than raising an error where
+        """Test function returns None rather than raising an error where
         no subcubes match the required constraints, when unit conversion is
-        required """
+        required"""
         constraint_dict = {
             "name": "probability_of_precipitation_rate_above_threshold",
             self.threshold_coord: 5,
@@ -388,7 +388,7 @@ class Test_apply_extraction(IrisTest):
         self.assertArrayEqual(cube.data, reference_data)
 
     def test_range_constraints(self):
-        """ Test that a list of constraints behaves correctly. This includes
+        """Test that a list of constraints behaves correctly. This includes
         converting the units to the units that the constraints is
         defined in."""
         lower_bound = 0.03 * (1.0 - 1.0e-7)

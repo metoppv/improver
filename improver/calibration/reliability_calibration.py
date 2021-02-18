@@ -393,7 +393,9 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             # as being masked within the resulting reliability table.
             mask = threshold_reliability.mask & table.mask
             threshold_reliability = np.ma.array(
-                threshold_reliability.data + table.data, mask=mask, dtype=np.float32,
+                threshold_reliability.data + table.data,
+                mask=mask,
+                dtype=np.float32,
             )
         else:
             np.add(

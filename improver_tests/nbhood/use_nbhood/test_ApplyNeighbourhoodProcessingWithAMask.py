@@ -106,14 +106,64 @@ class Test_collapse_mask_coord(unittest.TestCase):
         # topographic bands for a single threshold.
         data = np.array(
             [
-                [[1, 1, 0,], [1, 1, 0,], [0, 0, 0,],],
-                [[0, 0, 1,], [0, 1, 1,], [1, 1, 0,],],
-                [[0, 0, 0,], [0, 0, 0,], [0, 0, 1,],],
+                [
+                    [
+                        1,
+                        1,
+                        0,
+                    ],
+                    [
+                        1,
+                        1,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                ],
+                [
+                    [
+                        0,
+                        0,
+                        1,
+                    ],
+                    [
+                        0,
+                        1,
+                        1,
+                    ],
+                    [
+                        1,
+                        1,
+                        0,
+                    ],
+                ],
+                [
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        1,
+                    ],
+                ],
             ],
             dtype=np.float32,
         )
         cube = set_up_probability_cube(
-            np.ones((1, 3, 3), dtype=np.float32), [278.15], spatial_grid="equalarea",
+            np.ones((1, 3, 3), dtype=np.float32),
+            [278.15],
+            spatial_grid="equalarea",
         )
         self.cube = add_coordinate(cube, [50, 100, 150], "topographic_zone", "m")
         self.cube = iris.util.squeeze(self.cube)
@@ -121,9 +171,57 @@ class Test_collapse_mask_coord(unittest.TestCase):
         # Set up weights cubes
         weights_data = np.array(
             [
-                [[1, 1, 0,], [1, 0.5, 0,], [0, 0, 0,],],
-                [[0, 0, 1,], [0, 0.5, 0.75,], [1, 0.75, 0.5,],],
-                [[0, 0, 0,], [0, 0, 0.25,], [0, 0.25, 0.5,],],
+                [
+                    [
+                        1,
+                        1,
+                        0,
+                    ],
+                    [
+                        1,
+                        0.5,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                ],
+                [
+                    [
+                        0,
+                        0,
+                        1,
+                    ],
+                    [
+                        0,
+                        0.5,
+                        0.75,
+                    ],
+                    [
+                        1,
+                        0.75,
+                        0.5,
+                    ],
+                ],
+                [
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        0.25,
+                    ],
+                    [
+                        0,
+                        0.25,
+                        0.5,
+                    ],
+                ],
             ],
             dtype=np.float32,
         )
@@ -160,9 +258,57 @@ class Test_collapse_mask_coord(unittest.TestCase):
         """
         data = np.array(
             [
-                [[1, 1, 0,], [1, 1, 0,], [0, 0, 0,],],
-                [[0, 0, 1,], [0, 1, 1,], [1, 1, 0,],],
-                [[0, 0, 0,], [0, 0, 0,], [0, 0, np.nan,],],
+                [
+                    [
+                        1,
+                        1,
+                        0,
+                    ],
+                    [
+                        1,
+                        1,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                ],
+                [
+                    [
+                        0,
+                        0,
+                        1,
+                    ],
+                    [
+                        0,
+                        1,
+                        1,
+                    ],
+                    [
+                        1,
+                        1,
+                        0,
+                    ],
+                ],
+                [
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        np.nan,
+                    ],
+                ],
             ],
             dtype=np.float32,
         )
@@ -234,15 +380,88 @@ class Test_process(unittest.TestCase):
         Set up expected results.
         """
         # Set up cube to process.
-        data = np.array([[[1, 1, 1,], [1, 1, 0,], [0, 0, 0,],],], dtype=np.float32,)
-        self.cube = set_up_probability_cube(data, [278.15], spatial_grid="equalarea",)
+        data = np.array(
+            [
+                [
+                    [
+                        1,
+                        1,
+                        1,
+                    ],
+                    [
+                        1,
+                        1,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                ],
+            ],
+            dtype=np.float32,
+        )
+        self.cube = set_up_probability_cube(
+            data,
+            [278.15],
+            spatial_grid="equalarea",
+        )
         # Set up mask cube. Currently mask cubes have sea points set to zero,
         # not masked out.
         mask_data = np.array(
             [
-                [[0, 1, 0,], [1, 1, 0,], [0, 0, 0,],],
-                [[0, 0, 1,], [0, 0, 1,], [1, 1, 0,],],
-                [[0, 0, 0,], [0, 0, 0,], [0, 0, 1,],],
+                [
+                    [
+                        0,
+                        1,
+                        0,
+                    ],
+                    [
+                        1,
+                        1,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                ],
+                [
+                    [
+                        0,
+                        0,
+                        1,
+                    ],
+                    [
+                        0,
+                        0,
+                        1,
+                    ],
+                    [
+                        1,
+                        1,
+                        0,
+                    ],
+                ],
+                [
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        1,
+                    ],
+                ],
             ],
             dtype=np.float32,
         )
@@ -259,9 +478,57 @@ class Test_process(unittest.TestCase):
         # weights cubes can have masked out sea points.
         weights_data = np.array(
             [
-                [[np.nan, 1, 0,], [1, 0.5, 0,], [0, 0, 0,],],
-                [[np.nan, 0, 1,], [0, 0.5, 0.75,], [0.75, 0.75, 0.5,],],
-                [[np.nan, 0, 0,], [0, 0, 0.25,], [0.25, 0.25, 0.5,],],
+                [
+                    [
+                        np.nan,
+                        1,
+                        0,
+                    ],
+                    [
+                        1,
+                        0.5,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        0,
+                    ],
+                ],
+                [
+                    [
+                        np.nan,
+                        0,
+                        1,
+                    ],
+                    [
+                        0,
+                        0.5,
+                        0.75,
+                    ],
+                    [
+                        0.75,
+                        0.75,
+                        0.5,
+                    ],
+                ],
+                [
+                    [
+                        np.nan,
+                        0,
+                        0,
+                    ],
+                    [
+                        0,
+                        0,
+                        0.25,
+                    ],
+                    [
+                        0.25,
+                        0.25,
+                        0.5,
+                    ],
+                ],
             ],
             dtype=np.float32,
         )
@@ -295,9 +562,21 @@ class Test_process(unittest.TestCase):
         self.expected_uncollapsed_result = np.array(
             [
                 [
-                    [[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0],],
-                    [[np.nan, 0.5, 0.5], [0.0, 0.25, 0.33333334], [0.0, 0.0, 0.0],],
-                    [[np.nan, np.nan, np.nan], [np.nan, 0.0, 0.0], [np.nan, 0.0, 0.0],],
+                    [
+                        [1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0],
+                    ],
+                    [
+                        [np.nan, 0.5, 0.5],
+                        [0.0, 0.25, 0.33333334],
+                        [0.0, 0.0, 0.0],
+                    ],
+                    [
+                        [np.nan, np.nan, np.nan],
+                        [np.nan, 0.0, 0.0],
+                        [np.nan, 0.0, 0.0],
+                    ],
                 ],
             ],
             dtype=np.float32,

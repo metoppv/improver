@@ -103,14 +103,14 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin_instance.output_name, self.new_name)
 
     def test_inverse_order_false(self):
-        """ Test setting of inverse_order flag using percentiles_cube. In this
+        """Test setting of inverse_order flag using percentiles_cube. In this
         case the flag should be false as the values associated with the
         percentiles increase in the same direction as the percentiles."""
         plugin_instance = ProbabilitiesFromPercentiles2D(self.test_cube, "new_name")
         self.assertFalse(plugin_instance.inverse_ordering)
 
     def test_inverse_order_true(self):
-        """ Test setting of inverse_order flag using percentiles_cube. In this
+        """Test setting of inverse_order flag using percentiles_cube. In this
         case the flag should be true as the values associated with the
         percentiles increase in the opposite direction to the percentiles."""
         percentiles_cube = self.test_cube.copy(data=np.flipud(self.test_cube.data))

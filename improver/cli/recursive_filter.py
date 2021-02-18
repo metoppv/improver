@@ -76,4 +76,8 @@ def process(
     from improver.nbhood.recursive_filter import RecursiveFilter
 
     plugin = RecursiveFilter(iterations=iterations, re_mask=remask)
-    return plugin(cube, smoothing_coefficients=smoothing_coefficients, mask_cube=mask,)
+    return plugin(
+        cube,
+        smoothing_coefficients=smoothing_coefficients,
+        mask_cube=mask,
+    )

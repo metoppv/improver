@@ -300,7 +300,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
                 dimensions of the input cube. If False, the length of the
                 spatial dimensions of the gradient cube are one less than for
                 the input cube.
-            """
+        """
         self.regrid = regrid
 
     @staticmethod

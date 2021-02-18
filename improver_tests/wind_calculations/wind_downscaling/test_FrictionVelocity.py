@@ -109,7 +109,7 @@ class Test_process(IrisTest):
     )
     def test_handles_zero_values(self):
         """Function calculates log(href/z_0) - test that the function accepts
-           zero values in h_ref and z_0 and returns np.nan without crashing."""
+        zero values in h_ref and z_0 and returns np.nan without crashing."""
 
         h_ref_zeros = np.full_like(self.h_ref, 0)
         z_0_zeros = np.full_like(self.z_0, 0)
@@ -139,7 +139,7 @@ class Test_process(IrisTest):
 
     def test_output_is_float32(self):
         """Test that the plugin returns an array of float 32 type
-           even when the input arrays are double precision."""
+        even when the input arrays are double precision."""
 
         result = FrictionVelocity(
             self.u_href, self.h_ref, self.z_0, self.mask

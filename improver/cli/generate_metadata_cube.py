@@ -48,7 +48,7 @@ def process(
     domain_corner: cli.comma_separated_list_of_float = None,
     npoints: int = 71,
 ):
-    """ Generate a cube with metadata only.
+    """Generate a cube with metadata only.
 
     Args:
         name (Optional[str]):

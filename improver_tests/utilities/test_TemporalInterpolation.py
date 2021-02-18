@@ -140,7 +140,7 @@ class Test_construct_time_list(IrisTest):
         self.times = []
         for i in range(4, 9):
             self.times.append(datetime.datetime(2017, 11, 1, i))
-        self.expected = [("time", [time for time in self.times])]
+        self.expected = [("time", list(self.times))]
 
     def test_return_type(self):
         """Test that a list is returned."""
@@ -528,7 +528,7 @@ class Test_solar_interpolation(IrisTest):
 
     def test_solar_interpolation_shape(self):
         """Test interpolating using solar method with len(shape) >= 3
-         works correctly."""
+        works correctly."""
 
         expected_time = [1509523200]
         expected_fp = 2 * 3600
@@ -604,7 +604,7 @@ class Test_daynight_interpolation(IrisTest):
 
     def test_daynight_interpolation(self):
         """Test interpolating to the a point where the daynight
-           mask is not all zero."""
+        mask is not all zero."""
 
         expected_data = np.ones((self.npoints, self.npoints)) * 4
         index = np.where(self.daynight_mask == 0)
@@ -621,7 +621,7 @@ class Test_daynight_interpolation(IrisTest):
 
     def test_daynight_interpolation_ens(self):
         """Test interpolating to the a point where the daynight
-           mask is not all zero and the len(shape) of the cube > 2."""
+        mask is not all zero and the len(shape) of the cube > 2."""
 
         expected_data_grid = np.ones((self.npoints, self.npoints)) * 4
         index = np.where(self.daynight_mask == 0)

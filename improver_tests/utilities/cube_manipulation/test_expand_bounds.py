@@ -168,8 +168,7 @@ class Test_expand_bounds(IrisTest):
         self.assertEqual(result.coord("time").dtype, np.int64)
 
     def test_basic_no_time_bounds(self):
-        """Test that it creates appropriate bounds if there are no time bounds
-        """
+        """Test that it creates appropriate bounds if there are no time bounds"""
         for cube in self.cubelist:
             cube.coord("time").bounds = None
 

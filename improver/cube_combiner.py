@@ -48,9 +48,7 @@ from improver.utilities.cube_manipulation import (
 
 class CubeCombiner(BasePlugin):
 
-    """Plugin for combining cubes.
-
-    """
+    """Plugin for combining cubes."""
 
     COMBINE_OPERATORS = {
         "+": np.add,

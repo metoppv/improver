@@ -143,7 +143,7 @@ class Test_process(IrisTest):
 
     def test_values_inverse_ordering(self):
         """Test inverting the order of the input cube produces inverted weights
-        order, with the cube and weights cube still matching in dimensions. """
+        order, with the cube and weights cube still matching in dimensions."""
         reference_cube = self.cube.copy()
         plugin = NonLinearWeights(cval=0.85)
         result = plugin.process(self.cube, self.coord_name, inverse_ordering=True)

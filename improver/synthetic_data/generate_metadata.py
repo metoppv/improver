@@ -59,7 +59,7 @@ def _get_units(name):
 
 
 def _create_time_bounds(time, time_period):
-    """ Create time bounds using time - time_period as the lower bound and time as the
+    """Create time bounds using time - time_period as the lower bound and time as the
     upper bound"""
     lower_bound = time - timedelta(minutes=time_period)
     upper_bound = time
@@ -103,7 +103,7 @@ def generate_metadata(
     npoints=71,
     **kwargs,
 ):
-    """ Generate a cube with metadata only.
+    """Generate a cube with metadata only.
 
     Args:
         name (str):
@@ -190,7 +190,11 @@ def generate_metadata(
     # Set up requested cube
     if cube_type == "percentile":
         metadata_cube = set_up_percentile_cube(
-            data, percentiles=leading_dimension, name=name, units=units, **kwargs,
+            data,
+            percentiles=leading_dimension,
+            name=name,
+            units=units,
+            **kwargs,
         )
     elif cube_type == "probability":
         metadata_cube = set_up_probability_cube(
@@ -203,7 +207,11 @@ def generate_metadata(
         )
     else:
         metadata_cube = set_up_variable_cube(
-            data, name=name, units=units, realizations=leading_dimension, **kwargs,
+            data,
+            name=name,
+            units=units,
+            realizations=leading_dimension,
+            **kwargs,
         )
 
     metadata_cube = squeeze(metadata_cube)
