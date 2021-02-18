@@ -34,10 +34,8 @@ Unit tests for the
 class.
 
 """
-import importlib
 import unittest
 
-import iris
 import numpy as np
 from iris.tests import IrisTest
 from numpy.testing import assert_array_almost_equal
@@ -134,38 +132,38 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         # Some expected data that are used in various tests.
         self.expected_loc_param_mean = np.array(
             [
-                [273.7956, 274.7027, 275.4586],
-                [276.8798, 277.6659, 278.4218],
-                [279.5104, 280.1755, 280.9919],
+                [273.7523, 274.668, 275.4311],
+                [276.8657, 277.6592, 278.4223],
+                [279.5212, 280.1927, 281.0168],
             ],
             dtype=np.float32,
         )
         self.expected_scale_param_mean = np.array(
             [
-                [0.2087, 0.211, 0.0125],
-                [0.0241, 0.021, 0.0125],
-                [0.0568, 0.0031, 0.0008],
+                [0.2335, 0.2362, 0.0139],
+                [0.027, 0.0235, 0.0139],
+                [0.0636, 0.0035, 0.0009],
             ],
             dtype=np.float32,
         )
         self.expected_loc_param_statsmodels_realizations = np.array(
             [
-                [274.1441, 275.1024, 275.2633],
-                [276.9824, 277.3544, 278.3202],
-                [280.0139, 280.2564, 281.1691],
+                [274.2124, 275.17087, 275.33188],
+                [277.05133, 277.42355, 278.3895],
+                [280.0836, 280.3262, 281.2391],
             ],
             dtype=np.float32,
         )
         self.expected_loc_param_no_statsmodels_realizations = np.array(
             [
-                [273.5327, 274.5308, 275.367],
-                [276.9288, 277.7971, 278.6275],
-                [279.8209, 280.5561, 281.4539],
+                [273.7883, 274.8042, 275.3366],
+                [276.9396, 277.6234, 278.5141],
+                [279.872, 280.4036, 281.3206],
             ],
             dtype=np.float32,
         )
         self.expected_loc_param_realizations_sites = np.array(
-            [277.7531, 277.4529, 277.5530, 277.2528], dtype=np.float32,
+            [277.7531, 277.4529, 277.553, 277.2528], dtype=np.float32,
         )
 
         self.expected_scale_param_realizations_sites = np.array(
@@ -451,7 +449,8 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         calibrated_forecast_predictor, calibrated_forecast_var = self.plugin.process(
             self.current_temperature_forecast_cube, self.coeffs_from_mean
         )
-
+        np.set_printoptions(suppress=True, precision=4)
+        print(calibrated_forecast_var.data)
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_predictor.data, self.expected_loc_param_mean
         )
