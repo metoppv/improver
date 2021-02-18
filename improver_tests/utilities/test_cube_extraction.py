@@ -581,7 +581,7 @@ class Test_subset_data(IrisTest):
             "longitude": {"min": 0, "max": 7, "thin": 2},
             "latitude": {"min": 42, "max": 52, "thin": 2},
         }
-        msg = "Cube coordinates .* do not match expected values"
+        msg = "Cube coordinates .* are not present"
         with self.assertRaisesRegex(ValueError, msg):
             subset_data(self.uk_cube, grid_spec=grid_spec_latlon)
 

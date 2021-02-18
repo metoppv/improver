@@ -304,13 +304,15 @@ def subset_data(cube, grid_spec=None, site_list=None):
     Args:
         cube (iris.cube.Cube):
             Input dataset
-        grid_spec (dict):
+        grid_spec (Dict[str, Dict[str, int]]):
             Dictionary containing bounding grid points and an integer "thinning
             factor" for each of UK and global grid, to create cutouts.  Eg a
             "thinning factor" of 10 would mean every 10th point being taken for
-            the cutout.
-        site_list (list of str):
-            List of WMO site IDs to extract
+            the cutout.  The expected dictionary has keys that are spatial coordinate
+            names, with values that are dictionaries with "min", "max" and "thin" keys.
+        site_list (list):
+            List of WMO site IDs to extract.  These IDs must match the type and format
+            of the "wmo_id" coordinate on the input spot cube.
 
     Returns:
         iris.cube.Cube:
@@ -318,11 +320,16 @@ def subset_data(cube, grid_spec=None, site_list=None):
 
     Raises:
         ValueError:
-            If grid_spec does not contain cutout parameters for the coordinates on
-            the input gridded data.
+            If site_list is not provided for a spot data cube
         ValueError:
-            If the grid_spec or site_list aren't present in the cube, so that the
-            subset cube returned would be None.
+            If the spot data cube does not contain any of the required sites
+        ValueError:
+            If grid_spec is not provided for a gridded cube
+        ValueError:
+            If grid_spec does not contain entries for the spatial coordinates on
+            the input gridded data
+        ValueError:
+            If the grid_spec provided does not overlap with the cube domain
     """
     if cube.coords("spot_index"):
         if site_list is None:
@@ -345,8 +352,8 @@ def subset_data(cube, grid_spec=None, site_list=None):
         for coord in [y_coord, x_coord]:
             if coord not in grid_spec:
                 raise ValueError(
-                    f"Cube coordinates {y_coord}, {x_coord} do not match "
-                    "expected values"
+                    f"Cube coordinates {y_coord}, {x_coord} are not present within "
+                    f"{grid_spec.keys()}"
                 )
 
         cutout = _create_cutout(cube, grid_spec)
