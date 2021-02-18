@@ -132,33 +132,33 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         # Some expected data that are used in various tests.
         self.expected_loc_param_mean = np.array(
             [
-                [273.7526, 274.6683, 275.4314],
-                [276.866, 277.6595, 278.4226],
-                [279.5215, 280.193, 281.0171],
+                [273.7014, 274.6534, 275.4469],
+                [276.9385, 277.7636, 278.5570],
+                [279.6996, 280.1122, 281.2547],
             ],
             dtype=np.float32,
         )
         self.expected_scale_param_mean = np.array(
             [
-                [0.2335, 0.2362, 0.0139],
-                [0.027, 0.0235, 0.0139],
-                [0.0636, 0.0035, 0.0009],
+                [0.2316, 0.2342, 0.0168],
+                [0.0271, 0.0237, 0.0168],
+                [0.0634, 0.1151, 0.0116],
             ],
             dtype=np.float32,
         )
         self.expected_loc_param_statsmodels_realizations = np.array(
             [
-                [274.2131, 275.1716, 275.3326],
-                [277.0521, 277.4243, 278.3902],
-                [280.0843, 280.3269, 281.2398],
+                [274.388, 275.3053, 275.4492],
+                [277.1295, 277.3866, 278.4672],
+                [280.2007, 280.3929, 281.2602],
             ],
             dtype=np.float32,
         )
         self.expected_loc_param_no_statsmodels_realizations = np.array(
             [
-                [273.9432, 274.9402, 275.384],
-                [277.0186, 277.6226, 278.5311],
-                [279.9774, 280.4375, 281.3516],
+                [273.9595, 274.9872, 275.4302],
+                [277.0191, 277.6373, 278.6069],
+                [279.9651, 280.1437, 281.4046],
             ],
             dtype=np.float32,
         )
@@ -381,6 +381,8 @@ class Test__calculate_scale_parameter(
         """Test the scale parameter is calculated correctly."""
         self.plugin.coefficients_cubelist = self.coeffs_from_mean
         scale_parameter = self.plugin._calculate_scale_parameter()
+        np.set_printoptions(suppress=True, precision=4)
+        print("scale_parameter = ", repr(scale_parameter))
         self.assertCalibratedVariablesAlmostEqual(
             scale_parameter, self.expected_scale_param_mean
         )

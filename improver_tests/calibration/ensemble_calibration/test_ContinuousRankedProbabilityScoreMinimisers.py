@@ -137,7 +137,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.2609, places=self.precision)
+        self.assertAlmostEqual(result, 0.3006, places=self.precision)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
@@ -158,7 +158,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.2609, places=self.precision)
+        self.assertAlmostEqual(result, 0.3006, places=self.precision)
 
     @ManageWarnings(
         ignored_messages=[
@@ -209,36 +209,36 @@ class Test_process_normal_distribution(
         super().setUp()
         self.tolerance = 1e-4
         self.plugin = Plugin(tolerance=self.tolerance)
-        self.expected_mean_coefficients = [-0.0005, 1.0009, 0.0016, 0.8069]
+        self.expected_mean_coefficients = [-0.0003, 1.0013, 0.0012, 0.5945]
         self.expected_realizations_coefficients = [
-            0.03,
-            0.3388,
-            0.3149,
-            0.8869,
+            0.0254,
+            0.4349,
+            0.39,
+            0.8122,
             -0.0016,
-            0.2983,
+            0.2724,
         ]
         self.expected_mean_coefficients_point_by_point = np.array(
             [
                 [
-                    [0.0015, 0.0037, 0.002],
-                    [-0.0009, 0.0008, 0.0037],
-                    [-0.0046, -0.003, 0.0037],
+                    [0.0015, 0.0037, -0.002],
+                    [-0.0009, 0.0008, 0.0015],
+                    [-0.0046, 0.0053, -0.0038],
                 ],
                 [
-                    [1.0039, 1.0035, 1.0005],
-                    [1.0013, 1.0011, 1.0009],
-                    [1.002, 1.0005, 1.0001],
+                    [1.0039, 1.0035, 1.0009],
+                    [1.0013, 1.0011, 1.001],
+                    [1.002, 1.0015, 1.0008],
                 ],
                 [
-                    [0.0017, -0.0009, 0.0013],
-                    [0.0054, 0.0003, -0.0001],
-                    [-0.0001, -0.0001, -0.0],
+                    [0.0017, -0.0009, -0.0002],
+                    [0.0054, 0.0003, -0.0002],
+                    [-0.0001, -0.0018, 0.0002],
                 ],
                 [
-                    [-0.0, 0.0007, 0.0001],
-                    [0.0003, -0.0001, -0.0012],
-                    [-0.0013, -0.0013, -0.0001],
+                    [-0.0, 0.0007, -0.0009],
+                    [0.0003, -0.0001, -0.001],
+                    [-0.0013, 0.0, 0.0006],
                 ],
             ],
             dtype=np.float32,
@@ -248,20 +248,44 @@ class Test_process_normal_distribution(
             [
                 [0.0017, 0.0017, 0.0017, 0.0017],
                 [1.0036, 1.0036, 1.0036, 1.0036],
-                [0.0017, 0.0017, 0.0016, 0.0016],
-                [0.0000, 0.0000, 0.0000, 0.0000],
+                [0.0017, 0.0017, 0.0017, 0.0017],
+                [-0.0, -0.0, -0.0, 0.0],
             ],
             dtype=np.float32,
         )
 
         self.expected_realizations_coefficients_point_by_point = np.array(
             [
-                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.58, 0.58, 0.58], [0.58, 0.58, 0.58], [0.58, 0.58, 0.58]],
-                [[0.58, 0.58, 0.58], [0.58, 0.58, 0.58], [0.58, 0.58, 0.58]],
-                [[0.58, 0.58, 0.58], [0.58, 0.58, 0.58], [0.58, 0.58, 0.58]],
-                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[1.02, 1.01, 0.99], [1.02, 1.02, 1.01], [1.01, 1.02, 1.0]],
+                [
+                    [0.0001, 0.0001, 0.0001],
+                    [0.0001, 0.0001, 0.0],
+                    [0.0001, 0.0001, 0.0001],
+                ],
+                [
+                    [0.579, 0.5793, 0.5782],
+                    [0.5782, 0.5778, 0.5781],
+                    [0.5786, 0.5782, 0.5783],
+                ],
+                [
+                    [0.5795, 0.5786, 0.5782],
+                    [0.5783, 0.578, 0.5767],
+                    [0.5791, 0.578, 0.5763],
+                ],
+                [
+                    [0.5773, 0.5769, 0.5763],
+                    [0.5769, 0.5771, 0.5782],
+                    [0.5764, 0.5773, 0.5783],
+                ],
+                [
+                    [0.0001, 0.0001, 0.0001],
+                    [0.0001, 0.0001, 0.0001],
+                    [0.0001, 0.0001, 0.0],
+                ],
+                [
+                    [1.0194, 1.0143, 1.0199],
+                    [1.0199, 1.02, 1.013],
+                    [1.0144, 0.9885, 1.0246],
+                ],
             ],
             dtype=np.float32,
         )
@@ -317,6 +341,7 @@ class Test_process_normal_distribution(
             predictor,
             distribution,
         )
+
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
         self.assertEMOSCoefficientsAlmostEqual(
@@ -670,7 +695,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.1754, self.precision)
+        self.assertAlmostEqual(result, 0.2150, self.precision)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
@@ -691,7 +716,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.1754, self.precision)
+        self.assertAlmostEqual(result, 0.2150, self.precision)
 
     @ManageWarnings(
         ignored_messages=[
@@ -740,14 +765,14 @@ class Test_process_truncated_normal_distribution(
         super().setUp()
         self.tolerance = 1e-4
         self.plugin = Plugin(tolerance=self.tolerance)
-        self.expected_mean_coefficients = [0.4511, 0.9503, 0.0113, 0.7424]
+        self.expected_mean_coefficients = [0.3958, 0.9854, -0.0, 0.621]
         self.expected_realizations_coefficients = [
-            0.2976,
-            0.0086,
-            0.5721,
-            0.8099,
-            -0.0122,
-            0.2736,
+            0.1898,
+            -0.1558,
+            0.4452,
+            0.8877,
+            -0.1331,
+            -0.0002,
         ]
 
     @ManageWarnings(
