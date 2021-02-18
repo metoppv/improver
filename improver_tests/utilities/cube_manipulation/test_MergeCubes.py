@@ -87,11 +87,9 @@ class Test__equalise_cell_methods(IrisTest):
         cube1 = self.cube.copy()
         cube2 = self.cube.copy()
         cube3 = self.cube.copy()
-        cube1.cell_methods = tuple([self.cell_method1, self.cell_method2])
-        cube2.cell_methods = tuple(
-            [self.cell_method1, self.cell_method2, self.cell_method3]
-        )
-        cube3.cell_methods = tuple([self.cell_method1, self.cell_method3])
+        cube1.cell_methods = (self.cell_method1, self.cell_method2)
+        cube2.cell_methods = (self.cell_method1, self.cell_method2, self.cell_method3)
+        cube3.cell_methods = (self.cell_method1, self.cell_method3)
         cubelist = iris.cube.CubeList([cube1, cube2, cube3])
         self.plugin._equalise_cell_methods(cubelist)
         self.assertIsInstance(cubelist, iris.cube.CubeList)
