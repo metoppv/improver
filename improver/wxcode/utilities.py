@@ -196,7 +196,7 @@ def interrogate_decision_tree(wxtree):
     # CLI help.
     output = []
     for requirement, uniq_thresh in sorted(requirements.items()):
-        (units,) = set(u for (_, u) in uniq_thresh)  # enforces same units
+        (units,) = {u for (_, u) in uniq_thresh}  # enforces same units
         thresh_str = ", ".join(map(str, sorted(v for (v, _) in uniq_thresh)))
         output.append("{} ({}): {}".format(requirement, units, thresh_str))
 
