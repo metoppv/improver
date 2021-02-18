@@ -106,7 +106,12 @@ class SetupCubes(IrisTest):
             ],
             dtype=np.float32,
         )
-        temperature_data = base_data + 273.15
+        from cf_units import Unit
+        c = Unit("Celsius")
+        base_data = c.convert(base_data, "Kelvin")
+
+        temperature_data = base_data# + 273.15
+
         self.current_temperature_forecast_cube = set_up_variable_cube(
             temperature_data,
             units="Kelvin",
@@ -115,7 +120,8 @@ class SetupCubes(IrisTest):
             frt=frt_dt,
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
-
+        #self.current_temperature_forecast_cube.convert_units("Kelvin")
+        print("self.current = ", self.current_temperature_forecast_cube.data)
         time_dt = time_dt - datetime.timedelta(days=5)
         frt_dt = frt_dt - datetime.timedelta(days=5)
 
@@ -123,6 +129,7 @@ class SetupCubes(IrisTest):
         self.historic_forecasts = _create_historic_forecasts(
             temperature_data, time_dt, frt_dt, realizations=[0, 1, 2]
         )
+
         self.truth = _create_truth(temperature_data, time_dt)
 
         # Create a combined list of historic forecasts and truth
@@ -131,7 +138,7 @@ class SetupCubes(IrisTest):
         # Create the historic and truth cubes
         self.historic_temperature_forecast_cube = self.historic_forecasts.merge_cube()
         self.temperature_truth_cube = self.truth.merge_cube()
-
+        print("self.historic = ", self.historic_temperature_forecast_cube.data)
         # Create a cube for testing wind speed.
         self.current_wind_speed_forecast_cube = set_up_variable_cube(
             base_data,

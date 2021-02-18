@@ -39,7 +39,7 @@ jobs:
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda activate improver_${{ matrix.env }}
-        pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
+        pytest -vs -m "not acc" --cov=improver --cov-report xml:coverage.xml
     - name: codacy-coverage
       if: env.CODACY_PROJECT_TOKEN
       run: |
