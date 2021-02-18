@@ -539,7 +539,6 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
     # transpose cube using new coordinate order
     if new_dims != sorted(new_dims):
         cube.transpose(new_dims)
-    return
 
 
 def clip_cube_data(cube, minimum_value, maximum_value):
