@@ -132,9 +132,9 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         # Some expected data that are used in various tests.
         self.expected_loc_param_mean = np.array(
             [
-                [273.7523, 274.668, 275.4311],
-                [276.8657, 277.6592, 278.4223],
-                [279.5212, 280.1927, 281.0168],
+                [273.7526, 274.6683, 275.4314],
+                [276.866, 277.6595, 278.4226],
+                [279.5215, 280.193, 281.0171],
             ],
             dtype=np.float32,
         )
@@ -148,17 +148,17 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         )
         self.expected_loc_param_statsmodels_realizations = np.array(
             [
-                [274.2124, 275.17087, 275.33188],
-                [277.05133, 277.42355, 278.3895],
-                [280.0836, 280.3262, 281.2391],
+                [274.2131, 275.1716, 275.3326],
+                [277.0521, 277.4243, 278.3902],
+                [280.0843, 280.3269, 281.2398],
             ],
             dtype=np.float32,
         )
         self.expected_loc_param_no_statsmodels_realizations = np.array(
             [
-                [273.7883, 274.8042, 275.3366],
-                [276.9396, 277.6234, 278.5141],
-                [279.872, 280.4036, 281.3206],
+                [273.9432, 274.9402, 275.384],
+                [277.0186, 277.6226, 278.5311],
+                [279.9774, 280.4375, 281.3516],
             ],
             dtype=np.float32,
         )
@@ -449,8 +449,7 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         calibrated_forecast_predictor, calibrated_forecast_var = self.plugin.process(
             self.current_temperature_forecast_cube, self.coeffs_from_mean
         )
-        np.set_printoptions(suppress=True, precision=4)
-        print(calibrated_forecast_var.data)
+
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_predictor.data, self.expected_loc_param_mean
         )

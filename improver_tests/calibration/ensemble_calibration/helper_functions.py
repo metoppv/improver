@@ -35,6 +35,7 @@ import datetime
 
 import iris
 import numpy as np
+from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -106,11 +107,8 @@ class SetupCubes(IrisTest):
             ],
             dtype=np.float32,
         )
-        from cf_units import Unit
 
-        c = Unit("Celsius")
-        base_data = c.convert(base_data, "Kelvin")
-        temperature_data = base_data  # + 273.15
+        temperature_data = Unit("Celsius").convert(base_data, "Kelvin")
 
         self.current_temperature_forecast_cube = set_up_variable_cube(
             temperature_data,
@@ -163,33 +161,9 @@ class SetupCubes(IrisTest):
         # Set up another set of cubes which have a halo of zeros round the
         # original data. This data will be masked out in tests using a
         # landsea_mask
-        base_data = np.array(
-            [
-                [
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                    [0.0, 0.3, 1.1, 2.6, 0.0],
-                    [0.0, 4.2, 5.3, 6.0, 0.0],
-                    [0.0, 7.1, 8.2, 9.0, 0.0],
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                ],
-                [
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                    [0.0, 0.7, 2.0, 3, 0.0],
-                    [0.0, 4.3, 5.6, 6.4, 0.0],
-                    [0.0, 7.0, 8.0, 9.0, 0.0],
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                ],
-                [
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                    [0.0, 2.1, 3.0, 3.0, 0.0],
-                    [0.0, 4.8, 5.0, 6.0, 0.0],
-                    [0.0, 7.9, 8.0, 8.9, 0.0],
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                ],
-            ],
-            dtype=np.float32,
-        )
-        temperature_data = base_data + 273.15
+        base_data = np.pad(base_data, ((0, 0), (1, 1), (1, 1)), mode="constant")
+        temperature_data = Unit("Celsius").convert(base_data, "Kelvin")
+
         # Create historic forecasts and truth
         self.historic_forecasts_halo = _create_historic_forecasts(
             temperature_data, time_dt, frt_dt, realizations=[0, 1, 2]

@@ -99,7 +99,7 @@ class SetupExpectedCoefficients(IrisTest):
 
         # The expected coefficients for temperature in Kelvin.
         self.expected_mean_predictor_norm = np.array(
-            [22.6826, 0.9157, 0.0, 0.5113], dtype=np.float32
+            [22.6829, 0.9157, 0.0017, 0.5113], dtype=np.float32
         )
         # The expected coefficients for wind speed in m s^-1.
         self.expected_mean_predictor_truncnorm = np.array(
@@ -107,10 +107,10 @@ class SetupExpectedCoefficients(IrisTest):
         )
 
         self.expected_realizations_norm_statsmodels = np.array(
-            [-0.3012, -0.0777, 0.3898, 0.9166, -0.0003, 1.0016], dtype=np.float32
+            [-0.3005, -0.0777, 0.3898, 0.9166, -0.0003, 1.0018], dtype=np.float32
         )
         self.expected_realizations_norm_no_statsmodels = np.array(
-            [0.0158, 0.3675, 0.5743, 0.7296, -0.0566, 0.5128], dtype=np.float32
+            [0.0188, 0.3341, 0.5257, 0.7806, -0.0925, 0.2843], dtype=np.float32
         )
         self.expected_realizations_truncnorm_statsmodels = np.array(
             [-0.5685, -0.5764, 0.2462, 0.7497, -0.0182, 1.1082], dtype=np.float32
@@ -121,19 +121,19 @@ class SetupExpectedCoefficients(IrisTest):
         self.expected_mean_predictor_each_grid_point = {
             "emos_coefficient_alpha": np.array(
                 [
-                    [0.0893, -0.0557, -1.0701],
-                    [-0.8276, -0.7923, -0.7383],
+                    [0.0826, -0.0557, -1.0701],
+                    [-0.8838, -0.692, -0.7383],
                     [-0.5827, -0.8716, -1.0031],
                 ]
             ),
             "emos_coefficient_beta": np.array(
-                [[0.9999, 1.0001, 1.0007], [1.0007, 1.0003, 1.0], [1.0005, 1.0, 1.0001]]
+                [[0.9999, 1.0001, 1.0007], [1.0009, 1.0, 1.0], [1.0005, 1.0, 1.0001]]
             ),
             "emos_coefficient_gamma": np.array(
-                [[0.001, 0.001, 0.0002], [-0.0002, -0.0001, -0.0], [0.0011, 0.0, -0.0]]
+                [[0.0009, 0.001, 0.0002], [0.0013, 0.0, -0.0], [0.0011, 0.0, -0.0]]
             ),
             "emos_coefficient_delta": np.array(
-                [[0.0, -0.0, 0.0], [0.0, 0.0, -0.0], [-0.0, 0.0, 0.0002]]
+                [[-0.0, -0.0, 0.0], [-0.0, 0.0, -0.0], [-0.0, 0.0, 0.0002]]
             ),
         }
         self.expected_mean_predictor_minimise_each_grid_point = {
@@ -159,7 +159,7 @@ class SetupExpectedCoefficients(IrisTest):
                 ]
             ),
             "emos_coefficient_delta": np.array(
-                [[-0.0, 0.0, 0.0001], [0.0014, 0.0001, 0.0001], [-0.0, -0.0031, 1.0334]]
+                [[0.0, 0.0, 0.0001], [-0.0012, 0.0001, 0.0001], [-0.0, -0.0031, 1.0334]]
             ),
         }
         self.expected_realizations_predictor_minimise_each_grid_point = {
@@ -197,11 +197,7 @@ class SetupExpectedCoefficients(IrisTest):
                 ]
             ),
             "emos_coefficient_delta": np.array(
-                [
-                    [-0.0, 0.0, -0.0002],
-                    [-0.0009, -0.0, 0.0006],
-                    [0.0001, 0.0004, 1.0203],
-                ]
+                [[-0.0, 0.0, -0.0002], [0.0009, 0.0, 0.0006], [0.0001, 0.0004, 1.0203],]
             ),
         }
         self.expected_mean_predictor_each_site = {
@@ -930,7 +926,7 @@ class Test_process(
         expected values for a normal distribution for when the historic
         forecasts and truths input having some mismatches in validity time.
         """
-        expected = [22.8379, 0.9152, -0.0, 0.5066]
+        expected = [22.8376, 0.9152, -0.0, 0.5066]
         partial_historic_forecasts = (
             self.historic_forecasts[:2] + self.historic_forecasts[3:]
         ).merge_cube()
@@ -1353,14 +1349,12 @@ class Test_process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
         for cube in result:
-            np.set_printoptions(suppress=True, precision=4)
-            print("cube.data = ", repr(cube.data))
-            # self.assertEMOSCoefficientsAlmostEqual(
-            #     cube.data,
-            #     self.expected_realizations_predictor_minimise_each_grid_point[
-            #         cube.name()
-            #     ],
-            # )
+            self.assertEMOSCoefficientsAlmostEqual(
+                cube.data,
+                self.expected_realizations_predictor_minimise_each_grid_point[
+                    cube.name()
+                ],
+            )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
                 [c.name() for c in cube.coords(dim_coords=True)],

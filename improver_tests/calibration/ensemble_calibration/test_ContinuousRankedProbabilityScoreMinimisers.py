@@ -112,6 +112,12 @@ class Test_calculate_normal_crps(SetupNormalInputs):
     used as the predictors.
     """
 
+    def setUp(self):
+        """Set up plugin."""
+        super().setUp()
+        self.precision = 4
+        self.plugin = Plugin(tolerance=1e-4)
+
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
@@ -121,8 +127,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         """
         predictor = "mean"
 
-        plugin = Plugin()
-        result = plugin.calculate_normal_crps(
+        result = self.plugin.calculate_normal_crps(
             self.initial_guess_for_mean,
             self.forecast_predictor_data,
             self.truth_data,
@@ -132,7 +137,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.2609128)
+        self.assertAlmostEqual(result, 0.2609, places=self.precision)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
@@ -143,8 +148,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         """
         predictor = "realizations"
 
-        plugin = Plugin()
-        result = plugin.calculate_normal_crps(
+        result = self.plugin.calculate_normal_crps(
             self.initial_guess_for_realization,
             self.forecast_predictor_data_realizations,
             self.truth_data,
@@ -154,7 +158,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.2609116)
+        self.assertAlmostEqual(result, 0.2609, places=self.precision)
 
     @ManageWarnings(
         ignored_messages=[
@@ -175,8 +179,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
 
         predictor = "mean"
 
-        plugin = Plugin()
-        result = plugin.calculate_normal_crps(
+        result = self.plugin.calculate_normal_crps(
             initial_guess,
             self.forecast_predictor_data,
             self.truth_data,
@@ -186,7 +189,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, plugin.BAD_VALUE)
+        self.assertAlmostEqual(result, self.plugin.BAD_VALUE, self.precision)
 
 
 class Test_process_normal_distribution(
@@ -219,7 +222,7 @@ class Test_process_normal_distribution(
             [
                 [
                     [0.0015, 0.0037, 0.002],
-                    [-0.0009, -0.0006, 0.0037],
+                    [-0.0009, 0.0008, 0.0037],
                     [-0.0046, -0.003, 0.0037],
                 ],
                 [
@@ -233,7 +236,7 @@ class Test_process_normal_distribution(
                     [-0.0001, -0.0001, -0.0],
                 ],
                 [
-                    [0.0, 0.0007, 0.0001],
+                    [-0.0, 0.0007, 0.0001],
                     [0.0003, -0.0001, -0.0012],
                     [-0.0013, -0.0013, -0.0001],
                 ],
@@ -642,6 +645,12 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
     as the predictors.
     """
 
+    def setUp(self):
+        """Set up plugin."""
+        super().setUp()
+        self.precision = 4
+        self.plugin = Plugin(tolerance=1e-4)
+
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
@@ -651,8 +660,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         """
         predictor = "mean"
 
-        plugin = Plugin()
-        result = plugin.calculate_truncated_normal_crps(
+        result = self.plugin.calculate_truncated_normal_crps(
             self.initial_guess_for_mean,
             self.forecast_predictor_data,
             self.truth_data,
@@ -662,7 +670,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.1753538)
+        self.assertAlmostEqual(result, 0.1754, self.precision)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
@@ -673,8 +681,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         """
         predictor = "realizations"
 
-        plugin = Plugin()
-        result = plugin.calculate_truncated_normal_crps(
+        result = self.plugin.calculate_truncated_normal_crps(
             self.initial_guess_for_realization,
             self.forecast_predictor_data_realizations,
             self.truth_data,
@@ -684,7 +691,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.1753538)
+        self.assertAlmostEqual(result, 0.1754, self.precision)
 
     @ManageWarnings(
         ignored_messages=[
@@ -705,8 +712,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
 
         predictor = "mean"
 
-        plugin = Plugin()
-        result = plugin.calculate_truncated_normal_crps(
+        result = self.plugin.calculate_truncated_normal_crps(
             initial_guess,
             self.forecast_predictor_data,
             self.truth_data,
@@ -716,7 +722,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, plugin.BAD_VALUE)
+        self.assertAlmostEqual(result, self.plugin.BAD_VALUE, self.precision)
 
 
 class Test_process_truncated_normal_distribution(
