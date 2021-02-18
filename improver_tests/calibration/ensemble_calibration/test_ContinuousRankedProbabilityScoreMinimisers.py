@@ -341,7 +341,6 @@ class Test_process_normal_distribution(
             predictor,
             distribution,
         )
-
         self.assertIsInstance(result, np.ndarray)
         self.assertEqual(result.dtype, np.float32)
         self.assertEMOSCoefficientsAlmostEqual(

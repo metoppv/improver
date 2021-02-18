@@ -107,9 +107,7 @@ class SetupCubes(IrisTest):
             ],
             dtype=np.float32,
         )
-
         temperature_data = Unit("Celsius").convert(base_data, "Kelvin")
-
         self.current_temperature_forecast_cube = set_up_variable_cube(
             temperature_data,
             units="Kelvin",
@@ -126,7 +124,6 @@ class SetupCubes(IrisTest):
         self.historic_forecasts = _create_historic_forecasts(
             temperature_data, time_dt, frt_dt, realizations=[0, 1, 2]
         )
-
         self.truth = _create_truth(temperature_data, time_dt)
 
         # Create a combined list of historic forecasts and truth

@@ -381,8 +381,6 @@ class Test__calculate_scale_parameter(
         """Test the scale parameter is calculated correctly."""
         self.plugin.coefficients_cubelist = self.coeffs_from_mean
         scale_parameter = self.plugin._calculate_scale_parameter()
-        np.set_printoptions(suppress=True, precision=4)
-        print("scale_parameter = ", repr(scale_parameter))
         self.assertCalibratedVariablesAlmostEqual(
             scale_parameter, self.expected_scale_param_mean
         )
