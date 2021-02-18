@@ -64,7 +64,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
                 1e-5 (float32) precision level
         """
         threshold_diffs = np.diff(threshold_ranges)
-        if any([diff < 1e-5 for diff in threshold_diffs]):
+        if any(diff < 1e-5 for diff in threshold_diffs):
             raise ValueError(
                 "Plugin cannot distinguish between thresholds at "
                 "{} {}".format(threshold_ranges, threshold_units)

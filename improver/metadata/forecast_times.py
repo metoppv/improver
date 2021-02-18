@@ -260,7 +260,7 @@ def find_latest_cycletime(cubelist):
             time in the input cubelist.
     """
     # Get cycle time as latest forecast reference time
-    if any([cube.coord_dims("forecast_reference_time") for cube in cubelist]):
+    if any(cube.coord_dims("forecast_reference_time") for cube in cubelist):
         raise ValueError(
             "Expecting scalar forecast_reference_time for each input "
             "cube - cannot replace a dimension coordinate"

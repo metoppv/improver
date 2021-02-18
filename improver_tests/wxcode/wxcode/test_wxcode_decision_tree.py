@@ -168,5 +168,5 @@ def test_probability_len_match(tree_name):
     tree = TREES[tree_name]
     for _, query in tree.items():
         check_list = query["probability_thresholds"]
-        assert all([isinstance(x, (int, float)) for x in check_list])
+        assert all(isinstance(x, (int, float)) for x in check_list)
         assert len(check_list) == len(get_parameter_names(query["diagnostic_fields"]))

@@ -513,7 +513,7 @@ class Test_create_condition_chain(IrisTest):
             )
         )
         self.assertIsInstance(result, list)
-        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertTrue(all(isinstance(s, str) for s in result))
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], expected)
 
@@ -538,7 +538,7 @@ class Test_create_condition_chain(IrisTest):
             )
         )
         self.assertIsInstance(result, list)
-        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertTrue(all(isinstance(s, str) for s in result))
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], expected)
 
@@ -591,7 +591,7 @@ class Test_create_condition_chain(IrisTest):
             )
         )
         self.assertIsInstance(result, list)
-        self.assertTrue(all([isinstance(s, str) for s in result]))
+        self.assertTrue(all(isinstance(s, str) for s in result))
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0], expected)
 

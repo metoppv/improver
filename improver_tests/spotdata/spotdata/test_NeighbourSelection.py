@@ -333,7 +333,7 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
         self.assertArrayEqual(out_y, y_points[0:2])
 
         msg = "1 spot sites fall outside the grid"
-        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
+        self.assertTrue(any(msg in str(warning) for warning in warning_list))
         self.assertTrue(any(item.category == UserWarning for item in warning_list))
 
     @ManageWarnings(record=True)
@@ -362,7 +362,7 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
         self.assertArrayEqual(out_y, y_points[0:2])
 
         msg = "1 spot sites fall outside the grid"
-        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
+        self.assertTrue(any(msg in str(warning) for warning in warning_list))
         self.assertTrue(any(item.category == UserWarning for item in warning_list))
 
     def test_global_circular_valid(self):
@@ -621,7 +621,7 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
         )
 
         msg = "Limit on number of nearest neighbours"
-        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
+        self.assertTrue(any(msg in str(warning) for warning in warning_list))
         self.assertTrue(any(item.category == UserWarning for item in warning_list))
 
 

@@ -110,7 +110,7 @@ def process(
 
     masking_coordinate = None
     if any(
-        ["topographic_zone" in coord.name() for coord in mask.coords(dim_coords=True)]
+        "topographic_zone" in coord.name() for coord in mask.coords(dim_coords=True)
     ):
 
         if mask.attributes["topographic_zones_include_seapoints"] == "True":
