@@ -417,7 +417,7 @@ def compare_coords(cubes):
             ]
 
         for i, cube in enumerate(cubes):
-            unmatching_coords.append(dict())
+            unmatching_coords.append({})
             for coord in cube.coords():
                 if coord not in common_coords:
                     dim_coords = cube.dim_coords
