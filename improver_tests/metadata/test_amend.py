@@ -35,7 +35,6 @@ from datetime import datetime as dt
 
 import iris
 import numpy as np
-from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.metadata.amend import (
@@ -43,13 +42,11 @@ from improver.metadata.amend import (
     set_history_attribute,
     update_stage_v110_metadata,
 )
-from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
     set_up_variable_cube,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 def create_cube_with_threshold(data=None, threshold_values=None):

@@ -36,9 +36,6 @@ import unittest
 
 import iris
 import numpy as np
-from cf_units import Unit
-from iris.coords import AuxCoord, DimCoord
-from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.convection import DiagnoseConvectivePrecipitation

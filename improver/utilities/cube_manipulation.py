@@ -34,7 +34,7 @@ import warnings
 
 import iris
 import numpy as np
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin

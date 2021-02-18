@@ -29,11 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing utilities for modifying cube metadata"""
-
-import warnings
 from datetime import datetime
-
-import iris
 from dateutil import tz
 
 from improver.metadata.constants.mo_attributes import (

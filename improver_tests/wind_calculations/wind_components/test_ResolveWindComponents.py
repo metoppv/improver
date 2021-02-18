@@ -34,7 +34,6 @@ import unittest
 
 import iris
 import numpy as np
-from cf_units import Unit
 from iris.coord_systems import OSGB
 from iris.coords import DimCoord
 from iris.tests import IrisTest

@@ -33,15 +33,9 @@
 
 import unittest
 from datetime import datetime
-
-import iris
 import numpy as np
-from cf_units import Unit
-from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from iris.tests import IrisTest
-
-from improver.grids import ELLIPSOID, STANDARD_GRID_CCRS
 from improver.nbhood.circular_kernel import CircularNeighbourhood
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
 from improver.nbhood.nbhood import SquareNeighbourhood

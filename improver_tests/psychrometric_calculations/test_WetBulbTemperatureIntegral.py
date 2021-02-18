@@ -34,7 +34,6 @@ import unittest
 
 import iris
 import numpy as np
-from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (

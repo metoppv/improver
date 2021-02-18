@@ -34,13 +34,8 @@ import iris
 import numpy as np
 
 from improver.nbhood.circular_kernel import check_radius_against_distance
-from improver.utilities.cube_checker import (
-    check_cube_coordinates,
-    check_for_x_and_y_axes,
-)
-from improver.utilities.cube_manipulation import clip_cube_data
+from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.neighbourhood_tools import boxsum
-from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_cube
 from improver.utilities.spatial import distance_to_number_of_grid_cells
 
 
