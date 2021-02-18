@@ -32,6 +32,7 @@
 Functions for use within unit tests for `ensemble_calibration` plugins.
 """
 import datetime
+
 import iris
 import numpy as np
 from iris.tests import IrisTest
@@ -62,7 +63,7 @@ class EnsembleCalibrationAssertions(IrisTest):
                 First array to compare.
             second (numpy.ndarray):
                 Second array to compare.
-        """
+         """
         self.assertArrayAlmostEqual(first, second, decimal=4)
 
     def assertCalibratedVariablesAlmostEqual(self, first, second):
@@ -78,7 +79,7 @@ class EnsembleCalibrationAssertions(IrisTest):
                 First array to compare.
             second (numpy.ndarray):
                 Second array to compare.
-        """
+         """
         self.assertArrayAlmostEqual(first, second, decimal=4)
 
 

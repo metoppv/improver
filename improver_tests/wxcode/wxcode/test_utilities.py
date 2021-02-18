@@ -87,11 +87,7 @@ def set_up_wxcube(time_points=None, lat_lon=False):
 
     if lat_lon:
         kwargs.update(
-            {
-                "spatial_grid": "latlon",
-                "domain_corner": (49, -8),
-                "grid_spacing": 1,
-            }
+            {"spatial_grid": "latlon", "domain_corner": (49, -8), "grid_spacing": 1,}
         )
 
     cube = set_up_variable_cube(np.ones((16, 16), dtype=np.float32), **kwargs)
@@ -147,21 +143,13 @@ class Test_weather_code_attributes(IrisTest):
         data = np.array(
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6], dtype=np.int32
         ).reshape((2, 3, 3))
-        cube = set_up_variable_cube(
-            data,
-            "weather_code",
-            "1",
-        )
+        cube = set_up_variable_cube(data, "weather_code", "1",)
         date_times = [
             datetime.datetime(2017, 11, 19, 0, 30),
             datetime.datetime(2017, 11, 19, 1, 30),
         ]
         self.cube = add_coordinate(
-            cube,
-            date_times,
-            "time",
-            is_datetime=True,
-            order=[1, 0, 2, 3],
+            cube, date_times, "time", is_datetime=True, order=[1, 0, 2, 3],
         )
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
@@ -293,7 +281,7 @@ class Test_update_daynight(IrisTest):
         self.assertEqual(result.shape, (16, 16))
 
     def test_wxcode_time_different_seconds(self):
-        """Test code works if time coordinate has a difference in the number
+        """ Test code works if time coordinate has a difference in the number
         of seconds, which should round to the same time in hours and minutes.
         This was raised by changes to cftime which altered its precision."""
         cube = set_up_wxcube(time_points=[datetime.datetime(2018, 9, 12, 5, 42, 59)])

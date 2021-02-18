@@ -36,10 +36,8 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(
-    *cubes: cli.inputcube,
-):
-    """Calculate the convection ratio from convective and dynamic (stratiform)
+def process(*cubes: cli.inputcube,):
+    """ Calculate the convection ratio from convective and dynamic (stratiform)
     precipitation rate components.
 
     Calculates the convective ratio as:

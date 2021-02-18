@@ -32,6 +32,7 @@
 
 
 import unittest
+
 import numpy as np
 from iris.coords import CellMethod
 from iris.cube import Cube
@@ -81,17 +82,13 @@ class Test_run(IrisTest):
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0
-        self.cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
-        )
+        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
         # Create 3D test cube with 2 realizations
 
         data = np.ones((2, 5, 5), dtype=np.float32)
         self.multi_realization_cube = set_up_variable_cube(
-            data,
-            spatial_grid="equalarea",
+            data, spatial_grid="equalarea",
         )
 
     def test_basic_re_mask_true(self):
@@ -190,7 +187,7 @@ class Test_run(IrisTest):
 
     def test_masked_array_re_mask_false(self):
         """Test that the run method produces a cube with correct data when a
-        cube containing masked data is passed in."""
+           cube containing masked data is passed in."""
         self.cube.data = np.array(
             [
                 [1, 1, 0, 1, 1],
@@ -290,7 +287,7 @@ class Test_run(IrisTest):
 
     def test_masked_array_with_nans_re_mask_false(self):
         """Test that the run method produces a cube with correct data when a
-        cube containing masked nans is passed in."""
+           cube containing masked nans is passed in."""
         self.cube.data = np.array(
             [
                 [np.nan, 1, 0, 1, 1],

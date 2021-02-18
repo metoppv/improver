@@ -37,8 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    forecast: cli.inputcube,
-    reliability_table: cli.inputcubelist = None,
+    forecast: cli.inputcube, reliability_table: cli.inputcubelist = None,
 ):
     """
     Calibrate a probability forecast using the provided reliability calibration

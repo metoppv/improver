@@ -55,7 +55,8 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
             A single cube containing the snow-fraction data.
 
     """
-    from improver.snow_fraction import SnowFraction
     from iris.cube import CubeList
+
+    from improver.snow_fraction import SnowFraction
 
     return SnowFraction(model_id_attr=model_id_attr)(CubeList(cubes))

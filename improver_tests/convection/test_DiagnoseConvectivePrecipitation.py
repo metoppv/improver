@@ -61,10 +61,7 @@ def set_up_precipitation_rate_cube():
     data[0, 2, 1] = 0.0
     data[0, 3, 0] = 0.0
     precip_cube = set_up_variable_cube(
-        data.astype(np.float32),
-        "lwe_precipitation_rate",
-        "mm h-1",
-        "equalarea",
+        data.astype(np.float32), "lwe_precipitation_rate", "mm h-1", "equalarea",
     )
     precip_cube.convert_units("m s-1")
     coord_points = np.array([0.0, 2000.0, 4000.0, 6000.0])
@@ -126,9 +123,7 @@ class Test__calculate_convective_ratio(IrisTest):
         self.lower_cube = self.cube.copy()
         self.higher_cube = self.cube.copy()
         self.cubelist = lower_higher_threshold_cubelist(
-            self.cube,
-            self.lower_threshold,
-            self.higher_threshold,
+            self.cube, self.lower_threshold, self.higher_threshold,
         )
         self.threshold_list = [self.lower_threshold, self.higher_threshold]
 

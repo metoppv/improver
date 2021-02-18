@@ -110,15 +110,7 @@ class SetupExpectedCoefficients(IrisTest):
             [-0.2838, -0.0774, 0.3892, 0.9167, -0.0003, 1.0022], dtype=np.float32
         )
         self.expected_realizations_norm_no_statsmodels = np.array(
-            [
-                -0.0,
-                0.5785,
-                0.578,
-                0.5733,
-                0.0001,
-                1.0227,
-            ],
-            dtype=np.float32,
+            [-0.0, 0.5785, 0.578, 0.5733, 0.0001, 1.0227,], dtype=np.float32
         )
         self.expected_realizations_truncnorm_statsmodels = np.array(
             [-0.606, -0.0623, 0.3786, 0.9014, 0.0003, 1.2571], dtype=np.float32
@@ -284,16 +276,11 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         time_dt = datetime.datetime(2017, 11, 10, 4, 0)
         data = np.ones((3, 3), dtype=np.float32)
         self.historic_forecast = _create_historic_forecasts(
-            data,
-            time_dt,
-            frt_dt,
+            data, time_dt, frt_dt,
         ).merge_cube()
         data_with_realizations = np.ones((3, 3, 3), dtype=np.float32)
         self.historic_forecast_with_realizations = _create_historic_forecasts(
-            data_with_realizations,
-            time_dt,
-            frt_dt,
-            realizations=[0, 1, 2],
+            data_with_realizations, time_dt, frt_dt, realizations=[0, 1, 2],
         ).merge_cube()
         self.optimised_coeffs = np.array([0, 1, 2, 3], np.int32)
 
@@ -346,12 +333,10 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         self.assertEqual(len(result), 4)
         for cube in result:
             self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point,
-                self.expected_frt,
+                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt,
             )
             self.assertEqual(
-                cube.coord("forecast_period"),
-                self.expected_fp,
+                cube.coord("forecast_period"), self.expected_fp,
             )
             self.assertArrayAlmostEqual(
                 cube.coord(axis="x").points, self.expected_x_coord_points
@@ -385,12 +370,10 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         self.assertEqual(len(result), 4)
         for cube in result:
             self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point,
-                self.expected_frt,
+                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt,
             )
             self.assertEqual(
-                cube.coord("forecast_period"),
-                self.expected_fp,
+                cube.coord("forecast_period"), self.expected_fp,
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -461,9 +444,7 @@ class Test_create_coefficients_cubelist(SetupExpectedCoefficients):
         predictor = "mean"
         optimised_coeffs = [1, 2, 3]
         plugin = Plugin(
-            distribution=distribution,
-            desired_units=desired_units,
-            predictor=predictor,
+            distribution=distribution, desired_units=desired_units, predictor=predictor,
         )
         msg = "The number of coefficients in"
         with self.assertRaisesRegex(ValueError, msg):
@@ -540,8 +521,8 @@ class Test_compute_initial_guess(IrisTest):
         self.current_forecast_predictor_mean_masked_halo = cube.collapsed(
             "realization", iris.analysis.MEAN
         )
-        self.current_forecast_predictor_mean_masked_halo.data = (
-            self.current_forecast_predictor_mean_masked_halo.data.astype(np.float32)
+        self.current_forecast_predictor_mean_masked_halo.data = self.current_forecast_predictor_mean_masked_halo.data.astype(
+            np.float32
         )
         self.current_forecast_predictor_realizations_masked_halo = cube.copy()
         self.truth_masked_halo = cube.collapsed("realization", iris.analysis.MAX)
@@ -851,8 +832,7 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_norm,
+            np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -875,8 +855,7 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_norm,
+            np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -942,8 +921,7 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_norm,
+            np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -1130,8 +1108,7 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_norm,
+            np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1147,8 +1124,7 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]),
-            self.expected_mean_predictor_norm,
+            np.array([cube.data for cube in result]), self.expected_mean_predictor_norm,
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)

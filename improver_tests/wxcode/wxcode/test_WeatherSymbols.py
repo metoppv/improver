@@ -120,10 +120,7 @@ class Test_WXCode(IrisTest):
 
         thresholds = np.array([0.8], dtype=np.float32)
         data_convective_ratio = np.array(
-            [
-                [[0.1, 0.1, 0.1], [0.2, 0.2, 1.0], [1.0, 1.0, 0.2]],
-            ],
-            dtype=np.float32,
+            [[[0.1, 0.1, 0.1], [0.2, 0.2, 1.0], [1.0, 1.0, 0.2]],], dtype=np.float32,
         )
 
         convective_ratio = set_up_probability_cube(
@@ -200,10 +197,7 @@ class Test_WXCode(IrisTest):
 
         thresholds = np.array([0.05], dtype=np.float32)
         data_cloud_texture = np.array(
-            [
-                [[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]],
-            ],
-            dtype=np.float32,
+            [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]],], dtype=np.float32,
         )
 
         cloud_texture = set_up_probability_cube(
@@ -413,7 +407,7 @@ class Test_construct_condition(IrisTest):
 
     def test_works_with_lists(self):
         """Test that the construct_condition method works with a list
-        of Constraints."""
+        of Constraints. """
         plugin = WeatherSymbols()
         constraint_list = [
             str(
@@ -653,7 +647,7 @@ class Test_construct_extract_constraint(IrisTest):
 
     def test_list_of_constraints(self):
         """Test construct_extract_constraint returns a list
-        of iris.Constraint."""
+           of iris.Constraint."""
         plugin = WeatherSymbols()
         diagnostics = [
             "probability_of_rainfall_rate_above_threshold",
@@ -716,10 +710,7 @@ class Test_find_all_routes(IrisTest):
         omit_nodes = {"start_node": "success_1"}
         plugin = WeatherSymbols()
         result = plugin.find_all_routes(
-            self.test_graph,
-            "start_node",
-            1,
-            omit_nodes=omit_nodes,
+            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
         )
         expected_nodes = [["success_1", "success_1_1", 1]]
         self.assertIsInstance(result, list)
@@ -730,10 +721,7 @@ class Test_find_all_routes(IrisTest):
         omit_nodes = {"success_1": "success_1_1"}
         plugin = WeatherSymbols()
         result = plugin.find_all_routes(
-            self.test_graph,
-            "start_node",
-            1,
-            omit_nodes=omit_nodes,
+            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
         )
         expected_nodes = [
             ["start_node", "success_1_1", 1],
@@ -747,10 +735,7 @@ class Test_find_all_routes(IrisTest):
         omit_nodes = {"fail_0": 3}
         plugin = WeatherSymbols()
         result = plugin.find_all_routes(
-            self.test_graph,
-            "start_node",
-            5,
-            omit_nodes=omit_nodes,
+            self.test_graph, "start_node", 5, omit_nodes=omit_nodes,
         )
         expected_nodes = []
         self.assertIsInstance(result, list)
@@ -761,10 +746,7 @@ class Test_find_all_routes(IrisTest):
         omit_nodes = {"fail_0": 3, "success_1": "success_1_1"}
         plugin = WeatherSymbols()
         result = plugin.find_all_routes(
-            self.test_graph,
-            "start_node",
-            1,
-            omit_nodes=omit_nodes,
+            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
         )
         expected_nodes = [["start_node", "success_1_1", 1]]
         self.assertIsInstance(result, list)
@@ -839,7 +821,8 @@ class Test_process(Test_WXCode):
         )
 
     def test_basic(self):
-        """Test process returns a weather code cube with right values and type."""
+        """Test process returns a weather code cube with right values and type.
+        """
         plugin = WeatherSymbols()
         result = plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -935,10 +918,7 @@ class Test_process(Test_WXCode):
             dtype=np.float32,
         )
         data_cloud_texture = np.array(
-            [
-                [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],
-            ],
-            dtype=np.float32,
+            [[[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],], dtype=np.float32,
         )
 
         data_cld_low = np.zeros((1, 3, 3))
@@ -1035,10 +1015,7 @@ class Test_process(Test_WXCode):
         data_vis = np.zeros((2, 3, 3), dtype=np.float32)
         data_precip = np.max(np.array([data_snow, data_sleet, data_rain]), axis=0)
         data_convective_ratio = np.array(
-            [
-                [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],
-            ],
-            dtype=np.float32,
+            [[[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],], dtype=np.float32,
         )
         cubes = self.cubes.extract(self.gbl)
         cubes[0].data = data_snow

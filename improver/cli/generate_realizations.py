@@ -70,13 +70,13 @@ def process(
         iris.cube.Cube:
             The processed cube.
     """
-    from improver.metadata.probabilistic import is_probability
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         ConvertProbabilitiesToPercentiles,
+        EnsembleReordering,
         RebadgePercentilesAsRealizations,
         ResamplePercentiles,
-        EnsembleReordering,
     )
+    from improver.metadata.probabilistic import is_probability
 
     if cube.coords("realization"):
         return cube

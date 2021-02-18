@@ -47,7 +47,7 @@ class Test__init__(IrisTest):
 
     def test_neighbourhood_method_exists(self):
         """Test that no exception is raised if the requested neighbourhood
-        method exists."""
+         method exists."""
         neighbourhood_method = "circular"
         radii = 10000
         result = NBHood(neighbourhood_method, radii)

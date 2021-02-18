@@ -83,8 +83,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             "norm", desired_units="Celsius"
         )
         self.coeffs_from_mean = estimator.create_coefficients_cubelist(
-            self.expected_mean_predictor_norm,
-            self.current_temperature_forecast_cube,
+            self.expected_mean_predictor_norm, self.current_temperature_forecast_cube,
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
@@ -92,11 +91,9 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "norm", desired_units="Celsius", predictor="realizations"
         )
-        self.coeffs_from_statsmodels_realizations = (
-            estimator.create_coefficients_cubelist(
-                self.expected_realizations_norm_statsmodels,
-                self.current_temperature_forecast_cube,
-            )
+        self.coeffs_from_statsmodels_realizations = estimator.create_coefficients_cubelist(
+            self.expected_realizations_norm_statsmodels,
+            self.current_temperature_forecast_cube,
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
@@ -105,11 +102,9 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "norm", desired_units="Celsius", predictor="realizations"
         )
-        self.coeffs_from_no_statsmodels_realizations = (
-            estimator.create_coefficients_cubelist(
-                self.expected_realizations_norm_no_statsmodels,
-                self.current_temperature_forecast_cube,
-            )
+        self.coeffs_from_no_statsmodels_realizations = estimator.create_coefficients_cubelist(
+            self.expected_realizations_norm_no_statsmodels,
+            self.current_temperature_forecast_cube,
         )
 
         # Some expected data that are used in various tests.

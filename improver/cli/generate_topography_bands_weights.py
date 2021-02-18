@@ -78,10 +78,10 @@ def process(
             Cube containing the weights depending upon where the orography
             point is within the topographical zones.
     """
+    from improver.generate_ancillaries.generate_ancillary import THRESHOLDS_DICT
     from improver.generate_ancillaries.generate_topographic_zone_weights import (
         GenerateTopographicZoneWeights,
     )
-    from improver.generate_ancillaries.generate_ancillary import THRESHOLDS_DICT
 
     if bands_config is None:
         bands_config = THRESHOLDS_DICT

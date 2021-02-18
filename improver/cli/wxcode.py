@@ -55,7 +55,7 @@ def _extend_help(fn):
 @cli.with_output
 @_extend_help
 def process(*cubes: cli.inputcube, wxtree="high_resolution"):
-    """Processes cube for Weather symbols.
+    """ Processes cube for Weather symbols.
 
     Args:
         cubes (iris.cube.CubeList):
@@ -69,6 +69,7 @@ def process(*cubes: cli.inputcube, wxtree="high_resolution"):
             A cube of weather symbols.
     """
     from iris.cube import CubeList
+
     from improver.wxcode.weather_symbols import WeatherSymbols
 
     if not cubes:

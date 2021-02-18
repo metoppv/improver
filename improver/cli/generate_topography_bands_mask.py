@@ -73,8 +73,8 @@ def process(
 
     """
     from improver.generate_ancillaries.generate_ancillary import (
-        GenerateOrographyBandAncils,
         THRESHOLDS_DICT,
+        GenerateOrographyBandAncils,
     )
 
     if bands_config is None:

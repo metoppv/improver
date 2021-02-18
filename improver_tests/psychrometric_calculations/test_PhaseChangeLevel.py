@@ -172,7 +172,7 @@ class Test_fill_in_high_phase_change_falling_levels(IrisTest):
 
     def test_no_fill_if_conditions_not_met(self):
         """Test it doesn't fill in NaN if the heighest wet bulb integral value
-        is less than the threshold."""
+           is less than the threshold."""
         plugin = PhaseChangeLevel(phase_change="snow-sleet")
         expected = np.array([[1.0, 1.0, 2.0], [1.0, np.nan, 2.0], [1.0, 2.0, 2.0]])
         plugin.fill_in_high_phase_change_falling_levels(

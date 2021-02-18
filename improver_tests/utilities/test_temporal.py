@@ -108,7 +108,7 @@ class Test_datetime_to_cycletime(IrisTest):
 class Test_cycletime_to_number(IrisTest):
 
     """Test that a cycletime of a format such as YYYYMMDDTHHMMZ is converted
-    into a numeric time value."""
+      into a numeric time value."""
 
     def test_basic(self):
         """Test that a number is returned of the expected value."""
@@ -304,7 +304,7 @@ class Test_extract_cube_at_time(IrisTest):
 
     def test_valid_time_for_coord_with_bounds(self):
         """Case for a time that is available within the diagnostic cube.
-        Test it still works for coordinates with bounds."""
+           Test it still works for coordinates with bounds."""
         plugin = extract_cube_at_time
         self.cube.coord("time").guess_bounds()
         cubes = CubeList([self.cube])

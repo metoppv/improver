@@ -38,8 +38,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    orographic_enhancement: cli.inputcube,
-    *cubes: cli.inputcube,
+    orographic_enhancement: cli.inputcube, *cubes: cli.inputcube,
 ):
     """Calculate optical flow components from input fields.
 

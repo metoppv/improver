@@ -321,9 +321,7 @@ class Test__create_probability_bins_coord(unittest.TestCase):
         type with no single value lower and upper bins."""
         expected_bounds = np.array([[0, 0.5], [0.5, 1]])
         expected_points = np.mean(expected_bounds, axis=1)
-        plugin = Plugin(
-            n_probability_bins=2,
-        )
+        plugin = Plugin(n_probability_bins=2,)
         result = plugin._create_probability_bins_coord()
 
         self.assertIsInstance(result, iris.coords.DimCoord)

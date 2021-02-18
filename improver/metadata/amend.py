@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing utilities for modifying cube metadata"""
 from datetime import datetime
+
 from dateutil import tz
 
 from improver.metadata.constants.mo_attributes import (

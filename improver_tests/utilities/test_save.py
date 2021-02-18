@@ -118,8 +118,8 @@ class Test_save_netcdf(IrisTest):
         self.assertEqual(filters["complevel"], 1)
 
     def test_compression_level(self):
-        """Test data gets compressed with complevel provided by compression_level
-        when saved"""
+        """ Test data gets compressed with complevel provided by compression_level
+        when saved """
         save_netcdf(self.cube, self.filepath, compression_level=3)
 
         data = Dataset(self.filepath, mode="r")
@@ -184,7 +184,7 @@ class Test_save_netcdf(IrisTest):
         self.assertCountEqual(coord_names, reference_names)
 
     def test_cell_method_reordering_in_saved_file(self):
-        """Test cell methods are in the correct order when written out and
+        """ Test cell methods are in the correct order when written out and
         read back in."""
         self.cube.cell_methods = (self.cell_methods[1], self.cell_methods[0])
         save_netcdf(self.cube, self.filepath)
@@ -192,7 +192,7 @@ class Test_save_netcdf(IrisTest):
         self.assertEqual(cube.cell_methods, self.cell_methods)
 
     def test_cf_global_attributes(self):
-        """Test that a NetCDF file saved from one cube only contains the
+        """ Test that a NetCDF file saved from one cube only contains the
         expected global attributes.
 
         NOTE Loading the file as an iris.cube.Cube does not distinguish global
@@ -204,7 +204,7 @@ class Test_save_netcdf(IrisTest):
         self.assertTrue(all(key in self.global_keys_ref for key in global_keys))
 
     def test_cf_data_attributes(self):
-        """Test that forbidden global metadata are saved as data variable
+        """ Test that forbidden global metadata are saved as data variable
         attributes
         """
         self.cube.attributes["test_attribute"] = np.arange(12)
@@ -218,7 +218,7 @@ class Test_save_netcdf(IrisTest):
         )
 
     def test_cf_shared_attributes_list(self):
-        """Test that a NetCDF file saved from a list of cubes that share
+        """ Test that a NetCDF file saved from a list of cubes that share
         non-global attributes does not promote these attributes to global.
         """
         cube_list = [self.cube, self.cube]

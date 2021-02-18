@@ -58,10 +58,7 @@ class Test_check_for_x_and_y_axes(IrisTest):
         """Set up a cube."""
         data = np.ones((1, 5, 5), dtype=np.float32)
         self.cube = set_up_variable_cube(
-            data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data, "precipitation_amount", "kg m^-2", "equalarea",
         )
 
     def test_no_y_coordinate(self):
@@ -108,10 +105,7 @@ class Test_check_cube_coordinates(IrisTest):
         """Set up a cube."""
         data = np.ones((1, 16, 16), dtype=np.float32)
         self.cube = set_up_variable_cube(
-            data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data, "precipitation_amount", "kg m^-2", "equalarea",
         )
         self.squeezed_cube = iris.util.squeeze(self.cube)
 
@@ -195,10 +189,7 @@ class Test_find_dimension_coordinate_mismatch(IrisTest):
         """Set up a cube."""
         data = np.ones((2, 16, 16), dtype=np.float32)
         self.cube = set_up_variable_cube(
-            data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data, "precipitation_amount", "kg m^-2", "equalarea",
         )
 
     def test_no_mismatch(self):
@@ -252,16 +243,10 @@ class Test_spatial_coords_match(IrisTest):
         data_a = np.ones((1, 16, 16), dtype=np.float32)
         data_b = np.ones((1, 10, 10), dtype=np.float32)
         self.cube_a = set_up_variable_cube(
-            data_a,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data_a, "precipitation_amount", "kg m^-2", "equalarea",
         )
         self.cube_b = set_up_variable_cube(
-            data_b,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data_b, "precipitation_amount", "kg m^-2", "equalarea",
         )
 
     def test_basic(self):
@@ -287,10 +272,7 @@ class Test_spatial_coords_match(IrisTest):
         data_c = np.ones((4, 16, 16), dtype=np.float32)
         data_c[:, 7, 7] = 0.0
         cube_c = set_up_variable_cube(
-            data_c,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            data_c, "precipitation_amount", "kg m^-2", "equalarea",
         )
         r_coord = cube_c.coord("realization")
         r_coord.points = [r * 2 for r in r_coord.points]

@@ -92,10 +92,11 @@ def process(
                       land mask arguments are not given.
     """
     import numpy as np
+
     from improver.lapse_rate import LapseRate
     from improver.metadata.utilities import (
-        generate_mandatory_attributes,
         create_new_diagnostic_cube,
+        generate_mandatory_attributes,
     )
 
     if dry_adiabatic:

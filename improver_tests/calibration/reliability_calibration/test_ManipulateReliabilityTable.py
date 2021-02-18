@@ -170,15 +170,9 @@ class Test__combine_undersampled_bins(Test_setup):
 
         expected = np.array(
             [
-                [
-                    25,
-                ],  # Observation count
-                [
-                    25,
-                ],  # Sum of forecast probability
-                [
-                    50,
-                ],  # Forecast count
+                [25,],  # Observation count
+                [25,],  # Sum of forecast probability
+                [50,],  # Forecast count
             ]
         )
 
@@ -191,10 +185,7 @@ class Test__combine_undersampled_bins(Test_setup):
 
         assert_array_equal(result[:3], expected)
         expected_bin_coord_points = np.array([0.5], dtype=np.float32)
-        expected_bin_coord_bounds = np.array(
-            [[0.0, 1.0]],
-            dtype=np.float32,
-        )
+        expected_bin_coord_bounds = np.array([[0.0, 1.0]], dtype=np.float32,)
         assert_allclose(expected_bin_coord_points, result[3].points)
         assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
@@ -221,8 +212,7 @@ class Test__combine_undersampled_bins(Test_setup):
         assert_array_equal(result[:3], expected)
         expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
         assert_allclose(expected_bin_coord_points, result[3].points)
         assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -248,8 +238,7 @@ class Test__combine_undersampled_bins(Test_setup):
         assert_array_equal(result[:3], expected)
         expected_bin_coord_points = np.array([0.2, 0.5, 0.7, 0.9], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
         assert_allclose(expected_bin_coord_points, result[3].points)
         assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -278,8 +267,7 @@ class Test__combine_undersampled_bins(Test_setup):
         assert_array_equal(result[:3], expected)
         expected_bin_coord_points = np.array([0.1, 0.4, 0.7, 0.9], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.6], [0.6, 0.8], [0.8, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
         assert_allclose(expected_bin_coord_points, result[3].points)
         assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -308,8 +296,7 @@ class Test__combine_undersampled_bins(Test_setup):
         assert_array_equal(result[:3], expected)
         expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
         assert_allclose(expected_bin_coord_points, result[3].points)
         assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -337,8 +324,7 @@ class Test__combine_undersampled_bins(Test_setup):
         assert_array_equal(result[:3], expected)
         expected_bin_coord_points = np.array([0.1, 0.4, 0.8], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
         assert_allclose(expected_bin_coord_points, result[3].points)
         assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -368,8 +354,7 @@ class Test__combine_undersampled_bins(Test_setup):
         assert_array_equal(result[:3], expected)
         expected_bin_coord_points = np.array([0.1, 0.4, 0.8], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
         assert_allclose(expected_bin_coord_points, result[3].points)
         assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -398,8 +383,7 @@ class Test__combine_undersampled_bins(Test_setup):
         assert_array_equal(result[:3], expected)
         expected_bin_coord_points = np.array([0.1, 0.5, 0.9], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.8], [0.8, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
         assert_allclose(expected_bin_coord_points, result[3].points)
         assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -419,8 +403,7 @@ class Test__combine_bin_pair(Test_setup):
             self.probability_bin_coord,
         )
         assert_array_equal(
-            result[:3],
-            [obs_count, self.forecast_probability_sum, self.forecast_count],
+            result[:3], [obs_count, self.forecast_probability_sum, self.forecast_count],
         )
         self.assertEqual(result[3], self.probability_bin_coord)
 
@@ -436,8 +419,7 @@ class Test__combine_bin_pair(Test_setup):
         assert_array_equal(result[:3], self.expected_enforced_monotonic)
         expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
         assert_allclose(expected_bin_coord_points, result[3].points)
         assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -457,8 +439,7 @@ class Test__combine_bin_pair(Test_setup):
         assert_array_equal(result[:3], self.expected_enforced_monotonic)
         expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
         assert_allclose(expected_bin_coord_points, result[3].points)
         assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -527,8 +508,7 @@ class Test_process(Test_setup):
         )
         expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
         self.multi_threshold_rt.data[1] = np.array(
             [
@@ -558,8 +538,7 @@ class Test_process(Test_setup):
         )
         expected_bin_coord_points = np.array([0.2, 0.6, 0.9], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.4], [0.4, 0.8], [0.8, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
         self.multi_threshold_rt.data[1] = np.array(
             [
@@ -589,8 +568,7 @@ class Test_process(Test_setup):
         )
         expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
         self.multi_threshold_rt.data[1] = np.array(
             [
@@ -622,8 +600,7 @@ class Test_process(Test_setup):
         expected_bin_coord_points = np.array([0.1, 0.4, 0.7, 0.9], dtype=np.float32)
 
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.6], [0.6, 0.8], [0.8, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
         self.multi_threshold_rt.data[1] = np.array(
             [
@@ -653,8 +630,7 @@ class Test_process(Test_setup):
         expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
 
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
         )
 
         self.multi_threshold_rt.data[1] = np.array(
@@ -686,8 +662,7 @@ class Test_process(Test_setup):
         expected_bin_coord_points = np.array([0.2, 0.5, 0.7, 0.9], dtype=np.float32)
 
         expected_bin_coord_bounds = np.array(
-            [[0.0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]],
-            dtype=np.float32,
+            [[0.0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
         )
 
         self.multi_threshold_rt.data[1] = np.array(

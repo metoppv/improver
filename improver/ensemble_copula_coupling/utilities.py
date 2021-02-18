@@ -246,9 +246,7 @@ def insert_lower_and_upper_endpoint_to_1d_array(array_1d, low_endpoint, high_end
 
 
 def restore_non_percentile_dimensions(
-    array_to_reshape,
-    original_cube,
-    n_percentiles,
+    array_to_reshape, original_cube, n_percentiles,
 ):
     """
     Reshape a 2d array, so that it has the dimensions of the original cube,

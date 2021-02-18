@@ -114,7 +114,8 @@ class Test_extract_diagnostic_name(unittest.TestCase):
         self.assertEqual(result, "air_temperature")
 
     def test_between_thresholds(self):
-        """Test correct name is returned from a probability between thresholds"""
+        """Test correct name is returned from a probability between thresholds
+        """
         result = extract_diagnostic_name(
             "probability_of_visibility_in_air_between_thresholds"
         )
@@ -186,7 +187,8 @@ class Test_find_threshold_coordinate(IrisTest):
         self.assertIsInstance(threshold_coord, iris.coords.Coord)
 
     def test_old_convention(self):
-        """Test function recognises threshold coordinate with name "threshold" """
+        """Test function recognises threshold coordinate with name "threshold"
+        """
         threshold_coord = find_threshold_coordinate(self.cube_old)
         self.assertEqual(threshold_coord.name(), "threshold")
         self.assertArrayAlmostEqual(threshold_coord.points, self.threshold_points)

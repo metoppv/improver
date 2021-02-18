@@ -46,10 +46,7 @@ class RecursiveFilter(PostProcessingPlugin):
     """
 
     def __init__(
-        self,
-        iterations=None,
-        edge_width=15,
-        re_mask=False,
+        self, iterations=None, edge_width=15, re_mask=False,
     ):
         """
         Initialise the class.
@@ -377,10 +374,7 @@ class RecursiveFilter(PostProcessingPlugin):
         return padded_coefficients
 
     def process(
-        self,
-        cube,
-        smoothing_coefficients,
-        mask_cube=None,
+        self, cube, smoothing_coefficients, mask_cube=None,
     ):
         """
         Set up the smoothing_coefficient parameters and run the recursive

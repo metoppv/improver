@@ -52,9 +52,10 @@ def process(*cubes: cli.inputcube, radius: float = 10000.0):
             Neighbourhood radius from which 80th percentile is found (m)
 
     """
+    from iris.cube import CubeList
+
     from improver.psychrometric_calculations.precip_phase_probability import (
         PrecipPhaseProbability,
     )
-    from iris.cube import CubeList
 
     return PrecipPhaseProbability(radius=radius)(CubeList(cubes))

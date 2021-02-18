@@ -51,9 +51,9 @@ run_cli = acc.run_cli(CLI)
 )
 def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp):
     """Testing:
-    sleet/rain level
-    snow/sleet level
-    sleet/rain level leaving below orography points unfilled.
+        sleet/rain level
+        snow/sleet level
+        sleet/rain level leaving below orography points unfilled.
     """
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
     kgo_name = "{}_kgo.nc".format(kgo_name)

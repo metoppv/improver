@@ -114,7 +114,7 @@ def expand_nested_lists(query, key):
 
 
 def update_daynight(cubewx):
-    """Update weather cube depending on whether it is day or night
+    """ Update weather cube depending on whether it is day or night
 
     Args:
         cubewx(iris.cube.Cube):
@@ -130,6 +130,7 @@ def update_daynight(cubewx):
     """
     import numpy as np
     from iris.exceptions import CoordinateNotFoundError
+
     import improver.utilities.solar as solar
 
     if not cubewx.coords("time"):
