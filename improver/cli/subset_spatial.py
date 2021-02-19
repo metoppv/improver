@@ -45,13 +45,12 @@ def process(
     """
     Extract a thinned spatial cutout or subset of sites from a data file. Supports
     extraction from a spot file based on a list of sites, or grid subsetting using
-    a dictionary specification of the following form::
-        {
-            "projection_x_coordinate": {"min": -100000, "max": 150000, "thin": 5},
-            "projection_y_coordinate": {"min": -100000, "max": 200000, "thin": 5},
-            "latitude": {"min": 45, "max": 52, "thin": 2},
-            "longitude": {"min": -2, "max": 6, "thin": 2}
-        }
+    a dictionary specification of the following form:
+
+    {"projection_x_coordinate": {"min": -100000, "max": 150000, "thin": 5},
+     "projection_y_coordinate": {"min": -100000, "max": 200000, "thin": 5},
+     "latitude": {"min": 45, "max": 52, "thin": 2},
+     "longitude": {"min": -2, "max": 6, "thin": 2}}
 
     Args:
         cube (iris.cube.Cube):
