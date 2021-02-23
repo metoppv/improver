@@ -129,4 +129,4 @@ jobs:
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda activate improver_${{ matrix.env }}
-        bandit -r improver || true
+        bandit -r improver
