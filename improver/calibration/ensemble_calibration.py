@@ -761,7 +761,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
     def _create_dim_coordinates(self, historic_forecasts):
         """Create dimension coordinates for the EMOS coefficients cube. These
-        are either the realization coordinate, or the x and y coordinates.
+        are either the realization coordinate alone, or the realization,
+        x and y coordinates.
         Args:
             historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.

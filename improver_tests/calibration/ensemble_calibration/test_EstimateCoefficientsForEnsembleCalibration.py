@@ -422,7 +422,8 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_each_point_sites(self):
         """Test that the expected coefficient cube, with the expected coefficients
-        and metadata, is returned when the ensemble mean is used as the predictor."""
+        and metadata, is returned when the ensemble mean is used as the predictor
+        when estimating coefficients for each site independently."""
         plugin = Plugin(
             distribution=self.distribution,
             desired_units=self.desired_units,
@@ -443,9 +444,6 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
             )
             self.assertEqual(
                 cube.coord("forecast_period"), self.expected_fp,
-            )
-            self.assertAlmostEqual(
-                cube.coord("latitude"), hf_spot_cube.coord("latitude")
             )
             self.assertAlmostEqual(
                 cube.coord("latitude"), hf_spot_cube.coord("latitude")
