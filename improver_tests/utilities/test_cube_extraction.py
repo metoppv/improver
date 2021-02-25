@@ -535,6 +535,13 @@ class Test_subset_data(IrisTest):
             "projection_y_coordinate": {"min": 0, "max": 10000, "thin": 3},
         }
 
+        self.expected_points = {
+            "longitude": [0.0, 4.0],
+            "latitude": [45.0, 49.0],
+            "projection_x_coordinate": [1000.0, 7000.0],
+            "projection_y_coordinate": [1000.0, 7000.0],
+        }
+
     def test_subset_spot_cube(self):
         """Extract a list of spot sites"""
         site_list = ["3005", "3023"]
@@ -548,12 +555,43 @@ class Test_subset_data(IrisTest):
         expected_data = np.array([[27, 30], [51, 54]])
         result = subset_data(self.uk_cube, grid_spec=self.grid_spec)
         self.assertArrayAlmostEqual(result.data, expected_data)
+        for axis in ["x", "y"]:
+            coord = f"projection_{axis}_coordinate"
+            self.assertArrayAlmostEqual(
+                result.coord(coord).points, self.expected_points[coord]
+            )
 
     def test_subset_global_grid(self):
         """Extract subset of global lat-lon grid"""
-        expected_data = np.array([[1, 3, 5], [17, 19, 21]])
+        expected_data = np.array([[1, 3], [17, 19]])
         result = subset_data(self.gl_cube, grid_spec=self.grid_spec)
         self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, self.expected_points["longitude"]
+        )
+        self.assertArrayAlmostEqual(
+            result.coord("latitude").points, self.expected_points["latitude"]
+        )
+
+    def test_subset_global_grid_pacific(self):
+        """Extract subset of global lat-lon grid over the international date line"""
+        gl_pacific_cube = set_up_variable_cube(
+            self.gl_cube.data.copy(),
+            name="screen_temperature",
+            units="degC",
+            spatial_grid="latlon",
+            domain_corner=(0, 175),
+            grid_spacing=2,
+        )
+        expected_data = np.array([[2.0, 4.0], [18.0, 20.0]])
+        grid_spec = {
+            "longitude": {"min": 178, "max": 185, "thin": 2},
+            "latitude": {"min": 0, "max": 7, "thin": 2},
+        }
+        result = subset_data(gl_pacific_cube, grid_spec=grid_spec)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(result.coord("longitude").points, [179.0, 183.0])
+        self.assertArrayAlmostEqual(result.coord("latitude").points, [0.0, 4.0])
 
     def test_subset_no_thinning(self):
         """Test grid subsetting can handle a "thin" value of 1"""
@@ -561,9 +599,13 @@ class Test_subset_data(IrisTest):
             "longitude": {"min": 0, "max": 7, "thin": 1},
             "latitude": {"min": 42, "max": 52, "thin": 2},
         }
-        expected_data = np.array([[1, 2, 3, 4, 5], [17, 18, 19, 20, 21]])
+        expected_data = np.array([[1, 2, 3, 4], [17, 18, 19, 20]])
         result = subset_data(self.gl_cube, grid_spec=grid_spec)
         self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, [0.0, 2.0, 4.0, 6.0]
+        )
+        self.assertArrayAlmostEqual(result.coord("latitude").points, [45.0, 49.0])
 
     def test_error_no_site_list(self):
         """Test error when required site_list is not provided"""
