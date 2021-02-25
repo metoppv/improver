@@ -662,6 +662,17 @@ class Test_subset_data(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             subset_data(self.uk_cube, grid_spec=grid_spec_xy)
 
+    def test_error_single_point(self):
+        """Function does not support extraction of a single (non-dimensioned)
+        point from a grid - test a suitable error is raised if this is requested"""
+        grid_spec = {
+            "projection_x_coordinate": {"min": 0, "max": 1000, "thin": 1},
+            "projection_y_coordinate": {"min": 0, "max": 1000, "thin": 1},
+        }
+        msg = "Function does not support single point extraction"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.uk_cube, grid_spec=grid_spec)
+
 
 if __name__ == "__main__":
     unittest.main()

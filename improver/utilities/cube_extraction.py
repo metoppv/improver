@@ -367,8 +367,16 @@ def subset_data(cube, grid_spec=None, site_list=None):
         thin_x = grid_spec[x_coord]["thin"]
         thin_y = grid_spec[y_coord]["thin"]
         result_list = CubeList()
-        for subcube in cutout.slices([y_coord, x_coord]):
-            result_list.append(subcube[::thin_y, ::thin_x])
+        try:
+            for subcube in cutout.slices([y_coord, x_coord]):
+                result_list.append(subcube[::thin_y, ::thin_x])
+        except ValueError as cause:
+            # error is raised if X or Y coordinate are single-valued (non-dimensional)
+            if "iterator" in str(cause) and "dimension" in str(cause):
+                raise ValueError("Function does not support single point extraction")
+            else:
+                raise
+
         result = result_list.merge_cube()
 
     return result
