@@ -41,6 +41,7 @@ below:
 * James Canvin (Bureau of Meteorology, Australia)
 * Neil Crosswaite (Met Office, UK)
 * Gavin Evans (Met Office, UK)
+* Zhiliang Fan (Bureau of Meteorology, Australia)
 * Ben Fitzpatrick (Met Office, UK)
 * Martina Friedrich (Met Office, UK, pre-GitHub)
 * Tom Gale (Bureau of Meteorology, Australia)
