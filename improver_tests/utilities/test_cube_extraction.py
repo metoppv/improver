@@ -53,6 +53,7 @@ from improver.utilities.cube_extraction import (
     parse_constraint_list,
     subset_data,
 )
+from improver.utilities.cube_manipulation import get_dim_coord_names
 
 
 def islambda(function):
@@ -606,6 +607,14 @@ class Test_subset_data(IrisTest):
             result.coord("longitude").points, [0.0, 2.0, 4.0, 6.0]
         )
         self.assertArrayAlmostEqual(result.coord("latitude").points, [45.0, 49.0])
+
+    def test_preserves_dimension_order(self):
+        """Test order of original cube dimensions is preserved on subsetting"""
+        self.uk_cube.transpose([1, 0])
+        expected_dims = get_dim_coord_names(self.uk_cube)
+        result = subset_data(self.uk_cube, grid_spec=self.grid_spec)
+        result_dims = get_dim_coord_names(result)
+        self.assertSequenceEqual(result_dims, expected_dims)
 
     def test_error_no_site_list(self):
         """Test error when required site_list is not provided"""

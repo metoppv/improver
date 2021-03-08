@@ -38,6 +38,10 @@ from iris.cube import CubeList
 
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
+from improver.utilities.cube_manipulation import (
+    enforce_coordinate_ordering,
+    get_dim_coord_names,
+)
 
 
 def create_range_constraint(coord_name, value):
@@ -254,49 +258,6 @@ def extract_subcube(cube, constraints, units=None, use_original_units=True):
     return output_cube
 
 
-def _create_cutout(cube, grid_spec):
-    """Given a gridded data cube and boundary limits for cutout dimensions,
-    create cutout.  Expects cube on either lat-lon or equal area grid.
-    """
-    x_coord = cube.coord(axis="x").name()
-    y_coord = cube.coord(axis="y").name()
-
-    xmin = grid_spec[x_coord]["min"]
-    xmax = grid_spec[x_coord]["max"]
-    ymin = grid_spec[y_coord]["min"]
-    ymax = grid_spec[y_coord]["max"]
-
-    # need to use cube intersection for circular coordinates (longitude)
-    if x_coord == "longitude":
-        lat_constraint = Constraint(latitude=lambda x: ymin <= x.point <= ymax)
-        cutout = cube.extract(lat_constraint)
-        if cutout is None:
-            return cutout
-
-        cutout = cutout.intersection(longitude=(xmin, xmax), ignore_bounds=True)
-
-        # intersection creates a new coordinate with default datatype - we
-        # therefore need to re-cast to meet the IMPROVER standard
-        cutout.coord("longitude").points = cutout.coord("longitude").points.astype(
-            FLOAT_DTYPE
-        )
-        if cutout.coord("longitude").bounds is not None:
-            cutout.coord("longitude").bounds = cutout.coord("longitude").bounds.astype(
-                FLOAT_DTYPE
-            )
-
-    else:
-        x_constraint = Constraint(
-            projection_x_coordinate=lambda x: xmin <= x.point <= xmax
-        )
-        y_constraint = Constraint(
-            projection_y_coordinate=lambda x: ymin <= x.point <= ymax
-        )
-        cutout = cube.extract(x_constraint & y_constraint)
-
-    return cutout
-
-
 def subset_data(cube, grid_spec=None, site_list=None):
     """Extract a spatial cutout or subset of sites from data
     to generate suite reference outputs.
@@ -356,6 +317,48 @@ def subset_data(cube, grid_spec=None, site_list=None):
                     f"{grid_spec.keys()}"
                 )
 
+        def _create_cutout(cube, grid_spec):
+            """Given a gridded data cube and boundary limits for cutout dimensions,
+            create cutout.  Expects cube on either lat-lon or equal area grid.
+            """
+            x_coord = cube.coord(axis="x").name()
+            y_coord = cube.coord(axis="y").name()
+
+            xmin = grid_spec[x_coord]["min"]
+            xmax = grid_spec[x_coord]["max"]
+            ymin = grid_spec[y_coord]["min"]
+            ymax = grid_spec[y_coord]["max"]
+
+            # need to use cube intersection for circular coordinates (longitude)
+            if x_coord == "longitude":
+                lat_constraint = Constraint(latitude=lambda y: ymin <= y.point <= ymax)
+                cutout = cube.extract(lat_constraint)
+                if cutout is None:
+                    return cutout
+
+                cutout = cutout.intersection(longitude=(xmin, xmax), ignore_bounds=True)
+
+                # intersection creates a new coordinate with default datatype - we
+                # therefore need to re-cast to meet the IMPROVER standard
+                cutout.coord("longitude").points = cutout.coord(
+                    "longitude"
+                ).points.astype(FLOAT_DTYPE)
+                if cutout.coord("longitude").bounds is not None:
+                    cutout.coord("longitude").bounds = cutout.coord(
+                        "longitude"
+                    ).bounds.astype(FLOAT_DTYPE)
+
+            else:
+                x_constraint = Constraint(
+                    projection_x_coordinate=lambda x: xmin <= x.point <= xmax
+                )
+                y_constraint = Constraint(
+                    projection_y_coordinate=lambda y: ymin <= y.point <= ymax
+                )
+                cutout = cube.extract(x_constraint & y_constraint)
+
+            return cutout
+
         cutout = _create_cutout(cube, grid_spec)
 
         if cutout is None:
@@ -364,6 +367,7 @@ def subset_data(cube, grid_spec=None, site_list=None):
                 f"{x_coord}: {grid_spec[x_coord]}, {y_coord}: {grid_spec[y_coord]}"
             )
 
+        original_coords = get_dim_coord_names(cutout)
         thin_x = grid_spec[x_coord]["thin"]
         thin_y = grid_spec[y_coord]["thin"]
         result_list = CubeList()
@@ -378,5 +382,6 @@ def subset_data(cube, grid_spec=None, site_list=None):
                 raise
 
         result = result_list.merge_cube()
+        enforce_coordinate_ordering(result, original_coords)
 
     return result
