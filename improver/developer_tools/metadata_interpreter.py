@@ -278,7 +278,7 @@ class MOMetadataInterpreter:
             self.field_type = PROB
             self.check_probability_cube_metadata(cube)
         else:
-            diagnostic = cube.name()
+            self.diagnostic = cube.name()
             coords = get_coord_names(cube)
             if PERC_COORD in coords:
                 self.field_type = PERC
