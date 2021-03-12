@@ -30,31 +30,55 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing classes for metadata interpretation"""
 
+from iris.coords import CellMethod
+
 from improver.metadata.constants import PERC_COORD
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
     get_threshold_coord_name_from_probability_name,
 )
-from improver.utilities.cube_manipulation import get_coord_names
+from improver.utilities.cube_manipulation import get_coord_names, get_dim_coord_names
+
+
+PROB = "probability"
+PERC = "percentile"
+DIAG = "realization"
+
+MODEL_CODES = {
+    "Nowcast": "nc_det",
+    "MOGREPS-G": "gl_ens",
+    "MOGREPS-UK": "uk_ens",
+    "UKV": "uk_det",
+}
+MODEL_NAMES = dict((v, k) for k, v in MODEL_CODES.iteritems())
+
+EXCEPTIONS = ["weather_symbols", "wind_from_direction"]
+
+SPOT_COORDS = ["spot_index", "latitude", "longitude", "altitude", "wmo_id"]
+UNBLENDED_TIME_COORDS = ["time", "forecast_period", "forecast_reference_time"]
+BLENDED_TIME_COORDS = ["time", "blend_time"]
+
+NONCOMP_CMS = [
+    CellMethod(method="mean", coords=("forecast_reference_time")),
+    CellMethod(method="mean", coords=("model_id")),
+    CellMethod(method="mean", coords=("model_configuration")),
+    CellMethod(method="mean", coords=("realization")),
+]
+NONCOMP_CM_METHODS = ["point"]
+COMP_CM_METHODS = ["min", "max", "minimum", "maximum", "sum"]
+
+NONCOMP_ATTRS = ["um_version", "source_realizations"]  # TODO complete list
+DIAG_ATTRS = {
+    "weather_symbols": ["weather_code", "weather_code_meaning"],
+    "wind_gust": ["wind_gust_diagnostic"],
+}
 
 
 class MOMetadataInterpreter:
     """Class to interpret an iris cube according to the Met Office specific
     IMPROVER standard.  This is intended as a debugging tool to aid developers
     in adding and modifying metadata within the code base."""
-
-    PROB = "probability"
-    PERC = "percentile"
-    DIAG = "realization"
-
-    MODEL_CODES = {
-        "Nowcast": "nc_det",
-        "MOGREPS-G": "gl_ens",
-        "MOGREPS-UK": "uk_ens",
-        "UKV": "uk_det",
-    }
-    MODEL_NAMES = dict((v, k) for k, v in MODEL_CODES.iteritems())
 
     def __init__(self, verbose=False):
         """Initialise class parameters"""
@@ -67,6 +91,7 @@ class MOMetadataInterpreter:
         self.warning_string = ""
 
         # type-specific metadata
+        self.prod_type = "gridded"
         self.field_type = None
         self.diagnostic = None
         self.relative_to_threshold = None
@@ -80,11 +105,11 @@ class MOMetadataInterpreter:
         self.blendable = None
         self.blended = None
 
-    def add_error(msg):
+    def add_error(self, msg):
         """Appends new error message to string"""
         self.error_string += msg + "\n"
 
-    def check_probability_cube_metadata(cube):
+    def check_probability_cube_metadata(self, cube):
         """Checks probability-specific metadata"""
         try:
             self.diagnostic = get_diagnostic_cube_name_from_probability_name(
@@ -117,7 +142,7 @@ class MOMetadataInterpreter:
             threshold_coord = cube.coord(expected_threshold_name)
             self.check_threshold_coordinate_properties(cube.name(), threshold_coord)
 
-    def check_threshold_coordinate_properties(cube_name, threshold_coord):
+    def check_threshold_coordinate_properties(self, cube_name, threshold_coord):
         """Checks threshold coordinate properties are correct and consistent with
         cube name"""
         threshold_var_name = threshold_coord.var_name
@@ -148,27 +173,10 @@ class MOMetadataInterpreter:
                 f'spp__relative_to_threshold attribute "{self.relative_to_threshold}"'
             )
 
-    def check_cell_methods(cell_methods):
+    def check_cell_methods(self, cell_methods):
         """Checks cell methods are permitted and correctly formatted"""
         for cm in cell_methods:
-            if cm.method == "mean":
-                if "forecast_reference_time" in cm.coords:
-                    self.add_error(f"Non-standard cell method {cm}")
-                elif "realization" in cm.coords:
-                    # we expect wind direction to have a "mean over realizations" cell method
-                    if "direction" != diagnostic:
-                        self.add_error(f"Non-standard cell method {cm}")
-                else:
-                    # flag method which might be invalid, but we can't be sure
-                    self.warning_string += (
-                        f"Unexpected cell method {cm}. Please check the standard to "
-                        "ensure this is valid\n"
-                    )
-
-            elif cm.method == "point":
-                self.add_error(f"Non-standard cell method {cm}")
-
-            elif cm.method in ["max", "min", "sum"]:
+            if cm.method in COMP_CM_METHODS:
                 self.methods += f" {cm.method} over {cm.coords}"
                 if self.field_type == PROB:
                     if cm.comment[0] != f"of {diagnostic}":
@@ -176,7 +184,8 @@ class MOMetadataInterpreter:
                             f"Cell method {cm} on probability data should have comment "
                             f'"of {self.diagnostic}"'
                         )
-
+            elif cm in NONCOMP_CMS or cm.method in NONCOMP_CM_METHODS:
+                self.add_error(f"Non-standard cell method {cm}")
             else:
                 # flag method which might be invalid, but we can't be sure
                 self.warning_string += (
@@ -184,10 +193,23 @@ class MOMetadataInterpreter:
                     "ensure this is valid\n"
                 )
 
-    def check_attributes(attrs):
+    def check_attributes(self, attrs):
         """Checks for model information and consistency"""
-        self.post_processed = "some" if "Post-Processed" in attrs[title] else "no"
+        if any([attr in NONCOMP_ATTRS for attr in attrs]):
+            self.add_error(
+                f"Attributes {attrs[keys]} include one or more forbidden "
+                f"values {NONCOMP_AtTRS}"
+            )
 
+        if self.diagnostic in DIAG_ATTRS:
+            required = DIAG_ATTRS[self.diagnostic]
+            if any([req not in attrs for req in required]):
+                self.add_error(
+                    f"Attributes {attrs[keys]} missing one or more required "
+                    f"values {required}"
+                )
+
+        self.post_processed = "some" if "Post-Processed" in attrs[title] else "no"
         self.blended = True if "Blend" in title else False
 
         if self.blended:
@@ -214,7 +236,20 @@ class MOMetadataInterpreter:
             else:
                 self.blendable = False
 
-    def gen_output_string():
+    def check_coords_present(self, coords, expected_coords):
+        """Check whether all expected coordinates are present"""
+        if not all([coord in coords for coord in expected_coords]):
+            self.add_error(f"Missing one or more coordinates: {expected_coords}")
+
+    def check_spot_data(self, cube, coords):
+        """Check spot coordinates"""
+        self.prod_type = "spot"
+        self.check_coords_present(coords, SPOT_COORDS)
+        dim_coords = get_dim_coord_names(cube)
+        if "spot_index" not in dim_coords:
+            self.add_error(f"Expected spot_index dimension, got {dim_coords}")
+
+    def gen_output_string(self):
         """Generates file description in readable form"""
 
         def vstring(source_metadata):
@@ -222,31 +257,34 @@ class MOMetadataInterpreter:
             return f"    Source: {source_metadata}\n"
 
         output_string = ""
-        output_string += f"This is a {self.field_type} file\n"
+        output_string += f"This is a {self.prod_type} {self.field_type} file\n"
         if self.verbose:
             output_string += vstring("name, coordinates")
 
-        rtt = (
-            " {self.relative_to_threshold} thresholds"
-            if self.field_type == PROB
-            else ""
-        )
-        output_string += f"It contains {self.field_type}s of {self.diagnostic}{rtt}\n"
-        if self.verbose:
-            output_string += vstring("name, threshold coordinate (if probability)")
-
-        if self.methods:
+        if self.diagnostic not in EXCEPTIONS:
+            rtt = (
+                " {self.relative_to_threshold} thresholds"
+                if self.field_type == PROB
+                else ""
+            )
             output_string += (
-                f"These {self.field_type}s are of {self.diagnostic}{self.methods}\n"
+                f"It contains {self.field_type}s of {self.diagnostic}{rtt}\n"
             )
             if self.verbose:
-                output_string += vstring("cell methods")
+                output_string += vstring("name, threshold coordinate (if probability)")
 
-        output_string += (
-            "It has undergone {self.post_processed} significant post-processing\n"
-        )
-        if self.verbose:
-            output_string += vstring("title attribute")
+            if self.methods:
+                output_string += (
+                    f"These {self.field_type}s are of {self.diagnostic}{self.methods}\n"
+                )
+                if self.verbose:
+                    output_string += vstring("cell methods")
+
+            output_string += (
+                "It has undergone {self.post_processed} significant post-processing\n"
+            )
+            if self.verbose:
+                output_string += vstring("title attribute")
 
         if self.blended:
             output_string += f"It contains blended data from models: {self.model}\n"
@@ -274,33 +312,56 @@ class MOMetadataInterpreter:
     def process(cube):
         """Return string interpretation of cube metadata or raise errors"""
 
-        if "probability" in cube.name():
-            self.field_type = PROB
-            self.check_probability_cube_metadata(cube)
-        else:
-            self.diagnostic = cube.name()
-            coords = get_coord_names(cube)
-            if PERC_COORD in coords:
-                self.field_type = PERC
-                perc_units = cube.coord(PERC_COORD).units
-                if perc_units != "%":
-                    self.add_error(
-                        "Percentile coordinate should have units of %, "
-                        f"has {perc_units}"
-                    )
+        if cube.name() in EXCEPTIONS:
+            self.field_type = self.diagnostic = cube.name()
+            if cube.name() == "weather_symbols":
+                if cube.cell_methods:
+                    self.add_error(f"Unexpected cell methods {cube.cell_methods}")
+            elif cube.name() == "wind_from_direction":
+                if cube.cell_methods:
+                    expected = CellMethod(method="mean", coords="realization")
+                    if len(cube.cell_methods) > 1 or cube.cell_methods[0] != expected:
+                        self.add_error(f"Unexpected cell methods {cube.cell_methods}")
             else:
-                self.field_type = DIAG
+                raise ValueError("Interpreter for {cube.name()} is not available")
 
-        if cube.cell_methods:
-            self.check_cell_methods(cube.cell_methods)
+        else:
+            if "probability" in cube.name():
+                self.field_type = PROB
+                self.check_probability_cube_metadata(cube)
+            else:
+                self.diagnostic = cube.name()
+                coords = get_coord_names(cube)
+                if PERC_COORD in coords:
+                    self.field_type = PERC
+                    perc_units = cube.coord(PERC_COORD).units
+                    if perc_units != "%":
+                        self.add_error(
+                            "Percentile coordinate should have units of %, "
+                            f"has {perc_units}"
+                        )
+                else:
+                    self.field_type = DIAG
+
+            if cube.cell_methods:
+                self.check_cell_methods(cube.cell_methods)
 
         try:
             self.check_attributes(cube.attributes)
         except KeyError:
             self.add_error(
-                "Cube is missing one or more of the mandatory attributes: "
+                "Cube is missing one or more of mandatory attributes: "
                 f"{MANDATORY_ATTRIBUTES}"
             )
+
+        coords = get_coord_names(cube)
+        if "spot_index" in coords:
+            self.check_spot_data(cube, coords)
+
+        if self.blended:
+            self.check_coords_present(coords, BLENDED_TIME_COORDS)
+        else:
+            self.check_coords_present(coords, UNBLENDED_TIME_COORDS)
 
         # raise errors if present; otherwise return output
         if self.error_string:
