@@ -41,7 +41,6 @@ from improver.metadata.probabilistic import (
 )
 from improver.utilities.cube_manipulation import get_coord_names, get_dim_coord_names
 
-
 PROB = "probability"
 PERC = "percentile"
 DIAG = "realization"
@@ -52,7 +51,7 @@ MODEL_CODES = {
     "MOGREPS-UK": "uk_ens",
     "UKV": "uk_det",
 }
-MODEL_NAMES = dict((v, k) for k, v in MODEL_CODES.iteritems())
+MODEL_NAMES = dict((v, k) for k, v in MODEL_CODES.items())
 
 EXCEPTIONS = ["weather_code", "wind_from_direction"]
 
@@ -76,14 +75,16 @@ NONCOMP_ATTRS = [
     "mosg__forecast_run_duration",
     "grid_id",
     "source_realizations",
-    "um_version"
+    "um_version",
 ]
 DIAG_ATTRS = {
     "weather_code": ["weather_code", "weather_code_meaning"],
     "wind_gust": ["wind_gust_diagnostic"],
 }
 COMP_ATTRS = MANDATORY_ATTRIBUTES + [
-    "weather_code", "weather_code_meaning", "wind_gust_diagnostic",
+    "weather_code",
+    "weather_code_meaning",
+    "wind_gust_diagnostic",
 ]
 
 
@@ -103,14 +104,14 @@ class MOMetadataInterpreter:
 
         # initialise information to be derived from input cube
         self.prod_type = "gridded"  # gridded or spot
-        self.field_type = None      # probability, percentile, realization or name
-        self.diagnostic = None      # name
-        self.relative_to_threshold = None   # for probability data only
-        self.methods = ""           # human-readable interpretation of cell method(s)
+        self.field_type = None  # probability, percentile, realization or name
+        self.diagnostic = None  # name
+        self.relative_to_threshold = None  # for probability data only
+        self.methods = ""  # human-readable interpretation of cell method(s)
         self.post_processed = None  # "some" or "no" significant processing applied
-        self.model = None           # human-readable model name
-        self.blended = None         # has it been model blended (True / False)
-        self.blendable = None       # can it be model blended (True / False)
+        self.model = None  # human-readable model name
+        self.blended = None  # has it been model blended (True / False)
+        self.blendable = None  # can it be model blended (True / False)
 
     def _add_error(self, msg):
         """Appends new error message to string"""
@@ -121,7 +122,7 @@ class MOMetadataInterpreter:
         try:
             self.diagnostic = get_diagnostic_cube_name_from_probability_name(
                 cube.name()
-            ).replace("_", " ")
+            )
         except ValueError as cause:
             # if the probability name is not valid
             self._add_error(str(cause))
@@ -159,9 +160,9 @@ class MOMetadataInterpreter:
                 'var_name="threshold"'
             )
 
-        self.relative_to_threshold = threshold_coord.attributes(
+        self.relative_to_threshold = threshold_coord.attributes[
             "spp__relative_to_threshold"
-        ).replace("_", " ")
+        ].replace("_", " ")
 
         if self.relative_to_threshold in ("greater than", "greater than or equal to"):
             threshold_attribute = "above"
@@ -184,9 +185,9 @@ class MOMetadataInterpreter:
         """Checks cell methods are permitted and correct"""
         for cm in cell_methods:
             if cm.method in COMP_CM_METHODS:
-                self.methods += f" {cm.method} over {cm.coords}"
+                self.methods += f" {cm.method} over {cm.coord_names[0]}"
                 if self.field_type == PROB:
-                    if cm.comment[0] != f"of {diagnostic}":
+                    if cm.comments[0] != f"of {self.diagnostic}":
                         self._add_error(
                             f"Cell method {cm} on probability data should have comment "
                             f'"of {self.diagnostic}"'
@@ -211,7 +212,7 @@ class MOMetadataInterpreter:
             else:
                 codes = attrs[self.model_id_attr].split(" ")
                 names = [MODEL_NAMES[code] for code in codes]
-                self.model = names.join(", ")
+                self.model = ", ".join(names)
 
         else:
             if self.model_id_attr in attrs:
@@ -234,12 +235,12 @@ class MOMetadataInterpreter:
         information and checks for self-consistency"""
         if any([attr in NONCOMP_ATTRS for attr in attrs]):
             self._add_error(
-                f"Attributes {attrs[keys]} include one or more forbidden "
+                f"Attributes {attrs.keys()} include one or more forbidden "
                 f"values {NONCOMP_AtTRS}"
             )
         elif any([attr not in COMP_ATTRS for attr in attrs]):
             self.warning_string += (
-                f"{attrs[keys]} include unexpected attributes. Please check the "
+                f"{attrs.keys()} include unexpected attributes. Please check the "
                 "standard to ensure this is valid.\n"
             )
 
@@ -247,11 +248,15 @@ class MOMetadataInterpreter:
             required = DIAG_ATTRS[self.diagnostic]
             if any([req not in attrs for req in required]):
                 self._add_error(
-                    f"Attributes {attrs[keys]} missing one or more required "
+                    f"Attributes {attrs.keys()} missing one or more required "
                     f"values {required}"
                 )
 
-        self.post_processed = "some" if "Post-Processed" in attrs[title] else "no"
+        self.post_processed = (
+            "some"
+            if "Post-Processed" in attrs["title"] or "Blend" in attrs["title"]
+            else "no"
+        )
         self._check_blended_attributes(attrs)
 
     def _check_coords_present(self, coords, expected_coords):
@@ -262,18 +267,24 @@ class MOMetadataInterpreter:
     def check_spot_data(self, cube, coords):
         """Check spot coordinates"""
         self.prod_type = "spot"
+        if "Grid" in cube.attributes["title"]:
+            self.add_error(
+                f"Title attribute {cube.attributes['title']} is not "
+                "consistent with spot data"
+            )
+
         self._check_coords_present(coords, SPOT_COORDS)
         dim_coords = get_dim_coord_names(cube)
         if "spot_index" not in dim_coords:
             self._add_error(f"Expected spot_index dimension, got {dim_coords}")
 
-    def run(cube):
+    def run(self, cube):
         """Populate self-consistent interpretation or raise full set of errors"""
 
         # 1) Interpret diagnostic and type-specific metadata, including cell methods
         if cube.name() in EXCEPTIONS:
             self.field_type = self.diagnostic = cube.name()
-            if cube.name() == "weather_symbols":
+            if cube.name() == "weather_code":
                 if cube.cell_methods:
                     self._add_error(f"Unexpected cell methods {cube.cell_methods}")
             elif cube.name() == "wind_from_direction":
@@ -334,6 +345,9 @@ class MOMetadataInterpreter:
         if self.error_string:
             raise ValueError(self.error_string)
 
+        # 6) Tidy up formatting where required
+        self.diagnostic = self.diagnostic.replace("_", " ")
+
 
 def display_interpretation(interpreter, verbose=False):
     """Prints metadata interpretation in human-readable form
@@ -348,6 +362,7 @@ def display_interpretation(interpreter, verbose=False):
         str:
             Formatted string describing metadata in human-readable form
     """
+
     def vstring(source_metadata):
         """Format additional message for verbose output"""
         return f"    Source: {source_metadata}\n"
@@ -377,9 +392,7 @@ def display_interpretation(interpreter, verbose=False):
             if verbose:
                 output_string += vstring("cell methods")
 
-        output_string += (
-            "It has undergone {interpreter.post_processed} significant post-processing\n"
-        )
+        output_string += "It has undergone {interpreter.post_processed} significant post-processing\n"
         if verbose:
             output_string += vstring("title attribute")
 
@@ -400,8 +413,6 @@ def display_interpretation(interpreter, verbose=False):
                 output_string += vstring("model ID attribute (missing)")
 
     if interpreter.warning_string:
-        output_string += (
-            f"WARNINGS:\n{interpreter.warning_string}"
-        )
+        output_string += f"WARNINGS:\n{interpreter.warning_string}"
 
     return output_string

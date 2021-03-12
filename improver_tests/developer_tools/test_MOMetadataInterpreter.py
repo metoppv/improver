@@ -30,138 +30,100 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the MOMetadataInterpreter plugin"""
 
-import iris
-import numpy as np
 import pytest
 
 from improver.developer_tools.metadata_interpreter import MOMetadataInterpreter
-from improver.synthetic_data.set_up_test_cubes import (
-    set_up_probability_cube,
-    set_up_percentile_cube,
-    set_up_variable_cube,
+from improver_tests.developer_tools import (
+    ensemble_fixture,
+    percentile_fixture,
+    probability_above_fixture,
+    probability_below_fixture,
+    spot_fixture,
+    wind_direction_fixture,
+    wx_fixture,
 )
-from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-from improver.wxcode.utilities import weather_code_attributes
+
+# Test all aspects of common file types
 
 
-@pytest.fixture(name="probability_above_cube")
-def probability_above_fixture():
-    """Probability of air temperature above threshold cube from UKV"""
-    data = 0.5*np.ones((3, 3, 3), dtype=np.float32)
-    thresholds = np.array([280, 282, 284], dtype=np.float32)
-    attributes = {
-        "source": "Met Office Unified Model",
-        "title": "Post-Processed UKV Model Forecast on 2 km Standard Grid",
-        "institution": "Met Office",
-        "mosg__model_configuration": "uk_det"
-    }
-    return set_up_probability_cube(data, thresholds, attributes=attributes)
-
-@pytest.fixture(name="probability_below_cube")
-def probability_below_fixture():
-    """Probability of minimum screen temperature below threshold blended cube"""
-    data = 0.5*np.ones((3, 3, 3), dtype=np.float32)
-    thresholds = np.array([280, 282, 284], dtype=np.float32)
-    attributes = {
-        "source": "IMPROVER",
-        "title": "IMPROVER Multi-Model Blend on 2 km Standard Grid",
-        "institution": "Met Office",
-        "mosg__model_configuration": "uk_det uk_ens"
-    }
-    height_coord = iris.coords.AuxCoord([1.5], standard_name="height", units="m")
-    cube = set_up_probability_cube(
-        data,
-        thresholds,
-        attributes=attributes,
-        spp__relative_to_threshold="less_than",
-        include_scalar_coords=[height_coord],
-    )
-    cube.add_cell_method(iris.coords.CellMethod(
-        method="minimum", coords="time", comment="of air_temperature"
-    ))
-    return cube
-
-@pytest.fixture(name="percentile_cube")
-def percentile_fixture():
-    """Percentiles of wind gust from MOGREPS-UK"""
-    data = np.array([[2, 4, 2], [5, 8, 6], [12, 16, 15]], dtype=np.float32)
-    percentiles = np.array([10, 50, 90], dtype=np.float32)
-    attributes = {
-        "source": "Met Office Unified Model",
-        "title": "MOGREPS-UK Model Forecast on 2 km Standard Grid",
-        "institution": "Met Office",
-        "mosg__model_configuration": "uk_ens"
-        "wind_gust_diagnostic": "Typical gusts"
-    }
-    return set_up_percentile_cube(data, percentiles, attributes=attributes)
-
-@pytest.fixture(name="ensemble_cube"):
-def ensemble_fixture():
-    """Raw air temperature ensemble in realization space"""
-    data = 285*np.ones((3, 3, 3), dtype=np.float32)
-    attributes = {
-        "source": "Met Office Unified Model",
-        "title": "MOGREPS-UK Model Forecast on 2 km Standard Grid",
-        "institution": "Met Office",
-        "mosg__model_configuration": "uk_ens"
-    }
-    return set_up_variable_cube(data, attributes=attributes)
-
-@pytest.fixture(name="spot_cube"):
-def spot_fixture():
-    """Spot temperature cube"""
-    alts = np.array([15, 82, 0, 4, 15, 269], dtype=np.float32)
-    lats = np.array([60.75, 60.13, 58.95, 57.37, 58.22, 57.72], dtype=np.float32)
-    lons = np.array([-0.85, -1.18, -2.9, -7.40, -6.32, -4.90], dtype=np.float32)
-    wmo_ids = np.array(["3002", "3005", "3017", "3023", "3026", "3031"])
-    return build_spotdata_cube(
-        np.arange(6).astype(np.float32),
-        "air_temperature",
-        "degC",
-        alts,
-        lats,
-        lons,
-        wmo_ids,
-    )
-
-@pytest.fixture(name="wx_cube"):
-def wx_fixture():
-    """Weather symbols cube (randomly sampled data in expected range)"""
-    data = np.random.randint(0, high=31, size=(3, 3))
-    attributes = {
-        source: "IMPROVER",
-        institution: "Met Office",
-        title: "IMPROVER Multi-Model Blend on 2 km Standard Grid",
-        "mosg__model_configuration": "uk_det uk_ens"
-    }
-    attributes.update(weather_code_attributes())
-    return set_up_variable_cube(
-        data, name="weather_code", units="1", attributes=attributes
-    )
-
-@pytest.fixture(name="wind_direction_cube"):
-def wind_direction_fixture():
-    """Wind direction cube from MOGREPS-UK"""
-    data = np.arange(9).reshape(3, 3).astype(np.float32)
-    attributes = {
-        source: "Met Office Unified Model",
-        institution: "Met Office",
-        title: "Post-Processed MOGREPS-UK Model Forecast on 2 km Standard Grid",
-        "mosg__model_configuration": "uk_ens"
-    }
-    cube = set_up_variable_cube(
-        data, name="wind_from_direction", units="degrees", attributes=attributes
-    )
-    cube.add_cell_method(iris.coords.CellMethod("mean", coords="realization"))
-    return cube
+def test_probabilities_above(probability_above_cube):
+    """Test interpretation of probability of temperature above threshold
+    from UKV"""
+    interpreter = MOMetadataInterpreter()
+    interpreter.run(probability_above_cube)
+    assert interpreter.prod_type == "gridded"
+    assert interpreter.field_type == "probability"
+    assert interpreter.diagnostic == "air temperature"
+    assert interpreter.relative_to_threshold == "greater than"
+    assert not interpreter.methods
+    assert interpreter.post_processed == "some"
+    assert interpreter.model == "UKV"
+    assert not interpreter.blended
+    assert interpreter.blendable
 
 
-# test output for compliant cubes, including exceptions
+def test_probabilities_below(probability_below_cube):
+    """Test interpretation of blended probability of max temperature in hour
+    below threshold"""
+    interpreter = MOMetadataInterpreter()
+    interpreter.run(probability_below_cube)
+    assert interpreter.prod_type == "gridded"
+    assert interpreter.field_type == "probability"
+    assert interpreter.diagnostic == "air temperature"
+    assert interpreter.relative_to_threshold == "less than"
+    assert interpreter.methods == " maximum over time"
+    assert interpreter.post_processed == "some"
+    assert interpreter.model == "UKV, MOGREPS-UK"
+    assert interpreter.blended
+    assert interpreter.blendable is None
 
 
+def test_percentiles(percentile_cube):
+    """Test interpretation of wind gust percentiles from MOGREPS-UK"""
+    interpreter = MOMetadataInterpreter()
+    interpreter.run(percentile_cube)
+    assert interpreter.prod_type == "gridded"
+    assert interpreter.field_type == "percentile"
+    assert interpreter.diagnostic == "wind gust"
+    assert interpreter.relative_to_threshold is None
+    assert not interpreter.methods
+    assert interpreter.post_processed == "no"
+    assert interpreter.model == "MOGREPS-UK"
+    assert not interpreter.blended
+    assert interpreter.blendable
 
 
-# test error cases: permute compliant cubes to cover the following:
+def test_realizations(ensemble_cube):
+    """Test interpretation of temperature realizations from MOGREPS-UK"""
+    interpreter = MOMetadataInterpreter()
+    interpreter.run(ensemble_cube)
+    assert interpreter.prod_type == "gridded"
+    assert interpreter.field_type == "realization"
+    assert interpreter.diagnostic == "air temperature"
+    assert interpreter.relative_to_threshold is None
+    assert not interpreter.methods
+    assert interpreter.post_processed == "no"
+    assert interpreter.model == "MOGREPS-UK"
+    assert not interpreter.blended
+    assert interpreter.blendable
+
+
+def test_spot_median(spot_cube):
+    """Test interpretation of spot median"""
+    interpreter = MOMetadataInterpreter()
+    interpreter.run(spot_cube)
+    assert interpreter.prod_type == "spot"
+    assert interpreter.field_type == "percentile"
+    assert interpreter.diagnostic == "air temperature"
+    assert interpreter.relative_to_threshold is None
+    assert not interpreter.methods
+    assert interpreter.post_processed == "some"
+    assert interpreter.model == "UKV, MOGREPS-UK"
+    assert interpreter.blended
+    assert interpreter.blendable is None
+
+
+# TODO test error cases: permute compliant cubes to cover the following:
 """
 Probabilities:
 - Invalid probability name
@@ -191,6 +153,24 @@ Time coordinate units
 """
 
 
+# Test specific treatment of weather codes and wind direction
 
 
+def test_weather_code_success(wx_cube):
+    """Test interpretation of weather code file"""
+    interpreter = MOMetadataInterpreter()
+    interpreter.run(wx_cube)
+    assert interpreter.diagnostic == "weather code"
+    assert interpreter.blended
+    assert interpreter.model == "UKV, MOGREPS-UK"
 
+
+def test_weather_code_missing_attribute(wx_cube):
+    """Test error when weather code required attributes are missing"""
+    wx_cube.attributes.pop("weather_code")
+    interpreter = MOMetadataInterpreter()
+    with pytest.raises(ValueError, match="missing .* required values"):
+        interpreter.run(wx_cube)
+
+
+# TODO wind direction
