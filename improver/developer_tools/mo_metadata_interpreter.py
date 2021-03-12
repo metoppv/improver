@@ -32,7 +32,10 @@
 
 import argparse
 
-from improver.developer_tools.metadata_interpreter import MOMetadataInterpreter
+from improver.developer_tools.metadata_interpreter import (
+    MOMetadataInterpreter,
+    display_interpretation,
+)
 from improver.utilities.load import load_cube
 
 
@@ -55,8 +58,9 @@ def main(filepath, verbose=False):
             match the expected standard
     """
     cube = load_cube(filepath)
-    interpreter = MOMetadataInterpreter(verbose)
-    output = interpreter.process(cube)
+    interpreter = MOMetadataInterpreter()
+    interpreter.run(cube)
+    output = display_interpretation(interpreter, verbose)
     print(output)
 
 
