@@ -279,7 +279,15 @@ class MOMetadataInterpreter:
             self._add_error(f"Expected spot_index dimension, got {dim_coords}")
 
     def run(self, cube):
-        """Populate self-consistent interpretation or raise full set of errors"""
+        """Populates self-consistent interpreted parameters, or raises collated errors
+        describing (as far as posible) how the metadata are a) not self-consistent,
+        and / or b) not consistent with the Met Office IMPROVER standard.
+
+        Although every effort has been made to return as much information as possible,
+        collated errors may not be complete if the issue is fundamental. The developer
+        is advised to rerun this tool after each fix, until no further problems are
+        raised.
+        """
 
         # 1) Interpret diagnostic and type-specific metadata, including cell methods
         if cube.name() in EXCEPTIONS:
@@ -316,7 +324,7 @@ class MOMetadataInterpreter:
             if cube.cell_methods:
                 self.check_cell_methods(cube.cell_methods)
 
-        # 2) Interpret and check cube attributes
+        # 2) Interpret model and blend information from cube attributes
         try:
             self.check_attributes(cube.attributes)
         except KeyError:
@@ -356,7 +364,8 @@ def display_interpretation(interpreter, verbose=False):
         interpreter (MOMetadataInterpreter):
             Populated instance of MOMetadataInterpreter
         verbose (bool):
-            
+            Optional flag to include information about the source of the
+            metadata interpretation (eg name, coordinates, attributes, etc)        
 
     Returns:
         str:
