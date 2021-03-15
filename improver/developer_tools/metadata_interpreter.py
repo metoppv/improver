@@ -31,11 +31,13 @@
 """Module containing classes for metadata interpretation"""
 
 from iris.coords import CellMethod
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants import PERC_COORD
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
 from improver.metadata.probabilistic import (
+    find_threshold_coordinate,
     get_diagnostic_cube_name_from_probability_name,
     get_threshold_coord_name_from_probability_name,
 )
@@ -87,6 +89,10 @@ COMP_ATTRS = MANDATORY_ATTRIBUTES + [
     "wind_gust_diagnostic",
 ]
 
+BLEND_TITLE_SUBSTR = "IMPROVER Multi-Model Blend"
+PP_TITLE_SUBSTR = "Post-Processed"
+SPOT_TITLE_SUBSTR = "Spot Values"
+
 
 class MOMetadataInterpreter:
     """Class to interpret an iris cube according to the Met Office specific
@@ -130,10 +136,11 @@ class MOMetadataInterpreter:
         expected_threshold_name = get_threshold_coord_name_from_probability_name(
             cube.name()
         )
+
         if not cube.coords(expected_threshold_name):
-            msg = f"Cube does not have expected threshold coord '{expected_threshold_name}'"
+            msg = f"Cube does not have expected threshold coord '{expected_threshold_name}'; "
             try:
-                threshold_name = find_threshold_coordinate(cube)
+                threshold_name = find_threshold_coordinate(cube).name()
             except CoordinateNotFoundError:
                 coords = [coord.name() for coord in cube.coords()]
                 msg = (
@@ -157,28 +164,28 @@ class MOMetadataInterpreter:
         if threshold_var_name != "threshold":
             self._add_error(
                 f"Threshold coord {threshold_coord.name()} does not have "
-                'var_name="threshold"'
+                "var_name='threshold'"
             )
 
         self.relative_to_threshold = threshold_coord.attributes[
             "spp__relative_to_threshold"
-        ].replace("_", " ")
+        ]
 
-        if self.relative_to_threshold in ("greater than", "greater than or equal to"):
+        if self.relative_to_threshold in ("greater_than", "greater_than_or_equal_to"):
             threshold_attribute = "above"
-        elif self.relative_to_threshold in ("less than", "less than or equal to"):
+        elif self.relative_to_threshold in ("less_than", "less_than_or_equal_to"):
             threshold_attribute = "below"
         else:
             threshold_attribute = None
             self._add_error(
-                f'spp__relative_to_threshold attribute "{self.relative_to_threshold}" '
+                f"spp__relative_to_threshold attribute '{self.relative_to_threshold}' "
                 "is not in permitted value set"
             )
 
         if threshold_attribute not in cube_name:
             self._add_error(
-                f'Cube name "{cube_name}" is not consistent with '
-                f'spp__relative_to_threshold attribute "{self.relative_to_threshold}"'
+                f"Cube name '{cube_name}' is not consistent with "
+                f"spp__relative_to_threshold attribute '{self.relative_to_threshold}'"
             )
 
     def check_cell_methods(self, cell_methods):
@@ -204,7 +211,7 @@ class MOMetadataInterpreter:
     def _check_blended_attributes(self, attrs):
         """Interprets attributes for model and blending information
         and checks for self-consistency"""
-        self.blended = True if "Blend" in attrs["title"] else False
+        self.blended = True if BLEND_TITLE_SUBSTR in attrs["title"] else False
 
         if self.blended:
             if self.model_id_attr not in attrs:
@@ -254,7 +261,7 @@ class MOMetadataInterpreter:
 
         self.post_processed = (
             "some"
-            if "Post-Processed" in attrs["title"] or "Blend" in attrs["title"]
+            if PP_TITLE_SUBSTR in attrs["title"] or BLEND_TITLE_SUBSTR in attrs["title"]
             else "no"
         )
         self._check_blended_attributes(attrs)
@@ -267,8 +274,8 @@ class MOMetadataInterpreter:
     def check_spot_data(self, cube, coords):
         """Check spot coordinates"""
         self.prod_type = "spot"
-        if "Grid" in cube.attributes["title"]:
-            self.add_error(
+        if SPOT_TITLE_SUBSTR not in cube.attributes["title"]:
+            self._add_error(
                 f"Title attribute {cube.attributes['title']} is not "
                 "consistent with spot data"
             )
@@ -318,6 +325,11 @@ class MOMetadataInterpreter:
                             "Percentile coordinate should have units of %, "
                             f"has {perc_units}"
                         )
+                elif any(
+                    [cube.coord(coord).var_name == "threshold" for coord in coords]
+                ):
+                    self.field_type = PROB
+                    self.check_probability_cube_metadata(cube)
                 else:
                     self.field_type = DIAG
 
@@ -353,8 +365,10 @@ class MOMetadataInterpreter:
         if self.error_string:
             raise ValueError(self.error_string)
 
-        # 6) Tidy up formatting where required
+        # 6) Tidy up formatting for string output where required
         self.diagnostic = self.diagnostic.replace("_", " ")
+        if self.relative_to_threshold is not None:
+            self.relative_to_threshold = self.relative_to_threshold.replace("_", " ")
 
 
 def display_interpretation(interpreter, verbose=False):

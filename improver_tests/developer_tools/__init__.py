@@ -126,6 +126,19 @@ def ensemble_fixture():
     return set_up_variable_cube(data, attributes=attributes)
 
 
+@pytest.fixture(name="snow_level_cube")
+def snow_level_fixture():
+    """Probability of snow falling level cube (which is a diagnostic field)"""
+    data = np.zeros((3, 3), dtype=np.float32)
+    name = "probability_of_snow_falling_level_below_ground_level"
+    attributes = {
+        "source": "IMPROVER",
+        "institution": "Met Office",
+        "title": "Post-Processed MOGREPS-UK Model Forecast on 2 km Standard Grid",
+    }
+    return set_up_variable_cube(data, name=name, units="1", attributes=attributes)
+
+
 @pytest.fixture(name="spot_cube")
 def spot_fixture():
     """Spot temperature cube"""
@@ -148,7 +161,7 @@ def spot_fixture():
     spot_cube.attributes = {
         "source": "IMPROVER",
         "institution": "Met Office",
-        "title": "IMPROVER Multi-Model Blend at UK Sites",
+        "title": "IMPROVER Multi-Model Blend UK Spot Values",
         "mosg__model_configuration": "uk_det uk_ens",
     }
     (time, _), (blend_time, _), (_, _) = construct_scalar_time_coords(
@@ -160,8 +173,8 @@ def spot_fixture():
     return spot_cube
 
 
-@pytest.fixture(name="wx_cube")
-def wx_fixture():
+@pytest.fixture(name="wxcode_cube")
+def wxcode_fixture():
     """Weather symbols cube (randomly sampled data in expected range)"""
     data = np.random.randint(0, high=31, size=(3, 3))
     attributes = {
