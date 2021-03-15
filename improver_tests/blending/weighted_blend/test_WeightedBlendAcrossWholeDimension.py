@@ -438,7 +438,7 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         )
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(
-            result.data, BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS, decimal=5
+            result.data, BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS
         )
 
     @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])

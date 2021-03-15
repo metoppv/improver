@@ -39,7 +39,6 @@ import numpy as np
 from iris.analysis import Aggregator
 from iris.coords import AuxCoord
 from iris.exceptions import CoordinateNotFoundError
-from scipy import interpolate
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -336,19 +335,23 @@ class PercentileBlendingAggregator:
         """
         inputs_to_blend = perc_values.shape[0]
         combined_cdf = np.zeros((inputs_to_blend, len(percentiles)), dtype=FLOAT_DTYPE)
+        if isinstance(perc_values, np.ma.MaskedArray):
+            perc_values_data = perc_values.data
+        else:
+            perc_values_data = perc_values
+
         # Loop over the axis we are blending over finding the values for the
         # probability at each threshold in the cdf, for each of the other
         # points in the axis we are blending over.
         # Then add the probabilities multiplied by the correct weight to the
         # running total.
         for i in range(0, inputs_to_blend):
-            interpolator = interpolate.interp1d(
-                perc_values[i],
-                percentiles,
-                bounds_error=False,
-                fill_value=(percentiles[0], percentiles[-1]),
+            interp_values = np.reshape(
+                np.interp(perc_values, perc_values[i], percentiles),
+                (inputs_to_blend, len(percentiles)),
             )
-            combined_cdf += interpolator(perc_values) * weights[i]
+            interp_values[i] = percentiles
+            combined_cdf += interp_values * weights[i]
 
         # Combine and sort the threshold values for all the points
         # we are blending.
