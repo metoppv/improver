@@ -335,10 +335,6 @@ class PercentileBlendingAggregator:
         """
         inputs_to_blend = perc_values.shape[0]
         combined_cdf = np.zeros((inputs_to_blend, len(percentiles)), dtype=FLOAT_DTYPE)
-        if isinstance(perc_values, np.ma.MaskedArray):
-            perc_values_data = perc_values.data
-        else:
-            perc_values_data = perc_values
 
         # Loop over the axis we are blending over finding the values for the
         # probability at each threshold in the cdf, for each of the other
