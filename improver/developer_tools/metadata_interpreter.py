@@ -55,8 +55,16 @@ MODEL_CODES = {
 }
 MODEL_NAMES = dict((v, k) for k, v in MODEL_CODES.items())
 
-# Diagnostics that differ from the PROB / PERC / DIAG pattern
-EXCEPTIONS = ["weather_code", "wind_from_direction"]
+# Diagnostics that differ from the PROB / PERC / DIAG pattern (not all are handled)
+EMOS_COEFF_NAMES = [
+    f"emos_coefficient_{coeff}" for coeff in ["alpha", "beta", "gamma", "delta"]
+]
+EXCEPTIONS = [
+    "weather_code",
+    "wind_from_direction",
+    "grid_neighbours",
+    "reliability_calibration_table",
+] + EMOS_COEFF_NAMES
 
 # Expected coordinates for different field types
 SPOT_COORDS = ["spot_index", "latitude", "longitude", "altitude", "wmo_id"]
@@ -186,7 +194,7 @@ class MOMetadataInterpreter:
                 "is not in permitted value set"
             )
 
-        if threshold_attribute not in cube_name:
+        if threshold_attribute is not None and threshold_attribute not in cube_name:
             self._add_error(
                 f"Cube name '{cube_name}' is not consistent with "
                 f"spp__relative_to_threshold attribute '{self.relative_to_threshold}'"
@@ -198,10 +206,10 @@ class MOMetadataInterpreter:
             if cm.method in COMP_CM_METHODS:
                 self.methods += f" {cm.method} over {cm.coord_names[0]}"
                 if self.field_type == self.PROB:
-                    if cm.comments[0] != f"of {self.diagnostic}":
+                    if not cm.comments or cm.comments[0] != f"of {self.diagnostic}":
                         self._add_error(
                             f"Cell method {cm} on probability data should have comment "
-                            f'"of {self.diagnostic}"'
+                            f"'of {self.diagnostic}'"
                         )
             elif cm in NONCOMP_CMS or cm.method in NONCOMP_CM_METHODS:
                 self._add_error(f"Non-standard cell method {cm}")
@@ -280,11 +288,15 @@ class MOMetadataInterpreter:
     def check_spot_data(self, cube, coords):
         """Check spot coordinates"""
         self.prod_type = "spot"
-        if SPOT_TITLE_SUBSTR not in cube.attributes["title"]:
-            self._add_error(
-                f"Title attribute {cube.attributes['title']} is not "
-                "consistent with spot data"
-            )
+        try:
+            if SPOT_TITLE_SUBSTR not in cube.attributes["title"]:
+                self._add_error(
+                    f"Title attribute {cube.attributes['title']} is not "
+                    "consistent with spot data"
+                )
+        except KeyError:
+            # missing title attribute is picked up in attribute checks - ignore here
+            pass
 
         self._check_coords_present(coords, SPOT_COORDS)
 

@@ -178,6 +178,19 @@ def test_error_inconsistent_relative_to_threshold(probability_above_cube, interp
         interpreter.run(probability_above_cube)
 
 
+def test_error_incorrect_probability_cell_method(
+    blended_probability_below_cube, interpreter
+):
+    """Test error raised if a probability cube cell method does not have a
+    comment referring to the source diagnostic"""
+    cell_method = CellMethod(method="maximum", coords="time")
+    blended_probability_below_cube.cell_methods = [cell_method]
+    with pytest.raises(
+        ValueError, match="Cell method.*on probability data should have comment"
+    ):
+        interpreter.run(blended_probability_below_cube)
+
+
 def test_multiple_error_concatenation(probability_above_cube, interpreter):
     """Test multiple errors are concatenated and returned correctly in a readable
     format"""
