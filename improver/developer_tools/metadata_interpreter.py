@@ -37,6 +37,7 @@ from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants import PERC_COORD
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
 from improver.metadata.probabilistic import (
+    find_percentile_coordinate,
     find_threshold_coordinate,
     get_diagnostic_cube_name_from_probability_name,
     get_threshold_coord_name_from_probability_name,
@@ -83,11 +84,7 @@ DIAG_ATTRS = {
     "weather_code": ["weather_code", "weather_code_meaning"],
     "wind_gust": ["wind_gust_diagnostic"],
 }
-COMP_ATTRS = MANDATORY_ATTRIBUTES + [
-    "weather_code",
-    "weather_code_meaning",
-    "wind_gust_diagnostic",
-]
+COMP_ATTRS = MANDATORY_ATTRIBUTES + ["mosg__model_configuration"]
 
 BLEND_TITLE_SUBSTR = "IMPROVER Multi-Model Blend"
 PP_TITLE_SUBSTR = "Post-Processed"
@@ -117,7 +114,6 @@ class MOMetadataInterpreter:
         self.post_processed = None  # "some" or "no" significant processing applied
         self.model = None  # human-readable model name
         self.blended = None  # has it been model blended (True / False)
-        self.blendable = None  # can it be model blended (True / False)
 
     def _add_error(self, msg):
         """Appends new error message to string"""
@@ -233,19 +229,21 @@ class MOMetadataInterpreter:
                             f"attribute {attrs[self.model_id_attr]}"
                         )
                 self.model = MODEL_NAMES[attrs[self.model_id_attr]]
-                self.blendable = True
-            else:
-                self.blendable = False
 
     def check_attributes(self, attrs):
         """Checks for unexpected attributes, then interprets values for model
         information and checks for self-consistency"""
+        try:
+            permitted_attributes = COMP_ATTRS + DIAG_ATTRS[self.diagnostic]
+        except KeyError:
+            permitted_attributes = COMP_ATTRS.copy()
+
         if any([attr in NONCOMP_ATTRS for attr in attrs]):
             self._add_error(
                 f"Attributes {attrs.keys()} include one or more forbidden "
-                f"values {NONCOMP_AtTRS}"
+                f"values {NONCOMP_ATTRS}"
             )
-        elif any([attr not in COMP_ATTRS for attr in attrs]):
+        elif any([attr not in permitted_attributes for attr in attrs]):
             self.warning_string += (
                 f"{attrs.keys()} include unexpected attributes. Please check the "
                 "standard to ensure this is valid.\n"
@@ -281,9 +279,6 @@ class MOMetadataInterpreter:
             )
 
         self._check_coords_present(coords, SPOT_COORDS)
-        dim_coords = get_dim_coord_names(cube)
-        if "spot_index" not in dim_coords:
-            self._add_error(f"Expected spot_index dimension, got {dim_coords}")
 
     def run(self, cube):
         """Populates self-consistent interpreted parameters, or raises collated errors
@@ -316,22 +311,30 @@ class MOMetadataInterpreter:
                 self.check_probability_cube_metadata(cube)
             else:
                 self.diagnostic = cube.name()
-                coords = get_coord_names(cube)
-                if PERC_COORD in coords:
+                try:
+                    perc_coord = find_percentile_coordinate(cube)
+                except CoordinateNotFoundError:
+                    coords = get_coord_names(cube)
+                    if any(
+                        [cube.coord(coord).var_name == "threshold" for coord in coords]
+                    ):
+                        self.field_type = PROB
+                        self.check_probability_cube_metadata(cube)
+                    else:
+                        self.field_type = DIAG
+                else:
                     self.field_type = PERC
-                    perc_units = cube.coord(PERC_COORD).units
-                    if perc_units != "%":
+                    if perc_coord.name() != PERC_COORD:
+                        self._add_error(
+                            f"Percentile coordinate should have name {PERC_COORD}, "
+                            f"has {perc_coord.name()}"
+                        )
+
+                    if perc_coord.units != "%":
                         self._add_error(
                             "Percentile coordinate should have units of %, "
-                            f"has {perc_units}"
+                            f"has {perc_coord.units}"
                         )
-                elif any(
-                    [cube.coord(coord).var_name == "threshold" for coord in coords]
-                ):
-                    self.field_type = PROB
-                    self.check_probability_cube_metadata(cube)
-                else:
-                    self.field_type = DIAG
 
             if cube.cell_methods:
                 self.check_cell_methods(cube.cell_methods)
@@ -424,7 +427,7 @@ def display_interpretation(interpreter, verbose=False):
         if verbose:
             output_string += vstring("title attribute, model ID attribute")
     else:
-        if interpreter.blendable:
+        if interpreter.model is not None:
             output_string += f"It contains data from {interpreter.model}\n"
             if verbose:
                 output_string += vstring("model ID attribute")

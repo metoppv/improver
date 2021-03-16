@@ -71,7 +71,7 @@ def probability_above_fixture():
     return set_up_probability_cube(data, thresholds, attributes=attributes)
 
 
-@pytest.fixture(name="probability_below_cube")
+@pytest.fixture(name="blended_probability_below_cube")
 def probability_below_fixture():
     """Probability of minimum screen temperature below threshold blended cube"""
     data = 0.5 * np.ones((3, 3, 3), dtype=np.float32)
@@ -94,7 +94,7 @@ def probability_below_fixture():
     return cube
 
 
-@pytest.fixture(name="percentile_cube")
+@pytest.fixture(name="wind_gust_percentile_cube")
 def percentile_fixture():
     """Percentiles of wind gust from MOGREPS-UK"""
     data = np.array(
@@ -139,7 +139,7 @@ def snow_level_fixture():
     return set_up_variable_cube(data, name=name, units="1", attributes=attributes)
 
 
-@pytest.fixture(name="spot_cube")
+@pytest.fixture(name="blended_spot_median_cube")
 def spot_fixture():
     """Spot temperature cube"""
     alts = np.array([15, 82, 0, 4, 15, 269], dtype=np.float32)
