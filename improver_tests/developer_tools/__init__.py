@@ -36,6 +36,7 @@ import iris
 import numpy as np
 import pytest
 
+from improver.developer_tools.metadata_interpreter import MOMetadataInterpreter
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
@@ -44,6 +45,11 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.wxcode.utilities import weather_code_attributes
+
+
+@pytest.fixture(name="interpreter")
+def interpreter_fixture():
+    return MOMetadataInterpreter()
 
 
 def _update_blended_time_coords(cube):

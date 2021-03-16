@@ -34,9 +34,9 @@ import pytest
 from iris.coords import CellMethod
 from iris.util import promote_aux_coord_to_dim_coord
 
-from improver.developer_tools.metadata_interpreter import MOMetadataInterpreter
 from improver_tests.developer_tools import (
     ensemble_fixture,
+    interpreter_fixture,
     percentile_fixture,
     probability_above_fixture,
     probability_below_fixture,
@@ -47,17 +47,12 @@ from improver_tests.developer_tools import (
 )
 
 
-@pytest.fixture(name="interpreter")
-def interpreter_fixture():
-    return MOMetadataInterpreter()
-
-
 def test_probabilities_above(probability_above_cube, interpreter):
     """Test interpretation of probability of temperature above threshold
     from UKV"""
     interpreter.run(probability_above_cube)
     assert interpreter.prod_type == "gridded"
-    assert interpreter.field_type == "probability"
+    assert interpreter.field_type == "probabilities"
     assert interpreter.diagnostic == "air temperature"
     assert interpreter.relative_to_threshold == "greater than"
     assert not interpreter.methods
@@ -72,7 +67,7 @@ def test_probabilities_below(blended_probability_below_cube, interpreter):
     below threshold"""
     interpreter.run(blended_probability_below_cube)
     assert interpreter.prod_type == "gridded"
-    assert interpreter.field_type == "probability"
+    assert interpreter.field_type == "probabilities"
     assert interpreter.diagnostic == "air temperature"
     assert interpreter.relative_to_threshold == "less than"
     assert interpreter.methods == " maximum over time"
@@ -86,7 +81,7 @@ def test_percentiles(wind_gust_percentile_cube, interpreter):
     """Test interpretation of wind gust percentiles from MOGREPS-UK"""
     interpreter.run(wind_gust_percentile_cube)
     assert interpreter.prod_type == "gridded"
-    assert interpreter.field_type == "percentile"
+    assert interpreter.field_type == "percentiles"
     assert interpreter.diagnostic == "wind gust"
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
@@ -100,7 +95,7 @@ def test_realizations(ensemble_cube, interpreter):
     """Test interpretation of temperature realizations from MOGREPS-UK"""
     interpreter.run(ensemble_cube)
     assert interpreter.prod_type == "gridded"
-    assert interpreter.field_type == "realization"
+    assert interpreter.field_type == "realizations"
     assert interpreter.diagnostic == "air temperature"
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
@@ -115,7 +110,7 @@ def test_snow_level(snow_level_cube, interpreter):
     which is not designed for blending with other models"""
     interpreter.run(snow_level_cube)
     assert interpreter.prod_type == "gridded"
-    assert interpreter.field_type == "realization"
+    assert interpreter.field_type == "realizations"
     assert (
         interpreter.diagnostic == "probability of snow falling level below ground level"
     )
@@ -131,7 +126,7 @@ def test_spot_median(blended_spot_median_cube, interpreter):
     """Test interpretation of spot median"""
     interpreter.run(blended_spot_median_cube)
     assert interpreter.prod_type == "spot"
-    assert interpreter.field_type == "percentile"
+    assert interpreter.field_type == "percentiles"
     assert interpreter.diagnostic == "air temperature"
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
@@ -313,7 +308,6 @@ def test_error_weather_code_unexpected_cell_methods(wxcode_cube, interpreter):
 def test_error_weather_code_missing_attribute(wxcode_cube, interpreter):
     """Test error when weather code required attributes are missing"""
     wxcode_cube.attributes.pop("weather_code")
-    interpreter = MOMetadataInterpreter()
     with pytest.raises(ValueError, match="missing .* required values"):
         interpreter.run(wxcode_cube)
 

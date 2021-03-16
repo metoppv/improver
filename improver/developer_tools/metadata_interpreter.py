@@ -44,10 +44,9 @@ from improver.metadata.probabilistic import (
 )
 from improver.utilities.cube_manipulation import get_coord_names, get_dim_coord_names
 
-PROB = "probability"
-PERC = "percentile"
-DIAG = "realization"
+### Constants relating to metadata encoding
 
+# Model name-to-attribute maps
 MODEL_CODES = {
     "Nowcast": "nc_det",
     "MOGREPS-G": "gl_ens",
@@ -56,12 +55,15 @@ MODEL_CODES = {
 }
 MODEL_NAMES = dict((v, k) for k, v in MODEL_CODES.items())
 
+# Diagnostics that differ from the PROB / PERC / DIAG pattern
 EXCEPTIONS = ["weather_code", "wind_from_direction"]
 
+# Expected coordinates for different field types
 SPOT_COORDS = ["spot_index", "latitude", "longitude", "altitude", "wmo_id"]
 UNBLENDED_TIME_COORDS = ["time", "forecast_period", "forecast_reference_time"]
 BLENDED_TIME_COORDS = ["time", "blend_time"]
 
+# Compliant and forbidden cell methods
 NONCOMP_CMS = [
     CellMethod(method="mean", coords="forecast_reference_time"),
     CellMethod(method="mean", coords="model_id"),
@@ -71,6 +73,7 @@ NONCOMP_CMS = [
 NONCOMP_CM_METHODS = ["point"]
 COMP_CM_METHODS = ["min", "max", "minimum", "maximum", "sum"]
 
+# Compliant, required and forbidden attributes
 NONCOMP_ATTRS = [
     "mosg__grid_type",
     "mosg__grid_domain",
@@ -86,6 +89,7 @@ DIAG_ATTRS = {
 }
 COMP_ATTRS = MANDATORY_ATTRIBUTES + ["mosg__model_configuration"]
 
+# Expected substrings to be found in certain title attributes
 BLEND_TITLE_SUBSTR = "IMPROVER Multi-Model Blend"
 PP_TITLE_SUBSTR = "Post-Processed"
 SPOT_TITLE_SUBSTR = "Spot Values"
@@ -95,6 +99,10 @@ class MOMetadataInterpreter:
     """Class to interpret an iris cube according to the Met Office specific
     IMPROVER standard.  This is intended as a debugging tool to aid developers
     in adding and modifying metadata within the code base."""
+
+    PROB = "probabilities"
+    PERC = "percentiles"
+    DIAG = "realizations"
 
     def __init__(self):
         """Initialise class parameters"""
@@ -189,7 +197,7 @@ class MOMetadataInterpreter:
         for cm in cell_methods:
             if cm.method in COMP_CM_METHODS:
                 self.methods += f" {cm.method} over {cm.coord_names[0]}"
-                if self.field_type == PROB:
+                if self.field_type == self.PROB:
                     if cm.comments[0] != f"of {self.diagnostic}":
                         self._add_error(
                             f"Cell method {cm} on probability data should have comment "
@@ -307,7 +315,7 @@ class MOMetadataInterpreter:
 
         else:
             if "probability" in cube.name() and "threshold" in cube.name():
-                self.field_type = PROB
+                self.field_type = self.PROB
                 self.check_probability_cube_metadata(cube)
             else:
                 self.diagnostic = cube.name()
@@ -318,12 +326,12 @@ class MOMetadataInterpreter:
                     if any(
                         [cube.coord(coord).var_name == "threshold" for coord in coords]
                     ):
-                        self.field_type = PROB
+                        self.field_type = self.PROB
                         self.check_probability_cube_metadata(cube)
                     else:
-                        self.field_type = DIAG
+                        self.field_type = self.DIAG
                 else:
-                    self.field_type = PERC
+                    self.field_type = self.PERC
                     if perc_coord.name() != PERC_COORD:
                         self._add_error(
                             f"Percentile coordinate should have name {PERC_COORD}, "
@@ -369,6 +377,7 @@ class MOMetadataInterpreter:
             raise ValueError(self.error_string)
 
         # 6) Tidy up formatting for string output where required
+        self.field_type = self.field_type.replace("_", " ")
         self.diagnostic = self.diagnostic.replace("_", " ")
         if self.relative_to_threshold is not None:
             self.relative_to_threshold = self.relative_to_threshold.replace("_", " ")
@@ -394,31 +403,34 @@ def display_interpretation(interpreter, verbose=False):
         return f"    Source: {source_metadata}\n"
 
     output_string = ""
-    output_string += f"This is a {interpreter.prod_type} {intepreter.field_type} file\n"
+    output_string += (
+        f"This is a {interpreter.prod_type} {interpreter.field_type} file\n"
+    )
     if verbose:
         output_string += vstring("name, coordinates")
 
-    if interpreter.diagnostic not in EXCEPTIONS:
+    formatted_exceptions = [exc_string.replace("_", " ") for exc_string in EXCEPTIONS]
+    if interpreter.diagnostic not in formatted_exceptions:
         rtt = (
-            " {interpreter.relative_to_threshold} thresholds"
-            if interpreter.field_type == PROB
+            f" {interpreter.relative_to_threshold} thresholds"
+            if interpreter.field_type == interpreter.PROB
             else ""
         )
         output_string += (
-            f"It contains {interpreter.field_type}s of {interpreter.diagnostic}{rtt}\n"
+            f"It contains {interpreter.field_type} of {interpreter.diagnostic}{rtt}\n"
         )
         if verbose:
-            output_string += vstring("name, threshold coordinate (if probability)")
+            output_string += vstring("name, threshold coordinate (probabilities only)")
 
         if interpreter.methods:
             output_string += (
-                f"These {interpreter.field_type}s are of "
+                f"These {interpreter.field_type} are of "
                 f"{interpreter.diagnostic}{interpreter.methods}\n"
             )
             if verbose:
                 output_string += vstring("cell methods")
 
-        output_string += "It has undergone {interpreter.post_processed} significant post-processing\n"
+        output_string += f"It has undergone {interpreter.post_processed} significant post-processing\n"
         if verbose:
             output_string += vstring("title attribute")
 
