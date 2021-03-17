@@ -1580,60 +1580,60 @@ class RegridWithLandSeaMask(BasePlugin):
             else:  # "nearest-with-mask-2" change to true
                 surface_type_mask[island_4false_ext, :] = True
 
-            # for other case, use inverse distance weighting
-            island_true = (np.where(sum_true > 0))[0]  # internal no
-            no_island_true = island_true.shape[0]
+        # for other case, use inverse distance weighting
+        island_true = (np.where(sum_true > 0))[0]  # internal no
+        no_island_true = island_true.shape[0]
 
-            if no_island_true > 0:
-                distances_2 = np.zeros([no_island_true, 4])
-                for p_id in range(island_true.shape[0]):
+        if no_island_true > 0:
+            distances_2 = np.zeros([no_island_true, 4])
+            for p_id in range(island_true.shape[0]):
 
-                    island_4false_ext = p_with_4false[island_true[p_id]]
-                    weights[island_4false_ext, :] = 0.000
-                    surface_type_mask[island_4false_ext, :] = False
+                island_4false_ext = p_with_4false[island_true[p_id]]
+                weights[island_4false_ext, :] = 0.000
+                surface_type_mask[island_4false_ext, :] = False
 
-                    idx = 0
-                    for i in range(8):  # distance orderes from small to large indexes
-                        if surface_type_mask_1[island_true[p_id], i] == True:
-                            indexes[island_4false_ext, idx] = indexes_1[
-                                island_true[p_id], i
-                            ]
-                            surface_type_mask[
-                                island_4false_ext, idx
-                            ] = True  # other mask =false
-                            distances_2[p_id, idx] = distances_1[island_true[p_id], i]
-                            idx += 1
-                            # for nearest option, just need nearest true point.
-                            if idx == 1 and self.regrid_mode == "nearest-with-mask-2":
-                                break
-                            # for bilinear case, we get points up to 4. if not, false point okay!
-                            elif (
-                                idx == 4 and self.regrid_mode == "bilinear-with-mask-2"
-                            ):
-                                break
+                idx = 0
+                for i in range(8):  # distance orderes from small to large indexes
+                    if surface_type_mask_1[island_true[p_id], i] == True:
+                        indexes[island_4false_ext, idx] = indexes_1[
+                            island_true[p_id], i
+                        ]
+                        surface_type_mask[
+                            island_4false_ext, idx
+                        ] = True  # other mask =false
+                        distances_2[p_id, idx] = distances_1[island_true[p_id], i]
+                        idx += 1
+                        # for nearest option, just need nearest true point.
+                        if idx == 1 and self.regrid_mode == "nearest-with-mask-2":
+                            break
+                        # for bilinear case, we get points up to 4. if not, false point okay!
+                        elif (
+                            idx == 4 and self.regrid_mode == "bilinear-with-mask-2"
+                        ):
+                            break
 
-                # for bilinear cases, do inverse distance weight
-                if self.regrid_mode == "bilinear-with-mask-2":
+            # for bilinear cases, do inverse distance weight
+            if self.regrid_mode == "bilinear-with-mask-2":
 
-                    island_true_ext = p_with_4false[island_true]
+                island_true_ext = p_with_4false[island_true]
 
-                    # convert mask to be true where input points should not be considered
-                    not_mask = np.logical_not(surface_type_mask[island_true_ext])
+                # convert mask to be true where input points should not be considered
+                not_mask = np.logical_not(surface_type_mask[island_true_ext])
 
-                    # replace distances with infinity where they should not be used
-                    masked_distances = np.where(
-                        not_mask, np.float64("inf"), distances_2
-                    )
+                # replace distances with infinity where they should not be used
+                masked_distances = np.where(
+                    not_mask, np.float64("inf"), distances_2
+                )
 
-                    # add a small amount to all distances to avoid division by zero when taking the inverse
-                    masked_distances += np.finfo(np.float64).eps
-                    # invert the distances, sum the k surrounding points, scale to produce weights
-                    inv_distances = 1.0 / masked_distances
-                    inv_distances_sum = np.sum(inv_distances, axis=1)
-                    inv_distances_sum = 1.0 / inv_distances_sum
+                # add a small amount to all distances to avoid division by zero when taking the inverse
+                masked_distances += np.finfo(np.float64).eps
+                # invert the distances, sum the k surrounding points, scale to produce weights
+                inv_distances = 1.0 / masked_distances
+                inv_distances_sum = np.sum(inv_distances, axis=1)
+                inv_distances_sum = 1.0 / inv_distances_sum
 
-                    weights_idw = inv_distances * inv_distances_sum.reshape(-1, 1)
-                    weights[island_true_ext] = weights_idw
+                weights_idw = inv_distances * inv_distances_sum.reshape(-1, 1)
+                weights[island_true_ext] = weights_idw
 
         return weights, indexes, surface_type_mask
 
