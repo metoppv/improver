@@ -82,14 +82,7 @@ INTERMEDIATES = [
     "reliability_calibration_table",
 ] + EMOS_COEFF_NAMES
 
-EXCEPTIONS = (
-    [
-        "weather_code",
-        "wind_from_direction",
-    ]
-    + INTERMEDIATES
-    + ANCILLARIES
-)
+EXCEPTIONS = ["weather_code", "wind_from_direction",] + INTERMEDIATES + ANCILLARIES
 
 # Expected coordinates for different field types
 SPOT_COORDS = ["spot_index", "latitude", "longitude", "altitude", "wmo_id"]
@@ -430,7 +423,11 @@ class MOMetadataInterpreter:
         if self.field_type == self.ANCIL:
             # there is no clear standard for time coordinates on static ancillaries
             pass
-        elif cube.coords("time") and len(cube.coord_dims("time")) == 2 and not self.blended:
+        elif (
+            cube.coords("time")
+            and len(cube.coord_dims("time")) == 2
+            and not self.blended
+        ):
             # 2D time coordinates are only present on global day-max diagnostics that
             # use a local time zone coordinate. These do not have a 2D forecast period.
             expected_coords = set(LOCAL_TIME_COORDS & UNBLENDED_TIME_COORDS)
