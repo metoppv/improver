@@ -57,9 +57,6 @@ MODEL_CODES = {
 MODEL_NAMES = dict((v, k) for k, v in MODEL_CODES.items())
 
 # Diagnostics that differ from the PROB / PERC / DIAG pattern (not all are handled)
-EMOS_COEFF_NAMES = [
-    f"emos_coefficient_{coeff}" for coeff in ["alpha", "beta", "gamma", "delta"]
-]
 ANCILLARIES = [
     "surface_altitude",
     "land_fraction",
@@ -70,15 +67,27 @@ ANCILLARIES = [
     "silhouette_roughness",
     "standard_deviation_of_height_in_grid_cell",
     "timezone_mask",
+    "smoothing_coefficient_x",
+    "smoothing_coefficient_y",
 ]
+EMOS_COEFF_NAMES = [
+    f"emos_coefficient_{coeff}" for coeff in ["alpha", "beta", "gamma", "delta"]
+]
+INTERMEDIATES = [
+    "grid_neighbours",
+    "grid_eastward_wind",
+    "grid_northward_wind",
+    "precipitation_advection_x_velocity",
+    "precipitation_advection_y_velocity",
+    "reliability_calibration_table",
+] + EMOS_COEFF_NAMES
+
 EXCEPTIONS = (
     [
         "weather_code",
         "wind_from_direction",
-        "grid_neighbours",
-        "reliability_calibration_table",
     ]
-    + EMOS_COEFF_NAMES
+    + INTERMEDIATES
     + ANCILLARIES
 )
 
@@ -209,6 +218,9 @@ class MOMetadataInterpreter:
             threshold_attribute = "above"
         elif self.relative_to_threshold in ("less_than", "less_than_or_equal_to"):
             threshold_attribute = "below"
+        elif self.relative_to_threshold == "between_thresholds":
+            threshold_attribute = "between"
+            self.warning_string += "Between thresholds data are not fully supported\n"
         else:
             threshold_attribute = None
             self._add_error(
@@ -371,7 +383,7 @@ class MOMetadataInterpreter:
                     if len(cube.cell_methods) > 1 or cube.cell_methods[0] != expected:
                         self._add_error(f"Unexpected cell methods {cube.cell_methods}")
             else:
-                raise ValueError("Interpreter for {cube.name()} is not available")
+                raise TypeError("Interpreter for {cube.name()} is not available")
 
         else:
             if "probability" in cube.name() and "threshold" in cube.name():
@@ -418,7 +430,7 @@ class MOMetadataInterpreter:
         if self.field_type == self.ANCIL:
             # there is no clear standard for time coordinates on static ancillaries
             pass
-        elif len(cube.coord_dims("time")) == 2 and not self.blended:
+        elif cube.coords("time") and len(cube.coord_dims("time")) == 2 and not self.blended:
             # 2D time coordinates are only present on global day-max diagnostics that
             # use a local time zone coordinate. These do not have a 2D forecast period.
             expected_coords = set(LOCAL_TIME_COORDS & UNBLENDED_TIME_COORDS)
