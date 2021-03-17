@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -107,6 +107,19 @@ def get_dim_coord_names(cube):
         list of str
     """
     return [coord.name() for coord in cube.coords(dim_coords=True)]
+
+
+def get_coord_names(cube):
+    """
+    Returns a list of all coordinate names on the cube
+
+    Args:
+        cube (iris.cube.Cube)
+
+    Returns:
+        list of str
+    """
+    return [coord.name() for coord in cube.coords()]
 
 
 def equalise_cube_attributes(cubes, silent=None):

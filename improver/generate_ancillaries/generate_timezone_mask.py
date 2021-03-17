@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@ from iris.exceptions import CoordinateNotFoundError
 from pytz import timezone
 
 from improver import BasePlugin
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -147,8 +148,8 @@ class GenerateTimezoneMask(BasePlugin):
             longitudes = cube.coord("longitude").points.copy()
 
             # timezone finder works using -180 to 180 longitudes.
-            if (longitudes > 180).any():
-                longitudes[longitudes > 180] -= 180
+            if (longitudes > 180).any() and (longitudes >= 0).all():
+                longitudes -= 180
                 if ((longitudes > 180) | (longitudes < -180)).any():
                     msg = (
                         "TimezoneFinder requires longitudes between -180 "
@@ -256,7 +257,7 @@ class GenerateTimezoneMask(BasePlugin):
         attributes["includes_daylight_savings"] = str(self.include_dst)
 
         return create_new_diagnostic_cube(
-            "timezone_mask", 1, cube, attributes, dtype=np.int32
+            "timezone_mask", 1, cube, attributes, dtype=np.int8
         )
 
     def _group_timezones(self, timezone_mask):
@@ -304,7 +305,11 @@ class GenerateTimezoneMask(BasePlugin):
                 subset.coord("UTC_offset").points = [offset]
             else:
                 (point,) = subset.coord("UTC_offset").points
-                subset.coord("UTC_offset").bounds = [point, point]
+                subset.coord("UTC_offset").points = [offset]
+                subset.coord("UTC_offset").bounds = [
+                    min(point, offset),
+                    max(point, offset),
+                ]
             grouped_timezone_masks.append(subset)
         return grouped_timezone_masks
 
@@ -348,8 +353,12 @@ class GenerateTimezoneMask(BasePlugin):
         # Create a cube containing the timezone UTC offset information.
         timezone_mask = iris.cube.CubeList()
         for offset in range(min_offset, max_offset + 1):
-            zone = (grid_offsets != offset).astype(np.int32)
-            coord = iris.coords.DimCoord([offset], long_name="UTC_offset")
+            zone = (grid_offsets != offset).astype(np.int8)
+            coord = iris.coords.DimCoord(
+                np.array([offset], dtype=np.int32),
+                long_name="UTC_offset",
+                units="hours",
+            )
             tz_slice = template_cube.copy(data=zone)
             tz_slice.add_aux_coord(coord)
             timezone_mask.append(tz_slice)
@@ -358,4 +367,12 @@ class GenerateTimezoneMask(BasePlugin):
             timezone_mask = self._group_timezones(timezone_mask)
 
         timezone_mask = timezone_mask.merge_cube()
+        timezone_mask.coord("UTC_offset").convert_units(TIME_COORDS["UTC_offset"].units)
+        timezone_mask.coord("UTC_offset").points = timezone_mask.coord(
+            "UTC_offset"
+        ).points.astype(TIME_COORDS["UTC_offset"].dtype)
+        if timezone_mask.coord("UTC_offset").bounds is not None:
+            timezone_mask.coord("UTC_offset").bounds = timezone_mask.coord(
+                "UTC_offset"
+            ).bounds.astype(TIME_COORDS["UTC_offset"].dtype)
         return timezone_mask

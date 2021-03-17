@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,13 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     param_paths = [kgo_dir / f"{p}.nc" for p in ALL_PARAMS]
     output_path = tmp_path / "output.nc"
-    args = [*param_paths, "--output", output_path]
+    args = [
+        *param_paths,
+        "--output",
+        output_path,
+        "--model-id-attr",
+        "mosg__model_configuration",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

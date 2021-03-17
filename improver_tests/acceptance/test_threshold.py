@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -178,10 +178,8 @@ def test_collapse_realization(tmp_path):
 
 
 def test_collapse_realization_masked_data(tmp_path):
-    """Test thresholding and collapsing realizations using non-spatial weights,
-    where the data being thresholded is masked. This will result in a warning being
-    raised as such a collapse has not been fully tested when not using spatial
-    weights."""
+    """Test thresholding and collapsing realizations where the data being
+    thresholded is masked."""
     kgo_dir = acc.kgo_root() / "threshold/masked_collapse"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
@@ -195,12 +193,7 @@ def test_collapse_realization_masked_data(tmp_path):
         "--collapse-coord",
         "realization",
     ]
-    with pytest.warns(
-        UserWarning,
-        match="Blending masked data without spatial "
-        "weights has not been fully tested.",
-    ):
-        run_cli(args)
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 

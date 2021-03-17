@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@ class.
 import datetime
 import importlib
 import unittest
+from functools import partial
 
 import iris
 import numpy as np
@@ -233,7 +234,7 @@ class Test__repr__(IrisTest):
             "minimiser: <class 'improver.calibration.ensemble_calibration."
             "ContinuousRankedProbabilityScoreMinimisers'>; "
             "coeff_names: ['alpha', 'beta', 'gamma', 'delta']; "
-            "tolerance: 0.01; "
+            "tolerance: 0.02; "
             "max_iterations: 1000>"
         )
         self.assertEqual(result, msg)
@@ -807,12 +808,13 @@ class Test_process(
         self.landsea_cube = set_up_variable_cube(
             landsea_data, name="land_binary_mask", units="1"
         )
+        self.plugin = partial(Plugin, tolerance=0.01)
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic(self):
         """Ensure that the optimised_coefficients are returned as a cube,
         with the expected number of coefficients."""
-        plugin = Plugin(self.distribution)
+        plugin = self.plugin(self.distribution)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -826,7 +828,7 @@ class Test_process(
         expected values for a normal distribution. In this case,
         a linear least-squares regression is used to construct the initial
         guess."""
-        plugin = Plugin(self.distribution)
+        plugin = self.plugin(self.distribution)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -847,7 +849,7 @@ class Test_process(
         guess. The original data is surrounded by a halo that is masked
         out by the landsea_mask, giving the same results as the original data.
         """
-        plugin = Plugin(self.distribution)
+        plugin = self.plugin(self.distribution)
         result = plugin.process(
             self.historic_temperature_forecast_cube_halo,
             self.temperature_truth_cube_halo,
@@ -873,7 +875,7 @@ class Test_process(
             self.historic_forecasts[:2] + self.historic_forecasts[3:]
         ).merge_cube()
         partial_truth = self.truth[1:].merge_cube()
-        plugin = Plugin(self.distribution)
+        plugin = self.plugin(self.distribution)
         result = plugin.process(partial_historic_forecasts, partial_truth)
 
         self.assertEMOSCoefficientsAlmostEqual(
@@ -894,7 +896,7 @@ class Test_process(
         more closely matching the coefficients created when using a linear
         least-squares regression to construct the initial guess."""
         expected = [-0.0001, 0.9974, 0.0001, 1.0374]
-        plugin = Plugin(self.distribution)
+        plugin = self.plugin(self.distribution)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
@@ -915,7 +917,7 @@ class Test_process(
         argument is specified."""
         max_iterations = 800
 
-        plugin = Plugin(self.distribution, max_iterations=max_iterations)
+        plugin = self.plugin(self.distribution, max_iterations=max_iterations)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -936,7 +938,7 @@ class Test_process(
         guess."""
         distribution = "truncnorm"
 
-        plugin = Plugin(distribution)
+        plugin = self.plugin(distribution)
         result = plugin.process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
         )
@@ -965,7 +967,7 @@ class Test_process(
         """
         distribution = "truncnorm"
 
-        plugin = Plugin(distribution)
+        plugin = self.plugin(distribution)
         result = plugin.process(
             self.historic_wind_speed_forecast_cube_halo,
             self.wind_speed_truth_cube_halo,
@@ -993,7 +995,7 @@ class Test_process(
         expected = [-0.0002, 0.8557, -0.0013, 1.3785]
         distribution = "truncnorm"
 
-        plugin = Plugin(distribution)
+        plugin = self.plugin(distribution)
         plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
         result = plugin.process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
@@ -1015,7 +1017,7 @@ class Test_process(
         realizations are used as the predictor."""
         predictor = "realizations"
 
-        plugin = Plugin(self.distribution, predictor=predictor)
+        plugin = self.plugin(self.distribution, predictor=predictor)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1038,7 +1040,7 @@ class Test_process(
         """
         predictor = "realizations"
 
-        plugin = Plugin(self.distribution, predictor=predictor)
+        plugin = self.plugin(self.distribution, predictor=predictor)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1060,7 +1062,7 @@ class Test_process(
         distribution = "truncnorm"
         predictor = "realizations"
 
-        plugin = Plugin(distribution, predictor=predictor)
+        plugin = self.plugin(distribution, predictor=predictor)
         result = plugin.process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
         )
@@ -1082,7 +1084,7 @@ class Test_process(
         distribution = "truncnorm"
         predictor = "realizations"
 
-        plugin = Plugin(distribution, predictor=predictor)
+        plugin = self.plugin(distribution, predictor=predictor)
         result = plugin.process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
         )
@@ -1102,7 +1104,7 @@ class Test_process(
         self.temperature_truth_cube.convert_units("Fahrenheit")
         desired_units = "Kelvin"
 
-        plugin = Plugin(self.distribution, desired_units=desired_units)
+        plugin = self.plugin(self.distribution, desired_units=desired_units)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1118,7 +1120,7 @@ class Test_process(
         self.historic_temperature_forecast_cube.convert_units("Fahrenheit")
         desired_units = "Kelvin"
 
-        plugin = Plugin(self.distribution, desired_units=desired_units)
+        plugin = self.plugin(self.distribution, desired_units=desired_units)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1133,7 +1135,7 @@ class Test_process(
         have non matching units."""
         self.historic_temperature_forecast_cube.convert_units("Fahrenheit")
 
-        plugin = Plugin(self.distribution)
+        plugin = self.plugin(self.distribution)
 
         msg = "The historic forecast units"
         with self.assertRaisesRegex(ValueError, msg):
@@ -1147,7 +1149,7 @@ class Test_process(
         forecasts or truth were missing."""
         self.historic_temperature_forecast_cube.convert_units("Fahrenheit")
 
-        plugin = Plugin(self.distribution)
+        plugin = self.plugin(self.distribution)
 
         msg = ".*cubes must be provided"
         with self.assertRaisesRegex(ValueError, msg):

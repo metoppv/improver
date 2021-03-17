@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -58,7 +58,7 @@ class Test_setup(unittest.TestCase):
             np.ones((1, 3, 3), dtype=np.float32), thresholds
         )
         reliability_cube_format = CalPlugin()._create_reliability_table_cube(
-            self.forecast[0], self.forecast.coord(var_name="threshold")
+            self.forecast, self.forecast.coord(var_name="threshold")
         )
         reliability_cube_format = reliability_cube_format.collapsed(
             [

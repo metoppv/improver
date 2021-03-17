@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -52,6 +52,12 @@ MODEL_WEIGHTS = {
     "uk_ens": {"forecast_period": [0, 4, 8], "weights": [0, 1, 1], "units": "hours"},
 }
 
+MODEL_WEIGHTS_WITH_ZERO = {
+    "nc_det": {"forecast_period": [0, 4, 8], "weights": [1, 0, 0], "units": "hours"},
+    "uk_det": {"forecast_period": [0, 4, 8], "weights": [0, 0, 0], "units": "hours"},
+    "uk_ens": {"forecast_period": [0, 4, 8], "weights": [0, 1, 1], "units": "hours"},
+}
+
 
 def set_up_masked_cubes():
     """
@@ -67,6 +73,7 @@ def set_up_masked_cubes():
     name = "lwe_precipitation_rate"
     datatime = dt(2018, 9, 10, 7)
     cycletime = dt(2018, 9, 10, 5)
+    cycletime_string = "20180910T0500Z"
 
     # 5x5 matrix results in grid spacing of 200 km
     base_data = np.ones((5, 5), dtype=np.float32)
@@ -104,7 +111,7 @@ def set_up_masked_cubes():
         grid_spacing=grid_spacing,
     )
 
-    return iris.cube.CubeList([ukv_cube, nowcast_cube])
+    return iris.cube.CubeList([ukv_cube, nowcast_cube]), cycletime_string
 
 
 class Test__init__(IrisTest):
@@ -235,7 +242,7 @@ class Test__update_spatial_weights(IrisTest):
     @ManageWarnings(ignored_messages=["Deleting unmatched attribute"])
     def setUp(self):
         """Set up cube and plugin"""
-        cubelist = set_up_masked_cubes()
+        cubelist, self.cycletime = set_up_masked_cubes()
         merger = MergeCubesForWeightedBlending(
             "model_id",
             weighting_coord="forecast_period",
@@ -271,7 +278,7 @@ class Test__update_spatial_weights(IrisTest):
         """Test weights are fuzzified as expected"""
         expected_data = np.array(
             [
-                np.broadcast_to([0.5, 0.5, 0.5, 0.5, 0.5], (5, 5)),
+                np.broadcast_to([0.5, 0.5, 0.75, 1.0, 1.0], (5, 5)),
                 np.broadcast_to([0.5, 0.5, 0.25, 0.0, 0.0], (5, 5)),
             ],
             dtype=np.float32,
@@ -294,7 +301,6 @@ class Test_process(IrisTest):
         units = "mm h-1"
         name = "lwe_precipitation_rate"
         datatime = dt(2018, 9, 10, 7)
-        cycletime = dt(2018, 9, 10, 3)
 
         # a UKV cube with some rain and a 4 hr forecast period
         rain_data = np.array([[[0.9]], [[0.5]], [[0]]], dtype=np.float32)
@@ -304,7 +310,7 @@ class Test_process(IrisTest):
             variable_name=name,
             threshold_units=units,
             time=datatime,
-            frt=cycletime,
+            frt=dt(2018, 9, 10, 3),
             standard_grid_metadata="uk_det",
         )
 
@@ -339,9 +345,14 @@ class Test_process(IrisTest):
             variable_name=name,
             threshold_units=units,
             time=datatime,
-            frt=cycletime,
+            frt=dt(2018, 9, 10, 3),
             standard_grid_metadata="uk_ens",
         )
+
+        # cycletime from the most recent forecast (simulates current cycle)
+        self.cycletime = "20180910T0500Z"
+        self.expected_frt = self.nowcast_cube.coord("forecast_reference_time").copy()
+        self.expected_fp = self.nowcast_cube.coord("forecast_period").copy()
 
         self.plugin_cycle = WeightAndBlend(
             "forecast_reference_time", "linear", y0val=1, ynval=1
@@ -356,7 +367,9 @@ class Test_process(IrisTest):
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_basic(self):
         """Test output is a cube"""
-        result = self.plugin_cycle.process([self.ukv_cube, self.ukv_cube_latest])
+        result = self.plugin_cycle.process(
+            [self.ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+        )
         self.assertIsInstance(result, iris.cube.Cube)
 
     @ManageWarnings(record=True)
@@ -366,7 +379,9 @@ class Test_process(IrisTest):
         ukv_cube = self.ukv_cube.copy(
             data=np.ma.masked_where(self.ukv_cube.data < 0.5, self.ukv_cube.data)
         )
-        self.plugin_cycle.process([ukv_cube, self.ukv_cube_latest])
+        self.plugin_cycle.process(
+            [ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+        )
         message = "Blending masked data without spatial weights"
         self.assertTrue(any(message in str(item) for item in warning_list))
 
@@ -375,12 +390,21 @@ class Test_process(IrisTest):
         """Test plugin produces correct cycle blended output with equal
         linear weightings"""
         expected_data = np.array([[[0.95]], [[0.55]], [[0.1]]], dtype=np.float32)
-        result = self.plugin_cycle.process([self.ukv_cube, self.ukv_cube_latest])
+        result = self.plugin_cycle.process(
+            [self.ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+        )
         self.assertArrayAlmostEqual(result.data, expected_data)
-        # make sure output cube has the forecast reference time and period
-        # from the most recent contributing cycle
-        for coord in ["time", "forecast_reference_time", "forecast_period"]:
-            self.assertEqual(result.coord(coord), self.ukv_cube_latest.coord(coord))
+        self.assertArrayEqual(
+            result.coord("time").points, self.ukv_cube_latest.coord("time").points
+        )
+        self.assertArrayEqual(
+            result.coord("forecast_reference_time").points, self.expected_frt.points
+        )
+        self.assertArrayEqual(
+            result.coord("forecast_period").points, self.expected_fp.points
+        )
+        for coord in ["forecast_reference_time", "forecast_period"]:
+            self.assertIn("deprecation_message", result.coord(coord).attributes)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_model_blend(self):
@@ -388,7 +412,9 @@ class Test_process(IrisTest):
         with 50-50 weightings defined by dictionary"""
         expected_data = np.array([[[0.8]], [[0.4]], [[0]]], dtype=np.float32)
         result = self.plugin_model.process(
-            [self.ukv_cube, self.enukx_cube], model_id_attr="mosg__model_configuration"
+            [self.ukv_cube, self.enukx_cube],
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(
@@ -397,6 +423,11 @@ class Test_process(IrisTest):
         result_coords = [coord.name() for coord in result.coords()]
         self.assertNotIn("model_id", result_coords)
         self.assertNotIn("model_configuration", result_coords)
+        for coord in ["forecast_reference_time", "forecast_period"]:
+            self.assertIn("deprecation_message", result.coord(coord).attributes)
+            self.assertIn(
+                "will be removed", result.coord(coord).attributes["deprecation_message"]
+            )
 
     @ManageWarnings(
         ignored_messages=[
@@ -420,6 +451,7 @@ class Test_process(IrisTest):
             [self.ukv_cube, self.nowcast_cube],
             model_id_attr="mosg__model_configuration",
             attributes_dict=attribute_changes,
+            cycletime=self.cycletime,
         )
         self.assertDictEqual(result.attributes, expected_attributes)
 
@@ -441,20 +473,112 @@ class Test_process(IrisTest):
         result = self.plugin_model.process(
             [self.ukv_cube, self.enukx_cube, self.nowcast_cube],
             model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
         # make sure output cube has the forecast reference time and period
         # from the most recent contributing model
         for coord in ["time", "forecast_period", "forecast_reference_time"]:
-            self.assertEqual(result.coord(coord), self.nowcast_cube.coord(coord))
+            self.assertArrayEqual(
+                result.coord(coord).points, self.nowcast_cube.coord(coord).points
+            )
+
+    def test_blend_with_zero_weight(self):
+        """Test plugin produces correct values and attributes when some models read
+        into the plugin have zero weighting"""
+        plugin = WeightAndBlend(
+            "model_id",
+            "dict",
+            weighting_coord="forecast_period",
+            wts_dict=MODEL_WEIGHTS_WITH_ZERO,
+        )
+        expected_data = np.array([[[0.85]], [[0.45]], [[0.1]]], dtype=np.float32)
+        result = plugin.process(
+            [self.ukv_cube, self.enukx_cube, self.nowcast_cube],
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(
+            result.attributes["mosg__model_configuration"], "nc_det uk_ens"
+        )
+
+    def test_blend_with_zero_weight_one_model_valid(self):
+        """Test plugin can cope with only one remaining model in the list to blend"""
+        plugin = WeightAndBlend(
+            "model_id",
+            "dict",
+            weighting_coord="forecast_period",
+            wts_dict=MODEL_WEIGHTS_WITH_ZERO,
+        )
+        expected_data = self.nowcast_cube.data.copy()
+        result = plugin.process(
+            [self.ukv_cube, self.nowcast_cube],
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(result.attributes["mosg__model_configuration"], "nc_det")
+
+    def test_blend_with_zero_weight_one_model_input(self):
+        """Test plugin returns data unchanged from a single model, even if that
+        model had zero weight"""
+        plugin = WeightAndBlend(
+            "model_id",
+            "dict",
+            weighting_coord="forecast_period",
+            wts_dict=MODEL_WEIGHTS_WITH_ZERO,
+        )
+        expected_data = self.ukv_cube.data.copy()
+        result = plugin.process(
+            self.ukv_cube,
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(result.attributes["mosg__model_configuration"], "uk_det")
+
+    def test_forecast_coord_deprecation(self):
+        """Test model blending works if some (but not all) inputs have previously
+        been cycle blended"""
+        for cube in [self.ukv_cube, self.enukx_cube]:
+            for coord in ["forecast_period", "forecast_reference_time"]:
+                cube.coord(coord).attributes.update({"deprecation_message": "blah"})
+        result = self.plugin_model.process(
+            [self.ukv_cube, self.enukx_cube, self.nowcast_cube],
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
+        )
+        for coord in ["forecast_reference_time", "forecast_period"]:
+            self.assertIn("deprecation_message", result.coord(coord).attributes)
+            self.assertIn(
+                "will be removed", result.coord(coord).attributes["deprecation_message"]
+            )
 
     def test_one_cube(self):
-        """Test the plugin returns a single unmodified input cube"""
+        """Test the plugin returns a single input cube with updated attributes
+        and time coordinates"""
+        expected_coords = {coord.name() for coord in self.enukx_cube.coords()}
+        expected_coords.update({"blend_time"})
         result = self.plugin_model.process(
-            [self.enukx_cube], model_id_attr="mosg__model_configuration"
+            [self.enukx_cube],
+            model_id_attr="mosg__model_configuration",
+            cycletime=self.cycletime,
+            attributes_dict={"source": "IMPROVER"},
         )
         self.assertArrayAlmostEqual(result.data, self.enukx_cube.data)
-        self.assertEqual(result.metadata, self.enukx_cube.metadata)
+        self.assertSetEqual(
+            {coord.name() for coord in result.coords()}, expected_coords
+        )
+        self.assertEqual(result.attributes["source"], "IMPROVER")
+
+    def test_one_cube_error_no_cycletime(self):
+        """Test an error is raised if no cycletime is provided for model blending"""
+        msg = "Current cycle time is required"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin_model.process(
+                [self.enukx_cube], model_id_attr="mosg__model_configuration"
+            )
 
     def test_one_cube_with_cycletime_model_blending(self):
         """Test the plugin returns a single input cube with an updated forecast
@@ -497,7 +621,7 @@ class Test_process_spatial_weights(IrisTest):
 
     def setUp(self):
         """Set up a masked nowcast and unmasked UKV cube"""
-        self.cubelist = set_up_masked_cubes()
+        self.cubelist, self.cycletime = set_up_masked_cubes()
         self.plugin = WeightAndBlend(
             "model_id",
             "dict",
@@ -527,6 +651,7 @@ class Test_process_spatial_weights(IrisTest):
             self.cubelist,
             model_id_attr="mosg__model_configuration",
             spatial_weights=True,
+            cycletime=self.cycletime,
         )
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
@@ -543,9 +668,9 @@ class Test_process_spatial_weights(IrisTest):
         # 100% UKV where radar data is masked
         expected_data = np.array(
             [
-                np.broadcast_to([0.95, 0.95, 0.9333333, 0.9, 0.9], (5, 5)),
-                np.broadcast_to([0.55, 0.55, 0.5333333, 0.5, 0.5], (5, 5)),
-                np.broadcast_to([0.1, 0.1, 0.0666666, 0.0, 0.0], (5, 5)),
+                np.broadcast_to([0.95, 0.95, 0.925, 0.9, 0.9], (5, 5)),
+                np.broadcast_to([0.55, 0.55, 0.525, 0.5, 0.5], (5, 5)),
+                np.broadcast_to([0.1, 0.1, 0.05, 0.0, 0.0], (5, 5)),
             ],
             dtype=np.float32,
         )
@@ -554,6 +679,7 @@ class Test_process_spatial_weights(IrisTest):
             model_id_attr="mosg__model_configuration",
             spatial_weights=True,
             fuzzy_length=400000,
+            cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
 

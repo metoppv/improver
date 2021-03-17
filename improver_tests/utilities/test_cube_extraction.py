@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,11 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 from improver.utilities.cube_extraction import (
     apply_extraction,
     create_constraint,
@@ -47,7 +51,9 @@ from improver.utilities.cube_extraction import (
     extract_subcube,
     is_complex_parsing_required,
     parse_constraint_list,
+    subset_data,
 )
+from improver.utilities.cube_manipulation import get_dim_coord_names
 
 
 def islambda(function):
@@ -481,6 +487,200 @@ class Test_extract_subcube(IrisTest):
         self.assertEqual(
             expected.coord("precipitation_rate"), result.coord("precipitation_rate")
         )
+
+
+class Test_subset_data(IrisTest):
+    """Tests for the subset_data function"""
+
+    def setUp(self):
+        """Set up spot and gridded cubes for testing"""
+        # details pulled from verification site list
+        alts = np.array([15, 82, 0, 4, 15, 269], dtype=np.float32)
+        lats = np.array([60.75, 60.13, 58.95, 57.37, 58.22, 57.72], dtype=np.float32)
+        lons = np.array([-0.85, -1.18, -2.9, -7.40, -6.32, -4.90], dtype=np.float32)
+        wmo_ids = np.array(["3002", "3005", "3017", "3023", "3026", "3031"])
+
+        self.spot_cube = build_spotdata_cube(
+            np.arange(6).astype(np.float32),
+            "screen_temperature",
+            "degC",
+            alts,
+            lats,
+            lons,
+            wmo_ids,
+        )
+
+        data = np.arange(56).reshape((7, 8)).astype(np.float32)
+        self.uk_cube = set_up_variable_cube(
+            data,
+            name="screen_temperature",
+            units="degC",
+            spatial_grid="equalarea",
+            domain_corner=(-5000, -5000),
+            grid_spacing=2000,
+        )
+
+        self.gl_cube = set_up_variable_cube(
+            data,
+            name="screen_temperature",
+            units="degC",
+            spatial_grid="latlon",
+            domain_corner=(45, -2),
+            grid_spacing=2,
+        )
+
+        self.grid_spec = {
+            "longitude": {"min": 0, "max": 7, "thin": 2},
+            "latitude": {"min": 42, "max": 52, "thin": 2},
+            "projection_x_coordinate": {"min": 0, "max": 10000, "thin": 3},
+            "projection_y_coordinate": {"min": 0, "max": 10000, "thin": 3},
+        }
+
+        self.expected_points = {
+            "longitude": [0.0, 4.0],
+            "latitude": [45.0, 49.0],
+            "projection_x_coordinate": [1000.0, 7000.0],
+            "projection_y_coordinate": [1000.0, 7000.0],
+        }
+
+    def test_subset_spot_cube(self):
+        """Extract a list of spot sites"""
+        site_list = ["3005", "3023"]
+        result = subset_data(self.spot_cube, site_list=site_list)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayEqual(result.coord("wmo_id").points, site_list)
+        self.assertArrayAlmostEqual(result.data, [1, 3])
+
+    def test_subset_uk_grid(self):
+        """Extract subset of UK equal area grid"""
+        expected_data = np.array([[27, 30], [51, 54]])
+        result = subset_data(self.uk_cube, grid_spec=self.grid_spec)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        for axis in ["x", "y"]:
+            coord = f"projection_{axis}_coordinate"
+            self.assertArrayAlmostEqual(
+                result.coord(coord).points, self.expected_points[coord]
+            )
+
+    def test_subset_global_grid(self):
+        """Extract subset of global lat-lon grid"""
+        expected_data = np.array([[1, 3], [17, 19]])
+        result = subset_data(self.gl_cube, grid_spec=self.grid_spec)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, self.expected_points["longitude"]
+        )
+        self.assertArrayAlmostEqual(
+            result.coord("latitude").points, self.expected_points["latitude"]
+        )
+
+    def test_subset_global_grid_pacific(self):
+        """Extract subset of global lat-lon grid over the international date line"""
+        gl_pacific_cube = set_up_variable_cube(
+            self.gl_cube.data.copy(),
+            name="screen_temperature",
+            units="degC",
+            spatial_grid="latlon",
+            domain_corner=(0, 175),
+            grid_spacing=2,
+        )
+        expected_data = np.array([[2.0, 4.0], [18.0, 20.0]])
+        grid_spec = {
+            "longitude": {"min": 178, "max": 185, "thin": 2},
+            "latitude": {"min": 0, "max": 7, "thin": 2},
+        }
+        result = subset_data(gl_pacific_cube, grid_spec=grid_spec)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(result.coord("longitude").points, [179.0, 183.0])
+        self.assertArrayAlmostEqual(result.coord("latitude").points, [0.0, 4.0])
+
+    def test_subset_no_thinning(self):
+        """Test grid subsetting can handle a "thin" value of 1"""
+        grid_spec = {
+            "longitude": {"min": 0, "max": 7, "thin": 1},
+            "latitude": {"min": 42, "max": 52, "thin": 2},
+        }
+        expected_data = np.array([[1, 2, 3, 4], [17, 18, 19, 20]])
+        result = subset_data(self.gl_cube, grid_spec=grid_spec)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, [0.0, 2.0, 4.0, 6.0]
+        )
+        self.assertArrayAlmostEqual(result.coord("latitude").points, [45.0, 49.0])
+
+    def test_preserves_dimension_order(self):
+        """Test order of original cube dimensions is preserved on subsetting"""
+        self.uk_cube.transpose([1, 0])
+        expected_dims = get_dim_coord_names(self.uk_cube)
+        result = subset_data(self.uk_cube, grid_spec=self.grid_spec)
+        result_dims = get_dim_coord_names(result)
+        self.assertSequenceEqual(result_dims, expected_dims)
+
+    def test_error_no_site_list(self):
+        """Test error when required site_list is not provided"""
+        msg = "site_list required"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.spot_cube)
+
+    def test_error_no_grid_spec(self):
+        """Test error when required grid_spec is not provided"""
+        msg = "grid_spec required"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.uk_cube)
+
+    def test_error_no_sites_available(self):
+        """Test error raised when none of the required sites are present in
+        the input spot cube"""
+        msg = "Cube does not contain any of the required sites"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.spot_cube, site_list=["3100"])
+
+    def test_error_wrong_grid_spec(self):
+        """Test error raised when required coordinates are not in the grid
+        spec dictionary"""
+        grid_spec_latlon = {
+            "longitude": {"min": 0, "max": 7, "thin": 2},
+            "latitude": {"min": 42, "max": 52, "thin": 2},
+        }
+        msg = "Cube coordinates .* are not present"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.uk_cube, grid_spec=grid_spec_latlon)
+
+    def test_error_non_overlapping_grid_spec(self):
+        """Test error raised when defined cutout does not overlap with input
+        cube"""
+        grid_spec_xy = {
+            "projection_x_coordinate": {"min": -10000, "max": -6000, "thin": 3},
+            "projection_y_coordinate": {"min": 0, "max": 10000, "thin": 3},
+        }
+        msg = "Cube domain does not overlap with cutout specified"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.uk_cube, grid_spec=grid_spec_xy)
+
+    def test_error_order_agnostic(self):
+        """Test non-overlapping grid error is correctly raised regardless of
+        which coordinate is non-overlapping. This is needed because there are
+        ways of calling iris.extract that appear to modify the input constraints,
+        such that the output of this function was not always correct depending on
+        which coordinate did not match."""
+        grid_spec_xy = {
+            "projection_y_coordinate": {"min": -10000, "max": -6000, "thin": 3},
+            "projection_x_coordinate": {"min": 0, "max": 10000, "thin": 3},
+        }
+        msg = "Cube domain does not overlap with cutout specified"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.uk_cube, grid_spec=grid_spec_xy)
+
+    def test_error_single_point(self):
+        """Function does not support extraction of a single (non-dimensioned)
+        point from a grid - test a suitable error is raised if this is requested"""
+        grid_spec = {
+            "projection_x_coordinate": {"min": 0, "max": 1000, "thin": 1},
+            "projection_y_coordinate": {"min": 0, "max": 1000, "thin": 1},
+        }
+        msg = "Function does not support single point extraction"
+        with self.assertRaisesRegex(ValueError, msg):
+            subset_data(self.uk_cube, grid_spec=grid_spec)
 
 
 if __name__ == "__main__":

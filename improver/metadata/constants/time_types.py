@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,8 @@ _TIME_INTERVAL_SPEC = TimeSpec(calendar=None, dtype=np.int32, units="seconds")
 
 TIME_COORDS = {
     "time": _TIME_REFERENCE_SPEC,
+    "time_in_local_timezone": _TIME_REFERENCE_SPEC,
     "forecast_reference_time": _TIME_REFERENCE_SPEC,
     "forecast_period": _TIME_INTERVAL_SPEC,
+    "UTC_offset": _TIME_INTERVAL_SPEC,
 }

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,3 +34,5 @@ import numpy as np
 
 FLOAT_DTYPE = np.float32
 FLOAT_TYPES = [np.float32, np.float64]
+
+PERC_COORD = "percentile"

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,10 @@ from improver.calibration.utilities import (
     create_unified_frt_coord,
     filter_non_matching_cubes,
 )
-from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.metadata.probabilistic import (
+    find_threshold_coordinate,
+    probability_is_above_or_below,
+)
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.utilities.cube_manipulation import MergeCubes, collapsed
 
@@ -515,11 +518,12 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
         Raises:
             ValueError: If the bounds overlap.
         """
-        bounds = []
+        lower_bounds = []
+        upper_bounds = []
         for cube in cubes:
-            bounds.extend(cube.coord("forecast_reference_time").bounds)
-        bounds = np.concatenate(bounds)
-        if not all(x < y for x, y in zip(bounds, bounds[1:])):
+            lower_bounds.append(cube.coord("forecast_reference_time").bounds[0][0])
+            upper_bounds.append(cube.coord("forecast_reference_time").bounds[0][1])
+        if not all(x < y for x, y in zip(upper_bounds, lower_bounds[1:])):
             raise ValueError(
                 "Reliability calibration tables have overlapping "
                 "forecast reference time bounds, indicating that "
@@ -1061,10 +1065,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                          expected monotonicity following calibration.
         """
         (threshold_dim,) = cube.coord_dims(self.threshold_coord)
-        thresholding = self.threshold_coord.attributes.get(
-            "spp__relative_to_threshold", None
-        )
-
+        thresholding = probability_is_above_or_below(cube)
         if thresholding is None:
             msg = (
                 "Cube threshold coordinate does not define whether "

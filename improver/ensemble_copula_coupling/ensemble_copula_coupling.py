@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -50,9 +50,12 @@ from improver.ensemble_copula_coupling.utilities import (
     restore_non_percentile_dimensions,
 )
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,
+    format_cell_methods_for_diagnostic,
+    get_diagnostic_cube_name_from_probability_name,
+    get_threshold_coord_name_from_probability_name,
+    probability_is_above_or_below,
 )
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
@@ -501,9 +504,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         prob_slices = np.around(prob_slices, 9)
 
         # Invert probabilities for data thresholded above thresholds.
-        relation = find_threshold_coordinate(forecast_probabilities).attributes[
-            "spp__relative_to_threshold"
-        ]
+        relation = probability_is_above_or_below(forecast_probabilities)
         if relation == "above":
             probabilities_for_cdf = 1 - prob_slices
         elif relation == "below":
@@ -561,7 +562,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         )
 
         template_cube = next(forecast_probabilities.slices_over(threshold_coord.name()))
-        template_cube.rename(extract_diagnostic_name(template_cube.name()))
+        template_cube.rename(
+            get_diagnostic_cube_name_from_probability_name(template_cube.name())
+        )
         template_cube.remove_coord(threshold_coord.name())
 
         percentile_cube = create_cube_with_percentiles(
@@ -626,7 +629,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             )
 
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
-        phenom_name = extract_diagnostic_name(forecast_probabilities.name())
+        phenom_name = get_threshold_coord_name_from_probability_name(
+            forecast_probabilities.name()
+        )
 
         if no_of_percentiles is None:
             no_of_percentiles = len(
@@ -659,6 +664,11 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 )
             )
         forecast_at_percentiles = cubelist.merge_cube()
+
+        # Update cell methods on final cube
+        if forecast_at_percentiles.cell_methods:
+            format_cell_methods_for_diagnostic(forecast_at_percentiles)
+
         return forecast_at_percentiles
 
 
@@ -1048,9 +1058,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         location_parameter.data = np.ma.filled(location_parameter.data, 1)
         scale_parameter.data = np.ma.filled(scale_parameter.data, 1)
         thresholds = find_threshold_coordinate(probability_cube_template).points
-        relative_to_threshold = find_threshold_coordinate(
-            probability_cube_template
-        ).attributes["spp__relative_to_threshold"]
+        relative_to_threshold = probability_is_above_or_below(probability_cube_template)
 
         self._rescale_shape_parameters(
             location_parameter.data.flatten(), np.sqrt(scale_parameter.data).flatten()

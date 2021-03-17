@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -55,24 +55,13 @@ class Test__init__(IrisTest):
     def test_basic(self):
         """Test that the __init__ sets things up correctly"""
         plugin = CubeCombiner("+")
-        self.assertEqual(plugin.operation, "+")
+        self.assertEqual(plugin.operator, np.add)
 
     def test_raise_error_wrong_operation(self):
         """Test __init__ raises a ValueError for invalid operation"""
         msg = "Unknown operation "
         with self.assertRaisesRegex(ValueError, msg):
             CubeCombiner("%")
-
-
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(CubeCombiner("+"))
-        msg = "<CubeCombiner: operation=+, warnings_on = False>"
-        self.assertEqual(result, msg)
 
 
 class CombinerTest(ImproverTest):
@@ -172,7 +161,7 @@ class Test_process(CombinerTest):
         result = plugin.process(cubelist, "new_cube_name")
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "new_cube_name")
-        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
+        expected_data = np.full((2, 2), 1.1, dtype=np.float32)
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertCubeListEqual(input_copy, cubelist)
 
@@ -181,7 +170,7 @@ class Test_process(CombinerTest):
         plugin = CubeCombiner("mean")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
         result = plugin.process(cubelist, "new_cube_name")
-        expected_data = np.full((1, 2, 2), 0.55, dtype=np.float32)
+        expected_data = np.full((2, 2), 0.55, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
 
@@ -192,7 +181,7 @@ class Test_process(CombinerTest):
             [self.cube1, self.cube2.copy(np.ones_like(self.cube2.data, dtype=np.int8))]
         )
         result = plugin.process(cubelist, "new_cube_name")
-        expected_data = np.full((1, 2, 2), 1.5, dtype=np.float32)
+        expected_data = np.full((2, 2), 1.5, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertTrue(cubelist[0].dtype == np.float32)
@@ -205,10 +194,7 @@ class Test_process(CombinerTest):
         cubelist = iris.cube.CubeList(
             [self.cube1, self.cube2.copy(np.ones_like(self.cube2.data, dtype=np.int32))]
         )
-        msg = (
-            r"Operation add on types \{dtype\(\'.*\'\)\} results in "
-            r"float64 data which cannot be safely coerced to float32"
-        )
+        msg = "Operation .* results in float64 data"
         with self.assertRaisesRegex(TypeError, msg):
             plugin.process(cubelist, "new_cube_name")
 
@@ -219,7 +205,7 @@ class Test_process(CombinerTest):
         plugin = CubeCombiner("add")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
         result = plugin.process(cubelist, "new_cube_name")
-        expected_data = np.full((1, 2, 2), 1.1, dtype=np.float32)
+        expected_data = np.full((2, 2), 1.1, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(result.coord("time").points[0], 1447894800)
@@ -252,15 +238,15 @@ class Test_process(CombinerTest):
         plugin = CubeCombiner("mean")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2, self.cube3])
         result = plugin.process(cubelist, "new_cube_name")
-        expected_data = np.full((1, 2, 2), 0.4, dtype=np.float32)
+        expected_data = np.full((2, 2), 0.4, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_with_mask(self):
         """Test that the plugin preserves the mask if any of the inputs are
         masked"""
-        expected_data = np.full((1, 2, 2), 1.2, dtype=np.float32)
-        mask = [[[False, True], [False, False]]]
+        expected_data = np.full((2, 2), 1.2, dtype=np.float32)
+        mask = [[False, True], [False, False]]
         self.cube1.data = np.ma.MaskedArray(self.cube1.data, mask=mask)
         plugin = CubeCombiner("add")
         result = plugin.process([self.cube1, self.cube2, self.cube3], "new_cube_name")
@@ -270,7 +256,7 @@ class Test_process(CombinerTest):
 
     def test_exception_mismatched_dimensions(self):
         """Test an error is raised if dimension coordinates do not match"""
-        self.cube2.coord("lwe_thickness_of_precipitation_amount").rename("snow_depth")
+        self.cube2.coord("latitude").rename("projection_y_coordinate")
         plugin = CubeCombiner("+")
         msg = "Cannot combine cubes with different dimensions"
         with self.assertRaisesRegex(ValueError, msg):
@@ -284,95 +270,6 @@ class Test_process(CombinerTest):
         cubelist = iris.cube.CubeList([self.cube1])
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cubelist, "new_cube_name")
-
-    def test_broadcast_coord(self):
-        """Test that plugin broadcasts to a coord and doesn't change the inputs.
-        Using the broadcast_to_coords argument including a value of "threshold"
-        will result in the returned cube maintaining the probabilistic elements
-        of the name of the first input cube."""
-        plugin = CubeCombiner("*")
-        cube = self.cube4[:, 0, ...].copy()
-        cube.data = np.ones_like(cube.data)
-        cube.remove_coord("lwe_thickness_of_precipitation_amount")
-        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
-        input_copy = deepcopy(cubelist)
-        result = plugin.process(
-            cubelist, "new_cube_name", broadcast_to_coords=["threshold"]
-        )
-        self.assertIsInstance(result, Cube)
-        self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
-        self.assertEqual(result.coord(var_name="threshold").name(), "new_cube_name")
-        self.assertArrayAlmostEqual(result.data, self.cube4.data)
-        self.assertCubeListEqual(input_copy, cubelist)
-
-    def test_error_broadcast_coord_wrong_order(self):
-        """Test that plugin throws an error if the broadcast coord is not on the first cube"""
-        plugin = CubeCombiner("*")
-        cube = self.cube4[:, 0, ...].copy()
-        cube.data = np.ones_like(cube.data)
-        cube.remove_coord("lwe_thickness_of_precipitation_amount")
-        cubelist = iris.cube.CubeList([cube, self.cube4.copy()])
-        msg = (
-            "Cannot find coord threshold in "
-            "<iris 'Cube' of probability_of_lwe_thickness_of_precipitation_amount_above_threshold / \(1\) "
-            "\(realization: 3; latitude: 2; longitude: 2\)> to broadcast to"
-        )
-        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["threshold"])
-
-    def test_error_broadcast_coord_not_found(self):
-        """Test that plugin throws an error if the broadcast coord is not present anywhere"""
-        plugin = CubeCombiner("*")
-        cube = self.cube4[:, 0, ...].copy()
-        cube.data = np.ones_like(cube.data)
-        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
-        msg = (
-            "Cannot find coord kittens in "
-            "<iris 'Cube' of probability_of_lwe_thickness_of_precipitation_amount_above_threshold / \(1\) "
-            "\(realization: 3; lwe_thickness_of_precipitation_amount: 2; latitude: 2; longitude: 2\)> "
-            "to broadcast to."
-        )
-        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["kittens"])
-
-    def test_error_broadcast_coord_is_auxcoord(self):
-        """Test that plugin throws an error if the broadcast coord already exists"""
-        plugin = CubeCombiner("*")
-        cube = self.cube4[:, 0, ...].copy()
-        cube.data = np.ones_like(cube.data)
-        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
-        msg = "Cannot broadcast to coord threshold as it already exists as an AuxCoord"
-        with self.assertRaisesRegex(TypeError, msg):
-            plugin.process(cubelist, "new_cube_name", broadcast_to_coords=["threshold"])
-
-    def test_multiply_preserves_bounds(self):
-        """Test specific case for precipitation type, where multiplying a
-        precipitation accumulation by a point-time probability of snow retains
-        the bounds on the original accumulation."""
-        validity_time = datetime(2015, 11, 19, 0)
-        time_bounds = [datetime(2015, 11, 18, 23), datetime(2015, 11, 19, 0)]
-        forecast_reference_time = datetime(2015, 11, 18, 22)
-        precip_accum = set_up_variable_cube(
-            np.full((2, 3, 3), 1.5, dtype=np.float32),
-            name="lwe_thickness_of_precipitation_amount",
-            units="mm",
-            time=validity_time,
-            time_bounds=time_bounds,
-            frt=forecast_reference_time,
-        )
-        snow_prob = set_up_variable_cube(
-            np.full(precip_accum.shape, 0.2, dtype=np.float32),
-            name="probability_of_snow",
-            units="1",
-            time=validity_time,
-            frt=forecast_reference_time,
-        )
-        plugin = CubeCombiner("multiply")
-        result = plugin.process(
-            [precip_accum, snow_prob], "lwe_thickness_of_snowfall_amount"
-        )
-        self.assertArrayAlmostEqual(result.data, np.full((2, 3, 3), 0.3))
-        self.assertArrayEqual(result.coord("time"), precip_accum.coord("time"))
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,10 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
+ATTRIBUTES_PATH = acc.kgo_root() / "weighted_blending/attributes.json"
+BLEND_WEIGHTS_PATH = acc.kgo_root() / "weighted_blending/blending_weights.json"
+
+
 @pytest.mark.slow
 def test_basic_nonlin(tmp_path):
     """Test basic non linear weights"""
@@ -53,6 +57,8 @@ def test_basic_nonlin(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20170601T0200Z",
         "--weighting-method",
         "nonlinear",
         "--cval",
@@ -75,6 +81,8 @@ def test_basic_lin(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20170601T0200Z",
         "--y0val",
         "20.0",
         "--ynval",
@@ -157,33 +165,13 @@ def test_percentile(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20170601T1000Z",
         "--weighting-method",
         "nonlinear",
         "--cval",
         "1.0",
         input_path,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_cycletime_use_latest_frt(tmp_path):
-    """Test cycletime blending where the output is expected to have time
-    coordinates that match the latest of the input cubes."""
-    kgo_dir = acc.kgo_root() / "weighted_blending/cycletime"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = sorted((kgo_dir.glob("input_temperature*.nc")))
-    output_path = tmp_path / "output.nc"
-    args = [
-        "--coordinate",
-        "forecast_reference_time",
-        "--y0val",
-        "1.0",
-        "--ynval",
-        "4.0",
-        *input_paths,
         "--output",
         output_path,
     ]
@@ -247,13 +235,14 @@ def test_model(tmp_path):
     """Test multi-model blending"""
     kgo_dir = acc.kgo_root() / "weighted_blending/model"
     kgo_path = kgo_dir / "kgo.nc"
-    attr_path = kgo_dir / "../attributes.json"
     ukv_path = kgo_dir / "ukv_input.nc"
     enuk_path = kgo_dir / "enuk_input.nc"
     output_path = tmp_path / "output.nc"
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20171208T0400Z",
         "--ynval",
         "1",
         "--y0val",
@@ -261,7 +250,7 @@ def test_model(tmp_path):
         "--model-id-attr",
         "mosg__model_configuration",
         "--attributes-config",
-        attr_path,
+        ATTRIBUTES_PATH,
         ukv_path,
         enuk_path,
         "--output",
@@ -280,6 +269,8 @@ def test_fails_no_model_id(tmp_path):
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20171208T0400Z",
         "--ynval",
         "1",
         "--y0val",
@@ -319,22 +310,22 @@ def test_weights_dict(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     ukv_path = kgo_dir / "../model/ukv_input.nc"
     enuk_path = kgo_dir / "../model/enuk_input.nc"
-    dict_path = kgo_dir / "input_dict.json"
-    attr_path = kgo_dir / "../attributes.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20171208T0400Z",
         "--weighting-method",
         "dict",
         "--weighting-config",
-        dict_path,
+        BLEND_WEIGHTS_PATH,
         "--weighting-coord",
         "forecast_period",
         "--model-id-attr",
         "mosg__model_configuration",
         "--attributes-config",
-        attr_path,
+        ATTRIBUTES_PATH,
         ukv_path,
         enuk_path,
         "--output",
@@ -351,15 +342,16 @@ def test_percentile_weights_dict(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     ukv_path = kgo_dir / "ukv_input.nc"
     enuk_path = kgo_dir / "enuk_input.nc"
-    dict_path = kgo_dir / "../weights_from_dict/input_dict.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20170601T1000Z",
         "--weighting-method",
         "dict",
         "--weighting-config",
-        dict_path,
+        BLEND_WEIGHTS_PATH,
         "--weighting-coord",
         "forecast_period",
         "--model-id-attr",
@@ -382,6 +374,8 @@ def test_accum_cycle_blend(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20181020T2200Z",
         "--y0val=1",
         "--ynval=1",
         *input_paths,
@@ -403,6 +397,8 @@ def test_non_mo_model(tmp_path):
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20171208T0400Z",
         "--y0val",
         "1",
         "--ynval",
@@ -433,6 +429,8 @@ def test_nowcast_cycle_blending(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20181129T0800Z",
         "--y0val",
         "1",
         "--ynval",
@@ -455,11 +453,12 @@ def test_spatial_model_blending(tmp_path):
         (kgo_dir / f"{t}_data/20181129T1000Z-PT0002H00M-{PRECIP}.nc")
         for t in ("nowcast", "ukvx")
     ]
-    attr_path = kgo_dir / "../attributes.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20181129T0800Z",
         "--y0val",
         "1",
         "--ynval",
@@ -468,7 +467,7 @@ def test_spatial_model_blending(tmp_path):
         "--model-id-attr",
         "mosg__model_configuration",
         "--attributes-config",
-        attr_path,
+        ATTRIBUTES_PATH,
         *input_files,
         "--output",
         output_path,
@@ -490,6 +489,8 @@ def test_nowcast_cycle_no_fuzzy(tmp_path):
     args = [
         "--coordinate",
         "forecast_reference_time",
+        "--cycletime",
+        "20181129T0800Z",
         "--y0val",
         "1",
         "--ynval",
@@ -514,11 +515,12 @@ def test_spatial_model_no_fuzzy(tmp_path):
         (kgo_dir / f"{t}_data/20181129T1000Z-PT0002H00M-{PRECIP}.nc")
         for t in ("nowcast", "ukvx")
     ]
-    attr_path = kgo_dir / "../attributes.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--coordinate",
         "model_configuration",
+        "--cycletime",
+        "20181129T0800Z",
         "--y0val",
         "1",
         "--ynval",
@@ -529,7 +531,7 @@ def test_spatial_model_no_fuzzy(tmp_path):
         "--model-id-attr",
         "mosg__model_configuration",
         "--attributes-config",
-        attr_path,
+        ATTRIBUTES_PATH,
         *input_files,
         "--output",
         output_path,
@@ -547,8 +549,6 @@ def test_three_model_blending(tmp_path):
         (kgo_dir / f"{t}/20190101T0400Z-PT{l:04}H00M-precip_rate.nc")
         for t, l in (("enukxhrly", 4), ("nc", 1), ("ukvx", 2))
     ]
-    attr_path = kgo_dir / "../attributes.json"
-    dict_path = kgo_dir / "blending-weights-preciprate.json"
     output_path = tmp_path / "output.nc"
     args = [
         "--coordinate",
@@ -563,9 +563,9 @@ def test_three_model_blending(tmp_path):
         "--model-id-attr",
         "mosg__model_configuration",
         "--attributes-config",
-        attr_path,
+        ATTRIBUTES_PATH,
         "--weighting-config",
-        dict_path,
+        BLEND_WEIGHTS_PATH,
         *input_files,
         "--output",
         output_path,

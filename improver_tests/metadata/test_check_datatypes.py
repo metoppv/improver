@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,11 @@ from iris.coords import AuxCoord
 from iris.cube import CubeList
 from iris.tests import IrisTest
 
-from improver.metadata.check_datatypes import check_mandatory_standards, check_units
+from improver.metadata.check_datatypes import (
+    check_mandatory_standards,
+    check_units,
+    enforce_dtype,
+)
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
@@ -175,6 +179,64 @@ class Test_check_mandatory_standards(IrisTest):
         )
         with self.assertRaisesRegex(ValueError, msg):
             check_mandatory_standards(self.percentile_cube)
+
+
+class Test_enforce_dtypes(IrisTest):
+
+    """Test whether a cube conforms to mandatory dtype and units standards."""
+
+    def setUp(self):
+        """Set up a conformant test cube and two mask cubes to apply to the cube,
+        one good (int8, no numpy float promotion), one bad (int32, numpy promotes
+        output to float64).
+        """
+        self.cube = set_up_variable_cube(
+            np.full((3, 3), fill_value=280, dtype=np.float32), spatial_grid="equalarea"
+        )
+        self.ok_mask = set_up_variable_cube(
+            np.ones_like(self.cube.data).astype(np.int8), spatial_grid="equalarea"
+        )
+        self.bad_mask = set_up_variable_cube(
+            np.ones_like(self.cube.data).astype(np.int32), spatial_grid="equalarea"
+        )
+
+    def test_ok(self):
+        """Test conformant data (no error is thrown and inputs are not changed)"""
+        result = self.cube + self.ok_mask
+        inputs = [self.cube.copy(), self.ok_mask.copy()]
+        # The following statement renders each cube into an XML string
+        # describing all aspects of the cube (including a checksum of the
+        # data) to verify that nothing has been changed anywhere on the
+        # cube.
+        expected_checksums = [
+            CubeList([c]).xml(checksum=True) for c in inputs + [result]
+        ]
+        enforce_dtype("add", inputs, result)
+        result_checksums = [CubeList([c]).xml(checksum=True) for c in inputs + [result]]
+        for a, b in zip(expected_checksums, result_checksums):
+            self.assertStringEqual(a, b)
+
+    def test_fail(self):
+        """Test non-conformant data (error is thrown and inputs are not changed)"""
+        result = self.cube + self.bad_mask
+        inputs = [self.cube.copy(), self.bad_mask.copy()]
+        # The following statement renders each cube into an XML string
+        # describing all aspects of the cube (including a checksum of the
+        # data) to verify that nothing has been changed anywhere on the
+        # cube.
+        expected_checksums = [
+            CubeList([c]).xml(checksum=True) for c in inputs + [result]
+        ]
+        msg = (
+            r"Operation add on types .* results in "
+            r"float64 data which cannot be safely coerced to float32 \(Hint: "
+            r"combining int8 and float32 works\)"
+        )
+        with self.assertRaisesRegex(TypeError, msg):
+            enforce_dtype("add", inputs, result)
+        result_checksums = [CubeList([c]).xml(checksum=True) for c in inputs + [result]]
+        for a, b in zip(expected_checksums, result_checksums):
+            self.assertStringEqual(a, b)
 
 
 class Test_check_units(IrisTest):

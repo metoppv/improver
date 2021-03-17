@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@ run_cli = acc.run_cli(CLI)
 @pytest.mark.slow
 def test_optical_flow_inputs(tmp_path):
     """Test creating a nowcast accumulation using optical flow inputs"""
+    pytest.importorskip("pysteps")
     kgo_dir = acc.kgo_root() / "nowcast-accumulate/basic"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "201811031600_radar_rainrate_composite_UK_regridded.nc"
@@ -67,6 +68,7 @@ def test_optical_flow_inputs(tmp_path):
 @pytest.mark.slow
 def test_wind_inputs(tmp_path):
     """Test creating a nowcast accumulation using wind component inputs"""
+    pytest.importorskip("pysteps")
     kgo_dir = acc.kgo_root() / "nowcast-accumulate/basic"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "201811031600_radar_rainrate_composite_UK_regridded.nc"

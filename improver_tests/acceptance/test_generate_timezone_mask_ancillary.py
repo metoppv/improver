@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 GRIDS = ["uk", "global"]
-TIMES = ["20200615T1200Z", "20201215T1200Z"]
+TIMES = ["20210615T1200Z", "20211215T1200Z"]
 
 
 @pytest.mark.parametrize("time", TIMES)
@@ -97,7 +97,7 @@ def test_grouping(tmp_path, grid):
     args = [
         input_path,
         "--time",
-        "20200615T1200Z",
+        "20210615T1200Z",
         "--groupings",
         groups,
         "--output",

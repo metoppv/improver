@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube,):
+def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """ Calculate the convection ratio from convective and dynamic (stratiform)
     precipitation rate components.
 
@@ -48,14 +48,17 @@ def process(*cubes: cli.inputcube,):
         cubes (iris.cube.CubeList):
             Cubes of "lwe_convective_precipitation_rate" and "lwe_stratiform_precipitation_rate"
             in units that can be converted to "m s-1"
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
 
     Returns:
         iris.cube.Cube:
             A cube of convection_ratio of the same dimensions as the input cubes.
 
     """
-    from improver.convection import ConvectionRatioFromComponents
+    from improver.precipitation_type.convection import ConvectionRatioFromComponents
 
     if len(cubes) != 2:
         raise IOError(f"Expected 2 input cubes, received {len(cubes)}")
-    return ConvectionRatioFromComponents()(cubes)
+    return ConvectionRatioFromComponents()(cubes, model_id_attr=model_id_attr)

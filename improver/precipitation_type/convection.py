@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -414,7 +414,7 @@ class ConvectionRatioFromComponents(BasePlugin):
             )
         return convective_ratios
 
-    def process(self, cubes):
+    def process(self, cubes, model_id_attr=None):
         """
         Calculate the convective ratio from the convective and dynamic components as:
             convective_ratio = convective / (convective + dynamic)
@@ -426,6 +426,9 @@ class ConvectionRatioFromComponents(BasePlugin):
                 Both the convective and dynamic components as iris.cube.Cube in a list
                 with names 'lwe_convective_precipitation_rate' and
                 'lwe_stratiform_precipitation_rate'
+            model_id_attr (str):
+                Name of the attribute used to identify the source model for
+                blending. This is inherited from the input temperature cube.
 
         Returns:
             iris.cube.Cube:
@@ -434,7 +437,9 @@ class ConvectionRatioFromComponents(BasePlugin):
 
         self._split_input(cubes)
 
-        attributes = generate_mandatory_attributes([self.convective])
+        attributes = generate_mandatory_attributes(
+            [self.convective], model_id_attr=model_id_attr
+        )
         output_cube = create_new_diagnostic_cube(
             "convective_ratio",
             "1",

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -60,7 +60,7 @@ class Test__repr__(IrisTest):
             "<ContinuousRankedProbabilityScoreMinimisers: "
             "minimisation_dict: {'norm': 'calculate_normal_crps', "
             "'truncnorm': 'calculate_truncated_normal_crps'}; "
-            "tolerance: 0.01; max_iterations: 1000>"
+            "tolerance: 0.02; max_iterations: 1000>"
         )
         self.assertEqual(result, msg)
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -46,6 +46,7 @@ OE = "orographic_enhancement_standard_resolution"
 
 def test_optical_flow_inputs(tmp_path):
     """Test extrapolation nowcast using optical flow inputs"""
+    pytest.importorskip("pysteps")
     kgo_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-extrapolate"
@@ -70,6 +71,7 @@ def test_optical_flow_inputs(tmp_path):
 
 def test_wind_inputs(tmp_path):
     """Test extrapolation nowcast using wind component inputs"""
+    pytest.importorskip("pysteps")
     kgo_dir = acc.kgo_root() / "nowcast-extrapolate/extrapolate"
     kgo_path = kgo_dir / "kgo.nc"
     input_dir = acc.kgo_root() / "nowcast-extrapolate"
@@ -94,6 +96,7 @@ def test_wind_inputs(tmp_path):
 
 def test_metadata(tmp_path):
     """Test basic extrapolation nowcast with json metadata"""
+    pytest.importorskip("pysteps")
     kgo_dir = acc.kgo_root() / "nowcast-extrapolate/metadata"
     kgo_path = kgo_dir / "kgo_with_metadata.nc"
     input_dir = acc.kgo_root() / "nowcast-extrapolate"

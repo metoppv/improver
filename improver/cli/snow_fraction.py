@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -55,6 +55,7 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
             A single cube containing the snow-fraction data.
 
     """
+    from improver.precipitation_type.snow_fraction import SnowFraction
     from iris.cube import CubeList
 
     from improver.snow_fraction import SnowFraction

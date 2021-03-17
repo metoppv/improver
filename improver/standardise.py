@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -466,7 +466,7 @@ class AdjustLandSeaPoints(BasePlugin):
 
         # Identify those points sourced from the opposite mask that are
         # close to a source point of the correct mask
-        (mismatch_points,) = np.logical_and(
+        mismatch_points = np.logical_and(
             np.logical_and(
                 self.output_land.data == selector_val,
                 self.input_land.data != selector_val,

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -63,10 +63,8 @@ def create_wind_percentile_cube(data=None, perc_values=None, name="wind_speed_of
         time=data_times[0],
         frt=datetime(2015, 11, 18, 21),
     )
-    cube = add_coordinate(
-        perc_cube, data_times, "time", is_datetime=True, order=[1, 0, 2, 3]
-    )
-    cube.data = data
+    cube = add_coordinate(perc_cube, data_times, "time", is_datetime=True)
+    cube.data = np.squeeze(data)
     return cube
 
 

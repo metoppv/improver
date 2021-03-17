@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -41,7 +41,7 @@ from iris.tests import IrisTest
 from improver.metadata.constants.time_types import TimeSpec
 from improver.metadata.forecast_times import (
     _calculate_forecast_period,
-    find_latest_cycletime,
+    _find_latest_cycletime,
     forecast_period_coord,
     rebadge_forecasts_as_latest_cycle,
     unify_cycletime,
@@ -355,9 +355,9 @@ class Test_unify_cycletime(IrisTest):
         self.assertEqual(result[0], expected_uk_det)
 
 
-class Test_find_latest_cycletime(IrisTest):
+class Test__find_latest_cycletime(IrisTest):
 
-    """Test the find_latest_cycletime function."""
+    """Test the _find_latest_cycletime function."""
 
     def setUp(self):
         """Set up a template cubes with scalar time, forecast_reference_time
@@ -378,14 +378,14 @@ class Test_find_latest_cycletime(IrisTest):
         original_cubelist = iris.cube.CubeList(
             [self.input_cube.copy(), self.input_cube2.copy()]
         )
-        cycletime = find_latest_cycletime(self.input_cubelist)
+        cycletime = _find_latest_cycletime(self.input_cubelist)
         self.assertEqual(self.input_cubelist[0], original_cubelist[0])
         self.assertEqual(self.input_cubelist[1], original_cubelist[1])
         self.assertIsInstance(cycletime, datetime)
 
     def test_returns_latest(self):
         """Test the returned cycle time is the latest in the input cubelist."""
-        cycletime = find_latest_cycletime(self.input_cubelist)
+        cycletime = _find_latest_cycletime(self.input_cubelist)
         expected_datetime = datetime(2015, 11, 23, 4)
         self.assertEqual(timedelta(hours=0, seconds=0), cycletime - expected_datetime)
 
@@ -393,14 +393,14 @@ class Test_find_latest_cycletime(IrisTest):
         """Test the a cycletime is still found when two cubes have the same
            cycletime."""
         input_cubelist = iris.cube.CubeList([self.input_cube, self.input_cube.copy()])
-        cycletime = find_latest_cycletime(input_cubelist)
+        cycletime = _find_latest_cycletime(input_cubelist)
         expected_datetime = datetime(2015, 11, 23, 3)
         self.assertEqual(timedelta(hours=0, seconds=0), cycletime - expected_datetime)
 
     def test_one_input_cube(self):
         """Test the a cycletime is still found when only one input cube."""
         input_cubelist = iris.cube.CubeList([self.input_cube])
-        cycletime = find_latest_cycletime(input_cubelist)
+        cycletime = _find_latest_cycletime(input_cubelist)
         expected_datetime = datetime(2015, 11, 23, 3)
         self.assertEqual(timedelta(hours=0, seconds=0), cycletime - expected_datetime)
 
@@ -410,7 +410,7 @@ class Test_find_latest_cycletime(IrisTest):
         self.input_cube2.coord("forecast_reference_time").convert_units(
             "minutes since 1970-01-01 00:00:00"
         )
-        cycletime = find_latest_cycletime(self.input_cubelist)
+        cycletime = _find_latest_cycletime(self.input_cubelist)
         expected_datetime = datetime(2015, 11, 23, 4)
         self.assertEqual(timedelta(hours=0, seconds=0), cycletime - expected_datetime)
 
@@ -420,7 +420,7 @@ class Test_find_latest_cycletime(IrisTest):
         input_cubelist = iris.cube.CubeList([self.input_cube, input_cube2])
         msg = "Expecting scalar forecast_reference_time for each input cube"
         with self.assertRaisesRegex(ValueError, msg):
-            find_latest_cycletime(input_cubelist)
+            _find_latest_cycletime(input_cubelist)
 
 
 if __name__ == "__main__":

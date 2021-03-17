@@ -1,0 +1,35 @@
+# Use this file to create a conda environment using:
+# conda env create --file envs/environment_py36_iris22.yml
+
+name: improver_py36_iris22
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - iris=2.2
+  - proj=7.0.0
+  - numpy=1.15.4
+  - numba=0.42.0
+  - scipy=1.3.3
+  - cftime=1.0.1
+  - python-stratify=0.1
+  - sphinx=3.4.3
+  - pytest
+  - pytest-cov
+  - codacy-coverage
+  - pylint=2.4.4
+  - astroid=2.3.3
+  - filelock
+  - mock
+  - pysteps
+  - isort=4.3.21
+  - black=19.10b0
+  - bandit
+  - safety
+  - pip
+  - pip:
+    - od
+    - sigtools>=2.0
+    - clize
+    - timezonefinder==4.2.0
+    - pytz==2020.5

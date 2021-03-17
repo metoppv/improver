@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -38,17 +38,106 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import (
-    extract_diagnostic_name,
     find_percentile_coordinate,
     find_threshold_coordinate,
+    format_cell_methods_for_diagnostic,
+    format_cell_methods_for_probability,
+    get_diagnostic_cube_name_from_probability_name,
+    get_threshold_coord_name_from_probability_name,
     in_vicinity_name_format,
     is_probability,
+    probability_is_above_or_below,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
 )
+
+
+class Test_probability_is_or_below(unittest.TestCase):
+    """Test that the probability_is_above_or_below function correctly
+    identifies whether the spp__relative_to_threshold attribute is above
+    or below with the respect to the threshold."""
+
+    def setUp(self):
+        """Set up data and thresholds for the cubes."""
+        self.data = np.ones((3, 3, 3), dtype=np.float32)
+        self.threshold_points = np.array([276, 277, 278], dtype=np.float32)
+
+    def test_above(self):
+        """ Tests the case where spp__relative_threshold is above"""
+        cube = set_up_probability_cube(
+            self.data, self.threshold_points, spp__relative_to_threshold="above"
+        )
+        result = probability_is_above_or_below(cube)
+        self.assertEqual(result, "above")
+
+    def test_below(self):
+        """ Tests the case where spp__relative_threshold is below"""
+        cube = set_up_probability_cube(
+            self.data, self.threshold_points, spp__relative_to_threshold="below"
+        )
+        result = probability_is_above_or_below(cube)
+        self.assertEqual(result, "below")
+
+    def test_greater_than(self):
+        """ Tests the case where spp__relative_threshold is greater_than"""
+        cube = set_up_probability_cube(
+            self.data, self.threshold_points, spp__relative_to_threshold="greater_than"
+        )
+        result = probability_is_above_or_below(cube)
+        self.assertEqual(result, "above")
+
+    def test_greater_than_or_equal_to(self):
+        """ Tests the case where spp__relative_threshold is
+        greater_than_or_equal_to"""
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+            spp__relative_to_threshold="greater_than_or_equal_to",
+        )
+        result = probability_is_above_or_below(cube)
+        self.assertEqual(result, "above")
+
+    def test_less_than(self):
+        """ Tests the case where spp__relative_threshold is less_than"""
+        cube = set_up_probability_cube(
+            self.data, self.threshold_points, spp__relative_to_threshold="less_than"
+        )
+        result = probability_is_above_or_below(cube)
+        self.assertEqual(result, "below")
+
+    def test_less_than_or_equal_to(self):
+        """ Tests the case where spp__relative_threshold is
+        less_than_or_equal_to"""
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+            spp__relative_to_threshold="less_than_or_equal_to",
+        )
+        result = probability_is_above_or_below(cube)
+        self.assertEqual(result, "below")
+
+    def test_no_spp__relative_to_threshold(self):
+        """Tests it returns None if there is no spp__relative_to_threshold
+        attribute."""
+        cube = set_up_probability_cube(self.data, self.threshold_points,)
+        cube.coord("air_temperature").attributes = {
+            "relative_to_threshold": "greater_than"
+        }
+        result = probability_is_above_or_below(cube)
+        self.assertEqual(result, None)
+
+    def test_incorrect_attribute(self):
+        """Tests it returns None if the spp__relative_to_threshold
+        attribute has an invalid value."""
+        cube = set_up_probability_cube(self.data, self.threshold_points,)
+        cube.coord("air_temperature").attributes = {
+            "spp__relative_to_threshold": "higher"
+        }
+        result = probability_is_above_or_below(cube)
+        self.assertEqual(result, None)
 
 
 class Test_in_vicinity_name_format(unittest.TestCase):
@@ -95,20 +184,20 @@ class Test_in_vicinity_name_format(unittest.TestCase):
         self.assertEqual(result, "probability_of_X_in_vicinity")
 
 
-class Test_extract_diagnostic_name(unittest.TestCase):
-    """Test utility to extract diagnostic name from probability cube name"""
+class Test_get_threshold_coord_name_from_probability_name(unittest.TestCase):
+    """Test utility to derive threshold coordinate name from probability cube name"""
 
-    def test_basic(self):
+    def test_above_threshold(self):
         """Test correct name is returned from a standard (above threshold)
         probability field"""
-        result = extract_diagnostic_name(
+        result = get_threshold_coord_name_from_probability_name(
             "probability_of_air_temperature_above_threshold"
         )
         self.assertEqual(result, "air_temperature")
 
     def test_below_threshold(self):
         """Test correct name is returned from a probability below threshold"""
-        result = extract_diagnostic_name(
+        result = get_threshold_coord_name_from_probability_name(
             "probability_of_air_temperature_below_threshold"
         )
         self.assertEqual(result, "air_temperature")
@@ -116,7 +205,7 @@ class Test_extract_diagnostic_name(unittest.TestCase):
     def test_between_thresholds(self):
         """Test correct name is returned from a probability between thresholds
         """
-        result = extract_diagnostic_name(
+        result = get_threshold_coord_name_from_probability_name(
             "probability_of_visibility_in_air_between_thresholds"
         )
         self.assertEqual(result, "visibility_in_air")
@@ -126,15 +215,41 @@ class Test_extract_diagnostic_name(unittest.TestCase):
         Name "cloud_height" is used in this test to illustrate why suffix
         cannot be removed with "rstrip"."""
         diagnostic = "cloud_height"
-        result = extract_diagnostic_name(
-            "probability_of_{}_in_vicinity_above_threshold".format(diagnostic)
+        result = get_threshold_coord_name_from_probability_name(
+            f"probability_of_{diagnostic}_in_vicinity_above_threshold"
         )
         self.assertEqual(result, diagnostic)
 
     def test_error_not_probability(self):
         """Test exception if input is not a probability cube name"""
         with self.assertRaises(ValueError):
-            extract_diagnostic_name("lwe_precipitation_rate")
+            get_threshold_coord_name_from_probability_name("lwe_precipitation_rate")
+
+
+class Test_get_diagnostic_cube_name_from_probability_name(unittest.TestCase):
+    """Test utility to derive diagnostic cube name from probability cube name"""
+
+    def test_basic(self):
+        """Test correct name is returned from a point probability field"""
+        diagnostic = "air_temperature"
+        result = get_diagnostic_cube_name_from_probability_name(
+            f"probability_of_{diagnostic}_above_threshold"
+        )
+        self.assertEqual(result, diagnostic)
+
+    def test_in_vicinity(self):
+        """Test the full vicinity name is returned from a vicinity probability
+        field"""
+        diagnostic = "precipitation_rate"
+        result = get_diagnostic_cube_name_from_probability_name(
+            f"probability_of_{diagnostic}_in_vicinity_above_threshold"
+        )
+        self.assertEqual(result, f"{diagnostic}_in_vicinity")
+
+    def test_error_not_probability(self):
+        """Test exception if input is not a probability cube name"""
+        with self.assertRaises(ValueError):
+            get_diagnostic_cube_name_from_probability_name("lwe_precipitation_rate")
 
 
 class Test_is_probability(IrisTest):
@@ -255,6 +370,57 @@ class Test_find_percentile_coordinate(IrisTest):
         cube.add_aux_coord(new_perc_coord)
         with self.assertRaisesRegex(ValueError, msg):
             find_percentile_coordinate(cube)
+
+
+class Test_format_cell_methods_for_probability(unittest.TestCase):
+    """Test addition of coordinate information to probability cell methods"""
+
+    def setUp(self):
+        """Set up a test input cube"""
+        self.cube = set_up_probability_cube(
+            np.zeros((3, 3, 3), dtype=np.float32),
+            np.array([298, 300, 302], dtype=np.float32),
+        )
+
+    def test_one_method(self):
+        """Test when the input cube has one cell method"""
+        input = iris.coords.CellMethod("max", coords="time", intervals="1 hour")
+        self.cube.add_cell_method(input)
+        format_cell_methods_for_probability(self.cube, "air_temperature")
+        result = self.cube.cell_methods[0]
+        self.assertEqual(result.method, input.method)
+        self.assertEqual(result.coord_names, input.coord_names)
+        self.assertEqual(result.intervals, input.intervals)
+        self.assertEqual(result.comments, ("of air_temperature",))
+
+    def test_multiple_methods(self):
+        """Test a list of methods returns the expected string"""
+        input1 = iris.coords.CellMethod("max", coords="time")
+        input2 = iris.coords.CellMethod("min", coords=("latitude", "longitude"))
+        for method in [input1, input2]:
+            self.cube.add_cell_method(method)
+        format_cell_methods_for_probability(self.cube, "air_temperature")
+        for method in self.cube.cell_methods:
+            self.assertEqual(method.comments, ("of air_temperature",))
+
+
+class Test_format_cell_methods_for_diagnostic(unittest.TestCase):
+    """Test removal of coordinate information from probability cell methods"""
+
+    def setUp(self):
+        """Set up a test input cube"""
+        self.cube = set_up_probability_cube(
+            np.zeros((3, 3, 3), dtype=np.float32),
+            np.array([298, 300, 302], dtype=np.float32),
+        )
+        self.cube.add_cell_method(
+            iris.coords.CellMethod("max", coords="time", comments="of air_temperature")
+        )
+
+    def test_one_method(self):
+        """Test the output list of cell methods is as expected"""
+        format_cell_methods_for_diagnostic(self.cube)
+        self.assertFalse(self.cube.cell_methods[0].comments)
 
 
 if __name__ == "__main__":

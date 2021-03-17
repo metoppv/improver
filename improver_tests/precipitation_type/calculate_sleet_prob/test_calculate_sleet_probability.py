@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,7 @@ import unittest
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.calculate_sleet_prob import calculate_sleet_probability
+from improver.precipitation_type.calculate_sleet_prob import calculate_sleet_probability
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 

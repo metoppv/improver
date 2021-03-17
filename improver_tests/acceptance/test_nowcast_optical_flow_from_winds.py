@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@ RADAR_EXT = "u1096_ng_radar_precip_ratecomposite_2km"
 
 def test_basic(tmp_path):
     """Test optical flow calculation by perturbing model winds"""
+    pytest.importorskip("pysteps")
     kgo_dir = acc.kgo_root() / "nowcast-optical-flow-from-winds"
     kgo_path = kgo_dir / "kgo_15min.nc"
     input_paths = [
@@ -59,6 +60,7 @@ def test_basic(tmp_path):
 
 
 def test_longer_interval(tmp_path):
+    pytest.importorskip("pysteps")
     """Test optical flow calculation by perturbing model winds over a 30 minute
     time interval"""
     kgo_dir = acc.kgo_root() / "nowcast-optical-flow-from-winds"

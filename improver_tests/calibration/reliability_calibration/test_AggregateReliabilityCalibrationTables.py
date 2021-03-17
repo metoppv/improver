@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -109,6 +109,18 @@ class Test__check_frt_coord(Test_Aggregation):
         """Test that no exception is raised if the input cubes have forecast
         reference time bounds that do not overlap."""
 
+        plugin = Plugin()
+        plugin._check_frt_coord([self.reliability_cube, self.different_frt])
+
+    def test_matching_bounds(self):
+        """Test that no exception is raised in the input cubes if a cube
+        contains matching bounds."""
+        lower_bound = self.reliability_cube.coord("forecast_reference_time").bounds[0][
+            0
+        ]
+        self.reliability_cube.coord("forecast_reference_time").bounds = [
+            [lower_bound, lower_bound]
+        ]
         plugin = Plugin()
         plugin._check_frt_coord([self.reliability_cube, self.different_frt])
 

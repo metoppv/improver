@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,9 @@
 
 from collections import OrderedDict
 
-from improver.metadata.probabilistic import extract_diagnostic_name
+from improver.metadata.probabilistic import (
+    get_diagnostic_cube_name_from_probability_name,
+)
 from improver.utilities.cube_manipulation import MergeCubes
 
 
@@ -70,7 +72,7 @@ def split_forecasts_and_truth(cubes, truth_attribute):
     grouped_cubes = {}
     for cube in cubes:
         try:
-            cube_name = extract_diagnostic_name(cube.name())
+            cube_name = get_diagnostic_cube_name_from_probability_name(cube.name())
         except ValueError:
             cube_name = cube.name()
         grouped_cubes.setdefault(cube_name, []).append(cube)

@@ -1,6 +1,7 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,46 +29,39 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""A plugin to calculate probability of sleet"""
+"""Script to map multiple forecast times into a local time grid"""
 
-import numpy as np
-
-from improver.metadata.utilities import (
-    create_new_diagnostic_cube,
-    generate_mandatory_attributes,
-)
+from improver import cli
 
 
-def calculate_sleet_probability(prob_of_snow, prob_of_rain):
-    """
-    This calculates the probability of sleet using the calculation:
-    prob(sleet) = 1 - (prob(snow) + prob(rain))
+@cli.clizefy
+@cli.with_output
+def process(
+    timezone_cube: cli.inputcube, local_time: str, *cubes: cli.inputcube,
+):
+    """Calculates timezone-offset data for the specified UTC output times
 
     Args:
-      prob_of_snow (iris.cube.Cube):
-        Cube of the probability of snow. This can be a fraction (0 <= x <= 1) or
-        categorical (0 or 1)
-      prob_of_rain (iris.cube.Cube):
-        Cube of the probability of rain. This can be a fraction (0 <= x <= 1) or
-        categorical (0 or 1)
+        timezone_cube (iris.cube.Cube):
+            Cube describing the UTC offset for the local time at each grid location.
+            Must have the same spatial coords as input_cube.
+            Use generate-timezone-mask-ancillary to create this.
+        local_time (str):
+            The "local" time of the output cube as %Y%m%dT%H%M. This will form a
+            scalar "time_in_local_timezone" coord on the output cube, while the "time"
+            coord will be auxillary to the spatial coords and will show the UTC time
+            that matches the local_time at each point.
+        cubes (list of iris.cube.Cube):
+            Source data to be remapped onto time-zones. Must contain an exact 1-to-1
+            mapping of times to time-zones. Multiple input files will be merged into one
+            cube.
 
     Returns:
-      iris.cube.Cube:
-        Cube of the probability of sleet. This will be fractional or categorical,
-        matching the highest precision of the inputs.
-
-    Raises:
-        ValueError: If the cube contains negative values for the the
-                    probability of sleet.
+        iris.cube.Cube:
+            Processed cube.
     """
-    sleet_prob = 1 - (prob_of_snow.data + prob_of_rain.data)
-    if np.any(sleet_prob < 0):
-        msg = "Negative values of sleet probability have been calculated."
-        raise ValueError(msg)
+    from datetime import datetime
+    from improver.utilities.temporal import TimezoneExtraction
 
-    # Copy all of the attributes from the prob_of_snow cube
-    mandatory_attributes = generate_mandatory_attributes([prob_of_rain, prob_of_snow])
-    probability_of_sleet = create_new_diagnostic_cube(
-        "probability_of_sleet", "1", prob_of_snow, mandatory_attributes, data=sleet_prob
-    )
-    return probability_of_sleet
+    local_datetime = datetime.strptime(local_time, "%Y%m%dT%H%M")
+    return TimezoneExtraction()(cubes, timezone_cube, local_datetime)

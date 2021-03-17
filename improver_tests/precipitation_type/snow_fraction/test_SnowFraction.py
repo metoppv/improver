@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,7 @@ import numpy as np
 import pytest
 from cf_units import Unit
 
-from improver.snow_fraction import SnowFraction
+from improver.precipitation_type.snow_fraction import SnowFraction
 from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
     set_up_variable_cube,
@@ -109,7 +109,7 @@ def test_basic(cube_name, mask_what, model_id_attr):
     assert str(result.units) == "1"
     assert result.name() == "snow_fraction"
     assert result.attributes == expected_attributes
-    assert np.allclose(result.data, EXPECTED_DATA)
+    np.testing.assert_allclose(result.data, EXPECTED_DATA)
 
 
 def test_acclen_mismatch_error():
@@ -186,7 +186,7 @@ def test_coercing_units():
     rain.convert_units("mm h-1")
     result = SnowFraction()(iris.cube.CubeList([rain, snow]))
     assert str(result.units) == "1"
-    assert np.allclose(result.data, EXPECTED_DATA)
+    np.testing.assert_allclose(result.data, EXPECTED_DATA)
     assert rain.units == "mm h-1"
     assert snow.units == "m s-1"
 

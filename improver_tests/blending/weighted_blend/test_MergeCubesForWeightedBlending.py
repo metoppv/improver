@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,11 +37,13 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
+from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.weighted_blend import MergeCubesForWeightedBlending
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver.utilities.cube_manipulation import get_coord_names
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -121,27 +123,14 @@ class Test__create_model_coordinates(IrisTest):
             model_id_attr="mosg__model_configuration",
         )
 
-    def test_basic(self):
-        """Test model ID and model configuration coords are created and that
-        the model_id_attr (in this case 'mosg__model_configuration') is
-        correctly updated"""
-        self.plugin._create_model_coordinates(self.cubelist)
-        for cube in self.cubelist:
-            cube_coords = [coord.name() for coord in cube.coords()]
-            self.assertIn("model_id", cube_coords)
-            self.assertIn("model_configuration", cube_coords)
-            self.assertEqual(
-                cube.attributes["mosg__model_configuration"], "uk_det uk_ens"
-            )
-
     def test_values(self):
         """Test values of model coordinates are as expected"""
         expected_id = [0, 1000]
         expected_config = ["uk_ens", "uk_det"]
         self.plugin._create_model_coordinates(self.cubelist)
         for cube, m_id, m_conf in zip(self.cubelist, expected_id, expected_config):
-            self.assertEqual(cube.coord("model_id").points, [m_id])
-            self.assertEqual(cube.coord("model_configuration").points, [m_conf])
+            self.assertEqual(cube.coord(MODEL_BLEND_COORD).points, [m_id])
+            self.assertEqual(cube.coord(MODEL_NAME_COORD).points, [m_conf])
 
     def test_unmatched_model_id_attr(self):
         """Test error if model_id_attr is not present on both input cubes"""
@@ -195,6 +184,16 @@ class Test_process(IrisTest):
 
         self.cubelist = iris.cube.CubeList([self.cube_enuk, self.cube_ukv])
 
+        # set up a nowcast cube
+        self.cube_nowcast = set_up_probability_cube(
+            data.copy(),
+            thresholds,
+            standard_grid_metadata="nc_det",
+            time=time_point,
+            frt=dt(2015, 11, 23, 3, 15),
+            time_bounds=time_bounds,
+        )
+
         # set up some non-UK test cubes
         cube_non_mo_ens = self.cube_enuk.copy()
         cube_non_mo_ens.attributes.pop("mosg__model_configuration")
@@ -212,33 +211,13 @@ class Test_process(IrisTest):
             model_id_attr="mosg__model_configuration",
         )
 
-    def test_basic(self):
-        """Test single cube is returned unchanged"""
-        cube = self.cube_enuk.copy()
-        result = self.plugin.process(cube)
-        self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
-        self.assertEqual(result.metadata, self.cube_enuk.metadata)
-
-    def test_single_item_list(self):
-        """Test cube from single item list is returned unchanged"""
-        cubelist = iris.cube.CubeList([self.cube_enuk.copy()])
-        result = self.plugin.process(cubelist)
-        self.assertArrayAlmostEqual(result.data, self.cube_enuk.data)
-        self.assertEqual(result.metadata, self.cube_enuk.metadata)
-
-    def test_single_item_list_attributes(self):
-        """Test cube from single item list attributes are as expected"""
-        cubelist = iris.cube.CubeList([self.cube_enuk.copy()])
-        result = self.plugin.process(cubelist)
-        self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
-
     def test_multi_model_merge(self):
         """Test models merge OK and have expected model coordinates"""
         result = self.plugin.process(self.cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.coord("model_id").points, [0, 1000])
+        self.assertArrayEqual(result.coord(MODEL_BLEND_COORD).points, [0, 1000])
         self.assertArrayEqual(
-            result.coord("model_configuration").points, ["uk_ens", "uk_det"]
+            result.coord(MODEL_NAME_COORD).points, ["uk_ens", "uk_det"]
         )
 
     def test_time_coords(self):
@@ -273,9 +252,9 @@ class Test_process(IrisTest):
         )
         # check no model coordinates have been added
         with self.assertRaises(iris.exceptions.CoordinateNotFoundError):
-            result.coord("model_id")
+            result.coord(MODEL_BLEND_COORD)
         with self.assertRaises(iris.exceptions.CoordinateNotFoundError):
-            result.coord("model_configuration")
+            result.coord(MODEL_NAME_COORD)
 
     def test_blend_coord_ascending(self):
         """Test the order of the output blend coordinate is always ascending,
@@ -319,7 +298,7 @@ class Test_process(IrisTest):
         )
         result = plugin.process(self.non_mo_cubelist)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.coord("model_id").points, [0, 1000])
+        self.assertArrayEqual(result.coord(MODEL_BLEND_COORD).points, [0, 1000])
 
     def test_model_id_attr_mismatch(self):
         """Test that when a model ID attribute string is specified that does
@@ -386,6 +365,37 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result.coord("realization").points, np.array([0, 1]))
         self.assertEqual(result[0].metadata, cube1.metadata)
         self.assertEqual(result[1].metadata, cube2.metadata)
+
+    def test_handling_blend_time(self):
+        """Test merging works with mismatched and / or missing blend time
+        coordinates"""
+        blend_time_ukv = self.cube_ukv.coord("forecast_reference_time").copy()
+        blend_time_ukv.rename("blend_time")
+        self.cube_ukv.add_aux_coord(blend_time_ukv)
+
+        blend_time_enuk = self.cube_enuk.coord("forecast_reference_time").copy()
+        blend_time_enuk.rename("blend_time")
+        self.cube_enuk.add_aux_coord(blend_time_enuk)
+
+        plugin = MergeCubesForWeightedBlending(
+            "model_id", model_id_attr="mosg__model_configuration"
+        )
+        result = plugin([self.cube_nowcast, self.cube_ukv, self.cube_enuk])
+        self.assertNotIn("blend_time", get_coord_names(result))
+
+    def test_forecast_coord_deprecation(self):
+        """Test merging works if some (but not all) inputs have previously been cycle
+        blended"""
+        for cube in [self.cube_ukv, self.cube_enuk]:
+            for coord in ["forecast_period", "forecast_reference_time"]:
+                cube.coord(coord).attributes.update({"deprecation_message": "blah"})
+
+        plugin = MergeCubesForWeightedBlending(
+            "model_id", model_id_attr="mosg__model_configuration"
+        )
+        result = plugin([self.cube_nowcast, self.cube_ukv, self.cube_enuk])
+        for coord in ["forecast_period", "forecast_reference_time"]:
+            self.assertNotIn("deprecation_message", result.coord(coord).attributes)
 
 
 if __name__ == "__main__":

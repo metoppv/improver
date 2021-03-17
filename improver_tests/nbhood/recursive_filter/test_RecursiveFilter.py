@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@
 """Unit tests for the nbhood.RecursiveFilter plugin."""
 
 import unittest
+from datetime import timedelta
 
 import iris
 import numpy as np
@@ -38,7 +39,10 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.nbhood.recursive_filter import RecursiveFilter
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.pad_spatial import pad_cube_with_halo
 from improver.utilities.warnings_handler import ManageWarnings
@@ -170,7 +174,6 @@ class Test__init__(Test_RecursiveFilter):
         result = RecursiveFilter()
         self.assertIsNone(result.iterations)
         self.assertEqual(result.edge_width, 15)
-        self.assertFalse(result.re_mask)
 
     def test_iterations(self):
         """Test when iterations value less than unity is given (invalid)."""
@@ -195,114 +198,19 @@ class Test__init__(Test_RecursiveFilter):
         self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
 
-class Test_set_up_cubes(IrisTest):
+class Test__validate_coefficients(Test_RecursiveFilter):
 
-    """Test the set up of cubes prior to neighbourhooding."""
-
-    def setUp(self):
-        """Set up a 2D cube."""
-        data = np.ones((5, 5), dtype=np.float32)
-        data[2, 2] = 0
-        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
-
-    def test_without_masked_data(self):
-        """Test setting up cubes to be neighbourhooded when the input cube
-        does not contain masked arrays."""
-        expected_mask = np.ones((5, 5), dtype=np.bool)
-        expected_nans = np.zeros((5, 5), dtype=np.bool)
-        cube, mask, nan_array = RecursiveFilter.set_up_cubes(self.cube)
-        self.assertIsInstance(cube, Cube)
-        self.assertIsInstance(mask, Cube)
-        self.assertEqual(cube, self.cube)
-        self.assertArrayEqual(nan_array, expected_nans)
-        self.assertArrayEqual(mask.data, expected_mask)
-
-    def test_with_masked_data(self):
-        """Test setting up cubes to be neighbourhooded when the input cube
-        contains masked arrays."""
-        cube = self.cube
-        data = cube.data
-        cube.data[1, 3] = 0.5
-        cube.data[3, 3] = 0.5
-        cube.data = np.ma.masked_equal(data, 0.5)
-        mask = ~cube.data.mask
-        expected_nans = np.zeros((5, 5), dtype=np.bool)
-        data = cube.data.data * mask
-        result_cube, result_mask, result_nan_array = RecursiveFilter.set_up_cubes(
-            cube.copy()
-        )
-        self.assertArrayAlmostEqual(result_cube.data, data)
-        self.assertArrayAlmostEqual(result_mask.data, mask)
-        self.assertArrayEqual(result_nan_array, expected_nans)
-
-    def test_with_separate_mask_cube(self):
-        """Test for an input cube and an additional mask cube."""
-        self.cube.data[1, 3] = 0.5
-        self.cube.data[3, 3] = 0.5
-        mask_cube = self.cube.copy()
-        mask_cube.data = np.ones((5, 5))
-        mask_cube.data[self.cube.data == 0.5] = 0
-        expected_data = self.cube.data * mask_cube.data
-        expected_mask = np.ones((5, 5))
-        expected_mask[1, 3] = 0.0
-        expected_mask[3, 3] = 0.0
-        expected_nans = np.zeros((5, 5), dtype=np.bool)
-        result_cube, result_mask, result_nan_array = RecursiveFilter.set_up_cubes(
-            self.cube.copy(), mask_cube=mask_cube
-        )
-        self.assertIsInstance(result_cube, Cube)
-        self.assertIsInstance(result_mask, Cube)
-        self.assertArrayAlmostEqual(result_cube.data, expected_data)
-        self.assertArrayAlmostEqual(result_mask.data, expected_mask)
-        self.assertArrayEqual(result_nan_array, expected_nans)
-
-    def test_with_separate_mask_cube_and_nan(self):
-        """Test for an input cube and an additional mask cube."""
-        mask_cube = self.cube.copy()
-        self.cube.data[1, 3] = 0.5
-        self.cube.data[3, 3] = 0.5
-        self.cube.data[1, 2] = np.nan
-        self.cube.data[3, 1] = np.nan
-        mask_cube.data = np.ones((5, 5))
-        mask_cube.data[self.cube.data == 0.5] = 0
-        mask_cube.data = mask_cube.data.astype(int)
-
-        expected_mask = np.ones((5, 5))
-        expected_mask[1, 3] = 0.0
-        expected_mask[3, 3] = 0.0
-        expected_mask[1, 2] = 0.0
-        expected_mask[3, 1] = 0.0
-        expected_data = self.cube.data * expected_mask
-        expected_data[1, 2] = 0.0
-        expected_data[3, 1] = 0.0
-        expected_nans = np.zeros((5, 5), dtype=np.bool)
-        expected_nans[1, 2] = True
-        expected_nans[3, 1] = True
-
-        result_cube, result_mask, result_nan_array = RecursiveFilter.set_up_cubes(
-            self.cube.copy(), mask_cube=mask_cube
-        )
-
-        self.assertIsInstance(result_cube, Cube)
-        self.assertIsInstance(result_mask, Cube)
-        self.assertArrayAlmostEqual(result_cube.data, expected_data)
-        self.assertArrayAlmostEqual(result_mask.data, expected_mask)
-        self.assertArrayEqual(result_nan_array, expected_nans)
-
-
-class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
-
-    """Test the _validate_and_pad_coefficients method"""
+    """Test the _validate_coefficients method"""
 
     def test_return_order(self):
         """Test that the coefficients cubes are returned in x, y order."""
-        x, y = RecursiveFilter()._validate_and_pad_coefficients(
+        x, y = RecursiveFilter()._validate_coefficients(
             self.cube, self.smoothing_coefficients
         )
         self.assertEqual(x.name(), self.x_name)
         self.assertEqual(y.name(), self.y_name)
 
-        x, y = RecursiveFilter()._validate_and_pad_coefficients(
+        x, y = RecursiveFilter()._validate_coefficients(
             self.cube, self.smoothing_coefficients[::-1]
         )
         self.assertEqual(x.name(), self.x_name)
@@ -316,7 +224,7 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
             "match the expected name smoothing_coefficient_x"
         )
         with self.assertRaisesRegex(ValueError, msg):
-            RecursiveFilter(edge_width=1)._validate_and_pad_coefficients(
+            RecursiveFilter(edge_width=1)._validate_coefficients(
                 self.cube, self.smoothing_coefficients_wrong_name
             )
 
@@ -328,7 +236,7 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
             "expected length or values"
         )
         with self.assertRaisesRegex(ValueError, msg):
-            RecursiveFilter(edge_width=1)._validate_and_pad_coefficients(
+            RecursiveFilter(edge_width=1)._validate_coefficients(
                 self.cube, self.smoothing_coefficients_wrong_dimensions
             )
 
@@ -340,7 +248,7 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
             "expected length or values"
         )
         with self.assertRaisesRegex(ValueError, msg):
-            RecursiveFilter(edge_width=1)._validate_and_pad_coefficients(
+            RecursiveFilter(edge_width=1)._validate_coefficients(
                 self.cube, self.smoothing_coefficients_wrong_points
             )
 
@@ -354,9 +262,13 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
             "conservation of probabilities"
         )
         with self.assertRaisesRegex(ValueError, msg):
-            RecursiveFilter(edge_width=1)._validate_and_pad_coefficients(
+            RecursiveFilter(edge_width=1)._validate_coefficients(
                 self.cube, self.smoothing_coefficients
             )
+
+
+class Test__pad_coefficients(Test_RecursiveFilter):
+    """Test the _pad_coefficients method"""
 
     def test_padding_default(self):
         """Test that the returned smoothing_coefficients array is padded as
@@ -369,8 +281,8 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
         expected_shape_y = (64, 65)
         expected_result_x = np.full(expected_shape_x, 0.5)
         expected_result_y = np.full(expected_shape_y, 0.5)
-        result_x, result_y = RecursiveFilter()._validate_and_pad_coefficients(
-            self.cube, self.smoothing_coefficients
+        result_x, result_y = RecursiveFilter()._pad_coefficients(
+            *self.smoothing_coefficients
         )
         self.assertIsInstance(result_x.data, np.ndarray)
         self.assertIsInstance(result_y.data, np.ndarray)
@@ -390,9 +302,9 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
         expected_shape_y = (8, 9)
         expected_result_x = np.full(expected_shape_x, 0.5)
         expected_result_y = np.full(expected_shape_y, 0.5)
-        result_x, result_y = RecursiveFilter(
-            edge_width=1
-        )._validate_and_pad_coefficients(self.cube, self.smoothing_coefficients)
+        result_x, result_y = RecursiveFilter(edge_width=1)._pad_coefficients(
+            *self.smoothing_coefficients
+        )
         self.assertArrayEqual(result_x.data, expected_result_x)
         self.assertArrayEqual(result_y.data, expected_result_y)
         self.assertEqual(result_x.shape, expected_shape_x)
@@ -410,8 +322,8 @@ class Test__validate_and_pad_coefficients(Test_RecursiveFilter):
         expected_result = np.full(expected_shape, 0.5)
         expected_result[1:3, 1:3] = 0.25
         self.smoothing_coefficients[0].data[0, 0] = 0.25
-        result, _ = RecursiveFilter(edge_width=1)._validate_and_pad_coefficients(
-            self.cube, self.smoothing_coefficients
+        result, _ = RecursiveFilter(edge_width=1)._pad_coefficients(
+            *self.smoothing_coefficients
         )
         self.assertArrayEqual(result.data, expected_result)
         self.assertEqual(result.shape, expected_shape)
@@ -509,7 +421,7 @@ class Test__run_recursion(Test_RecursiveFilter):
         cube = iris.util.squeeze(self.cube)
         smoothing_coefficients_x, smoothing_coefficients_y = RecursiveFilter(
             edge_width=edge_width
-        )._validate_and_pad_coefficients(cube, self.smoothing_coefficients)
+        )._pad_coefficients(*self.smoothing_coefficients)
         padded_cube = pad_cube_with_halo(cube, 2 * edge_width, 2 * edge_width)
         result = RecursiveFilter(edge_width=1)._run_recursion(
             padded_cube,
@@ -525,7 +437,7 @@ class Test__run_recursion(Test_RecursiveFilter):
         cube = iris.util.squeeze(self.cube)
         smoothing_coefficients_x, smoothing_coefficients_y = RecursiveFilter(
             edge_width=edge_width
-        )._validate_and_pad_coefficients(cube, self.smoothing_coefficients)
+        )._pad_coefficients(*self.smoothing_coefficients)
         padded_cube = pad_cube_with_halo(cube, 2 * edge_width, 2 * edge_width)
         result = RecursiveFilter(edge_width=edge_width)._run_recursion(
             padded_cube,
@@ -543,7 +455,7 @@ class Test__run_recursion(Test_RecursiveFilter):
         cube = iris.util.squeeze(self.cube)
         smoothing_coefficients_x, smoothing_coefficients_y = RecursiveFilter(
             edge_width=edge_width
-        )._validate_and_pad_coefficients(cube, self.smoothing_coefficients_alternative)
+        )._pad_coefficients(*self.smoothing_coefficients_alternative)
         padded_cube = pad_cube_with_halo(cube, 2 * edge_width, 2 * edge_width)
         result = RecursiveFilter(edge_width=edge_width)._run_recursion(
             padded_cube, smoothing_coefficients_x, smoothing_coefficients_y, 1
@@ -587,25 +499,18 @@ class Test_process(Test_RecursiveFilter):
         expected = 0.14994797
         self.assertAlmostEqual(result.data[0][2][2], expected)
 
-    def test_smoothing_coefficient_nan_in_data(self):
-        """Test that the RecursiveFilter plugin returns the correct data
-        when the data contains nans."""
-        plugin = RecursiveFilter(iterations=self.iterations,)
-        self.cube.data[0][3][2] = np.nan
-        result = plugin(self.cube, smoothing_coefficients=self.smoothing_coefficients,)
-        expected = 0.13277836
-        self.assertAlmostEqual(result.data[0][2][2], expected)
-
     def test_smoothing_coefficient_cubes_masked_data(self):
         """Test that the RecursiveFilter plugin returns the correct data
-        when a masked data cube."""
+        when a masked data cube.
+        """
         plugin = RecursiveFilter(iterations=self.iterations,)
         mask = np.zeros(self.cube.data.shape)
         mask[0][3][2] = 1
         self.cube.data = np.ma.MaskedArray(self.cube.data, mask=mask)
-        result = plugin(self.cube, smoothing_coefficients=self.smoothing_coefficients,)
-        expected = 0.13277836
+        result = plugin(self.cube, smoothing_coefficients=self.smoothing_coefficients)
+        expected = 0.184375
         self.assertAlmostEqual(result.data[0][2][2], expected)
+        self.assertArrayEqual(result.data.mask, mask)
 
     def test_coordinate_reordering_with_different_smoothing_coefficients(self):
         """Test that x and y smoothing_coefficients still apply to the right
@@ -633,6 +538,21 @@ class Test_process(Test_RecursiveFilter):
             ["realization", "longitude", "latitude"],
         )
         self.assertArrayAlmostEqual(result.data[0], expected_result)
+
+    def test_error_multiple_times_masked(self):
+        """Test that the plugin raises an error when given a masked cube with
+        multiple time points"""
+        point = self.cube.coord("time").cell(0).point
+        time_points = [point - timedelta(seconds=3600), point]
+        cube = add_coordinate(self.cube, time_points, "time", is_datetime=True)
+        mask = np.zeros(cube.data.shape, dtype=int)
+        mask[0, 0, 2, 2] = 1
+        mask[1, 0, 2, 3] = 1
+        cube.data = np.ma.MaskedArray(cube.data, mask=mask)
+        plugin = RecursiveFilter(iterations=self.iterations,)
+        msg = "multiple time points is unsupported"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin(cube, smoothing_coefficients=self.smoothing_coefficients)
 
 
 if __name__ == "__main__":

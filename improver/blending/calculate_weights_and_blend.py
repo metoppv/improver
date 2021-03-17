@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -31,11 +31,15 @@
 """Plugin to calculate blend weights and blend data across a dimension"""
 
 import warnings
+from copy import copy
 
+import iris
 import numpy as np
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
+from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
+from improver.blending.utilities import get_coords_to_remove, update_blended_metadata
 from improver.blending.weighted_blend import (
     MergeCubesForWeightedBlending,
     WeightedBlendAcrossWholeDimension,
@@ -45,15 +49,13 @@ from improver.blending.weights import (
     ChooseDefaultWeightsNonLinear,
     ChooseWeightsLinear,
 )
-from improver.metadata.amend import amend_attributes
-from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area,
     distance_to_number_of_grid_cells,
 )
 
 
-class WeightAndBlend(BasePlugin):
+class WeightAndBlend(PostProcessingPlugin):
     """
     Wrapper class to calculate weights and blend data across cycles or models
     """
@@ -129,7 +131,7 @@ class WeightAndBlend(BasePlugin):
         """
         if self.wts_calc_method == "dict":
             if "model" in self.blend_coord:
-                config_coord = "model_configuration"
+                config_coord = MODEL_NAME_COORD
             else:
                 config_coord = self.blend_coord
 
@@ -170,9 +172,43 @@ class WeightAndBlend(BasePlugin):
         grid_cells = distance_to_number_of_grid_cells(
             cube, fuzzy_length, return_int=False
         )
-        plugin = SpatiallyVaryingWeightsFromMask(grid_cells)
-        weights = plugin(cube, weights, self.blend_coord)
+        plugin = SpatiallyVaryingWeightsFromMask(
+            self.blend_coord, fuzzy_length=grid_cells
+        )
+        weights = plugin(cube, weights)
         return weights
+
+    def _remove_zero_weighted_slices(self, cube, weights):
+        """Removes any cube and weights slices where the 1D weighting factor
+        is zero
+
+        Args:
+            cube (iris.cube.Cube):
+                The data cube to be blended
+            weights (iris.cube.Cube):
+                1D cube of weights varying along self.blend_coord
+
+        Returns:
+            (tuple): tuple containing:
+                **cube** (iris.cube.Cube):
+                    Data cube without zero-weighted slices
+                **weights** (iris.cube.Cube):
+                    Weights without zeroes
+        """
+        slice_out_vals = []
+        for wslice in weights.slices_over(self.blend_coord):
+            if np.sum(wslice.data) == 0:
+                slice_out_vals.append(wslice.coord(self.blend_coord).points[0])
+
+        if not slice_out_vals:
+            return cube, weights
+
+        constraint = iris.Constraint(
+            coord_values={self.blend_coord: lambda x: x not in slice_out_vals}
+        )
+        cube = cube.extract(constraint)
+        weights = weights.extract(constraint)
+        return cube, weights
 
     def process(
         self,
@@ -214,10 +250,10 @@ class WeightAndBlend(BasePlugin):
             UserWarning: If blending masked data without spatial weights.
                          This has not been fully tested.
         """
-        # Prepare cubes for weighted blending, including creating model_id and
-        # model_configuration coordinates for multi-model blending. The merged
-        # cube has a monotonically ascending blend coordinate. Plugin raises an
-        # error if blend_coord is not present on all input cubes.
+        # Prepare cubes for weighted blending, including creating custom metadata
+        # for multi-model blending. The merged cube has a monotonically ascending
+        # blend coordinate. Plugin raises an error if blend_coord is not present on
+        # all input cubes.
         merger = MergeCubesForWeightedBlending(
             self.blend_coord,
             weighting_coord=self.weighting_coord,
@@ -225,29 +261,19 @@ class WeightAndBlend(BasePlugin):
         )
         cube = merger(cubelist, cycletime=cycletime)
 
-        # if blend_coord has only one value (for example cycle blending with
-        # only one cycle available), or is not present (case where only
-        # one model has been provided for a model blend), update attributes
-        # and ensure that the forecast reference time on the returned cube
-        # is set to the current IMPROVER processing cycle.
-        coord_names = [coord.name() for coord in cube.coords()]
-        if (
-            self.blend_coord not in coord_names
-            or len(cube.coord(self.blend_coord).points) == 1
-        ):
-            result = cube.copy()
-            if attributes_dict is not None:
-                amend_attributes(result, attributes_dict)
-            (result,) = rebadge_forecasts_as_latest_cycle([result], cycletime)
+        if "model" in self.blend_coord:
+            self.blend_coord = copy(MODEL_BLEND_COORD)
 
-        # otherwise, calculate weights and blend across specified dimension
-        else:
-            # set up special treatment for model blending
-            if "model" in self.blend_coord:
-                self.blend_coord = "model_id"
+        coords_to_remove = get_coords_to_remove(cube, self.blend_coord)
 
-            # calculate blend weights
+        if len(cube.coord(self.blend_coord).points) > 1:
             weights = self._calculate_blending_weights(cube)
+            cube, weights = self._remove_zero_weighted_slices(cube, weights)
+
+        # Deal with case of only one input cube or non-zero-weighted slice
+        if len(cube.coord(self.blend_coord).points) == 1:
+            result = cube
+        else:
             if spatial_weights:
                 weights = self._update_spatial_weights(cube, weights, fuzzy_length)
             elif np.ma.is_masked(cube.data):
@@ -257,13 +283,21 @@ class WeightAndBlend(BasePlugin):
                     " fully tested."
                 )
 
-            # blend across specified dimension
+            # Blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
-            result = BlendingPlugin(
-                cube,
-                weights=weights,
-                cycletime=cycletime,
-                attributes_dict=attributes_dict,
-            )
+            result = BlendingPlugin(cube, weights=weights)
+
+        # Remove custom metadata and and update time-type coordinates.  Remove
+        # non-time-type coordinate that were previously associated with the blend
+        # dimension (coords_to_remove).  Add user-specified and standard blend
+        # attributes.
+        update_blended_metadata(
+            result,
+            self.blend_coord,
+            coords_to_remove=coords_to_remove,
+            cycletime=cycletime,
+            attributes_dict=attributes_dict,
+            model_id_attr=model_id_attr,
+        )
 
         return result

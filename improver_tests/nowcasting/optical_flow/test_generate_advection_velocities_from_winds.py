@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ from datetime import datetime
 
 import iris
 import numpy as np
+import pytest
 from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import generate_advection_velocities_from_winds
@@ -51,6 +52,9 @@ class Test_generate_advection_velocities_from_winds(IrisTest):
 
     def setUp(self):
         """Set up test input cubes"""
+        # Skip if pysteps not available
+        pytest.importorskip("pysteps")
+
         shape = (30, 30)
         earlier_cube = set_up_test_cube(
             np.zeros(shape, dtype=np.float32),

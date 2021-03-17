@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ def process(
     truth_attribute,
     units=None,
     predictor="mean",
-    tolerance: float = 0.01,
+    tolerance: float = 0.02,
     max_iterations: int = 1000,
 ):
     """Estimate coefficients for Ensemble Model Output Statistics.

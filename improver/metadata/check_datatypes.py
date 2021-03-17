@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2020 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -102,6 +102,33 @@ def check_dtype(obj):
         bounds_dtype_ok = obj.bounds.dtype == req_dtype
         dtype_ok = dtype_ok and bounds_dtype_ok
     return dtype_ok
+
+
+def enforce_dtype(operation, inputs, result):
+    """
+    Ensures that result has not been automatically promoted to float64.
+
+    Args:
+        operation (str):
+            The operation that was performed (for the error message)
+        inputs (list):
+            The Numpy arrays or cubes that the operation was performed on (for the
+            error message)
+        result (np.array or iris.cube.Cube):
+            The result of the operation
+
+    Raises:
+        TypeError:
+            If result.dtype does not match the meta-data standard.
+
+    """
+    if not check_dtype(result):
+        unique_cube_types = set([c.dtype for c in inputs])
+        raise TypeError(
+            f"Operation {operation} on types {unique_cube_types} results in "
+            "float64 data which cannot be safely coerced to float32 (Hint: "
+            "combining int8 and float32 works)"
+        )
 
 
 def get_required_units(obj):
