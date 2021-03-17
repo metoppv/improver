@@ -37,6 +37,7 @@ from iris.util import promote_aux_coord_to_dim_coord
 from improver_tests.developer_tools import (
     ensemble_fixture,
     interpreter_fixture,
+    landmask_fixture,
     percentile_fixture,
     probability_above_fixture,
     probability_below_fixture,
@@ -136,6 +137,30 @@ def test_spot_median(blended_spot_median_cube, interpreter):
     assert not interpreter.warning_string
 
 
+def test_static_ancillary(landmask_cube, interpreter):
+    """Test interpretation of static ancillary"""
+    interpreter.run(landmask_cube)
+    assert interpreter.prod_type == "gridded"
+    assert interpreter.field_type == "ancillary"
+    assert interpreter.diagnostic == "land binary mask"
+    assert interpreter.relative_to_threshold is None
+    assert not interpreter.methods
+    assert interpreter.post_processed is None
+    assert interpreter.model is None
+    assert not interpreter.blended
+    assert not interpreter.warning_string
+
+
+def test_handles_duplicate_model_string(probability_above_cube, interpreter):
+    """Test the interpreter can distinguish between the Global Model and the
+    Global Grid in cube titles"""
+    probability_above_cube.attributes[
+        "title"
+    ] = "UKV Model Forecast on Global 10 km Standard Grid"
+    interpreter.run(probability_above_cube)
+    assert interpreter.model == "UKV"
+
+
 def test_error_invalid_probability_name(probability_above_cube, interpreter):
     """Test error raised if probability cube name is invalid"""
     probability_above_cube.rename("probability_air_temperature_is_above_threshold")
@@ -222,8 +247,8 @@ def test_error_wrong_percentile_name_units(wind_gust_percentile_cube, interprete
 
 def test_error_missing_required_attribute(wind_gust_percentile_cube, interpreter):
     """Test error raised when a mandatory attribute is missing"""
-    wind_gust_percentile_cube.attributes.pop("title")
-    with pytest.raises(ValueError, match="missing.*mandatory attributes"):
+    wind_gust_percentile_cube.attributes.pop("source")
+    with pytest.raises(ValueError, match="missing.*mandatory values"):
         interpreter.run(wind_gust_percentile_cube)
 
 

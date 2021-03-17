@@ -84,7 +84,7 @@ def probability_below_fixture():
     thresholds = np.array([280, 282, 284], dtype=np.float32)
     attributes = {
         "source": "IMPROVER",
-        "title": "IMPROVER Multi-Model Blend on 2 km Standard Grid",
+        "title": "IMPROVER Post-Processed Multi-Model Blend on 2 km Standard Grid",
         "institution": "Met Office",
         "mosg__model_configuration": "uk_det uk_ens",
     }
@@ -167,7 +167,7 @@ def spot_fixture():
     spot_cube.attributes = {
         "source": "IMPROVER",
         "institution": "Met Office",
-        "title": "IMPROVER Multi-Model Blend UK Spot Values",
+        "title": "IMPROVER Post-Processed Multi-Model Blend UK Spot Values",
         "mosg__model_configuration": "uk_det uk_ens",
     }
     (time, _), (blend_time, _), (_, _) = construct_scalar_time_coords(
@@ -186,7 +186,7 @@ def wxcode_fixture():
     attributes = {
         "source": "IMPROVER",
         "institution": "Met Office",
-        "title": "IMPROVER Multi-Model Blend on 2 km Standard Grid",
+        "title": "IMPROVER Post-Processed Multi-Model Blend on 2 km Standard Grid",
         "mosg__model_configuration": "uk_det uk_ens",
     }
     attributes.update(weather_code_attributes())
@@ -211,4 +211,14 @@ def wind_direction_fixture():
         data, name="wind_from_direction", units="degrees", attributes=attributes
     )
     cube.add_cell_method(iris.coords.CellMethod("mean", coords="realization"))
+    return cube
+
+
+@pytest.fixture(name="landmask_cube")
+def landmask_fixture():
+    """Static ancillary cube (no attributes or time coordinates)"""
+    data = np.arange(9).reshape(3, 3).astype(np.float32)
+    cube = set_up_variable_cube(data, name="land_binary_mask", units="1")
+    for coord in ["time", "forecast_reference_time", "forecast_period"]:
+        cube.remove_coord(coord)
     return cube

@@ -36,6 +36,7 @@ from improver.developer_tools.metadata_interpreter import display_interpretation
 from improver_tests.developer_tools import (
     ensemble_fixture,
     interpreter_fixture,
+    landmask_fixture,
     percentile_fixture,
     probability_above_fixture,
     probability_below_fixture,
@@ -160,6 +161,17 @@ def test_spot_median(blended_spot_median_cube, interpreter):
         "It contains blended data from models: UKV, MOGREPS-UK\n"
     )
     interpreter.run(blended_spot_median_cube)
+    result = display_interpretation(interpreter)
+    assert result == expected_result
+
+
+def test_static_ancillary(landmask_cube, interpreter):
+    """Test interpretation of static ancillary"""
+    expected_result = (
+        "This is a gridded ancillary file\n"
+        "This is a static ancillary with no time information\n"
+    )
+    interpreter.run(landmask_cube)
     result = display_interpretation(interpreter)
     assert result == expected_result
 

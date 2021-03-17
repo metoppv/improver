@@ -49,6 +49,7 @@ from improver.utilities.cube_manipulation import get_coord_names, get_dim_coord_
 # Model name-to-attribute maps
 MODEL_CODES = {
     "Nowcast": "nc_det",
+    "Global": "gl_det",
     "MOGREPS-G": "gl_ens",
     "MOGREPS-UK": "uk_ens",
     "UKV": "uk_det",
@@ -59,17 +60,33 @@ MODEL_NAMES = dict((v, k) for k, v in MODEL_CODES.items())
 EMOS_COEFF_NAMES = [
     f"emos_coefficient_{coeff}" for coeff in ["alpha", "beta", "gamma", "delta"]
 ]
-EXCEPTIONS = [
-    "weather_code",
-    "wind_from_direction",
-    "grid_neighbours",
-    "reliability_calibration_table",
-] + EMOS_COEFF_NAMES
+ANCILLARIES = [
+    "surface_altitude",
+    "land_fraction",
+    "land_binary_mask",
+    "grid_with_halo",
+    "topographic_zone_weights",
+    "topography_mask",
+    "silhouette_roughness",
+    "standard_deviation_of_height_in_grid_cell",
+    "timezone_mask",
+]
+EXCEPTIONS = (
+    [
+        "weather_code",
+        "wind_from_direction",
+        "grid_neighbours",
+        "reliability_calibration_table",
+    ]
+    + EMOS_COEFF_NAMES
+    + ANCILLARIES
+)
 
 # Expected coordinates for different field types
 SPOT_COORDS = ["spot_index", "latitude", "longitude", "altitude", "wmo_id"]
 UNBLENDED_TIME_COORDS = ["time", "forecast_period", "forecast_reference_time"]
 BLENDED_TIME_COORDS = ["time", "blend_time"]
+LOCAL_TIME_COORDS = ["time", "time_in_local_timezone"]
 
 # Compliant and forbidden cell methods
 NONCOMP_CMS = [
@@ -95,10 +112,14 @@ DIAG_ATTRS = {
     "weather_code": ["weather_code", "weather_code_meaning"],
     "wind_gust": ["wind_gust_diagnostic"],
 }
-COMP_ATTRS = MANDATORY_ATTRIBUTES + ["mosg__model_configuration"]
+COMP_ATTRS = MANDATORY_ATTRIBUTES + [
+    "Conventions",
+    "least_significant_digit",
+    "mosg__model_configuration",
+]
 
 # Expected substrings to be found in certain title attributes
-BLEND_TITLE_SUBSTR = "IMPROVER Multi-Model Blend"
+BLEND_TITLE_SUBSTR = "IMPROVER Post-Processed Multi-Model Blend"
 PP_TITLE_SUBSTR = "Post-Processed"
 SPOT_TITLE_SUBSTR = "Spot Values"
 
@@ -111,6 +132,7 @@ class MOMetadataInterpreter:
     PROB = "probabilities"
     PERC = "percentiles"
     DIAG = "realizations"
+    ANCIL = "ancillary"
 
     def __init__(self):
         """Initialise class parameters"""
@@ -237,14 +259,22 @@ class MOMetadataInterpreter:
             if self.model_id_attr in attrs:
                 for key in MODEL_CODES:
                     if (
-                        key in attrs["title"]
+                        f"{key} Model" in attrs["title"]
                         and attrs[self.model_id_attr] != MODEL_CODES[key]
                     ):
                         self._add_error(
                             f"Title {attrs['title']} is inconsistent with model ID "
                             f"attribute {attrs[self.model_id_attr]}"
                         )
-                self.model = MODEL_NAMES[attrs[self.model_id_attr]]
+
+                try:
+                    self.model = MODEL_NAMES[attrs[self.model_id_attr]]
+                except KeyError:
+                    self._add_error(
+                        f"Attribute {attrs[self.model_id_attr]} is not a valid single "
+                        "model.  If valid for blend, then title attribute is missing "
+                        f"expected substring {BLEND_TITLE_SUBSTR}."
+                    )
 
     def check_attributes(self, attrs):
         """Checks for unexpected attributes, then interprets values for model
@@ -273,12 +303,24 @@ class MOMetadataInterpreter:
                     f"values {required}"
                 )
 
-        self.post_processed = (
-            "some"
-            if PP_TITLE_SUBSTR in attrs["title"] or BLEND_TITLE_SUBSTR in attrs["title"]
-            else "no"
-        )
-        self._check_blended_attributes(attrs)
+        if self.field_type != self.ANCIL:
+            if not all([attr in attrs for attr in MANDATORY_ATTRIBUTES]):
+                self._add_error(
+                    f"Attributes {attrs.keys()} missing one or more mandatory "
+                    f"values {MANDATORY_ATTRIBUTES}"
+                )
+
+            try:
+                self.post_processed = (
+                    "some"
+                    if PP_TITLE_SUBSTR in attrs["title"]
+                    or BLEND_TITLE_SUBSTR in attrs["title"]
+                    else "no"
+                )
+            except KeyError:
+                self._add_error("Cube is missing mandatory title attribute")
+            else:
+                self._check_blended_attributes(attrs)
 
     def _check_coords_present(self, coords, expected_coords):
         """Check whether all expected coordinates are present"""
@@ -312,7 +354,13 @@ class MOMetadataInterpreter:
         """
 
         # 1) Interpret diagnostic and type-specific metadata, including cell methods
-        if cube.name() in EXCEPTIONS:
+        if cube.name() in ANCILLARIES:
+            self.field_type = self.ANCIL
+            self.diagnostic = cube.name()
+            if cube.cell_methods:
+                self._add_error(f"Unexpected cell methods {cube.cell_methods}")
+
+        elif cube.name() in EXCEPTIONS:
             self.field_type = self.diagnostic = cube.name()
             if cube.name() == "weather_code":
                 if cube.cell_methods:
@@ -360,20 +408,23 @@ class MOMetadataInterpreter:
                 self.check_cell_methods(cube.cell_methods)
 
         # 2) Interpret model and blend information from cube attributes
-        try:
-            self.check_attributes(cube.attributes)
-        except KeyError:
-            self._add_error(
-                "Cube is missing one or more of mandatory attributes: "
-                f"{MANDATORY_ATTRIBUTES}"
-            )
+        self.check_attributes(cube.attributes)
 
         # 3) Check whether expected coordinates are present
         coords = get_coord_names(cube)
         if "spot_index" in coords:
             self.check_spot_data(cube, coords)
 
-        if self.blended:
+        if self.field_type == self.ANCIL:
+            # there is no clear standard for time coordinates on static ancillaries
+            pass
+        elif len(cube.coord_dims("time")) == 2 and not self.blended:
+            # 2D time coordinates are only present on global day-max diagnostics that
+            # use a local time zone coordinate. These do not have a 2D forecast period.
+            expected_coords = set(LOCAL_TIME_COORDS & UNBLENDED_TIME_COORDS)
+            expected_coords.discard("forecast_period")
+            self._check_coords_present(coords, expected_coords)
+        elif self.blended:
             self._check_coords_present(coords, BLENDED_TIME_COORDS)
         else:
             self._check_coords_present(coords, UNBLENDED_TIME_COORDS)
@@ -414,6 +465,33 @@ def display_interpretation(interpreter, verbose=False):
         """Format additional message for verbose output"""
         return f"    Source: {source_metadata}\n"
 
+    def format_non_exceptions(interpreter):
+        """Format prob / perc / diagnostic information"""
+        rval = ""
+        rtt = (
+            f" {interpreter.relative_to_threshold} thresholds"
+            if interpreter.field_type == interpreter.PROB
+            else ""
+        )
+        rval += (
+            f"It contains {interpreter.field_type} of {interpreter.diagnostic}{rtt}\n"
+        )
+        if verbose:
+            rval += vstring("name, threshold coordinate (probabilities only)")
+
+        if interpreter.methods:
+            rval += (
+                f"These {interpreter.field_type} are of "
+                f"{interpreter.diagnostic}{interpreter.methods}\n"
+            )
+            if verbose:
+                rval += vstring("cell methods")
+
+        rval += f"It has undergone {interpreter.post_processed} significant post-processing\n"
+        if verbose:
+            rval += vstring("title attribute")
+        return rval
+
     output_string = ""
     output_string += (
         f"This is a {interpreter.prod_type} {interpreter.field_type} file\n"
@@ -423,30 +501,12 @@ def display_interpretation(interpreter, verbose=False):
 
     formatted_exceptions = [exc_string.replace("_", " ") for exc_string in EXCEPTIONS]
     if interpreter.diagnostic not in formatted_exceptions:
-        rtt = (
-            f" {interpreter.relative_to_threshold} thresholds"
-            if interpreter.field_type == interpreter.PROB
-            else ""
-        )
-        output_string += (
-            f"It contains {interpreter.field_type} of {interpreter.diagnostic}{rtt}\n"
-        )
-        if verbose:
-            output_string += vstring("name, threshold coordinate (probabilities only)")
+        output_string += format_non_exceptions(interpreter)
 
-        if interpreter.methods:
-            output_string += (
-                f"These {interpreter.field_type} are of "
-                f"{interpreter.diagnostic}{interpreter.methods}\n"
-            )
-            if verbose:
-                output_string += vstring("cell methods")
-
-        output_string += f"It has undergone {interpreter.post_processed} significant post-processing\n"
-        if verbose:
-            output_string += vstring("title attribute")
-
-    if interpreter.blended:
+    formatted_ancils = [exc_string.replace("_", " ") for exc_string in ANCILLARIES]
+    if interpreter.diagnostic in formatted_ancils:
+        output_string += f"This is a static ancillary with no time information\n"
+    elif interpreter.blended:
         output_string += f"It contains blended data from models: {interpreter.model}\n"
         if verbose:
             output_string += vstring("title attribute, model ID attribute")
