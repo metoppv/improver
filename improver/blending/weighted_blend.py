@@ -335,24 +335,19 @@ class PercentileBlendingAggregator:
         """
         inputs_to_blend = perc_values.shape[0]
         combined_cdf = np.zeros((inputs_to_blend, len(percentiles)), dtype=FLOAT_DTYPE)
+
         # Loop over the axis we are blending over finding the values for the
         # probability at each threshold in the cdf, for each of the other
-        # points in the axis we are blending over. Use the values from the
-        # percentiles if we are at the same point, otherwise use linear
-        # interpolation.
+        # points in the axis we are blending over.
         # Then add the probabilities multiplied by the correct weight to the
         # running total.
         for i in range(0, inputs_to_blend):
-            for j in range(0, inputs_to_blend):
-                if i == j:
-                    values_in_cdf = percentiles
-                else:
-                    values_in_cdf = np.interp(
-                        perc_values[i], perc_values[j], percentiles
-                    )
-                # Add the resulting probabilities multiplied by the right
-                # weight to the running total for the combined cdf
-                combined_cdf[i] += values_in_cdf * weights[j]
+            interp_values = np.reshape(
+                np.interp(perc_values, perc_values[i], percentiles),
+                (inputs_to_blend, len(percentiles)),
+            )
+            interp_values[i] = percentiles
+            combined_cdf += interp_values * weights[i]
 
         # Combine and sort the threshold values for all the points
         # we are blending.
