@@ -142,7 +142,7 @@ class MOMetadataInterpreter:
 
         # set up empty strings to record any non-compliance (returned as one error
         # after all checks have been made) or warnings
-        self.error_string = ""
+        self.error_string = ""  # TODO make both of these into lists
         self.warning_string = ""
 
         # initialise information to be derived from input cube
@@ -157,6 +157,7 @@ class MOMetadataInterpreter:
 
     def _add_error(self, msg):
         """Appends new error message to string"""
+        # TODO make error strings into list, then format at the end with "join"
         self.error_string += msg + "\n"
 
     def check_probability_cube_metadata(self, cube):
@@ -563,6 +564,7 @@ def display_interpretation(interpreter, verbose=False):
             if verbose:
                 output_string += vstring("model ID attribute (missing)")
 
+    # TODO get this to take a list of warnings and do the formatting / joins here
     if interpreter.warning_string:
         output_string += f"WARNINGS:\n{interpreter.warning_string}"
 
