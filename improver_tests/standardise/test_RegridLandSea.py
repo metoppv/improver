@@ -36,7 +36,7 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.standardise import RegridLandSea
+from improver.regrid.landsea import RegridLandSea
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.warnings_handler import ManageWarnings
 

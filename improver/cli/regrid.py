@@ -99,7 +99,7 @@ def process(
             If regrid_mode is "nearest-with-mask" but no source land_sea_mask
             is provided (from plugin).
     """
-    from improver.standardise import RegridLandSea
+    from improver.regrid.landsea import RegridLandSea
 
     if land_sea_mask and (
         regrid_mode

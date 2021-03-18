@@ -1,0 +1,495 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown Copyright 2017-2021 Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""
+Bilinear interpolation functions
+"""
+
+import numpy as np
+
+from improver.regrid.idw import (
+    inverse_distance_weighting,
+    nearest_input_pts,
+    similar_surface_classify,
+)
+
+
+def apply_weights(indexes, in_values, weights):
+    """
+    Apply bilinear weight of source points for target value
+
+    Args:
+        indexes (numpy.ndarray):
+            array of source grid point number for target grid points
+        weights (numpy.ndarray):
+            array of source grid point weighting for target grid points
+        in_values (numpy.ndarray):
+            input values (maybe multidimensional)
+
+    Returns:
+        numpy.ndarray:
+            Regridded values for target points
+    """
+    in_values_expanded = (np.ma.filled(in_values, np.nan))[indexes]
+    weighted = np.transpose(
+        np.multiply(np.transpose(weights), np.transpose(in_values_expanded))
+    )
+    out_values = np.sum(weighted, axis=1)
+    return out_values
+
+
+def basic_indexes(out_latlons, in_latlons, first_spatial_dim_length):
+    """
+    FIXME this docstring doesn't seem to match how this function is used
+    updating source points and weighting for 2-false-source-point cases
+
+    Args:
+        in_latlons(numpy.ndarray):
+            tource points's latitude-longitudes
+        out_latlons(numpy.ndarray):
+            target points's latitude-longitudes
+            FIXME these args are incomplete
+
+    Returns:
+        numpy.ndarray:
+            Updated array of source grid point number for all target grid points
+    """
+    # Set up input points spacing values
+    lat_spacing = in_latlons[first_spatial_dim_length, 0] - in_latlons[0, 0]
+    lon_spacing = in_latlons[1, 1] - in_latlons[0, 1]
+
+    # Calculate input/output offset, expressed in terms of the spacing
+    n_lat = (out_latlons[:, 0] - in_latlons[0, 0]) // lat_spacing
+    m_lon = (out_latlons[:, 1] - in_latlons[0, 1]) // lon_spacing
+    n_lat = n_lat.astype(int)
+    m_lon = m_lon.astype(int)
+
+    # Four surrounding input points for each output point, in a rectangle shape
+    index0 = n_lat * first_spatial_dim_length + m_lon
+    index1 = index0 + first_spatial_dim_length
+    index2 = index1 + 1
+    index3 = index0 + 1
+
+    # Rearrange order to match expected output style
+    indexes = np.transpose([index0, index1, index2, index3])
+    return indexes
+
+
+def basic_weights(
+    index_range, indexes, out_latlons, in_latlons, first_spatial_dim_length
+):
+    """
+    FIXME this docstring doesn't seem to match how this function is used
+    updating source points and weighting for 2-false-source-point cases
+
+    Args:
+        in_latlons(numpy.ndarray):
+            tource points's latitude-longitudes
+        out_latlons(numpy.ndarray):
+            target points's latitude-longitudes
+            FIXME these args are incomplete
+
+    Returns:
+        numpy.ndarray:
+            Updated array of source grid point number for all target grid points
+    """
+    # Set up input points spacing values
+    lat_spacing = in_latlons[first_spatial_dim_length, 0] - in_latlons[0, 0]
+    lon_spacing = in_latlons[1, 1] - in_latlons[0, 1]
+    latlon_area = lat_spacing * lon_spacing
+
+    out_lats = out_latlons[index_range, 0]
+    out_lons = out_latlons[index_range, 1]
+    # Calculate weights for four surrounding input points
+    # Input point 1 - left bottom input point
+    lat_1 = in_latlons[indexes[index_range, 0], 0]
+    lon_1 = in_latlons[indexes[index_range, 0], 1]
+    # Input point 2 - right bottom input point
+    lat2_lat = lat_1 + lat_spacing - out_lats
+    # Input point 3 - right top input point
+    lon3_lon = lon_1 + lon_spacing - out_lons
+    lon_lon1 = out_lons - lon_1
+    lat_lat1 = out_lats - lat_1
+    # Input point 4 (left top) is implied by the others
+
+    weight1 = lat2_lat * lon3_lon / latlon_area
+    weight2 = lat_lat1 * lon3_lon / latlon_area
+    weight3 = lat_lat1 * lon_lon1 / latlon_area
+    weight4 = lat2_lat * lon_lon1 / latlon_area
+    weights = np.transpose([weight1, weight2, weight3, weight4])
+    return weights
+
+
+def adjust_for_surface_mismatch(
+    in_latlons,
+    out_latlons,
+    in_classified,
+    out_classified,
+    weights,
+    indexes,
+    surface_type_mask,
+    first_spatial_dim_length,
+    vicinity,
+):
+    """
+    updating source points and weighting for 2-false-source-point cases
+    FIXME docstring args don't match function definition
+
+    Args:
+        in_latlons(numpy.ndarray):
+            tource points's latitude-longitudes
+        out_latlons(numpy.ndarray):
+            target points's latitude-longitudes
+        surface_type_mask(numpy.ndarray)):
+            numpy ndarray of bool, true if source point type matches target point type
+        indexes(numpy.ndarray):
+            array of source grid point number for all target grid points
+        weights(numpy.ndarray):
+            array of source grid point weighting for all target grid points
+        in_classified(numpy.ndarray):
+            land_sea type for source grid points (land =>True)
+        out_classified(numpy.ndarray):
+            land_sea type for terget grid points (land =>True)
+
+    Returns:
+        Tuple[numpy.ndarray, numpy.ndarray]:
+            updated array of source grid point index and weights for all
+            target grid points
+    """
+    count_same_surface_type = np.count_nonzero(surface_type_mask, axis=1)
+
+    # Initialise weights to zero at locations with mismatched surface types
+    mismatched_surface_type = np.logical_not(surface_type_mask)
+    # FIXME the modification of weights here will be an in-place modification of the array
+    # this would be safer with a copy to avoid values unexpectedly changing without
+    # the calling function realising. eg make a copy, update the copy, return the copy
+    weights[mismatched_surface_type] = 0.0
+
+    # Cases with one mismatched input point by adjusting bilinear weights
+    one_mismatch = (count_same_surface_type == 3)[0]
+    weights, leftover_bilinear = one_mismatched_input_point(
+        one_mismatch,
+        surface_type_mask,
+        indexes,
+        weights,
+        out_latlons,
+        in_latlons,
+        first_spatial_dim_length,
+    )
+
+    # Cases with two and three mismatched input points
+    three_mismatch = (count_same_surface_type == 1)[0]
+    two_mismatch = (count_same_surface_type == 2)[0]
+
+    # Use inverse distance weighting to handle the cases with 2/3 mismatched input points
+    # and the leftover one mismatched cases that were found to involve extrapolation
+    apply_idw_indexes = np.concatenate(
+        (leftover_bilinear, two_mismatch, three_mismatch)
+    )
+    indexes, weights, leftover_idw = inverse_distance_weighting(
+        apply_idw_indexes,
+        in_latlons,
+        out_latlons,
+        indexes,
+        weights,
+        in_classified,
+        out_classified,
+    )
+
+    # Cases with all four input points having mismatched surface types compared
+    # to the output point. These are lakes (water surrounded by land) and islands
+    # (land surrounded by water). Leftovers from IDW are cases where IDW was
+    # unable to find a matching surface type.
+    four_mismatch = (count_same_surface_type == 0)[0]
+    if four_mismatch.shape[0] > 0 or leftover_idw.shape[0] > 0:
+        four_mismatch = np.concatenate((four_mismatch, leftover_idw))
+        weights, indexes, surface_type_mask = lakes_islands(
+            four_mismatch,
+            weights,
+            indexes,
+            surface_type_mask,
+            in_latlons,
+            out_latlons,
+            in_classified,
+            out_classified,
+            first_spatial_dim_length,
+            vicinity,
+        )
+
+    return weights, indexes
+
+
+def one_mismatched_input_point(
+    one_mismatch_indexes,
+    surface_type_mask,
+    indexes,
+    weights,
+    out_latlons,
+    in_latlons,
+    first_spatial_dim_length,
+):
+    """
+    updating source points and weighting for 1-false-source-point cases
+
+    Args:
+        one_mismatch_indexes(numpy.ndarray):
+            selected target points which have 1 false source point
+        surface_type_mask(numpy.ndarray)):
+            numpy ndarray of bool, true if source point type matches target point type
+        indexes(numpy.ndarray):
+            array of source grid point number for all target grid points
+        weights(numpy.ndarray):
+            array of source grid point weighting for all target grid points
+        in_latlons(numpy.ndarray):
+            tource points's latitude-longitudes
+        out_latlons(numpy.ndarray):
+            target points's latitude-longitudes
+        first_spatial_dim_length (int):
+            source grid's latitutde dimension
+
+    Returns:
+         numpy.ndarray:
+            updated array of source grid point weighting for target grid points
+            FIXME this function returns a 2-tuple, doesn't match docstring
+    """
+
+    # Set up input points spacing values
+    lat_spacing = in_latlons[first_spatial_dim_length, 0] - in_latlons[0, 0]
+    lon_spacing = in_latlons[1, 1] - in_latlons[0, 1]
+    lat_lon_area = lat_spacing * lon_spacing
+    extrapolation_indexes = np.array([], dtype=int)
+
+    # Process groups of output points which have each one of the four surrounding
+    # input points as mismatched surface type
+    for i in range(4):
+        # Determine group of output points to process in this iteration
+        inverse_mask_i = np.logical_not(surface_type_mask[one_mismatch_indexes, i])[0]
+        indexes_with_i_mismatched = one_mismatch_indexes[inverse_mask_i]
+
+        # Extract subset of output lat/lon
+        out_lats = out_latlons[indexes_with_i_mismatched, 0]
+        out_lons = out_latlons[indexes_with_i_mismatched, 1]
+
+        # Calculate lat/lon of left bottom input point
+        lat_1 = in_latlons[indexes[indexes_with_i_mismatched, 0], 0]
+        lon_1 = in_latlons[indexes[indexes_with_i_mismatched, 0], 1]
+
+        # Calculate updated weights
+        if i == 0:
+            lat2_lat = lat_1 + lat_spacing - out_lats
+            lon3_lon = lon_1 + lon_spacing - out_lons
+            weight2 = lat_spacing * lon3_lon / lat_lon_area
+            weight4 = lat2_lat * lon_spacing / lat_lon_area
+            weight1 = np.zeros(weight2.shape[0], dtype=np.float32)
+            weight3 = np.ones(weight2.shape[0], dtype=np.float32)
+            weight3 -= weight2 + weight4
+        elif i == 1:
+            lon3_lon = lon_1 + lon_spacing - out_lons
+            lat_lat1 = out_lats - lat_1
+            weight1 = lat_spacing * lon3_lon / lat_lon_area
+            weight3 = lat_lat1 * lon_spacing / lat_lon_area
+            weight2 = np.zeros(weight1.shape[0], dtype=np.float32)
+            weight4 = np.ones(weight1.shape[0], dtype=np.float32)
+            weight4 -= weight1 + weight3
+        elif i == 2:
+            lon_lon1 = out_lons - lon_1
+            lat_lat1 = out_lats - lat_1
+            weight2 = lat_lat1 * lon_spacing / lat_lon_area
+            weight4 = lat_spacing * lon_lon1 / lat_lon_area
+            weight3 = np.zeros(weight2.shape[0], dtype=np.float32)
+            weight1 = np.ones(weight2.shape[0], dtype=np.float32)
+            weight1 -= weight2 + weight4
+        else:  # i == 3
+            lat2_lat = lat_1 + lat_spacing - out_lats
+            lon_lon1 = out_lons - lon_1
+            weight3 = lat_spacing * lon_lon1 / lat_lon_area
+            weight1 = lat2_lat * lon_spacing / lat_lon_area
+            weight4 = np.zeros(weight1.shape[0], dtype=np.float32)
+            weight2 = np.ones(weight1.shape[0], dtype=np.float32)
+            weight2 -= weight1 + weight3
+
+        # Gather weights into array so they can be inserted
+        weights_i = np.transpose([weight1, weight2, weight3, weight4])
+        # Exclude updating of weights where extrapolation outside the input domain occurred
+
+        # FIXME explain magic number
+        # if the intention is a small negative number, consider np.finfo(np.float32).negeps
+        weights_i_positive = weights_i > -1.0e-6
+        all_weights_positive = np.all(weights_i_positive, axis=1)
+        not_all_weights_positive = np.logical_not(all_weights_positive)[0]
+
+        # FIXME the modification of weights here will be an in-place modification of the array
+        # this would be safer with a copy to avoid values unexpectedly changing without
+        # the calling function realising. eg make a copy, update the copy, return the copy
+        if not_all_weights_positive.shape[0] > 0:
+            # Only apply updated weights in locations where extrapolation hasn't occurred
+            good_update_indexes = all_weights_positive[0]
+            weights[indexes_with_i_mismatched[good_update_indexes]] = weights_i[
+                good_update_indexes
+            ]
+            # Keep track of extrapolated locations so they can be returned
+            extrapolation_index = indexes_with_i_mismatched[not_all_weights_positive]
+            extrapolation_indexes = np.concatenate(
+                (extrapolation_indexes, extrapolation_index)
+            )
+        else:
+            # Apply all updated weights as-is
+            weights[indexes_with_i_mismatched] = weights_i
+
+    return weights, extrapolation_indexes
+
+
+def lakes_islands(
+    lake_island_indexes,
+    weights,
+    indexes,
+    surface_type_mask,
+    in_latlons,
+    out_latlons,
+    in_classified,
+    out_classified,
+    first_spatial_dim_length,
+    vicinity,
+):
+    """
+    updating source points and weighting for 4-false-source-point cases
+    this function used for
+    Note that a similar function can be found in nearest.py for nearest
+    neighbour regridding rather than bilinear regridding.
+
+    Args:
+        lake_island_indexes (numpy.ndarray):
+            selected target points which have 4 false source points
+        in_latlons (numpy.ndarray):
+            tource points's latitude-longitudes
+        out_latlons (numpy.ndarray):
+            target points's latitude-longitudes
+        surface_type_mask (numpy.ndarray)):
+            numpy ndarray of bool, true if source point type matches target point type
+        indexes (numpy.ndarray):
+            array of source grid point number for all target grid points
+        weights (numpy.ndarray):
+            array of source grid point weighting for all target grid points
+        in_classified (numpy.ndarray):
+            land_sea type for source grid points (land =>True)
+        out_classified (numpy.ndarray):
+            land_sea type for terget grid points (land =>True)
+            FIXME cube_in_dim1 missing from docstring
+
+    Returns:
+        Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
+            updated array of source grid point number for all target grid points
+            updated array of source grid point weighting for all target grid points
+            FIXME this function returns a 3-tuple, doesn't match docstring
+    """
+
+    # increase 4 points to 8 points
+    out_latlons_updates = out_latlons[lake_island_indexes]
+    # FIXME the case where 8 nearest points doesn't cover the self.vicinity radius isn't handled here
+    # add comment to explain this
+
+    # Consider a larger area of 8 nearest points to look for more distant same
+    # surface type input points
+    k_nearest = 8
+    distances_updates, indexes_updates = nearest_input_pts(
+        in_latlons, out_latlons_updates, k_nearest
+    )
+
+    # Update output surface classification and surface type mask
+    out_classified_updates = out_classified[lake_island_indexes]
+    surface_type_mask_updates = similar_surface_classify(
+        in_classified, out_classified_updates, indexes_updates
+    )
+
+    # Where distance is outside specified vicinity, set surface type to be mismatched
+    # so that it will not be used, update surface type mask again
+    distance_not_in_vicinity = distances_updates > vicinity
+    surface_type_mask_updates = np.where(
+        distance_not_in_vicinity, False, surface_type_mask_updates
+    )
+
+    count_matching_surface = np.count_nonzero(surface_type_mask_updates, axis=1)
+    points_with_no_match = (count_matching_surface == 0)[0]
+    # If the expanded search area hasn't found any same surface type matches anywhere, return early
+    # as nothing further can be done
+    if points_with_no_match.shape[0] == 0:
+        return weights, indexes, surface_type_mask
+    # Where same surface type match has not been found, revert back to the basic bilinear weights
+    no_match_indexes = lake_island_indexes[points_with_no_match]
+    weights[no_match_indexes] = basic_weights(
+        no_match_indexes, indexes, out_latlons, in_latlons, first_spatial_dim_length
+    )
+
+    points_with_match = np.logical_not(points_with_no_match)
+    # pylint: disable=unsubscriptable-object
+    count_of_points_with_match = points_with_match.shape[0]
+    # Again, if no further processing can be done, return early
+    if count_of_points_with_match == 0:
+        return weights, indexes, surface_type_mask
+    # Where a same surface type match has been found among the 8 nearest inputs, apply
+    # inverse distance weighting with those matched points
+    new_distances = np.zeros([count_of_points_with_match, 4])
+    # FIXME check if this for loop can loop over points_with_match instead
+    # pylint: disable=unsubscriptable-object
+    for point_idx in range(points_with_match.shape[0]):
+        match_indexes = lake_island_indexes[points_with_match[point_idx]]
+        # Reset all input weight and surface type to mismatched
+        weights[match_indexes, :] = 0.0
+        surface_type_mask[match_indexes, :] = False
+        # Loop through 8 nearest points found
+        good_count = 0
+        for i in range(k_nearest):
+            # Look for an input point with same surface type as output
+            if surface_type_mask_updates[points_with_match[point_idx], i]:
+                # When found, update the indexes and surface mask to use that improved input point
+                indexes[match_indexes, good_count] = indexes_updates[
+                    points_with_match[point_idx], i
+                ]
+                surface_type_mask[match_indexes, good_count] = True  # other mask =false
+                new_distances[point_idx, good_count] = distances_updates[
+                    points_with_match[point_idx], i
+                ]
+                good_count += 1
+                # Use a maximum of four same surface type input points
+                # This is kind of like how bilinear uses four nearby input points
+                if good_count == 4:
+                    break
+
+    lake_island_with_match = lake_island_indexes[points_with_match]
+    # Similar to inverse_distance_weighting in idw.py
+    not_mask = np.logical_not(surface_type_mask[lake_island_with_match])
+    masked_distances = np.where(not_mask, np.float32(np.inf), new_distances)
+    masked_distances += np.finfo(np.float32).eps
+    inv_distances = 1.0 / masked_distances
+    inv_distances_sum = np.sum(inv_distances, axis=1)
+    inv_distances_sum = 1.0 / inv_distances_sum
+    weights_idw = inv_distances * inv_distances_sum.reshape(-1, 1)
+    weights[lake_island_with_match] = weights_idw
+    return weights, indexes, surface_type_mask
