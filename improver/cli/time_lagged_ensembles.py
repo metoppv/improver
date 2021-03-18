@@ -55,6 +55,7 @@ def process(*cubes: cli.inputcube):
         ValueError: If ensembles have mismatched validity times
     """
     import warnings
+
     from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
     if len(cubes) == 1:

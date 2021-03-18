@@ -33,12 +33,10 @@ This module defines the utilities required for Ensemble Copula Coupling
 plugins.
 
 """
-import copy
 
 import cf_units as unit
 import iris
 import numpy as np
-from iris.exceptions import CoordinateNotFoundError
 
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 

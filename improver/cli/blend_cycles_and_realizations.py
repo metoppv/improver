@@ -59,9 +59,10 @@ def process(
         iris.cube.Cube:
             Merged and blended Cube.
     """
+    from iris.cube import CubeList
+
     from improver.blending.calculate_weights_and_blend import WeightAndBlend
     from improver.utilities.cube_manipulation import collapse_realizations
-    from iris.cube import CubeList
 
     cubelist = CubeList()
     for cube in cubes:

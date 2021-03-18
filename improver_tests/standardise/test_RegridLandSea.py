@@ -170,7 +170,7 @@ class Test_process(IrisTest):
             landmask_vicinity=90000,
         )(self.cube, self.target_grid)
         msg = "Expected land_binary_mask in input_landmask cube"
-        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
+        self.assertTrue(any(msg in str(warning) for warning in warning_list))
         self.assertTrue(any(item.category == UserWarning for item in warning_list))
         self.assertArrayAlmostEqual(result.data, expected_data)
 
@@ -186,7 +186,7 @@ class Test_process(IrisTest):
             landmask_vicinity=90000,
         ).process(self.cube, self.target_grid)
         msg = "Expected land_binary_mask in target_grid cube"
-        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
+        self.assertTrue(any(msg in str(warning) for warning in warning_list))
         self.assertTrue(any(item.category == UserWarning for item in warning_list))
         self.assertArrayAlmostEqual(result.data, expected_data)
 

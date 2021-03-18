@@ -74,6 +74,8 @@ def process(
     from improver.cube_combiner import CubeCombiner, CubeMultiplier
     from iris.cube import CubeList
 
+    from improver.cube_combiner import CubeCombiner
+
     if not cubes:
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:

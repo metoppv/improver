@@ -579,7 +579,7 @@ class Test_get_frt_hours(IrisTest):
             units=TIME_COORDS["forecast_reference_time"].units,
         )
         result = get_frt_hours(frt)
-        self.assertEqual(result, set([0]))
+        self.assertEqual(result, {0})
 
     def test_multiple_values(self):
         """Test that the expected forecast reference time hour values are

@@ -261,7 +261,7 @@ class GeneratePercentilesFromACircularNeighbourhood:
         try:
             self.percentiles = tuple(percentiles)
         except TypeError:
-            self.percentiles = tuple([percentiles])
+            self.percentiles = (percentiles,)
 
     def __repr__(self):
         """Represent the configured class instance as a string."""

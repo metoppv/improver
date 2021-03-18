@@ -34,7 +34,7 @@ import warnings
 
 import iris
 import numpy as np
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
@@ -430,7 +430,7 @@ def compare_coords(cubes):
             ]
 
         for i, cube in enumerate(cubes):
-            unmatching_coords.append(dict())
+            unmatching_coords.append({})
             for coord in cube.coords():
                 if coord not in common_coords:
                     dim_coords = cube.dim_coords
@@ -552,7 +552,6 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
     # transpose cube using new coordinate order
     if new_dims != sorted(new_dims):
         cube.transpose(new_dims)
-    return
 
 
 def clip_cube_data(cube, minimum_value, maximum_value):

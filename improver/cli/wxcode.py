@@ -69,6 +69,7 @@ def process(*cubes: cli.inputcube, wxtree="high_resolution"):
             A cube of weather symbols.
     """
     from iris.cube import CubeList
+
     from improver.wxcode.weather_symbols import WeatherSymbols
 
     if not cubes:

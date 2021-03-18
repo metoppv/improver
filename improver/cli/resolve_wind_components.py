@@ -50,6 +50,7 @@ def process(wind_speed: cli.inputcube, wind_direction: cli.inputcube):
             A cubelist of the speed and direction as U and V cubes.
     """
     from iris.cube import CubeList
+
     from improver.wind_calculations.wind_components import ResolveWindComponents
 
     if not (wind_speed and wind_direction):
