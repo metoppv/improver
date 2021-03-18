@@ -82,7 +82,7 @@ INTERMEDIATES = [
     "reliability_calibration_table",
 ] + EMOS_COEFF_NAMES
 
-EXCEPTIONS = ["weather_code", "wind_from_direction",] + INTERMEDIATES + ANCILLARIES
+SPECIAL_CASES = ["weather_code", "wind_from_direction"] + INTERMEDIATES + ANCILLARIES
 
 # Expected coordinates for different field types
 SPOT_COORDS = ["spot_index", "latitude", "longitude", "altitude", "wmo_id"]
@@ -161,6 +161,11 @@ class MOMetadataInterpreter:
 
     def check_probability_cube_metadata(self, cube):
         """Checks probability-specific metadata"""
+        if cube.units != "1":
+            self._add_error(
+                f"Expected units of 1 on probability data, got {cube.units}"
+            )
+
         try:
             self.diagnostic = get_diagnostic_cube_name_from_probability_name(
                 cube.name()
@@ -221,14 +226,15 @@ class MOMetadataInterpreter:
                 "is not in permitted value set"
             )
 
-        if threshold_attribute is not None and threshold_attribute not in cube_name:
+        if threshold_attribute and threshold_attribute not in cube_name:
             self._add_error(
                 f"Cube name '{cube_name}' is not consistent with "
                 f"spp__relative_to_threshold attribute '{self.relative_to_threshold}'"
             )
 
-    def check_cell_methods(self, cell_methods):
+    def check_cell_methods(self, cube):
         """Checks cell methods are permitted and correct"""
+        cell_methods = cube.cell_methods
         for cm in cell_methods:
             if cm.method in COMP_CM_METHODS:
                 self.methods += f" {cm.method} over {cm.coord_names[0]}"
@@ -238,6 +244,26 @@ class MOMetadataInterpreter:
                             f"Cell method {cm} on probability data should have comment "
                             f"'of {self.diagnostic}'"
                         )
+                # check point and bounds on method coordinate
+                if "time" in cm.coord_names:
+                    if cube.coord("time").bounds is None:
+                        self._add_error(f"Cube of{self.methods} has no time bounds")
+                    else:
+                        upper_bounds = [
+                            bounds[1] for bounds in cube.coord("time").bounds
+                        ]
+                        if not all(
+                            [
+                                point == bounds
+                                for point, bounds in zip(
+                                    cube.coord("time").points, upper_bounds
+                                )
+                            ]
+                        ):
+                            self._add_error(
+                                "Time points should be equal to upper bounds"
+                            )
+
             elif cm in NONCOMP_CMS or cm.method in NONCOMP_CM_METHODS:
                 self._add_error(f"Non-standard cell method {cm}")
             else:
@@ -247,7 +273,7 @@ class MOMetadataInterpreter:
                     "ensure this is valid.\n"
                 )
 
-    def _check_blended_attributes(self, attrs):
+    def _check_blend_and_model_attributes(self, attrs):
         """Interprets attributes for model and blending information
         and checks for self-consistency"""
         self.blended = True if BLEND_TITLE_SUBSTR in attrs["title"] else False
@@ -325,12 +351,16 @@ class MOMetadataInterpreter:
             except KeyError:
                 self._add_error("Cube is missing mandatory title attribute")
             else:
-                self._check_blended_attributes(attrs)
+                self._check_blend_and_model_attributes(attrs)
 
     def _check_coords_present(self, coords, expected_coords):
         """Check whether all expected coordinates are present"""
-        if not all([coord in coords for coord in expected_coords]):
-            self._add_error(f"Missing one or more coordinates: {expected_coords}")
+        found_coords = [coord for coord in coords if coord in expected_coords]
+        if not set(found_coords) == set(expected_coords):
+            self._add_error(
+                f"Missing one or more coordinates: found {found_coords}, "
+                f"expected {expected_coords}"
+            )
 
     def check_spot_data(self, cube, coords):
         """Check spot coordinates"""
@@ -365,7 +395,7 @@ class MOMetadataInterpreter:
             if cube.cell_methods:
                 self._add_error(f"Unexpected cell methods {cube.cell_methods}")
 
-        elif cube.name() in EXCEPTIONS:
+        elif cube.name() in SPECIAL_CASES:
             self.field_type = self.diagnostic = cube.name()
             if cube.name() == "weather_code":
                 if cube.cell_methods:
@@ -410,7 +440,7 @@ class MOMetadataInterpreter:
                         )
 
             if cube.cell_methods:
-                self.check_cell_methods(cube.cell_methods)
+                self.check_cell_methods(cube)
 
         # 2) Interpret model and blend information from cube attributes
         self.check_attributes(cube.attributes)
@@ -451,7 +481,7 @@ class MOMetadataInterpreter:
         # 6) Tidy up formatting for string output where required
         self.field_type = self.field_type.replace("_", " ")
         self.diagnostic = self.diagnostic.replace("_", " ")
-        if self.relative_to_threshold is not None:
+        if self.relative_to_threshold:
             self.relative_to_threshold = self.relative_to_threshold.replace("_", " ")
 
 
@@ -474,7 +504,7 @@ def display_interpretation(interpreter, verbose=False):
         """Format additional message for verbose output"""
         return f"    Source: {source_metadata}\n"
 
-    def format_non_exceptions(interpreter):
+    def format_non_SPECIAL_CASES(interpreter):
         """Format prob / perc / diagnostic information"""
         rval = ""
         rtt = (
@@ -508,9 +538,11 @@ def display_interpretation(interpreter, verbose=False):
     if verbose:
         output_string += vstring("name, coordinates")
 
-    formatted_exceptions = [exc_string.replace("_", " ") for exc_string in EXCEPTIONS]
-    if interpreter.diagnostic not in formatted_exceptions:
-        output_string += format_non_exceptions(interpreter)
+    formatted_SPECIAL_CASES = [
+        exc_string.replace("_", " ") for exc_string in SPECIAL_CASES
+    ]
+    if interpreter.diagnostic not in formatted_SPECIAL_CASES:
+        output_string += format_non_SPECIAL_CASES(interpreter)
 
     formatted_ancils = [exc_string.replace("_", " ") for exc_string in ANCILLARIES]
     if interpreter.diagnostic in formatted_ancils:
@@ -520,7 +552,7 @@ def display_interpretation(interpreter, verbose=False):
         if verbose:
             output_string += vstring("title attribute, model ID attribute")
     else:
-        if interpreter.model is not None:
+        if interpreter.model:
             output_string += f"It contains data from {interpreter.model}\n"
             if verbose:
                 output_string += vstring("model ID attribute")

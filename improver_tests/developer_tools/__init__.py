@@ -97,6 +97,10 @@ def probability_below_fixture():
             method="maximum", coords="time", comments="of air_temperature"
         )
     )
+    cube.coord("time").bounds = [
+        cube.coord("time").points[0] - 3600,
+        cube.coord("time").points[0],
+    ]
     return cube
 
 

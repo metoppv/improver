@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the MOMetadataInterpreter plugin"""
 
+import numpy as np
 import pytest
 from iris.coords import CellMethod
 from iris.util import promote_aux_coord_to_dim_coord
@@ -294,6 +295,22 @@ def test_error_forbidden_cell_method(blended_probability_below_cube, interpreter
         CellMethod(method="mean", coords="forecast_reference_time")
     )
     with pytest.raises(ValueError, match="Non-standard cell method"):
+        interpreter.run(blended_probability_below_cube)
+
+
+def test_error_missing_time_bounds(blended_probability_below_cube, interpreter):
+    """Test error raised if a minimum in time cube has no time bounds"""
+    blended_probability_below_cube.coord("time").bounds = None
+    with pytest.raises(ValueError, match="has no time bounds"):
+        interpreter.run(blended_probability_below_cube)
+
+
+def test_error_incorrect_time_bounds(blended_probability_below_cube, interpreter):
+    """Test error raised if time points are not equal to upper bounds"""
+    blended_probability_below_cube.coord("time").bounds = np.array(
+        blended_probability_below_cube.coord("time").bounds + 3600, dtype=np.int64
+    )
+    with pytest.raises(ValueError, match="points should be equal to upper bounds"):
         interpreter.run(blended_probability_below_cube)
 
 
