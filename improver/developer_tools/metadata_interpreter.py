@@ -505,7 +505,6 @@ def display_interpretation(interpreter, verbose=False):
     if interpreter.unhandled:
         return f"{interpreter.diagnostic} is not handled by this interpreter"
 
-
     def vstring(source_metadata):
         """Format additional message for verbose output"""
         return f"    Source: {source_metadata}\n"
