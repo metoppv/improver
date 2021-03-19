@@ -33,8 +33,6 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
-import warnings
-
 import iris
 import numpy as np
 

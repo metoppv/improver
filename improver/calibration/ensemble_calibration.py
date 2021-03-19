@@ -220,6 +220,31 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         return optimised_coeffs
 
+    def _set_float64_precision(self, initial_guess, forecast_predictor_data, truth_data, forecast_var_data):
+        """Set values to float64 precision and define a square root of pi
+        variable for later usage. The increased precision is need for stable
+        coefficient calculation.
+
+        Args:
+            initial_guess (list)
+            forecast_predictor_data (numpy.ndarray)
+            truth_data (numpy.ndarray)
+            forecast_var_data (numpy.ndarray)
+
+        Returns:
+            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.float64]
+                Tuple containing the initial guess, forecast predictor, truth
+                and forecast variance that have been set to float64 precision
+                as well as defining a square root of pi variable with float64
+                precision.
+        """
+        initial_guess = np.array(initial_guess, dtype=np.float64)
+        forecast_predictor_data = forecast_predictor_data.astype(np.float64)
+        truth_data = truth_data.astype(np.float64)
+        forecast_var_data = forecast_var_data.astype(np.float64)
+        sqrt_pi = np.sqrt(np.pi).astype(np.float64)
+        return initial_guess, forecast_predictor_data, truth_data, forecast_var_data, sqrt_pi
+
     def _process_points_independently(
         self,
         minimisation_function,
@@ -249,13 +274,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 coefficients array is (number of coefficients, length of spatial dimensions).
                 Order of coefficients is [alpha, beta, gamma, delta].
         """
-        # Increased precision is needed for stable coefficient calculation.
-        # The resulting coefficients are cast to float32 prior to output.
-        initial_guess = np.array(initial_guess, dtype=np.float64)
-        forecast_predictor.data = forecast_predictor.data.astype(np.float64)
-        forecast_var.data = forecast_var.data.astype(np.float64)
-        truth.data = truth.data.astype(np.float64)
-        sqrt_pi = np.sqrt(np.pi).astype(np.float64)
+        initial_guess, forecast_predictor.data, forecast_var.data, truth.data, sqrt_pi = self._set_float64_precision(initial_guess, forecast_predictor.data, forecast_var.data, truth.data)
 
         argument_list = []
         sindex = [
@@ -342,14 +361,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             forecast_predictor_data = flatten_ignoring_masked_data(
                 forecast_predictor.data, preserve_leading_dimension=True
             ).T
+        initial_guess, forecast_predictor_data, forecast_var_data, truth_data, sqrt_pi = self._set_float64_precision(initial_guess, forecast_predictor_data, forecast_var_data, truth_data)
 
-        # Increased precision is needed for stable coefficient calculation.
-        # The resulting coefficients are cast to float32 prior to output.
-        initial_guess = np.array(initial_guess, dtype=np.float64)
-        forecast_predictor_data = forecast_predictor_data.astype(np.float64)
-        forecast_var_data = forecast_var_data.astype(np.float64)
-        truth_data = truth_data.astype(np.float64)
-        sqrt_pi = np.sqrt(np.pi).astype(np.float64)
 
         optimised_coeffs = self._minimise_caller(
             minimisation_function,
@@ -1018,11 +1031,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """
         if predictor.lower() == "realizations":
             try:
-                importlib.import_module("statsmodels")
+                import statsmodels.api as sm
             except ModuleNotFoundError:
                 sm = False
-            else:
-                import statsmodels.api as sm
 
         if (
             predictor.lower() == "mean"
@@ -1429,7 +1440,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # ensemble realizations. The number of b and X terms depends upon the
         # number of ensemble realizations. In this case, b = beta^2.
         beta_cube = self.coefficients_cubelist.extract_strict("emos_coefficient_beta")
-        beta_values = np.atleast_2d(beta_cube.data ** 2)
+        beta_values = np.atleast_2d(beta_cube.data * beta_cube.data)
         beta_values = beta_values.T if beta_cube.data.ndim != 1 else beta_values
 
         a_and_b = np.hstack(
