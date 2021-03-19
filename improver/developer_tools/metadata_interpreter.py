@@ -139,6 +139,7 @@ class MOMetadataInterpreter:
     def __init__(self):
         """Initialise class parameters"""
         self.model_id_attr = "mosg__model_configuration"
+        self.unhandled = False
 
         # set up empty strings to record any non-compliance (returned as one error
         # after all checks have been made) or warnings
@@ -407,7 +408,8 @@ class MOMetadataInterpreter:
                     if len(cube.cell_methods) > 1 or cube.cell_methods[0] != expected:
                         self._add_error(f"Unexpected cell methods {cube.cell_methods}")
             else:
-                raise TypeError("Interpreter for {cube.name()} is not available")
+                self.unhandled = True
+                return
 
         else:
             if "probability" in cube.name() and "threshold" in cube.name():
@@ -461,7 +463,7 @@ class MOMetadataInterpreter:
         ):
             # 2D time coordinates are only present on global day-max diagnostics that
             # use a local time zone coordinate. These do not have a 2D forecast period.
-            expected_coords = set(LOCAL_TIME_COORDS & UNBLENDED_TIME_COORDS)
+            expected_coords = set(LOCAL_TIME_COORDS + UNBLENDED_TIME_COORDS)
             expected_coords.discard("forecast_period")
             self._check_coords_present(coords, expected_coords)
         elif self.blended:
@@ -500,6 +502,9 @@ def display_interpretation(interpreter, verbose=False):
         str:
             Formatted string describing metadata in human-readable form
     """
+    if interpreter.unhandled:
+        return f"{interpreter.diagnostic} is not handled by this interpreter"
+
 
     def vstring(source_metadata):
         """Format additional message for verbose output"""
