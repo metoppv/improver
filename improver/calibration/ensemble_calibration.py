@@ -217,7 +217,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         return optimised_coeffs
 
-    def _set_float64_precision(self, initial_guess, forecast_predictor_data, truth_data, forecast_var_data):
+    def _set_float64_precision(
+        self, initial_guess, forecast_predictor_data, truth_data, forecast_var_data
+    ):
         """Set values to float64 precision and define a square root of pi
         variable for later usage. The increased precision is need for stable
         coefficient calculation.
@@ -235,12 +237,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 as well as defining a square root of pi variable with float64
                 precision.
         """
-        initial_guess = np.array(initial_guess, dtype=np.float64)
-        forecast_predictor_data = forecast_predictor_data.astype(np.float64)
-        truth_data = truth_data.astype(np.float64)
-        forecast_var_data = forecast_var_data.astype(np.float64)
-        sqrt_pi = np.sqrt(np.pi).astype(np.float64)
-        return initial_guess, forecast_predictor_data, truth_data, forecast_var_data, sqrt_pi
+        return (
+            np.array(initial_guess, dtype=np.float64),
+            forecast_predictor_data.astype(np.float64),
+            truth_data.astype(np.float64),
+            forecast_var_data.astype(np.float64),
+            np.sqrt(np.pi).astype(np.float64),
+        )
 
     def _process_points_independently(
         self,
@@ -271,7 +274,15 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 coefficients array is (number of coefficients, length of spatial dimensions).
                 Order of coefficients is [alpha, beta, gamma, delta].
         """
-        initial_guess, forecast_predictor.data, forecast_var.data, truth.data, sqrt_pi = self._set_float64_precision(initial_guess, forecast_predictor.data, forecast_var.data, truth.data)
+        (
+            initial_guess,
+            forecast_predictor.data,
+            forecast_var.data,
+            truth.data,
+            sqrt_pi,
+        ) = self._set_float64_precision(
+            initial_guess, forecast_predictor.data, forecast_var.data, truth.data
+        )
 
         sindex = [
             forecast_predictor.coord(axis="y"),
@@ -354,7 +365,15 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             forecast_predictor_data = flatten_ignoring_masked_data(
                 forecast_predictor.data, preserve_leading_dimension=True
             ).T
-        initial_guess, forecast_predictor_data, forecast_var_data, truth_data, sqrt_pi = self._set_float64_precision(initial_guess, forecast_predictor_data, forecast_var_data, truth_data)
+        (
+            initial_guess,
+            forecast_predictor_data,
+            forecast_var_data,
+            truth_data,
+            sqrt_pi,
+        ) = self._set_float64_precision(
+            initial_guess, forecast_predictor_data, forecast_var_data, truth_data
+        )
 
         optimised_coeffs = self._minimise_caller(
             minimisation_function,
@@ -954,11 +973,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         )
 
     def compute_initial_guess(
-        self,
-        truths,
-        forecast_predictor,
-        predictor,
-        number_of_realizations,
+        self, truths, forecast_predictor, predictor, number_of_realizations,
     ):
         """
         Function to compute initial guess of the alpha, beta, gamma
@@ -1016,13 +1031,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             except ModuleNotFoundError:
                 sm = False
 
-        default_initial_guess = self.use_default_initial_guess or np.any(np.isnan(truths)) or np.any(np.isnan(forecast_predictor))
+        default_initial_guess = (
+            self.use_default_initial_guess
+            or np.any(np.isnan(truths))
+            or np.any(np.isnan(forecast_predictor))
+        )
 
         if predictor.lower() == "mean" and default_initial_guess:
             initial_guess = [0, 1, 0, 1]
-        elif predictor.lower() == "realizations" and (
-            default_initial_guess or not sm
-        ):
+        elif predictor.lower() == "realizations" and (default_initial_guess or not sm):
             initial_beta = np.repeat(
                 np.sqrt(1.0 / number_of_realizations), number_of_realizations
             ).tolist()
@@ -1124,8 +1141,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             for (truths_slice, fp_slice) in zip(
                 truths.slices_over(index), forecast_predictor.slices_over(index)
             ):
-                initial_guess.append(self.compute_initial_guess(truths_slice.data, fp_slice.data, self.predictor,
-                    number_of_realizations))
+                initial_guess.append(
+                    self.compute_initial_guess(
+                        truths_slice.data,
+                        fp_slice.data,
+                        self.predictor,
+                        number_of_realizations,
+                    )
+                )
         else:
             # Computing initial guess for EMOS coefficients
             initial_guess = self.compute_initial_guess(

@@ -612,8 +612,11 @@ class Test_compute_initial_guess(IrisTest):
         as the predictor. As coefficients are not estimated using a
         linear model, the default values for the initial guess are used.
         """
-        plugin = Plugin(self.distribution, use_default_initial_guess=True,
-                        desired_units=self.desired_units)
+        plugin = Plugin(
+            self.distribution,
+            use_default_initial_guess=True,
+            desired_units=self.desired_units,
+        )
         result = plugin.compute_initial_guess(
             self.truth.data,
             self.historic_forecast_predictor_mean.data,
@@ -636,8 +639,11 @@ class Test_compute_initial_guess(IrisTest):
         """
         predictor = "realizations"
 
-        plugin = Plugin(self.distribution, use_default_initial_guess = True,
-        desired_units=self.desired_units)
+        plugin = Plugin(
+            self.distribution,
+            use_default_initial_guess=True,
+            desired_units=self.desired_units,
+        )
         result = plugin.compute_initial_guess(
             self.truth.data,
             self.historic_forecast_predictor_realizations.data,
@@ -660,8 +666,11 @@ class Test_compute_initial_guess(IrisTest):
         linear regression is a gradient of 1 and an intercept of 1.
         """
 
-
-        plugin = Plugin(self.distribution, use_default_initial_guess = False, desired_units=self.desired_units)
+        plugin = Plugin(
+            self.distribution,
+            use_default_initial_guess=False,
+            desired_units=self.desired_units,
+        )
         result = plugin.compute_initial_guess(
             self.truth.data,
             self.historic_forecast_predictor_mean.data,
@@ -688,7 +697,11 @@ class Test_compute_initial_guess(IrisTest):
 
         forecast_predictor = self.historic_forecast_predictor_realizations.copy()
         enforce_coordinate_ordering(forecast_predictor, "realization")
-        plugin = Plugin(self.distribution, use_default_initial_guess = False, desired_units=self.desired_units)
+        plugin = Plugin(
+            self.distribution,
+            use_default_initial_guess=False,
+            desired_units=self.desired_units,
+        )
         result = plugin.compute_initial_guess(
             self.truth.data,
             forecast_predictor.data,
@@ -711,7 +724,11 @@ class Test_compute_initial_guess(IrisTest):
         case the original data has been surrounded by a halo of masked nans,
         which gives the same coefficients as the original data.
         """
-        plugin = Plugin(self.distribution, use_default_initial_guess = False, desired_units=self.desired_units)
+        plugin = Plugin(
+            self.distribution,
+            use_default_initial_guess=False,
+            desired_units=self.desired_units,
+        )
         result = plugin.compute_initial_guess(
             self.truth_masked_halo.data,
             self.historic_forecast_predictor_mean_masked_halo.data,
@@ -737,12 +754,15 @@ class Test_compute_initial_guess(IrisTest):
         """
         predictor = "realizations"
 
-
         forecast_predictor = (
             self.historic_forecast_predictor_realizations_masked_halo.copy()
         )
         enforce_coordinate_ordering(forecast_predictor, "realization")
-        plugin = Plugin(self.distribution, use_default_initial_guess = False, desired_units=self.desired_units)
+        plugin = Plugin(
+            self.distribution,
+            use_default_initial_guess=False,
+            desired_units=self.desired_units,
+        )
         result = plugin.compute_initial_guess(
             self.truth_masked_halo.data,
             forecast_predictor.data,
@@ -1302,7 +1322,8 @@ class Test_process(
         """Test computing coefficients independently for each grid point
         (minimisation only) returns the expected coefficients and associated metadata."""
         plugin = self.plugin(
-            self.distribution, point_by_point=True, use_default_initial_guess=True)
+            self.distribution, point_by_point=True, use_default_initial_guess=True
+        )
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1329,8 +1350,10 @@ class Test_process(
             "emos_coefficient_delta": ["latitude", "longitude"],
         }
         plugin = self.plugin(
-            self.distribution, point_by_point=True,
-            use_default_initial_guess=True, predictor="realizations"
+            self.distribution,
+            point_by_point=True,
+            use_default_initial_guess=True,
+            predictor="realizations",
         )
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
