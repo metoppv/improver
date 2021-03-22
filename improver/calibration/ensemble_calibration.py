@@ -191,9 +191,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Args:
             minimisation_function (method instance)
             initial_guess (list)
-            forecast_predictor (iris.cube.Cube)
-            truth (iris.cube.Cube)
-            forecast_var (iris.cube.Cube)
+            forecast_predictor (numpy.ndarray)
+            truth (numpy.ndarray)
+            forecast_var (numpy.ndarray)
             sqrt_pi (np.float64):
                 Square root of pi for minimisation.
             predictor (str)
@@ -362,7 +362,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 forecast_predictor.data, preserve_leading_dimension=True
             ).T
         initial_guess, forecast_predictor_data, forecast_var_data, truth_data, sqrt_pi = self._set_float64_precision(initial_guess, forecast_predictor_data, forecast_var_data, truth_data)
-
 
         optimised_coeffs = self._minimise_caller(
             minimisation_function,
@@ -615,18 +614,11 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
     calibration.
     """
 
-    # Logical flag for whether initial guess estimates for the coefficients
-    # will be estimated using linear regression i.e.
-    # ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True, or whether default
-    # values will be used instead i.e.
-    # ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False.
-    ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
-
     def __init__(
         self,
         distribution,
-        each_point=False,
-        minimise_each_point=False,
+        point_by_point=False,
+        use_default_initial_guess=False,
         desired_units=None,
         predictor="mean",
         tolerance=0.02,
@@ -644,16 +636,16 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             distribution (str):
                 Name of distribution. Assume that a calibrated version of the
                 current forecast could be represented using this distribution.
-            each_point (bool):
+            point_by_point (bool):
                 If True, coefficients are calculated independently for each
                 point within the input cube by creating an initial guess and
                 minimising each grid point independently. Please note this
-                option is memory intensive and is unsuitable for gridded input,
-                please consider using the minimise_each_point option.
-            minimise_each_point (bool):
-                If True, coefficients are calculated independently for each
-                point within the input cube by minimising each grid point
-                independently. Each point uses the default initial guess.
+                option is memory intensive and is unsuitable for gridded input.
+                Using a default initial guess may reduce the memory overhead
+                option.
+            use_default_initial_guess (bool):
+                If True, use the default initial guess. If False, the initial
+                guess is computed.
             desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
@@ -683,8 +675,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         """
         self.distribution = distribution
-        self.each_point = each_point
-        self.minimise_each_point = minimise_each_point
+        self.point_by_point = point_by_point
+        self.use_default_initial_guess = use_default_initial_guess
         self._validate_distribution()
         self.desired_units = desired_units
         # Ensure predictor is valid.
@@ -695,7 +687,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
             tolerance=self.tolerance,
             max_iterations=self.max_iterations,
-            point_by_point=self.each_point | self.minimise_each_point,
+            point_by_point=self.point_by_point,
         )
 
         # Setting default values for coeff_names.
@@ -790,7 +782,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 (historic_forecasts.coord("realization", dim_coords=True), 0)
             )
 
-        if not any([self.each_point, self.minimise_each_point]):
+        if not self.point_by_point:
             return dim_coords_and_dims
 
         # Set-up spatial dimension coordinates for the coefficients cube.
@@ -821,7 +813,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 List of tuples of the spatial coordinates and the associated
                 dimension. This format is suitable for use by iris.cube.Cube.
         """
-        if self.each_point | self.minimise_each_point:
+        if self.point_by_point:
             aux_coords_and_dims = []
             spatial_coord_dims = []
             # Offset associated dimension if a realizations coordinate will be present.
@@ -973,7 +965,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         truths,
         forecast_predictor,
         predictor,
-        estimate_coefficients_from_linear_model_flag,
         number_of_realizations,
     ):
         """
@@ -1016,9 +1007,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
-            estimate_coefficients_from_linear_model_flag (bool):
-                Flag whether coefficients should be estimated from
-                the linear regression, or static estimates should be used.
             number_of_realizations (int or None):
                 Number of realizations within the forecast predictor. If no
                 realizations are present, this option is None.
@@ -1035,19 +1023,18 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             except ModuleNotFoundError:
                 sm = False
 
-        if (
-            predictor.lower() == "mean"
-            and not estimate_coefficients_from_linear_model_flag
-        ):
+        default_initial_guess = self.use_default_initial_guess or np.any(np.isnan(truths)) or np.any(np.isnan(forecast_predictor))
+
+        if predictor.lower() == "mean" and default_initial_guess:
             initial_guess = [0, 1, 0, 1]
         elif predictor.lower() == "realizations" and (
-            not estimate_coefficients_from_linear_model_flag or not sm
+            default_initial_guess or not sm
         ):
             initial_beta = np.repeat(
                 np.sqrt(1.0 / number_of_realizations), number_of_realizations
             ).tolist()
             initial_guess = [0] + initial_beta + [0, 1]
-        elif estimate_coefficients_from_linear_model_flag:
+        elif not self.use_default_initial_guess:
             truths_flattened = flatten_ignoring_masked_data(truths)
             if predictor.lower() == "mean":
                 forecast_predictor_flattened = flatten_ignoring_masked_data(
@@ -1135,7 +1122,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 gamma, delta.
 
         """
-        if self.each_point:
+        if self.point_by_point and not self.use_default_initial_guess:
             index = [
                 forecast_predictor.coord(axis="y"),
                 forecast_predictor.coord(axis="x"),
@@ -1145,10 +1132,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     truths_slice.data,
                     fp_slice.data,
                     self.predictor,
-                    False
-                    if np.any(np.isnan(truths_slice.data))
-                    or np.any(np.isnan(fp_slice.data))
-                    else self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                     number_of_realizations,
                 )
                 for (truths_slice, fp_slice) in zip(
@@ -1157,26 +1140,16 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             with Pool(os.cpu_count()) as pool:
                 initial_guess = pool.starmap(self.compute_initial_guess, argument_list)
+
         else:
-            if self.minimise_each_point:
-                self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
-
-            # If NaNs in truth or forecast, use default initial guess.
-            if np.any(np.isnan(truths.data)) or np.any(
-                np.isnan(forecast_predictor.data)
-            ):
-                self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
-
             # Computing initial guess for EMOS coefficients
             initial_guess = self.compute_initial_guess(
                 truths.data,
                 forecast_predictor.data,
                 self.predictor,
-                self.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG,
                 number_of_realizations,
             )
-
-            if self.minimise_each_point:
+            if self.point_by_point:
                 initial_guess = np.broadcast_to(
                     initial_guess,
                     (
@@ -1249,7 +1222,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 match.
 
         """
-        if landsea_mask and (self.each_point or self.minimise_each_point):
+        if landsea_mask and self.point_by_point:
             msg = (
                 "The use of a landsea mask with the option to compute "
                 "coefficients independently at each point is not implemented."

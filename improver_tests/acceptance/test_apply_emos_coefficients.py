@@ -79,30 +79,10 @@ def test_truncated_normal(tmp_path):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
-def test_normal_each_point_sites(tmp_path):
+def test_normal_point_by_point_sites(tmp_path):
     """Test using a normal distribution when coefficients have been calculated
     independently at each site (initial guess and minimisation)."""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/each_point"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / ".." / "input.nc"
-    emos_est_path = kgo_dir / "coefficients.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        emos_est_path,
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
-
-
-def test_normal_minimise_each_point_sites(tmp_path):
-    """Test using a normal distribution when coefficients have been calculated
-    independently at each site (minimisation only)."""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/minimise_each_point"
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/point_by_point"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / ".." / "input.nc"
     emos_est_path = kgo_dir / "coefficients.nc"

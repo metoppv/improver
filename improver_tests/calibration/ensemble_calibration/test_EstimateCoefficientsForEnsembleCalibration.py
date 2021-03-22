@@ -420,7 +420,7 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_each_point_sites(self):
+    def test_coefficients_point_by_point_sites(self):
         """Test that the expected coefficient cube, with the expected coefficients
         and metadata, is returned when the ensemble mean is used as the predictor
         when estimating coefficients for each site independently."""
@@ -428,7 +428,7 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
             distribution=self.distribution,
             desired_units=self.desired_units,
             predictor=self.predictor,
-            each_point=True,
+            point_by_point=True,
         )
         hf_spot_cube = self.historic_forecast_spot_cube.collapsed(
             "realization", iris.analysis.MEAN
@@ -580,7 +580,7 @@ class Test_compute_initial_guess(IrisTest):
 
         # Set up expected results:
         # Set up results for the case where the
-        # estimate_coefficients_from_linear_model_flag is False
+        # use_default_initial_guess is True
         self.expected_mean_predictor_no_linear_model = np.array(
             [0, 1, 0, 1], dtype=np.float32
         )
@@ -596,7 +596,7 @@ class Test_compute_initial_guess(IrisTest):
             dtype=np.float32,
         )
         # Set up results for the case where the
-        # estimate_coefficients_from_linear_model_flag is True
+        # use_default_initial_guess is True
         self.expected_mean_predictor_with_linear_model = np.array(
             [1.0, 1.0, 0.0, 1.0], dtype=np.float32
         )
@@ -612,14 +612,12 @@ class Test_compute_initial_guess(IrisTest):
         as the predictor. As coefficients are not estimated using a
         linear model, the default values for the initial guess are used.
         """
-        estimate_coefficients_from_linear_model_flag = False
-
-        plugin = Plugin(self.distribution, desired_units=self.desired_units)
+        plugin = Plugin(self.distribution, use_default_initial_guess=True,
+                        desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth.data,
             self.historic_forecast_predictor_mean.data,
             self.predictor,
-            estimate_coefficients_from_linear_model_flag,
             None,
         )
         self.assertIsInstance(result, np.ndarray)
@@ -637,14 +635,13 @@ class Test_compute_initial_guess(IrisTest):
         are used.
         """
         predictor = "realizations"
-        estimate_coefficients_from_linear_model_flag = False
 
-        plugin = Plugin(self.distribution, desired_units=self.desired_units)
+        plugin = Plugin(self.distribution, use_default_initial_guess = True,
+        desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth.data,
             self.historic_forecast_predictor_realizations.data,
             predictor,
-            estimate_coefficients_from_linear_model_flag,
             self.no_of_realizations,
         )
         self.assertIsInstance(result, np.ndarray)
@@ -662,14 +659,13 @@ class Test_compute_initial_guess(IrisTest):
         during the training period. Therefore, in this case the result of the
         linear regression is a gradient of 1 and an intercept of 1.
         """
-        estimate_coefficients_from_linear_model_flag = True
 
-        plugin = Plugin(self.distribution, desired_units=self.desired_units)
+
+        plugin = Plugin(self.distribution, use_default_initial_guess = False, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth.data,
             self.historic_forecast_predictor_mean.data,
             self.predictor,
-            estimate_coefficients_from_linear_model_flag,
             None,
         )
 
@@ -689,16 +685,14 @@ class Test_compute_initial_guess(IrisTest):
         some of the realizations are closer to the truth, in this instance.
         """
         predictor = "realizations"
-        estimate_coefficients_from_linear_model_flag = True
 
         forecast_predictor = self.historic_forecast_predictor_realizations.copy()
         enforce_coordinate_ordering(forecast_predictor, "realization")
-        plugin = Plugin(self.distribution, desired_units=self.desired_units)
+        plugin = Plugin(self.distribution, use_default_initial_guess = False, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth.data,
             forecast_predictor.data,
             predictor,
-            estimate_coefficients_from_linear_model_flag,
             self.no_of_realizations,
         )
         self.assertArrayAlmostEqual(
@@ -717,14 +711,11 @@ class Test_compute_initial_guess(IrisTest):
         case the original data has been surrounded by a halo of masked nans,
         which gives the same coefficients as the original data.
         """
-        estimate_coefficients_from_linear_model_flag = True
-
-        plugin = Plugin(self.distribution, desired_units=self.desired_units)
+        plugin = Plugin(self.distribution, use_default_initial_guess = False, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth_masked_halo.data,
             self.historic_forecast_predictor_mean_masked_halo.data,
             self.predictor,
-            estimate_coefficients_from_linear_model_flag,
             None,
         )
         self.assertArrayAlmostEqual(
@@ -745,18 +736,17 @@ class Test_compute_initial_guess(IrisTest):
         nans, which gives the same coefficients as the original data.
         """
         predictor = "realizations"
-        estimate_coefficients_from_linear_model_flag = True
+
 
         forecast_predictor = (
             self.historic_forecast_predictor_realizations_masked_halo.copy()
         )
         enforce_coordinate_ordering(forecast_predictor, "realization")
-        plugin = Plugin(self.distribution, desired_units=self.desired_units)
+        plugin = Plugin(self.distribution, use_default_initial_guess = False, desired_units=self.desired_units)
         result = plugin.compute_initial_guess(
             self.truth_masked_halo.data,
             forecast_predictor.data,
             predictor,
-            estimate_coefficients_from_linear_model_flag,
             self.no_of_realizations,
         )
         self.assertArrayAlmostEqual(
@@ -953,8 +943,7 @@ class Test_process(
         more closely matching the coefficients created when using a linear
         least-squares regression to construct the initial guess."""
         expected = [0.0107, 0.9977, -0.0016, 0.5865]
-        plugin = self.plugin(self.distribution)
-        plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
+        plugin = self.plugin(self.distribution, use_default_initial_guess=True)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1077,8 +1066,7 @@ class Test_process(
         expected = [-0.6381, 0.9904, -0.0, 1.1979]
         distribution = "truncnorm"
 
-        plugin = self.plugin(distribution)
-        plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = False
+        plugin = self.plugin(distribution, use_default_initial_guess=True)
         result = plugin.process(
             self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
         )
@@ -1179,10 +1167,10 @@ class Test_process(
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_each_point(self):
+    def test_point_by_point(self):
         """Test computing coefficients independently for each grid point (initial guess
         and minimising) returns the expected coefficients and associated metadata."""
-        plugin = self.plugin(self.distribution, each_point=True)
+        plugin = self.plugin(self.distribution, point_by_point=True)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1197,7 +1185,7 @@ class Test_process(
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_each_point_with_nans(self):
+    def test_point_by_point_with_nans(self):
         """Test computing coefficients independently for each grid point (initial guess
         and minimising) returns the expected coefficients and associated metadata,
         if one grid point has a NaN value."""
@@ -1210,7 +1198,7 @@ class Test_process(
                 index
             ]
 
-        plugin = self.plugin(self.distribution, each_point=True)
+        plugin = self.plugin(self.distribution, point_by_point=True)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1225,11 +1213,11 @@ class Test_process(
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_each_point_sites(self):
+    def test_point_by_point_sites(self):
         """Test computing coefficients independently for each site location
         (initial guess and minimising) returns the expected coefficients and
         associated metadata."""
-        plugin = self.plugin(self.distribution, each_point=True)
+        plugin = self.plugin(self.distribution, point_by_point=True)
         result = plugin.process(self.historic_forecast_spot_cube, self.truth_spot_cube)
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
@@ -1242,7 +1230,7 @@ class Test_process(
 
     @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_each_point_sites_realizations_statsmodels(self):
+    def test_point_by_point_sites_realizations_statsmodels(self):
         """Test computing coefficients independently for each site location
         (initial guess and minimising) using realizations as the predictor
         returns the expected coefficients and associated metadata."""
@@ -1254,9 +1242,8 @@ class Test_process(
         }
 
         plugin = self.plugin(
-            self.distribution, predictor="realizations", each_point=True
+            self.distribution, predictor="realizations", point_by_point=True
         )
-        plugin.ESTIMATE_COEFFICIENTS_FROM_LINEAR_MODEL_FLAG = True
         result = plugin.process(self.historic_forecast_spot_cube, self.truth_spot_cube)
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
@@ -1271,7 +1258,7 @@ class Test_process(
 
     @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_each_point_sites_realizations_no_statsmodels(self):
+    def test_point_by_point_sites_realizations_no_statsmodels(self):
         """Test computing coefficients independently for each site location
         (initial guess and minimising) using realizations as the predictor
         returns the expected coefficients and associated metadata."""
@@ -1283,7 +1270,7 @@ class Test_process(
         }
 
         plugin = self.plugin(
-            self.distribution, predictor="realizations", each_point=True
+            self.distribution, predictor="realizations", point_by_point=True
         )
         result = plugin.process(self.historic_forecast_spot_cube, self.truth_spot_cube)
         for cube in result:
@@ -1298,10 +1285,10 @@ class Test_process(
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_each_point_landsea_mask(self):
+    def test_point_by_point_landsea_mask(self):
         """Test that an exception is raised if a land-sea mask is provided
-        with the each_point argument."""
-        plugin = self.plugin(self.distribution, each_point=True)
+        with the point_by_point argument."""
+        plugin = self.plugin(self.distribution, point_by_point=True)
         msg = "The use of a landsea mask"
         with self.assertRaisesRegex(NotImplementedError, msg):
             plugin.process(
@@ -1311,10 +1298,11 @@ class Test_process(
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_minimise_each_point(self):
+    def test_point_by_point_default_initial_guess(self):
         """Test computing coefficients independently for each grid point
         (minimisation only) returns the expected coefficients and associated metadata."""
-        plugin = self.plugin(self.distribution, minimise_each_point=True)
+        plugin = self.plugin(
+            self.distribution, point_by_point=True, use_default_initial_guess=True)
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
@@ -1330,7 +1318,7 @@ class Test_process(
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_minimise_each_point_realizations(self):
+    def test_point_by_point_default_initial_guess_realizations(self):
         """Test computing coefficients independently for each grid point
         (minimisation only) returns the expected coefficients and associated metadata
         when using the realizations as the predictor."""
@@ -1341,7 +1329,8 @@ class Test_process(
             "emos_coefficient_delta": ["latitude", "longitude"],
         }
         plugin = self.plugin(
-            self.distribution, minimise_each_point=True, predictor="realizations"
+            self.distribution, point_by_point=True,
+            use_default_initial_guess=True, predictor="realizations"
         )
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube

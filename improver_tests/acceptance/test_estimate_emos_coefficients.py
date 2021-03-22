@@ -118,6 +118,36 @@ def test_truncated_normal(tmp_path):
 
 
 @pytest.mark.slow
+def test_normal_default_initial_guess(tmp_path):
+    """
+    Test estimate-emos-coefficients for diagnostic with assumed
+    normal distribution with the default initial guess.
+    """
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
+    kgo_path = kgo_dir / "default_initial_guess_kgo.nc"
+    history_path = kgo_dir / "history/*.nc"
+    truth_path = kgo_dir / "truth/*.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "norm",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--use-default-initial-guess",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
+
+
+@pytest.mark.slow
 def test_units(tmp_path):
     """Test prescribed units that may not match inputs"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
@@ -235,14 +265,14 @@ def test_land_points_only(tmp_path):
 
 
 @pytest.mark.slow
-def test_normal_each_point_sites(tmp_path):
+def test_normal_point_by_point_sites(tmp_path):
     """
     Test estimate-emos-coefficients for diagnostic with assumed
     normal distribution where coefficients are computed independently at each
     site location (initial guess and minimisation).
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
-    kgo_path = kgo_dir / "each_point" / "kgo.nc"
+    kgo_path = kgo_dir / "point_by_point" / "kgo.nc"
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
@@ -255,7 +285,7 @@ def test_normal_each_point_sites(tmp_path):
         "mosg__model_configuration=uk_det",
         "--tolerance",
         EST_EMOS_TOL,
-        "--each-point",
+        "--point-by-point",
         "--output",
         output_path,
     ]
@@ -267,14 +297,14 @@ def test_normal_each_point_sites(tmp_path):
 
 @pytest.mark.slow
 @acc.skip_if_statsmodels
-def test_normal_realizations_each_point_sites(tmp_path):
+def test_normal_realizations_point_by_point_sites(tmp_path):
     """
     Test estimate-emos-coefficients for diagnostic with assumed
     normal distribution where coefficients are computed independently at each
     site location (initial guess and minimisation).
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
-    kgo_path = kgo_dir / "each_point" / "realizations_kgo.nc"
+    kgo_path = kgo_dir / "point_by_point" / "realizations_kgo.nc"
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
@@ -289,7 +319,7 @@ def test_normal_realizations_each_point_sites(tmp_path):
         "realizations",
         "--tolerance",
         EST_EMOS_TOL,
-        "--each-point",
+        "--point-by-point",
         "--output",
         output_path,
     ]
@@ -300,14 +330,14 @@ def test_normal_realizations_each_point_sites(tmp_path):
 
 
 @pytest.mark.slow
-def test_normal_minimise_each_point_sites(tmp_path):
+def test_normal_point_by_point_default_initial_guess_sites(tmp_path):
     """
     Test estimate-emos-coefficients for diagnostic with assumed
     normal distribution where coefficients are computed independently at each
     site location (minimisation only).
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
-    kgo_path = kgo_dir / "minimise_each_point" / "kgo.nc"
+    kgo_path = kgo_dir / "point_by_point_default_initial_guess" / "kgo.nc"
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
@@ -320,7 +350,8 @@ def test_normal_minimise_each_point_sites(tmp_path):
         "mosg__model_configuration=uk_det",
         "--tolerance",
         EST_EMOS_TOL,
-        "--minimise-each-point",
+        "--point-by-point",
+        "--use-default-initial-guess",
         "--output",
         output_path,
     ]

@@ -87,13 +87,13 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         )
 
         estimator = EstimateCoefficientsForEnsembleCalibration(
-            "norm", each_point=True, desired_units="Celsius"
+            "norm", point_by_point=True, desired_units="Celsius"
         )
-        each_point_predictor = np.array(
+        point_by_point_predictor = np.array(
             [self.expected_mean_predictor_norm] * 9
         ).T.reshape(4, 3, 3)
-        self.coeffs_from_mean_each_point = estimator.create_coefficients_cubelist(
-            each_point_predictor, self.historic_temperature_forecast_cube,
+        self.coeffs_from_mean_point_by_point = estimator.create_coefficients_cubelist(
+            point_by_point_predictor, self.historic_temperature_forecast_cube,
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
@@ -123,7 +123,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             list(self.expected_realizations_each_site_statsmodels.values())
         )
         estimator = EstimateCoefficientsForEnsembleCalibration(
-            "norm", predictor="realizations", each_point=True
+            "norm", predictor="realizations", point_by_point=True
         )
         self.coeffs_from_realizations_sites = estimator.create_coefficients_cubelist(
             expected_realizations_each_site, self.historic_forecast_spot_cube,
@@ -459,12 +459,12 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_end_to_end_each_point(self):
+    def test_end_to_end_point_by_point(self):
         """An example end-to-end calculation when a separate set of
         coefficients are computed for each grid point. This repeats the test
         elements above but all grouped together."""
         calibrated_forecast_predictor, calibrated_forecast_var = self.plugin.process(
-            self.current_temperature_forecast_cube, self.coeffs_from_mean_each_point
+            self.current_temperature_forecast_cube, self.coeffs_from_mean_point_by_point
         )
 
         self.assertCalibratedVariablesAlmostEqual(
@@ -476,7 +476,7 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_end_to_end_each_point_sites_realizations(self):
+    def test_end_to_end_point_by_point_sites_realizations(self):
         """An example end-to-end calculation when a separate set of
         coefficients are computed for each site using the realizations as the
         predictor. This repeats the test elements above but all grouped together."""
