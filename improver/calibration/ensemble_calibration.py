@@ -37,10 +37,7 @@ Statistics (EMOS).
    ensemble_calibration.rst
 
 """
-import importlib
-import os
 import warnings
-from multiprocessing import Pool
 
 import iris
 import numpy as np
@@ -276,12 +273,12 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         """
         initial_guess, forecast_predictor.data, forecast_var.data, truth.data, sqrt_pi = self._set_float64_precision(initial_guess, forecast_predictor.data, forecast_var.data, truth.data)
 
-        argument_list = []
         sindex = [
             forecast_predictor.coord(axis="y"),
             forecast_predictor.coord(axis="x"),
         ]
 
+        optimised_coeffs = []
         for index, (fp_slice, truth_slice, fv_slice) in enumerate(
             zip(
                 forecast_predictor.slices_over(sindex),
@@ -289,8 +286,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 forecast_var.slices_over(sindex),
             )
         ):
-            argument_list.append(
-                (
+            optimised_coeffs.append(
+                self._minimise_caller(
                     minimisation_function,
                     initial_guess[index],
                     fp_slice.data.T,
@@ -298,12 +295,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                     fv_slice.data,
                     sqrt_pi,
                     predictor,
-                )
+                ).x.astype(np.float32)
             )
-
-        with Pool(os.cpu_count()) as pool:
-            optimised_coeffs = pool.starmap(self._minimise_caller, argument_list)
-        optimised_coeffs = [x.x.astype(np.float32) for x in optimised_coeffs]
 
         y_coord = forecast_predictor.coord(axis="y")
         x_coord = forecast_predictor.coord(axis="x")
@@ -1127,20 +1120,12 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 forecast_predictor.coord(axis="y"),
                 forecast_predictor.coord(axis="x"),
             ]
-            argument_list = (
-                (
-                    truths_slice.data,
-                    fp_slice.data,
-                    self.predictor,
-                    number_of_realizations,
-                )
-                for (truths_slice, fp_slice) in zip(
-                    truths.slices_over(index), forecast_predictor.slices_over(index)
-                )
-            )
-            with Pool(os.cpu_count()) as pool:
-                initial_guess = pool.starmap(self.compute_initial_guess, argument_list)
-
+            initial_guess = []
+            for (truths_slice, fp_slice) in zip(
+                truths.slices_over(index), forecast_predictor.slices_over(index)
+            ):
+                initial_guess.append(self.compute_initial_guess(truths_slice.data, fp_slice.data, self.predictor,
+                    number_of_realizations))
         else:
             # Computing initial guess for EMOS coefficients
             initial_guess = self.compute_initial_guess(

@@ -276,6 +276,8 @@ def test_normal_point_by_point_sites(tmp_path):
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
+    est_emos_tol = str(0.01)
+    compare_emos_tolerance = 0.1
     args = [
         history_path,
         truth_path,
@@ -284,14 +286,14 @@ def test_normal_point_by_point_sites(tmp_path):
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--tolerance",
-        EST_EMOS_TOL,
+        est_emos_tol,
         "--point-by-point",
         "--output",
         output_path,
     ]
     run_cli(args)
     acc.compare(
-        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+        output_path, kgo_path, atol=compare_emos_tolerance, rtol=compare_emos_tolerance
     )
 
 
@@ -308,6 +310,8 @@ def test_normal_realizations_point_by_point_sites(tmp_path):
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
+    est_emos_tol = str(0.01)
+    compare_emos_tolerance = 0.1
     args = [
         history_path,
         truth_path,
@@ -318,14 +322,14 @@ def test_normal_realizations_point_by_point_sites(tmp_path):
         "--predictor",
         "realizations",
         "--tolerance",
-        EST_EMOS_TOL,
+        est_emos_tol,
         "--point-by-point",
         "--output",
         output_path,
     ]
     run_cli(args)
     acc.compare(
-        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+        output_path, kgo_path, atol=compare_emos_tolerance, rtol=compare_emos_tolerance
     )
 
 
@@ -341,6 +345,8 @@ def test_normal_point_by_point_default_initial_guess_sites(tmp_path):
     history_path = kgo_dir / "history/*.nc"
     truth_path = kgo_dir / "truth/*.nc"
     output_path = tmp_path / "output.nc"
+    est_emos_tol = str(0.01)
+    compare_emos_tolerance = 0.1
     args = [
         history_path,
         truth_path,
@@ -357,5 +363,5 @@ def test_normal_point_by_point_default_initial_guess_sites(tmp_path):
     ]
     run_cli(args)
     acc.compare(
-        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+        output_path, kgo_path, atol=compare_emos_tolerance, rtol=compare_emos_tolerance
     )
