@@ -581,10 +581,10 @@ class Test_compute_initial_guess(IrisTest):
         # Set up expected results:
         # Set up results for the case where the
         # use_default_initial_guess is True
-        self.expected_mean_predictor_no_linear_model = np.array(
+        self.expected_mean_predictor_default_initial_guess = np.array(
             [0, 1, 0, 1], dtype=np.float32
         )
-        self.expected_realizations_predictor_no_linear_model = np.array(
+        self.expected_realizations_predictor_default_initial_guess = np.array(
             [
                 0,
                 np.sqrt(1.0 / self.no_of_realizations),
@@ -596,11 +596,11 @@ class Test_compute_initial_guess(IrisTest):
             dtype=np.float32,
         )
         # Set up results for the case where the
-        # use_default_initial_guess is True
-        self.expected_mean_predictor_with_linear_model = np.array(
+        # use_default_initial_guess is False
+        self.expected_mean_predictor_compute_initial_guess = np.array(
             [1.0, 1.0, 0.0, 1.0], dtype=np.float32
         )
-        self.expected_realizations_predictor_with_linear_model = np.array(
+        self.expected_realizations_predictor_compute_initial_guess = np.array(
             [0.333333, 0.0, 0.333333, 0.666667, 0.0, 1.0], dtype=np.float32
         )
 
@@ -625,7 +625,7 @@ class Test_compute_initial_guess(IrisTest):
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
-            result, self.expected_mean_predictor_no_linear_model
+            result, self.expected_mean_predictor_default_initial_guess
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -652,7 +652,7 @@ class Test_compute_initial_guess(IrisTest):
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
-            result, self.expected_realizations_predictor_no_linear_model
+            result, self.expected_realizations_predictor_default_initial_guess
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -679,7 +679,7 @@ class Test_compute_initial_guess(IrisTest):
         )
 
         self.assertArrayAlmostEqual(
-            self.expected_mean_predictor_with_linear_model, result
+            self.expected_mean_predictor_compute_initial_guess, result
         )
 
     @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
@@ -709,7 +709,7 @@ class Test_compute_initial_guess(IrisTest):
             self.no_of_realizations,
         )
         self.assertArrayAlmostEqual(
-            self.expected_realizations_predictor_with_linear_model, result
+            self.expected_realizations_predictor_compute_initial_guess, result
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -736,7 +736,7 @@ class Test_compute_initial_guess(IrisTest):
             None,
         )
         self.assertArrayAlmostEqual(
-            self.expected_mean_predictor_with_linear_model, result
+            self.expected_mean_predictor_compute_initial_guess, result
         )
 
     @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
@@ -770,7 +770,7 @@ class Test_compute_initial_guess(IrisTest):
             self.no_of_realizations,
         )
         self.assertArrayAlmostEqual(
-            self.expected_realizations_predictor_with_linear_model, result
+            self.expected_realizations_predictor_compute_initial_guess, result
         )
 
 

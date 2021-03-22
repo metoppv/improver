@@ -351,7 +351,12 @@ def check_forecast_consistency(forecasts):
 
 
 def statsmodels_available():
-    """True if statsmodels library is importable"""
+    """True if statsmodels library is importable.
+
+    Returns:
+        bool:
+            If True, statsmodels is available, otherwise, False.
+    """
     if importlib.util.find_spec("statsmodels"):
         return True
     return False
