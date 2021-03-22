@@ -53,6 +53,7 @@ from improver.calibration.utilities import (
     forecast_coords_match,
     get_frt_hours,
     merge_land_and_sea,
+    statsmodels_available,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import (
@@ -60,7 +61,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_variable_cube,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 from ..ensemble_calibration.helper_functions import SetupCubes
 from ..reliability_calibration.test_AggregateReliabilityCalibrationTables import (
@@ -73,27 +73,6 @@ except (ModuleNotFoundError, ImportError):
     STATSMODELS_FOUND = False
 else:
     STATSMODELS_FOUND = True
-
-
-IGNORED_MESSAGES = [
-    "Collapsing a non-contiguous coordinate",  # Originating from Iris
-    "invalid escape sequence",  # Originating from statsmodels
-    "can't resolve package from",  # Originating from statsmodels
-    "Minimisation did not result in convergence",  # From calibration code
-    "The final iteration resulted in",  # From calibration code
-    "Invalid value encountered in",  # From calculating percentage change in
-    # calibration code
-    "The statsmodels module cannot be imported",
-]
-WARNING_TYPES = [
-    UserWarning,
-    DeprecationWarning,
-    ImportWarning,
-    UserWarning,
-    UserWarning,
-    RuntimeWarning,
-    ImportWarning,
-]
 
 
 class Test_convert_cube_data_to_2d(IrisTest):
@@ -682,6 +661,21 @@ class Test_check_forecast_consistency(IrisTest):
 
         with self.assertRaisesRegex(ValueError, msg):
             check_forecast_consistency(forecasts)
+
+
+class Test_statsmodels_available(IrisTest):
+
+    """Test statsmodels_available function."""
+
+    @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
+    def test_statsmodels_available(self):
+        """Test when the statsmodels module is available."""
+        self.assertTrue(statsmodels_available())
+
+    @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module not available.")
+    def test_statsmodels_not_available(self):
+        """Test when the statsmodels module is available."""
+        self.assertFalse(statsmodels_available())
 
 
 if __name__ == "__main__":

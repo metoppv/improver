@@ -56,6 +56,7 @@ from improver.calibration.utilities import (
     flatten_ignoring_masked_data,
     forecast_coords_match,
     merge_land_and_sea,
+    statsmodels_available,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles,
@@ -100,7 +101,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     # as part of the minimisation.
     BAD_VALUE = np.float64(999999)
 
-    def __init__(self, tolerance=0.01, max_iterations=1000, point_by_point=False):
+    def __init__(self, tolerance=0.02, max_iterations=1000, point_by_point=False):
         """
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
@@ -1025,12 +1026,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Order of coefficients is [alpha, beta, gamma, delta].
 
         """
-        if predictor.lower() == "realizations":
-            try:
-                import statsmodels.api as sm
-            except ModuleNotFoundError:
-                sm = False
-
         default_initial_guess = (
             self.use_default_initial_guess
             or np.any(np.isnan(truths))
@@ -1039,7 +1034,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         if predictor.lower() == "mean" and default_initial_guess:
             initial_guess = [0, 1, 0, 1]
-        elif predictor.lower() == "realizations" and (default_initial_guess or not sm):
+        elif predictor.lower() == "realizations" and (
+            default_initial_guess or not statsmodels_available()
+        ):
             initial_beta = np.repeat(
                 np.sqrt(1.0 / number_of_realizations), number_of_realizations
             ).tolist()
@@ -1060,6 +1057,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     )
                 initial_guess = [intercept, gradient, 0, 1]
             elif predictor.lower() == "realizations":
+                import statsmodels.api as sm
+
                 forecast_predictor_flattened = flatten_ignoring_masked_data(
                     forecast_predictor, preserve_leading_dimension=True
                 )

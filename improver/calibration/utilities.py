@@ -33,6 +33,8 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
+import importlib
+
 import iris
 import numpy as np
 
@@ -346,3 +348,10 @@ def check_forecast_consistency(forecasts):
     if len(forecasts.coord("forecast_period").points) != 1:
         msg = "Forecasts have been provided with differing forecast periods {}"
         raise ValueError(msg.format(forecasts.coord("forecast_period").points))
+
+
+def statsmodels_available():
+    """True if statsmodels library is importable"""
+    if importlib.util.find_spec("statsmodels"):
+        return True
+    return False
