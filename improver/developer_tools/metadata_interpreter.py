@@ -143,9 +143,8 @@ class MOMetadataInterpreter:
 
         # set up empty strings to record any non-compliance (returned as one error
         # after all checks have been made) or warnings
-        self.error_string = ""  # TODO make both of these into lists
-        self.warning_string = ""
-
+        self.errors = []
+        self.warnings = []
         # initialise information to be derived from input cube
         self.prod_type = "gridded"  # gridded or spot
         self.field_type = None  # probability, percentile, realization or name
@@ -156,15 +155,10 @@ class MOMetadataInterpreter:
         self.model = None  # human-readable model name
         self.blended = None  # has it been model blended (True / False)
 
-    def _add_error(self, msg):
-        """Appends new error message to string"""
-        # TODO make error strings into list, then format at the end with "join"
-        self.error_string += msg + "\n"
-
     def check_probability_cube_metadata(self, cube):
         """Checks probability-specific metadata"""
         if cube.units != "1":
-            self._add_error(
+            self.errors.append(
                 f"Expected units of 1 on probability data, got {cube.units}"
             )
 
@@ -174,7 +168,7 @@ class MOMetadataInterpreter:
             )
         except ValueError as cause:
             # if the probability name is not valid
-            self._add_error(str(cause))
+            self.errors.append(str(cause))
 
         expected_threshold_name = get_threshold_coord_name_from_probability_name(
             cube.name()
@@ -189,10 +183,10 @@ class MOMetadataInterpreter:
                 msg = (
                     f"no coord with var_name='threshold' found in all coords: {coords}"
                 )
-                self._add_error(msg)
+                self.errors.append(msg)
             else:
                 msg += f"threshold coord has incorrect name '{threshold_name}'"
-                self._add_error(msg)
+                self.errors.append(msg)
                 self.check_threshold_coordinate_properties(
                     cube.name(), cube.coord(threshold_name)
                 )
@@ -205,7 +199,7 @@ class MOMetadataInterpreter:
         cube name"""
         threshold_var_name = threshold_coord.var_name
         if threshold_var_name != "threshold":
-            self._add_error(
+            self.errors.append(
                 f"Threshold coord {threshold_coord.name()} does not have "
                 "var_name='threshold'"
             )
@@ -220,16 +214,16 @@ class MOMetadataInterpreter:
             threshold_attribute = "below"
         elif self.relative_to_threshold == "between_thresholds":
             threshold_attribute = "between"
-            self.warning_string += "Between thresholds data are not fully supported\n"
+            self.warnings.append("Between thresholds data are not fully supported")
         else:
             threshold_attribute = None
-            self._add_error(
+            self.errors.append(
                 f"spp__relative_to_threshold attribute '{self.relative_to_threshold}' "
                 "is not in permitted value set"
             )
 
         if threshold_attribute and threshold_attribute not in cube_name:
-            self._add_error(
+            self.errors.append(
                 f"Cube name '{cube_name}' is not consistent with "
                 f"spp__relative_to_threshold attribute '{self.relative_to_threshold}'"
             )
@@ -242,14 +236,14 @@ class MOMetadataInterpreter:
                 self.methods += f" {cm.method} over {cm.coord_names[0]}"
                 if self.field_type == self.PROB:
                     if not cm.comments or cm.comments[0] != f"of {self.diagnostic}":
-                        self._add_error(
+                        self.errors.append(
                             f"Cell method {cm} on probability data should have comment "
                             f"'of {self.diagnostic}'"
                         )
                 # check point and bounds on method coordinate
                 if "time" in cm.coord_names:
                     if cube.coord("time").bounds is None:
-                        self._add_error(f"Cube of{self.methods} has no time bounds")
+                        self.errors.append(f"Cube of{self.methods} has no time bounds")
                     else:
                         upper_bounds = [
                             bounds[1] for bounds in cube.coord("time").bounds
@@ -262,17 +256,17 @@ class MOMetadataInterpreter:
                                 )
                             ]
                         ):
-                            self._add_error(
+                            self.errors.append(
                                 "Time points should be equal to upper bounds"
                             )
 
             elif cm in NONCOMP_CMS or cm.method in NONCOMP_CM_METHODS:
-                self._add_error(f"Non-standard cell method {cm}")
+                self.errors.append(f"Non-standard cell method {cm}")
             else:
                 # flag method which might be invalid, but we can't be sure
-                self.warning_string += (
+                self.warnings.append(
                     f"Unexpected cell method {cm}. Please check the standard to "
-                    "ensure this is valid.\n"
+                    "ensure this is valid"
                 )
 
     def _check_blend_and_model_attributes(self, attrs):
@@ -282,7 +276,7 @@ class MOMetadataInterpreter:
 
         if self.blended:
             if self.model_id_attr not in attrs:
-                self._add_error(f"No {self.model_id_attr} on blended file")
+                self.errors.append(f"No {self.model_id_attr} on blended file")
             else:
                 codes = attrs[self.model_id_attr].split(" ")
                 names = [MODEL_NAMES[code] for code in codes]
@@ -295,7 +289,7 @@ class MOMetadataInterpreter:
                         f"{key} Model" in attrs["title"]
                         and attrs[self.model_id_attr] != MODEL_CODES[key]
                     ):
-                        self._add_error(
+                        self.errors.append(
                             f"Title {attrs['title']} is inconsistent with model ID "
                             f"attribute {attrs[self.model_id_attr]}"
                         )
@@ -303,7 +297,7 @@ class MOMetadataInterpreter:
                 try:
                     self.model = MODEL_NAMES[attrs[self.model_id_attr]]
                 except KeyError:
-                    self._add_error(
+                    self.errors.append(
                         f"Attribute {attrs[self.model_id_attr]} is not a valid single "
                         "model.  If valid for blend, then title attribute is missing "
                         f"expected substring {BLEND_TITLE_SUBSTR}."
@@ -318,27 +312,27 @@ class MOMetadataInterpreter:
             permitted_attributes = COMP_ATTRS.copy()
 
         if any([attr in NONCOMP_ATTRS for attr in attrs]):
-            self._add_error(
+            self.errors.append(
                 f"Attributes {attrs.keys()} include one or more forbidden "
                 f"values {NONCOMP_ATTRS}"
             )
         elif any([attr not in permitted_attributes for attr in attrs]):
-            self.warning_string += (
+            self.warnings.append(
                 f"{attrs.keys()} include unexpected attributes. Please check the "
-                "standard to ensure this is valid.\n"
+                "standard to ensure this is valid."
             )
 
         if self.diagnostic in DIAG_ATTRS:
             required = DIAG_ATTRS[self.diagnostic]
             if any([req not in attrs for req in required]):
-                self._add_error(
+                self.errors.append(
                     f"Attributes {attrs.keys()} missing one or more required "
                     f"values {required}"
                 )
 
         if self.field_type != self.ANCIL:
             if not all([attr in attrs for attr in MANDATORY_ATTRIBUTES]):
-                self._add_error(
+                self.errors.append(
                     f"Attributes {attrs.keys()} missing one or more mandatory "
                     f"values {MANDATORY_ATTRIBUTES}"
                 )
@@ -351,7 +345,7 @@ class MOMetadataInterpreter:
                     else "no"
                 )
             except KeyError:
-                self._add_error("Cube is missing mandatory title attribute")
+                self.errors.append("Cube is missing mandatory title attribute")
             else:
                 self._check_blend_and_model_attributes(attrs)
 
@@ -359,7 +353,7 @@ class MOMetadataInterpreter:
         """Check whether all expected coordinates are present"""
         found_coords = [coord for coord in coords if coord in expected_coords]
         if not set(found_coords) == set(expected_coords):
-            self._add_error(
+            self.errors.append(
                 f"Missing one or more coordinates: found {found_coords}, "
                 f"expected {expected_coords}"
             )
@@ -369,7 +363,7 @@ class MOMetadataInterpreter:
         self.prod_type = "spot"
         try:
             if SPOT_TITLE_SUBSTR not in cube.attributes["title"]:
-                self._add_error(
+                self.errors.append(
                     f"Title attribute {cube.attributes['title']} is not "
                     "consistent with spot data"
                 )
@@ -395,18 +389,18 @@ class MOMetadataInterpreter:
             self.field_type = self.ANCIL
             self.diagnostic = cube.name()
             if cube.cell_methods:
-                self._add_error(f"Unexpected cell methods {cube.cell_methods}")
+                self.errors.append(f"Unexpected cell methods {cube.cell_methods}")
 
         elif cube.name() in SPECIAL_CASES:
             self.field_type = self.diagnostic = cube.name()
             if cube.name() == "weather_code":
                 if cube.cell_methods:
-                    self._add_error(f"Unexpected cell methods {cube.cell_methods}")
+                    self.errors.append(f"Unexpected cell methods {cube.cell_methods}")
             elif cube.name() == "wind_from_direction":
                 if cube.cell_methods:
                     expected = CellMethod(method="mean", coords="realization")
                     if len(cube.cell_methods) > 1 or cube.cell_methods[0] != expected:
-                        self._add_error(f"Unexpected cell methods {cube.cell_methods}")
+                        self.errors.append(f"Unexpected cell methods {cube.cell_methods}")
             else:
                 self.unhandled = True
                 return
@@ -431,13 +425,13 @@ class MOMetadataInterpreter:
                 else:
                     self.field_type = self.PERC
                     if perc_coord.name() != PERC_COORD:
-                        self._add_error(
+                        self.errors.append(
                             f"Percentile coordinate should have name {PERC_COORD}, "
                             f"has {perc_coord.name()}"
                         )
 
                     if perc_coord.units != "%":
-                        self._add_error(
+                        self.errors.append(
                             "Percentile coordinate should have units of %, "
                             f"has {perc_coord.units}"
                         )
@@ -475,11 +469,11 @@ class MOMetadataInterpreter:
         try:
             check_mandatory_standards(cube)
         except ValueError as cause:
-            self._add_error(str(cause))
+            self.errors.append(str(cause))
 
         # 5) Raise collated errors if present
-        if self.error_string:
-            raise ValueError(self.error_string)
+        if self.errors:
+            raise ValueError("\n".join(self.errors))
 
         # 6) Tidy up formatting for string output where required
         self.field_type = self.field_type.replace("_", " ")
@@ -568,8 +562,8 @@ def display_interpretation(interpreter, verbose=False):
             if verbose:
                 output_string += vstring("model ID attribute (missing)")
 
-    # TODO get this to take a list of warnings and do the formatting / joins here
-    if interpreter.warning_string:
-        output_string += f"WARNINGS:\n{interpreter.warning_string}"
+    if interpreter.warnings:
+        warning_string = "\n".join(interpreter.warnings)
+        output_string += f"WARNINGS:\n{warning_string}"
 
     return output_string

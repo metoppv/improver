@@ -209,7 +209,7 @@ def test_warnings_displayed(wind_gust_percentile_cube, interpreter):
         "WARNINGS:\n"
         "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
         "'wind_gust_diagnostic', 'enigma']) include unexpected attributes. "
-        "Please check the standard to ensure this is valid.\n"
+        "Please check the standard to ensure this is valid."
     )
     wind_gust_percentile_cube.attributes["enigma"] = "intriguing and mysterious details"
     interpreter.run(wind_gust_percentile_cube)

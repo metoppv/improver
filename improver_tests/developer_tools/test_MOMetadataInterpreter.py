@@ -61,7 +61,7 @@ def test_probabilities_above(probability_above_cube, interpreter):
     assert interpreter.post_processed == "some"
     assert interpreter.model == "UKV"
     assert not interpreter.blended
-    assert not interpreter.warning_string
+    assert not interpreter.warnings
 
 
 def test_probabilities_below(blended_probability_below_cube, interpreter):
@@ -76,7 +76,7 @@ def test_probabilities_below(blended_probability_below_cube, interpreter):
     assert interpreter.post_processed == "some"
     assert interpreter.model == "UKV, MOGREPS-UK"
     assert interpreter.blended
-    assert not interpreter.warning_string
+    assert not interpreter.warnings
 
 
 def test_percentiles(wind_gust_percentile_cube, interpreter):
@@ -90,7 +90,7 @@ def test_percentiles(wind_gust_percentile_cube, interpreter):
     assert interpreter.post_processed == "no"
     assert interpreter.model == "MOGREPS-UK"
     assert not interpreter.blended
-    assert not interpreter.warning_string
+    assert not interpreter.warnings
 
 
 def test_realizations(ensemble_cube, interpreter):
@@ -104,7 +104,7 @@ def test_realizations(ensemble_cube, interpreter):
     assert interpreter.post_processed == "no"
     assert interpreter.model == "MOGREPS-UK"
     assert not interpreter.blended
-    assert not interpreter.warning_string
+    assert not interpreter.warnings
 
 
 def test_snow_level(snow_level_cube, interpreter):
@@ -121,7 +121,7 @@ def test_snow_level(snow_level_cube, interpreter):
     assert interpreter.post_processed == "some"
     assert interpreter.model is None
     assert not interpreter.blended
-    assert not interpreter.warning_string
+    assert not interpreter.warnings
 
 
 def test_spot_median(blended_spot_median_cube, interpreter):
@@ -135,7 +135,7 @@ def test_spot_median(blended_spot_median_cube, interpreter):
     assert interpreter.post_processed == "some"
     assert interpreter.model == "UKV, MOGREPS-UK"
     assert interpreter.blended
-    assert not interpreter.warning_string
+    assert not interpreter.warnings
 
 
 def test_static_ancillary(landmask_cube, interpreter):
@@ -149,7 +149,7 @@ def test_static_ancillary(landmask_cube, interpreter):
     assert interpreter.post_processed is None
     assert interpreter.model is None
     assert not interpreter.blended
-    assert not interpreter.warning_string
+    assert not interpreter.warnings
 
 
 def test_handles_duplicate_model_string(probability_above_cube, interpreter):
@@ -266,11 +266,11 @@ def test_warning_unexpected_attributes(wind_gust_percentile_cube, interpreter):
     information"""
     wind_gust_percentile_cube.attributes["enigma"] = "intriguing and mysterious details"
     interpreter.run(wind_gust_percentile_cube)
-    assert interpreter.warning_string == (
+    assert interpreter.warnings == [
         "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
         "'wind_gust_diagnostic', 'enigma']) include unexpected attributes. "
-        "Please check the standard to ensure this is valid.\n"
-    )
+        "Please check the standard to ensure this is valid."
+    ]
 
 
 def test_error_inconsistent_model_attributes(ensemble_cube, interpreter):
@@ -381,11 +381,11 @@ def test_warning_unexpected_attribute_wrong_diagnostic(
     on an unexpected diagnostic"""
     wind_gust_percentile_cube.rename("wind_speed")
     interpreter.run(wind_gust_percentile_cube)
-    assert interpreter.warning_string == (
+    assert interpreter.warnings == [
         "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
         "'wind_gust_diagnostic']) include unexpected attributes. "
-        "Please check the standard to ensure this is valid.\n"
-    )
+        "Please check the standard to ensure this is valid."
+    ]
 
 
 def test_wind_direction_success(wind_direction_cube, interpreter):
