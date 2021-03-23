@@ -58,7 +58,7 @@ def test_probabilities_above(probability_above_cube, interpreter):
     assert interpreter.diagnostic == "air_temperature"
     assert interpreter.relative_to_threshold == "greater_than"
     assert not interpreter.methods
-    assert interpreter.post_processed == "some"
+    assert interpreter.post_processed
     assert interpreter.model == "UKV"
     assert not interpreter.blended
     assert not interpreter.warnings
@@ -73,7 +73,7 @@ def test_probabilities_below(blended_probability_below_cube, interpreter):
     assert interpreter.diagnostic == "air_temperature"
     assert interpreter.relative_to_threshold == "less_than"
     assert interpreter.methods == " maximum over time"
-    assert interpreter.post_processed == "some"
+    assert interpreter.post_processed
     assert interpreter.model == "UKV, MOGREPS-UK"
     assert interpreter.blended
     assert not interpreter.warnings
@@ -87,7 +87,7 @@ def test_percentiles(wind_gust_percentile_cube, interpreter):
     assert interpreter.diagnostic == "wind_gust"
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
-    assert interpreter.post_processed == "no"
+    assert not interpreter.post_processed
     assert interpreter.model == "MOGREPS-UK"
     assert not interpreter.blended
     assert not interpreter.warnings
@@ -101,7 +101,7 @@ def test_realizations(ensemble_cube, interpreter):
     assert interpreter.diagnostic == "air_temperature"
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
-    assert interpreter.post_processed == "no"
+    assert not interpreter.post_processed
     assert interpreter.model == "MOGREPS-UK"
     assert not interpreter.blended
     assert not interpreter.warnings
@@ -118,7 +118,7 @@ def test_snow_level(snow_level_cube, interpreter):
     )
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
-    assert interpreter.post_processed == "some"
+    assert interpreter.post_processed
     assert interpreter.model is None
     assert not interpreter.blended
     assert not interpreter.warnings
@@ -132,7 +132,7 @@ def test_spot_median(blended_spot_median_cube, interpreter):
     assert interpreter.diagnostic == "air_temperature"
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
-    assert interpreter.post_processed == "some"
+    assert interpreter.post_processed
     assert interpreter.model == "UKV, MOGREPS-UK"
     assert interpreter.blended
     assert not interpreter.warnings

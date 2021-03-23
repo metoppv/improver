@@ -147,11 +147,11 @@ class MOMetadataInterpreter:
         self.warnings = []
         # initialise information to be derived from input cube
         self.prod_type = "gridded"  # gridded or spot
-        self.field_type = None  # probability, percentile, realization or name
+        self.field_type = None  # probabilities, percentiles, realizations, ancillary or name
         self.diagnostic = None  # name
         self.relative_to_threshold = None  # for probability data only
         self.methods = ""  # human-readable interpretation of cell method(s)
-        self.post_processed = None  # "some" or "no" significant processing applied
+        self.post_processed = None  # True / False on whether significant processing applied
         self.model = None  # human-readable model name
         self.blended = None  # has it been model blended (True / False)
 
@@ -339,10 +339,10 @@ class MOMetadataInterpreter:
 
             try:
                 self.post_processed = (
-                    "some"
+                    True
                     if PP_TITLE_SUBSTR in attrs["title"]
                     or BLEND_TITLE_SUBSTR in attrs["title"]
-                    else "no"
+                    else False
                 )
             except KeyError:
                 self.errors.append("Cube is missing mandatory title attribute")
@@ -521,8 +521,9 @@ def display_interpretation(interpreter, verbose=False):
             if verbose:
                 rval.append(vstring("cell methods"))
 
+        ppstring = "some" if interpreter.post_processed else "no"
         rval.append(
-            f"It has undergone {interpreter.post_processed} significant post-processing"
+            f"It has undergone {ppstring} significant post-processing"
         )
         if verbose:
             rval.append(vstring("title attribute"))
