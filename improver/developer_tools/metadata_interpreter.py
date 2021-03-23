@@ -147,11 +147,15 @@ class MOMetadataInterpreter:
         self.warnings = []
         # initialise information to be derived from input cube
         self.prod_type = "gridded"  # gridded or spot
-        self.field_type = None  # probabilities, percentiles, realizations, ancillary or name
+        self.field_type = (
+            None  # probabilities, percentiles, realizations, ancillary or name
+        )
         self.diagnostic = None  # name
         self.relative_to_threshold = None  # for probability data only
         self.methods = ""  # human-readable interpretation of cell method(s)
-        self.post_processed = None  # True / False on whether significant processing applied
+        self.post_processed = (
+            None  # True / False on whether significant processing applied
+        )
         self.model = None  # human-readable model name
         self.blended = None  # has it been model blended (True / False)
 
@@ -522,9 +526,7 @@ def display_interpretation(interpreter, verbose=False):
                 rval.append(vstring("cell methods"))
 
         ppstring = "some" if interpreter.post_processed else "no"
-        rval.append(
-            f"It has undergone {ppstring} significant post-processing"
-        )
+        rval.append(f"It has undergone {ppstring} significant post-processing")
         if verbose:
             rval.append(vstring("title attribute"))
         return rval
