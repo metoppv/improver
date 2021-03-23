@@ -400,7 +400,9 @@ class MOMetadataInterpreter:
                 if cube.cell_methods:
                     expected = CellMethod(method="mean", coords="realization")
                     if len(cube.cell_methods) > 1 or cube.cell_methods[0] != expected:
-                        self.errors.append(f"Unexpected cell methods {cube.cell_methods}")
+                        self.errors.append(
+                            f"Unexpected cell methods {cube.cell_methods}"
+                        )
             else:
                 self.unhandled = True
                 return
@@ -475,12 +477,6 @@ class MOMetadataInterpreter:
         if self.errors:
             raise ValueError("\n".join(self.errors))
 
-        # 6) Tidy up formatting for string output where required
-        self.field_type = self.field_type.replace("_", " ")
-        self.diagnostic = self.diagnostic.replace("_", " ")
-        if self.relative_to_threshold:
-            self.relative_to_threshold = self.relative_to_threshold.replace("_", " ")
-
 
 def display_interpretation(interpreter, verbose=False):
     """Prints metadata interpretation in human-readable form
@@ -501,69 +497,64 @@ def display_interpretation(interpreter, verbose=False):
 
     def vstring(source_metadata):
         """Format additional message for verbose output"""
-        return f"    Source: {source_metadata}\n"
+        return f"    Source: {source_metadata}"
 
-    def format_non_SPECIAL_CASES(interpreter):
+    def format_standard_cases(interpreter):
         """Format prob / perc / diagnostic information"""
-        rval = ""
+        field_type = interpreter.field_type.replace("_", " ")
+        diagnostic = interpreter.diagnostic.replace("_", " ")
+        if interpreter.relative_to_threshold:
+            relative_to_threshold = interpreter.relative_to_threshold.replace("_", " ")
+
+        rval = []
         rtt = (
-            f" {interpreter.relative_to_threshold} thresholds"
+            f" {relative_to_threshold} thresholds"
             if interpreter.field_type == interpreter.PROB
             else ""
         )
-        rval += (
-            f"It contains {interpreter.field_type} of {interpreter.diagnostic}{rtt}\n"
-        )
+        rval.append(f"It contains {field_type} of {diagnostic}{rtt}")
         if verbose:
-            rval += vstring("name, threshold coordinate (probabilities only)")
+            rval.append(vstring("name, threshold coordinate (probabilities only)"))
 
         if interpreter.methods:
-            rval += (
-                f"These {interpreter.field_type} are of "
-                f"{interpreter.diagnostic}{interpreter.methods}\n"
-            )
+            rval.append(f"These {field_type} are of {diagnostic}{interpreter.methods}")
             if verbose:
-                rval += vstring("cell methods")
+                rval.append(vstring("cell methods"))
 
-        rval += f"It has undergone {interpreter.post_processed} significant post-processing\n"
+        rval.append(
+            f"It has undergone {interpreter.post_processed} significant post-processing"
+        )
         if verbose:
-            rval += vstring("title attribute")
+            rval.append(vstring("title attribute"))
         return rval
 
-    output_string = ""
-    output_string += (
-        f"This is a {interpreter.prod_type} {interpreter.field_type} file\n"
-    )
+    field_type = interpreter.field_type.replace("_", " ")
+    output = []
+    output.append(f"This is a {interpreter.prod_type} {field_type} file")
     if verbose:
-        output_string += vstring("name, coordinates")
+        output.append(vstring("name, coordinates"))
 
-    formatted_SPECIAL_CASES = [
-        exc_string.replace("_", " ") for exc_string in SPECIAL_CASES
-    ]
-    if interpreter.diagnostic not in formatted_SPECIAL_CASES:
-        output_string += format_non_SPECIAL_CASES(interpreter)
+    if interpreter.diagnostic not in SPECIAL_CASES:
+        output.extend(format_standard_cases(interpreter))
 
-    formatted_ancils = [exc_string.replace("_", " ") for exc_string in ANCILLARIES]
-    if interpreter.diagnostic in formatted_ancils:
-        output_string += f"This is a static ancillary with no time information\n"
+    if interpreter.diagnostic in ANCILLARIES:
+        output.append(f"This is a static ancillary with no time information")
     elif interpreter.blended:
-        output_string += f"It contains blended data from models: {interpreter.model}\n"
+        output.append(f"It contains blended data from models: {interpreter.model}")
         if verbose:
-            output_string += vstring("title attribute, model ID attribute")
+            output.append(vstring("title attribute, model ID attribute"))
     else:
         if interpreter.model:
-            output_string += f"It contains data from {interpreter.model}\n"
+            output.append(f"It contains data from {interpreter.model}")
             if verbose:
-                output_string += vstring("model ID attribute")
+                output.append(vstring("model ID attribute"))
         else:
-            output_string += (
-                "It has no source model information and cannot be blended\n"
-            )
+            output.append("It has no source model information and cannot be blended")
             if verbose:
-                output_string += vstring("model ID attribute (missing)")
+                output.append(vstring("model ID attribute (missing)"))
 
     if interpreter.warnings:
         warning_string = "\n".join(interpreter.warnings)
-        output_string += f"WARNINGS:\n{warning_string}"
+        output.append(f"WARNINGS:\n{warning_string}")
 
-    return output_string
+    return "\n".join(output)

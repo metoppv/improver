@@ -54,7 +54,7 @@ def test_probabilities_above(probability_above_cube, interpreter):
         "This is a gridded probabilities file\n"
         "It contains probabilities of air temperature greater than thresholds\n"
         "It has undergone some significant post-processing\n"
-        "It contains data from UKV\n"
+        "It contains data from UKV"
     )
     interpreter.run(probability_above_cube)
     result = display_interpretation(interpreter)
@@ -71,7 +71,7 @@ def test_verbose_probability(probability_above_cube, interpreter):
         "It has undergone some significant post-processing\n"
         "    Source: title attribute\n"
         "It contains data from UKV\n"
-        "    Source: model ID attribute\n"
+        "    Source: model ID attribute"
     )
     interpreter.run(probability_above_cube)
     result = display_interpretation(interpreter, verbose=True)
@@ -86,7 +86,7 @@ def test_probabilities_below(blended_probability_below_cube, interpreter):
         "It contains probabilities of air temperature less than thresholds\n"
         "These probabilities are of air temperature maximum over time\n"
         "It has undergone some significant post-processing\n"
-        "It contains blended data from models: UKV, MOGREPS-UK\n"
+        "It contains blended data from models: UKV, MOGREPS-UK"
     )
     interpreter.run(blended_probability_below_cube)
     result = display_interpretation(interpreter)
@@ -105,7 +105,7 @@ def test_verbose_with_cell_method(blended_probability_below_cube, interpreter):
         "It has undergone some significant post-processing\n"
         "    Source: title attribute\n"
         "It contains blended data from models: UKV, MOGREPS-UK\n"
-        "    Source: title attribute, model ID attribute\n"
+        "    Source: title attribute, model ID attribute"
     )
     interpreter.run(blended_probability_below_cube)
     result = display_interpretation(interpreter, verbose=True)
@@ -118,7 +118,7 @@ def test_percentiles(wind_gust_percentile_cube, interpreter):
         "This is a gridded percentiles file\n"
         "It contains percentiles of wind gust\n"
         "It has undergone no significant post-processing\n"
-        "It contains data from MOGREPS-UK\n"
+        "It contains data from MOGREPS-UK"
     )
     interpreter.run(wind_gust_percentile_cube)
     result = display_interpretation(interpreter)
@@ -131,7 +131,7 @@ def test_realizations(ensemble_cube, interpreter):
         "This is a gridded realizations file\n"
         "It contains realizations of air temperature\n"
         "It has undergone no significant post-processing\n"
-        "It contains data from MOGREPS-UK\n"
+        "It contains data from MOGREPS-UK"
     )
     interpreter.run(ensemble_cube)
     result = display_interpretation(interpreter)
@@ -145,7 +145,7 @@ def test_snow_level(snow_level_cube, interpreter):
         "This is a gridded realizations file\n"
         "It contains realizations of probability of snow falling level below ground level\n"
         "It has undergone some significant post-processing\n"
-        "It has no source model information and cannot be blended\n"
+        "It has no source model information and cannot be blended"
     )
     interpreter.run(snow_level_cube)
     result = display_interpretation(interpreter)
@@ -158,7 +158,7 @@ def test_spot_median(blended_spot_median_cube, interpreter):
         "This is a spot percentiles file\n"
         "It contains percentiles of air temperature\n"
         "It has undergone some significant post-processing\n"
-        "It contains blended data from models: UKV, MOGREPS-UK\n"
+        "It contains blended data from models: UKV, MOGREPS-UK"
     )
     interpreter.run(blended_spot_median_cube)
     result = display_interpretation(interpreter)
@@ -169,7 +169,7 @@ def test_static_ancillary(landmask_cube, interpreter):
     """Test interpretation of static ancillary"""
     expected_result = (
         "This is a gridded ancillary file\n"
-        "This is a static ancillary with no time information\n"
+        "This is a static ancillary with no time information"
     )
     interpreter.run(landmask_cube)
     result = display_interpretation(interpreter)
@@ -180,7 +180,7 @@ def test_weather_code(wxcode_cube, interpreter):
     """Test interpretation of weather code field"""
     expected_result = (
         "This is a gridded weather code file\n"
-        "It contains blended data from models: UKV, MOGREPS-UK\n"
+        "It contains blended data from models: UKV, MOGREPS-UK"
     )
     interpreter.run(wxcode_cube)
     result = display_interpretation(interpreter)
@@ -192,7 +192,7 @@ def test_wind_direction(wind_direction_cube, interpreter):
     cell method"""
     expected_result = (
         "This is a gridded wind from direction file\n"
-        "It contains data from MOGREPS-UK\n"
+        "It contains data from MOGREPS-UK"
     )
     interpreter.run(wind_direction_cube)
     result = display_interpretation(interpreter)

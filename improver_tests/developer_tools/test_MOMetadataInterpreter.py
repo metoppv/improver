@@ -55,8 +55,8 @@ def test_probabilities_above(probability_above_cube, interpreter):
     interpreter.run(probability_above_cube)
     assert interpreter.prod_type == "gridded"
     assert interpreter.field_type == "probabilities"
-    assert interpreter.diagnostic == "air temperature"
-    assert interpreter.relative_to_threshold == "greater than"
+    assert interpreter.diagnostic == "air_temperature"
+    assert interpreter.relative_to_threshold == "greater_than"
     assert not interpreter.methods
     assert interpreter.post_processed == "some"
     assert interpreter.model == "UKV"
@@ -70,8 +70,8 @@ def test_probabilities_below(blended_probability_below_cube, interpreter):
     interpreter.run(blended_probability_below_cube)
     assert interpreter.prod_type == "gridded"
     assert interpreter.field_type == "probabilities"
-    assert interpreter.diagnostic == "air temperature"
-    assert interpreter.relative_to_threshold == "less than"
+    assert interpreter.diagnostic == "air_temperature"
+    assert interpreter.relative_to_threshold == "less_than"
     assert interpreter.methods == " maximum over time"
     assert interpreter.post_processed == "some"
     assert interpreter.model == "UKV, MOGREPS-UK"
@@ -84,7 +84,7 @@ def test_percentiles(wind_gust_percentile_cube, interpreter):
     interpreter.run(wind_gust_percentile_cube)
     assert interpreter.prod_type == "gridded"
     assert interpreter.field_type == "percentiles"
-    assert interpreter.diagnostic == "wind gust"
+    assert interpreter.diagnostic == "wind_gust"
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
     assert interpreter.post_processed == "no"
@@ -98,7 +98,7 @@ def test_realizations(ensemble_cube, interpreter):
     interpreter.run(ensemble_cube)
     assert interpreter.prod_type == "gridded"
     assert interpreter.field_type == "realizations"
-    assert interpreter.diagnostic == "air temperature"
+    assert interpreter.diagnostic == "air_temperature"
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
     assert interpreter.post_processed == "no"
@@ -114,7 +114,7 @@ def test_snow_level(snow_level_cube, interpreter):
     assert interpreter.prod_type == "gridded"
     assert interpreter.field_type == "realizations"
     assert (
-        interpreter.diagnostic == "probability of snow falling level below ground level"
+        interpreter.diagnostic == "probability_of_snow_falling_level_below_ground_level"
     )
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
@@ -129,7 +129,7 @@ def test_spot_median(blended_spot_median_cube, interpreter):
     interpreter.run(blended_spot_median_cube)
     assert interpreter.prod_type == "spot"
     assert interpreter.field_type == "percentiles"
-    assert interpreter.diagnostic == "air temperature"
+    assert interpreter.diagnostic == "air_temperature"
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
     assert interpreter.post_processed == "some"
@@ -143,7 +143,7 @@ def test_static_ancillary(landmask_cube, interpreter):
     interpreter.run(landmask_cube)
     assert interpreter.prod_type == "gridded"
     assert interpreter.field_type == "ancillary"
-    assert interpreter.diagnostic == "land binary mask"
+    assert interpreter.diagnostic == "land_binary_mask"
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
     assert interpreter.post_processed is None
@@ -347,7 +347,7 @@ def test_error_time_coordinate_units(probability_above_cube, interpreter):
 def test_weather_code_success(wxcode_cube, interpreter):
     """Test interpretation of weather code field"""
     interpreter.run(wxcode_cube)
-    assert interpreter.diagnostic == "weather code"
+    assert interpreter.diagnostic == "weather_code"
     assert interpreter.model == "UKV, MOGREPS-UK"
     assert interpreter.blended
 
@@ -392,7 +392,7 @@ def test_wind_direction_success(wind_direction_cube, interpreter):
     """Test interpretation of wind direction field with mean over realizations
     cell method"""
     interpreter.run(wind_direction_cube)
-    assert interpreter.diagnostic == "wind from direction"
+    assert interpreter.diagnostic == "wind_from_direction"
     assert interpreter.model == "MOGREPS-UK"
     assert not interpreter.blended
 
