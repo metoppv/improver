@@ -31,12 +31,12 @@
 """Script to output metadata interpretation against Met Office IMPROVER standard"""
 
 import argparse
+from iris import load
 
 from improver.developer_tools.metadata_interpreter import (
     MOMetadataInterpreter,
     display_interpretation,
 )
-from improver.utilities.load import load_cube
 
 
 def main(filepath, verbose=False):
@@ -50,24 +50,31 @@ def main(filepath, verbose=False):
         filepath (str):
             Full path to input NetCDF file
         verbose (bool):
-            Boolean flag to output more information about sources of metadata
+            Boolean flag to output information about sources of metadata
             interpretation
 
     Raises:
         ValueError: various: if metadata are internally inconsistent or do not
             match the expected standard
     """
-    cube = load_cube(filepath)
-    interpreter = MOMetadataInterpreter()
-    interpreter.run(cube)
-    output = display_interpretation(interpreter, verbose)
-    print(output)
+    cubes = load(filepath)
+
+    for cube in cubes:
+        interpreter = MOMetadataInterpreter()
+        interpreter.run(cube)
+        output = display_interpretation(interpreter, verbose)
+        print(output)
 
 
 if __name__ == "__main__":
     """Parse arguments and call"""
     parser = argparse.ArgumentParser(description="Interpret metadata")
     parser.add_argument("filepath", help="Full path to input NetCDF file")
-    parser.add_argument("--verbose", action="store_true", default=False)
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        default=False,
+        help="Boolean flag to output information about sources of metadata interpretation",
+    )
     args = parser.parse_args()
-    main(args.filepath, args.verbose)
+    main(args.filepath, verbose=args.verbose)

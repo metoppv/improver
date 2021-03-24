@@ -268,7 +268,7 @@ def test_warning_unexpected_attributes(wind_gust_percentile_cube, interpreter):
     interpreter.run(wind_gust_percentile_cube)
     assert interpreter.warnings == [
         "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
-        "'wind_gust_diagnostic', 'enigma']) include unexpected attributes. "
+        "'wind_gust_diagnostic', 'enigma']) include unexpected attributes ['enigma']. "
         "Please check the standard to ensure this is valid."
     ]
 
@@ -381,9 +381,10 @@ def test_warning_unexpected_attribute_wrong_diagnostic(
     on an unexpected diagnostic"""
     wind_gust_percentile_cube.rename("wind_speed")
     interpreter.run(wind_gust_percentile_cube)
+    print(interpreter.warnings)
     assert interpreter.warnings == [
         "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
-        "'wind_gust_diagnostic']) include unexpected attributes. "
+        "'wind_gust_diagnostic']) include unexpected attributes ['wind_gust_diagnostic']. "
         "Please check the standard to ensure this is valid."
     ]
 

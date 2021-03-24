@@ -184,7 +184,7 @@ class MOMetadataInterpreter:
                 threshold_name = find_threshold_coordinate(cube).name()
             except CoordinateNotFoundError:
                 coords = [coord.name() for coord in cube.coords()]
-                msg = (
+                msg += (
                     f"no coord with var_name='threshold' found in all coords: {coords}"
                 )
                 self.errors.append(msg)
@@ -201,8 +201,7 @@ class MOMetadataInterpreter:
     def check_threshold_coordinate_properties(self, cube_name, threshold_coord):
         """Checks threshold coordinate properties are correct and consistent with
         cube name"""
-        threshold_var_name = threshold_coord.var_name
-        if threshold_var_name != "threshold":
+        if threshold_coord.var_name != "threshold":
             self.errors.append(
                 f"Threshold coord {threshold_coord.name()} does not have "
                 "var_name='threshold'"
@@ -234,8 +233,7 @@ class MOMetadataInterpreter:
 
     def check_cell_methods(self, cube):
         """Checks cell methods are permitted and correct"""
-        cell_methods = cube.cell_methods
-        for cm in cell_methods:
+        for cm in cube.cell_methods:
             if cm.method in COMP_CM_METHODS:
                 self.methods += f" {cm.method} over {cm.coord_names[0]}"
                 if self.field_type == self.PROB:
@@ -249,17 +247,8 @@ class MOMetadataInterpreter:
                     if cube.coord("time").bounds is None:
                         self.errors.append(f"Cube of{self.methods} has no time bounds")
                     else:
-                        upper_bounds = [
-                            bounds[1] for bounds in cube.coord("time").bounds
-                        ]
-                        if not all(
-                            [
-                                point == bounds
-                                for point, bounds in zip(
-                                    cube.coord("time").points, upper_bounds
-                                )
-                            ]
-                        ):
+                        upper_bounds = cube.coord("time").bounds[..., 1]
+                        if not (cube.coord("time").points == upper_bounds).all():
                             self.errors.append(
                                 "Time points should be equal to upper bounds"
                             )
@@ -310,20 +299,21 @@ class MOMetadataInterpreter:
     def check_attributes(self, attrs):
         """Checks for unexpected attributes, then interprets values for model
         information and checks for self-consistency"""
-        try:
+        if self.diagnostic in DIAG_ATTRS:
             permitted_attributes = COMP_ATTRS + DIAG_ATTRS[self.diagnostic]
-        except KeyError:
+        else:
             permitted_attributes = COMP_ATTRS.copy()
 
         if any([attr in NONCOMP_ATTRS for attr in attrs]):
             self.errors.append(
                 f"Attributes {attrs.keys()} include one or more forbidden "
-                f"values {NONCOMP_ATTRS}"
+                f"values {[attr for attr in attrs if attr in NONCOMP_ATTRS]}"
             )
         elif any([attr not in permitted_attributes for attr in attrs]):
             self.warnings.append(
-                f"{attrs.keys()} include unexpected attributes. Please check the "
-                "standard to ensure this is valid."
+                f"{attrs.keys()} include unexpected attributes "
+                f"{[attr for attr in attrs if attr not in permitted_attributes]}. "
+                "Please check the standard to ensure this is valid."
             )
 
         if self.diagnostic in DIAG_ATTRS:
@@ -331,26 +321,24 @@ class MOMetadataInterpreter:
             if any([req not in attrs for req in required]):
                 self.errors.append(
                     f"Attributes {attrs.keys()} missing one or more required "
-                    f"values {required}"
+                    f"values {[req for req in required if req not in attrs]}"
                 )
 
         if self.field_type != self.ANCIL:
             if not all([attr in attrs for attr in MANDATORY_ATTRIBUTES]):
                 self.errors.append(
-                    f"Attributes {attrs.keys()} missing one or more mandatory "
-                    f"values {MANDATORY_ATTRIBUTES}"
+                    f"Attributes {attrs.keys()} missing one or more mandatory values "
+                    f"{[req for req in MANDATORY_ATTRIBUTES if req not in attrs]}"
                 )
 
-            try:
+            if "title" in attrs:
                 self.post_processed = (
                     True
                     if PP_TITLE_SUBSTR in attrs["title"]
                     or BLEND_TITLE_SUBSTR in attrs["title"]
                     else False
                 )
-            except KeyError:
-                self.errors.append("Cube is missing mandatory title attribute")
-            else:
+                # determination of whether file is blended depends on title
                 self._check_blend_and_model_attributes(attrs)
 
     def _check_coords_present(self, coords, expected_coords):
@@ -365,15 +353,12 @@ class MOMetadataInterpreter:
     def check_spot_data(self, cube, coords):
         """Check spot coordinates"""
         self.prod_type = "spot"
-        try:
+        if "title" in cube.attributes:
             if SPOT_TITLE_SUBSTR not in cube.attributes["title"]:
                 self.errors.append(
                     f"Title attribute {cube.attributes['title']} is not "
                     "consistent with spot data"
                 )
-        except KeyError:
-            # missing title attribute is picked up in attribute checks - ignore here
-            pass
 
         self._check_coords_present(coords, SPOT_COORDS)
 
