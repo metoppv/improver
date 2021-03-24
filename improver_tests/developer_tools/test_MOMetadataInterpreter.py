@@ -33,19 +33,18 @@
 import numpy as np
 import pytest
 from iris.coords import CellMethod
-from iris.util import promote_aux_coord_to_dim_coord
 
 from improver_tests.developer_tools import (
-    ensemble_fixture,
-    interpreter_fixture,
-    landmask_fixture,
-    percentile_fixture,
-    probability_above_fixture,
-    probability_below_fixture,
-    snow_level_fixture,
-    spot_fixture,
-    wind_direction_fixture,
-    wxcode_fixture,
+    ensemble_fixture,  # ensemble_cube
+    interpreter_fixture,  # interpreter
+    landmask_fixture,  # landmask_cube
+    percentile_fixture,  # wind_gust_percentile_cube
+    probability_above_fixture,  # probability_above_cube
+    probability_below_fixture,  # blended_probability_below_cube
+    snow_level_fixture,  # snow_level_cube
+    spot_fixture,  # blended_spot_median_cube
+    wind_direction_fixture,  # wind_direction_cube
+    wxcode_fixture,  # wxcode_cube
 )
 
 

@@ -47,11 +47,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.wxcode.utilities import weather_code_attributes
 
 
-@pytest.fixture(name="interpreter")
-def interpreter_fixture():
-    return MOMetadataInterpreter()
-
-
 def _update_blended_time_coords(cube):
     """Replace forecast period and forecast reference time with blend time
     on blended cubes (to be updated in setup utilities once standard is
@@ -61,6 +56,53 @@ def _update_blended_time_coords(cube):
     cube.add_aux_coord(blend_time)
     cube.remove_coord("forecast_period")
     cube.remove_coord("forecast_reference_time")
+
+
+@pytest.fixture(name="ensemble_cube")
+def ensemble_fixture():
+    """Raw air temperature ensemble in realization space"""
+    data = 285 * np.ones((3, 3, 3), dtype=np.float32)
+    attributes = {
+        "source": "Met Office Unified Model",
+        "title": "MOGREPS-UK Model Forecast on 2 km Standard Grid",
+        "institution": "Met Office",
+        "mosg__model_configuration": "uk_ens",
+    }
+    return set_up_variable_cube(data, attributes=attributes)
+
+
+@pytest.fixture(name="interpreter")
+def interpreter_fixture():
+    return MOMetadataInterpreter()
+
+
+@pytest.fixture(name="landmask_cube")
+def landmask_fixture():
+    """Static ancillary cube (no attributes or time coordinates)"""
+    data = np.arange(9).reshape(3, 3).astype(np.float32)
+    cube = set_up_variable_cube(data, name="land_binary_mask", units="1")
+    for coord in ["time", "forecast_reference_time", "forecast_period"]:
+        cube.remove_coord(coord)
+    return cube
+
+
+@pytest.fixture(name="wind_gust_percentile_cube")
+def percentile_fixture():
+    """Percentiles of wind gust from MOGREPS-UK"""
+    data = np.array(
+        [[[2, 4], [4, 2]], [[5, 8], [6, 6]], [[12, 16], [16, 15]]], dtype=np.float32
+    )
+    percentiles = np.array([10, 50, 90], dtype=np.float32)
+    attributes = {
+        "source": "Met Office Unified Model",
+        "title": "MOGREPS-UK Model Forecast on 2 km Standard Grid",
+        "institution": "Met Office",
+        "mosg__model_configuration": "uk_ens",
+        "wind_gust_diagnostic": "Typical gusts",
+    }
+    return set_up_percentile_cube(
+        data, percentiles, name="wind_gust", units="m s-1", attributes=attributes
+    )
 
 
 @pytest.fixture(name="probability_above_cube")
@@ -102,38 +144,6 @@ def probability_below_fixture():
         cube.coord("time").points[0],
     ]
     return cube
-
-
-@pytest.fixture(name="wind_gust_percentile_cube")
-def percentile_fixture():
-    """Percentiles of wind gust from MOGREPS-UK"""
-    data = np.array(
-        [[[2, 4], [4, 2]], [[5, 8], [6, 6]], [[12, 16], [16, 15]]], dtype=np.float32
-    )
-    percentiles = np.array([10, 50, 90], dtype=np.float32)
-    attributes = {
-        "source": "Met Office Unified Model",
-        "title": "MOGREPS-UK Model Forecast on 2 km Standard Grid",
-        "institution": "Met Office",
-        "mosg__model_configuration": "uk_ens",
-        "wind_gust_diagnostic": "Typical gusts",
-    }
-    return set_up_percentile_cube(
-        data, percentiles, name="wind_gust", units="m s-1", attributes=attributes
-    )
-
-
-@pytest.fixture(name="ensemble_cube")
-def ensemble_fixture():
-    """Raw air temperature ensemble in realization space"""
-    data = 285 * np.ones((3, 3, 3), dtype=np.float32)
-    attributes = {
-        "source": "Met Office Unified Model",
-        "title": "MOGREPS-UK Model Forecast on 2 km Standard Grid",
-        "institution": "Met Office",
-        "mosg__model_configuration": "uk_ens",
-    }
-    return set_up_variable_cube(data, attributes=attributes)
 
 
 @pytest.fixture(name="snow_level_cube")
@@ -183,24 +193,6 @@ def spot_fixture():
     return spot_cube
 
 
-@pytest.fixture(name="wxcode_cube")
-def wxcode_fixture():
-    """Weather symbols cube (randomly sampled data in expected range)"""
-    data = np.random.randint(0, high=31, size=(3, 3))
-    attributes = {
-        "source": "IMPROVER",
-        "institution": "Met Office",
-        "title": "IMPROVER Post-Processed Multi-Model Blend on 2 km Standard Grid",
-        "mosg__model_configuration": "uk_det uk_ens",
-    }
-    attributes.update(weather_code_attributes())
-    cube = set_up_variable_cube(
-        data, name="weather_code", units="1", attributes=attributes
-    )
-    _update_blended_time_coords(cube)
-    return cube
-
-
 @pytest.fixture(name="wind_direction_cube")
 def wind_direction_fixture():
     """Wind direction cube from MOGREPS-UK"""
@@ -218,11 +210,19 @@ def wind_direction_fixture():
     return cube
 
 
-@pytest.fixture(name="landmask_cube")
-def landmask_fixture():
-    """Static ancillary cube (no attributes or time coordinates)"""
-    data = np.arange(9).reshape(3, 3).astype(np.float32)
-    cube = set_up_variable_cube(data, name="land_binary_mask", units="1")
-    for coord in ["time", "forecast_reference_time", "forecast_period"]:
-        cube.remove_coord(coord)
+@pytest.fixture(name="wxcode_cube")
+def wxcode_fixture():
+    """Weather symbols cube (randomly sampled data in expected range)"""
+    data = np.random.randint(0, high=31, size=(3, 3))
+    attributes = {
+        "source": "IMPROVER",
+        "institution": "Met Office",
+        "title": "IMPROVER Post-Processed Multi-Model Blend on 2 km Standard Grid",
+        "mosg__model_configuration": "uk_det uk_ens",
+    }
+    attributes.update(weather_code_attributes())
+    cube = set_up_variable_cube(
+        data, name="weather_code", units="1", attributes=attributes
+    )
+    _update_blended_time_coords(cube)
     return cube

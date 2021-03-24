@@ -34,17 +34,72 @@ import pytest
 
 from improver.developer_tools.metadata_interpreter import display_interpretation
 from improver_tests.developer_tools import (
-    ensemble_fixture,
-    interpreter_fixture,
-    landmask_fixture,
-    percentile_fixture,
-    probability_above_fixture,
-    probability_below_fixture,
-    snow_level_fixture,
-    spot_fixture,
-    wind_direction_fixture,
-    wxcode_fixture,
+    ensemble_fixture,  # ensemble_cube
+    interpreter_fixture,  # interpreter
+    landmask_fixture,  # landmask_cube
+    percentile_fixture,  # wind_gust_percentile_cube
+    probability_above_fixture,  # probability_above_cube
+    probability_below_fixture,  # blended_probability_below_cube
+    snow_level_fixture,  # snow_level_cube
+    spot_fixture,  # blended_spot_median_cube
+    wind_direction_fixture,  # wind_direction_cube
+    wxcode_fixture,  # wxcode_cube
 )
+
+
+def test_realizations(ensemble_cube, interpreter):
+    """Test interpretation of temperature realizations from MOGREPS-UK"""
+    expected_result = (
+        "This is a gridded realizations file\n"
+        "It contains realizations of air temperature\n"
+        "It has undergone no significant post-processing\n"
+        "It contains data from MOGREPS-UK"
+    )
+    interpreter.run(ensemble_cube)
+    result = display_interpretation(interpreter)
+    assert result == expected_result
+
+
+def test_static_ancillary(landmask_cube, interpreter):
+    """Test interpretation of static ancillary"""
+    expected_result = (
+        "This is a gridded ancillary file\n"
+        "This is a static ancillary with no time information"
+    )
+    interpreter.run(landmask_cube)
+    result = display_interpretation(interpreter)
+    assert result == expected_result
+
+
+def test_percentiles(wind_gust_percentile_cube, interpreter):
+    """Test interpretation of wind gust percentiles from MOGREPS-UK"""
+    expected_result = (
+        "This is a gridded percentiles file\n"
+        "It contains percentiles of wind gust\n"
+        "It has undergone no significant post-processing\n"
+        "It contains data from MOGREPS-UK"
+    )
+    interpreter.run(wind_gust_percentile_cube)
+    result = display_interpretation(interpreter)
+    assert result == expected_result
+
+
+def test_warnings_displayed(wind_gust_percentile_cube, interpreter):
+    """Test any warnings are appended to the end of the displayed output"""
+    expected_result = (
+        "This is a gridded percentiles file\n"
+        "It contains percentiles of wind gust\n"
+        "It has undergone no significant post-processing\n"
+        "It contains data from MOGREPS-UK\n"
+        "WARNINGS:\n"
+        "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
+        "'wind_gust_diagnostic', 'enigma']) include unexpected attributes ['enigma']. "
+        "Please check the standard to ensure this is valid."
+    )
+    wind_gust_percentile_cube.attributes["enigma"] = "intriguing and mysterious details"
+    interpreter.run(wind_gust_percentile_cube)
+    result = display_interpretation(interpreter)
+    assert result == expected_result
 
 
 def test_probabilities_above(probability_above_cube, interpreter):
@@ -112,32 +167,6 @@ def test_verbose_with_cell_method(blended_probability_below_cube, interpreter):
     assert result == expected_result
 
 
-def test_percentiles(wind_gust_percentile_cube, interpreter):
-    """Test interpretation of wind gust percentiles from MOGREPS-UK"""
-    expected_result = (
-        "This is a gridded percentiles file\n"
-        "It contains percentiles of wind gust\n"
-        "It has undergone no significant post-processing\n"
-        "It contains data from MOGREPS-UK"
-    )
-    interpreter.run(wind_gust_percentile_cube)
-    result = display_interpretation(interpreter)
-    assert result == expected_result
-
-
-def test_realizations(ensemble_cube, interpreter):
-    """Test interpretation of temperature realizations from MOGREPS-UK"""
-    expected_result = (
-        "This is a gridded realizations file\n"
-        "It contains realizations of air temperature\n"
-        "It has undergone no significant post-processing\n"
-        "It contains data from MOGREPS-UK"
-    )
-    interpreter.run(ensemble_cube)
-    result = display_interpretation(interpreter)
-    assert result == expected_result
-
-
 def test_snow_level(snow_level_cube, interpreter):
     """Test interpretation of a diagnostic cube with "probability" in the name,
     which is not designed for blending with other models"""
@@ -165,28 +194,6 @@ def test_spot_median(blended_spot_median_cube, interpreter):
     assert result == expected_result
 
 
-def test_static_ancillary(landmask_cube, interpreter):
-    """Test interpretation of static ancillary"""
-    expected_result = (
-        "This is a gridded ancillary file\n"
-        "This is a static ancillary with no time information"
-    )
-    interpreter.run(landmask_cube)
-    result = display_interpretation(interpreter)
-    assert result == expected_result
-
-
-def test_weather_code(wxcode_cube, interpreter):
-    """Test interpretation of weather code field"""
-    expected_result = (
-        "This is a gridded weather code file\n"
-        "It contains blended data from models: UKV, MOGREPS-UK"
-    )
-    interpreter.run(wxcode_cube)
-    result = display_interpretation(interpreter)
-    assert result == expected_result
-
-
 def test_wind_direction(wind_direction_cube, interpreter):
     """Test interpretation of wind direction field with mean over realizations
     cell method"""
@@ -199,19 +206,12 @@ def test_wind_direction(wind_direction_cube, interpreter):
     assert result == expected_result
 
 
-def test_warnings_displayed(wind_gust_percentile_cube, interpreter):
-    """Test any warnings are appended to the end of the displayed output"""
+def test_weather_code(wxcode_cube, interpreter):
+    """Test interpretation of weather code field"""
     expected_result = (
-        "This is a gridded percentiles file\n"
-        "It contains percentiles of wind gust\n"
-        "It has undergone no significant post-processing\n"
-        "It contains data from MOGREPS-UK\n"
-        "WARNINGS:\n"
-        "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
-        "'wind_gust_diagnostic', 'enigma']) include unexpected attributes ['enigma']. "
-        "Please check the standard to ensure this is valid."
+        "This is a gridded weather code file\n"
+        "It contains blended data from models: UKV, MOGREPS-UK"
     )
-    wind_gust_percentile_cube.attributes["enigma"] = "intriguing and mysterious details"
-    interpreter.run(wind_gust_percentile_cube)
+    interpreter.run(wxcode_cube)
     result = display_interpretation(interpreter)
     assert result == expected_result
