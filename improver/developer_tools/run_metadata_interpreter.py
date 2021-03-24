@@ -31,6 +31,7 @@
 """Script to output metadata interpretation against Met Office IMPROVER standard"""
 
 import argparse
+
 from iris import load
 
 from improver.developer_tools.metadata_interpreter import (

@@ -34,47 +34,60 @@ import numpy as np
 import pytest
 from iris.coords import CellMethod
 
+from improver_tests.developer_tools import ensemble_fixture  # ensemble_cube
+from improver_tests.developer_tools import interpreter_fixture  # interpreter
+from improver_tests.developer_tools import landmask_fixture  # landmask_cube
 from improver_tests.developer_tools import (
-    ensemble_fixture,  # ensemble_cube
-    interpreter_fixture,  # interpreter
-    landmask_fixture,  # landmask_cube
-    percentile_fixture,  # wind_gust_percentile_cube
-    probability_above_fixture,  # probability_above_cube
-    probability_below_fixture,  # blended_probability_below_cube
-    snow_level_fixture,  # snow_level_cube
-    spot_fixture,  # blended_spot_median_cube
-    wind_direction_fixture,  # wind_direction_cube
-    wxcode_fixture,  # wxcode_cube
+    percentile_fixture,  # wind_gust_percentile_cube,
 )
+from improver_tests.developer_tools import (
+    probability_above_fixture,  # probability_above_cube,
+)
+from improver_tests.developer_tools import (
+    probability_below_fixture,  # blended_probability_below_cube,
+)
+from improver_tests.developer_tools import snow_level_fixture  # snow_level_cube
+from improver_tests.developer_tools import spot_fixture  # blended_spot_median_cube
+from improver_tests.developer_tools import wind_direction_fixture  # wind_direction_cube
+from improver_tests.developer_tools import wxcode_fixture  # wxcode_cube
+
+## Test successful outputs (input cubes in alphabetical order by fixture)
 
 
-def test_probabilities_above(probability_above_cube, interpreter):
-    """Test interpretation of probability of temperature above threshold
-    from UKV"""
-    interpreter.run(probability_above_cube)
+def test_realizations(ensemble_cube, interpreter):
+    """Test interpretation of temperature realizations from MOGREPS-UK"""
+    interpreter.run(ensemble_cube)
     assert interpreter.prod_type == "gridded"
-    assert interpreter.field_type == "probabilities"
+    assert interpreter.field_type == "realizations"
     assert interpreter.diagnostic == "air_temperature"
-    assert interpreter.relative_to_threshold == "greater_than"
+    assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
-    assert interpreter.post_processed
-    assert interpreter.model == "UKV"
+    assert not interpreter.post_processed
+    assert interpreter.model == "MOGREPS-UK"
     assert not interpreter.blended
     assert not interpreter.warnings
 
 
-def test_probabilities_below(blended_probability_below_cube, interpreter):
-    """Test interpretation of blended probability of max temperature in hour
-    below threshold"""
-    interpreter.run(blended_probability_below_cube)
+def test_improver_in_title(ensemble_cube, interpreter):
+    """Test that an unblended title including 'IMPROVER' rather than a model name
+    does not cause an error, and that the source model is still identified via the
+    appropriate attribute"""
+    ensemble_cube.attributes["title"].replace("MOGREPS-UK", "IMPROVER")
+    interpreter.run(ensemble_cube)
+    assert interpreter.model == "MOGREPS-UK"
+
+
+def test_static_ancillary(landmask_cube, interpreter):
+    """Test interpretation of static ancillary"""
+    interpreter.run(landmask_cube)
     assert interpreter.prod_type == "gridded"
-    assert interpreter.field_type == "probabilities"
-    assert interpreter.diagnostic == "air_temperature"
-    assert interpreter.relative_to_threshold == "less_than"
-    assert interpreter.methods == " maximum over time"
-    assert interpreter.post_processed
-    assert interpreter.model == "UKV, MOGREPS-UK"
-    assert interpreter.blended
+    assert interpreter.field_type == "ancillary"
+    assert interpreter.diagnostic == "land_binary_mask"
+    assert interpreter.relative_to_threshold is None
+    assert not interpreter.methods
+    assert interpreter.post_processed is None
+    assert interpreter.model is None
+    assert not interpreter.blended
     assert not interpreter.warnings
 
 
@@ -92,17 +105,43 @@ def test_percentiles(wind_gust_percentile_cube, interpreter):
     assert not interpreter.warnings
 
 
-def test_realizations(ensemble_cube, interpreter):
-    """Test interpretation of temperature realizations from MOGREPS-UK"""
-    interpreter.run(ensemble_cube)
+def test_probabilities_above(probability_above_cube, interpreter):
+    """Test interpretation of probability of temperature above threshold
+    from UKV"""
+    interpreter.run(probability_above_cube)
     assert interpreter.prod_type == "gridded"
-    assert interpreter.field_type == "realizations"
+    assert interpreter.field_type == "probabilities"
     assert interpreter.diagnostic == "air_temperature"
-    assert interpreter.relative_to_threshold is None
+    assert interpreter.relative_to_threshold == "greater_than"
     assert not interpreter.methods
-    assert not interpreter.post_processed
-    assert interpreter.model == "MOGREPS-UK"
+    assert interpreter.post_processed
+    assert interpreter.model == "UKV"
     assert not interpreter.blended
+    assert not interpreter.warnings
+
+
+def test_handles_duplicate_model_string(probability_above_cube, interpreter):
+    """Test the interpreter can distinguish between the Global Model and the
+    Global Grid in cube titles"""
+    probability_above_cube.attributes[
+        "title"
+    ] = "UKV Model Forecast on Global 10 km Standard Grid"
+    interpreter.run(probability_above_cube)
+    assert interpreter.model == "UKV"
+
+
+def test_probabilities_below(blended_probability_below_cube, interpreter):
+    """Test interpretation of blended probability of max temperature in hour
+    below threshold"""
+    interpreter.run(blended_probability_below_cube)
+    assert interpreter.prod_type == "gridded"
+    assert interpreter.field_type == "probabilities"
+    assert interpreter.diagnostic == "air_temperature"
+    assert interpreter.relative_to_threshold == "less_than"
+    assert interpreter.methods == " maximum over time"
+    assert interpreter.post_processed
+    assert interpreter.model == "UKV, MOGREPS-UK"
+    assert interpreter.blended
     assert not interpreter.warnings
 
 
@@ -137,28 +176,79 @@ def test_spot_median(blended_spot_median_cube, interpreter):
     assert not interpreter.warnings
 
 
-def test_static_ancillary(landmask_cube, interpreter):
-    """Test interpretation of static ancillary"""
-    interpreter.run(landmask_cube)
-    assert interpreter.prod_type == "gridded"
-    assert interpreter.field_type == "ancillary"
-    assert interpreter.diagnostic == "land_binary_mask"
-    assert interpreter.relative_to_threshold is None
-    assert not interpreter.methods
-    assert interpreter.post_processed is None
-    assert interpreter.model is None
+def test_wind_direction(wind_direction_cube, interpreter):
+    """Test interpretation of wind direction field with mean over realizations
+    cell method"""
+    interpreter.run(wind_direction_cube)
+    assert interpreter.diagnostic == "wind_from_direction"
+    assert interpreter.model == "MOGREPS-UK"
     assert not interpreter.blended
-    assert not interpreter.warnings
 
 
-def test_handles_duplicate_model_string(probability_above_cube, interpreter):
-    """Test the interpreter can distinguish between the Global Model and the
-    Global Grid in cube titles"""
-    probability_above_cube.attributes[
-        "title"
-    ] = "UKV Model Forecast on Global 10 km Standard Grid"
-    interpreter.run(probability_above_cube)
-    assert interpreter.model == "UKV"
+def test_weather_code(wxcode_cube, interpreter):
+    """Test interpretation of weather code field"""
+    interpreter.run(wxcode_cube)
+    assert interpreter.diagnostic == "weather_code"
+    assert interpreter.model == "UKV, MOGREPS-UK"
+    assert interpreter.blended
+
+
+## Test errors and warnings (input cubes in alphabetical order by fixture)
+
+
+def test_error_inconsistent_model_attributes(ensemble_cube, interpreter):
+    """Test error raised when the model ID and title attributes are inconsistent"""
+    ensemble_cube.attributes["mosg__model_configuration"] = "uk_det"
+    with pytest.raises(ValueError, match="Title.*is inconsistent with model ID"):
+        interpreter.run(ensemble_cube)
+
+
+def test_error_wrong_percentile_name_units(wind_gust_percentile_cube, interpreter):
+    """Test incorrect percentile coordinate name and units"""
+    wind_gust_percentile_cube.coord("percentile").units = "1"
+    wind_gust_percentile_cube.coord("percentile").rename("percentile_over_realization")
+    msg = (
+        ".*should have name percentile, has percentile_over_realization\n"
+        ".*should have units of %, has 1"
+    )
+    with pytest.raises(ValueError, match=msg):
+        interpreter.run(wind_gust_percentile_cube)
+
+
+def test_error_forbidden_attributes(wind_gust_percentile_cube, interpreter):
+    """Test error raised when a forbidden attribute is present"""
+    wind_gust_percentile_cube.attributes["mosg__forecast_run_duration"] = "wrong"
+    with pytest.raises(ValueError, match="Attributes.*include.*forbidden values"):
+        interpreter.run(wind_gust_percentile_cube)
+
+
+def test_error_missing_required_attribute(wind_gust_percentile_cube, interpreter):
+    """Test error raised when a mandatory attribute is missing"""
+    wind_gust_percentile_cube.attributes.pop("source")
+    with pytest.raises(ValueError, match="missing.*mandatory values"):
+        interpreter.run(wind_gust_percentile_cube)
+
+
+def test_error_missing_wind_gust_attribute(wind_gust_percentile_cube, interpreter):
+    """Test error when a wind gust percentile cube is missing a required attribute"""
+    wind_gust_percentile_cube.attributes.pop("wind_gust_diagnostic")
+    with pytest.raises(ValueError, match="missing .* required values"):
+        interpreter.run(wind_gust_percentile_cube)
+
+
+def test_warning_wind_gust_attribute_wrong_diagnostic(
+    wind_gust_percentile_cube, interpreter
+):
+    """Test a warning is raised if a known diagnostic-specific attribute is included
+    on an unexpected diagnostic"""
+    wind_gust_percentile_cube.rename("wind_speed")
+    interpreter.run(wind_gust_percentile_cube)
+    print(interpreter.warnings)
+    assert interpreter.warnings == [
+        "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
+        "'wind_gust_diagnostic']) include unexpected attributes ['wind_gust_diagnostic']. "
+        "Please check the standard to ensure this is valid."
+    ]
 
 
 def test_error_invalid_probability_name(probability_above_cube, interpreter):
@@ -203,17 +293,19 @@ def test_error_inconsistent_relative_to_threshold(probability_above_cube, interp
         interpreter.run(probability_above_cube)
 
 
-def test_error_incorrect_probability_cell_method(
-    blended_probability_below_cube, interpreter
-):
-    """Test error raised if a probability cube cell method does not have a
-    comment referring to the source diagnostic"""
-    cell_method = CellMethod(method="maximum", coords="time")
-    blended_probability_below_cube.cell_methods = [cell_method]
-    with pytest.raises(
-        ValueError, match="Cell method.*on probability data should have comment"
-    ):
-        interpreter.run(blended_probability_below_cube)
+def test_error_missing_time_coords(probability_above_cube, interpreter):
+    """Test error raised if an unblended cube doesn't have the expected time
+    coordinates"""
+    probability_above_cube.remove_coord("forecast_period")
+    with pytest.raises(ValueError, match="Missing one or more coordinates"):
+        interpreter.run(probability_above_cube)
+
+
+def test_error_time_coord_units(probability_above_cube, interpreter):
+    """Test error raised if time coordinate units do not match the IMPROVER standard"""
+    probability_above_cube.coord("forecast_period").convert_units("hours")
+    with pytest.raises(ValueError, match="does not have required units"):
+        interpreter.run(probability_above_cube)
 
 
 def test_multiple_error_concatenation(probability_above_cube, interpreter):
@@ -233,67 +325,25 @@ def test_multiple_error_concatenation(probability_above_cube, interpreter):
         interpreter.run(probability_above_cube)
 
 
-def test_error_wrong_percentile_name_units(wind_gust_percentile_cube, interpreter):
-    """Test incorrect percentile coordinate name and units"""
-    wind_gust_percentile_cube.coord("percentile").units = "1"
-    wind_gust_percentile_cube.coord("percentile").rename("percentile_over_realization")
-    msg = (
-        ".*should have name percentile, has percentile_over_realization\n"
-        ".*should have units of %, has 1"
-    )
-    with pytest.raises(ValueError, match=msg):
-        interpreter.run(wind_gust_percentile_cube)
-
-
-def test_error_missing_required_attribute(wind_gust_percentile_cube, interpreter):
-    """Test error raised when a mandatory attribute is missing"""
-    wind_gust_percentile_cube.attributes.pop("source")
-    with pytest.raises(ValueError, match="missing.*mandatory values"):
-        interpreter.run(wind_gust_percentile_cube)
-
-
-def test_error_forbidden_attributes(wind_gust_percentile_cube, interpreter):
-    """Test error raised when a forbidden attribute is present"""
-    wind_gust_percentile_cube.attributes["mosg__forecast_run_duration"] = "wrong"
-    with pytest.raises(ValueError, match="Attributes.*include.*forbidden values"):
-        interpreter.run(wind_gust_percentile_cube)
-
-
-def test_warning_unexpected_attributes(wind_gust_percentile_cube, interpreter):
-    """The IMPROVER metadata standard is minimal - so while we don't forbid extra
-    attributes, we raise a warning if it's not one we recognise as adding useful
-    information"""
-    wind_gust_percentile_cube.attributes["enigma"] = "intriguing and mysterious details"
-    interpreter.run(wind_gust_percentile_cube)
-    assert interpreter.warnings == [
-        "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
-        "'wind_gust_diagnostic', 'enigma']) include unexpected attributes ['enigma']. "
-        "Please check the standard to ensure this is valid."
-    ]
-
-
-def test_error_inconsistent_model_attributes(ensemble_cube, interpreter):
-    """Test error raised when the model ID and title attributes are inconsistent"""
-    ensemble_cube.attributes["mosg__model_configuration"] = "uk_det"
-    with pytest.raises(ValueError, match="Title.*is inconsistent with model ID"):
-        interpreter.run(ensemble_cube)
-
-
-def test_improver_in_title(ensemble_cube, interpreter):
-    """Test that an unblended title including 'IMPROVER' rather than a model name
-    does not cause an error, and that the source model is still identified via the
-    appropriate attribute"""
-    ensemble_cube.attributes["title"].replace("MOGREPS-UK", "IMPROVER")
-    interpreter.run(ensemble_cube)
-    assert interpreter.model == "MOGREPS-UK"
-
-
 def test_error_forbidden_cell_method(blended_probability_below_cube, interpreter):
     """Test error raised when a forbidden cell method is present"""
     blended_probability_below_cube.add_cell_method(
         CellMethod(method="mean", coords="forecast_reference_time")
     )
     with pytest.raises(ValueError, match="Non-standard cell method"):
+        interpreter.run(blended_probability_below_cube)
+
+
+def test_error_probability_cell_method_no_comment(
+    blended_probability_below_cube, interpreter
+):
+    """Test error raised if a probability cube cell method does not have a
+    comment referring to the source diagnostic"""
+    cell_method = CellMethod(method="maximum", coords="time")
+    blended_probability_below_cube.cell_methods = [cell_method]
+    with pytest.raises(
+        ValueError, match="Cell method.*on probability data should have comment"
+    ):
         interpreter.run(blended_probability_below_cube)
 
 
@@ -313,21 +363,6 @@ def test_error_incorrect_time_bounds(blended_probability_below_cube, interpreter
         interpreter.run(blended_probability_below_cube)
 
 
-def test_error_missing_spot_coords(blended_spot_median_cube, interpreter):
-    """Test error raised if a spot cube doesn't have all the expected metadata"""
-    blended_spot_median_cube.remove_coord("altitude")
-    with pytest.raises(ValueError, match="Missing one or more coordinates"):
-        interpreter.run(blended_spot_median_cube)
-
-
-def test_error_missing_coords(probability_above_cube, interpreter):
-    """Test error raised if an unblended cube doesn't have the expected time
-    coordinates"""
-    probability_above_cube.remove_coord("forecast_period")
-    with pytest.raises(ValueError, match="Missing one or more coordinates"):
-        interpreter.run(probability_above_cube)
-
-
 def test_error_missing_blended_coords(blended_probability_below_cube, interpreter):
     """Test error raised if a blended cube doesn't have the expected time
     coordinates"""
@@ -336,70 +371,31 @@ def test_error_missing_blended_coords(blended_probability_below_cube, interprete
         interpreter.run(blended_probability_below_cube)
 
 
-def test_error_time_coordinate_units(probability_above_cube, interpreter):
-    """Test error raised if time coordinate units do not match the IMPROVER standard"""
-    probability_above_cube.coord("forecast_period").convert_units("hours")
-    with pytest.raises(ValueError, match="does not have required units"):
-        interpreter.run(probability_above_cube)
+def test_error_missing_spot_coords(blended_spot_median_cube, interpreter):
+    """Test error raised if a spot cube doesn't have all the expected metadata"""
+    blended_spot_median_cube.remove_coord("altitude")
+    with pytest.raises(ValueError, match="Missing one or more coordinates"):
+        interpreter.run(blended_spot_median_cube)
 
 
-def test_weather_code_success(wxcode_cube, interpreter):
-    """Test interpretation of weather code field"""
-    interpreter.run(wxcode_cube)
-    assert interpreter.diagnostic == "weather_code"
-    assert interpreter.model == "UKV, MOGREPS-UK"
-    assert interpreter.blended
+def test_error_forbidden_wind_direction_cell_method(wind_direction_cube, interpreter):
+    """Test error if special case cubes have a cell method that would usually be
+    permitted"""
+    wind_direction_cube.add_cell_method(CellMethod(method="maximum", coords="time"))
+    with pytest.raises(ValueError, match="Unexpected cell methods"):
+        interpreter.run(wind_direction_cube)
 
 
-def test_error_weather_code_unexpected_cell_methods(wxcode_cube, interpreter):
-    """Test error if exception cubes have a cell method that would usually be
+def test_error_forbidden_weather_code_cell_method(wxcode_cube, interpreter):
+    """Test error if special case cubes have a cell method that would usually be
     permitted"""
     wxcode_cube.add_cell_method(CellMethod(method="maximum", coords="time"))
     with pytest.raises(ValueError, match="Unexpected cell methods"):
         interpreter.run(wxcode_cube)
 
 
-def test_error_weather_code_missing_attribute(wxcode_cube, interpreter):
+def test_error_missing_weather_code_attribute(wxcode_cube, interpreter):
     """Test error when weather code required attributes are missing"""
     wxcode_cube.attributes.pop("weather_code")
     with pytest.raises(ValueError, match="missing .* required values"):
         interpreter.run(wxcode_cube)
-
-
-def test_error_wind_gust_missing_attribute(wind_gust_percentile_cube, interpreter):
-    """Test error when a wind gust percentile cube is missing a required attribute"""
-    wind_gust_percentile_cube.attributes.pop("wind_gust_diagnostic")
-    with pytest.raises(ValueError, match="missing .* required values"):
-        interpreter.run(wind_gust_percentile_cube)
-
-
-def test_warning_unexpected_attribute_wrong_diagnostic(
-    wind_gust_percentile_cube, interpreter
-):
-    """Test a warning is raised if a known diagnostic-specific attribute is included
-    on an unexpected diagnostic"""
-    wind_gust_percentile_cube.rename("wind_speed")
-    interpreter.run(wind_gust_percentile_cube)
-    print(interpreter.warnings)
-    assert interpreter.warnings == [
-        "dict_keys(['source', 'title', 'institution', 'mosg__model_configuration', "
-        "'wind_gust_diagnostic']) include unexpected attributes ['wind_gust_diagnostic']. "
-        "Please check the standard to ensure this is valid."
-    ]
-
-
-def test_wind_direction_success(wind_direction_cube, interpreter):
-    """Test interpretation of wind direction field with mean over realizations
-    cell method"""
-    interpreter.run(wind_direction_cube)
-    assert interpreter.diagnostic == "wind_from_direction"
-    assert interpreter.model == "MOGREPS-UK"
-    assert not interpreter.blended
-
-
-def test_error_wind_direction_unexpected_cell_methods(wind_direction_cube, interpreter):
-    """Test error if exception cubes have a cell method that would usually be
-    permitted"""
-    wind_direction_cube.add_cell_method(CellMethod(method="maximum", coords="time"))
-    with pytest.raises(ValueError, match="Unexpected cell methods"):
-        interpreter.run(wind_direction_cube)
