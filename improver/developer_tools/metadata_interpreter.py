@@ -246,12 +246,6 @@ class MOMetadataInterpreter:
                 if "time" in cm.coord_names:
                     if cube.coord("time").bounds is None:
                         self.errors.append(f"Cube of{self.methods} has no time bounds")
-                    else:
-                        upper_bounds = cube.coord("time").bounds[..., 1]
-                        if not (cube.coord("time").points == upper_bounds).all():
-                            self.errors.append(
-                                "Time points should be equal to upper bounds"
-                            )
 
             elif cm in NONCOMP_CMS or cm.method in NONCOMP_CM_METHODS:
                 self.errors.append(f"Non-standard cell method {cm}")
@@ -349,6 +343,13 @@ class MOMetadataInterpreter:
                 f"Missing one or more coordinates: found {found_coords}, "
                 f"expected {expected_coords}"
             )
+
+    def _check_coord_bounds(self, cube, coord):
+        """If coordinate has bounds, check points are equal to upper bound"""
+        if cube.coord(coord).bounds is not None:
+            upper_bounds = cube.coord(coord).bounds[..., 1]
+            if not (cube.coord(coord).points == upper_bounds).all():
+                self.errors.append(f"{coord} points should be equal to upper bounds")
 
     def check_spot_data(self, cube, coords):
         """Check spot coordinates"""
@@ -456,13 +457,18 @@ class MOMetadataInterpreter:
         else:
             self._check_coords_present(coords, UNBLENDED_TIME_COORDS)
 
-        # 4) Check datatypes on data and coordinates
+        # 4) Check points are equal to upper bounds for bounded time coordinates
+        for coord in ["time", "forecast_period"]:
+            if coord in get_coord_names(cube):
+                self._check_coord_bounds(cube, coord)
+
+        # 5) Check datatypes on data and coordinates
         try:
             check_mandatory_standards(cube)
         except ValueError as cause:
             self.errors.append(str(cause))
 
-        # 5) Raise collated errors if present
+        # 6) Raise collated errors if present
         if self.errors:
             raise ValueError("\n".join(self.errors))
 
