@@ -58,8 +58,13 @@ def test_nearest_uk(tmp_path, extra_args, kgo_file):
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     kgo_path = kgo_dir / f"outputs/{kgo_file}"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, "--output", output_path, *extra_args,
-         "--new-title",
+    args = [
+        neighbour_path,
+        diag_path,
+        "--output",
+        output_path,
+        *extra_args,
+        "--new-title",
         UK_SPOT_TITLE,
     ]
     run_cli(args)
@@ -81,7 +86,7 @@ def test_lapse_rate_adjusted_uk(tmp_path):
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
-         "--new-title",
+        "--new-title",
         UK_SPOT_TITLE,
     ]
     run_cli(args)
@@ -125,7 +130,7 @@ def test_lapse_rate_mismatch(tmp_path):
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
-         "--new-title",
+        "--new-title",
         UK_SPOT_TITLE,
     ]
     with pytest.warns(UserWarning, match=".*height.*not adjusted.*"):
@@ -147,7 +152,7 @@ def test_lapse_rate_wrong_height(tmp_path):
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
-         "--new-title",
+        "--new-title",
         UK_SPOT_TITLE,
     ]
     with pytest.raises(ValueError, match=".*single valued height.*"):
