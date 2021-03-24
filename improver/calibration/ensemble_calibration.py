@@ -435,7 +435,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         Returns:
             numpy.ndarray:
-                The optimised coefficients. Order of coefficients is [alpha, beta, gamma, delta].
+                The optimised coefficients following the order
+                [alpha, beta, gamma, delta]. If point_by_point is False, then
+                one set of coefficients are generated. If point_by_point
+                is True, then the leading dimension of the numpy array is
+                the length of the spatial dimensions within the forecast and
+                truth cubes. Each set of coefficients are appropriate for a
+                particular point.
 
         Raises:
             KeyError: If the distribution is not supported.
@@ -522,7 +528,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         elif predictor.lower() == "realizations":
             a, b, gamma, delta = (
                 initial_guess[0],
-                initial_guess[1:-2] ** 2,
+                initial_guess[1:-2] * initial_guess[1:-2],
                 initial_guess[-2],
                 initial_guess[-1],
             )
@@ -531,7 +537,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
         mu = np.dot(all_data, a_b)
-        sigma = np.sqrt(gamma ** 2 + delta ** 2 * forecast_var)
+        sigma = np.sqrt(gamma * gamma + delta * delta * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
         normal_pdf = norm.pdf(xz)
@@ -589,7 +595,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         elif predictor.lower() == "realizations":
             a, b, gamma, delta = (
                 initial_guess[0],
-                initial_guess[1:-2] ** 2,
+                initial_guess[1:-2] * initial_guess[1:-2],
                 initial_guess[-2],
                 initial_guess[-1],
             )
@@ -599,7 +605,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             all_data = np.column_stack((new_col, forecast_predictor))
             mu = np.dot(all_data, a_b)
 
-        sigma = np.sqrt(gamma ** 2 + delta ** 2 * forecast_var)
+        sigma = np.sqrt(gamma * gamma + delta * delta * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
         normal_pdf = norm.pdf(xz)
@@ -609,7 +615,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         if np.isfinite(np.min(mu / sigma)) or (np.min(mu / sigma) >= -3):
             result = np.nanmean(
-                (sigma / normal_cdf_0 ** 2)
+                (sigma / (normal_cdf_0 * normal_cdf_0))
                 * (
                     xz * normal_cdf_0 * (2 * normal_cdf + normal_cdf_0 - 2)
                     + 2 * normal_pdf * normal_cdf_0
@@ -1469,9 +1475,9 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # d = (delta)^2
         scale_parameter = (
             self.coefficients_cubelist.extract_strict("emos_coefficient_gamma").data
-            ** 2
+            * self.coefficients_cubelist.extract_strict("emos_coefficient_gamma").data
             + self.coefficients_cubelist.extract_strict("emos_coefficient_delta").data
-            ** 2
+            * self.coefficients_cubelist.extract_strict("emos_coefficient_delta").data
             * forecast_var.data
         ).astype(np.float32)
         return scale_parameter

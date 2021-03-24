@@ -34,7 +34,6 @@ Unit tests for the
 class.
 
 """
-import datetime
 import unittest
 
 import iris
