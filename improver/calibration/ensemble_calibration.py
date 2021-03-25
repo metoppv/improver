@@ -743,7 +743,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 "diagnostic standard name", "distribution", "shape_parameters"
                 and an updated title.
         """
-        attributes = generate_mandatory_attributes([historic_forecasts])
+        attributes = {}
         attributes["diagnostic_standard_name"] = historic_forecasts.name()
         attributes["distribution"] = self.distribution
         if self.distribution == "truncnorm":
@@ -783,45 +783,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         return [(frt_coord, None), (fp_coord, None)]
 
-    def _create_dim_coordinates(self, historic_forecasts):
-        """Create dimension coordinates for the EMOS coefficients cube. These
-        are either the realization coordinate alone, or the realization,
-        x and y coordinates.
-        Args:
-            historic_forecasts (iris.cube.Cube):
-                Historic forecasts from the training dataset.
-        Returns:
-            List[Tuple[iris.coords.Coord, int]]:
-                List of tuples of the coordinates and the associated
-                dimension. This format is suitable for use by iris.cube.Cube.
-        """
-        dim_coords_and_dims = []
-        if self.predictor.lower() == "realizations":
-            dim_coords_and_dims.append(
-                (historic_forecasts.coord("realization", dim_coords=True), 0)
-            )
-
-        if not self.point_by_point:
-            return dim_coords_and_dims
-
-        # Set-up spatial dimension coordinates for the coefficients cube.
-        spatial_coord_dims = []
-        for axis in ["y", "x"]:
-            spatial_coord_dims.append(
-                historic_forecasts.coord_dims(
-                    historic_forecasts.coord(axis=axis).name()
-                )
-            )
-
-        # Remove dims where x and y axis share a dimension coordinate (as for a spot forecast cube)
-        spatial_coord_dims = list(set(spatial_coord_dims))
-        for dim in spatial_coord_dims:
-            (spatial_dim_coord,) = historic_forecasts.coords(
-                dimensions=dim, dim_coords=True
-            )
-            dim_coords_and_dims.append((spatial_dim_coord, len(dim_coords_and_dims)))
-        return dim_coords_and_dims
-
     def _create_spatial_aux_coordinates(self, historic_forecasts):
         """Create spatial auxiliary coordinates for the EMOS coefficients cube.
         Args:
@@ -858,14 +819,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 )
         return aux_coords_and_dims
 
-    def _create_cubelist(
-        self,
-        optimised_coeffs,
-        historic_forecasts,
-        dim_coords_and_dims,
-        aux_coords_and_dims,
-        attributes,
-    ):
+    def _create_cubelist(self, optimised_coeffs, historic_forecasts):
         """Create a cubelist by combining the optimised coefficients and the
         appropriate metadata. The units of the alpha and gamma coefficients
         match the units of the historic forecast. If the predictor is the
@@ -876,13 +830,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             optimised_coeffs (numpy.ndarray)
             historic_forecasts (iris.cube.Cube):
                 Historic forecasts from the training dataset.
-            dim_coords_and_dims (List[Tuple[iris.coords.Coord, int]]):
-                List of tuples of the format [(coord, dim), (coord, dim)]
-            aux_coords_and_dims (List[Tuple[iris.coords.Coord, int or None]]):
-                List of tuples of the format [(coord, dim), (coord, dim)]
-            attributes (dict):
-                Attributes for an EMOS coefficients cube including
-                "diagnostic standard name" and an updated title.
 
         Returns:
             cubelist (iris.cube.CubeList):
@@ -891,34 +838,42 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 cubelist is for a separate EMOS coefficient e.g. alpha, beta,
                 gamma, delta.
         """
+        template_dims = []
+        if self.point_by_point:
+            spatial_coords = [historic_forecasts.coord(axis=axis) for axis in "yx"]
+            spatial_dims = {
+                n for n, in [historic_forecasts.coord_dims(c) for c in spatial_coords]
+            }
+            template_dims += [x for x in spatial_dims]
+
         cubelist = iris.cube.CubeList([])
         for optimised_coeff, coeff_name in zip(optimised_coeffs, self.coeff_names):
+            used_dims = template_dims.copy()
+            if self.predictor.lower() == "realizations" and "beta" == coeff_name:
+                used_dims = ["realization"] + template_dims
+            if used_dims:
+                template_cube = next(historic_forecasts.slices(used_dims))
+            else:
+                dims = [
+                    historic_forecasts.coord_dims(c)
+                    for c in historic_forecasts.dim_coords
+                ]
+                template_cube = next(historic_forecasts.slices_over({n for n, in dims}))
             coeff_units = "1"
             if coeff_name in ["alpha", "gamma"]:
                 coeff_units = historic_forecasts.units
-            dim_coords_and_dims_updated = dim_coords_and_dims[:]
-            aux_coords_and_dims_updated = aux_coords_and_dims[:]
-            if self.predictor.lower() == "realizations" and coeff_name != "beta":
-                # Alter the dimension associated with the non-realization coordinates
-                # for the non-beta coefficients.
-                aux_coords_and_dims_updated = [
-                    (c[0], c[1] - 1) if c[0].name() != "realization" and c[1] else c
-                    for c in aux_coords_and_dims
-                ]
-                dim_coords_and_dims_updated = [
-                    (c[0], c[1] - 1)
-                    for c in dim_coords_and_dims
-                    if c[0].name() != "realization"
-                ]
-
-            cube = iris.cube.Cube(
-                optimised_coeff,
-                long_name=f"emos_coefficient_{coeff_name}",
-                units=coeff_units,
-                dim_coords_and_dims=dim_coords_and_dims_updated,
-                aux_coords_and_dims=aux_coords_and_dims_updated,
-                attributes=attributes,
+            cube = create_new_diagnostic_cube(
+                f"emos_coefficient_{coeff_name}",
+                coeff_units,
+                template_cube,
+                generate_mandatory_attributes([historic_forecasts]),
+                optional_attributes=self._set_attributes(historic_forecasts),
+                data=np.array(optimised_coeff),
             )
+            for coord, _ in self._create_temporal_coordinates(
+                historic_forecasts
+            ) + self._create_spatial_aux_coordinates(historic_forecasts):
+                cube.replace_coord(coord)
             cubelist.append(cube)
         return cubelist
 
@@ -964,20 +919,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             raise ValueError(msg)
 
-        dim_coords_and_dims = self._create_dim_coordinates(historic_forecasts)
-        aux_coords_and_dims = self._create_temporal_coordinates(historic_forecasts)
-        aux_coords_and_dims.extend(
-            self._create_spatial_aux_coordinates(historic_forecasts)
-        )
-        attributes = self._set_attributes(historic_forecasts)
-
-        return self._create_cubelist(
-            optimised_coeffs,
-            historic_forecasts,
-            dim_coords_and_dims,
-            aux_coords_and_dims,
-            attributes,
-        )
+        return self._create_cubelist(optimised_coeffs, historic_forecasts)
 
     def compute_initial_guess(
         self, truths, forecast_predictor, predictor, number_of_realizations,
