@@ -90,15 +90,22 @@ UNBLENDED_TIME_COORDS = ["time", "forecast_period", "forecast_reference_time"]
 BLENDED_TIME_COORDS = ["time", "blend_time"]
 LOCAL_TIME_COORDS = ["time", "time_in_local_timezone"]
 
-# Compliant and forbidden cell methods
+# Compliant, required and forbidden cell methods
 NONCOMP_CMS = [
     CellMethod(method="mean", coords="forecast_reference_time"),
     CellMethod(method="mean", coords="model_id"),
     CellMethod(method="mean", coords="model_configuration"),
     CellMethod(method="mean", coords="realization"),
 ]
-NONCOMP_CM_METHODS = ["point"]
+NONCOMP_CM_METHODS = ["point", "weighted_mean"]
 COMP_CM_METHODS = ["min", "max", "minimum", "maximum", "sum"]
+PRECIP_ACCUM_CM = CellMethod(method="sum", coords="time")
+PRECIP_ACCUM_NAMES = [
+    "lwe_thickness_of_precipitation_amount",
+    "lwe_thickness_of_sleetfall_amount",
+    "lwe_thickness_of_snowfall_amount",
+    "thickness_of_rainfall_amount",
+]
 
 # Compliant, required and forbidden attributes
 NONCOMP_ATTRS = [
@@ -233,28 +240,46 @@ class MOMetadataInterpreter:
 
     def check_cell_methods(self, cube):
         """Checks cell methods are permitted and correct"""
-        for cm in cube.cell_methods:
-            if cm.method in COMP_CM_METHODS:
-                self.methods += f" {cm.method} over {cm.coord_names[0]}"
-                if self.field_type == self.PROB:
-                    if not cm.comments or cm.comments[0] != f"of {self.diagnostic}":
-                        self.errors.append(
-                            f"Cell method {cm} on probability data should have comment "
-                            f"'of {self.diagnostic}'"
-                        )
-                # check point and bounds on method coordinate
-                if "time" in cm.coord_names:
-                    if cube.coord("time").bounds is None:
-                        self.errors.append(f"Cube of{self.methods} has no time bounds")
-
-            elif cm in NONCOMP_CMS or cm.method in NONCOMP_CM_METHODS:
-                self.errors.append(f"Non-standard cell method {cm}")
+        if any([substr in cube.name() for substr in PRECIP_ACCUM_NAMES]):
+            msg = f"Expected sum over time cell method for {cube.name()}"
+            if not cube.cell_methods:
+                self.errors.append(msg)
             else:
-                # flag method which might be invalid, but we can't be sure
-                self.warnings.append(
-                    f"Unexpected cell method {cm}. Please check the standard to "
-                    "ensure this is valid"
-                )
+                found_cm = False
+                for cm in cube.cell_methods:
+                    if (
+                        cm.method == PRECIP_ACCUM_CM.method
+                        and cm.coord_names == PRECIP_ACCUM_CM.coord_names
+                    ):
+                        found_cm = True
+                if not found_cm:
+                    self.errors.append(msg)
+
+        if cube.cell_methods:
+            for cm in cube.cell_methods:
+                if cm.method in COMP_CM_METHODS:
+                    self.methods += f" {cm.method} over {cm.coord_names[0]}"
+                    if self.field_type == self.PROB:
+                        if not cm.comments or cm.comments[0] != f"of {self.diagnostic}":
+                            self.errors.append(
+                                f"Cell method {cm} on probability data should have comment "
+                                f"'of {self.diagnostic}'"
+                            )
+                    # check point and bounds on method coordinate
+                    if "time" in cm.coord_names:
+                        if cube.coord("time").bounds is None:
+                            self.errors.append(
+                                f"Cube of{self.methods} has no time bounds"
+                            )
+
+                elif cm in NONCOMP_CMS or cm.method in NONCOMP_CM_METHODS:
+                    self.errors.append(f"Non-standard cell method {cm}")
+                else:
+                    # flag method which might be invalid, but we can't be sure
+                    self.warnings.append(
+                        f"Unexpected cell method {cm}. Please check the standard to "
+                        "ensure this is valid"
+                    )
 
     def _check_blend_and_model_attributes(self, attrs):
         """Interprets attributes for model and blending information
@@ -428,8 +453,7 @@ class MOMetadataInterpreter:
                             f"has {perc_coord.units}"
                         )
 
-            if cube.cell_methods:
-                self.check_cell_methods(cube)
+            self.check_cell_methods(cube)
 
         # 2) Interpret model and blend information from cube attributes
         self.check_attributes(cube.attributes)

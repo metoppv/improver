@@ -28,27 +28,35 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the display_interpretation function"""
+"""Unit tests for the display_interpretation function
+
+Description of imports: fixture name -> cube name:
+- ensemble_fixture -> ensemble_cube
+- landmask_fixture -> landmask_cube
+- percentile_fixture -> wind_gust_percentile_cube
+- probability_above_fixture -> probability_above_cube
+- probability_below_fixture -> blended_probability_below_cube
+- snow_level_fixture -> snow_level_cube
+- spot_fixture -> blended_spot_median_cube
+- wind_direction_fixture -> wind_direction_cube
+- wxcode_fixture -> wxcode_cube
+"""
 
 import pytest
 
 from improver.developer_tools.metadata_interpreter import display_interpretation
-from improver_tests.developer_tools import ensemble_fixture  # ensemble_cube
-from improver_tests.developer_tools import interpreter_fixture  # interpreter
-from improver_tests.developer_tools import landmask_fixture  # landmask_cube
 from improver_tests.developer_tools import (
-    percentile_fixture,  # wind_gust_percentile_cube,
+    ensemble_fixture,
+    interpreter_fixture,
+    landmask_fixture,
+    percentile_fixture,
+    probability_above_fixture,
+    probability_below_fixture,
+    snow_level_fixture,
+    spot_fixture,
+    wind_direction_fixture,
+    wxcode_fixture,
 )
-from improver_tests.developer_tools import (
-    probability_above_fixture,  # probability_above_cube,
-)
-from improver_tests.developer_tools import (
-    probability_below_fixture,  # blended_probability_below_cube,
-)
-from improver_tests.developer_tools import snow_level_fixture  # snow_level_cube
-from improver_tests.developer_tools import spot_fixture  # blended_spot_median_cube
-from improver_tests.developer_tools import wind_direction_fixture  # wind_direction_cube
-from improver_tests.developer_tools import wxcode_fixture  # wxcode_cube
 
 
 def test_realizations(ensemble_cube, interpreter):
