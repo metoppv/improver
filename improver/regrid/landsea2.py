@@ -74,6 +74,9 @@ class RegridWithLandSeaMask(BasePlugin):
     The replacement data values are selected from a vicinity of points on the
     source-grid and the closest point of the correct mask is used.
     Where no match is found within the vicinity, the data value is not changed.
+    Note: regrid_mode options are "nearest-2", "nearest-with-mask-2","bilinear-2", 
+    and "bilinear-with-mask-2" in this class.
+    
     """
 
     def __init__(self, regrid_mode="bilinear-2", vicinity_radius=25000.0):
@@ -152,6 +155,9 @@ class RegridWithLandSeaMask(BasePlugin):
             weights[index_range] = basic_weights(
                 index_range, indexes, out_latlons, in_latlons, first_spatial_dim_length
             )
+            
+        # Reshape input data so that spatial dimensions can be handled as one
+        in_values, lats_index, lons_index = flatten_spatial_dimensions(cube_in)
 
         if WITH_MASK in self.regrid_mode:
             in_classified = classify_input_surface_type(cube_in_mask, in_latlons)
@@ -174,8 +180,7 @@ class RegridWithLandSeaMask(BasePlugin):
                     first_spatial_dim_length,
                     self.vicinity,
                 )
-            # Reshape input data so that spatial dimensions can be handled as one
-            in_values, lats_index, lons_index = flatten_spatial_dimensions(cube_in)
+
             if BILINEAR in self.regrid_mode:
                 output_flat = apply_weights(indexes, in_values, weights)
             else:
@@ -189,10 +194,9 @@ class RegridWithLandSeaMask(BasePlugin):
                     in_classified,
                     out_classified,
                     in_values,
+                    self.vicinity,                  
                 )
         else:  # not WITH_MASK
-            # Reshape input data so that spatial dimensions can be handled as one
-            in_values, lats_index, lons_index = flatten_spatial_dimensions(cube_in)
             if BILINEAR in self.regrid_mode:
                 output_flat = apply_weights(indexes, in_values, weights)
             else:

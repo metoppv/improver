@@ -384,6 +384,7 @@ def create_regrid_cube(cube_array, cube_in, cube_out):
     # FIXME remove commented out code
     # cube_v.add_aux_coord(cube_in.aux_coords)
     cube_v.var_name = cube_in.var_name
+    cube_v.standard_name = cube_in.standard_name
     cube_v.units = cube_in.units
 
     ndim = len(cube_coord_names)

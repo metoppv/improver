@@ -47,6 +47,7 @@ def nearest_with_mask_regrid(
     in_classified,
     out_classified,
     in_values,
+    vicinity,
 ):
     """
     Main regridding function for the nearest distance option
@@ -71,6 +72,8 @@ def nearest_with_mask_regrid(
             land_sea type for terget grid points (land =>True)
         in_values(numpy.ndarray):
             input values (maybe multidimensional, reshaped in function _reshape_data_cube)
+        vicinity (float32): 
+            radius of specified searching domain (unit: m)
 
     Return:
         numpy.ndarray:
@@ -81,7 +84,7 @@ def nearest_with_mask_regrid(
 
     # Check if there are output points with mismatched surface types
     matched_nearby_points_count = np.count_nonzero(surface_type_mask, axis=1)
-    points_with_mismatches = (matched_nearby_points_count < 4)[0]
+    points_with_mismatches = (np.where(matched_nearby_points_count < 4))[0]
     # Look for nearest input points for the output points with mismatched surface
     indexes, distances, surface_type_mask = update_nearest_points(
         points_with_mismatches,
@@ -97,10 +100,10 @@ def nearest_with_mask_regrid(
     # Handle island and lake like output points - find more distant same surface type input points
     # Note: surface_type_mask has been updated above
     matched_nearby_points_count = np.count_nonzero(surface_type_mask, axis=1)
-    fully_mismatched_points = (matched_nearby_points_count == 0)[0]
+    fully_mismatched_points = (np.where(matched_nearby_points_count == 0))[0]
 
     if fully_mismatched_points.shape[0] > 0:
-        weights, indexes, surface_type_mask = lakes_islands(
+        indexes, surface_type_mask = lakes_islands(
             fully_mismatched_points,
             indexes,
             surface_type_mask,
@@ -108,7 +111,7 @@ def nearest_with_mask_regrid(
             out_latlons,
             in_classified,
             out_classified,
-            False,
+            vicinity,
         )
 
     # Convert mask to be true where input points should not be considered
@@ -200,7 +203,6 @@ def update_nearest_points(
     surface_type_mask[points_with_mismatches] = surface_type_mask_updates
     return indexes, distances, surface_type_mask
 
-
 def lakes_islands(
     lake_island_indexes,
     indexes,
@@ -212,8 +214,8 @@ def lakes_islands(
     vicinity,
 ):
     """
-    updating source points and weighting for 4-false-source-point cases
-    this function used for
+    updating source points and weighting for 4-unmatching-source-point cases
+    this function searching nearest 8 points to check if any matching point exists 
     Note that a similar function can be found in bilinear.py for bilinear
     regridding rather than nearest neighbour regridding.
 
@@ -265,7 +267,7 @@ def lakes_islands(
     )
 
     count_matching_surface = np.count_nonzero(surface_type_mask_updates, axis=1)
-    points_with_no_match = (count_matching_surface == 0)[0]
+    points_with_no_match = (np.where(count_matching_surface == 0))[0]
     if points_with_no_match.shape[0] > 0:
         # No improved input point has been found with the increase to 8 nearest points
         # Take the original nearest point, disregard the surface type
@@ -274,7 +276,7 @@ def lakes_islands(
 
     # From the expansion to 8 nearby input points, a same surface type input has been found
     # Update the index and surface type mask to use the newly found same surface type input point
-    points_with_match = np.logical_not(points_with_no_match)
+    points_with_match = (np.where(count_matching_surface > 0))[0]  
     # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
     # FIXME check if this for loop can loop over points_with_match instead

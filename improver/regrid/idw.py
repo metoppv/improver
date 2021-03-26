@@ -92,11 +92,11 @@ def inverse_distance_weighting(
     # There may be some output points with no matching nearby surface type (lakes/islands)
     # Output an array of these so that the calling function can apply further processing to those
     count_matching_surface = np.count_nonzero(surface_type_mask_updates, axis=1)
-    points_with_no_match = (count_matching_surface == 0)[0]
+    points_with_no_match = (np.where(count_matching_surface == 0))[0]
     output_points_no_match = idw_out_indexes[points_with_no_match]
 
     # Apply inverse distance weighting to points that do have matching surface type input
-    points_with_match = np.logical_not(points_with_no_match)
+    points_with_match = (np.where(count_matching_surface > 0))[0]
     output_points_match = idw_out_indexes[points_with_match]
 
     # Convert mask to be true where input points should not be considered

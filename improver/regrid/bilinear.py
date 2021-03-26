@@ -98,6 +98,7 @@ def basic_indexes(out_latlons, in_latlons, first_spatial_dim_length):
     index3 = index0 + 1
 
     # Rearrange order to match expected output style
+    # note: lat (X) but ordering  (lat0, lon0)(lat0,lon1)....(lat0,lon_last),(lat1,lon0),
     indexes = np.transpose([index0, index1, index2, index3])
     return indexes
 
@@ -186,14 +187,14 @@ def adjust_for_surface_mismatch(
     count_same_surface_type = np.count_nonzero(surface_type_mask, axis=1)
 
     # Initialise weights to zero at locations with mismatched surface types
-    mismatched_surface_type = np.logical_not(surface_type_mask)
+    mismatched_surface_type = np.where(surface_type_mask == False)
     # FIXME the modification of weights here will be an in-place modification of the array
     # this would be safer with a copy to avoid values unexpectedly changing without
     # the calling function realising. eg make a copy, update the copy, return the copy
     weights[mismatched_surface_type] = 0.0
 
     # Cases with one mismatched input point by adjusting bilinear weights
-    one_mismatch = (count_same_surface_type == 3)[0]
+    one_mismatch = np.where((count_same_surface_type == 3))[0]
     weights, leftover_bilinear = one_mismatched_input_point(
         one_mismatch,
         surface_type_mask,
@@ -205,8 +206,8 @@ def adjust_for_surface_mismatch(
     )
 
     # Cases with two and three mismatched input points
-    three_mismatch = (count_same_surface_type == 1)[0]
-    two_mismatch = (count_same_surface_type == 2)[0]
+    three_mismatch = (np.where(count_same_surface_type == 1))[0]
+    two_mismatch = (np.where(count_same_surface_type == 2))[0]
 
     # Use inverse distance weighting to handle the cases with 2/3 mismatched input points
     # and the leftover one mismatched cases that were found to involve extrapolation
@@ -227,7 +228,7 @@ def adjust_for_surface_mismatch(
     # to the output point. These are lakes (water surrounded by land) and islands
     # (land surrounded by water). Leftovers from IDW are cases where IDW was
     # unable to find a matching surface type.
-    four_mismatch = (count_same_surface_type == 0)[0]
+    four_mismatch = np.where((count_same_surface_type == 0))[0]
     if four_mismatch.shape[0] > 0 or leftover_idw.shape[0] > 0:
         four_mismatch = np.concatenate((four_mismatch, leftover_idw))
         weights, indexes, surface_type_mask = lakes_islands(
@@ -290,7 +291,7 @@ def one_mismatched_input_point(
     # input points as mismatched surface type
     for i in range(4):
         # Determine group of output points to process in this iteration
-        inverse_mask_i = np.logical_not(surface_type_mask[one_mismatch_indexes, i])[0]
+        inverse_mask_i = (np.where(surface_type_mask[one_mismatch_indexes, i] == False))[0]
         indexes_with_i_mismatched = one_mismatch_indexes[inverse_mask_i]
 
         # Extract subset of output lat/lon
@@ -343,14 +344,16 @@ def one_mismatched_input_point(
         # if the intention is a small negative number, consider np.finfo(np.float32).negeps
         weights_i_positive = weights_i > -1.0e-6
         all_weights_positive = np.all(weights_i_positive, axis=1)
-        not_all_weights_positive = np.logical_not(all_weights_positive)[0]
+         
+        not_all_weights_positive = (np.where(all_weights_positive == False))[0]
 
         # FIXME the modification of weights here will be an in-place modification of the array
         # this would be safer with a copy to avoid values unexpectedly changing without
         # the calling function realising. eg make a copy, update the copy, return the copy
         if not_all_weights_positive.shape[0] > 0:
             # Only apply updated weights in locations where extrapolation hasn't occurred
-            good_update_indexes = all_weights_positive[0]
+            # good_update_indexes =  (np.where(all_weights_positive == True))[0]  #FIXED
+            good_update_indexes =  (np.where(all_weights_positive))[0]
             weights[indexes_with_i_mismatched[good_update_indexes]] = weights_i[
                 good_update_indexes
             ]
@@ -402,6 +405,8 @@ def lakes_islands(
         out_classified (numpy.ndarray):
             land_sea type for terget grid points (land =>True)
             FIXME cube_in_dim1 missing from docstring
+        vicinity (float32): 
+            radius of specified searching domain (unit: m)    
 
     Returns:
         Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
@@ -436,7 +441,7 @@ def lakes_islands(
     )
 
     count_matching_surface = np.count_nonzero(surface_type_mask_updates, axis=1)
-    points_with_no_match = (count_matching_surface == 0)[0]
+    points_with_no_match = (np.where(count_matching_surface == 0))[0]
     # If the expanded search area hasn't found any same surface type matches anywhere, return early
     # as nothing further can be done
     if points_with_no_match.shape[0] == 0:
@@ -447,7 +452,7 @@ def lakes_islands(
         no_match_indexes, indexes, out_latlons, in_latlons, first_spatial_dim_length
     )
 
-    points_with_match = np.logical_not(points_with_no_match)
+    points_with_match = (np.where(count_matching_surface > 0))[0]
     # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
     # Again, if no further processing can be done, return early
