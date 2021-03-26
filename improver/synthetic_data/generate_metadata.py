@@ -99,7 +99,7 @@ def generate_metadata(
     ensemble_members=8,
     leading_dimension=None,
     cube_type="variable",
-    spp__relative_to_threshold="above",
+    spp__relative_to_threshold="greater_than",
     npoints=71,
     **kwargs,
 ):
