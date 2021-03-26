@@ -63,7 +63,7 @@ def main(filepath, verbose=False):
     for cube in cubes:
         interpreter = MOMetadataInterpreter()
         interpreter.run(cube)
-        output = display_interpretation(interpreter, verbose)
+        output = display_interpretation(interpreter, verbose=verbose)
         print(output)
 
 

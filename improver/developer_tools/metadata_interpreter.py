@@ -144,7 +144,11 @@ class MOMetadataInterpreter:
     ANCIL = "ancillary"
 
     def __init__(self):
-        """Initialise class parameters"""
+        """Initialise class parameters, which store information about a cube to be
+        parsed into a human-readable string by the
+        :func:`~improver.developer_tools.metadata_interpreter.display_interpretation`
+        function.
+        """
         self.model_id_attr = "mosg__model_configuration"
         self.unhandled = False
 
@@ -214,9 +218,16 @@ class MOMetadataInterpreter:
                 "var_name='threshold'"
             )
 
-        self.relative_to_threshold = threshold_coord.attributes[
-            "spp__relative_to_threshold"
-        ]
+        try:
+            self.relative_to_threshold = threshold_coord.attributes[
+                "spp__relative_to_threshold"
+            ]
+        except KeyError:
+            self.errors.append(
+                f"{cube_name} threshold coordinate has no "
+                "spp__relative_to_threshold attribute"
+            )
+            return
 
         if self.relative_to_threshold in ("greater_than", "greater_than_or_equal_to"):
             threshold_attribute = "above"
@@ -291,29 +302,36 @@ class MOMetadataInterpreter:
                 self.errors.append(f"No {self.model_id_attr} on blended file")
             else:
                 codes = attrs[self.model_id_attr].split(" ")
-                names = [MODEL_NAMES[code] for code in codes]
-                self.model = ", ".join(names)
-
-        else:
-            if self.model_id_attr in attrs:
-                for key in MODEL_CODES:
-                    if (
-                        f"{key} Model" in attrs["title"]
-                        and attrs[self.model_id_attr] != MODEL_CODES[key]
-                    ):
+                names = []
+                for code in codes:
+                    try:
+                        names.append(MODEL_NAMES[code])
+                    except KeyError:
                         self.errors.append(
-                            f"Title {attrs['title']} is inconsistent with model ID "
-                            f"attribute {attrs[self.model_id_attr]}"
+                            f"Model ID attribute contains unrecognised model code {code}"
                         )
+                self.model = ", ".join(names)
+            return
 
-                try:
-                    self.model = MODEL_NAMES[attrs[self.model_id_attr]]
-                except KeyError:
+        if self.model_id_attr in attrs:
+            for key in MODEL_CODES:
+                if (
+                    f"{key} Model" in attrs["title"]
+                    and attrs[self.model_id_attr] != MODEL_CODES[key]
+                ):
                     self.errors.append(
-                        f"Attribute {attrs[self.model_id_attr]} is not a valid single "
-                        "model.  If valid for blend, then title attribute is missing "
-                        f"expected substring {BLEND_TITLE_SUBSTR}."
+                        f"Title {attrs['title']} is inconsistent with model ID "
+                        f"attribute {attrs[self.model_id_attr]}"
                     )
+
+            try:
+                self.model = MODEL_NAMES[attrs[self.model_id_attr]]
+            except KeyError:
+                self.errors.append(
+                    f"Attribute {attrs[self.model_id_attr]} is not a valid single "
+                    "model.  If valid for blend, then title attribute is missing "
+                    f"expected substring {BLEND_TITLE_SUBSTR}."
+                )
 
     def check_attributes(self, attrs):
         """Checks for unexpected attributes, then interprets values for model
@@ -497,8 +515,39 @@ class MOMetadataInterpreter:
             raise ValueError("\n".join(self.errors))
 
 
+def _format_standard_cases(interpreter, verbose, vstring):
+    """Format prob / perc / diagnostic information from a
+    MOMetadataInterpreter instance"""
+    field_type = interpreter.field_type.replace("_", " ")
+    diagnostic = interpreter.diagnostic.replace("_", " ")
+    if interpreter.relative_to_threshold:
+        relative_to_threshold = interpreter.relative_to_threshold.replace("_", " ")
+
+    rval = []
+    rtt = (
+        f" {relative_to_threshold} thresholds"
+        if interpreter.field_type == interpreter.PROB
+        else ""
+    )
+    rval.append(f"It contains {field_type} of {diagnostic}{rtt}")
+    if verbose:
+        rval.append(vstring("name, threshold coordinate (probabilities only)"))
+
+    if interpreter.methods:
+        rval.append(f"These {field_type} are of {diagnostic}{interpreter.methods}")
+        if verbose:
+            rval.append(vstring("cell methods"))
+
+    ppstring = "some" if interpreter.post_processed else "no"
+    rval.append(f"It has undergone {ppstring} significant post-processing")
+    if verbose:
+        rval.append(vstring("title attribute"))
+    return rval
+
+
 def display_interpretation(interpreter, verbose=False):
-    """Prints metadata interpretation in human-readable form
+    """Prints metadata interpretation in human-readable form.  This should
+    not be run on a MOMetadataInterpreter instance that has raised errors.
 
     Args:
         interpreter (MOMetadataInterpreter):
@@ -518,34 +567,6 @@ def display_interpretation(interpreter, verbose=False):
         """Format additional message for verbose output"""
         return f"    Source: {source_metadata}"
 
-    def format_standard_cases(interpreter):
-        """Format prob / perc / diagnostic information"""
-        field_type = interpreter.field_type.replace("_", " ")
-        diagnostic = interpreter.diagnostic.replace("_", " ")
-        if interpreter.relative_to_threshold:
-            relative_to_threshold = interpreter.relative_to_threshold.replace("_", " ")
-
-        rval = []
-        rtt = (
-            f" {relative_to_threshold} thresholds"
-            if interpreter.field_type == interpreter.PROB
-            else ""
-        )
-        rval.append(f"It contains {field_type} of {diagnostic}{rtt}")
-        if verbose:
-            rval.append(vstring("name, threshold coordinate (probabilities only)"))
-
-        if interpreter.methods:
-            rval.append(f"These {field_type} are of {diagnostic}{interpreter.methods}")
-            if verbose:
-                rval.append(vstring("cell methods"))
-
-        ppstring = "some" if interpreter.post_processed else "no"
-        rval.append(f"It has undergone {ppstring} significant post-processing")
-        if verbose:
-            rval.append(vstring("title attribute"))
-        return rval
-
     field_type = interpreter.field_type.replace("_", " ")
     output = []
     output.append(f"This is a {interpreter.prod_type} {field_type} file")
@@ -553,7 +574,7 @@ def display_interpretation(interpreter, verbose=False):
         output.append(vstring("name, coordinates"))
 
     if interpreter.diagnostic not in SPECIAL_CASES:
-        output.extend(format_standard_cases(interpreter))
+        output.extend(_format_standard_cases(interpreter, verbose, vstring))
 
     if interpreter.diagnostic in ANCILLARIES:
         output.append(f"This is a static ancillary with no time information")
