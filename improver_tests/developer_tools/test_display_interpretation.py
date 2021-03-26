@@ -28,35 +28,10 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the display_interpretation function
-
-Description of imports: fixture name -> cube name:
-- ensemble_fixture -> ensemble_cube
-- landmask_fixture -> landmask_cube
-- percentile_fixture -> wind_gust_percentile_cube
-- probability_above_fixture -> probability_above_cube
-- probability_below_fixture -> blended_probability_below_cube
-- snow_level_fixture -> snow_level_cube
-- spot_fixture -> blended_spot_median_cube
-- wind_direction_fixture -> wind_direction_cube
-- wxcode_fixture -> wxcode_cube
-"""
+"""Unit tests for the display_interpretation function"""
 
 import pytest
-
 from improver.developer_tools.metadata_interpreter import display_interpretation
-from improver_tests.developer_tools import (
-    ensemble_fixture,
-    interpreter_fixture,
-    landmask_fixture,
-    percentile_fixture,
-    probability_above_fixture,
-    probability_below_fixture,
-    snow_level_fixture,
-    spot_fixture,
-    wind_direction_fixture,
-    wxcode_fixture,
-)
 
 
 def test_realizations(ensemble_cube, interpreter):
