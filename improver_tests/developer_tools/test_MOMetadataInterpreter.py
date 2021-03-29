@@ -240,6 +240,13 @@ def test_error_invalid_probability_name(probability_above_cube, interpreter):
         interpreter.run(probability_above_cube)
 
 
+def test_error_invalid_probability_units(probability_above_cube, interpreter):
+    """Test error raised if probability cube does not have units of 1"""
+    probability_above_cube.units = "no_unit"
+    with pytest.raises(ValueError, match="Expected units of 1 on probability data"):
+        interpreter.run(probability_above_cube)
+
+
 def test_error_no_threshold_coordinate(probability_above_cube, interpreter):
     """Test error raised if probability cube has no threshold coordinate"""
     cube = next(probability_above_cube.slices_over("air_temperature"))
@@ -260,6 +267,26 @@ def test_error_no_threshold_var_name(probability_above_cube, interpreter):
     """Test error raised if threshold coordinate does not have var_name='threshold'"""
     probability_above_cube.coord("air_temperature").var_name = None
     with pytest.raises(ValueError, match="does not have var_name='threshold'"):
+        interpreter.run(probability_above_cube)
+
+
+def test_error_missing_relative_to_threshold(probability_above_cube, interpreter):
+    """Test error raised if threshold coordinate has no spp__relative_to_threshold
+    attribute"""
+    probability_above_cube.coord("air_temperature").attributes = {}
+    with pytest.raises(ValueError, match="has no spp__relative_to_threshold attribute"):
+        interpreter.run(probability_above_cube)
+
+
+def test_error_invalid_relative_to_threshold(probability_above_cube, interpreter):
+    """Test error raised if the spp__relative_to_threshold attribute is not one of the
+    permitted values"""
+    probability_above_cube.coord("air_temperature").attributes[
+        "spp__relative_to_threshold"
+    ] = "above"
+    with pytest.raises(
+        ValueError, match="attribute 'above' is not in permitted value set"
+    ):
         interpreter.run(probability_above_cube)
 
 
@@ -350,6 +377,13 @@ def test_error_missing_blended_coords(blended_probability_below_cube, interprete
     coordinates"""
     blended_probability_below_cube.remove_coord("blend_time")
     with pytest.raises(ValueError, match="Missing one or more coordinates"):
+        interpreter.run(blended_probability_below_cube)
+
+
+def test_error_missing_model_information(blended_probability_below_cube, interpreter):
+    """Test error raised if a blended cube doesn't have a model ID attribute"""
+    blended_probability_below_cube.attributes.pop("mosg__model_configuration")
+    with pytest.raises(ValueError, match="on blended file"):
         interpreter.run(blended_probability_below_cube)
 
 
