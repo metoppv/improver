@@ -98,7 +98,7 @@ NONCOMP_CMS = [
     CellMethod(method="mean", coords="realization"),
 ]
 NONCOMP_CM_METHODS = ["point", "weighted_mean"]
-COMP_CM_METHODS = ["min", "max", "minimum", "maximum", "sum"]
+COMPLIANT_CM_METHODS = ["min", "max", "minimum", "maximum", "sum"]
 PRECIP_ACCUM_CM = CellMethod(method="sum", coords="time")
 PRECIP_ACCUM_NAMES = [
     "lwe_thickness_of_precipitation_amount",
@@ -121,7 +121,7 @@ DIAG_ATTRS = {
     "weather_code": ["weather_code", "weather_code_meaning"],
     "wind_gust": ["wind_gust_diagnostic"],
 }
-COMP_ATTRS = MANDATORY_ATTRIBUTES + [
+COMPLIANT_ATTRS = MANDATORY_ATTRIBUTES + [
     "Conventions",
     "least_significant_digit",
     "mosg__model_configuration",
@@ -268,7 +268,7 @@ class MOMetadataInterpreter:
 
         if cube.cell_methods:
             for cm in cube.cell_methods:
-                if cm.method in COMP_CM_METHODS:
+                if cm.method in COMPLIANT_CM_METHODS:
                     self.methods += f" {cm.method} over {cm.coord_names[0]}"
                     if self.field_type == self.PROB:
                         if not cm.comments or cm.comments[0] != f"of {self.diagnostic}":
@@ -337,9 +337,9 @@ class MOMetadataInterpreter:
         """Checks for unexpected attributes, then interprets values for model
         information and checks for self-consistency"""
         if self.diagnostic in DIAG_ATTRS:
-            permitted_attributes = COMP_ATTRS + DIAG_ATTRS[self.diagnostic]
+            permitted_attributes = COMPLIANT_ATTRS + DIAG_ATTRS[self.diagnostic]
         else:
-            permitted_attributes = COMP_ATTRS.copy()
+            permitted_attributes = COMPLIANT_ATTRS.copy()
 
         if any([attr in NONCOMP_ATTRS for attr in attrs]):
             self.errors.append(
