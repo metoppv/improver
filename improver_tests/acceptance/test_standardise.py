@@ -41,6 +41,9 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
+ATTRIBUTES_PATH = acc.kgo_root() / "standardise/metadata/metadata.json"
+
+
 def test_change_metadata(tmp_path):
     """Test applying a JSON metadata file"""
     kgo_dir = acc.kgo_root() / "standardise/metadata"
@@ -71,7 +74,13 @@ def test_fix_float64(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "float64_data.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "--output", output_path]
+    args = [
+        input_path,
+        "--attributes-config",
+        ATTRIBUTES_PATH,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -82,7 +91,13 @@ def test_stage_v110_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "--output", output_path]
+    args = [
+        input_path,
+        "--attributes-config",
+        ATTRIBUTES_PATH,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
