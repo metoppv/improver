@@ -36,10 +36,12 @@
 
 
 import iris
-from iris.cube import Cube
-from iris.coords import DimCoord
 import numpy as np
+from iris.coords import DimCoord
+from iris.cube import Cube
+
 import improver.cli as imcli
+
 
 # function for creating cube from data, lats, lons
 def create_cube(cube_array, lats, lons, name, unit):
