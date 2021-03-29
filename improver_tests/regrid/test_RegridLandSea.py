@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown Copyright 2017-2020 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -69,7 +69,8 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up input cubes and landmask"""
-        # Set domain_corner to define a lat/lon grid which overlaps and completely covers the UK standard grid,
+        # Set domain_corner to define a lat/lon grid which overlaps and completely
+        # covers the UK standard grid,
         # using 54.9,-2.5 as centre (as equalarea grid is configured)
         domain_corner = (54.9 - 15, -2.5 - 15)
         self.cube = set_up_variable_cube(
@@ -170,7 +171,7 @@ class Test_process(IrisTest):
             landmask_vicinity=90000,
         )(self.cube, self.target_grid)
         msg = "Expected land_binary_mask in input_landmask cube"
-        self.assertTrue(any(msg in str(warning) for warning in warning_list))
+        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
         self.assertTrue(any(item.category == UserWarning for item in warning_list))
         self.assertArrayAlmostEqual(result.data, expected_data)
 
@@ -186,7 +187,7 @@ class Test_process(IrisTest):
             landmask_vicinity=90000,
         ).process(self.cube, self.target_grid)
         msg = "Expected land_binary_mask in target_grid cube"
-        self.assertTrue(any(msg in str(warning) for warning in warning_list))
+        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
         self.assertTrue(any(item.category == UserWarning for item in warning_list))
         self.assertArrayAlmostEqual(result.data, expected_data)
 

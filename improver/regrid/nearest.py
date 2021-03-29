@@ -41,7 +41,6 @@ def nearest_with_mask_regrid(
     distances,
     indexes,
     surface_type_mask,
-    weights,
     in_latlons,
     out_latlons,
     in_classified,
@@ -64,15 +63,13 @@ def nearest_with_mask_regrid(
             tource points's latitude-longitudes
         out_latlons(numpy.ndarray):
             target points's latitude-longitudes
-        weights(numpy.ndarray):
-            array of source grid point weighting for all target grid points
         in_classified(numpy.ndarray):
             land_sea type for source grid points (land =>True)
         out_classified(numpy.ndarray):
             land_sea type for terget grid points (land =>True)
         in_values(numpy.ndarray):
             input values (maybe multidimensional, reshaped in function _reshape_data_cube)
-        vicinity (float32): 
+        vicinity (float32):
             radius of specified searching domain (unit: m)
 
     Return:
@@ -180,10 +177,9 @@ def update_nearest_points(
 
     Returns:
         Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
-            Indexes, weights and surface type mask.
-            Indexes - source grid point number for all target grid points.
-            Weights - source grid point weighting for all target grid points
-            Mask - true if source point type matches target point type
+            updated Indexes - source grid point number for all target grid points.
+            updated surface_type_mask - matching info between source/target point types
+            updated distnace - array from each target grid point to its source grid points
     """
     # Gather output points with mismatched surface type and find four nearest input
     # points via KDtree
@@ -203,6 +199,7 @@ def update_nearest_points(
     surface_type_mask[points_with_mismatches] = surface_type_mask_updates
     return indexes, distances, surface_type_mask
 
+
 def lakes_islands(
     lake_island_indexes,
     indexes,
@@ -215,7 +212,7 @@ def lakes_islands(
 ):
     """
     updating source points and weighting for 4-unmatching-source-point cases
-    this function searching nearest 8 points to check if any matching point exists 
+    this function searching nearest 8 points to check if any matching point exists
     Note that a similar function can be found in bilinear.py for bilinear
     regridding rather than nearest neighbour regridding.
 
@@ -239,16 +236,15 @@ def lakes_islands(
 
     Returns:
         Tuple[numpy.ndarray, numpy.ndarray]:
-            updated array of source grid point number for all target grid points
-            FIXME this function returns a 2-tuple, need to describe other output
+            updated Indexes - source grid point number for all target grid points.
+            updated surface_type_mask - matching info between source/target point types
     """
 
     out_latlons_updates = out_latlons[lake_island_indexes]
-    # FIXME the case where 8 nearest points doesn't cover the self.vicinity radius isn't handled here
-    # add comment to explain this
 
     # Consider a larger area of 8 nearest points to look for more distant same
-    # surface type input points
+    # surface type input points.
+    # more than 8 points are within searching limits not considered here
     k_nearest = 8
     distances_updates, indexes_updates = nearest_input_pts(
         in_latlons, out_latlons_updates, k_nearest
@@ -276,10 +272,10 @@ def lakes_islands(
 
     # From the expansion to 8 nearby input points, a same surface type input has been found
     # Update the index and surface type mask to use the newly found same surface type input point
-    points_with_match = (np.where(count_matching_surface > 0))[0]  
+    points_with_match = (np.where(count_matching_surface > 0))[0]
     # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
-    # FIXME check if this for loop can loop over points_with_match instead
+
     for point_idx in range(count_of_points_with_match):
         # Reset all input surface types to mismatched
         match_indexes = lake_island_indexes[points_with_match[point_idx]]

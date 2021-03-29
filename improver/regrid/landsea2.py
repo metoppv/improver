@@ -33,7 +33,6 @@ Plugin to regrid using custom nearest and bilinear methods, both with
 land-sea awareness
 """
 
-import iris
 import numpy as np
 
 from improver import BasePlugin
@@ -133,16 +132,15 @@ class RegridWithLandSeaMask(BasePlugin):
         in_latlons = latlon_from_cube(cube_in)
         # Number of grid points in X dimension is used to work out length of flattened array
         # stripes for finding surrounding points for bilinear interpolation
-        first_spatial_dim_length = cube_in.coord(axis="x").shape[0]  # longitude
+        in_lons_dim = cube_in.coord(axis="x").shape[0]  # longitude
 
         # Locate nearby input points for output points
-        indexes = basic_indexes(out_latlons, in_latlons, first_spatial_dim_length)
+        indexes = basic_indexes(out_latlons, in_latlons, in_lons_dim)
         # Initialise distances and weights to zero. Weights are only used for the bilinear case
         distances = np.zeros((out_latlons.shape[0], 4))
         weights = np.zeros((out_latlons.shape[0], 4), dtype=np.float32)
         # Fill in distances and weights
         if NEAREST in self.regrid_mode:
-            # FIXME this may be able get rid of the for loop here by using slice/indexing
             for i in range(4):
                 distances[:, i] = np.square(
                     in_latlons[indexes[:, i], 0] - out_latlons[:, 0]
@@ -153,9 +151,9 @@ class RegridWithLandSeaMask(BasePlugin):
             # pylint: disable=unsubscriptable-object
             index_range = np.arange(weights.shape[0])
             weights[index_range] = basic_weights(
-                index_range, indexes, out_latlons, in_latlons, first_spatial_dim_length
+                index_range, indexes, out_latlons, in_latlons, in_lons_dim
             )
-            
+
         # Reshape input data so that spatial dimensions can be handled as one
         in_values, lats_index, lons_index = flatten_spatial_dimensions(cube_in)
 
@@ -177,7 +175,7 @@ class RegridWithLandSeaMask(BasePlugin):
                     weights,
                     indexes,
                     surface_type_mask,
-                    first_spatial_dim_length,
+                    in_lons_dim,
                     self.vicinity,
                 )
 
@@ -188,13 +186,12 @@ class RegridWithLandSeaMask(BasePlugin):
                     distances,
                     indexes,
                     surface_type_mask,
-                    weights,
                     in_latlons,
                     out_latlons,
                     in_classified,
                     out_classified,
                     in_values,
-                    self.vicinity,                  
+                    self.vicinity,
                 )
         else:  # not WITH_MASK
             if BILINEAR in self.regrid_mode:

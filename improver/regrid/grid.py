@@ -79,7 +79,7 @@ def variable_name(cube, names):
             found_name = name
             break
     if found_name is None:
-        raise ValueError("Unable to find a variable matching {}", str(names))
+        raise ValueError(f"Unable to find a variable matching {str(names)}")
     return found_name
 
 
@@ -180,9 +180,10 @@ def flatten_spatial_dimensions(cube):
             original data cube
 
     Returns:
-        numpy.ndarray or numpy.ma.core.MaskedArray
+        in_values(numpy.ndarray or numpy.ma.core.MaskedArray)
             Reshaped data array
-            FIXME this docstring doesn't match the 3-tuple returned by the code
+        lats_index,lons_index (int):
+            lattitude/logitude indexes in cube coord.
     """
     in_values = cube.data
     coord_names = get_cube_coord_names(cube)
@@ -215,12 +216,6 @@ def convert_from_projection_to_latlons(cube_out, cube_in):
         numpy.ndarray:
             latitude-longitude pairs for target grid points
     """
-
-    if (
-        cube_out.coord(axis="x").standard_name != "projection_x_coordinate"
-        or cube_out.coord(axis="y").standard_name != "projection_y_coordinate"
-    ):
-        return
 
     # get coordinate points in native projection & transfer into xx,yy(1D)
     proj_x = cube_out.coord("projection_x_coordinate").points
@@ -381,8 +376,6 @@ def create_regrid_cube(cube_array, cube_in, cube_out):
     cube_v = Cube(cube_array)
     cube_v.attributes = cube_in.attributes
 
-    # FIXME remove commented out code
-    # cube_v.add_aux_coord(cube_in.aux_coords)
     cube_v.var_name = cube_in.var_name
     cube_v.standard_name = cube_in.standard_name
     cube_v.units = cube_in.units

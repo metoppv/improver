@@ -73,9 +73,9 @@ def inverse_distance_weighting(
 
     Returns:
         Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
-            updated array of source grid point number for all target grid points
-            updated array of source grid point weighting for all target grid points
-            FIXME this function returns a 3-tuple, doesn't match docstring
+            updated Indexes - source grid point number for all target grid points.
+            updated weights - array from each target grid point to its source grid points
+            output_points_no_match - special target points without matching source points
     """
 
     out_latlons_updates = out_latlons[idw_out_indexes]
@@ -111,9 +111,13 @@ def inverse_distance_weighting(
     masked_distances += np.finfo(np.float32).eps
     # Invert the distances, sum the k surrounding points, scale to produce weights
     inv_distances = 1.0 / masked_distances
-    inv_distances_sum = np.sum(inv_distances, axis=1)
+    # add power 1.80 for inverse diatance weight
+    optimum_power = 1.80
+    inv_distances_power = np.power(inv_distances, optimum_power)
+    inv_distances_sum = np.sum(inv_distances_power, axis=1)
     inv_distances_sum = 1.0 / inv_distances_sum
-    weights_idw = inv_distances * inv_distances_sum.reshape(-1, 1)
+    weights_idw = inv_distances_power * inv_distances_sum.reshape(-1, 1)
+
     # Update indexes and weights with new values
     indexes[output_points_match] = indexes_updates[points_with_match]
     weights[output_points_match] = weights_idw
