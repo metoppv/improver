@@ -68,7 +68,7 @@ def ensemble_fixture():
         "institution": "Met Office",
         "mosg__model_configuration": "uk_ens",
     }
-    return set_up_variable_cube(data, attributes=attributes)
+    return set_up_variable_cube(data, attributes=attributes, spatial_grid="equalarea")
 
 
 @pytest.fixture(name="interpreter")
@@ -80,7 +80,9 @@ def interpreter_fixture():
 def landmask_fixture():
     """Static ancillary cube (no attributes or time coordinates)"""
     data = np.arange(9).reshape(3, 3).astype(np.float32)
-    cube = set_up_variable_cube(data, name="land_binary_mask", units="1")
+    cube = set_up_variable_cube(
+        data, name="land_binary_mask", units="1", spatial_grid="equalarea"
+    )
     for coord in ["time", "forecast_reference_time", "forecast_period"]:
         cube.remove_coord(coord)
     return cube
@@ -101,8 +103,39 @@ def percentile_fixture():
         "wind_gust_diagnostic": "Typical gusts",
     }
     return set_up_percentile_cube(
-        data, percentiles, name="wind_gust", units="m s-1", attributes=attributes
+        data,
+        percentiles,
+        name="wind_gust",
+        units="m s-1",
+        attributes=attributes,
+        spatial_grid="equalarea",
     )
+
+
+@pytest.fixture(name="precip_accum_cube")
+def precip_accum_fixture():
+    """Nowcast 15 minute accumulation cube"""
+    data = 0.2 * np.ones((5, 5), dtype=np.float32)
+    attributes = {
+        "source": "IMPROVER",
+        "title": "MONOW Nowcast on UK 2 km Standard Grid",
+        "institution": "Met Office",
+        "mosg__model_configuration": "nc_det",
+    }
+    cube = set_up_variable_cube(
+        data,
+        name="lwe_thickness_of_precipitation_amount",
+        units="mm",
+        attributes=attributes,
+        spatial_grid="equalarea",
+    )
+    cube.add_cell_method(iris.coords.CellMethod(method="sum", coords="time"))
+    for coord in ["time", "forecast_period"]:
+        cube.coord(coord).bounds = np.array(
+            [cube.coord(coord).points[0] - 900, cube.coord(coord).points[0],],
+            dtype=cube.coord(coord).dtype,
+        )
+    return cube
 
 
 @pytest.fixture(name="probability_above_cube")
@@ -116,7 +149,9 @@ def probability_above_fixture():
         "institution": "Met Office",
         "mosg__model_configuration": "uk_det",
     }
-    return set_up_probability_cube(data, thresholds, attributes=attributes)
+    return set_up_probability_cube(
+        data, thresholds, attributes=attributes, spatial_grid="equalarea"
+    )
 
 
 @pytest.fixture(name="blended_probability_below_cube")
@@ -131,7 +166,11 @@ def probability_below_fixture():
         "mosg__model_configuration": "uk_det uk_ens",
     }
     cube = set_up_probability_cube(
-        data, thresholds, attributes=attributes, spp__relative_to_threshold="less_than",
+        data,
+        thresholds,
+        attributes=attributes,
+        spp__relative_to_threshold="less_than",
+        spatial_grid="equalarea",
     )
     _update_blended_time_coords(cube)
     cube.add_cell_method(
@@ -156,7 +195,9 @@ def snow_level_fixture():
         "institution": "Met Office",
         "title": "Post-Processed MOGREPS-UK Model Forecast on 2 km Standard Grid",
     }
-    return set_up_variable_cube(data, name=name, units="1", attributes=attributes)
+    return set_up_variable_cube(
+        data, name=name, units="1", attributes=attributes, spatial_grid="equalarea"
+    )
 
 
 @pytest.fixture(name="blended_spot_median_cube")
@@ -204,7 +245,11 @@ def wind_direction_fixture():
         "mosg__model_configuration": "uk_ens",
     }
     cube = set_up_variable_cube(
-        data, name="wind_from_direction", units="degrees", attributes=attributes
+        data,
+        name="wind_from_direction",
+        units="degrees",
+        attributes=attributes,
+        spatial_grid="equalarea",
     )
     cube.add_cell_method(iris.coords.CellMethod("mean", coords="realization"))
     return cube
@@ -222,7 +267,11 @@ def wxcode_fixture():
     }
     attributes.update(weather_code_attributes())
     cube = set_up_variable_cube(
-        data, name="weather_code", units="1", attributes=attributes
+        data,
+        name="weather_code",
+        units="1",
+        attributes=attributes,
+        spatial_grid="equalarea",
     )
     _update_blended_time_coords(cube)
     return cube

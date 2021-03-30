@@ -88,6 +88,20 @@ def test_percentiles(wind_gust_percentile_cube, interpreter):
     assert not interpreter.warnings
 
 
+def test_precip_accum(precip_accum_cube, interpreter):
+    """Test interpretation of nowcast precipitation accumulations"""
+    interpreter.run(precip_accum_cube)
+    assert interpreter.prod_type == "gridded"
+    assert interpreter.field_type == "realizations"
+    assert interpreter.diagnostic == "lwe_thickness_of_precipitation_amount"
+    assert interpreter.relative_to_threshold is None
+    assert interpreter.methods == " sum over time"
+    assert not interpreter.post_processed
+    assert interpreter.model == "Nowcast"
+    assert not interpreter.blended
+    assert not interpreter.warnings
+
+
 def test_probabilities_above(probability_above_cube, interpreter):
     """Test interpretation of probability of temperature above threshold
     from UKV"""
@@ -186,6 +200,13 @@ def test_error_inconsistent_model_attributes(ensemble_cube, interpreter):
         interpreter.run(ensemble_cube)
 
 
+def test_error_ancillary_cell_method(landmask_cube, interpreter):
+    """Test error raised when there's a cell method on a static ancillary"""
+    landmask_cube.add_cell_method(CellMethod(method="maximum", coords="time"))
+    with pytest.raises(ValueError, match="Unexpected cell methods"):
+        interpreter.run(landmask_cube)
+
+
 def test_error_wrong_percentile_name_units(wind_gust_percentile_cube, interpreter):
     """Test incorrect percentile coordinate name and units"""
     wind_gust_percentile_cube.coord("percentile").units = "1"
@@ -233,10 +254,49 @@ def test_warning_wind_gust_attribute_wrong_diagnostic(
     ]
 
 
+def test_warning_unexpected_cell_method(wind_gust_percentile_cube, interpreter):
+    """Test a warning is raised if an unexpected, but not forbidden, cell method is
+    present"""
+    wind_gust_percentile_cube.add_cell_method(
+        CellMethod(method="variance", coords="time")
+    )
+    interpreter.run(wind_gust_percentile_cube)
+    assert interpreter.warnings == [
+        "Unexpected cell method variance: time. Please check the standard to "
+        "ensure this is valid"
+    ]
+
+
+def test_error_missing_accum_cell_method(precip_accum_cube, interpreter):
+    """Test error when precip accumulation cube has no time cell method"""
+    precip_accum_cube.cell_methods = []
+    with pytest.raises(ValueError, match="Expected sum over time"):
+        interpreter.run(precip_accum_cube)
+
+
+def test_error_wrong_accum_cell_method(precip_accum_cube, interpreter):
+    """Test error when precipitation accumulation cube has the wrong cell method"""
+    precip_accum_cube.cell_methods = []
+    precip_accum_cube.add_cell_method(CellMethod(method="mean", coords="time"))
+    with pytest.raises(ValueError, match="Expected sum over time"):
+        interpreter.run(precip_accum_cube)
+
+
 def test_error_invalid_probability_name(probability_above_cube, interpreter):
     """Test error raised if probability cube name is invalid"""
     probability_above_cube.rename("probability_air_temperature_is_above_threshold")
     with pytest.raises(ValueError, match="is not a valid probability cube name"):
+        interpreter.run(probability_above_cube)
+
+
+def test_error_invalid_probability_name_no_threshold(
+    probability_above_cube, interpreter
+):
+    """Test error raised if probability cube name is invalid"""
+    probability_above_cube.rename("probability_of_air_temperature")
+    with pytest.raises(
+        ValueError, match="is not consistent with spp__relative_to_threshold"
+    ):
         interpreter.run(probability_above_cube)
 
 
@@ -387,10 +447,38 @@ def test_error_missing_model_information(blended_probability_below_cube, interpr
         interpreter.run(blended_probability_below_cube)
 
 
+def test_error_unrecognised_model_in_blend(blended_probability_below_cube, interpreter):
+    """Test error when a blended model ID attribute has an unknown value"""
+    blended_probability_below_cube.attributes[
+        "mosg__model_configuration"
+    ] = "nc_ens uk_det"
+    with pytest.raises(ValueError, match="unrecognised model code"):
+        interpreter.run(blended_probability_below_cube)
+
+
+def test_error_blend_missing_from_title(blended_probability_below_cube, interpreter):
+    """Test error raised if a blended cube title doesn't indicate a blend, but the
+    model ID attribute contains multiple models"""
+    blended_probability_below_cube.attributes[
+        "title"
+    ] = "IMPROVER Forecast on UK 2 km Standard Grid"
+    with pytest.raises(ValueError, match="is not a valid single model"):
+        interpreter.run(blended_probability_below_cube)
+
+
 def test_error_missing_spot_coords(blended_spot_median_cube, interpreter):
     """Test error raised if a spot cube doesn't have all the expected metadata"""
     blended_spot_median_cube.remove_coord("altitude")
     with pytest.raises(ValueError, match="Missing one or more coordinates"):
+        interpreter.run(blended_spot_median_cube)
+
+
+def test_error_inconsistent_spot_title(blended_spot_median_cube, interpreter):
+    """Test error raised if a spot cube has a non-spot title"""
+    blended_spot_median_cube.attributes[
+        "title"
+    ] = "IMPROVER Post-Processed Multi-Model Blend on UK 2 km Standard Grid"
+    with pytest.raises(ValueError, match="not consistent with spot data"):
         interpreter.run(blended_spot_median_cube)
 
 
