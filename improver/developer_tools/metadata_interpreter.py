@@ -234,6 +234,7 @@ class MOMetadataInterpreter:
         elif self.relative_to_threshold in ("less_than", "less_than_or_equal_to"):
             threshold_attribute = "below"
         elif self.relative_to_threshold == "between_thresholds":
+            # TODO remove this once we get rid of the "between thresholds" plugin and CLI
             threshold_attribute = "between"
             self.warnings.append("Between thresholds data are not fully supported")
         else:
@@ -482,7 +483,7 @@ class MOMetadataInterpreter:
             self.check_spot_data(cube, coords)
 
         if self.field_type == self.ANCIL:
-            # there is no clear standard for time coordinates on static ancillaries
+            # there is no definitive standard for time coordinates on static ancillaries
             pass
         elif (
             cube.coords("time")
@@ -561,7 +562,7 @@ def display_interpretation(interpreter, verbose=False):
             Formatted string describing metadata in human-readable form
     """
     if interpreter.unhandled:
-        return f"{interpreter.diagnostic} is not handled by this interpreter"
+        return f"{interpreter.diagnostic} is not handled by this interpreter\n"
 
     def vstring(source_metadata):
         """Format additional message for verbose output"""
@@ -596,4 +597,4 @@ def display_interpretation(interpreter, verbose=False):
         warning_string = "\n".join(interpreter.warnings)
         output.append(f"WARNINGS:\n{warning_string}")
 
-    return "\n".join(output)
+    return "\n".join(output) + "\n"
