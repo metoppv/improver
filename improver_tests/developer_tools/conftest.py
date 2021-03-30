@@ -40,6 +40,7 @@ from improver.developer_tools.metadata_interpreter import MOMetadataInterpreter
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
+    construct_yx_coords,
     set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
@@ -56,6 +57,20 @@ def _update_blended_time_coords(cube):
     cube.add_aux_coord(blend_time)
     cube.remove_coord("forecast_period")
     cube.remove_coord("forecast_reference_time")
+
+
+@pytest.fixture(name="emos_coefficient_cube")
+def emos_coefficient_fixture():
+    """EMOS coefficient cube (unhandled)"""
+    y_coord, x_coord = construct_yx_coords(1, 1, "equalarea")
+    cube = iris.cube.Cube(
+        0,
+        long_name=f"emos_coefficient_alpha",
+        units="K",
+        dim_coords_and_dims=None,
+        aux_coords_and_dims=[(y_coord, None), (x_coord, None)],
+    )
+    return cube
 
 
 @pytest.fixture(name="ensemble_cube")

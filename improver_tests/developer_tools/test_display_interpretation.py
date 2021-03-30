@@ -35,6 +35,13 @@ import pytest
 from improver.developer_tools.metadata_interpreter import display_interpretation
 
 
+def test_unhandled(emos_coefficient_cube, interpreter):
+    """Test unhandled intermediate cube"""
+    interpreter.run(emos_coefficient_cube)
+    result = display_interpretation(interpreter)
+    assert result == "emos_coefficient_alpha is not handled by this interpreter"
+
+
 def test_realizations(ensemble_cube, interpreter):
     """Test interpretation of temperature realizations from MOGREPS-UK"""
     expected_result = (
@@ -155,17 +162,21 @@ def test_verbose_with_cell_method(blended_probability_below_cube, interpreter):
     assert result == expected_result
 
 
-def test_snow_level(snow_level_cube, interpreter):
+def test_verbose_snow_level(snow_level_cube, interpreter):
     """Test interpretation of a diagnostic cube with "probability" in the name,
     which is not designed for blending with other models"""
     expected_result = (
         "This is a gridded realizations file\n"
+        "    Source: name, coordinates\n"
         "It contains realizations of probability of snow falling level below ground level\n"
+        "    Source: name, threshold coordinate (probabilities only)\n"
         "It has undergone some significant post-processing\n"
-        "It has no source model information and cannot be blended"
+        "    Source: title attribute\n"
+        "It has no source model information and cannot be blended\n"
+        "    Source: model ID attribute (missing)"
     )
     interpreter.run(snow_level_cube)
-    result = display_interpretation(interpreter)
+    result = display_interpretation(interpreter, verbose=True)
     assert result == expected_result
 
 
