@@ -52,6 +52,7 @@ def process(*cubes: cli.inputcube):
 
     """
     from iris.cube import CubeList
+
     from improver.precipitation_type.shower_condition import ShowerCondition
 
     return ShowerCondition()(CubeList(cubes))

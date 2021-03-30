@@ -22,7 +22,7 @@ dependencies:
   - filelock
   - mock
   - pysteps
-  - isort=4.3.21
+  - isort=5.7.0
   - black=19.10b0
   - bandit
   - safety
