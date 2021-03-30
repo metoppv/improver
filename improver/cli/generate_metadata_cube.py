@@ -91,11 +91,11 @@ def process(
     generate_metadata_args = locals()
     generate_metadata_args.pop("json_input", None)
 
-    from improver.synthetic_data.utilities import (
-        get_leading_dimension,
-        get_height_levels,
-    )
     from improver.synthetic_data.generate_metadata import generate_metadata
+    from improver.synthetic_data.utilities import (
+        get_height_levels,
+        get_leading_dimension,
+    )
     from improver.utilities.temporal import cycletime_to_datetime
 
     if json_input is not None:

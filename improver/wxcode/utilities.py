@@ -130,6 +130,7 @@ def update_daynight(cubewx):
     """
     import numpy as np
     from iris.exceptions import CoordinateNotFoundError
+
     import improver.utilities.solar as solar
 
     if not cubewx.coords("time"):

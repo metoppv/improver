@@ -125,9 +125,9 @@ def process(
     """
     import json
 
-    import numpy as np
     import cartopy.crs as ccrs
     import iris
+    import numpy as np
 
     from improver.spotdata.neighbour_finding import NeighbourSelection
     from improver.utilities.cube_manipulation import (

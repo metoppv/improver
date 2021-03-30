@@ -67,6 +67,7 @@ def docutilize(obj):
             on the type of the input.
     """
     from inspect import cleandoc, getdoc
+
     from sphinx.ext.napoleon.docstring import GoogleDocstring, NumpyDocstring
 
     if isinstance(obj, str):
@@ -266,9 +267,10 @@ def create_constrained_inputcubelist_converter(*constraints):
             iris.cube.CubeList:
                 The loaded cubelist of constrained cubes.
         """
-        from improver.utilities.load import load_cubelist
         from iris import Constraint
         from iris.cube import CubeList
+
+        from improver.utilities.load import load_cubelist
 
         cubelist = maybe_coerce_with(load_cubelist, to_convert)
 
@@ -368,6 +370,7 @@ def _cli_items():
     """Dynamically discover CLIs."""
     import importlib
     import pkgutil
+
     from improver.cli import __path__ as improver_cli_pkg_path
 
     yield ("help", improver_help)
@@ -519,8 +522,9 @@ def run_main(argv=None):
             Arguments that were from the command line.
 
     """
-    from clize import run
     import sys
+
+    from clize import run
 
     # clize help shows module execution as `python -m improver.cli`
     # override argv[0] and pass it explicitly in order to avoid this
