@@ -41,6 +41,9 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
+UK_SPOT_TITLE = "IMPROVER UK Spot Values"
+
+
 @pytest.mark.parametrize(
     "extra_args,kgo_file",
     (
@@ -55,7 +58,15 @@ def test_nearest_uk(tmp_path, extra_args, kgo_file):
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     kgo_path = kgo_dir / f"outputs/{kgo_file}"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, "--output", output_path, *extra_args]
+    args = [
+        neighbour_path,
+        diag_path,
+        "--output",
+        output_path,
+        *extra_args,
+        "--new-title",
+        UK_SPOT_TITLE,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -75,6 +86,8 @@ def test_lapse_rate_adjusted_uk(tmp_path):
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -117,6 +130,8 @@ def test_lapse_rate_mismatch(tmp_path):
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     with pytest.warns(UserWarning, match=".*height.*not adjusted.*"):
         run_cli(args)
@@ -137,6 +152,8 @@ def test_lapse_rate_wrong_height(tmp_path):
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     with pytest.raises(ValueError, match=".*single valued height.*"):
         run_cli(args)
@@ -153,7 +170,7 @@ def test_new_spot_title(tmp_path):
         neighbour_path,
         diag_path,
         "--new-title",
-        "IMPROVER Spot Values",
+        UK_SPOT_TITLE,
         "--output",
         output_path,
     ]
@@ -194,6 +211,8 @@ def test_multiple_constraints(tmp_path):
         output_path,
         "--similar-altitude",
         "--land-constraint",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -213,6 +232,8 @@ def test_percentile_thresholded_input(tmp_path):
         output_path,
         "--extract-percentiles",
         "50",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -232,6 +253,8 @@ def test_percentile_percentile_input(tmp_path):
         output_path,
         "--extract-percentiles",
         "50",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -269,6 +292,8 @@ def test_percentile_deterministic(tmp_path):
         output_path,
         "--extract-percentiles",
         "50",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     with pytest.warns(
         UserWarning, match="Diagnostic cube is not a known probabilistic type."
@@ -295,6 +320,8 @@ def test_percentile_deterministic_quiet(tmp_path):
         output_path,
         "--extract-percentiles",
         "50",
+        "--new-title",
+        UK_SPOT_TITLE,
         "--suppress-warnings",
     ]
     with pytest.warns(None) as collected_warns:
@@ -319,6 +346,8 @@ def test_multiple_percentile_thresholded_input(tmp_path):
         output_path,
         "--extract-percentiles",
         "25, 50, 75",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -338,6 +367,8 @@ def test_multiple_percentile_percentile_input(tmp_path):
         output_path,
         "--extract-percentiles",
         "25, 50, 75",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -357,6 +388,8 @@ def test_percentile_realization_input(tmp_path):
         output_path,
         "--extract-percentiles",
         "50",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -376,6 +409,8 @@ def test_multiple_percentile_realization_input(tmp_path):
         output_path,
         "--extract-percentiles",
         "25, 50, 75",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -395,6 +430,8 @@ def test_invalid_lapse_rate(tmp_path):
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     with pytest.raises(ValueError, match=".*lapse rate.*"):
         run_cli(args)
@@ -412,6 +449,8 @@ def test_no_lapse_rate_data(tmp_path):
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
+        "--new-title",
+        UK_SPOT_TITLE,
     ]
     with pytest.warns(UserWarning, match=".*lapse rate.*"):
         run_cli(args)

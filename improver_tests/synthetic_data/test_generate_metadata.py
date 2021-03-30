@@ -37,6 +37,7 @@ import numpy as np
 import pytest
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
+from improver.metadata.probabilistic import probability_is_above_or_below
 from improver.synthetic_data.generate_metadata import generate_metadata
 from improver.utilities.temporal import datetime_to_iris_time, iris_time_to_datetime
 
@@ -50,7 +51,7 @@ FRT_DEFAULT = datetime(2017, 11, 10, 0, 0)
 FORECAST_PERIOD_DEFAULT = 14400
 NDIMS_DEFAULT = 3
 ATTRIBUTES_DEFAULT = {}
-RELATIVE_TO_THRESHOLD_DEFAULT = "above"
+RELATIVE_TO_THRESHOLD_DEFAULT = "greater_than"
 SPATIAL_GRID_ATTRIBUTE_DEFAULTS = {
     "latlon": {
         "y": "latitude",
@@ -330,7 +331,7 @@ def test_disable_ensemble(ensemble_members):
     "cube_type", ("variable", "percentile", "probability", "other")
 )
 @pytest.mark.parametrize(
-    "spp__relative_to_threshold", ("above", "below", None),
+    "spp__relative_to_threshold", ("greater_than", "less_than", None),
 )
 def test_leading_dimension(cube_type, spp__relative_to_threshold):
     """ Tests cube generated with leading dimension specified using percentile and
@@ -366,7 +367,7 @@ def test_leading_dimension(cube_type, spp__relative_to_threshold):
             coord_name = "percentile"
         elif cube_type == "probability":
             cube_name = "probability_of_{}_{}_threshold".format(
-                NAME_DEFAULT, spp__relative_to_threshold
+                NAME_DEFAULT, probability_is_above_or_below(cube)
             )
             coord_name = NAME_DEFAULT
 
