@@ -6,29 +6,35 @@ channels:
   - conda-forge
 dependencies:
   - python=3.7
-  - iris=2.4
-  - numpy
-  - numba
-  - scipy=1.3.3
+  # Required
+  - cartopy
   - cftime=1.0.1
+  - cf_units
+  - clize
+  - dask
+  - iris=2.4
+  - netCDF4
+  - numpy
+  - python-dateutil
   - python-stratify
+  - pytz=2020.5
+  - scipy=1.3
+  - sigtools
   - sphinx
+  # Optional
+  - numba
+  - pysteps=1.3.2
+  - statsmodels
+  - timezonefinder=4.1.0
+  # Development
+  - astroid
+  - bandit
+  - black=19.10b0
+  - codacy-coverage
+  - filelock
+  - isort=4.3.21
+  - mock
+  - pylint
   - pytest
   - pytest-cov
-  - codacy-coverage
-  - pylint
-  - astroid
-  - filelock
-  - mock
-  - pysteps=1.3.2
-  - isort=4.3.21
-  - black=19.10b0
-  - bandit
   - safety
-  - pip
-  - pip:
-    - od
-    - sigtools
-    - clize
-    - timezonefinder==4.2.0
-    - pytz==2020.5
