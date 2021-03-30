@@ -356,6 +356,8 @@ def test_percentile_weights_dict(tmp_path):
         "forecast_period",
         "--model-id-attr",
         "mosg__model_configuration",
+        "--attributes-config",
+        ATTRIBUTES_PATH,
         ukv_path,
         enuk_path,
         "--output",

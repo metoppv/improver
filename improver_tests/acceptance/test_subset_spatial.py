@@ -28,9 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the percentiles-to-probabilities CLI
-"""
+"""Tests for the subset_spatial CLI"""
 
 import pytest
 
@@ -41,18 +39,52 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_basic(tmp_path):
-    """Test basic percentile to probability conversion"""
-    kgo_dir = acc.kgo_root() / "percentiles-to-probabilities/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "../snow_level.nc"
-    orography_path = kgo_dir / "../enukx_orography.nc"
+def test_spot(tmp_path):
+    """Test extraction from spot file"""
+    kgo_dir = acc.kgo_root() / "subset-spatial"
+    kgo_path = kgo_dir / "kgo_spot.nc"
+    input_path = kgo_dir / "input_spot.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
-        orography_path,
-        "--output-diagnostic-name",
-        "probability_of_snow_falling_level_below_ground_level",
+        "--site-list",
+        "700,845,996,3346,3382",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_uk_grid(tmp_path):
+    """Test subsetting of UK standard gridded data"""
+    kgo_dir = acc.kgo_root() / "subset-spatial"
+    kgo_path = kgo_dir / "kgo_grid_uk.nc"
+    input_path = kgo_dir / "input_grid_uk.nc"
+    grid_spec_path = kgo_dir / "grid_spec.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--grid-spec",
+        grid_spec_path,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_lat_lon_grid(tmp_path):
+    """Test subsetting of data on a lat-lon grid"""
+    kgo_dir = acc.kgo_root() / "subset-spatial"
+    kgo_path = kgo_dir / "kgo_grid_latlon.nc"
+    input_path = kgo_dir / "input_grid_latlon.nc"
+    grid_spec_path = kgo_dir / "grid_spec.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--grid-spec",
+        grid_spec_path,
         "--output",
         output_path,
     ]

@@ -33,15 +33,13 @@
 
 import unittest
 
-import iris
 import numpy as np
-from iris.coords import CellMethod, DimCoord
+from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.nbhood.square_kernel import SquareNeighbourhood
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.wind_calculations.wind_direction import WindDirection
 
 
 class Test__init__(IrisTest):

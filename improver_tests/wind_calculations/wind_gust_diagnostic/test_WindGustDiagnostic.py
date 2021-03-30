@@ -34,10 +34,7 @@ from datetime import datetime
 
 import iris
 import numpy as np
-from cf_units import Unit
-from iris.coords import DimCoord
 from iris.cube import Cube
-from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import (

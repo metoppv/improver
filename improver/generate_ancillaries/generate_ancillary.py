@@ -85,7 +85,7 @@ def _make_mask_cube(
     """
     mask_data = mask_data.astype(np.int32)
     mask_cube = iris.cube.Cube(mask_data, long_name="topography_mask")
-    if any([item is None for item in topographic_bounds]):
+    if any(item is None for item in topographic_bounds):
         msg = (
             "The topographic bounds variable should have both an "
             "upper and lower limit: "

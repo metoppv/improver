@@ -137,7 +137,7 @@ def generate_mandatory_attributes(diagnostic_cubes, model_id_attr=None):
     required_attributes = [model_id_attr] if model_id_attr else []
     attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
     for attr in MANDATORY_ATTRIBUTES + required_attributes:
-        unique_values = set(d.get(attr, missing_value) for d in attr_dicts)
+        unique_values = {d.get(attr, missing_value) for d in attr_dicts}
         if len(unique_values) == 1 and missing_value not in unique_values:
             (attributes[attr],) = unique_values
         elif attr in required_attributes:

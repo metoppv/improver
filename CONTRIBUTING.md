@@ -64,6 +64,7 @@ below:
 * Belinda Trotta (Bureau of Meteorology, Australia)
 * Tomasz Trzeciak (Met Office, UK)
 * Mark Worsfold (Met Office, UK)
+* Shubhendra Singh Chauhan (DeepSource, India)
 
 (All contributors on GitHub are identifiable with email addresses in the
 version control logs or otherwise.)

@@ -46,7 +46,7 @@ def test_basic():
     assert np.isclose(plugin.lower_threshold, 0.01)
     assert np.isclose(plugin.upper_threshold, 0.99)
     assert isinstance(plugin.phase_operator, dict)
-    assert all([callable(v) for v in plugin.phase_operator.values()])
+    assert all(callable(v) for v in plugin.phase_operator.values())
 
 
 @pytest.mark.parametrize(
