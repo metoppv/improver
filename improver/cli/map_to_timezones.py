@@ -61,6 +61,7 @@ def process(
             Processed cube.
     """
     from datetime import datetime
+
     from improver.utilities.temporal import TimezoneExtraction
 
     local_datetime = datetime.strptime(local_time, "%Y%m%dT%H%M")
