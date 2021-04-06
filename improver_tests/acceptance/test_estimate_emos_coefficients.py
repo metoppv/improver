@@ -355,7 +355,7 @@ def test_normal_point_by_point_default_initial_guess_sites(tmp_path):
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
         "--tolerance",
-        EST_EMOS_TOL,
+        est_emos_tol,
         "--point-by-point",
         "--use-default-initial-guess",
         "--output",

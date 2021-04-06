@@ -663,8 +663,12 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Using a default initial guess may reduce the memory overhead
                 option.
             use_default_initial_guess (bool):
-                If True, use the default initial guess. If False, the initial
-                guess is computed.
+                If True, use the default initial guess. The default initial
+                guess assumes no adjustments are required to the initial
+                choice of predictor to generate the calibrated distribution.
+                This means coefficients of 1 for the multiplicative
+                coefficients and 0 for the additive coefficients. If False,
+                the initial guess is computed.
             desired_units (str or cf_units.Unit):
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
