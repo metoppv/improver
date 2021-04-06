@@ -74,12 +74,17 @@ class Test_SpotExtraction(IrisTest):
         # can be tested
         attributes = {"mosg__grid_domain": "global", "mosg__grid_type": "standard"}
 
+        cell_methods = (
+            iris.coords.CellMethod("maximum", coords="time", intervals="1 hour"),
+        )
+
         diagnostic_cube_xy = iris.cube.Cube(
             diagnostic_data,
             standard_name="air_temperature",
             units="K",
             dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
             attributes=attributes,
+            cell_methods=cell_methods,
         )
         diagnostic_cube_yx = iris.cube.Cube(
             diagnostic_data.T,
@@ -87,6 +92,7 @@ class Test_SpotExtraction(IrisTest):
             units="K",
             dim_coords_and_dims=[(ycoord, 0), (xcoord, 1)],
             attributes=attributes,
+            cell_methods=cell_methods,
         )
 
         diagnostic_cube_hash = create_coordinate_hash(diagnostic_cube_yx)
@@ -313,6 +319,20 @@ class Test_process(Test_SpotExtraction):
         self.assertArrayEqual(result.coord("longitude").points, self.longitudes)
         self.assertEqual(result.coord("realization"), expected_coord)
         self.assertDictEqual(result.attributes, self.expected_attributes)
+
+    def test_cell_methods(self):
+        """Test cell methods from the gridded input cube are retained on the
+        spotdata cube."""
+        expected_cell_methods = (
+            iris.coords.CellMethod("maximum", coords="time", intervals="1 hour"),
+        )
+        plugin = SpotExtraction(neighbour_selection_method="nearest_land")
+        result = plugin.process(
+            self.neighbour_cube,
+            self.diagnostic_cube_xy,
+            new_title="IMPROVER Spot Forecast",
+        )
+        self.assertEqual(result.cell_methods, expected_cell_methods)
 
 
 if __name__ == "__main__":
