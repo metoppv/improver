@@ -54,9 +54,9 @@ def test_kgo_checksums():
         for filename in filenames:
             data_paths.append(pathlib.Path(directory) / filename)
     # check that the found files matches the checksum list
-    acc_paths_lines = sorted([
-        f"{kgo_root / acc_path}\n" for acc_path in acc.acceptance_checksums().keys()
-    ])
+    acc_paths_lines = sorted(
+        [f"{kgo_root / acc_path}\n" for acc_path in acc.acceptance_checksums().keys()]
+    )
     data_paths_lines = sorted([f"{d_path}\n" for d_path in data_paths])
     diff = difflib.unified_diff(sorted(data_paths_lines), sorted(acc_paths_lines))
     diff_lines = list(diff)
