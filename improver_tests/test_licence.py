@@ -48,7 +48,10 @@ def self_licence():
 
 
 def test_py_licence():
-    """Check that non-empty python files contain the licence text"""
+    """
+    Check that non-empty python files contain the utf8 header and
+    3-clause BSD licence text
+    """
     top_level = (Path(__file__).parent / "..").resolve()
     directories_covered = [top_level / "improver", top_level / "improver_tests"]
     failed_files = []
