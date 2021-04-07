@@ -36,13 +36,11 @@ from pathlib import Path
 def self_licence():
     """Collect licence text from this file"""
     self_lines = Path(__file__).read_text().splitlines()
-    # count lines at start of file which begin with a "#" comment
-    counter = 0
-    for counter, line in enumerate(self_lines):
+    licence_lines = list()
+    for line in self_lines:
         if not line.startswith("#"):
             break
-    # separate out those lines and join into a single string
-    licence_lines = self_lines[0:counter]
+        licence_lines.append(line)
     licence = "\n".join(licence_lines)
     return licence
 
