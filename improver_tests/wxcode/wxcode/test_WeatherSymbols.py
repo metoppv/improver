@@ -419,7 +419,7 @@ class Test_create_condition_chain(Test_WXCode):
         }
 
     def test_basic(self):
-        """Test create_condition_chain returns a nested list of iris.Constraint, 
+        """Test create_condition_chain returns a nested list of iris.Constraint,
         floats, and strings representing operators that extracts the correct data."""
         plugin = WeatherSymbols()
         test_condition = self.dummy_queries["significant_precipitation"]
@@ -685,7 +685,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
     """Test the evaluate_extract_expression method ."""
 
     def test_basic(self):
-        """Test evaluating a basic expression consisting of constraints, 
+        """Test evaluating a basic expression consisting of constraints,
         operators, and constants."""
         plugin = WeatherSymbols()
         t = AuxCoord(0.1, units="mm hr-1")
@@ -801,7 +801,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
         self.assertArrayEqual(result, expected)
 
     def test_error(self):
-        """Test that we get an error if first element of the chain has length > 1 
+        """Test that we get an error if first element of the chain has length > 1
         and second element is ""."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
@@ -1119,7 +1119,33 @@ class Test_create_symbol_cube(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
+        self.assertNotIn("mosg__model_configuration", result.attributes)
         self.assertTrue((result.data.mask).all())
+
+    def test_optional_attribute_one_input(self):
+        """Test handling of model configuration attribute for one input."""
+        self.cube.attributes["mosg__model_configuration"] = "uk_ens"
+        result = WeatherSymbols().create_symbol_cube([self.cube])
+        self.assertArrayEqual(result.attributes["mosg__model_configuration"], "uk_ens")
+
+    def test_optional_attribute_two_matching_inputs(self):
+        """Test handling of model configuration attribute for two matching inputs."""
+        self.cube.attributes["mosg__model_configuration"] = "uk_ens"
+        self.cube1 = self.cube.copy()
+        self.cube2 = self.cube.copy()
+        result = WeatherSymbols().create_symbol_cube([self.cube1, self.cube2])
+        self.assertArrayEqual(result.attributes["mosg__model_configuration"], "uk_ens")
+
+    def test_optional_attribute_two_different_inputs(self):
+        """Test handling of model configuration attribute for two different inputs."""
+        self.cube1 = self.cube.copy()
+        self.cube2 = self.cube.copy()
+        self.cube1.attributes["mosg__model_configuration"] = "uk_ens"
+        self.cube2.attributes["mosg__model_configuration"] = "nc_det"
+        result = WeatherSymbols().create_symbol_cube([self.cube1, self.cube2])
+        self.assertArrayEqual(
+            result.attributes["mosg__model_configuration"], "nc_det uk_ens"
+        )
 
     def test_removes_bounds(self):
         """Test bounds are removed from time and forecast period coordinate"""
@@ -1146,7 +1172,7 @@ class Test_compare_to_threshold(IrisTest):
     """Test the compare_to_threshold method ."""
 
     def test_array(self):
-        """Test that compare_to_threshold produces the correct array of 
+        """Test that compare_to_threshold produces the correct array of
         booleans."""
         arr = np.array([0, 1, 2], dtype=np.int32)
         plugin = WeatherSymbols()
@@ -1161,7 +1187,7 @@ class Test_compare_to_threshold(IrisTest):
             self.assertArrayEqual(result, test_case_map[item])
 
     def test_error_on_unexpected_comparison(self):
-        """Test that an error is raised if the comparison operator is not 
+        """Test that an error is raised if the comparison operator is not
         one of the expected strings."""
         arr = np.array([0, 1, 2], dtype=np.int32)
         plugin = WeatherSymbols()

@@ -277,12 +277,12 @@ class WeatherSymbols(BasePlugin):
         Returns:
             list:
                 A valid condition chain is defined recursively:
-                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a 
-                constraint, or a list of constraints, 
-                operator strings and floats), and b is either "AND", "OR" or "", 
+                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
+                constraint, or a list of constraints,
+                operator strings and floats), and b is either "AND", "OR" or "",
                 then [[a1, ..., an], b] is a valid condition chain.
-                (2) If a1, ..., an are each valid conditions chain, and b is 
-                either "AND" or "OR", then [[a1, ..., an], b] is a valid 
+                (2) If a1, ..., an are each valid conditions chain, and b is
+                either "AND" or "OR", then [[a1, ..., an], b] is a valid
                 condition chain.
         """
         conditions = []
@@ -452,13 +452,23 @@ class WeatherSymbols(BasePlugin):
             if coord.name() in ["forecast_period", "time"]:
                 coord.bounds = None
 
-        attributes = generate_mandatory_attributes(cubes)
+        mandatory_attributes = generate_mandatory_attributes(cubes)
+        optional_attributes = weather_code_attributes()
+        model_configurations = [
+            c.attributes["mosg__model_configuration"]
+            for c in cubes
+            if c.attributes.get("mosg__model_configuration")
+        ]
+        if model_configurations:
+            optional_attributes["mosg__model_configuration"] = " ".join(
+                sorted(set(model_configurations))
+            )
         symbols = create_new_diagnostic_cube(
             "weather_code",
             "1",
             template_cube,
-            attributes,
-            optional_attributes=weather_code_attributes(),
+            mandatory_attributes,
+            optional_attributes=optional_attributes,
             data=np.ma.masked_all_like(template_cube.data).astype(np.int32),
         )
         return symbols
@@ -505,12 +515,12 @@ class WeatherSymbols(BasePlugin):
                 weather symbols decision tree, these at co-incident times.
             expression (iris.Constraint or list):
                 Defined recursively:
-                A list consisting of an iris.Constraint or a list of 
-                iris.Constraint, strings (representing operators) and floats 
+                A list consisting of an iris.Constraint or a list of
+                iris.Constraint, strings (representing operators) and floats
                 is a valid expression.
-                A list consisting of valid expressions, strings (representing 
+                A list consisting of valid expressions, strings (representing
                 operators) and floats is a valid expression.
-        
+
         Returns:
             numpy.array:
                 An array or masked array of booleans
@@ -573,14 +583,14 @@ class WeatherSymbols(BasePlugin):
                 weather symbols decision tree, these at co-incident times.
             condition_chain (list):
                 A valid condition chain is defined recursively:
-                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a 
-                constraint, or a list of constraints, 
-                operator strings and floats), and b is either "AND", "OR" or "", 
+                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
+                constraint, or a list of constraints,
+                operator strings and floats), and b is either "AND", "OR" or "",
                 then [[a1, ..., an], b] is a valid condition chain.
-                (2) If a1, ..., an are each valid conditions chain, and b is 
-                either "AND" or "OR", then [[a1, ..., an], b] is a valid 
+                (2) If a1, ..., an are each valid conditions chain, and b is
+                either "AND" or "OR", then [[a1, ..., an], b] is a valid
                 condition chain.
-            
+
         Returns:
             numpy.array:
                 An array of masked array of booleans
