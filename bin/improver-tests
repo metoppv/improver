@@ -56,68 +56,6 @@ function get_python_files {
                                                ! -name '*~' \)`
 }
 
-function licence_check {
-    # Iterate through files to check whether they contain the expected
-    # licence information. If any files do not contain the expected licence
-    # information, then this test will fail.
-read -d '' expected <<'__TEXT__' || true
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-__TEXT__
-
-    FILES_TO_TEST=$@
-
-    count=0
-    for FILE in $FILES_TO_TEST; do
-        # Check whether file has a size greater than zero.
-        if [[ -s $FILE ]]; then
-            file_contents=$(<$FILE)
-            if [[ "$file_contents" != *"$expected"* ]]; then
-                echo "Unexpected licence information: ${FILE#$IMPROVER_DIR}"
-                count=$((count+1))
-            fi
-        fi
-    done
-    if (( $count > 0 )); then
-        echo_fail "IMPROVER licences"
-        exit 1
-    fi
-}
-
-function improver_test_licence {
-    # utf8 and BSD 3-clause licence testing.
-    licence_check $FILES_TO_TEST
-    echo_ok "IMPROVER licences"
-}
-
 function improver_test_black {
     ${BLACK:-black} $FILES_TO_TEST
     echo_ok "black"
@@ -127,7 +65,6 @@ function improver_test_isort {
     ${ISORT:-isort} $FILES_TO_TEST
     echo_ok "isort"
 }
-
 
 function improver_test_pylint {
     # Pylint score generation.
@@ -208,9 +145,9 @@ Optional arguments:
 
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: black, isort, pylint, pylintE, licence,
+                    Valid names are: black, isort, pylint, pylintE,
                     doc, unit, cli, and recreate_checksums. The default tests
-                    are black, isort, pylintE, licence, doc, unit,
+                    are black, isort, pylintE, doc, unit,
                     and cli.
                     Using recreate_checksums will regenerate the
                     test data checksum file which is used as part of the cli
@@ -255,7 +192,7 @@ for arg in "$@"; do
         print_usage
         exit 0
         ;;
-        black|isort|pylint|pylintE|licence|doc|unit|cli|recreate_checksums)
+        black|isort|pylint|pylintE|doc|unit|cli|recreate_checksums)
         SUBTESTS="$SUBTESTS $arg"
         ;;
         $cli_tasks)
@@ -273,7 +210,7 @@ if [[ -n "$SUBTESTS" ]]; then
     TESTS="$SUBTESTS"
 else
     # Default tests.
-    TESTS="isort black pylintE licence doc unit cli"
+    TESTS="isort black pylintE doc unit cli"
 fi
 
 # If cli sub test is not specified by user, do all cli tests.
