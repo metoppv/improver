@@ -41,6 +41,7 @@ import shutil
 import pytest
 
 from improver import cli
+from improver.calibration.utilities import statsmodels_available
 from improver.constants import DEFAULT_TOLERANCE
 from improver.utilities.compare import compare_netcdfs
 
@@ -301,13 +302,6 @@ def recreate_if_needed(output_path, kgo_path, recreate_dir_path=None):
     quoted_recreate = shlex.quote(str(recreate_file_path))
     print(f"cp {quoted_recreate} {quoted_kgo}")
     return True
-
-
-def statsmodels_available():
-    """True if statsmodels library is importable"""
-    if importlib.util.find_spec("statsmodels"):
-        return True
-    return False
 
 
 def iris_nimrod_patch_available():

@@ -42,6 +42,8 @@ def process(
     *cubes: cli.inputcube,
     distribution,
     truth_attribute,
+    point_by_point=False,
+    use_default_initial_guess=False,
     units=None,
     predictor="mean",
     tolerance: float = 0.02,
@@ -70,6 +72,20 @@ def process(
         truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on historical truth cubes.
+        point_by_point (bool):
+            If True, coefficients are calculated independently for each point
+            within the input cube by creating an initial guess and minimising
+            each grid point independently. If False, a single set of
+            coefficients is calculated using all points.
+            Warning: This option is memory intensive and is unsuitable for
+            gridded input. Using a default initial guess may reduce the memory
+            overhead option.
+        use_default_initial_guess (bool):
+            If True, use the default initial guess. The default initial guess
+            assumes no adjustments are required to the initial choice of
+            predictor to generate the calibrated distribution. This means
+            coefficients of 1 for the multiplicative coefficients and 0 for
+            the additive coefficients. If False, the initial guess is computed.
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
@@ -107,10 +123,11 @@ def process(
 
     plugin = EstimateCoefficientsForEnsembleCalibration(
         distribution,
+        point_by_point=point_by_point,
+        use_default_initial_guess=use_default_initial_guess,
         desired_units=units,
         predictor=predictor,
         tolerance=tolerance,
         max_iterations=max_iterations,
     )
-
     return plugin(forecast, truth, landsea_mask=land_sea_mask)

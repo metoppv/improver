@@ -29,11 +29,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the utilities within the `ensemble_calibration_utilities`
+Unit tests for the utilities within the `calibration.utilities`
 module.
 
 """
 import datetime
+import importlib
 import unittest
 
 import iris
@@ -52,6 +53,7 @@ from improver.calibration.utilities import (
     forecast_coords_match,
     get_frt_hours,
     merge_land_and_sea,
+    statsmodels_available,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import (
@@ -64,6 +66,13 @@ from ..ensemble_calibration.helper_functions import SetupCubes
 from ..reliability_calibration.test_AggregateReliabilityCalibrationTables import (
     Test_Aggregation,
 )
+
+try:
+    importlib.import_module("statsmodels")
+except (ModuleNotFoundError, ImportError):
+    STATSMODELS_FOUND = False
+else:
+    STATSMODELS_FOUND = True
 
 
 class Test_convert_cube_data_to_2d(IrisTest):
@@ -652,6 +661,21 @@ class Test_check_forecast_consistency(IrisTest):
 
         with self.assertRaisesRegex(ValueError, msg):
             check_forecast_consistency(forecasts)
+
+
+class Test_statsmodels_available(IrisTest):
+
+    """Test statsmodels_available function."""
+
+    @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
+    def test_statsmodels_available(self):
+        """Test when the statsmodels module is available."""
+        self.assertTrue(statsmodels_available())
+
+    @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module not available.")
+    def test_statsmodels_not_available(self):
+        """Test when the statsmodels module is available."""
+        self.assertFalse(statsmodels_available())
 
 
 if __name__ == "__main__":

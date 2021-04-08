@@ -35,10 +35,15 @@ import datetime
 
 import iris
 import numpy as np
+from cf_units import Unit
 from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    construct_scalar_time_coords,
+    set_up_variable_cube,
+)
 from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate"]
@@ -96,13 +101,13 @@ class SetupCubes(IrisTest):
 
         base_data = np.array(
             [
-                [[0.3, 1.1, 2.6], [4.2, 5.3, 6.0], [7.1, 8.2, 9.0]],
-                [[0.7, 2.0, 3], [4.3, 5.6, 6.4], [7.0, 8.0, 9.0]],
-                [[2.1, 3.0, 3.0], [4.8, 5.0, 6.0], [7.9, 8.0, 8.9]],
+                [[0.3, 1.1, 2.6], [4.2, 5.3, 5.9], [7.1, 8.2, 8.8]],
+                [[0.7, 2.0, 2.9], [4.3, 5.6, 6.4], [7.0, 7.0, 9.2]],
+                [[2.1, 3.0, 3.1], [4.8, 5.0, 6.1], [7.9, 8.1, 8.9]],
             ],
             dtype=np.float32,
         )
-        temperature_data = base_data + 273.15
+        temperature_data = Unit("Celsius").convert(base_data, "Kelvin")
         self.current_temperature_forecast_cube = set_up_variable_cube(
             temperature_data,
             units="Kelvin",
@@ -111,6 +116,9 @@ class SetupCubes(IrisTest):
             frt=frt_dt,
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
+
+        time_dt = time_dt - datetime.timedelta(days=5)
+        frt_dt = frt_dt - datetime.timedelta(days=5)
 
         # Create historic forecasts and truth
         self.historic_forecasts = _create_historic_forecasts(
@@ -150,33 +158,9 @@ class SetupCubes(IrisTest):
         # Set up another set of cubes which have a halo of zeros round the
         # original data. This data will be masked out in tests using a
         # landsea_mask
-        base_data = np.array(
-            [
-                [
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                    [0.0, 0.3, 1.1, 2.6, 0.0],
-                    [0.0, 4.2, 5.3, 6.0, 0.0],
-                    [0.0, 7.1, 8.2, 9.0, 0.0],
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                ],
-                [
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                    [0.0, 0.7, 2.0, 3, 0.0],
-                    [0.0, 4.3, 5.6, 6.4, 0.0],
-                    [0.0, 7.0, 8.0, 9.0, 0.0],
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                ],
-                [
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                    [0.0, 2.1, 3.0, 3.0, 0.0],
-                    [0.0, 4.8, 5.0, 6.0, 0.0],
-                    [0.0, 7.9, 8.0, 8.9, 0.0],
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                ],
-            ],
-            dtype=np.float32,
-        )
-        temperature_data = base_data + 273.15
+        base_data = np.pad(base_data, ((0, 0), (1, 1), (1, 1)), mode="constant")
+        temperature_data = Unit("Celsius").convert(base_data, "Kelvin")
+
         # Create historic forecasts and truth
         self.historic_forecasts_halo = _create_historic_forecasts(
             temperature_data, time_dt, frt_dt, realizations=[0, 1, 2]
@@ -202,6 +186,49 @@ class SetupCubes(IrisTest):
         self.wind_speed_truth_cube_halo = _create_truth(
             base_data, time_dt, name="wind_speed", units="m s-1"
         ).merge_cube()
+
+        data = np.array([1.6, 1.3, 1.4, 1.1])
+        altitude = np.array([10, 20, 30, 40])
+        latitude = np.linspace(58.0, 59.5, 4)
+        longitude = np.linspace(-0.25, 0.5, 4)
+        wmo_id = ["03001", "03002", "03003", "03004"]
+        forecast_spot_cubes = iris.cube.CubeList()
+        for realization in range(1, 3):
+            realization_coord = [
+                iris.coords.DimCoord(realization, standard_name="realization")
+            ]
+            for day in range(5, 11):
+                time_coords = construct_scalar_time_coords(
+                    datetime.datetime(2017, 11, day, 4, 0),
+                    None,
+                    datetime.datetime(2017, 11, day, 0, 0),
+                )
+                time_coords = [t[0] for t in time_coords]
+                forecast_spot_cubes.append(
+                    build_spotdata_cube(
+                        data + 0.2 * day,
+                        "air_temperature",
+                        "degC",
+                        altitude,
+                        latitude,
+                        longitude,
+                        wmo_id,
+                        scalar_coords=time_coords + realization_coord,
+                    )
+                )
+        forecast_spot_cube = forecast_spot_cubes.merge_cube()
+
+        self.historic_forecast_spot_cube = forecast_spot_cube[:, :5, :]
+        self.historic_forecast_spot_cube.convert_units("Kelvin")
+        self.historic_forecast_spot_cube.attributes = MANDATORY_ATTRIBUTE_DEFAULTS
+
+        self.current_forecast_spot_cube = forecast_spot_cube[:, 5, :]
+        self.current_forecast_spot_cube.convert_units("Kelvin")
+        self.current_forecast_spot_cube.attributes = MANDATORY_ATTRIBUTE_DEFAULTS
+
+        self.truth_spot_cube = self.historic_forecast_spot_cube[0].copy()
+        self.truth_spot_cube.remove_coord("realization")
+        self.truth_spot_cube.data = self.truth_spot_cube.data + 1.0
 
 
 def _create_historic_forecasts(
@@ -243,7 +270,7 @@ def _create_historic_forecasts(
         new_time_dt = time_dt + datetime.timedelta(days=day)
         historic_forecasts.append(
             set_up_variable_cube(
-                data - 2,
+                data - 2 + 0.2 * day,
                 time=new_time_dt,
                 frt=new_frt_dt,
                 standard_grid_metadata=standard_grid_metadata,
@@ -281,7 +308,7 @@ def _create_truth(data, time_dt, number_of_days=5, **kwargs):
         new_time_dt = time_dt + datetime.timedelta(days=day)
         truth.append(
             set_up_variable_cube(
-                np.amax(data - 3, axis=0),
+                np.amax(data - 3, axis=0) + 0.2 * day,
                 time=new_time_dt,
                 frt=new_time_dt,
                 standard_grid_metadata="uk_det",

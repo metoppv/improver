@@ -33,6 +33,8 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
+import importlib
+
 import iris
 import numpy as np
 
@@ -91,11 +93,13 @@ def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
             Default False.
             If True the flattened array is reshaped so it has the same leading
             dimension as the input array. If False the returned array is 1D.
+
     Returns:
         numpy.ndarray:
             A flattened array containing only valid data. Either 1D or, if
             preserving the leading dimension 2D. In the latter case the
             leading dimension is the same as the input data_array.
+
     Raises:
         ValueError: If preserving the leading dimension and the mask on the
                     input array is not the same for every slice along the
@@ -344,3 +348,15 @@ def check_forecast_consistency(forecasts):
     if len(forecasts.coord("forecast_period").points) != 1:
         msg = "Forecasts have been provided with differing forecast periods {}"
         raise ValueError(msg.format(forecasts.coord("forecast_period").points))
+
+
+def statsmodels_available():
+    """True if statsmodels library is importable.
+
+    Returns:
+        bool:
+            If True, statsmodels is available, otherwise, False.
+    """
+    if importlib.util.find_spec("statsmodels"):
+        return True
+    return False
