@@ -238,6 +238,9 @@ class SpotExtraction(BasePlugin):
             MANDATORY_ATTRIBUTE_DEFAULTS["title"] if new_title is None else new_title
         )
 
+        # Copy cell methods
+        spotdata_cube.cell_methods = diagnostic_cube.cell_methods
+
         return spotdata_cube
 
 
