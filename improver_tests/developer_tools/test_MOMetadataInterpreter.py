@@ -218,6 +218,7 @@ def test_error_wrong_percentile_name_units(wind_gust_percentile_cube, interprete
     with pytest.raises(ValueError, match=msg):
         interpreter.run(wind_gust_percentile_cube)
 
+# Test attribute errors
 
 def test_error_forbidden_attributes(wind_gust_percentile_cube, interpreter):
     """Test error raised when a forbidden attribute is present"""
@@ -252,6 +253,7 @@ def test_warning_wind_gust_attribute_wrong_diagnostic(
         "'wind_gust_diagnostic']) include unexpected attributes ['wind_gust_diagnostic']. "
         "Please check the standard to ensure this is valid."
     ]
+# Test cell method errors
 
 
 def test_warning_unexpected_cell_method(wind_gust_percentile_cube, interpreter):
@@ -281,6 +283,7 @@ def test_error_wrong_accum_cell_method(precip_accum_cube, interpreter):
     with pytest.raises(ValueError, match="Expected sum over time"):
         interpreter.run(precip_accum_cube)
 
+# Test probabilistic metadata errors
 
 def test_error_invalid_probability_name(probability_above_cube, interpreter):
     """Test error raised if probability cube name is invalid"""
@@ -360,6 +363,7 @@ def test_error_inconsistent_relative_to_threshold(probability_above_cube, interp
         ValueError, match="name.*above.*is not consistent with.*less_than"
     ):
         interpreter.run(probability_above_cube)
+# Test errors related to time coordinates
 
 
 def test_error_missing_time_coords(probability_above_cube, interpreter):
@@ -376,6 +380,7 @@ def test_error_time_coord_units(probability_above_cube, interpreter):
     with pytest.raises(ValueError, match="does not have required units"):
         interpreter.run(probability_above_cube)
 
+# Test the interpreter can return multiple errors.
 
 def test_multiple_error_concatenation(probability_above_cube, interpreter):
     """Test multiple errors are concatenated and returned correctly in a readable
@@ -393,6 +398,7 @@ def test_multiple_error_concatenation(probability_above_cube, interpreter):
     with pytest.raises(ValueError, match=msg):
         interpreter.run(probability_above_cube)
 
+# Test errors for cell methods that aren't compliant with the standard.
 
 def test_error_forbidden_cell_method(blended_probability_below_cube, interpreter):
     """Test error raised when a forbidden cell method is present"""
@@ -415,6 +421,7 @@ def test_error_probability_cell_method_no_comment(
     ):
         interpreter.run(blended_probability_below_cube)
 
+# Test errors caused by time coordinate bounds 
 
 def test_error_missing_time_bounds(blended_probability_below_cube, interpreter):
     """Test error raised if a minimum in time cube has no time bounds"""
@@ -431,6 +438,7 @@ def test_error_incorrect_time_bounds(blended_probability_below_cube, interpreter
     with pytest.raises(ValueError, match="points should be equal to upper bounds"):
         interpreter.run(blended_probability_below_cube)
 
+# Tests for metadata related to blending
 
 def test_error_missing_blended_coords(blended_probability_below_cube, interpreter):
     """Test error raised if a blended cube doesn't have the expected time
@@ -465,6 +473,7 @@ def test_error_blend_missing_from_title(blended_probability_below_cube, interpre
     with pytest.raises(ValueError, match="is not a valid single model"):
         interpreter.run(blended_probability_below_cube)
 
+# Test errors due to incorrect spot metadata
 
 def test_error_missing_spot_coords(blended_spot_median_cube, interpreter):
     """Test error raised if a spot cube doesn't have all the expected metadata"""
@@ -481,6 +490,7 @@ def test_error_inconsistent_spot_title(blended_spot_median_cube, interpreter):
     with pytest.raises(ValueError, match="not consistent with spot data"):
         interpreter.run(blended_spot_median_cube)
 
+# Test errors related to special cases
 
 def test_error_forbidden_wind_direction_cell_method(wind_direction_cube, interpreter):
     """Test error if special case cubes have a cell method that would usually be
