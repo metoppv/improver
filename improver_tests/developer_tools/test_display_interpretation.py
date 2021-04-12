@@ -45,7 +45,7 @@ def test_unhandled(emos_coefficient_cube, interpreter):
 def test_realizations(ensemble_cube, interpreter):
     """Test interpretation of temperature realizations from MOGREPS-UK"""
     expected_result = (
-        "This is a gridded realizations file\n"
+        "This is a gridded file containing one or more realizations\n"
         "It contains realizations of air temperature\n"
         "It has undergone no significant post-processing\n"
         "It contains data from MOGREPS-UK\n"
@@ -166,7 +166,7 @@ def test_verbose_snow_level(snow_level_cube, interpreter):
     """Test interpretation of a diagnostic cube with "probability" in the name,
     which is not designed for blending with other models"""
     expected_result = (
-        "This is a gridded realizations file\n"
+        "This is a gridded file containing one or more realizations\n"
         "    Source: name, coordinates\n"
         "It contains realizations of probability of snow falling level below ground level\n"
         "    Source: name, threshold coordinate (probabilities only)\n"

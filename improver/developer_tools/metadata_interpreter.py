@@ -570,7 +570,11 @@ def display_interpretation(interpreter, verbose=False):
 
     field_type = interpreter.field_type.replace("_", " ")
     output = []
-    output.append(f"This is a {interpreter.prod_type} {field_type} file")
+    if field_type == "realizations":
+        field_type_clause = f"file containing one or more {field_type}"
+    else:
+        field_type_clause = f"{field_type} file"
+    output.append(f"This is a {interpreter.prod_type} {field_type_clause}")
     if verbose:
         output.append(vstring("name, coordinates"))
 
