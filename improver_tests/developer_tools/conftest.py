@@ -171,7 +171,7 @@ def probability_above_fixture():
 
 @pytest.fixture(name="blended_probability_below_cube")
 def probability_below_fixture():
-    """Probability of minimum screen temperature below threshold blended cube"""
+    """Probability of maximum screen temperature below threshold blended cube"""
     data = 0.5 * np.ones((3, 3, 3), dtype=np.float32)
     thresholds = np.array([280, 282, 284], dtype=np.float32)
     attributes = {
