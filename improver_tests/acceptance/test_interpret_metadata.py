@@ -33,6 +33,7 @@ Tests for the interpret-metadata CLI
 """
 
 import pytest
+from clize.errors import UnknownOption
 
 from . import acceptance as acc
 
@@ -52,6 +53,27 @@ It has undergone some significant post-processing
 It contains data from MOGREPS-UK
 """
     args = [input_path]
+    run_cli(args)
+    captured = capsys.readouterr()
+    assert KGO in captured.out
+
+
+def test_single_file_verbose(capsys):
+    """Test metadata verbosity can be set"""
+    kgo_dir = acc.kgo_root() / "interpret_metadata"
+    input_path = kgo_dir / "temperature_realizations.nc"
+    KGO = """
+This is a gridded probabilities file
+    Source: name, coordinates
+It contains probabilities of air temperature greater than or equal to thresholds
+    Source: name, threshold coordinate (probabilities only)
+It has undergone some significant post-processing
+    Source: title attribute
+It contains data from MOGREPS-UK
+    Source: model ID attribute
+
+"""
+    args = [input_path, "--verbose"]
     run_cli(args)
     captured = capsys.readouterr()
     assert KGO in captured.out
@@ -78,3 +100,14 @@ It contains blended data from models: MOGREPS-G, MOGREPS-UK
     run_cli(args)
     captured = capsys.readouterr()
     assert KGO in captured.out
+
+
+def test_no_output_option_accepted(capsys):
+    """Test that this CLI will not accept an output option, as it does not
+    return a cube. This is to highlight  unexpected behaviour following
+    future changes to CLI decorators."""
+    kgo_dir = acc.kgo_root() / "interpret_metadata"
+    input_path = kgo_dir / "temperature_realizations.nc"
+    args = [input_path, "--output", "/dev/null"]
+    with pytest.raises(UnknownOption, match=".*Unknown option '--output'.*"):
+        run_cli(args)
