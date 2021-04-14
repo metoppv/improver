@@ -54,6 +54,7 @@ def process(*file_paths: cli.inputpath, verbose=False, failures=False):
             files is printed.
     """
     from iris import load
+
     from improver.developer_tools.metadata_interpreter import (
         MOMetadataInterpreter,
         display_interpretation,
