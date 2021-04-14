@@ -68,15 +68,22 @@ It contains data from MOGREPS-UK
 """
 ALL_KGOS = [KGO_compliant, KGO_non_compliant, KGO_verbose]
 
+
 @pytest.mark.parametrize(
     "inputs,kgos,options",
     (
         (["temperature_realizations.nc"], [KGO_compliant], []),
         (["temperature_realizations.nc"], [KGO_verbose], ["--verbose"]),
-        (["non_compliant_weather_codes.nc", "temperature_realizations.nc"],
-         [KGO_compliant, KGO_non_compliant], []),
-        (["non_compliant_weather_codes.nc", "temperature_realizations.nc"],
-         [KGO_non_compliant], ["--failures"]),
+        (
+            ["non_compliant_weather_codes.nc", "temperature_realizations.nc"],
+            [KGO_compliant, KGO_non_compliant],
+            [],
+        ),
+        (
+            ["non_compliant_weather_codes.nc", "temperature_realizations.nc"],
+            [KGO_non_compliant],
+            ["--failures"],
+        ),
     ),
 )
 def test_interpretation(capsys, inputs, kgos, options):
@@ -93,7 +100,7 @@ def test_interpretation(capsys, inputs, kgos, options):
     captured = capsys.readouterr()
     for kgo in kgos:
         assert kgo in captured.out
-    excluded_kgos = list(set(ALL_KGOS)^set(kgos))
+    excluded_kgos = list(set(ALL_KGOS) ^ set(kgos))
     for kgo in excluded_kgos:
         assert kgo not in captured.out
 

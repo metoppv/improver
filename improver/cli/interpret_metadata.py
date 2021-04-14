@@ -61,7 +61,7 @@ def process(*file_paths: cli.inputpath, verbose=False, failures=False):
 
     cubelists = [load(file_path.as_posix()) for file_path in file_paths]
 
-    output = ''
+    output = ""
     for file, cubelist in zip(file_paths, cubelists):
         for cube in cubelist:
             interpreter = MOMetadataInterpreter()
@@ -73,6 +73,6 @@ def process(*file_paths: cli.inputpath, verbose=False, failures=False):
                 if failures:
                     continue
                 output = display_interpretation(interpreter, verbose=verbose)
-            print(f'\nfile : {file}')
-            print(f'cube name : {cube.name()}')
+            print(f"\nfile : {file}")
+            print(f"cube name : {cube.name()}")
             print(output)
