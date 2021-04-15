@@ -52,6 +52,8 @@ def process(*file_paths: cli.inputpath, verbose=False, failures=False):
         failures (bool):
             Boolean flag that, if set, means only information about non-compliant
             files is printed.
+    Raises:
+        ValueError: If any of the input files are not metadata compliant.
     """
     from iris import load
 
@@ -60,16 +62,17 @@ def process(*file_paths: cli.inputpath, verbose=False, failures=False):
         display_interpretation,
     )
 
-    cubelists = [load(file_path.as_posix()) for file_path in file_paths]
+    cubelists = {file_path: load(file_path.as_posix()) for file_path in file_paths}
 
-    output = ""
-    for file, cubelist in zip(file_paths, cubelists):
+    any_failures = False
+    for file, cubelist in cubelists.items():
         for cube in cubelist:
             interpreter = MOMetadataInterpreter()
             try:
                 interpreter.run(cube)
             except ValueError as err:
                 output = "Non-compliant :\n{}".format(str(err))
+                any_failures = True
             else:
                 if failures:
                     continue
@@ -77,3 +80,6 @@ def process(*file_paths: cli.inputpath, verbose=False, failures=False):
             print(f"\nfile : {file}")
             print(f"cube name : {cube.name()}")
             print(output)
+
+    if any_failures:
+        raise ValueError("One or more files checked is not metadata compliant")

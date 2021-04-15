@@ -57,6 +57,7 @@ No mosg__model_configuration on blended file
 """
 
 KGO_verbose = """
+cube name : probability_of_air_temperature_above_threshold
 This is a gridded probabilities file
     Source: name, coordinates
 It contains probabilities of air temperature greater than or equal to thresholds
@@ -76,7 +77,7 @@ ALL_KGOS = [KGO_compliant, KGO_non_compliant, KGO_verbose]
         (["temperature_realizations.nc"], [KGO_verbose], ["--verbose"]),
         (
             ["non_compliant_weather_codes.nc", "temperature_realizations.nc"],
-            [KGO_compliant, KGO_non_compliant],
+            [KGO_non_compliant, KGO_compliant],
             [],
         ),
         (
@@ -92,12 +93,20 @@ def test_interpretation(capsys, inputs, kgos, options):
     - A single compliant file with verbose output
     - Multiple files, the first of which is non-compliant
     - Using the --failures option to only print output for non-compliant files.
+
+    capsys is a pytest fixture that captures standard output/error for testing.
     """
     kgo_dir = acc.kgo_root() / "interpret_metadata"
     input_path = [kgo_dir / input for input in inputs]
     args = [*input_path, *options]
-    run_cli(args)
+
+    if "non_compliant_weather_codes.nc" in inputs:
+        with pytest.raises(ValueError, match=".*not metadata compliant.*"):
+            run_cli(args)
+    else:
+        run_cli(args)
     captured = capsys.readouterr()
+
     for kgo in kgos:
         assert kgo in captured.out
     excluded_kgos = list(set(ALL_KGOS) ^ set(kgos))
@@ -105,7 +114,7 @@ def test_interpretation(capsys, inputs, kgos, options):
         assert kgo not in captured.out
 
 
-def test_no_output_option_accepted(capsys):
+def test_no_output_option_accepted():
     """Test that this CLI will not accept an output option, as it does not
     return a cube. This is to highlight  unexpected behaviour following
     future changes to CLI decorators."""
