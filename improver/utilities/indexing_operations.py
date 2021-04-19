@@ -31,9 +31,10 @@
 """Module to contain indexing operation functions."""
 
 import numpy as np
+from numpy import ndarray
 
 
-def choose(index_array, array_set):
+def choose(index_array: ndarray, array_set: ndarray) -> ndarray:
     """
     Create a reordered copy of a data array, where an index array of matching
     shape determines how the data is reordered.

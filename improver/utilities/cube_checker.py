@@ -30,12 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Provides support utilities for checking cubes."""
 
+from typing import List, Optional
+
 import iris
 import numpy as np
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 
-def check_for_x_and_y_axes(cube, require_dim_coords=False):
+def check_for_x_and_y_axes(cube: Cube, require_dim_coords: bool = False) -> None:
     """
     Check whether the cube has an x and y axis, otherwise raise an error.
 
@@ -64,7 +67,9 @@ def check_for_x_and_y_axes(cube, require_dim_coords=False):
             raise ValueError(msg)
 
 
-def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
+def check_cube_coordinates(
+    cube: Cube, new_cube: Cube, exception_coordinates: Optional[List[str]] = None
+) -> Cube:
     """Find and promote to dimension coordinates any scalar coordinates in
     new_cube that were originally dimension coordinates in the progenitor
     cube. If coordinate is in new_cube that is not in the old cube, keep
@@ -146,7 +151,9 @@ def check_cube_coordinates(cube, new_cube, exception_coordinates=None):
     return new_cube
 
 
-def find_dimension_coordinate_mismatch(first_cube, second_cube, two_way_mismatch=True):
+def find_dimension_coordinate_mismatch(
+    first_cube: Cube, second_cube: Cube, two_way_mismatch: bool = True
+) -> List[str]:
     """Determine if there is a mismatch between the dimension coordinates in
     two cubes.
 
@@ -179,7 +186,7 @@ def find_dimension_coordinate_mismatch(first_cube, second_cube, two_way_mismatch
     return mismatch
 
 
-def spatial_coords_match(first_cube, second_cube):
+def spatial_coords_match(first_cube: Cube, second_cube: Cube) -> bool:
     """
     Determine if the x and y coords in the two cubes are the same.
 

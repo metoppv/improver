@@ -32,6 +32,9 @@
 
 import sys
 import warnings
+from typing import Any, Callable, List
+
+from mypy_extensions import NoReturn
 
 
 class ManageWarnings:
@@ -41,7 +44,12 @@ class ManageWarnings:
     to standard error or record them in a list of warning objects.
     """
 
-    def __init__(self, ignored_messages=None, warning_types=None, record=False):
+    def __init__(
+        self,
+        ignored_messages: List[str] = None,
+        warning_types: List[Any] = None,
+        record: bool = False,
+    ) -> None:
         """
         Set up a decorator with the warnings we want to ignore and what
         we want to do with any remaining warnings.
@@ -85,7 +93,7 @@ class ManageWarnings:
             raise ValueError(message)
 
     @staticmethod
-    def reset_warning_registry():
+    def reset_warning_registry() -> None:
         """
         Clears the hidden __warningregistry__ attribute from
         all imported modules.
@@ -94,7 +102,7 @@ class ManageWarnings:
             if hasattr(mod, "__warningregistry__"):
                 mod.__warningregistry__.clear()
 
-    def __call__(self, func):
+    def __call__(self, func: Callable) -> Callable:
         """
         Call the decorator on a function.
         Wrap the function in the warnings.catch_warnings context manager
@@ -112,7 +120,7 @@ class ManageWarnings:
                 necessary filters turned on.
         """
 
-        def warnings_wrapper(*args, **kwargs):
+        def warnings_wrapper(*args: Any, **kwargs: Any) -> NoReturn:
             """
             Wrapper function to set up the warnings.catch_warnings context
             manager and the filters before calling the input function, with

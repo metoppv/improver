@@ -30,10 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Rounding utility"""
 
+from typing import Union
+
 import numpy as np
+from numpy import ndarray
 
 
-def round_close(data, dtype=np.int64):
+def round_close(
+    data: Union[float, ndarray], dtype: type = np.int64
+) -> Union[int, ndarray]:
     """Casts input data to the nearest integer value, where the input
     data is expected to be very close to the nearest integer.
 

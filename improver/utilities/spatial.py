@@ -31,12 +31,14 @@
 """ Provides support utilities."""
 
 import copy
+from typing import Any, Optional, Tuple
 
 import cartopy.crs as ccrs
 import iris
 import numpy as np
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
+from numpy import ndarray
 from scipy.ndimage.filters import maximum_filter
 
 from improver import BasePlugin, PostProcessingPlugin
@@ -45,7 +47,9 @@ from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
-def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
+def check_if_grid_is_equal_area(
+    cube: Cube, require_equal_xy_spacing: bool = True
+) -> None:
     """
     Identify whether the grid is an equal area grid, by checking whether points
     are equally spaced along each of the x- and y-axes.  By default this
@@ -70,7 +74,7 @@ def check_if_grid_is_equal_area(cube, require_equal_xy_spacing=True):
         raise ValueError("Grid does not have equal spacing in x and y dimensions")
 
 
-def calculate_grid_spacing(cube, units, axis="x"):
+def calculate_grid_spacing(cube: Cube, units: str, axis: str = "x") -> float:
     """
     Returns the grid spacing of a given spatial axis
 
@@ -99,7 +103,9 @@ def calculate_grid_spacing(cube, units, axis="x"):
     return diffs[0]
 
 
-def distance_to_number_of_grid_cells(cube, distance, axis="x", return_int=True):
+def distance_to_number_of_grid_cells(
+    cube: Cube, distance: int, axis: str = "x", return_int: bool = True
+) -> float:
     """
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.  Requires an equal-area grid on which the spacing
@@ -143,7 +149,7 @@ def distance_to_number_of_grid_cells(cube, distance, axis="x", return_int=True):
     return grid_cells
 
 
-def number_of_grid_cells_to_distance(cube, grid_points):
+def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
     """
     Calculate distance in metres equal to the given number of gridpoints
     based on the coordinates on an input cube.
@@ -172,7 +178,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
     """
 
     @staticmethod
-    def _update_metadata(diff_cube, coord_name, cube_name):
+    def _update_metadata(diff_cube: Cube, coord_name: str, cube_name: str):
         """Rename cube, add attribute and cell method to describe difference.
 
         Args:
@@ -192,7 +198,9 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diff_cube.rename("difference_of_" + cube_name)
 
     @staticmethod
-    def create_difference_cube(cube, coord_name, diff_along_axis):
+    def create_difference_cube(
+        cube: Cube, coord_name: str, diff_along_axis: ndarray
+    ) -> Cube:
         """
         Put the difference array into a cube with the appropriate
         metadata.
@@ -234,7 +242,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         return diff_cube
 
     @staticmethod
-    def calculate_difference(cube, coord_name):
+    def calculate_difference(cube: Cube, coord_name: str) -> ndarray:
         """
         Calculate the difference along the axis specified by the
         coordinate.
@@ -254,7 +262,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diff_along_axis = np.diff(cube.data, axis=diff_axis)
         return diff_along_axis
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Tuple[Cube, Cube]:
         """
         Calculate the difference along the x and y axes and return
         the result in separate cubes. The difference along each axis is
@@ -291,7 +299,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
     a cube. The gradient is calculated along the x and y axis
     individually."""
 
-    def __init__(self, regrid=False):
+    def __init__(self, regrid: bool = False) -> None:
         """Initialise plugin.
 
         Args:
@@ -304,7 +312,9 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         self.regrid = regrid
 
     @staticmethod
-    def _create_output_cube(gradient, diff, cube, axis):
+    def _create_output_cube(
+        gradient: ndarray, diff: Cube, cube: Cube, axis: str
+    ) -> Cube:
         """
         Create the output gradient cube.
 
@@ -333,7 +343,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         return grad_cube
 
     @staticmethod
-    def _gradient_from_diff(diff, axis):
+    def _gradient_from_diff(diff: Cube, axis: str) -> ndarray:
         """
         Calculate the gradient along the x or y axis from differences between
         adjacent grid squares.
@@ -355,7 +365,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         gradient = diff.data / grid_spacing
         return gradient
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Tuple[Cube, Cube]:
         """
         Calculate the gradient along the x and y axes and return
         the result in separate cubes. The difference along each axis is
@@ -391,7 +401,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
 
     """Calculate whether a phenomenon occurs within the specified distance."""
 
-    def __init__(self, distance):
+    def __init__(self, distance: float) -> None:
         """
         Initialise the class.
 
@@ -403,12 +413,12 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         """
         self.distance = distance
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<OccurrenceWithinVicinity: distance: {}>"
         return result.format(self.distance)
 
-    def maximum_within_vicinity(self, cube):
+    def maximum_within_vicinity(self, cube: Cube) -> Cube:
         """
         Find grid points where a phenomenon occurs within a defined distance.
         The occurrences within this vicinity are maximised, such that all
@@ -450,7 +460,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             max_cube.data = max_data
         return max_cube
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """
         Ensure that the cube passed to the maximum_within_vicinity method is
         2d and subsequently merged back together.
@@ -476,7 +486,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         return result_cube
 
 
-def lat_lon_determine(cube):
+def lat_lon_determine(cube: Cube) -> Optional[Any]:
     """
     Test whether a diagnostic cube is on a latitude/longitude grid or uses an
     alternative projection.
@@ -501,7 +511,7 @@ def lat_lon_determine(cube):
     return trg_crs
 
 
-def transform_grid_to_lat_lon(cube):
+def transform_grid_to_lat_lon(cube: Cube) -> Tuple[ndarray, ndarray]:
     """
     Calculate the latitudes and longitudes of each points in the cube.
 

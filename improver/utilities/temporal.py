@@ -32,13 +32,14 @@
 
 import warnings
 from datetime import datetime, timedelta, timezone
+from typing import List, Union
 
 import cf_units
 import iris
 import numpy as np
 from iris import Constraint
-from iris.coords import AuxCoord
-from iris.cube import CubeList
+from iris.coords import AuxCoord, Coord
+from iris.cube import CubeList, Cube
 from iris.time import PartialDateTime
 
 from improver import PostProcessingPlugin
@@ -52,7 +53,9 @@ from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_manipulation import MergeCubes, enforce_coordinate_ordering
 
 
-def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
+def cycletime_to_datetime(
+    cycletime: str, cycletime_format: str = "%Y%m%dT%H%MZ"
+) -> datetime:
     """Convert a string representating the cycletime of the
     format YYYYMMDDTHHMMZ into a datetime object.
 
@@ -69,7 +72,9 @@ def cycletime_to_datetime(cycletime, cycletime_format="%Y%m%dT%H%MZ"):
     return datetime.strptime(cycletime, cycletime_format)
 
 
-def datetime_to_cycletime(adatetime, cycletime_format="%Y%m%dT%H%MZ"):
+def datetime_to_cycletime(
+    adatetime: datetime, cycletime_format: str = "%Y%m%dT%H%MZ"
+) -> str:
     """Convert a datetime object into a string representing the cycletime
     of the format YYYYMMDDTHHMMZ.
 
@@ -87,11 +92,11 @@ def datetime_to_cycletime(adatetime, cycletime_format="%Y%m%dT%H%MZ"):
 
 
 def cycletime_to_number(
-    cycletime,
-    cycletime_format="%Y%m%dT%H%MZ",
-    time_unit="hours since 1970-01-01 00:00:00",
-    calendar="gregorian",
-):
+    cycletime: str,
+    cycletime_format: str = "%Y%m%dT%H%MZ",
+    time_unit: str = "hours since 1970-01-01 00:00:00",
+    calendar: str = "gregorian",
+) -> float:
     """Convert a cycletime of the format YYYYMMDDTHHMMZ into a numeric
     time value.
 
@@ -117,7 +122,9 @@ def cycletime_to_number(
     return cf_units.date2num(dtval, time_unit, calendar)
 
 
-def iris_time_to_datetime(time_coord, point_or_bound="point"):
+def iris_time_to_datetime(
+    time_coord: Coord, point_or_bound: str = "point"
+) -> List[datetime]:
     """
     Convert iris time to python datetime object. Working in UTC.
 
@@ -138,7 +145,7 @@ def iris_time_to_datetime(time_coord, point_or_bound="point"):
     return datetime_list
 
 
-def datetime_to_iris_time(dt_in):
+def datetime_to_iris_time(dt_in: datetime) -> float:
     """
     Convert python datetime.datetime into seconds since 1970-01-01 00Z.
 
@@ -154,7 +161,7 @@ def datetime_to_iris_time(dt_in):
     return np.int64(result)
 
 
-def datetime_constraint(time_in, time_max=None):
+def datetime_constraint(time_in: datetime, time_max: datetime = None) -> Constraint:
     """
     Constructs an iris equivalence constraint from a python datetime object.
 
@@ -182,7 +189,9 @@ def datetime_constraint(time_in, time_max=None):
     return time_extract
 
 
-def extract_cube_at_time(cubes, time, time_extract):
+def extract_cube_at_time(
+    cubes: CubeList, time: datetime, time_extract: Constraint
+) -> Cube:
     """
     Extract a single cube at a given time from a cubelist.
 
@@ -212,7 +221,9 @@ def extract_cube_at_time(cubes, time, time_extract):
         return None
 
 
-def extract_nearest_time_point(cube, dt, time_name="time", allowed_dt_difference=0):
+def extract_nearest_time_point(
+    cube: Cube, dt: datetime, time_name: str = "time", allowed_dt_difference: int = 0
+) -> Cube:
     """Find the nearest time point to the time point provided.
 
     Args:
@@ -271,7 +282,7 @@ def extract_nearest_time_point(cube, dt, time_name="time", allowed_dt_difference
 class TimezoneExtraction(PostProcessingPlugin):
     """Plugin to extract local time offsets"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.time_coord_standards = TIME_COORDS["time"]
         self.time_points = None
         self.time_bounds = None
@@ -283,7 +294,7 @@ class TimezoneExtraction(PostProcessingPlugin):
 
         self.output_data = None
 
-    def create_output_cube(self, cube, local_time):
+    def create_output_cube(self, cube: Cube, local_time: datetime) -> Cube:
         """
         Constructs the output cube
 
@@ -341,7 +352,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         )
         return output_cube
 
-    def _fill_timezones(self, input_cube):
+    def _fill_timezones(self, input_cube: Cube):
         """
         Populates the output cube data with data from input_cube. This is done by
         multiplying the inverse of the timezone_cube.data with the input_cube.data and
@@ -386,7 +397,7 @@ class TimezoneExtraction(PostProcessingPlugin):
             ) + self.time_points.reshape(list(self.time_points.shape) + [1])
 
     @staticmethod
-    def _get_time_bounds_offset(input_cube):
+    def _get_time_bounds_offset(input_cube: Cube):
         """Returns the generalised offset of bounds[0] and bounds[1] from points on the
         time coord. Bound intervals must match as we have used MergeCubes, so only need
         to access the first time point.
@@ -399,7 +410,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         else:
             return None
 
-    def check_input_cube_dims(self, input_cube, timezone_cube):
+    def check_input_cube_dims(self, input_cube: Cube, timezone_cube: Cube):
         """Ensures input cube has at least three dimensions: time, y, x. Promotes time
         to be the inner-most dimension (dim=-1). Does the same for the timezone_cube
         UTC_offset dimension.
@@ -427,7 +438,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 "Spatial coordinates on input_cube and timezone_cube do not match."
             )
 
-    def check_input_cube_time(self, input_cube, local_time):
+    def check_input_cube_time(self, input_cube: Cube, local_time: datetime):
         """Ensures input cube and timezone_cube cover exactly the right points and that
         the time and UTC_offset coords have the same order.
 
@@ -454,7 +465,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 + "\n".join([f"{t:%Y%m%dT%H%MZ}" for t in input_time_points])
             )
 
-    def check_timezones_are_unique(self, timezone_cube):
+    def check_timezones_are_unique(self, timezone_cube: Cube):
         """Ensures that each grid point falls into exactly one time zone
 
         Raises:
@@ -467,7 +478,12 @@ class TimezoneExtraction(PostProcessingPlugin):
                 "Timezone cube does not map exactly one time zone to each spatial point"
             )
 
-    def process(self, input_cubes, timezone_cube, local_time):
+    def process(
+        self,
+        input_cubes: Union[CubeList, List[Cube]],
+        timezone_cube: Cube,
+        local_time: datetime,
+    ) -> Cube:
         """
         Calculates timezone-offset data for the specified UTC output times
 
