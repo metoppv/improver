@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for calculating the probability of specific precipitation phases."""
 
-from typing import List, Union
 import operator
+from typing import List, Union
 
 import iris
 import numpy as np

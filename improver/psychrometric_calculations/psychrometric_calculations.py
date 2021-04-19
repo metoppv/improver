@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain Psychrometric Calculations."""
 
-from typing import List, Tuple, Union
 import functools
+from typing import List, Tuple, Union
 
 import iris
 import numpy as np

@@ -39,7 +39,7 @@ import iris
 import numpy as np
 from iris import Constraint
 from iris.coords import AuxCoord, Coord
-from iris.cube import CubeList, Cube
+from iris.cube import Cube, CubeList
 from iris.time import PartialDateTime
 
 from improver import PostProcessingPlugin
