@@ -31,10 +31,15 @@
 """Module to create the weights used to blend data."""
 
 import copy
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cf_units
 import iris
 import numpy as np
+from cf_units import Unit
+from iris.coords import Coord
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 from scipy.interpolate import interp1d
 
 from improver import BasePlugin
@@ -48,13 +53,13 @@ from improver.utilities.cube_manipulation import (
 class WeightsUtilities:
     """ Utilities for Weight processing. """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<WeightsUtilities>"
         return result
 
     @staticmethod
-    def normalise_weights(weights, axis=None):
+    def normalise_weights(weights: ndarray, axis: Optional[int] = None) -> ndarray:
         """Ensures all weights add up to one.
 
             Args:
@@ -89,7 +94,7 @@ class WeightsUtilities:
         return normalised_weights
 
     @staticmethod
-    def build_weights_cube(cube, weights, blending_coord):
+    def build_weights_cube(cube: Cube, weights: ndarray, blending_coord: str,) -> Cube:
         """Build a cube containing weights for use in blending.
 
             Args:
@@ -146,8 +151,11 @@ class ChooseWeightsLinear(BasePlugin):
     original weights are provided as a configuration dictionary"""
 
     def __init__(
-        self, weighting_coord_name, config_dict, config_coord_name=MODEL_NAME_COORD
-    ):
+        self,
+        weighting_coord_name: str,
+        config_dict: Dict[str, Dict[str, Any]],
+        config_coord_name: str = MODEL_NAME_COORD,
+    ) -> None:
         """
         Set up for calculating linear weights from a dictionary or input cube
 
@@ -191,7 +199,7 @@ class ChooseWeightsLinear(BasePlugin):
         self.weights_key_name = "weights"
         self._check_config_dict()
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the plugin instance as a string"""
         msg = (
             "<ChooseWeightsLinear(): weighting_coord_name = {}, "
@@ -201,7 +209,7 @@ class ChooseWeightsLinear(BasePlugin):
         )
         return msg
 
-    def _check_config_dict(self):
+    def _check_config_dict(self) -> None:
         """
         Check whether the items within the configuration dictionary
         are present and of matching lengths.
@@ -231,7 +239,9 @@ class ChooseWeightsLinear(BasePlugin):
                 )
                 raise ValueError(msg)
 
-    def _get_interpolation_inputs_from_dict(self, cube):
+    def _get_interpolation_inputs_from_dict(
+        self, cube: Cube
+    ) -> Tuple[ndarray, ndarray, ndarray, Tuple[int, int]]:
         """
         Generate inputs required for linear interpolation.
 
@@ -279,8 +289,12 @@ class ChooseWeightsLinear(BasePlugin):
 
     @staticmethod
     def _interpolate_to_find_weights(
-        source_points, target_points, source_weights, fill_value, axis=0
-    ):
+        source_points: ndarray,
+        target_points: ndarray,
+        source_weights: ndarray,
+        fill_value: Tuple[int, int],
+        axis: int = 0,
+    ) -> ndarray:
         """
         Use of scipy.interpolate.interp1d to interpolate source_weights
         (valid at source_points) onto target_points grid.  This allows
@@ -318,7 +332,7 @@ class ChooseWeightsLinear(BasePlugin):
         weights = f_out(target_points)
         return weights
 
-    def _create_new_weights_cube(self, cube, weights):
+    def _create_new_weights_cube(self, cube: Cube, weights: ndarray) -> Cube:
         """Create a cube to contain the output of the interpolation.
         It is currently assumed that the output weights matches the size
         of the input cube.
@@ -373,7 +387,7 @@ class ChooseWeightsLinear(BasePlugin):
 
         return new_weights_cube
 
-    def _calculate_weights(self, cube):
+    def _calculate_weights(self, cube: Cube) -> Cube:
         """Method to wrap the calls to other methods to support calculation
         of the weights by interpolation.
 
@@ -405,7 +419,7 @@ class ChooseWeightsLinear(BasePlugin):
 
         return new_weights_cube
 
-    def _define_slice(self, cube):
+    def _define_slice(self, cube: Cube) -> List[Coord]:
         """
         Returns a list of coordinates over which to slice the input cube to
         create a list of cubes for blending.
@@ -428,7 +442,7 @@ class ChooseWeightsLinear(BasePlugin):
             slice_list = [cube.coord(axis="y"), cube.coord(axis="x")]
         return slice_list
 
-    def _slice_input_cubes(self, cubes):
+    def _slice_input_cubes(self, cubes: Union[Cube, CubeList]) -> CubeList:
         """
         From input iris.cube.Cube or iris.cube.CubeList, create a list of
         cubes with different values of the config coordinate (over which to
@@ -461,7 +475,7 @@ class ChooseWeightsLinear(BasePlugin):
 
         return iris.cube.CubeList(cubelist)
 
-    def process(self, cubes):
+    def process(self, cubes: Union[Cube, CubeList]) -> Cube:
         """Calculation of linear weights based on an input dictionary.
 
         Args:
@@ -500,7 +514,7 @@ class ChooseWeightsLinear(BasePlugin):
 class ChooseDefaultWeightsLinear(BasePlugin):
     """ Calculate Default Weights using Linear Function. """
 
-    def __init__(self, y0val, ynval):
+    def __init__(self, y0val: float, ynval: float) -> None:
         """
         Set up for calculating default weights using linear function.
 
@@ -523,7 +537,7 @@ class ChooseDefaultWeightsLinear(BasePlugin):
         self.y0val = float(y0val)
         self.ynval = float(ynval)
 
-    def linear_weights(self, num_of_weights):
+    def linear_weights(self, num_of_weights: int) -> ndarray:
         """Create linear weights
 
             Args:
@@ -551,7 +565,7 @@ class ChooseDefaultWeightsLinear(BasePlugin):
 
         return weights
 
-    def process(self, cube, coord_name):
+    def process(self, cube: Cube, coord_name: str) -> Cube:
         """
         Calculated weights for a given cube and coord.  Weights scale linearly
         between self.y0val and self.ynval for the cube provided in ascending
@@ -595,7 +609,7 @@ class ChooseDefaultWeightsLinear(BasePlugin):
 class ChooseDefaultWeightsNonLinear(BasePlugin):
     """ Calculate Default Weights using NonLinear Function. """
 
-    def __init__(self, cval):
+    def __init__(self, cval: float) -> None:
         """
         Set up for calculating default weights using non-linear function.
 
@@ -624,7 +638,7 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
             raise ValueError(msg)
         self.cval = cval
 
-    def nonlinear_weights(self, num_of_weights):
+    def nonlinear_weights(self, num_of_weights: int) -> ndarray:
         """
         Create nonlinear weights.
 
@@ -646,7 +660,9 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
 
         return weights
 
-    def process(self, cube, coord_name, inverse_ordering=False):
+    def process(
+        self, cube: Cube, coord_name: str, inverse_ordering: bool = False,
+    ) -> Cube:
         """
         Calculate nonlinear weights for a given cube and coord.
 
@@ -706,7 +722,7 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
 class ChooseDefaultWeightsTriangular(BasePlugin):
     """ Calculate Default Weights using a Triangular Function. """
 
-    def __init__(self, width, units="no_unit"):
+    def __init__(self, width: float, units: Union[Unit, str] = "no_unit") -> None:
         """Set up for calculating default weights using triangular function.
 
             Args:
@@ -720,14 +736,16 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
             units = cf_units.Unit(units)
         self.parameters_units = units
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         msg = "<ChooseDefaultTriangularWeights " "width={}, parameters_units={}>"
         desc = msg.format(self.width, self.parameters_units)
         return desc
 
     @staticmethod
-    def triangular_weights(coord_vals, midpoint, width):
+    def triangular_weights(
+        coord_vals: ndarray, midpoint: float, width: float
+    ) -> ndarray:
         """Create triangular weights.
 
             Args:
@@ -744,7 +762,7 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
                     array of weights, sum of all weights should equal 1.0.
         """
 
-        def calculate_weight(point, slope):
+        def calculate_weight(point: float, slope: float) -> float:
             """
             A helper function to calculate the weights for each point using a
             piecewise function to build up the triangular function.
@@ -781,7 +799,7 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
 
         return weights
 
-    def process(self, cube, coord_name, midpoint):
+    def process(self, cube: Cube, coord_name: str, midpoint: float) -> Cube:
         """Calculate triangular weights for a given cube and coord.
 
             Args:

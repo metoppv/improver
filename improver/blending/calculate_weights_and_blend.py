@@ -32,9 +32,11 @@
 
 import warnings
 from copy import copy
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -62,15 +64,15 @@ class WeightAndBlend(PostProcessingPlugin):
 
     def __init__(
         self,
-        blend_coord,
-        wts_calc_method,
-        weighting_coord=None,
-        wts_dict=None,
-        y0val=None,
-        ynval=None,
-        cval=None,
-        inverse_ordering=False,
-    ):
+        blend_coord: str,
+        wts_calc_method: str,
+        weighting_coord: Optional[str] = None,
+        wts_dict: Optional[Dict[str, Dict[str, Any]]] = None,
+        y0val: Optional[int] = None,
+        ynval: Optional[int] = None,
+        cval: Optional[float] = None,
+        inverse_ordering: bool = False,
+    ) -> None:
         """
         Initialise central parameters
 
@@ -116,7 +118,7 @@ class WeightAndBlend(PostProcessingPlugin):
                 )
             )
 
-    def _calculate_blending_weights(self, cube):
+    def _calculate_blending_weights(self, cube: Cube) -> Cube:
         """
         Wrapper for plugins to calculate blending weights by the appropriate
         method.
@@ -151,7 +153,9 @@ class WeightAndBlend(PostProcessingPlugin):
 
         return weights
 
-    def _update_spatial_weights(self, cube, weights, fuzzy_length):
+    def _update_spatial_weights(
+        self, cube: Cube, weights: Cube, fuzzy_length: float
+    ) -> Cube:
         """
         Update weights using spatial information
 
@@ -178,7 +182,9 @@ class WeightAndBlend(PostProcessingPlugin):
         weights = plugin(cube, weights)
         return weights
 
-    def _remove_zero_weighted_slices(self, cube, weights):
+    def _remove_zero_weighted_slices(
+        self, cube: Cube, weights: Cube
+    ) -> Tuple[Cube, Cube]:
         """Removes any cube and weights slices where the 1D weighting factor
         is zero
 
@@ -212,13 +218,13 @@ class WeightAndBlend(PostProcessingPlugin):
 
     def process(
         self,
-        cubelist,
-        cycletime=None,
-        model_id_attr=None,
-        spatial_weights=False,
-        fuzzy_length=20000,
-        attributes_dict=None,
-    ):
+        cubelist: Union[List[Cube], CubeList],
+        cycletime: Optional[str] = None,
+        model_id_attr: Optional[str] = None,
+        spatial_weights: bool = False,
+        fuzzy_length: int = 20000,
+        attributes_dict: Optional[Dict[str, str]] = None,
+    ) -> Cube:
         """
         Merge a cubelist, calculate appropriate blend weights and compute the
         weighted mean. Returns a single cube collapsed over the dimension

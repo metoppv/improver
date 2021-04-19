@@ -33,12 +33,15 @@
 
 import warnings
 from copy import copy
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
 from iris.analysis import Aggregator
 from iris.coords import AuxCoord
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -62,7 +65,12 @@ from improver.utilities.cube_manipulation import (
 class MergeCubesForWeightedBlending(BasePlugin):
     """Prepares cubes for cycle and grid blending"""
 
-    def __init__(self, blend_coord, weighting_coord=None, model_id_attr=None):
+    def __init__(
+        self,
+        blend_coord: str,
+        weighting_coord: Optional[str] = None,
+        model_id_attr: Optional[str] = None,
+    ) -> None:
         """
         Initialise the class
 
@@ -101,7 +109,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
         self.weighting_coord = weighting_coord
         self.model_id_attr = model_id_attr
 
-    def _create_model_coordinates(self, cubelist):
+    def _create_model_coordinates(self, cubelist: Union[List[Cube], CubeList]) -> None:
         """
         Adds numerical model ID and string model configuration scalar
         coordinates to input cubes if self.model_id_attr is specified.
@@ -148,7 +156,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
             cube.add_aux_coord(new_model_coord)
 
     @staticmethod
-    def _remove_blend_time(cube):
+    def _remove_blend_time(cube: Cube) -> Cube:
         """If present on input, remove existing blend time coordinate (as this will
         be replaced on blending)"""
         if "blend_time" in get_coord_names(cube):
@@ -156,14 +164,18 @@ class MergeCubesForWeightedBlending(BasePlugin):
         return cube
 
     @staticmethod
-    def _remove_deprecation_warnings(cube):
+    def _remove_deprecation_warnings(cube: Cube) -> Cube:
         """Remove deprecation warnings from forecast period and forecast reference
         time coordinates so that these can be merged before blending"""
         for coord in ["forecast_period", "forecast_reference_time"]:
             cube.coord(coord).attributes.pop("deprecation_message", None)
         return cube
 
-    def process(self, cubes_in, cycletime=None):
+    def process(
+        self,
+        cubes_in: Union[List[Cube], Cube, CubeList],
+        cycletime: Optional[str] = None,
+    ) -> Cube:
         """
         Prepares merged input cube for cycle and grid blending. Makes updates to
         metadata (attributes and time-type coordinates) ONLY in so far as these are
@@ -253,7 +265,9 @@ class PercentileBlendingAggregator:
     """
 
     @staticmethod
-    def aggregate(data, axis, percentiles, arr_weights):
+    def aggregate(
+        data: ndarray, axis: int, percentiles: ndarray, arr_weights: ndarray
+    ) -> ndarray:
         """
         Function to blend percentile data over a given dimension.
         The input percentile data must be provided with the blend coord as the
@@ -313,7 +327,9 @@ class PercentileBlendingAggregator:
         return result
 
     @staticmethod
-    def blend_percentiles(perc_values, percentiles, weights):
+    def blend_percentiles(
+        perc_values: ndarray, percentiles: ndarray, weights: ndarray
+    ) -> ndarray:
         """ Blend percentiles function, to calculate the weighted blend across
             a given axis of percentile data for a single grid point.
 
@@ -369,7 +385,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
        dimension. Uses one of two methods, either weighted average, or
        the maximum of the weighted probabilities."""
 
-    def __init__(self, blend_coord, timeblending=False):
+    def __init__(self, blend_coord: str, timeblending: bool = False) -> None:
         """Set up for a Weighted Blending plugin
 
         Args:
@@ -394,7 +410,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         self.cycletime = None
         self.crds_to_remove = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         description = (
             "<WeightedBlendAcrossWholeDimension: coord = {}, " "timeblending: {}>"
@@ -402,7 +418,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         return description.format(self.blend_coord, self.timeblending)
 
     @staticmethod
-    def check_percentile_coord(cube):
+    def check_percentile_coord(cube: Cube) -> bool:
         """
         Determines if the cube to be blended has a percentile dimension
         coordinate.
@@ -437,7 +453,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         except CoordinateNotFoundError:
             return False
 
-    def check_compatible_time_points(self, cube):
+    def check_compatible_time_points(self, cube: Cube) -> None:
         """
         Check that the time coordinate only contains a single time. Data
         varying over the blending coordinate should all be for the same
@@ -465,7 +481,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             raise ValueError(msg)
 
     @staticmethod
-    def shape_weights(cube, weights):
+    def shape_weights(cube: Cube, weights: Cube) -> ndarray:
         """
         The function shapes weights to match the diagnostic cube. A cube of
         weights that vary across the blending coordinate will be broadcast to
@@ -530,7 +546,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         return weights_array
 
     @staticmethod
-    def _normalise_weights(weights):
+    def _normalise_weights(weights: ndarray) -> ndarray:
         """
         Checks that weights across the leading blend dimension sum up to 1.  If
         not, normalise across the blending dimension ignoring any points at which
@@ -552,7 +568,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             )
         return weights
 
-    def get_weights_array(self, cube, weights):
+    def get_weights_array(self, cube: Cube, weights: Optional[Cube]) -> ndarray:
         """
         Given a 1 or multidimensional cube of weights, reshape and broadcast
         these to the shape of the data cube. If no weights are provided, an
@@ -577,7 +593,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
 
         return weights_array
 
-    def percentile_weighted_mean(self, cube, weights):
+    def percentile_weighted_mean(self, cube: Cube, weights: Optional[Cube]) -> Cube:
         """
         Blend percentile data using the weights provided.
 
@@ -613,7 +629,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
 
         return cube_new
 
-    def weighted_mean(self, cube, weights):
+    def weighted_mean(self, cube: Cube, weights: Optional[Cube]) -> Cube:
         """
         Blend data using a weighted mean using the weights provided.
 
@@ -654,7 +670,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
 
         return result
 
-    def process(self, cube, weights=None):
+    def process(self, cube: Cube, weights: Cube = None) -> Cube:
         """Calculate weighted blend across the chosen coord, for either
            probabilistic or percentile data. If there is a percentile
            coordinate on the cube, it will blend using the

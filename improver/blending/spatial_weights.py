@@ -31,9 +31,11 @@
 """Module to adjust weights spatially based on missing data in input cubes."""
 
 import warnings
+from typing import Tuple, Union
 
 import iris
 import numpy as np
+from iris.cube import Cube
 from scipy.ndimage.morphology import distance_transform_edt
 
 from improver import BasePlugin
@@ -53,7 +55,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
     in addition to the one dimension in the initial cube of weights.
     """
 
-    def __init__(self, blend_coord, fuzzy_length=10):
+    def __init__(self, blend_coord: str, fuzzy_length: Union[int, float] = 10) -> None:
         """
         Initialise class.
 
@@ -76,14 +78,14 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         self.blend_coord = blend_coord
         self.blend_axis = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<SpatiallyVaryingWeightsFromMask: fuzzy_length: {}>".format(
             self.fuzzy_length
         )
         return result
 
-    def _create_template_slice(self, cube_to_collapse):
+    def _create_template_slice(self, cube_to_collapse: Cube) -> Cube:
         """
         Create a template cube from a slice of the cube we are collapsing.
         The slice will be over blend_coord, y and x and will remove any other
@@ -143,7 +145,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         # Return slice template
         return first_slice
 
-    def _normalise_initial_weights(self, weights):
+    def _normalise_initial_weights(self, weights: Cube) -> None:
         """Normalise weights so that they add up to 1 along the blend dimension
         at each spatial point.  This is different from the normalisation that
         happens after the application of fuzzy smoothing near mask boundaries.
@@ -160,7 +162,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
             weights_sum > 0, np.divide(weights.data, weights_sum), 0
         ).astype(FLOAT_DTYPE)
 
-    def _rescale_masked_weights(self, weights):
+    def _rescale_masked_weights(self, weights: Cube) -> Tuple[Cube, Cube]:
         """Apply fuzzy smoothing to weights at the edge of masked areas
 
         Args:
@@ -216,7 +218,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
 
         return weights, rescaled
 
-    def _rescale_unmasked_weights(self, weights, is_rescaled):
+    def _rescale_unmasked_weights(self, weights: Cube, is_rescaled: Cube) -> None:
         """Increase weights of unmasked slices at locations where masked slices
         have been smoothed, so that the sum of weights over self.blend_coord is
         re-normalised (sums to 1) at each point and the relative weightings of
@@ -242,7 +244,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         )
         weights.data = normalised_weights.astype(FLOAT_DTYPE)
 
-    def process(self, cube_to_collapse, one_dimensional_weights_cube):
+    def process(
+        self, cube_to_collapse: Cube, one_dimensional_weights_cube: Cube
+    ) -> Cube:
         """
         Create fuzzy spatial weights based on missing data in the cube we
         are going to collapse and combine these with 1D weights along the

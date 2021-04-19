@@ -31,8 +31,11 @@
 """Module containing Blending classes that blend over adjacent points, as
 opposed to collapsing the whole dimension."""
 
+from typing import Union
+
 import iris
 from cf_units import Unit
+from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
@@ -48,7 +51,13 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
     function of a specified width.
     """
 
-    def __init__(self, coord, central_point, parameter_units, width):
+    def __init__(
+        self,
+        coord: str,
+        central_point: Union[int, float],
+        parameter_units: str,
+        width: float,
+    ) -> None:
         """Set up for a Weighted Blending plugin
 
         Args:
@@ -84,7 +93,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
             coord, timeblending=True
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         msg = (
             "<TriangularWeightedBlendAcrossAdjacentPoints:"
@@ -95,7 +104,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
             self.coord, self.central_point, self.parameter_units, self.width
         )
 
-    def _find_central_point(self, cube):
+    def _find_central_point(self, cube: Cube) -> Cube:
         """
         Find the cube that contains the central point, otherwise, raise
         an exception.
@@ -133,7 +142,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
             raise ValueError(msg)
         return central_point_cube
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """
         Apply the weighted blend for each point in the given coordinate.
 
