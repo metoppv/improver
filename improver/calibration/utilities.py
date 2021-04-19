@@ -34,14 +34,21 @@ specific for ensemble calibration.
 
 """
 import importlib
+from typing import Set, Tuple, Union
 
 import iris
 import numpy as np
+from iris.coords import DimCoord
+from iris.cube import Cube
+from numpy import ndarray
+from numpy.ma.core import MaskedArray
 
 from improver.utilities.temporal import iris_time_to_datetime
 
 
-def convert_cube_data_to_2d(forecast, coord="realization", transpose=True):
+def convert_cube_data_to_2d(
+    forecast: Cube, coord: str = "realization", transpose: bool = True
+) -> ndarray:
     """
     Function to convert data from a N-dimensional cube into a 2d
     numpy array. The result can be transposed, if required.
@@ -74,7 +81,9 @@ def convert_cube_data_to_2d(forecast, coord="realization", transpose=True):
     return np.array(forecast_data)
 
 
-def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
+def flatten_ignoring_masked_data(
+    data_array: Union[MaskedArray, ndarray], preserve_leading_dimension: bool = False
+) -> ndarray:
     """
     Flatten an array, selecting only valid data if the array is masked. There
     is also the option to reshape the resulting array so it has the same
@@ -131,7 +140,7 @@ def flatten_ignoring_masked_data(data_array, preserve_leading_dimension=False):
     return result
 
 
-def check_predictor(predictor):
+def check_predictor(predictor: str) -> None:
     """
     Check the predictor at the start of the process methods in relevant
     ensemble calibration plugins, to avoid having to check and raise an error
@@ -155,7 +164,9 @@ def check_predictor(predictor):
         raise ValueError(msg)
 
 
-def filter_non_matching_cubes(historic_forecast, truth):
+def filter_non_matching_cubes(
+    historic_forecast: Cube, truth: Cube
+) -> Tuple[Cube, Cube]:
     """
     Provide filtering for the historic forecast and truth to make sure
     that these contain matching validity times. This ensures that any
@@ -220,7 +231,7 @@ def filter_non_matching_cubes(historic_forecast, truth):
     return (matching_historic_forecasts.merge_cube(), matching_truths.merge_cube())
 
 
-def create_unified_frt_coord(forecast_reference_time):
+def create_unified_frt_coord(forecast_reference_time: DimCoord) -> DimCoord:
     """
     Constructs a single forecast reference time coordinate from a multi-valued
     coordinate. The new coordinate records the maximum range of bounds of
@@ -247,7 +258,7 @@ def create_unified_frt_coord(forecast_reference_time):
     return forecast_reference_time[0].copy(points=frt_point, bounds=frt_bounds)
 
 
-def merge_land_and_sea(calibrated_land_only, uncalibrated):
+def merge_land_and_sea(calibrated_land_only: Cube, uncalibrated: Cube) -> None:
     """
     Merge data that has been calibrated over the land with uncalibrated data.
     Calibrated data will have masked data over the sea which will need to be
@@ -278,7 +289,7 @@ def merge_land_and_sea(calibrated_land_only, uncalibrated):
         calibrated_land_only.data = new_data
 
 
-def forecast_coords_match(first_cube, second_cube):
+def forecast_coords_match(first_cube: Cube, second_cube: Cube) -> None:
     """
     Determine if two cubes have equivalent forecast_periods and that the hours
     of the forecast_reference_time coordinates match. Only the point of the
@@ -307,7 +318,7 @@ def forecast_coords_match(first_cube, second_cube):
         raise ValueError(msg.format(", ".join(mismatches)))
 
 
-def get_frt_hours(forecast_reference_time):
+def get_frt_hours(forecast_reference_time: DimCoord) -> Set[int]:
     """
     Returns a set of integer representations of the hour of the
     forecast reference time.
@@ -326,7 +337,7 @@ def get_frt_hours(forecast_reference_time):
     return set(frt_hours)
 
 
-def check_forecast_consistency(forecasts):
+def check_forecast_consistency(forecasts: Cube) -> None:
     """
     Checks that the forecast cubes have a consistent forecast reference time
     hour and a consistent forecast period.

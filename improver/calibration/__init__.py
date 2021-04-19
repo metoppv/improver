@@ -31,6 +31,9 @@
 """init for calibration"""
 
 from collections import OrderedDict
+from typing import List, Optional, Tuple
+
+from iris.cube import Cube
 
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
@@ -38,7 +41,9 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import MergeCubes
 
 
-def split_forecasts_and_truth(cubes, truth_attribute):
+def split_forecasts_and_truth(
+    cubes: List[Cube], truth_attribute: str
+) -> Tuple[Cube, Cube, Optional[Cube]]:
     """
     A common utility for splitting the various inputs cubes required for
     calibration CLIs. These are generally the forecast cubes, historic truths,

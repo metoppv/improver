@@ -32,10 +32,15 @@
 
 import operator
 import warnings
+from typing import Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
 import scipy
+from iris.coords import AuxCoord, DimCoord
+from iris.cube import Cube, CubeList
+from numpy import int32, int64, ndarray
+from numpy.ma.core import MaskedArray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
@@ -57,10 +62,10 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
     def __init__(
         self,
-        n_probability_bins=5,
-        single_value_lower_limit=False,
-        single_value_upper_limit=False,
-    ):
+        n_probability_bins: int = 5,
+        single_value_lower_limit: bool = False,
+        single_value_upper_limit: bool = False,
+    ) -> None:
         """
         Initialise class for creating reliability calibration tables. These
         tables include data columns entitled observation_count,
@@ -88,7 +93,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         )
         self.expected_table_shape = (len(self.table_columns), n_probability_bins)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         bin_values = ", ".join(
             ["[{:1.2f} --> {:1.2f}]".format(*item) for item in self.probability_bins]
@@ -97,8 +102,11 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         return result.format(bin_values)
 
     def _define_probability_bins(
-        self, n_probability_bins, single_value_lower_limit, single_value_upper_limit
-    ):
+        self,
+        n_probability_bins: int,
+        single_value_lower_limit: bool,
+        single_value_upper_limit: bool,
+    ) -> ndarray:
         """
         Define equally sized probability bins for use in a reliability table.
         The range 0 to 1 is divided into ranges to give n_probability bins.
@@ -163,7 +171,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
         return bins
 
-    def _create_probability_bins_coord(self):
+    def _create_probability_bins_coord(self) -> DimCoord:
         """
         Construct a dimension coordinate describing the probability bins
         of the reliability table.
@@ -178,7 +186,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         )
         return probability_bins_coord
 
-    def _create_reliability_table_coords(self):
+    def _create_reliability_table_coords(self) -> Tuple[DimCoord, AuxCoord]:
         """
         Construct coordinates that describe the reliability table rows. These
         are observation_count, sum_of_forecast_probabilities, and
@@ -206,7 +214,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         return index_coord, name_coord
 
     @staticmethod
-    def _define_metadata(forecast_slice):
+    def _define_metadata(forecast_slice: Cube) -> Dict[str, str]:
         """
         Define metadata that is specifically required for reliability table
         cubes, whilst ensuring any mandatory attributes are also populated.
@@ -223,7 +231,9 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         attributes["title"] = "Reliability calibration data table"
         return attributes
 
-    def _create_reliability_table_cube(self, forecast, threshold_coord):
+    def _create_reliability_table_cube(
+        self, forecast: Cube, threshold_coord: DimCoord
+    ) -> Cube:
         """
         Construct a reliability table cube and populate it with the provided
         data. The returned cube will include a cycle hour coordinate, which
@@ -243,7 +253,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                 A reliability table cube.
         """
 
-        def _get_coords_and_dims(coord_names):
+        def _get_coords_and_dims(coord_names: List[str],) -> List[Tuple[DimCoord, int]]:
             """Obtain the requested coordinates and their dimension index from
             the forecast slice cube."""
             coords_and_dims = []
@@ -293,7 +303,9 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
         return reliability_cube
 
-    def _populate_reliability_bins(self, forecast, truth):
+    def _populate_reliability_bins(
+        self, forecast: Union[MaskedArray, ndarray], truth: Union[MaskedArray, ndarray]
+    ) -> MaskedArray:
         """
         For an x-y slice at a single validity time and threshold, populate
         a reliability table using the provided truth.
@@ -339,7 +351,9 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
         return reliability_table.astype(np.float32)
 
-    def _populate_masked_reliability_bins(self, forecast, truth):
+    def _populate_masked_reliability_bins(
+        self, forecast: ndarray, truth: MaskedArray
+    ) -> MaskedArray:
         """
         Support populating the reliability table bins with a masked truth. If a
         masked truth is provided, a masked reliability table is returned.
@@ -366,7 +380,9 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         table.data[table.mask] = 0
         return table
 
-    def _add_reliability_tables(self, forecast, truth, threshold_reliability):
+    def _add_reliability_tables(
+        self, forecast: Cube, truth: Cube, threshold_reliability: MaskedArray
+    ) -> Union[MaskedArray, ndarray]:
         """
         Add reliability tables. The presence of a masked truth is handled
         separately to ensure support for a mask that changes with validity time.
@@ -407,7 +423,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             )
         return threshold_reliability
 
-    def process(self, historic_forecasts, truths):
+    def process(self, historic_forecasts: Cube, truths: Cube) -> Cube:
         """
         Slice data over threshold and time coordinates to construct reliability
         tables. These are summed over time to give a single table for each
@@ -498,12 +514,12 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
     """This plugin enables the aggregation of multiple reliability calibration
     tables, and/or the aggregation over coordinates in the tables."""
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return "<AggregateReliabilityCalibrationTables>"
 
     @staticmethod
-    def _check_frt_coord(cubes):
+    def _check_frt_coord(cubes: Union[List[Cube], CubeList]) -> None:
         """
         Check that the reliability calibration tables do not have overlapping
         forecast reference time bounds. If these coordinates overlap in time it
@@ -531,7 +547,9 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
                 "construction of both tables. Cannot aggregate."
             )
 
-    def process(self, cubes, coordinates=None):
+    def process(
+        self, cubes: List[Cube], coordinates: Optional[List[str]] = None
+    ) -> Cube:
         """
         Aggregate the input reliability calibration table cubes and return the
         result.
@@ -588,7 +606,7 @@ class ManipulateReliabilityTable(BasePlugin):
     constant observation frequency.
     """
 
-    def __init__(self, minimum_forecast_count=200):
+    def __init__(self, minimum_forecast_count: int = 200) -> None:
         """
         Initialise class for manipulating a reliability table.
 
@@ -613,7 +631,9 @@ class ManipulateReliabilityTable(BasePlugin):
         self.minimum_forecast_count = minimum_forecast_count
 
     @staticmethod
-    def _extract_reliability_table_components(reliability_table):
+    def _extract_reliability_table_components(
+        reliability_table: Cube,
+    ) -> Tuple[ndarray, ndarray, ndarray, DimCoord]:
         """Extract reliability table components from cube
 
         Args:
@@ -644,7 +664,7 @@ class ManipulateReliabilityTable(BasePlugin):
         )
 
     @staticmethod
-    def _sum_pairs(array, upper):
+    def _sum_pairs(array: ndarray, upper: int) -> ndarray:
         """
         Returns a new array where a pair of values in the original array have
         been replaced by their sum. Combines the value in the upper index with
@@ -665,7 +685,7 @@ class ManipulateReliabilityTable(BasePlugin):
         return np.delete(result, upper)
 
     @staticmethod
-    def _create_new_bin_coord(probability_bin_coord, upper):
+    def _create_new_bin_coord(probability_bin_coord: DimCoord, upper: int) -> DimCoord:
         """
         Create a new probability_bin coordinate by combining two adjacent
         points on the probability_bin coordinate. This matches the combination
@@ -698,11 +718,11 @@ class ManipulateReliabilityTable(BasePlugin):
 
     def _combine_undersampled_bins(
         self,
-        observation_count,
-        forecast_probability_sum,
-        forecast_count,
-        probability_bin_coord,
-    ):
+        observation_count: ndarray,
+        forecast_probability_sum: ndarray,
+        forecast_count: ndarray,
+        probability_bin_coord: DimCoord,
+    ) -> Tuple[ndarray, ndarray, ndarray, DimCoord]:
         """
         Combine bins that are under-sampled i.e. that have a lower forecast
         count than the minimum_forecast_count, so that information from these
@@ -773,11 +793,11 @@ class ManipulateReliabilityTable(BasePlugin):
 
     def _combine_bin_pair(
         self,
-        observation_count,
-        forecast_probability_sum,
-        forecast_count,
-        probability_bin_coord,
-    ):
+        observation_count: ndarray,
+        forecast_probability_sum: ndarray,
+        forecast_count: ndarray,
+        probability_bin_coord: DimCoord,
+    ) -> Tuple[ndarray, ndarray, ndarray, DimCoord]:
         """
         Combine a pair of bins when non-monotonicity of the observation
         frequency is detected. Iterate top-down from the highest forecast
@@ -823,7 +843,9 @@ class ManipulateReliabilityTable(BasePlugin):
         )
 
     @staticmethod
-    def _assume_constant_observation_frequency(observation_count, forecast_count):
+    def _assume_constant_observation_frequency(
+        observation_count: ndarray, forecast_count: ndarray
+    ) -> ndarray:
         """
         Decide which end bin (highest probability bin or lowest probability
         bin) has the highest sample count. Iterate through the observation
@@ -872,12 +894,12 @@ class ManipulateReliabilityTable(BasePlugin):
 
     @staticmethod
     def _update_reliability_table(
-        reliability_table,
-        observation_count,
-        forecast_probability_sum,
-        forecast_count,
-        probability_bin_coord,
-    ):
+        reliability_table: Cube,
+        observation_count: ndarray,
+        forecast_probability_sum: ndarray,
+        forecast_count: ndarray,
+        probability_bin_coord: DimCoord,
+    ) -> Cube:
         """
         Update the reliability table data and the probability bin coordinate.
 
@@ -905,7 +927,7 @@ class ManipulateReliabilityTable(BasePlugin):
         reliability_table.replace_coord(probability_bin_coord)
         return reliability_table
 
-    def process(self, reliability_table):
+    def process(self, reliability_table: Cube) -> CubeList:
         """
         Apply the steps needed to produce a reliability diagram with a
         monotonic observation frequency.
@@ -1005,7 +1027,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
     Oceanogr. 66.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialise class for applying reliability calibration.
 
@@ -1013,7 +1035,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         self.threshold_coord = None
 
     @staticmethod
-    def _extract_matching_reliability_table(forecast, reliability_table):
+    def _extract_matching_reliability_table(
+        forecast: Cube, reliability_table: Union[Cube, CubeList]
+    ) -> Cube:
         """
         Extract the reliability table with a threshold coordinate
         matching the forecast cube.
@@ -1045,7 +1069,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             )
         return extracted
 
-    def _ensure_monotonicity_across_thresholds(self, cube):
+    def _ensure_monotonicity_across_thresholds(self, cube: Cube) -> None:
         """
         Ensures that probabilities change monotonically relative to thresholds
         in the expected order, e.g. exceedance probabilities always remain the
@@ -1096,7 +1120,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             warnings.warn(msg)
             cube.data = np.sort(cube.data, axis=threshold_dim)
 
-    def _calculate_reliability_probabilities(self, reliability_table):
+    def _calculate_reliability_probabilities(
+        self, reliability_table: Cube
+    ) -> Tuple[Optional[ndarray], Optional[ndarray]]:
         """
         Calculates forecast probabilities and observation frequencies from the
         reliability table. If fewer than two bins are provided, Nones are
@@ -1137,8 +1163,10 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
     @staticmethod
     def _interpolate(
-        forecast_threshold, reliability_probabilities, observation_frequencies
-    ):
+        forecast_threshold: Union[MaskedArray, ndarray],
+        reliability_probabilities: ndarray,
+        observation_frequencies: ndarray,
+    ) -> Union[MaskedArray, ndarray]:
         """
         Perform interpolation of the forecast probabilities using the
         reliability table data to produce the calibrated forecast. Where
@@ -1177,7 +1205,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         return np.clip(interpolated, 0, 1)
 
-    def process(self, forecast, reliability_table):
+    def process(self, forecast: Cube, reliability_table: Union[Cube, CubeList]) -> Cube:
         """
         Apply reliability calibration to a forecast. The reliability table
         and the forecast cube must share an identical threshold coordinate.
