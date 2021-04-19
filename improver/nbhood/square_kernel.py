@@ -30,8 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """This module contains methods for square neighbourhood processing."""
 
+from typing import Optional
+
 import iris
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver.nbhood.circular_kernel import check_radius_against_distance
 from improver.utilities.cube_checker import check_cube_coordinates
@@ -45,7 +49,12 @@ class SquareNeighbourhood:
     Methods for use in application of a square neighbourhood.
     """
 
-    def __init__(self, weighted_mode=True, sum_or_fraction="fraction", re_mask=True):
+    def __init__(
+        self,
+        weighted_mode: bool = True,
+        sum_or_fraction: str = "fraction",
+        re_mask: bool = True,
+    ) -> None:
         """
         Initialise class.
 
@@ -80,7 +89,7 @@ class SquareNeighbourhood:
         self.sum_or_fraction = sum_or_fraction
         self.re_mask = re_mask
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<SquareNeighbourhood: weighted_mode: {}, "
@@ -89,7 +98,9 @@ class SquareNeighbourhood:
         return result.format(self.weighted_mode, self.sum_or_fraction, self.re_mask)
 
     @staticmethod
-    def _calculate_neighbourhood(data, mask, nb_size, sum_only, re_mask):
+    def _calculate_neighbourhood(
+        data: ndarray, mask: ndarray, nb_size: int, sum_only: bool, re_mask: bool
+    ) -> ndarray:
         """
         Apply neighbourhood processing.
 
@@ -167,7 +178,7 @@ class SquareNeighbourhood:
 
         return data
 
-    def run(self, cube, radius, mask_cube=None):
+    def run(self, cube: Cube, radius: float, mask_cube: Optional[Cube] = None) -> Cube:
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.

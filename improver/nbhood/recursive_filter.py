@@ -30,9 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to apply a recursive filter to neighbourhooded data."""
 import warnings
+from typing import List, Optional
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver import PostProcessingPlugin
 from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
@@ -49,7 +52,7 @@ class RecursiveFilter(PostProcessingPlugin):
     Apply a recursive filter to the input cube.
     """
 
-    def __init__(self, iterations=None, edge_width=15):
+    def __init__(self, iterations: Optional[int] = None, edge_width: int = 15) -> None:
         """
         Initialise the class.
 
@@ -80,13 +83,15 @@ class RecursiveFilter(PostProcessingPlugin):
         self.edge_width = edge_width
         self.smoothing_coefficient_name_format = "smoothing_coefficient_{}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<RecursiveFilter: iterations: {}, edge_width: {}"
         return result.format(self.iterations, self.edge_width)
 
     @staticmethod
-    def _recurse_forward(grid, smoothing_coefficients, axis):
+    def _recurse_forward(
+        grid: ndarray, smoothing_coefficients: ndarray, axis: int
+    ) -> ndarray:
         """
         Method to run the recursive filter in the forward direction.
 
@@ -134,7 +139,9 @@ class RecursiveFilter(PostProcessingPlugin):
         return grid
 
     @staticmethod
-    def _recurse_backward(grid, smoothing_coefficients, axis):
+    def _recurse_backward(
+        grid: ndarray, smoothing_coefficients: ndarray, axis: int
+    ) -> ndarray:
         """
         Method to run the recursive filter in the backwards direction.
 
@@ -183,8 +190,11 @@ class RecursiveFilter(PostProcessingPlugin):
 
     @staticmethod
     def _run_recursion(
-        cube, smoothing_coefficients_x, smoothing_coefficients_y, iterations
-    ):
+        cube: Cube,
+        smoothing_coefficients_x: Cube,
+        smoothing_coefficients_y: Cube,
+        iterations: int,
+    ) -> Cube:
         """
         Method to run the recursive filter.
 
@@ -228,7 +238,9 @@ class RecursiveFilter(PostProcessingPlugin):
             cube.data = output
         return cube
 
-    def _validate_coefficients(self, cube, smoothing_coefficients):
+    def _validate_coefficients(
+        self, cube: Cube, smoothing_coefficients: CubeList
+    ) -> List[Cube]:
         """Validate the smoothing coefficients cubes.
 
         Args:
@@ -319,7 +331,9 @@ class RecursiveFilter(PostProcessingPlugin):
         return pad_x, pad_y
 
     @staticmethod
-    def _update_coefficients_from_mask(coeffs_x, coeffs_y, mask):
+    def _update_coefficients_from_mask(
+        coeffs_x: Cube, coeffs_y: Cube, mask: Cube
+    ) -> Cube:
         """
         Zero all smoothing coefficients for data points that are masked
 
@@ -338,7 +352,7 @@ class RecursiveFilter(PostProcessingPlugin):
         plugin.zero_masked(coeffs_x, coeffs_y, mask)
         return coeffs_x, coeffs_y
 
-    def process(self, cube, smoothing_coefficients):
+    def process(self, cube: Cube, smoothing_coefficients: CubeList) -> Cube:
         """
         Set up the smoothing_coefficient parameters and run the recursive
         filter. Smoothing coefficients can be generated using

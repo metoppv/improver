@@ -30,8 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """This module contains methods for circular neighbourhood processing."""
 
+from typing import List, Optional, Union
+
 import iris
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 from scipy.ndimage.filters import correlate
 
 from improver.constants import DEFAULT_PERCENTILES
@@ -46,7 +50,7 @@ from improver.utilities.spatial import (
 )
 
 
-def check_radius_against_distance(cube, radius):
+def check_radius_against_distance(cube: Cube, radius: float) -> None:
     """Check required distance isn't greater than the size of the domain.
 
     Args:
@@ -70,7 +74,7 @@ def check_radius_against_distance(cube, radius):
         )
 
 
-def circular_kernel(full_ranges, ranges, weighted_mode):
+def circular_kernel(full_ranges: ndarray, ranges: int, weighted_mode: bool) -> ndarray:
     """
 
     Method to create a circular kernel.
@@ -123,7 +127,12 @@ class CircularNeighbourhood:
     avoid computational ineffiency and possible memory errors.
     """
 
-    def __init__(self, weighted_mode=True, sum_or_fraction="fraction", re_mask=False):
+    def __init__(
+        self,
+        weighted_mode: bool = True,
+        sum_or_fraction: str = "fraction",
+        re_mask: bool = False,
+    ) -> None:
         """
         Initialise class.
 
@@ -160,12 +169,12 @@ class CircularNeighbourhood:
         self.re_mask = re_mask
         self.kernel = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<CircularNeighbourhood: weighted_mode: {}, " "sum_or_fraction: {}>"
         return result.format(self.weighted_mode, self.sum_or_fraction)
 
-    def apply_circular_kernel(self, cube, ranges):
+    def apply_circular_kernel(self, cube: Cube, ranges: int) -> Cube:
         """
         Method to apply a circular kernel to the data within the input cube in
         order to smooth the resulting field.
@@ -204,7 +213,7 @@ class CircularNeighbourhood:
         cube.data = correlate(data, self.kernel, mode="nearest") / total_area
         return cube
 
-    def run(self, cube, radius, mask_cube=None):
+    def run(self, cube: Cube, radius: float, mask_cube: Optional[Cube] = None) -> Cube:
         """
 
         Call the methods required to calculate and apply a circular
@@ -248,7 +257,9 @@ class GeneratePercentilesFromACircularNeighbourhood:
     avoid computational ineffiency and possible memory errors.
     """
 
-    def __init__(self, percentiles=DEFAULT_PERCENTILES):
+    def __init__(
+        self, percentiles: Union[float, List[float]] = DEFAULT_PERCENTILES
+    ) -> None:
         """
         Initialise class.
 
@@ -263,12 +274,12 @@ class GeneratePercentilesFromACircularNeighbourhood:
         except TypeError:
             self.percentiles = (percentiles,)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured class instance as a string."""
         result = "<GeneratePercentilesFromACircularNeighbourhood: " "percentiles: {}>"
         return result.format(self.percentiles)
 
-    def pad_and_unpad_cube(self, slice_2d, kernel):
+    def pad_and_unpad_cube(self, slice_2d: Cube, kernel: ndarray) -> Cube:
         """
         Method to pad and unpad a two dimensional cube. The input array is
         padded and percentiles are calculated using a neighbourhood around
@@ -401,7 +412,7 @@ class GeneratePercentilesFromACircularNeighbourhood:
 
         return pctcube
 
-    def run(self, cube, radius, mask_cube=None):
+    def run(self, cube: Cube, radius: float, mask_cube: Optional[Cube] = None) -> Cube:
         """
         Method to apply a circular kernel to the data within the input cube in
         order to derive percentiles over the kernel.
@@ -469,7 +480,7 @@ class GeneratePercentilesFromACircularNeighbourhood:
 
         return result
 
-    def make_percentile_cube(self, cube):
+    def make_percentile_cube(self, cube: Cube) -> Cube:
         """Returns a cube with the same metadata as the sample cube
         but with an added percentile dimension.
 

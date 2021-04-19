@@ -30,8 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing neighbourhood processing utilities."""
 
+from typing import List, Optional, Union
+
 import iris
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import PostProcessingPlugin
 from improver.constants import DEFAULT_PERCENTILES
@@ -63,7 +67,12 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
 
     """
 
-    def __init__(self, neighbourhood_method, radii, lead_times=None):
+    def __init__(
+        self,
+        neighbourhood_method,
+        radii: Union[float, List[float]],
+        lead_times: Optional[List] = None,
+    ) -> None:
         """
         Create a neighbourhood processing plugin that applies a smoothing
         to points in a cube.
@@ -98,7 +107,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
                 )
                 raise ValueError(msg)
 
-    def _find_radii(self, cube_lead_times=None):
+    def _find_radii(self, cube_lead_times: ndarray = None) -> Union[float, ndarray]:
         """Revise radius or radii for found lead times.
         If cube_lead_times is None, no automatic adjustment
         of the radii will take place.
@@ -118,7 +127,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         radii = np.interp(cube_lead_times, self.lead_times, self.radii)
         return radii
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         if callable(self.neighbourhood_method):
             neighbourhood_method = self.neighbourhood_method()
@@ -130,7 +139,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         )
         return result.format(neighbourhood_method, self.radii, self.lead_times)
 
-    def process(self, cube, mask_cube=None):
+    def process(self, cube: Cube, mask_cube: Cube = None) -> Cube:
         """
         Supply neighbourhood processing method, in order to smooth the
         input cube.
@@ -219,11 +228,11 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
 
     def __init__(
         self,
-        neighbourhood_method,
-        radii,
-        lead_times=None,
-        percentiles=DEFAULT_PERCENTILES,
-    ):
+        neighbourhood_method: str,
+        radii: Union[float, List[float]],
+        lead_times: Optional[List] = None,
+        percentiles: List = DEFAULT_PERCENTILES,
+    ) -> None:
         """
         Create a neighbourhood processing subclass that generates percentiles
         from a neighbourhood of points.
@@ -269,13 +278,13 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
 
     def __init__(
         self,
-        neighbourhood_method,
-        radii,
-        lead_times=None,
-        weighted_mode=True,
-        sum_or_fraction="fraction",
-        re_mask=False,
-    ):
+        neighbourhood_method: str,
+        radii: Union[float, List[float]],
+        lead_times: Optional[List] = None,
+        weighted_mode: bool = True,
+        sum_or_fraction: str = "fraction",
+        re_mask: bool = False,
+    ) -> None:
         """
         Create a neighbourhood processing subclass that applies a smoothing
         to points in a cube.
