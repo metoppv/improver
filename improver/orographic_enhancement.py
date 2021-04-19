@@ -32,10 +32,13 @@
 This module contains a plugin to calculate the enhancement of precipitation
 over orography.
 """
+from typing import Tuple
 
 import iris
 import numpy as np
 from iris.analysis.cartography import rotate_winds
+from iris.cube import Cube
+from numpy import ndarray
 from scipy.ndimage import uniform_filter1d
 
 from improver import BasePlugin
@@ -72,7 +75,7 @@ class OrographicEnhancement(BasePlugin):
             and Planetary Sciences, 33, 645-671.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialise the plugin with thresholds from STEPS code.  Usage as
         follows:
@@ -120,11 +123,11 @@ class OrographicEnhancement(BasePlugin):
         self.svp = None
         self.grid_spacing_km = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the plugin instance as a string"""
         return "<OrographicEnhancement()>"
 
-    def _orography_gradients(self):
+    def _orography_gradients(self) -> Tuple[Cube, Cube]:
         """
         Calculates the dimensionless gradient of self.topography along both
         spatial axes, smoothed along the perpendicular axis.  If spatial
@@ -159,7 +162,7 @@ class OrographicEnhancement(BasePlugin):
 
         return gradx, grady
 
-    def _regrid_variable(self, var_cube, unit):
+    def _regrid_variable(self, var_cube: Cube, unit: str) -> Cube:
         """
         Sorts spatial coordinates in ascending order, regrids the input
         variable onto the topography grid and converts to the required
@@ -189,8 +192,14 @@ class OrographicEnhancement(BasePlugin):
         return out_cube
 
     def _regrid_and_populate(
-        self, temperature, humidity, pressure, uwind, vwind, topography
-    ):
+        self,
+        temperature: Cube,
+        humidity: Cube,
+        pressure: Cube,
+        uwind: Cube,
+        vwind: Cube,
+        topography: Cube,
+    ) -> None:
         """
         Regrids input variables onto the high resolution orography field, then
         populates the class instance with regridded variables before converting
@@ -252,7 +261,7 @@ class OrographicEnhancement(BasePlugin):
             grady.data, self.vwind.data
         )
 
-    def _generate_mask(self):
+    def _generate_mask(self) -> ndarray:
         """
         Generates a boolean mask of areas NOT to calculate orographic
         enhancement.  Criteria for calculating orographic enhancement are that
@@ -281,7 +290,7 @@ class OrographicEnhancement(BasePlugin):
         mask = np.where(abs(self.vgradz) < self.vgradz_thresh_ms, True, mask)
         return mask
 
-    def _point_orogenh(self):
+    def _point_orogenh(self) -> ndarray:
         """
         Calculate the grid-point precipitation enhancement contribution due to
         orographic uplift using:
@@ -304,7 +313,9 @@ class OrographicEnhancement(BasePlugin):
         )
         return np.where(point_orogenh > 0, point_orogenh, 0)
 
-    def _get_point_distances(self, wind_speed, max_sin_cos):
+    def _get_point_distances(
+        self, wind_speed: ndarray, max_sin_cos: ndarray
+    ) -> ndarray:
         """
         Generate 3d array of distances to upstream components
 
@@ -338,7 +349,12 @@ class OrographicEnhancement(BasePlugin):
         return distance
 
     @staticmethod
-    def _locate_source_points(wind_speed, distance, sin_wind_dir, cos_wind_dir):
+    def _locate_source_points(
+        wind_speed: ndarray,
+        distance: ndarray,
+        sin_wind_dir: ndarray,
+        cos_wind_dir: ndarray,
+    ) -> Tuple[ndarray, ndarray]:
         """
         Generate 3D arrays of source points from which to add upstream
         orographic enhancement contribution.  Assumes spatial coordinate
@@ -381,8 +397,13 @@ class OrographicEnhancement(BasePlugin):
         return x_source, y_source
 
     def _compute_weighted_values(
-        self, point_orogenh, x_source, y_source, distance, wind_speed
-    ):
+        self,
+        point_orogenh: ndarray,
+        x_source: ndarray,
+        y_source: ndarray,
+        distance: ndarray,
+        wind_speed: ndarray,
+    ) -> Tuple[ndarray, ndarray]:
         """
         Extract orographic enhancement values from source points and weight
         according to source-destination distance.
@@ -435,7 +456,7 @@ class OrographicEnhancement(BasePlugin):
 
         return np.sum(weighted_values, axis=0), sum_of_weights
 
-    def _add_upstream_component(self, point_orogenh):
+    def _add_upstream_component(self, point_orogenh: ndarray) -> ndarray:
         """
         Add upstream component to site orographic enhancement
 
@@ -482,7 +503,7 @@ class OrographicEnhancement(BasePlugin):
 
         return orogenh
 
-    def _create_output_cube(self, orogenh_data, reference_cube):
+    def _create_output_cube(self, orogenh_data: ndarray, reference_cube: Cube) -> Cube:
         """Creates a cube containing orographic enhancement values in SI units.
 
         Args:
@@ -528,7 +549,15 @@ class OrographicEnhancement(BasePlugin):
 
         return orog_enhance_cube
 
-    def process(self, temperature, humidity, pressure, uwind, vwind, topography):
+    def process(
+        self,
+        temperature: Cube,
+        humidity: Cube,
+        pressure: Cube,
+        uwind: Cube,
+        vwind: Cube,
+        topography: Cube,
+    ) -> Cube:
         """
         Calculate precipitation enhancement over orography on high resolution
         grid. Input diagnostics are all expected to be on the same grid, and

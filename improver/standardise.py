@@ -32,11 +32,14 @@
 """Plugin to regrid cube data and standardise metadata"""
 
 import warnings
+from typing import Any, Dict, List, Optional
 
 import iris
 import numpy as np
 from iris.analysis import Linear, Nearest
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from numpy import dtype, ndarray
 from scipy.interpolate import griddata
 
 from improver import BasePlugin
@@ -55,7 +58,7 @@ from improver.utilities.round import round_close
 from improver.utilities.spatial import OccurrenceWithinVicinity
 
 
-def grid_contains_cutout(grid, cutout):
+def grid_contains_cutout(grid: Cube, cutout: Cube) -> bool:
     """
     Check that a spatial cutout is contained within a given grid
 
@@ -110,7 +113,7 @@ class StandardiseMetadata(BasePlugin):
     """Plugin to standardise cube metadata"""
 
     @staticmethod
-    def _collapse_scalar_dimensions(cube):
+    def _collapse_scalar_dimensions(cube: Cube) -> Cube:
         """
         Demote any scalar dimensions (excluding "realization") on the input
         cube to auxiliary coordinates.
@@ -127,7 +130,7 @@ class StandardiseMetadata(BasePlugin):
         return cube
 
     @staticmethod
-    def _remove_scalar_coords(cube, coords_to_remove):
+    def _remove_scalar_coords(cube: Cube, coords_to_remove: str) -> None:
         """Removes named coordinates from the input cube."""
         for coord in coords_to_remove:
             try:
@@ -136,7 +139,7 @@ class StandardiseMetadata(BasePlugin):
                 continue
 
     @staticmethod
-    def _standardise_dtypes_and_units(cube):
+    def _standardise_dtypes_and_units(cube: Cube) -> None:
         """
         Modify input cube in place to conform to mandatory dtype and unit
         standards.
@@ -147,7 +150,7 @@ class StandardiseMetadata(BasePlugin):
 
         """
 
-        def as_correct_dtype(obj, required_dtype):
+        def as_correct_dtype(obj: ndarray, required_dtype: dtype) -> ndarray:
             """
             Returns an object updated if necessary to the required dtype
 
@@ -180,12 +183,12 @@ class StandardiseMetadata(BasePlugin):
 
     def process(
         self,
-        cube,
-        new_name=None,
-        new_units=None,
-        coords_to_remove=None,
-        attributes_dict=None,
-    ):
+        cube: Cube,
+        new_name: Optional[str] = None,
+        new_units: Optional[str] = None,
+        coords_to_remove: Optional[List[str]] = None,
+        attributes_dict: Optional[Dict[str, Any]] = None,
+    ) -> Cube:
         """
         Perform compulsory and user-configurable metadata adjustments.  The
         compulsory adjustments are to collapse any scalar dimensions apart from
@@ -240,11 +243,11 @@ class RegridLandSea(BasePlugin):
 
     def __init__(
         self,
-        regrid_mode="bilinear",
-        extrapolation_mode="nanmask",
-        landmask=None,
-        landmask_vicinity=25000,
-    ):
+        regrid_mode: str = "bilinear",
+        extrapolation_mode: str = "nanmask",
+        landmask: Optional[Cube] = None,
+        landmask_vicinity: float = 25000,
+    ) -> None:
         """
         Initialise regridding parameters
 
@@ -275,7 +278,7 @@ class RegridLandSea(BasePlugin):
         self.landmask_vicinity = None if landmask is None else landmask_vicinity
         self.landmask_name = "land_binary_mask"
 
-    def _adjust_landsea(self, cube, target_grid):
+    def _adjust_landsea(self, cube: Cube, target_grid: Cube) -> Cube:
         """
         Adjust regridded data using differences between the target landmask
         and that obtained by regridding the source grid landmask, to ensure
@@ -307,7 +310,9 @@ class RegridLandSea(BasePlugin):
             cube, self.landmask_source_grid, target_grid
         )
 
-    def _regrid_to_target(self, cube, target_grid, regridded_title):
+    def _regrid_to_target(
+        self, cube: Cube, target_grid: Cube, regridded_title: str
+    ) -> Cube:
         """
         Regrid cube to target_grid, inherit grid attributes and update title
 
@@ -352,7 +357,9 @@ class RegridLandSea(BasePlugin):
 
         return cube
 
-    def process(self, cube, target_grid, regridded_title=None):
+    def process(
+        self, cube: Cube, target_grid: Cube, regridded_title: Optional[str] = None
+    ) -> Cube:
         """
         Regrids cube onto spatial grid provided by target_grid
 
@@ -388,7 +395,9 @@ class AdjustLandSeaPoints(BasePlugin):
     Where no match is found within the vicinity, the data value is not changed.
     """
 
-    def __init__(self, extrapolation_mode="nanmask", vicinity_radius=25000.0):
+    def __init__(
+        self, extrapolation_mode: str = "nanmask", vicinity_radius: float = 25000.0
+    ) -> None:
         """
         Initialise class
 
@@ -410,7 +419,7 @@ class AdjustLandSeaPoints(BasePlugin):
         self.regridder = Nearest(extrapolation_mode=extrapolation_mode)
         self.vicinity = OccurrenceWithinVicinity(vicinity_radius)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Print a human-readable representation of the instantiated object.
         """
@@ -418,7 +427,7 @@ class AdjustLandSeaPoints(BasePlugin):
             self.regridder, self.vicinity
         )
 
-    def correct_where_input_true(self, selector_val):
+    def correct_where_input_true(self, selector_val: int):
         """
         Replace points in the output_cube where output_land matches the
         selector_val and the input_land does not match, but has matching
@@ -477,7 +486,7 @@ class AdjustLandSeaPoints(BasePlugin):
         # Replace these points with the filled-domain data
         self.output_cube.data[mismatch_points] = selector_data[mismatch_points]
 
-    def process(self, cube, input_land, output_land):
+    def process(self, cube: Cube, input_land: Cube, output_land: Cube) -> Cube:
         """
         Update cube.data so that output_land and sea points match an input_land
         or sea point respectively so long as one is present within the

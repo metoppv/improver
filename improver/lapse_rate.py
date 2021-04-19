@@ -30,9 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing lapse rate calculation plugins."""
 
+from typing import Tuple
+
 import iris
 import numpy as np
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR
@@ -52,7 +56,7 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
     """Class to apply a lapse rate adjustment to a temperature data forecast"""
 
     @staticmethod
-    def _check_dim_coords(temperature, lapse_rate):
+    def _check_dim_coords(temperature: Cube, lapse_rate: Cube) -> None:
         """Throw an error if the dimension coordinates are not the same for
         temperature and lapse rate cubes
 
@@ -72,7 +76,7 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
                     "Lapse rate cube has no coordinate " '"{}"'.format(crd.name())
                 )
 
-    def _calc_orog_diff(self, source_orog, dest_orog):
+    def _calc_orog_diff(self, source_orog: Cube, dest_orog: Cube) -> Cube:
         """Get difference in orography heights, in metres
 
         Args:
@@ -92,7 +96,9 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         )
         return orog_diff
 
-    def process(self, temperature, lapse_rate, source_orog, dest_orog):
+    def process(
+        self, temperature: Cube, lapse_rate: Cube, source_orog: Cube, dest_orog: Cube
+    ) -> Cube:
         """Applies lapse rate correction to temperature forecast.  All cubes'
         units are modified in place.
 
@@ -170,11 +176,11 @@ class LapseRate(BasePlugin):
 
     def __init__(
         self,
-        max_height_diff=35,
-        nbhood_radius=7,
-        max_lapse_rate=-3 * DALR,
-        min_lapse_rate=DALR,
-    ):
+        max_height_diff: float = 35,
+        nbhood_radius: int = 7,
+        max_lapse_rate: float = -3 * DALR,
+        min_lapse_rate: float = DALR,
+    ) -> None:
         """
         The class is called with the default constraints for the processing
         code.
@@ -224,7 +230,7 @@ class LapseRate(BasePlugin):
         # of the array is non NaN.
         self.ind_central_point = self.nbhood_size // 2
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         desc = (
             "<LapseRate: max_height_diff: {}, nbhood_radius: {},"
@@ -237,7 +243,7 @@ class LapseRate(BasePlugin):
         )
         return desc
 
-    def _create_windows(self, temp, orog):
+    def _create_windows(self, temp: ndarray, orog: ndarray) -> Tuple[ndarray, ndarray]:
         """Uses neighbourhood tools to pad and generate rolling windows
         of the temp and orog datasets.
 
@@ -264,8 +270,11 @@ class LapseRate(BasePlugin):
         return temp_windows, orog_windows
 
     def _generate_lapse_rate_array(
-        self, temperature_data, orography_data, land_sea_mask_data
-    ):
+        self,
+        temperature_data: ndarray,
+        orography_data: ndarray,
+        land_sea_mask_data: ndarray,
+    ) -> ndarray:
         """
         Calculate lapse rates and apply filters
 
@@ -335,7 +344,13 @@ class LapseRate(BasePlugin):
         )
         return lapse_rate_array
 
-    def process(self, temperature, orography, land_sea_mask, model_id_attr=None):
+    def process(
+        self,
+        temperature: Cube,
+        orography: Cube,
+        land_sea_mask: Cube,
+        model_id_attr: str = None,
+    ) -> Cube:
         """Calculates the lapse rate from the temperature and orography cubes.
 
         Args:

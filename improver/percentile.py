@@ -30,9 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing percentiling classes."""
 
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
@@ -49,7 +51,12 @@ class PercentileConverter(BasePlugin):
 
     """
 
-    def __init__(self, collapse_coord, percentiles=None, fast_percentile_method=True):
+    def __init__(
+        self,
+        collapse_coord: Union[str, List[str]],
+        percentiles: Optional[List[float]] = None,
+        fast_percentile_method: bool = True,
+    ) -> None:
         """
         Create a PDF plugin with a given source plugin.
 
@@ -89,14 +96,14 @@ class PercentileConverter(BasePlugin):
         self.collapse_coord = sorted(collapse_coord)
         self.fast_percentile_method = fast_percentile_method
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         desc = "<PercentileConverter: collapse_coord={}, percentiles={}".format(
             self.collapse_coord, self.percentiles
         )
         return desc
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """
         Create a cube containing the percentiles as a new dimension.
 
