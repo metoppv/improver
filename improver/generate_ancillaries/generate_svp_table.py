@@ -34,6 +34,8 @@ import warnings
 
 import iris
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.constants import TRIPLE_PT_WATER
@@ -48,7 +50,9 @@ class SaturatedVapourPressureTable(BasePlugin):
     MAX_VALID_TEMPERATURE = 373.0
     MIN_VALID_TEMPERATURE = 173.0
 
-    def __init__(self, t_min=183.15, t_max=338.25, t_increment=0.1):
+    def __init__(
+        self, t_min: float = 183.15, t_max: float = 338.25, t_increment: float = 0.1
+    ) -> None:
         """
         Create a table of saturated vapour pressures that can be interpolated
         through to obtain an SVP value for any temperature within the range
@@ -80,7 +84,7 @@ class SaturatedVapourPressureTable(BasePlugin):
         )
         return result
 
-    def saturation_vapour_pressure_goff_gratch(self, temperature):
+    def saturation_vapour_pressure_goff_gratch(self, temperature: ndarray) -> ndarray:
         """
         Saturation Vapour pressure in a water vapour system calculated using
         the Goff-Gratch Equation (WMO standard method).
@@ -145,7 +149,7 @@ class SaturatedVapourPressureTable(BasePlugin):
 
         return svp
 
-    def process(self):
+    def process(self) -> Cube:
         """
         Create a lookup table of saturation vapour pressure in a pure water
         vapour system for the range of required temperatures.

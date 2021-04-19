@@ -33,12 +33,15 @@
 import importlib
 import warnings
 from datetime import datetime
+from typing import Any, List, Optional, Union
 
 import iris
 import numpy as np
 import pytz
 from cf_units import Unit
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
 from pytz import timezone
 
 from improver import BasePlugin
@@ -68,7 +71,12 @@ class GenerateTimezoneMask(BasePlugin):
     to generate the masks.
     """
 
-    def __init__(self, include_dst=False, time=None, groupings=None):
+    def __init__(
+        self,
+        include_dst: bool = False,
+        time: Optional[str] = None,
+        groupings: Optional[Any] = None,
+    ) -> None:
         """
         Configure plugin options to generate the desired ancillary.
 
@@ -102,7 +110,7 @@ class GenerateTimezoneMask(BasePlugin):
         self.include_dst = include_dst
         self.groupings = groupings
 
-    def _set_time(self, cube):
+    def _set_time(self, cube: Cube) -> None:
         """
         Set self.time to a datetime object specifying the date and time for
         which the masks should be created. self.time is set in UTC.
@@ -127,7 +135,7 @@ class GenerateTimezoneMask(BasePlugin):
                 raise ValueError(msg)
 
     @staticmethod
-    def _get_coordinate_pairs(cube):
+    def _get_coordinate_pairs(cube: Cube) -> ndarray:
         """
         Create an array containing all the pairs of coordinates that describe
         y-x points in the grid.
@@ -160,7 +168,7 @@ class GenerateTimezoneMask(BasePlugin):
 
         return np.stack([yy.flatten(), xx.flatten()], axis=1)
 
-    def _calculate_tz_offsets(self, coordinate_pairs):
+    def _calculate_tz_offsets(self, coordinate_pairs: ndarray) -> ndarray:
         """
         Loop over all the coordinates provided and for each calculate the
         offset from UTC in seconds.
@@ -200,7 +208,7 @@ class GenerateTimezoneMask(BasePlugin):
 
         return np.array(grid_offsets, dtype=np.int32)
 
-    def _calculate_offset(self, point_tz):
+    def _calculate_offset(self, point_tz: str) -> int:
         """
         Calculates the offset in seconds from UTC for a given timezone, either
         with or without consideration of daylight savings.
@@ -227,7 +235,7 @@ class GenerateTimezoneMask(BasePlugin):
 
         return int(offset.total_seconds())
 
-    def _create_template_cube(self, cube):
+    def _create_template_cube(self, cube: Cube) -> Cube:
         """
         Create a template cube to store the timezone masks. This cube has only
         one scalar coordinate which is time, denoting when it is valid; this is
@@ -260,7 +268,7 @@ class GenerateTimezoneMask(BasePlugin):
             "timezone_mask", 1, cube, attributes, dtype=np.int8
         )
 
-    def _group_timezones(self, timezone_mask):
+    def _group_timezones(self, timezone_mask: Union[CubeList, List[Cube]]) -> CubeList:
         """
         If the ancillary will be used with data that is not available at hourly
         intervals, the masks can be grouped to match the intervals of the data.
@@ -313,7 +321,7 @@ class GenerateTimezoneMask(BasePlugin):
             grouped_timezone_masks.append(subset)
         return grouped_timezone_masks
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """
         Use the grid from the provided cube to create masks that correspond to
         all the timezones that exist within the cube. These masks are then

@@ -30,9 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing ancillary generation utilities for Improver"""
 
+from typing import Any, Dict, List, Optional, Union
+
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import Cube, CubeList
+from numpy import ndarray
+from numpy.ma.core import MaskedArray
 
 from improver import BasePlugin
 
@@ -58,8 +63,12 @@ THRESHOLDS_DICT = {
 
 
 def _make_mask_cube(
-    mask_data, coords, topographic_bounds, topographic_units, sea_points_included=False
-):
+    mask_data: MaskedArray,
+    coords: List,
+    topographic_bounds: List[float],
+    topographic_units: str,
+    sea_points_included: bool = False,
+) -> Cube:
     """
     Makes cube from numpy masked array generated from orography fields.
 
@@ -133,7 +142,7 @@ class CorrectLandSeaMask(BasePlugin):
     False [sea] and True [land].
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def __repr__(self):
@@ -142,7 +151,7 @@ class CorrectLandSeaMask(BasePlugin):
         return result
 
     @staticmethod
-    def process(standard_landmask):
+    def process(standard_landmask: Cube) -> Cube:
         """Read in the interpolated landmask and round values < 0.5 to False
              and values >=0.5 to True.
 
@@ -171,7 +180,7 @@ class GenerateOrographyBandAncils(BasePlugin):
     of land points within the orography band specified.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def __repr__(self):
@@ -180,7 +189,9 @@ class GenerateOrographyBandAncils(BasePlugin):
         return result
 
     @staticmethod
-    def sea_mask(landmask, orog_band, sea_fill_value=None):
+    def sea_mask(
+        landmask: ndarray, orog_band: ndarray, sea_fill_value: Optional[int] = None
+    ) -> Union[MaskedArray, ndarray]:
         """
         Function to mask sea points and substitute the default numpy
         fill value behind this mask_cube.
@@ -214,8 +225,12 @@ class GenerateOrographyBandAncils(BasePlugin):
         return mask_data
 
     def gen_orography_masks(
-        self, standard_orography, standard_landmask, thresholds, units="m"
-    ):
+        self,
+        standard_orography: Cube,
+        standard_landmask: Optional[Cube],
+        thresholds: List[float],
+        units: str = "m",
+    ) -> Cube:
         """
         Function to generate topographical band masks.
 
@@ -297,7 +312,9 @@ class GenerateOrographyBandAncils(BasePlugin):
         mask_cube.units = Unit("1")
         return mask_cube
 
-    def process(self, orography, thresholds_dict, landmask=None):
+    def process(
+        self, orography: Cube, thresholds_dict: Dict[str, Any], landmask: Cube = None
+    ) -> CubeList:
         """Loops over the supplied orographic bands, adding a cube
            for each band to the mask cubelist.
 
