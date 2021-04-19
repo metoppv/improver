@@ -30,8 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to calculate whether precipitation is showery"""
 
+from typing import Dict, List, Tuple
+
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
@@ -50,7 +54,7 @@ class ShowerCondition(BasePlugin):
     """Plugin to calculate whether precipitation is showery based on input
     cloud, texture and / or convective ratio probability fields"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Set up fixed conditions from which to diagnose showers from different
         input fields.
@@ -84,7 +88,7 @@ class ShowerCondition(BasePlugin):
         self.cubes = []
         self.tree = None
 
-    def _calculate_shower_condition(self, shape):
+    def _calculate_shower_condition(self, shape: Tuple) -> ndarray:
         """Calculate deterministic "precipitation is showery" field"""
         showery_points = np.ones(shape, dtype=FLOAT_DTYPE)
         for cube in self.cubes:
@@ -111,7 +115,7 @@ class ShowerCondition(BasePlugin):
             showery_points = np.multiply(showery_points, condition_met)
         return showery_points.astype(FLOAT_DTYPE)
 
-    def _output_metadata(self):
+    def _output_metadata(self) -> Tuple[Cube, Dict]:
         """Returns template cube and mandatory attributes for result"""
         template = next(
             self.cubes[0].slices_over(find_threshold_coordinate(self.cubes[0]))
@@ -120,7 +124,7 @@ class ShowerCondition(BasePlugin):
         attributes = generate_mandatory_attributes(self.cubes)
         return template, attributes
 
-    def _extract_cubes(self, conditions, cubes):
+    def _extract_cubes(self, conditions: List[str], cubes: CubeList) -> bool:
         """For a given set of conditions, put all matching cubes onto self.cubes and
         put conditions onto self.tree. If ALL conditions are not satisfied, the function
         exits without updating self.cubes or self.tree."""
@@ -135,7 +139,7 @@ class ShowerCondition(BasePlugin):
         self.tree = conditions
         return True
 
-    def process(self, cubes):
+    def process(self, cubes: CubeList) -> Cube:
         """
         Determine the shower condition from global or UK data depending
         on input fields. Expected inputs for UK:

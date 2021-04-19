@@ -33,7 +33,9 @@
 
 import iris
 import numpy as np
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import find_threshold_coordinate
@@ -63,11 +65,11 @@ class FieldTexture(BasePlugin):
 
     def __init__(
         self,
-        nbhood_radius,
-        textural_threshold,
-        diagnostic_threshold,
-        model_id_attr=None,
-    ):
+        nbhood_radius: float,
+        textural_threshold: float,
+        diagnostic_threshold: float,
+        model_id_attr: str = None,
+    ) -> None:
         """
 
         Args:
@@ -97,7 +99,7 @@ class FieldTexture(BasePlugin):
         self.diagnostic_threshold = diagnostic_threshold
         self.model_id_attr = model_id_attr
 
-    def _calculate_ratio(self, cube, cube_name, radius):
+    def _calculate_ratio(self, cube: Cube, cube_name: str, radius: float) -> Cube:
         """
         Calculates the ratio of actual to potential value transitions in a
         neighbourhood about each cell.
@@ -178,7 +180,7 @@ class FieldTexture(BasePlugin):
         return ratio
 
     @staticmethod
-    def _calculate_transitions(data):
+    def _calculate_transitions(data: ndarray) -> ndarray:
         """
         Identifies actual transitions present in a binary field. These transitions
         are defined as the number of cells of value zero that directly neighbour
@@ -203,7 +205,7 @@ class FieldTexture(BasePlugin):
         cell_sum = np.where(data > 0, cell_sum, 0)
         return cell_sum
 
-    def process(self, input_cube):
+    def process(self, input_cube: Cube) -> Cube:
         """
         Calculates a field of texture to use in differentiating solid and
         more scattered features.

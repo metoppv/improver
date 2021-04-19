@@ -30,9 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing the SnowFraction class."""
 
+from typing import Optional, Tuple
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
 from improver.metadata.utilities import (
@@ -52,7 +54,7 @@ class SnowFraction(PostProcessingPlugin):
     snow_fraction = snow / (snow + rain)
     """
 
-    def __init__(self, model_id_attr=None):
+    def __init__(self, model_id_attr: Optional[str] = None) -> None:
         """
         Initialise the class
 
@@ -63,7 +65,7 @@ class SnowFraction(PostProcessingPlugin):
         """
         self.model_id_attr = model_id_attr
 
-    def _get_input_cubes(self, input_cubes):
+    def _get_input_cubes(self, input_cubes: CubeList) -> None:
         """
         Separates out the rain and snow cubes from the input list and checks that
             * No other cubes are present
@@ -105,7 +107,7 @@ class SnowFraction(PostProcessingPlugin):
             self.snow.data = self.snow.data.data
 
     @staticmethod
-    def _get_input_cube_names(input_cubes):
+    def _get_input_cube_names(input_cubes: CubeList) -> Tuple[str, str]:
         """
         Identifies the rain and snow cubes from the presence of "rain" or "snow" in
         the cube names.
@@ -131,7 +133,7 @@ class SnowFraction(PostProcessingPlugin):
             )
         return rain_name, snow_name
 
-    def _calculate_snow_fraction(self):
+    def _calculate_snow_fraction(self) -> Cube:
         """
         Calculates the snow fraction data and interpolates to fill in the missing points.
 
@@ -163,7 +165,7 @@ class SnowFraction(PostProcessingPlugin):
             )
         return snow_fraction_interpolated.merge_cube()
 
-    def process(self, input_cubes):
+    def process(self, input_cubes: CubeList) -> Cube:
         """Check input cubes, then calculate and interpolate a snow fraction cube.
 
         Args:

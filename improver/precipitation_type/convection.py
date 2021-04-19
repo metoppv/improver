@@ -30,8 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing convection diagnosis utilities."""
 
+from typing import List, Optional, Union
+
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import find_threshold_coordinate
@@ -55,16 +59,16 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
 
     def __init__(
         self,
-        lower_threshold,
-        higher_threshold,
-        neighbourhood_method,
-        radii,
-        fuzzy_factor=None,
-        comparison_operator=">",
-        lead_times=None,
-        weighted_mode=True,
-        use_adjacent_grid_square_differences=True,
-    ):
+        lower_threshold: float,
+        higher_threshold: float,
+        neighbourhood_method: str,
+        radii: Union[float, List[float]],
+        fuzzy_factor: Optional[float] = None,
+        comparison_operator: str = ">",
+        lead_times: List[float] = None,
+        weighted_mode: bool = True,
+        use_adjacent_grid_square_differences: bool = True,
+    ) -> None:
         """
         Args:
             lower_threshold (float):
@@ -114,7 +118,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         self.weighted_mode = weighted_mode
         self.use_adjacent_grid_square_differences = use_adjacent_grid_square_differences
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<DiagnoseConvectivePrecipitation: lower_threshold {}; "
@@ -136,7 +140,9 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
             self.use_adjacent_grid_square_differences,
         )
 
-    def _calculate_convective_ratio(self, cubelist, threshold_list):
+    def _calculate_convective_ratio(
+        self, cubelist: CubeList, threshold_list: List[float]
+    ) -> ndarray:
         """
         Calculate the convective ratio by:
 
@@ -213,7 +219,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         return convective_ratio
 
     @staticmethod
-    def absolute_differences_between_adjacent_grid_squares(cube):
+    def absolute_differences_between_adjacent_grid_squares(cube: Cube) -> CubeList:
         """
         Compute the absolute differences between grid squares and put the
         resulting cubes into a cubelist.
@@ -238,7 +244,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         cubelist = iris.cube.CubeList([diff_along_x_cube, diff_along_y_cube])
         return cubelist
 
-    def iterate_over_threshold(self, cubelist, threshold):
+    def iterate_over_threshold(self, cubelist: CubeList, threshold: float) -> CubeList:
         """
         Iterate over the application of thresholding to multiple cubes.
 
@@ -269,7 +275,9 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         return cubes
 
     @staticmethod
-    def sum_differences_between_adjacent_grid_squares(cube, thresholded_cubes):
+    def sum_differences_between_adjacent_grid_squares(
+        cube: Cube, thresholded_cubes: CubeList
+    ) -> Cube:
         """
         Put the differences back onto the original grid by summing together
         the array with offsets. This covers the fact that the difference
@@ -299,7 +307,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         cube_on_orig_grid.data[..., :, 1:] += threshold_cube_x.data
         return cube_on_orig_grid
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """
         Calculate the convective ratio either for the underlying field e.g.
         precipitation rate, or using the differences between adjacent grid
@@ -358,11 +366,11 @@ class ConvectionRatioFromComponents(BasePlugin):
     convective and dynamic components.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.convective = None
         self.dynamic = None
 
-    def _split_input(self, cubes):
+    def _split_input(self, cubes: Union[CubeList, List[Cube]]) -> None:
         """
         Extracts convective and dynamic components from the list as objects on the class
         and ensures units are m s-1
@@ -373,7 +381,7 @@ class ConvectionRatioFromComponents(BasePlugin):
         self.dynamic = self._get_cube(cubes, "lwe_stratiform_precipitation_rate")
 
     @staticmethod
-    def _get_cube(cubes, name):
+    def _get_cube(cubes: CubeList, name: str) -> Cube:
         """
         Get one cube named "name" from the list of cubes and set its units to m s-1.
 
@@ -400,7 +408,7 @@ class ConvectionRatioFromComponents(BasePlugin):
                 )
         return cube
 
-    def _convective_ratio(self):
+    def _convective_ratio(self) -> ndarray:
         """
         Calculates the convective ratio from the convective and dynamic precipitation
         rate components, masking data where both are zero. The tolerance for comparing
@@ -414,7 +422,7 @@ class ConvectionRatioFromComponents(BasePlugin):
             )
         return convective_ratios
 
-    def process(self, cubes, model_id_attr=None):
+    def process(self, cubes: List[Cube], model_id_attr: str = None) -> Cube:
         """
         Calculate the convective ratio from the convective and dynamic components as:
             convective_ratio = convective / (convective + dynamic)
