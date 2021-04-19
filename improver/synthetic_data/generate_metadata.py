@@ -31,8 +31,10 @@
 """Module to generate a metadata cube."""
 
 from datetime import datetime, timedelta
+from typing import Any, List, Optional
 
 import numpy as np
+from iris.cube import Cube
 from iris.std_names import STD_NAMES
 from iris.util import squeeze
 
@@ -48,7 +50,7 @@ DEFAULT_TIME = datetime(2017, 11, 10, 4, 0)
 CUBE_TYPES = ("variable", "percentile", "probability")
 
 
-def _get_units(name):
+def _get_units(name: str) -> str:
     """ Get output variable units from iris.std_names.STD_NAMES """
     try:
         units = STD_NAMES[name]["canonical_units"]
@@ -93,16 +95,16 @@ def _create_data_array(ensemble_members, leading_dimension, npoints, height_leve
 
 
 def generate_metadata(
-    name="air_pressure_at_sea_level",
-    units=None,
-    time_period=None,
-    ensemble_members=8,
-    leading_dimension=None,
-    cube_type="variable",
-    spp__relative_to_threshold="greater_than",
-    npoints=71,
-    **kwargs,
-):
+    name: str = "air_pressure_at_sea_level",
+    units: Optional[str] = None,
+    time_period: Optional[int] = None,
+    ensemble_members: Optional[int] = 8,
+    leading_dimension: Optional[List[float]] = None,
+    cube_type: Optional[str] = "variable",
+    spp__relative_to_threshold: Optional[str] = "greater_than",
+    npoints: Optional[int] = 71,
+    **kwargs: Any,
+) -> Cube:
     """ Generate a cube with metadata only.
 
     Args:

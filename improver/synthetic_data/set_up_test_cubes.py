@@ -35,12 +35,16 @@ including coordinate order expected by IMPROVER plugins.
 """
 
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
 from cf_units import Unit, date2num
-from iris.coords import DimCoord
+from iris.coords import Coord, DimCoord
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
+from numpy.ma.core import MaskedArray
 
 from improver.grids import GRID_COORD_ATTRIBUTES
 from improver.metadata.check_datatypes import check_mandatory_standards
@@ -56,8 +60,12 @@ DIM_COORD_ATTRIBUTES = {
 
 
 def construct_yx_coords(
-    ypoints, xpoints, spatial_grid, grid_spacing=None, domain_corner=None
-):
+    ypoints: int,
+    xpoints: int,
+    spatial_grid: str,
+    grid_spacing: Optional[float] = None,
+    domain_corner: Optional[Tuple[float, float]] = None,
+) -> Tuple[DimCoord, DimCoord]:
     """
     Construct y/x spatial dimension coordinates
 
@@ -111,7 +119,9 @@ def construct_yx_coords(
     return y_coord, x_coord
 
 
-def _create_yx_arrays(ypoints, xpoints, domain_corner, grid_spacing):
+def _create_yx_arrays(
+    ypoints: int, xpoints: int, domain_corner: Tuple[float, float], grid_spacing: float,
+) -> Tuple[ndarray, ndarray]:
     """
     Creates arrays for constructing y and x DimCoords.
 
@@ -128,7 +138,9 @@ def _create_yx_arrays(ypoints, xpoints, domain_corner, grid_spacing):
     return y_array, x_array
 
 
-def _set_domain_corner(ypoints, xpoints, grid_spacing):
+def _set_domain_corner(
+    ypoints: int, xpoints: int, grid_spacing: float
+) -> Tuple[float, float]:
     """
     Set domain corner to create a grid around 0,0.
 
@@ -142,7 +154,7 @@ def _set_domain_corner(ypoints, xpoints, grid_spacing):
     return y_start, x_start
 
 
-def _create_time_point(time):
+def _create_time_point(time: datetime) -> int:
     """Returns a coordinate point with appropriate units and datatype
     from a datetime.datetime instance.
 
@@ -155,7 +167,9 @@ def _create_time_point(time):
     return np.around(point).astype(coord_spec.dtype)
 
 
-def construct_scalar_time_coords(time, time_bounds, frt):
+def construct_scalar_time_coords(
+    time: datetime, time_bounds: Optional[List[datetime]], frt: datetime,
+) -> List[Tuple[DimCoord, bool]]:
     """
     Construct scalar time coordinates as aux_coord list
 
@@ -218,7 +232,9 @@ def construct_scalar_time_coords(time, time_bounds, frt):
     return coord_dims
 
 
-def _create_dimension_coord(coord_array, data_length, coord_name, **kwargs):
+def _create_dimension_coord(
+    coord_array: Any, data_length: int, coord_name: str, **kwargs: Any
+) -> DimCoord:
     """
     Creates dimension coordinate from coord_array if not None, otherwise creating an array of integers with an interval of 1
     """
@@ -246,8 +262,13 @@ def _create_dimension_coord(coord_array, data_length, coord_name, **kwargs):
 
 
 def _construct_dimension_coords(
-    data, y_coord, x_coord, realizations, height_levels, pressure
-):
+    data: Union[MaskedArray, ndarray],
+    y_coord: DimCoord,
+    x_coord: DimCoord,
+    realizations: Any,
+    height_levels: Optional[Any],
+    pressure: bool,
+) -> DimCoord:
     """ Create array of all dimension coordinates. These dimensions will be ordered: realization, height/pressure, y, x. """
     data_shape = data.shape
     ndims = len(data_shape)
@@ -308,22 +329,22 @@ def _construct_dimension_coords(
 
 
 def set_up_variable_cube(
-    data,
-    name="air_temperature",
-    units="K",
-    spatial_grid="latlon",
-    time=datetime(2017, 11, 10, 4, 0),
-    time_bounds=None,
-    frt=datetime(2017, 11, 10, 0, 0),
-    realizations=None,
-    include_scalar_coords=None,
-    attributes=None,
-    standard_grid_metadata=None,
-    grid_spacing=None,
-    domain_corner=None,
-    height_levels=None,
-    pressure=False,
-):
+    data: ndarray,
+    name: str = "air_temperature",
+    units: str = "K",
+    spatial_grid: str = "latlon",
+    time: datetime = datetime(2017, 11, 10, 4, 0),
+    time_bounds: Optional[Tuple[datetime, datetime]] = None,
+    frt: datetime = datetime(2017, 11, 10, 0, 0),
+    realizations: Optional[List[ndarray]] = None,
+    include_scalar_coords: Optional[List[Coord]] = None,
+    attributes: Optional[Dict[str, str]] = None,
+    standard_grid_metadata: Optional[str] = None,
+    grid_spacing: Optional[float] = None,
+    domain_corner: Optional[Any] = None,
+    height_levels: Optional[Any] = None,
+    pressure: bool = False,
+) -> Cube:
     """
     Set up a cube containing a single variable field with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -419,8 +440,8 @@ def set_up_variable_cube(
 
 
 def set_up_percentile_cube(
-    data, percentiles, **kwargs,
-):
+    data: ndarray, percentiles: Union[List[float], ndarray], **kwargs: Any,
+) -> Cube:
     """
     Set up a cube containing percentiles of a variable with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -451,13 +472,13 @@ def set_up_percentile_cube(
 
 
 def set_up_probability_cube(
-    data,
-    thresholds,
-    variable_name="air_temperature",
-    threshold_units="K",
-    spp__relative_to_threshold="greater_than",
-    **kwargs,
-):
+    data: ndarray,
+    thresholds: Union[List[float], ndarray],
+    variable_name: str = "air_temperature",
+    threshold_units: str = "K",
+    spp__relative_to_threshold: str = "greater_than",
+    **kwargs: Any,
+) -> Cube:
     """
     Set up a cube containing probabilities at thresholds with:
     - x/y spatial dimensions (equal area or lat / lon)
@@ -522,15 +543,15 @@ def set_up_probability_cube(
 
 
 def add_coordinate(
-    incube,
-    coord_points,
-    coord_name,
-    coord_units=None,
-    dtype=np.float32,
-    order=None,
-    is_datetime=False,
-    attributes=None,
-):
+    incube: Cube,
+    coord_points: Any,
+    coord_name: str,
+    coord_units: Optional[str] = None,
+    dtype: type = np.float32,
+    order: Optional[List[int]] = None,
+    is_datetime: bool = False,
+    attributes: Optional[Dict[str, Any]] = None,
+) -> Cube:
     """
     Function to duplicate a sample cube with an additional coordinate to create
     a cubelist. The cubelist is merged to create a single cube, which can be
