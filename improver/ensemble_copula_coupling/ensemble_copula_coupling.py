@@ -33,10 +33,13 @@ This module defines the plugins required for Ensemble Copula Coupling.
 
 """
 import warnings
+from typing import List, Optional, Tuple
 
 import iris
 import numpy as np
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
+from numpy import ndarray
 from scipy import stats
 
 from improver import BasePlugin
@@ -78,7 +81,9 @@ class RebadgePercentilesAsRealizations(BasePlugin):
     """
 
     @staticmethod
-    def process(cube, ensemble_realization_numbers=None):
+    def process(
+        cube: Cube, ensemble_realization_numbers: Optional[ndarray] = None
+    ) -> Cube:
         """
         Rebadge percentiles as ensemble realizations. The ensemble
         realization numbering will depend upon the number of percentiles in
@@ -138,7 +143,7 @@ class ResamplePercentiles(BasePlugin):
 
     """
 
-    def __init__(self, ecc_bounds_warning=False):
+    def __init__(self, ecc_bounds_warning: bool = False) -> None:
         """
         Initialise the class.
 
@@ -151,8 +156,11 @@ class ResamplePercentiles(BasePlugin):
         self.ecc_bounds_warning = ecc_bounds_warning
 
     def _add_bounds_to_percentiles_and_forecast_at_percentiles(
-        self, percentiles, forecast_at_percentiles, bounds_pairing
-    ):
+        self,
+        percentiles: ndarray,
+        forecast_at_percentiles: ndarray,
+        bounds_pairing: Tuple[int, int],
+    ) -> Tuple[ndarray, ndarray]:
         """
         Padding of the lower and upper bounds of the percentiles for a
         given phenomenon, and padding of forecast values using the
@@ -225,11 +233,11 @@ class ResamplePercentiles(BasePlugin):
 
     def _interpolate_percentiles(
         self,
-        forecast_at_percentiles,
-        desired_percentiles,
-        bounds_pairing,
-        percentile_coord_name,
-    ):
+        forecast_at_percentiles: Cube,
+        desired_percentiles: ndarray,
+        bounds_pairing: Tuple[int, int],
+        percentile_coord_name: str,
+    ) -> Cube:
         """
         Interpolation of forecast for a set of percentiles from an initial
         set of percentiles to a new set of percentiles. This is constructed
@@ -297,8 +305,11 @@ class ResamplePercentiles(BasePlugin):
         return percentile_cube
 
     def process(
-        self, forecast_at_percentiles, no_of_percentiles=None, sampling="quantile"
-    ):
+        self,
+        forecast_at_percentiles: Cube,
+        no_of_percentiles: Optional[int] = None,
+        sampling: str = "quantile",
+    ) -> Cube:
         """
         1. Creates a list of percentiles.
         2. Accesses the lower and upper bound pair of the forecast values,
@@ -370,7 +381,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
     """
 
-    def __init__(self, ecc_bounds_warning=False):
+    def __init__(self, ecc_bounds_warning: bool = False) -> None:
         """
         Initialise the class.
 
@@ -383,8 +394,11 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         self.ecc_bounds_warning = ecc_bounds_warning
 
     def _add_bounds_to_thresholds_and_probabilities(
-        self, threshold_points, probabilities_for_cdf, bounds_pairing
-    ):
+        self,
+        threshold_points: ndarray,
+        probabilities_for_cdf: ndarray,
+        bounds_pairing: Tuple[int, int],
+    ) -> Tuple[ndarray, ndarray]:
         """
         Padding of the lower and upper bounds of the distribution for a
         given phenomenon for the threshold_points, and padding of
@@ -458,8 +472,11 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         return threshold_points_with_endpoints, probabilities_for_cdf
 
     def _probabilities_to_percentiles(
-        self, forecast_probabilities, percentiles, bounds_pairing
-    ):
+        self,
+        forecast_probabilities: Cube,
+        percentiles: ndarray,
+        bounds_pairing: Tuple[int, int],
+    ) -> Cube:
         """
         Conversion of probabilities to percentiles through the construction
         of an cumulative distribution function. This is effectively
@@ -577,11 +594,11 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
     def process(
         self,
-        forecast_probabilities,
-        no_of_percentiles=None,
-        percentiles=None,
-        sampling="quantile",
-    ):
+        forecast_probabilities: Cube,
+        no_of_percentiles: Optional[int] = None,
+        percentiles: Optional[List[float]] = None,
+        sampling: str = "quantile",
+    ) -> Cube:
         """
         1. Concatenates cubes with a threshold coordinate.
         2. Creates a list of percentiles.
@@ -678,7 +695,9 @@ class ConvertLocationAndScaleParameters:
     probabilities from the location and scale parameters.
     """
 
-    def __init__(self, distribution="norm", shape_parameters=None):
+    def __init__(
+        self, distribution: str = "norm", shape_parameters: Optional[ndarray] = None,
+    ) -> None:
         """
         Initialise the class.
 
@@ -727,7 +746,7 @@ calculate_truncated_normal_crps`,
             shape_parameters = []
         self.shape_parameters = shape_parameters
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<ConvertLocationAndScaleParameters: distribution: {}; "
@@ -735,7 +754,9 @@ calculate_truncated_normal_crps`,
         )
         return result.format(self.distribution.name, self.shape_parameters)
 
-    def _rescale_shape_parameters(self, location_parameter, scale_parameter):
+    def _rescale_shape_parameters(
+        self, location_parameter: ndarray, scale_parameter: ndarray
+    ) -> None:
         """
         Rescale the shape parameters for the desired location and scale
         parameters for the truncated normal distribution. The shape parameters
@@ -779,7 +800,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
     Ensemble Copula Coupling.
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<ConvertLocationAndScaleParametersToPercentiles: "
@@ -788,8 +809,12 @@ class ConvertLocationAndScaleParametersToPercentiles(
         return result.format(self.distribution.name, self.shape_parameters)
 
     def _location_and_scale_parameters_to_percentiles(
-        self, location_parameter, scale_parameter, template_cube, percentiles
-    ):
+        self,
+        location_parameter: Cube,
+        scale_parameter: Cube,
+        template_cube: Cube,
+        percentiles: List[float],
+    ) -> Cube:
         """
         Function returning percentiles based on the supplied location and
         scale parameters.
@@ -886,12 +911,12 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
     def process(
         self,
-        location_parameter,
-        scale_parameter,
-        template_cube,
-        no_of_percentiles=None,
-        percentiles=None,
-    ):
+        location_parameter: Cube,
+        scale_parameter: Cube,
+        template_cube: Cube,
+        no_of_percentiles: Optional[int] = None,
+        percentiles: Optional[List[float]] = None,
+    ) -> Cube:
         """
         Generate ensemble percentiles from the location and scale parameters.
 
@@ -949,7 +974,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
     location and scale parameters of a distribution.
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<ConvertLocationAndScaleParametersToProbabilities: "
@@ -957,7 +982,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         )
         return result.format(self.distribution.name, self.shape_parameters)
 
-    def _check_template_cube(self, cube):
+    def _check_template_cube(self, cube: Cube) -> None:
         """
         The template cube is expected to contain a leading threshold dimension
         followed by spatial (y/x) dimensions. This check raises an error if
@@ -992,8 +1017,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
     @staticmethod
     def _check_unit_compatibility(
-        location_parameter, scale_parameter, probability_cube_template
-    ):
+        location_parameter: Cube, scale_parameter: Cube, probability_cube_template: Cube
+    ) -> None:
         """
         The location parameter, scale parameters, and threshold values come
         from three different cubes. They should all be in the same base unit,
@@ -1026,8 +1051,11 @@ class ConvertLocationAndScaleParametersToProbabilities(
             raise ValueError(msg)
 
     def _location_and_scale_parameters_to_probabilities(
-        self, location_parameter, scale_parameter, probability_cube_template
-    ):
+        self,
+        location_parameter: Cube,
+        scale_parameter: Cube,
+        probability_cube_template: Cube,
+    ) -> Cube:
         """
         Function returning probabilities relative to provided thresholds based
         on the supplied location and scale parameters.
@@ -1092,7 +1120,12 @@ class ConvertLocationAndScaleParametersToProbabilities(
         probability_cube.data = np.ma.masked_where(mask_array, probability_cube.data)
         return probability_cube
 
-    def process(self, location_parameter, scale_parameter, probability_cube_template):
+    def process(
+        self,
+        location_parameter: Cube,
+        scale_parameter: Cube,
+        probability_cube_template: Cube,
+    ) -> Cube:
         """
         Generate probabilities from the location and scale parameters of the
         distribution.
@@ -1141,10 +1174,10 @@ class EnsembleReordering(BasePlugin):
 
     @staticmethod
     def _recycle_raw_ensemble_realizations(
-        post_processed_forecast_percentiles,
-        raw_forecast_realizations,
-        percentile_coord_name,
-    ):
+        post_processed_forecast_percentiles: Cube,
+        raw_forecast_realizations: Cube,
+        percentile_coord_name: str,
+    ) -> Cube:
         """
         Function to determine whether there is a mismatch between the number
         of percentiles and the number of raw forecast realizations. If more
@@ -1207,11 +1240,11 @@ class EnsembleReordering(BasePlugin):
 
     @staticmethod
     def rank_ecc(
-        post_processed_forecast_percentiles,
-        raw_forecast_realizations,
-        random_ordering=False,
-        random_seed=None,
-    ):
+        post_processed_forecast_percentiles: Cube,
+        raw_forecast_realizations: Cube,
+        random_ordering: bool = False,
+        random_seed: Optional[int] = None,
+    ) -> Cube:
         """
         Function to apply Ensemble Copula Coupling. This ranks the
         post-processed forecast realizations based on a ranking determined from
@@ -1283,11 +1316,11 @@ class EnsembleReordering(BasePlugin):
 
     def process(
         self,
-        post_processed_forecast,
-        raw_forecast,
-        random_ordering=False,
-        random_seed=None,
-    ):
+        post_processed_forecast: Cube,
+        raw_forecast: Cube,
+        random_ordering: bool = False,
+        random_seed: Optional[int] = None,
+    ) -> Cube:
         """
         Reorder post-processed forecast using the ordering of the
         raw ensemble.

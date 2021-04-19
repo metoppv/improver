@@ -34,14 +34,21 @@ plugins.
 
 """
 
+from typing import Any, List, Optional, Union
+
 import cf_units as unit
 import iris
 import numpy as np
+from cf_units import Unit
+from iris.cube import Cube
+from numpy import float64, int64, ndarray
 
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 
 
-def concatenate_2d_array_with_2d_array_endpoints(array_2d, low_endpoint, high_endpoint):
+def concatenate_2d_array_with_2d_array_endpoints(
+    array_2d: ndarray, low_endpoint: float, high_endpoint: float,
+) -> ndarray:
     """
     For a 2d array, add a 2d array as the lower and upper endpoints.
     The concatenation to add the lower and upper endpoints to the 2d array
@@ -69,7 +76,9 @@ def concatenate_2d_array_with_2d_array_endpoints(array_2d, low_endpoint, high_en
     return array_2d
 
 
-def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
+def choose_set_of_percentiles(
+    no_of_percentiles: int, sampling: str = "quantile"
+) -> List[float]:
     """
     Function to create percentiles.
 
@@ -126,7 +135,12 @@ def choose_set_of_percentiles(no_of_percentiles, sampling="quantile"):
     return [item * 100 for item in percentiles]
 
 
-def create_cube_with_percentiles(percentiles, template_cube, cube_data, cube_unit=None):
+def create_cube_with_percentiles(
+    percentiles: Any,
+    template_cube: Cube,
+    cube_data: ndarray,
+    cube_unit: Optional[Union[Unit, str]] = None,
+) -> Cube:
     """
     Create a cube with a percentile coordinate based on a template cube.
     The resulting cube will have an extra percentile coordinate compared with
@@ -175,7 +189,7 @@ def create_cube_with_percentiles(percentiles, template_cube, cube_data, cube_uni
     return result
 
 
-def get_bounds_of_distribution(bounds_pairing_key, desired_units):
+def get_bounds_of_distribution(bounds_pairing_key: str, desired_units: Unit) -> ndarray:
     """
     Gets the bounds of the distribution and converts the units of the
     bounds_pairing to the desired_units.
@@ -220,7 +234,9 @@ def get_bounds_of_distribution(bounds_pairing_key, desired_units):
     return bounds_pairing
 
 
-def insert_lower_and_upper_endpoint_to_1d_array(array_1d, low_endpoint, high_endpoint):
+def insert_lower_and_upper_endpoint_to_1d_array(
+    array_1d: ndarray, low_endpoint: float, high_endpoint: float
+) -> ndarray:
     """
     For a 1d array, add a lower and upper endpoint.
 
@@ -246,8 +262,8 @@ def insert_lower_and_upper_endpoint_to_1d_array(array_1d, low_endpoint, high_end
 
 
 def restore_non_percentile_dimensions(
-    array_to_reshape, original_cube, n_percentiles,
-):
+    array_to_reshape: ndarray, original_cube: Cube, n_percentiles: int
+) -> ndarray:
     """
     Reshape a 2d array, so that it has the dimensions of the original cube,
     whilst ensuring that the probabilistic dimension is the first dimension.
