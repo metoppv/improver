@@ -30,7 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing feels like temperature calculation plugins"""
 
+from typing import Optional
+
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
@@ -41,7 +45,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 )
 
 
-def _calculate_wind_chill(temperature, wind_speed):
+def _calculate_wind_chill(temperature: ndarray, wind_speed: ndarray) -> ndarray:
     """
     Calculates the wind chill from 10 m wind speed and temperature based on
     the wind chill temperature index from a linear regression equation detailed
@@ -104,8 +108,11 @@ def _calculate_wind_chill(temperature, wind_speed):
 
 
 def _calculate_apparent_temperature(
-    temperature, wind_speed, relative_humidity, pressure
-):
+    temperature: ndarray,
+    wind_speed: ndarray,
+    relative_humidity: ndarray,
+    pressure: ndarray,
+) -> ndarray:
     """
     Calculates the apparent temperature from 10 m wind speed, temperature
     and actual vapour pressure using the linear regression equation
@@ -153,7 +160,9 @@ def _calculate_apparent_temperature(
     return apparent_temperature
 
 
-def _feels_like_temperature(temperature, apparent_temperature, wind_chill):
+def _feels_like_temperature(
+    temperature: ndarray, apparent_temperature: ndarray, wind_chill: ndarray
+) -> ndarray:
     """
     Calculates feels like temperature from inputs in degrees Celsius using a
     combination of the wind chill index and Steadman's apparent temperature
@@ -190,8 +199,12 @@ def _feels_like_temperature(temperature, apparent_temperature, wind_chill):
 
 
 def calculate_feels_like_temperature(
-    temperature, wind_speed, relative_humidity, pressure, model_id_attr=None
-):
+    temperature: Cube,
+    wind_speed: Cube,
+    relative_humidity: Cube,
+    pressure: Cube,
+    model_id_attr: Optional[str] = None,
+) -> Cube:
     """
     Calculates the feels like temperature using a combination of
     the wind chill index and Steadman's apparent temperature equation.

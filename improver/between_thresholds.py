@@ -31,8 +31,12 @@
 """Plugin to calculate probabilities of occurrence between specified thresholds
 """
 
+from typing import Any, List
+
 import iris
 import numpy as np
+from cf_units import Unit
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
@@ -45,7 +49,7 @@ from improver.metadata.probabilistic import (
 class OccurrenceBetweenThresholds(PostProcessingPlugin):
     """Calculate the probability of occurrence between thresholds"""
 
-    def __init__(self, threshold_ranges, threshold_units):
+    def __init__(self, threshold_ranges: Any, threshold_units: str) -> None:
         """
         Initialise the class.  Threshold ranges must be specified in a unit
         that is NOT sensitive to differences at the 1e-5 (float32) precision
@@ -72,7 +76,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         self.threshold_ranges = threshold_ranges
         self.threshold_units = threshold_units
 
-    def _slice_cube(self):
+    def _slice_cube(self) -> List[List[Cube]]:
         """
         Extract required slices from input cube
 
@@ -116,7 +120,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
 
         return cubes
 
-    def _get_multiplier(self):
+    def _get_multiplier(self) -> float:
         """
         Check whether the cube contains "above" or "below" threshold
         probabilities.  For "above", the probability of occurrence between
@@ -145,7 +149,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
             )
         return multiplier
 
-    def _calculate_probabilities(self):
+    def _calculate_probabilities(self) -> Cube:
         """
         Calculate between_threshold probabilities cube
 
@@ -174,7 +178,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
 
         return cubelist.merge_cube()
 
-    def _update_metadata(self, output_cube, original_units):
+    def _update_metadata(self, output_cube: Cube, original_units: Unit) -> None:
         """
         Update output cube name and threshold coordinate
 
@@ -194,7 +198,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         new_thresh_coord.convert_units(original_units)
         new_thresh_coord.attributes["spp__relative_to_threshold"] = "between_thresholds"
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """
         Calculate probabilities between thresholds for the input cube
 
