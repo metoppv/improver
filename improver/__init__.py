@@ -29,9 +29,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin base class."""
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any
 
 from pkg_resources import DistributionNotFound, get_distribution
+
+if TYPE_CHECKING:
+    from iris.cube import Cube
 
 try:
     __version__ = get_distribution("improver").version
@@ -46,7 +52,7 @@ class BasePlugin(ABC):
     method by redirecting to __call__.
     """
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> Cube:
         """Makes subclasses callable to use process
         Args:
             *args:
@@ -59,7 +65,7 @@ class BasePlugin(ABC):
         return self.process(*args, **kwargs)
 
     @abstractmethod
-    def process(self, *args, **kwargs):
+    def process(self, *args: Any, **kwargs: Any) -> Cube:
         """Abstract class for rest to implement."""
         pass
 
@@ -69,7 +75,7 @@ class PostProcessingPlugin(BasePlugin):
     Makes generalised changes to metadata relating to post-processing.
     """
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, *args: Any, **kwargs: Any) -> Cube:
         """Makes subclasses callable to use process
         Args:
             *args:
@@ -85,7 +91,7 @@ class PostProcessingPlugin(BasePlugin):
         return cube
 
     @staticmethod
-    def post_processed_title(cube):
+    def post_processed_title(cube: Cube) -> None:
         """Updates title attribute on output cube to include
         "Post-Processed"
         """
