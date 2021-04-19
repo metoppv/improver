@@ -32,9 +32,12 @@
 """Neighbour finding for the Improver site specific process chain."""
 
 import warnings
+from typing import Any, Dict, List, Tuple
 
 import cartopy.crs as ccrs
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 from scipy.spatial import cKDTree
 
 from improver import BasePlugin
@@ -65,14 +68,14 @@ class NeighbourSelection(BasePlugin):
 
     def __init__(
         self,
-        land_constraint=False,
-        minimum_dz=False,
-        search_radius=1.0e4,
-        site_coordinate_system=ccrs.PlateCarree(),
-        site_x_coordinate="longitude",
-        site_y_coordinate="latitude",
-        node_limit=36,
-    ):
+        land_constraint: bool = False,
+        minimum_dz: bool = False,
+        search_radius: float = 1.0e4,
+        site_coordinate_system: Any = ccrs.PlateCarree(),
+        site_x_coordinate: str = "longitude",
+        site_y_coordinate: str = "latitude",
+        node_limit: int = 36,
+    ) -> None:
         """
         Args:
             land_constraint (bool):
@@ -110,7 +113,7 @@ class NeighbourSelection(BasePlugin):
         self.node_limit = node_limit
         self.global_coordinate_system = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return (
             "<NeighbourSelection: land_constraint: {}, "
@@ -127,7 +130,7 @@ class NeighbourSelection(BasePlugin):
             self.node_limit,
         )
 
-    def neighbour_finding_method_name(self):
+    def neighbour_finding_method_name(self) -> str:
         """
         Create a name to describe the neighbour method based on the constraints
         provided.
@@ -144,7 +147,9 @@ class NeighbourSelection(BasePlugin):
         )
         return method_name
 
-    def _transform_sites_coordinate_system(self, x_points, y_points, target_crs):
+    def _transform_sites_coordinate_system(
+        self, x_points: ndarray, y_points: ndarray, target_crs: Any
+    ) -> ndarray:
         """
         Function to convert coordinate pairs that specify spot sites into the
         coordinate system of the model from which data will be extracted. Note
@@ -173,8 +178,13 @@ class NeighbourSelection(BasePlugin):
         )[:, 0:2]
 
     def check_sites_are_within_domain(
-        self, sites, site_coords, site_x_coords, site_y_coords, cube
-    ):
+        self,
+        sites: List[Dict[str, Any]],
+        site_coords: ndarray,
+        site_x_coords: ndarray,
+        site_y_coords: ndarray,
+        cube: Cube,
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         """
         A function to remove sites from consideration if they fall outside the
         domain of the provided model cube. A warning is raised and the details
@@ -263,7 +273,7 @@ class NeighbourSelection(BasePlugin):
         return sites, site_coords, site_x_coords, site_y_coords
 
     @staticmethod
-    def get_nearest_indices(site_coords, cube):
+    def get_nearest_indices(site_coords: ndarray, cube: Cube) -> ndarray:
         """
         Uses the iris cube method nearest_neighbour_index to find the nearest
         grid points to a site.
@@ -290,7 +300,9 @@ class NeighbourSelection(BasePlugin):
         return nearest_indices
 
     @staticmethod
-    def geocentric_cartesian(cube, x_coords, y_coords):
+    def geocentric_cartesian(
+        cube: Cube, x_coords: ndarray, y_coords: ndarray
+    ) -> ndarray:
         """
         A function to convert a global (lat/lon) coordinate system into a
         geocentric (3D trignonometric) system. This function ignores orographic
@@ -322,7 +334,7 @@ class NeighbourSelection(BasePlugin):
         )
         return cartesian_nodes
 
-    def build_KDTree(self, land_mask):
+    def build_KDTree(self, land_mask: Cube) -> Tuple[Any, ndarray]:
         """
         Build a KDTree for extracting the nearest point or points to a site.
         The tree can be built with a constrained set of grid points, e.g. only
@@ -363,8 +375,13 @@ class NeighbourSelection(BasePlugin):
         return cKDTree(nodes), index_nodes
 
     def select_minimum_dz(
-        self, orography, site_altitude, index_nodes, distance, indices
-    ):
+        self,
+        orography: Cube,
+        site_altitude: float,
+        index_nodes: ndarray,
+        distance: ndarray,
+        indices: ndarray,
+    ) -> ndarray:
         """
         Given a selection of nearest neighbours to a given site, this function
         calculates the absolute vertical displacement between the site and the
@@ -433,7 +450,9 @@ class NeighbourSelection(BasePlugin):
 
         return grid_point
 
-    def process(self, sites, orography, land_mask):
+    def process(
+        self, sites: List[Dict[str, Any]], orography: Cube, land_mask: Cube
+    ) -> Cube:
         """
         Using the constraints provided, find the nearest grid point neighbours
         to the given spot sites for the model/grid given by the input cubes.

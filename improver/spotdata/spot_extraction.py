@@ -31,8 +31,13 @@
 
 """Spot data extraction from diagnostic fields using neighbour cubes."""
 
+from typing import List, Optional
+
 import iris
 import numpy as np
+from iris.coords import AuxCoord, DimCoord
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -49,7 +54,7 @@ class SpotExtraction(BasePlugin):
     data.
     """
 
-    def __init__(self, neighbour_selection_method="nearest"):
+    def __init__(self, neighbour_selection_method: str = "nearest") -> None:
         """
         Args:
             neighbour_selection_method (str):
@@ -60,13 +65,13 @@ class SpotExtraction(BasePlugin):
         """
         self.neighbour_selection_method = neighbour_selection_method
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return "<SpotExtraction: neighbour_selection_method: {}>".format(
             self.neighbour_selection_method
         )
 
-    def extract_coordinates(self, neighbour_cube):
+    def extract_coordinates(self, neighbour_cube: Cube) -> Cube:
         """
         Extract the desired set of grid coordinates that correspond to spot
         sites from the neighbour cube.
@@ -106,7 +111,9 @@ class SpotExtraction(BasePlugin):
         )
 
     @staticmethod
-    def extract_diagnostic_data(coordinate_cube, diagnostic_cube):
+    def extract_diagnostic_data(
+        coordinate_cube: Cube, diagnostic_cube: Cube
+    ) -> ndarray:
         """
         Extracts diagnostic data from the desired grid points in the diagnostic
         cube. The neighbour finding routine that produces the coordinate cube
@@ -138,12 +145,12 @@ class SpotExtraction(BasePlugin):
 
     @staticmethod
     def build_diagnostic_cube(
-        neighbour_cube,
-        diagnostic_cube,
-        spot_values,
-        additional_dims=None,
-        scalar_coords=None,
-    ):
+        neighbour_cube: Cube,
+        diagnostic_cube: Cube,
+        spot_values: ndarray,
+        additional_dims: List[DimCoord] = None,
+        scalar_coords: List[AuxCoord] = None,
+    ) -> Cube:
         """
         Builds a spot data cube containing the extracted diagnostic values.
 
@@ -179,7 +186,12 @@ class SpotExtraction(BasePlugin):
         )
         return neighbour_cube
 
-    def process(self, neighbour_cube, diagnostic_cube, new_title=None):
+    def process(
+        self,
+        neighbour_cube: Cube,
+        diagnostic_cube: Cube,
+        new_title: Optional[str] = None,
+    ) -> Cube:
         """
         Create a spot data cube containing diagnostic data extracted at the
         coordinates provided by the neighbour cube.
@@ -244,7 +256,7 @@ class SpotExtraction(BasePlugin):
         return spotdata_cube
 
 
-def check_grid_match(cubes):
+def check_grid_match(cubes: Cube) -> None:
     """
     Checks that cubes are on, or originate from, compatible coordinate grids.
     Each cube is first checked for an existing 'model_grid_hash' which can be

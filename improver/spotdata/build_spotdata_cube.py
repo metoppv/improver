@@ -30,24 +30,28 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Functions to create spotdata cubes."""
 
+from typing import Any, List, Optional
+
 import iris
 import numpy as np
 from iris.coords import AuxCoord, DimCoord
+from iris.cube import Cube
+from numpy import ndarray
 
 
 def build_spotdata_cube(
-    data,
-    name,
-    units,
-    altitude,
-    latitude,
-    longitude,
-    wmo_id,
-    scalar_coords=None,
-    neighbour_methods=None,
-    grid_attributes=None,
-    additional_dims=None,
-):
+    data: ndarray,
+    name: str,
+    units: str,
+    altitude: ndarray,
+    latitude: ndarray,
+    longitude: ndarray,
+    wmo_id: List[str],
+    scalar_coords: Optional[Any] = None,
+    neighbour_methods: Optional[Any] = None,
+    grid_attributes: Optional[Any] = None,
+    additional_dims: List[DimCoord] = None,
+) -> Cube:
     """
     Function to build a spotdata cube with expected dimension and auxiliary
     coordinate structure.

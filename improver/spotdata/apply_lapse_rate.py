@@ -33,6 +33,7 @@
 
 import iris
 import numpy as np
+from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 from improver.spotdata.spot_extraction import SpotExtraction, check_grid_match
@@ -45,7 +46,7 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
     orography.
     """
 
-    def __init__(self, neighbour_selection_method="nearest"):
+    def __init__(self, neighbour_selection_method: str = "nearest") -> None:
         """
         Args:
             neighbour_selection_method (str):
@@ -66,13 +67,15 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
         """
         self.neighbour_selection_method = neighbour_selection_method
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return "<SpotLapseRateAdjust: neighbour_selection_method: {}" ">".format(
             self.neighbour_selection_method
         )
 
-    def process(self, spot_data_cube, neighbour_cube, gridded_lapse_rate_cube):
+    def process(
+        self, spot_data_cube: Cube, neighbour_cube: Cube, gridded_lapse_rate_cube: Cube
+    ) -> Cube:
         """
         Extract lapse rates from the appropriate grid points and apply them to
         the spot extracted temperatures.
