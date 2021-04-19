@@ -34,3 +34,4 @@ dependencies:
     - clize
     - timezonefinder==4.2.0
     - pytz==2020.5
+    - future-annotations
