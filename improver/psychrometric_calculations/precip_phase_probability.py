@@ -30,11 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for calculating the probability of specific precipitation phases."""
 
+from typing import List, Union
 import operator
 
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -58,7 +60,7 @@ class PrecipPhaseProbability(BasePlugin):
     probability-of-rain is 1, else 0.
     """
 
-    def __init__(self, radius=10000.0):
+    def __init__(self, radius: float = 10000.0) -> None:
         """
         Initialise plugin
         Args:
@@ -69,7 +71,7 @@ class PrecipPhaseProbability(BasePlugin):
         self._nbhood_shape = "circular"
         self.radius = radius
 
-    def _extract_input_cubes(self, cubes):
+    def _extract_input_cubes(self, cubes: Union[CubeList, List[Cube]]) -> None:
         """
         Separates the input list into the required cubes for this plugin,
         detects whether snow or rain are required from the input phase-level
@@ -144,7 +146,7 @@ class PrecipPhaseProbability(BasePlugin):
             self.falling_level_cube = self.falling_level_cube.copy()
             self.falling_level_cube.convert_units(self.orography_cube.units)
 
-    def process(self, cubes):
+    def process(self, cubes: Union[CubeList, List[Cube]]) -> Cube:
         """
         Derives the probability of a precipitation phase at the surface. If
         the snow-sleet falling-level is supplied, this is the probability of

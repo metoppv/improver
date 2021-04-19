@@ -30,8 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """init for nbhood"""
 
+from typing import List, Optional, Tuple, Union
 
-def radius_by_lead_time(radii, lead_times):
+
+def radius_by_lead_time(
+    radii: List[str], lead_times: List[str]
+) -> Tuple[Union[float, List[float], Optional[List[int]]]]:
     """
     Parse radii and lead_times provided to CLIs that use neighbourhooding.
     If no lead times are provided, return the first radius for use at all

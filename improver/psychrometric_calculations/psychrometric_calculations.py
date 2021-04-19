@@ -30,12 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain Psychrometric Calculations."""
 
+from typing import List, Tuple, Union
 import functools
 
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.cube import CubeList
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 from stratify import interpolate
 
 import improver.constants as consts
@@ -62,7 +64,7 @@ SVP_T_INCREMENT = 0.1
 
 
 @functools.lru_cache()
-def _svp_table():
+def _svp_table() -> ndarray:
     """
     Calculate a saturated vapour pressure (SVP) lookup table.
     The lru_cache decorator caches this table on first call to this function,
@@ -82,7 +84,7 @@ def _svp_table():
     return svp_data.data
 
 
-def _svp_from_lookup(temperature):
+def _svp_from_lookup(temperature: ndarray) -> ndarray:
     """
     Gets value for saturation vapour pressure in a pure water vapour system
     from a pre-calculated lookup table. Interpolates linearly between points in
@@ -109,7 +111,7 @@ def _svp_from_lookup(temperature):
     ] + interpolation_factor * svp_table_data[table_index + 1]
 
 
-def calculate_svp_in_air(temperature, pressure):
+def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
     """
     Calculates the saturation vapour pressure in air.  Looks up the saturation
     vapour pressure in a pure water vapour system, and pressure-corrects the
@@ -154,7 +156,7 @@ class WetBulbTemperature(BasePlugin):
 
     """
 
-    def __init__(self, precision=0.005):
+    def __init__(self, precision: float = 0.005) -> None:
         """
         Initialise class.
 
@@ -200,7 +202,7 @@ class WetBulbTemperature(BasePlugin):
         return slices
 
     @staticmethod
-    def _calculate_latent_heat(temperature):
+    def _calculate_latent_heat(temperature: ndarray) -> ndarray:
         """
         Calculate a temperature adjusted latent heat of condensation for water
         vapour using the relationship employed by the UM.
@@ -220,7 +222,7 @@ class WetBulbTemperature(BasePlugin):
         return latent_heat
 
     @staticmethod
-    def _calculate_mixing_ratio(temperature, pressure):
+    def _calculate_mixing_ratio(temperature: ndarray, pressure: ndarray) -> ndarray:
         """Function to compute the mixing ratio given temperature and pressure.
 
         Args:
@@ -245,7 +247,7 @@ class WetBulbTemperature(BasePlugin):
         return numerator / denominator
 
     @staticmethod
-    def _calculate_specific_heat(mixing_ratio):
+    def _calculate_specific_heat(mixing_ratio: ndarray) -> ndarray:
         """
         Calculate the specific heat capacity for moist air by combining that of
         dry air and water vapour in proportion given by the specific humidity.
@@ -263,7 +265,12 @@ class WetBulbTemperature(BasePlugin):
         return specific_heat
 
     @staticmethod
-    def _calculate_enthalpy(mixing_ratio, specific_heat, latent_heat, temperature):
+    def _calculate_enthalpy(
+        mixing_ratio: ndarray,
+        specific_heat: ndarray,
+        latent_heat: ndarray,
+        temperature: ndarray,
+    ) -> ndarray:
         """
         Calculate the enthalpy (total energy per unit mass) of air (J kg-1).
 
@@ -293,8 +300,11 @@ class WetBulbTemperature(BasePlugin):
 
     @staticmethod
     def _calculate_enthalpy_gradient(
-        mixing_ratio, specific_heat, latent_heat, temperature
-    ):
+        mixing_ratio: ndarray,
+        specific_heat: ndarray,
+        latent_heat: ndarray,
+        temperature: ndarray,
+    ) -> ndarray:
         """
         Calculate the enthalpy gradient with respect to temperature.
 
@@ -319,7 +329,9 @@ class WetBulbTemperature(BasePlugin):
         denominator = consts.R_WATER_VAPOUR * temperature * temperature
         return numerator / denominator + specific_heat
 
-    def _calculate_wet_bulb_temperature(self, pressure, relative_humidity, temperature):
+    def _calculate_wet_bulb_temperature(
+        self, pressure: ndarray, relative_humidity: ndarray, temperature: ndarray
+    ) -> ndarray:
         """
         Calculate an array of wet bulb temperatures from inputs in
         the correct units.
@@ -389,8 +401,8 @@ class WetBulbTemperature(BasePlugin):
         return wbt_data.reshape(temperature.shape)
 
     def create_wet_bulb_temperature_cube(
-        self, temperature, relative_humidity, pressure
-    ):
+        self, temperature: Cube, relative_humidity: Cube, pressure: Cube
+    ) -> Cube:
         """
         Creates a cube of wet bulb temperature values
 
@@ -422,7 +434,7 @@ class WetBulbTemperature(BasePlugin):
         )
         return wbt
 
-    def process(self, cubes):
+    def process(self, cubes: Union[List[Cube], CubeList]) -> Cube:
         """
         Call the calculate_wet_bulb_temperature function to calculate wet bulb
         temperatures. This process function splits input cubes over vertical
@@ -477,7 +489,7 @@ class WetBulbTemperatureIntegral(BasePlugin):
         """Initialise class."""
         self.integration_plugin = Integration("height")
 
-    def process(self, wet_bulb_temperature):
+    def process(self, wet_bulb_temperature: Cube) -> Cube:
         """
         Calculate the vertical integral of wet bulb temperature from the input
         wet bulb temperatures on height levels.
@@ -509,8 +521,11 @@ class PhaseChangeLevel(BasePlugin):
     a phase change of precipitation is expected."""
 
     def __init__(
-        self, phase_change, grid_point_radius=2, horizontal_interpolation=True
-    ):
+        self,
+        phase_change: str,
+        grid_point_radius: int = 2,
+        horizontal_interpolation: bool = True,
+    ) -> None:
         """
         Initialise class.
 
@@ -552,7 +567,7 @@ class PhaseChangeLevel(BasePlugin):
         self.grid_point_radius = grid_point_radius
         self.horizontal_interpolation = horizontal_interpolation
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<PhaseChangeLevel: falling_level_threshold:{}, "
@@ -562,7 +577,9 @@ class PhaseChangeLevel(BasePlugin):
         )
         return result
 
-    def find_falling_level(self, wb_int_data, orog_data, height_points):
+    def find_falling_level(
+        self, wb_int_data: ndarray, orog_data: ndarray, height_points: ndarray
+    ) -> ndarray:
         """
         Find the phase change level by finding the level of the wet-bulb
         integral data at the required threshold. Wet-bulb integral data
@@ -601,8 +618,12 @@ class PhaseChangeLevel(BasePlugin):
         return phase_change_level_data
 
     def fill_in_high_phase_change_falling_levels(
-        self, phase_change_level_data, orog_data, highest_wb_int_data, highest_height
-    ):
+        self,
+        phase_change_level_data: ndarray,
+        orog_data: ndarray,
+        highest_wb_int_data: ndarray,
+        highest_height: float,
+    ) -> None:
         """
         Fill in any data in the phase change level where the whole wet bulb
         temperature integral is above the the threshold.
@@ -627,8 +648,13 @@ class PhaseChangeLevel(BasePlugin):
         )
 
     def find_extrapolated_falling_level(
-        self, max_wb_integral, gradient, intercept, phase_change_level_data, sea_points
-    ):
+        self,
+        max_wb_integral: ndarray,
+        gradient: ndarray,
+        intercept: ndarray,
+        phase_change_level_data: ndarray,
+        sea_points: ndarray,
+    ) -> ndarray:
         r"""
         Find the phase change level below sea level using the linear
         extrapolation of the wet bulb temperature integral and update the
@@ -726,8 +752,12 @@ class PhaseChangeLevel(BasePlugin):
 
     @staticmethod
     def linear_wet_bulb_fit(
-        wet_bulb_temperature, heights, sea_points, start_point=0, end_point=5
-    ):
+        wet_bulb_temperature: ndarray,
+        heights: ndarray,
+        sea_points: ndarray,
+        start_point: int = 0,
+        end_point: int = 5,
+    ) -> Tuple[ndarray, ndarray]:
         """
         Calculates a linear fit to the wet bulb temperature profile close
         to the surface to use when we extrapolate the wet bulb temperature
@@ -780,12 +810,12 @@ class PhaseChangeLevel(BasePlugin):
 
     def fill_in_sea_points(
         self,
-        phase_change_level_data,
-        land_sea_data,
-        max_wb_integral,
-        wet_bulb_temperature,
-        heights,
-    ):
+        phase_change_level_data: ndarray,
+        land_sea_data: ndarray,
+        max_wb_integral: ndarray,
+        wet_bulb_temperature: ndarray,
+        heights: ndarray,
+    ) -> None:
         """
         Fill in any sea points where we have not found a phase change level
         by the time we get to sea level, i.e. where the whole wet bulb
@@ -833,7 +863,7 @@ class PhaseChangeLevel(BasePlugin):
             max_wb_integral, gradient, intercept, phase_change_level_data, sea_points
         )
 
-    def find_max_in_nbhood_orography(self, orography_cube):
+    def find_max_in_nbhood_orography(self, orography_cube: Cube) -> Cube:
         """
         Find the maximum value of the orography in the neighbourhood around
         each grid point. If self.grid_point_radius is zero, the orography is used
@@ -861,15 +891,15 @@ class PhaseChangeLevel(BasePlugin):
 
     def _calculate_phase_change_level(
         self,
-        wet_bulb_temp,
-        wb_integral,
-        orography,
-        max_nbhood_orog,
-        land_sea_data,
-        heights,
-        height_points,
-        highest_height,
-    ):
+        wet_bulb_temp: ndarray,
+        wb_integral: ndarray,
+        orography: ndarray,
+        max_nbhood_orog: ndarray,
+        land_sea_data: ndarray,
+        heights: ndarray,
+        height_points: ndarray,
+        highest_height: float,
+    ) -> ndarray:
         """
         Calculate phase change level and fill in missing points
 
@@ -943,7 +973,9 @@ class PhaseChangeLevel(BasePlugin):
 
         return phase_change_data
 
-    def create_phase_change_level_cube(self, wbt, phase_change_level):
+    def create_phase_change_level_cube(
+        self, wbt: Cube, phase_change_level: ndarray
+    ) -> Cube:
         """
         Populate output cube with phase change data
 
@@ -964,7 +996,7 @@ class PhaseChangeLevel(BasePlugin):
             name, "m", template, attributes, data=phase_change_level
         )
 
-    def process(self, cubes):
+    def process(self, cubes: Union[CubeList, List[Cube]]) -> Cube:
         """
         Use the wet bulb temperature integral to find the altitude at which a
         phase change occurs (e.g. snow to sleet). This is achieved by finding
