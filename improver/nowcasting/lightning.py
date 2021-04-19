@@ -30,9 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for NowcastLightning class and associated functions."""
 from math import isclose
+from typing import Optional
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError
 
 from improver import PostProcessingPlugin
@@ -108,7 +110,7 @@ class NowcastLightning(PostProcessingPlugin):
     #: Units are kg/m2.
     ice_thresholds = (0.5, 1.0, 2.0)
 
-    def __init__(self, radius=10000.0):
+    def __init__(self, radius: float = 10000.0) -> None:
         """
         Initialise class for Nowcast of lightning probability.
 
@@ -175,7 +177,7 @@ class NowcastLightning(PostProcessingPlugin):
         #        These are the three prob(lightning) values to scale to.
         self.ice_scaling = (0.1, 0.5, 0.9)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Docstring to describe the repr, which should return a
         printable representation of the object.
@@ -193,7 +195,7 @@ class NowcastLightning(PostProcessingPlugin):
         )
 
     @staticmethod
-    def _update_metadata(cube):
+    def _update_metadata(cube: Cube) -> Cube:
         """
         Modify the meta data of input cube to resemble a Nowcast of lightning
         probability.
@@ -224,12 +226,12 @@ class NowcastLightning(PostProcessingPlugin):
 
     def _modify_first_guess(
         self,
-        cube,
-        first_guess_lightning_cube,
-        lightning_rate_cube,
-        prob_precip_cube,
-        prob_vii_cube=None,
-    ):
+        cube: Cube,
+        first_guess_lightning_cube: Cube,
+        lightning_rate_cube: Cube,
+        prob_precip_cube: Cube,
+        prob_vii_cube: Optional[Cube] = None,
+    ) -> Cube:
         """
         Modify first-guess lightning probability with nowcast data.
 
@@ -322,7 +324,7 @@ class NowcastLightning(PostProcessingPlugin):
             )
         return new_prob_lightning_cube
 
-    def apply_precip(self, prob_lightning_cube, prob_precip_cube):
+    def apply_precip(self, prob_lightning_cube: Cube, prob_precip_cube: Cube) -> Cube:
         """
         Modify Nowcast of lightning probability with precipitation rate
         probabilities at thresholds of 0.5, 7 and 35 mm/h.
@@ -418,7 +420,7 @@ class NowcastLightning(PostProcessingPlugin):
         new_cube = check_cube_coordinates(prob_lightning_cube, new_cube)
         return new_cube
 
-    def apply_ice(self, prob_lightning_cube, ice_cube):
+    def apply_ice(self, prob_lightning_cube: Cube, ice_cube: Cube) -> Cube:
         """
         Modify Nowcast of lightning probability with ice data from a radar
         composite (VII; Vertically Integrated Ice)
@@ -480,7 +482,7 @@ class NowcastLightning(PostProcessingPlugin):
         new_cube = check_cube_coordinates(prob_lightning_cube, new_cube)
         return new_cube
 
-    def process(self, cubelist):
+    def process(self, cubelist: CubeList) -> Cube:
         """
         Produce Nowcast of lightning probability.
 

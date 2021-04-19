@@ -33,8 +33,13 @@ This module defines the Accumulation class for calculating precipitation
 accumulations from advected radar fields. It is also possible to create longer
 accumulations from shorter intervals.
 """
+
+from typing import List, Optional, Tuple, Union
+
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.check_datatypes import check_mandatory_standards
@@ -51,8 +56,11 @@ class Accumulation(BasePlugin):
     """
 
     def __init__(
-        self, accumulation_units="m", accumulation_period=None, forecast_periods=None
-    ):
+        self,
+        accumulation_units: str = "m",
+        accumulation_period: int = None,
+        forecast_periods: List[float] = None,
+    ) -> None:
         """
         Initialise the plugin.
 
@@ -75,7 +83,7 @@ class Accumulation(BasePlugin):
         self.accumulation_period = accumulation_period
         self.forecast_periods = forecast_periods
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the plugin instance as a string."""
         result = (
             "<Accumulation: accumulation_units={}, "
@@ -87,7 +95,7 @@ class Accumulation(BasePlugin):
         )
 
     @staticmethod
-    def sort_cubes_by_time(cubes):
+    def sort_cubes_by_time(cubes: CubeList) -> Tuple[CubeList, List[int]]:
         """
         Sort cubes in time ascending order (from earliest time to latest time).
 
@@ -108,7 +116,7 @@ class Accumulation(BasePlugin):
         cubes = iris.cube.CubeList(np.array(cubes)[time_sorted])
         return cubes, times
 
-    def _check_inputs(self, cubes):
+    def _check_inputs(self, cubes: CubeList) -> Tuple[CubeList, float]:
         """Check the inputs prior to calculating the accumulations.
 
         Args:
@@ -222,7 +230,7 @@ class Accumulation(BasePlugin):
 
         return cubes, time_interval
 
-    def _get_cube_subsets(self, cubes, forecast_period):
+    def _get_cube_subsets(self, cubes: CubeList, forecast_period: Union[int, ndarray]):
         """Finding the subset of cubes from the input cubelist that are
         within the accumulation period, based on the required forecast period
         that defines the upper bound of the accumulation period and the length
@@ -255,7 +263,9 @@ class Accumulation(BasePlugin):
         return cubes.extract(constr)
 
     @staticmethod
-    def _calculate_accumulation(cube_subset, time_interval):
+    def _calculate_accumulation(
+        cube_subset: CubeList, time_interval: float
+    ) -> Optional[ndarray]:
         """Calculate the accumulation for the requested accumulation period
         by finding the mean rate between each adjacent pair of cubes within
         the cube_subset and multiplying this mean rate by the time_interval,
@@ -290,7 +300,7 @@ class Accumulation(BasePlugin):
         return accumulation
 
     @staticmethod
-    def _set_metadata(cube_subset):
+    def _set_metadata(cube_subset: CubeList) -> Cube:
         """Set the metadata on the accumulation cube. This includes
         expanding the bounds to cover the accumulation period with the
         point within the time and forecast_period coordinates recorded as the
@@ -321,7 +331,7 @@ class Accumulation(BasePlugin):
         accumulation_cube.add_cell_method(accumulation_cell_method)
         return accumulation_cube
 
-    def process(self, cubes):
+    def process(self, cubes: CubeList) -> CubeList:
         """
         Calculate period precipitation accumulations based upon precipitation
         rate fields. All calculations are performed in SI units, so

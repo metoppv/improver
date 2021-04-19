@@ -33,14 +33,17 @@ This module defines the optical flow velocity calculation and extrapolation
 classes for advection nowcasting.
 """
 import warnings
+from typing import List, Optional, Tuple
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
 from iris.exceptions import (
     CoordinateCollapseError,
     CoordinateNotFoundError,
     InvalidCubeError,
 )
+from numpy import ndarray
 from scipy import ndimage, signal
 
 from improver import BasePlugin
@@ -55,8 +58,8 @@ from improver.utilities.spatial import (
 
 
 def generate_optical_flow_components(
-    cube_list, ofc_box_size, smart_smoothing_iterations
-):
+    cube_list: CubeList, ofc_box_size: int, smart_smoothing_iterations: int
+) -> Tuple[Cube, Cube]:
     """
     Calculate the mean optical flow components between the cubes in cube_list
 
@@ -108,8 +111,8 @@ def generate_optical_flow_components(
 
 
 def generate_advection_velocities_from_winds(
-    cubes, background_flow, orographic_enhancement
-):
+    cubes: CubeList, background_flow: CubeList, orographic_enhancement: Cube
+) -> CubeList:
     """Generate advection velocities as perturbations from a non-zero background
     flow
 
@@ -151,7 +154,9 @@ def generate_advection_velocities_from_winds(
     return total_advection
 
 
-def _perturb_background_flow(background, adjustment):
+def _perturb_background_flow(
+    background: List[Cube], adjustment: List[Cube]
+) -> CubeList:
     """Add a background flow to a flow adjustment field.  The returned cubelist
     has the units of the adjustment field.
 
@@ -171,7 +176,7 @@ def _perturb_background_flow(background, adjustment):
     return iris.cube.CubeList(adjustment)
 
 
-def check_input_coords(cube, require_time=False):
+def check_input_coords(cube: Cube, require_time: bool = False) -> None:
     """
     Checks an input cube has precisely two non-scalar dimension coordinates
     (spatial x/y), or raises an error.  If "require_time" is set to True,
@@ -223,8 +228,11 @@ class OpticalFlow(BasePlugin):
     """
 
     def __init__(
-        self, data_smoothing_method="box", data_smoothing_radius_km=14.0, iterations=100
-    ):
+        self,
+        data_smoothing_method: str = "box",
+        data_smoothing_radius_km: float = 14.0,
+        iterations: int = 100,
+    ) -> None:
         """
         Initialise the class with smoothing parameters for estimating gridded
         u- and v- velocities via optical flow.
@@ -266,7 +274,7 @@ class OpticalFlow(BasePlugin):
         self.data2 = None
         self.shape = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the plugin instance as a string."""
         result = (
             "<OpticalFlow: data_smoothing_radius_km: {}, "
@@ -281,7 +289,7 @@ class OpticalFlow(BasePlugin):
         )
 
     @staticmethod
-    def _check_input_cubes(cube1, cube2):
+    def _check_input_cubes(cube1: Cube, cube2: Cube) -> None:
         """Check that input cubes have appropriate and matching dimensions"""
         # check the nature of the input cubes, and raise a warning if they are
         # not both precipitation
@@ -314,7 +322,7 @@ class OpticalFlow(BasePlugin):
         check_if_grid_is_equal_area(cube2)
 
     @staticmethod
-    def _get_advection_time(cube1, cube2):
+    def _get_advection_time(cube1: Cube, cube2: Cube) -> None:
         """Get time over which the advection has occurred, in seconds, using the
         difference in time or forecast reference time between input cubes"""
         time_diff_seconds = (
@@ -344,7 +352,9 @@ class OpticalFlow(BasePlugin):
 
         return time_diff_seconds
 
-    def _get_smoothing_radius(self, time_diff_seconds, grid_length_km):
+    def _get_smoothing_radius(
+        self, time_diff_seconds: float, grid_length_km: float
+    ) -> float:
         """Calculate appropriate data smoothing radius in grid squares.
         If time difference is greater 15 minutes, increase data smoothing
         radius in km so that larger advection displacements can be resolved.
@@ -368,7 +378,7 @@ class OpticalFlow(BasePlugin):
         return data_smoothing_radius
 
     @staticmethod
-    def interp_to_midpoint(data, axis=None):
+    def interp_to_midpoint(data: ndarray, axis: Optional[int] = None) -> ndarray:
         """
         Interpolates to the x-y mid-point resulting in a new grid with
         dimensions reduced in length by one.  If axis is not None, the
@@ -397,7 +407,7 @@ class OpticalFlow(BasePlugin):
             midpoints = 0.5 * (data[:, :-1] + data[:, 1:])
         return midpoints
 
-    def _partial_derivative_spatial(self, axis=0):
+    def _partial_derivative_spatial(self, axis: int = 0) -> ndarray:
         """
         Calculate the average over the two class data fields of one spatial
         derivative, averaged over the other spatial dimension.  Pad with zeros
@@ -421,7 +431,7 @@ class OpticalFlow(BasePlugin):
         smoothed_diffs[1:-1, 1:-1] = 0.5 * (outdata[0] + outdata[1])
         return self.interp_to_midpoint(smoothed_diffs)
 
-    def _partial_derivative_temporal(self):
+    def _partial_derivative_temporal(self) -> ndarray:
         """
         Calculate the partial derivative of two fields over time.  Take the
         difference between time-separated fields data1 and data2, average
@@ -439,7 +449,7 @@ class OpticalFlow(BasePlugin):
         smoothed_diffs[1:-1, 1:-1] = self.interp_to_midpoint(tdiff)
         return self.interp_to_midpoint(smoothed_diffs)
 
-    def _make_subboxes(self, field):
+    def _make_subboxes(self, field: ndarray) -> Tuple[List[ndarray], ndarray]:
         """
         Generate a list of non-overlapping "boxes" of size self.boxsize**2
         from the input field, along with weights based on data values at times
@@ -481,7 +491,7 @@ class OpticalFlow(BasePlugin):
         weights[weights < 0.01] = 0
         return boxes, weights
 
-    def _box_to_grid(self, box_data):
+    def _box_to_grid(self, box_data: ndarray) -> ndarray:
         """
         Regrids calculated displacements from "box grid" (on which OFC
         equations are solved) to input data grid.
@@ -501,7 +511,7 @@ class OpticalFlow(BasePlugin):
         return grid_data
 
     @staticmethod
-    def makekernel(radius):
+    def makekernel(radius: int) -> ndarray:
         """
         Make a pseudo-circular kernel of radius "radius" to smooth an input
         field (used in self.smoothing() with method='kernel').  The output
@@ -538,7 +548,7 @@ class OpticalFlow(BasePlugin):
         kernel_2d /= kernel_2d.sum()
         return kernel_2d
 
-    def smooth(self, field, radius, method="box"):
+    def smooth(self, field: ndarray, radius: int, method: str = "box") -> ndarray:
         """
         Smoothing method using a square ('box') or circular kernel.  Kernel
         smoothing with a radius of 1 has no effect.
@@ -572,7 +582,9 @@ class OpticalFlow(BasePlugin):
         smoothed_field = smoothed_field.astype(field.dtype)
         return smoothed_field
 
-    def _smart_smooth(self, vel_point, vel_iter, weights):
+    def _smart_smooth(
+        self, vel_point: ndarray, vel_iter: ndarray, weights: ndarray
+    ) -> ndarray:
         """
         Performs a single iteration of "smart smoothing" over a point and its
         neighbours as implemented in STEPS.  This smoothing (through the
@@ -624,7 +636,7 @@ class OpticalFlow(BasePlugin):
         ) / norm[pmask]
         return vel
 
-    def _smooth_advection_fields(self, box_data, weights):
+    def _smooth_advection_fields(self, box_data: ndarray, weights: ndarray) -> ndarray:
         """
         Performs iterative "smart smoothing" of advection displacement fields,
         accounting for zeros and reducting their weight in the final output.
@@ -660,7 +672,7 @@ class OpticalFlow(BasePlugin):
         return grid_data
 
     @staticmethod
-    def solve_for_uv(deriv_xy, deriv_t):
+    def solve_for_uv(deriv_xy: ndarray, deriv_t: ndarray) -> ndarray:
         """
         Solve the system of linear simultaneous equations for u and v using
         matrix inversion (equation 19 in STEPS investigation summary document
@@ -693,7 +705,7 @@ class OpticalFlow(BasePlugin):
         return velocity
 
     @staticmethod
-    def extreme_value_check(umat, vmat, weights):
+    def extreme_value_check(umat: ndarray, vmat: ndarray, weights: ndarray) -> None:
         """
         Checks for displacement vectors that exceed 1/3 of the dimensions
         of the input data matrix.  Replaces these extreme values and their
@@ -712,7 +724,9 @@ class OpticalFlow(BasePlugin):
         vmat[flag] = 0
         weights[flag] = 0
 
-    def calculate_displacement_vectors(self, partial_dx, partial_dy, partial_dt):
+    def calculate_displacement_vectors(
+        self, partial_dx: ndarray, partial_dy: ndarray, partial_dt: ndarray
+    ) -> Tuple[ndarray, ndarray]:
         """
         This implements the OFC algorithm, assuming all points in a box with
         "self.boxsize" sidelength have the same displacement components.
@@ -775,7 +789,9 @@ class OpticalFlow(BasePlugin):
         return umat, vmat
 
     @staticmethod
-    def _zero_advection_velocities_warning(vel_comp, rain_mask, zero_vel_threshold=0.1):
+    def _zero_advection_velocities_warning(
+        vel_comp: ndarray, rain_mask: Tuple, zero_vel_threshold: float = 0.1
+    ) -> None:
         """
         Raise warning if more than a fixed threshold (default 10%) of cells
         where there is rain within the domain have zero advection velocities.
@@ -812,7 +828,14 @@ class OpticalFlow(BasePlugin):
             )
             warnings.warn(msg)
 
-    def process_dimensionless(self, data1, data2, xaxis, yaxis, smoothing_radius):
+    def process_dimensionless(
+        self,
+        data1: ndarray,
+        data2: ndarray,
+        xaxis: int,
+        yaxis: int,
+        smoothing_radius: int,
+    ) -> Tuple[ndarray, ndarray]:
         """
         Calculates dimensionless advection displacements between two input
         fields.
@@ -861,7 +884,7 @@ class OpticalFlow(BasePlugin):
             self._zero_advection_velocities_warning(vel_comp, rain_mask)
         return ucomp, vcomp
 
-    def process(self, cube1, cube2, boxsize=30):
+    def process(self, cube1: Cube, cube2: Cube, boxsize: int = 30) -> Tuple[Cube, Cube]:
         """
         Extracts data from input cubes, performs dimensionless advection
         displacement calculation, and creates new cubes with advection

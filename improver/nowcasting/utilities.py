@@ -31,9 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module with utilities required for nowcasting."""
 
+from typing import List, Union
+
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.utilities import neighbourhood_tools
@@ -47,14 +50,14 @@ class ExtendRadarMask(BasePlugin):
     """Extend the mask on radar rainrate data based on the radar coverage
     composite"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialise with known values of the coverage composite for which radar
         data is valid.  All other areas will be masked.
         """
         self.coverage_valid = [1, 2]
 
-    def process(self, radar_data, coverage):
+    def process(self, radar_data: Cube, coverage: Cube) -> Cube:
         """
         Update the mask on the input rainrate cube to reflect where coverage
         is valid
@@ -114,7 +117,7 @@ class FillRadarHoles(BasePlugin):
 
     MIN_RR_MMH = 0.001
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialise parameters of interpolation
 
         The constants defining neighbourhood size and proportion of neighbouring
@@ -140,7 +143,7 @@ class FillRadarHoles(BasePlugin):
         # radius of neighbourhood from which to calculate interpolated values
         self.r_interp = 2
 
-    def _find_and_interpolate_speckle(self, cube):
+    def _find_and_interpolate_speckle(self, cube: Cube) -> None:
         """Identify and interpolate "speckle" points, where "speckle" is defined
         as areas of "no data" that are small enough to fill by interpolation
         without affecting data integrity.  We would not wish to interpolate large
@@ -185,7 +188,7 @@ class FillRadarHoles(BasePlugin):
             else:
                 cube.data[row_ind, col_ind] = np.power(10, mean)
 
-    def process(self, masked_radar):
+    def process(self, masked_radar: Cube) -> Cube:
         """
         Fills in and unmasks small "no data" regions within the radar composite,
         to minimise gaps in the extrapolation nowcast.
@@ -216,7 +219,7 @@ class ApplyOrographicEnhancement(BasePlugin):
     """Apply orographic enhancement to precipitation rate input, either to
      add or subtract an orographic enhancement component."""
 
-    def __init__(self, operation):
+    def __init__(self, operation: str) -> None:
         """Initialise class.
 
         Args:
@@ -232,15 +235,15 @@ class ApplyOrographicEnhancement(BasePlugin):
         self.min_precip_rate_mmh = 1 / 32.0
         self.operation = operation
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<ApplyOrographicEnhancement: operation: {}>"
         return result.format(self.operation)
 
     @staticmethod
     def _select_orographic_enhancement_cube(
-        precip_cube, oe_cube, allowed_time_diff=1800
-    ):
+        precip_cube: Cube, oe_cube: Cube, allowed_time_diff: int = 1800
+    ) -> Cube:
         """Select the orographic enhancement cube with the required time
         coordinate.
 
@@ -275,7 +278,7 @@ class ApplyOrographicEnhancement(BasePlugin):
         )
         return oe_cube_slice
 
-    def _apply_orographic_enhancement(self, precip_cube, oe_cube):
+    def _apply_orographic_enhancement(self, precip_cube: Cube, oe_cube: Cube) -> Cube:
         """Combine the precipitation rate cube and the orographic enhancement
         cube.
 
@@ -324,7 +327,7 @@ class ApplyOrographicEnhancement(BasePlugin):
 
         return cube
 
-    def _apply_minimum_precip_rate(self, precip_cube, cube):
+    def _apply_minimum_precip_rate(self, precip_cube: Cube, cube: Cube) -> Cube:
         """Ensure that negative precipitation rates are capped at the defined
         minimum precipitation rate.
 
@@ -368,7 +371,9 @@ class ApplyOrographicEnhancement(BasePlugin):
                 cube.data[mask] = threshold_in_cube_units
         return cube
 
-    def process(self, precip_cubes, orographic_enhancement_cube):
+    def process(
+        self, precip_cubes: Union[Cube, List[Cube]], orographic_enhancement_cube: Cube
+    ) -> CubeList:
         """Apply orographic enhancement by modifying the input fields. This can
         include either adding or deleting the orographic enhancement component
         from the input precipitation fields.
