@@ -30,15 +30,20 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities for mandatory datatype and units checking"""
 
+from typing import List, Optional, Union
+
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.coords import Coord
+from iris.cube import Cube, CubeList
+from numpy import dtype
 
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.time_types import TIME_COORDS
 
 
-def _is_time_coord(obj):
+def _is_time_coord(obj: Union[Cube, Coord]) -> bool:
     """
     Checks whether the supplied object is an iris.coords.Coord and has a name
     that matches a known time coord.
@@ -55,7 +60,7 @@ def _is_time_coord(obj):
     return isinstance(obj, iris.coords.Coord) and obj.name() in TIME_COORDS
 
 
-def get_required_dtype(obj):
+def get_required_dtype(obj: Union[Cube, Coord]) -> dtype:
     """
     Returns the appropriate dtype for the supplied object. This includes
     special dtypes for time coordinates.
@@ -79,7 +84,7 @@ def get_required_dtype(obj):
     return obj.dtype
 
 
-def check_dtype(obj):
+def check_dtype(obj: Union[Cube, Coord]) -> bool:
     """
     Finds the mandatory dtype for obj and checks that it is correctly
     applied. If obj is a coord, any bounds are checked too.
@@ -104,7 +109,9 @@ def check_dtype(obj):
     return dtype_ok
 
 
-def enforce_dtype(operation, inputs, result):
+def enforce_dtype(
+    operation: str, inputs: Union[List[Cube], CubeList], result: Cube
+) -> None:
     """
     Ensures that result has not been automatically promoted to float64.
 
@@ -131,7 +138,7 @@ def enforce_dtype(operation, inputs, result):
         )
 
 
-def get_required_units(obj):
+def get_required_units(obj: Union[Cube, Coord]) -> Optional[str]:
     """
     Returns the mandatory units for the supplied obj. Only time coords have
     these.
@@ -150,7 +157,7 @@ def get_required_units(obj):
     return None
 
 
-def check_units(obj):
+def check_units(obj: Union[Cube, Coord]) -> bool:
     """
     Checks if the supplied object complies with the relevant mandatory units.
 
@@ -172,7 +179,7 @@ def check_units(obj):
     return Unit(obj.units) == Unit(req_units)
 
 
-def check_mandatory_standards(cube):
+def check_mandatory_standards(cube: Cube) -> None:
     """
     Checks for mandatory dtype and unit standards on a cube and raises a
     useful exception if any non-compliance is found.
@@ -186,7 +193,7 @@ def check_mandatory_standards(cube):
             If the cube fails to meet any mandatory dtype and units standards
     """
 
-    def check_dtype_and_units(obj):
+    def check_dtype_and_units(obj: Union[Cube, Coord]) -> List[str]:
         """
         Check object meets the mandatory dtype and units.
 

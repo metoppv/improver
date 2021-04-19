@@ -32,10 +32,16 @@
 
 import hashlib
 import pprint
+from typing import Any, Dict, List, Optional, Union
 
 import dask.array as da
 import iris
 import numpy as np
+from cf_units import Unit
+from iris._cube_coord_common import LimitedAttributeDict
+from iris.cube import Cube
+from numpy import ndarray
+from numpy.ma.core import MaskedArray
 
 from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
@@ -44,14 +50,14 @@ from improver.metadata.constants.attributes import (
 
 
 def create_new_diagnostic_cube(
-    name,
-    units,
-    template_cube,
-    mandatory_attributes,
-    optional_attributes=None,
-    data=None,
-    dtype=np.float32,
-):
+    name: str,
+    units: Union[Unit, str],
+    template_cube: Cube,
+    mandatory_attributes: Union[Dict[str, str], LimitedAttributeDict],
+    optional_attributes: Optional[Any] = None,
+    data: Union[MaskedArray, ndarray] = None,
+    dtype: type = np.float32,
+) -> Cube:
     """
     Creates a new diagnostic cube with suitable metadata.
 
@@ -115,7 +121,9 @@ def create_new_diagnostic_cube(
     return cube
 
 
-def generate_mandatory_attributes(diagnostic_cubes, model_id_attr=None):
+def generate_mandatory_attributes(
+    diagnostic_cubes: List[Cube], model_id_attr: Optional[str] = None
+) -> Dict[str, str]:
     """
     Function to generate mandatory attributes for new diagnostics that are
     generated using several different model diagnostics as input to the
@@ -149,7 +157,7 @@ def generate_mandatory_attributes(diagnostic_cubes, model_id_attr=None):
     return attributes
 
 
-def generate_hash(data_in):
+def generate_hash(data_in: Any) -> str:
     """
     Generate a hash from the data_in that can be used to uniquely identify
     equivalent data_in.
@@ -167,7 +175,7 @@ def generate_hash(data_in):
     return hashlib.sha256(bytestring).hexdigest()
 
 
-def create_coordinate_hash(cube):
+def create_coordinate_hash(cube: Cube) -> str:
     """
     Generate a hash based on the input cube's x and y coordinates. This
     acts as a unique identifier for the grid which can be used to allow two

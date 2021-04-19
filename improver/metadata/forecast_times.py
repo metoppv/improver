@@ -31,21 +31,26 @@
 """Utilities to manipulate forecast time coordinates"""
 
 import warnings
+from datetime import datetime
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import AuxCoord, Coord, DimCoord
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants import FLOAT_TYPES
-from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.constants.time_types import TIME_COORDS, TimeSpec
 from improver.utilities.round import round_close
 from improver.utilities.temporal import cycletime_to_datetime
 
 
-def forecast_period_coord(cube, force_lead_time_calculation=False):
+def forecast_period_coord(
+    cube: Cube, force_lead_time_calculation: bool = False
+) -> Coord:
     """
     Return the lead time coordinate (forecast_period) from a cube, either by
     reading an existing forecast_period coordinate, or by calculating the
@@ -98,8 +103,11 @@ def forecast_period_coord(cube, force_lead_time_calculation=False):
 
 
 def _calculate_forecast_period(
-    time_coord, frt_coord, dim_coord=False, coord_spec=TIME_COORDS["forecast_period"]
-):
+    time_coord: Coord,
+    frt_coord: Coord,
+    dim_coord: bool = False,
+    coord_spec: TimeSpec = TIME_COORDS["forecast_period"],
+) -> Coord:
     """
     Calculate a forecast period from existing time and forecast reference
     time coordinates.
@@ -171,7 +179,9 @@ def _calculate_forecast_period(
     return result_coord
 
 
-def _create_frt_type_coord(cube, point, name="forecast_reference_time"):
+def _create_frt_type_coord(
+    cube: Cube, point: datetime, name: str = "forecast_reference_time"
+) -> DimCoord:
     """Create a new auxiliary coordinate based on forecast reference time
 
     Args:
@@ -196,7 +206,7 @@ def _create_frt_type_coord(cube, point, name="forecast_reference_time"):
     return new_coord
 
 
-def add_blend_time(cube, cycletime):
+def add_blend_time(cube: Cube, cycletime: str) -> None:
     """
     Function to add scalar blend time coordinate to a blended cube based
     on current cycle time.  Modifies cube in place.
@@ -213,7 +223,9 @@ def add_blend_time(cube, cycletime):
     cube.add_aux_coord(blend_coord, data_dims=None)
 
 
-def rebadge_forecasts_as_latest_cycle(cubes, cycletime=None):
+def rebadge_forecasts_as_latest_cycle(
+    cubes: Union[CubeList, List[Cube]], cycletime: Optional[str] = None
+) -> CubeList:
     """
     Function to update the forecast_reference_time and forecast_period
     on a list of input forecasts to match either a given cycletime, or
@@ -242,7 +254,9 @@ def rebadge_forecasts_as_latest_cycle(cubes, cycletime=None):
     return unify_cycletime(cubes, cycle_datetime)
 
 
-def unify_cycletime(cubes, cycletime):
+def unify_cycletime(
+    cubes: Union[CubeList, List[Cube]], cycletime: datetime
+) -> CubeList:
     """
     Function to unify the forecast_reference_time and update forecast_period.
     The cycletime specified is used as the forecast_reference_time, and the
@@ -281,7 +295,7 @@ def unify_cycletime(cubes, cycletime):
     return result_cubes
 
 
-def _find_latest_cycletime(cubelist):
+def _find_latest_cycletime(cubelist: Union[CubeList, List[Cube]]) -> datetime:
     """
     Find the latest cycletime from the cubes in a cubelist and convert it into
     a datetime object.
