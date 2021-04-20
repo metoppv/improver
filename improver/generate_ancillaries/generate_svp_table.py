@@ -76,7 +76,7 @@ class SaturatedVapourPressureTable(BasePlugin):
         self.t_max = t_max
         self.t_increment = t_increment
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<SaturatedVapourPressureTable: t_min: {}; t_max: {}; "

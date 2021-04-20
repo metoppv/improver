@@ -31,9 +31,12 @@
 """A module for creating orographic smoothing coefficients"""
 
 import operator
+from typing import Dict, Optional
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -76,12 +79,12 @@ class OrographicSmoothingCoefficients(BasePlugin):
 
     def __init__(
         self,
-        min_gradient_smoothing_coefficient=0.5,
-        max_gradient_smoothing_coefficient=0.0,
-        power=1,
-        use_mask_boundary=False,
-        invert_mask=False,
-    ):
+        min_gradient_smoothing_coefficient: float = 0.5,
+        max_gradient_smoothing_coefficient: float = 0.0,
+        power: float = 1,
+        use_mask_boundary: bool = False,
+        invert_mask: bool = False,
+    ) -> None:
         """
         Initialise class.
 
@@ -137,7 +140,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
         if invert_mask:
             self.mask_comparison = operator.le
 
-    def scale_smoothing_coefficients(self, cubes):
+    def scale_smoothing_coefficients(self, cubes: CubeList) -> CubeList:
         """
         This scales a set of smoothing_coefficients from input cubes to range
         between the min_gradient_smoothing_coefficient and the
@@ -172,7 +175,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
             scaled_cubes.append(scaled_cube)
         return scaled_cubes
 
-    def unnormalised_smoothing_coefficients(self, gradient_cube):
+    def unnormalised_smoothing_coefficients(self, gradient_cube: Cube) -> ndarray:
         """
         This generates initial smoothing_coefficient values from gradients
         using a simple power law, for which the power is set at initialisation.
@@ -189,7 +192,9 @@ class OrographicSmoothingCoefficients(BasePlugin):
         """
         return np.abs(gradient_cube.data) ** self.power
 
-    def create_coefficient_cube(self, data, template, cube_name, attributes):
+    def create_coefficient_cube(
+        self, data: ndarray, template: Cube, cube_name: str, attributes: Dict
+    ) -> Cube:
         """
         Update metadata in smoothing_coefficients cube. Remove any time
         coordinates and rename.
@@ -227,7 +232,9 @@ class OrographicSmoothingCoefficients(BasePlugin):
             data=data,
         )
 
-    def zero_masked(self, smoothing_coefficient_x, smoothing_coefficient_y, mask):
+    def zero_masked(
+        self, smoothing_coefficient_x: Cube, smoothing_coefficient_y: Cube, mask: Cube
+    ) -> None:
         """
         Zero smoothing coefficients in regions or at boundaries defined by the
         provided mask. The changes are made in place to the input cubes. The
@@ -271,7 +278,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
         smoothing_coefficient_x.data[zero_points_x] = 0.0
         smoothing_coefficient_y.data[zero_points_y] = 0.0
 
-    def process(self, cube, mask=None):
+    def process(self, cube: Cube, mask: Optional[Cube] = None) -> CubeList:
         """
         This creates the smoothing_coefficient cubes. It returns one for the x
         direction and one for the y direction. It uses the

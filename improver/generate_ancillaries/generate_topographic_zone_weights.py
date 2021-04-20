@@ -31,11 +31,14 @@
 """Module for generating the weights for topographic zones."""
 
 import warnings
+from typing import Any, Dict, List
 
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import Cube
 from iris.exceptions import InvalidCubeError
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.generate_ancillaries.generate_ancillary import (
@@ -51,8 +54,12 @@ class GenerateTopographicZoneWeights(BasePlugin):
 
     @staticmethod
     def add_weight_to_upper_adjacent_band(
-        topographic_zone_weights, orography_band, midpoint, band_number, max_band_number
-    ):
+        topographic_zone_weights: ndarray,
+        orography_band: ndarray,
+        midpoint: float,
+        band_number: float,
+        max_band_number: float,
+    ) -> ndarray:
         """Once we have found the weight for a point in one band,
         we need to add 1-weight to the band above for points that are above
         the midpoint, unless the band being processed is the uppermost band.
@@ -95,8 +102,11 @@ class GenerateTopographicZoneWeights(BasePlugin):
 
     @staticmethod
     def add_weight_to_lower_adjacent_band(
-        topographic_zone_weights, orography_band, midpoint, band_number
-    ):
+        topographic_zone_weights: ndarray,
+        orography_band: ndarray,
+        midpoint: float,
+        band_number: float,
+    ) -> ndarray:
         """Once we have found the weight for a point in one band,
         we need to add 1-weight to the band below for points that are below
         the midpoint, unless the band being processed is the lowest band.
@@ -136,7 +146,7 @@ class GenerateTopographicZoneWeights(BasePlugin):
         return topographic_zone_weights
 
     @staticmethod
-    def calculate_weights(points, band):
+    def calculate_weights(points: ndarray, band: List[float]) -> ndarray:
         """Calculate weights where the weight at the midpoint of a band is 1.0
         and the weights at the edge of the band is 0.5. The midpoint is
         assumed to be in the middle of the band.
@@ -163,7 +173,9 @@ class GenerateTopographicZoneWeights(BasePlugin):
         )
         return interpolated_weights
 
-    def process(self, orography, thresholds_dict, landmask=None):
+    def process(
+        self, orography: Cube, thresholds_dict: Dict[str, Any], landmask: Cube = None
+    ) -> Cube:
         """Calculate the weights depending upon where the orography point is
         within the topographic zones.
 

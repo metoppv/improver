@@ -41,7 +41,7 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
-from numpy import float64, int64, ndarray
+from numpy import ndarray
 
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 
