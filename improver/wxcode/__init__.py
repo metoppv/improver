@@ -31,7 +31,7 @@
 """Top level constants"""
 
 ### Long name definitions
-def prob_above_name(diagnostic):
+def prob_above_name(diagnostic: str) -> str:
     """Inline function to construct probability cube name"""
     return f"probability_of_{diagnostic}_above_threshold"
 

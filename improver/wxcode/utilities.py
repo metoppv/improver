@@ -31,6 +31,7 @@
 """This module defines the utilities required for wxcode plugin """
 
 from collections import OrderedDict
+from typing import Any, Dict, List
 
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import wxcode_decision_tree_global
@@ -74,7 +75,7 @@ WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 
 
-def weather_code_attributes():
+def weather_code_attributes() -> Dict[str, Any]:
     """
     Returns:
         dict:
@@ -90,7 +91,7 @@ def weather_code_attributes():
     return attributes
 
 
-def expand_nested_lists(query, key):
+def expand_nested_lists(query: Dict, key: str) -> List:
     """
     Produce flat lists from list and nested lists.
 
@@ -156,7 +157,7 @@ def update_daynight(cubewx):
     return cubewx_daynight
 
 
-def interrogate_decision_tree(wxtree):
+def interrogate_decision_tree(wxtree: str) -> List[str]:
     """
     Obtain a list of necessary inputs from the decision tree as it is currently
     defined. Return a formatted string that contains the diagnostic names, the
@@ -208,7 +209,7 @@ def interrogate_decision_tree(wxtree):
     return formatted_output
 
 
-def is_variable(thing):
+def is_variable(thing: str) -> bool:
     """
     Identify whether given string is likely to be a variable name by
     identifying the exceptions.
@@ -231,7 +232,7 @@ def is_variable(thing):
         return thing not in valid_operators
 
 
-def get_parameter_names(diagnostic_fields):
+def get_parameter_names(diagnostic_fields: List[List[str]]) -> List[List[str]]:
     """
     For diagnostic fields that can contain operators and values, strips out
     just the parameter names.

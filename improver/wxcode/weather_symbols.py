@@ -33,9 +33,14 @@
 
 import copy
 import operator
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import iris
+from iris import Constraint
 import numpy as np
+from iris.coords import AuxCoord
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import (
@@ -61,7 +66,7 @@ from improver.wxcode.wxcode_decision_tree_global import (
 )
 
 
-def _define_invertible_conditions():
+def _define_invertible_conditions() -> Dict[str, str]:
     """Returns a dictionary of boolean comparator strings where the value is the
     logical inverse of the key."""
     invertible_conditions = {
@@ -89,7 +94,7 @@ class WeatherSymbols(BasePlugin):
     defined in the input cubes.
     """
 
-    def __init__(self, wxtree="high_resolution"):
+    def __init__(self, wxtree: str = "high_resolution") -> None:
         """
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather
@@ -131,13 +136,13 @@ class WeatherSymbols(BasePlugin):
         # (defaults to False, checked on reading input cubes)
         self.coord_named_threshold = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return "<WeatherSymbols tree={} start_node={}>".format(
             self.wxtree, self.start_node
         )
 
-    def check_input_cubes(self, cubes):
+    def check_input_cubes(self, cubes: CubeList) -> Optional[Dict[str, Any]]:
         """
         Check that the input cubes contain all the diagnostics and thresholds
         required by the decision tree.  Sets self.coord_named_threshold to
@@ -239,14 +244,14 @@ class WeatherSymbols(BasePlugin):
         return optional_node_data_missing
 
     @staticmethod
-    def _invert_comparator(comparator):
+    def _invert_comparator(comparator: str) -> str:
         """Inverts a single comparator string."""
         try:
             return INVERTIBLE_CONDITIONS[comparator]
         except KeyError:
             raise KeyError(f"Unexpected condition {comparator}, cannot invert it.")
 
-    def invert_condition(self, condition):
+    def invert_condition(self, condition: Dict) -> Tuple[str, str]:
         """
         Invert a comparison condition to allow positive identification of conditions
         satisfying the negative ('fail') case.
@@ -267,7 +272,7 @@ class WeatherSymbols(BasePlugin):
         )
         return inverted_threshold, inverted_combination
 
-    def create_condition_chain(self, test_conditions):
+    def create_condition_chain(self, test_conditions: Dict) -> List:
         """
         Construct a list of all the conditions specified in a single query.
 
@@ -277,12 +282,12 @@ class WeatherSymbols(BasePlugin):
         Returns:
             list:
                 A valid condition chain is defined recursively:
-                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a 
-                constraint, or a list of constraints, 
-                operator strings and floats), and b is either "AND", "OR" or "", 
+                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
+                constraint, or a list of constraints,
+                operator strings and floats), and b is either "AND", "OR" or "",
                 then [[a1, ..., an], b] is a valid condition chain.
-                (2) If a1, ..., an are each valid conditions chain, and b is 
-                either "AND" or "OR", then [[a1, ..., an], b] is a valid 
+                (2) If a1, ..., an are each valid conditions chain, and b is
+                either "AND" or "OR", then [[a1, ..., an], b] is a valid
                 condition chain.
         """
         conditions = []
@@ -333,8 +338,8 @@ class WeatherSymbols(BasePlugin):
         return condition_chain
 
     def construct_extract_constraint(
-        self, diagnostic, threshold, coord_named_threshold
-    ):
+        self, diagnostic: str, threshold: AuxCoord, coord_named_threshold: bool
+    ) -> Constraint:
         """
         Construct an iris constraint.
 
@@ -376,7 +381,13 @@ class WeatherSymbols(BasePlugin):
         return constraint
 
     @staticmethod
-    def find_all_routes(graph, start, end, omit_nodes=None, route=None):
+    def find_all_routes(
+        graph: Dict,
+        start: str,
+        end: int,
+        omit_nodes: Optional[Dict] = None,
+        route: List[str] = None,
+    ) -> List[str]:
         """
         Function to trace all routes through the decision tree.
 
@@ -431,7 +442,7 @@ class WeatherSymbols(BasePlugin):
         return routes
 
     @staticmethod
-    def create_symbol_cube(cubes):
+    def create_symbol_cube(cubes: Union[List[Cube], CubeList]) -> Cube:
         """
         Create an empty weather symbol cube
 
@@ -464,7 +475,9 @@ class WeatherSymbols(BasePlugin):
         return symbols
 
     @staticmethod
-    def compare_array_to_threshold(arr, comparator, threshold):
+    def compare_array_to_threshold(
+        arr: ndarray, comparator: str, threshold: float
+    ) -> ndarray:
         """Compare two arrays element-wise and return a boolean array.
 
         Args:
@@ -496,7 +509,9 @@ class WeatherSymbols(BasePlugin):
                 "Comparator must be one of '<', '>', '<=', '>='.",
             )
 
-    def evaluate_extract_expression(self, cubes, expression):
+    def evaluate_extract_expression(
+        self, cubes: CubeList, expression: Union[Constraint, List]
+    ) -> ndarray:
         """Evaluate a single condition.
 
         Args:
@@ -505,12 +520,12 @@ class WeatherSymbols(BasePlugin):
                 weather symbols decision tree, these at co-incident times.
             expression (iris.Constraint or list):
                 Defined recursively:
-                A list consisting of an iris.Constraint or a list of 
-                iris.Constraint, strings (representing operators) and floats 
+                A list consisting of an iris.Constraint or a list of
+                iris.Constraint, strings (representing operators) and floats
                 is a valid expression.
-                A list consisting of valid expressions, strings (representing 
+                A list consisting of valid expressions, strings (representing
                 operators) and floats is a valid expression.
-        
+
         Returns:
             numpy.array:
                 An array or masked array of booleans
@@ -562,7 +577,9 @@ class WeatherSymbols(BasePlugin):
                 res = cubes.extract(curr_expression[0])[0].data
             return res
 
-    def evaluate_condition_chain(self, cubes, condition_chain):
+    def evaluate_condition_chain(
+        self, cubes: CubeList, condition_chain: List
+    ) -> ndarray:
         """Recursively evaluate the list of conditions.
 
         We can safely use recursion here since the depth will be small.
@@ -573,14 +590,14 @@ class WeatherSymbols(BasePlugin):
                 weather symbols decision tree, these at co-incident times.
             condition_chain (list):
                 A valid condition chain is defined recursively:
-                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a 
-                constraint, or a list of constraints, 
-                operator strings and floats), and b is either "AND", "OR" or "", 
+                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
+                constraint, or a list of constraints,
+                operator strings and floats), and b is either "AND", "OR" or "",
                 then [[a1, ..., an], b] is a valid condition chain.
-                (2) If a1, ..., an are each valid conditions chain, and b is 
-                either "AND" or "OR", then [[a1, ..., an], b] is a valid 
+                (2) If a1, ..., an are each valid conditions chain, and b is
+                either "AND" or "OR", then [[a1, ..., an], b] is a valid
                 condition chain.
-            
+
         Returns:
             numpy.array:
                 An array of masked array of booleans
@@ -628,7 +645,7 @@ class WeatherSymbols(BasePlugin):
                 raise RuntimeError(msg)
         return res
 
-    def process(self, cubes):
+    def process(self, cubes: CubeList) -> Cube:
         """Apply the decision tree to the input cubes to produce weather
         symbol output.
 
