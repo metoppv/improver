@@ -1,4 +1,4 @@
-# -*- coding: future_annotations -*-
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
@@ -51,7 +51,7 @@ class BasePlugin(ABC):
     method by redirecting to __call__.
     """
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Cube:
+    def __call__(self, *args: "Any", **kwargs: "Any") -> "Cube":
         """Makes subclasses callable to use process
         Args:
             *args:
@@ -64,7 +64,7 @@ class BasePlugin(ABC):
         return self.process(*args, **kwargs)
 
     @abstractmethod
-    def process(self, *args: Any, **kwargs: Any) -> Cube:
+    def process(self, *args: "Any", **kwargs: "Any") -> "Cube":
         """Abstract class for rest to implement."""
         pass
 
@@ -74,7 +74,7 @@ class PostProcessingPlugin(BasePlugin):
     Makes generalised changes to metadata relating to post-processing.
     """
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Cube:
+    def __call__(self, *args: "Any", **kwargs: "Any") -> "Cube":
         """Makes subclasses callable to use process
         Args:
             *args:
@@ -90,7 +90,7 @@ class PostProcessingPlugin(BasePlugin):
         return cube
 
     @staticmethod
-    def post_processed_title(cube: Cube) -> None:
+    def post_processed_title(cube: "Cube") -> "None":
         """Updates title attribute on output cube to include
         "Post-Processed"
         """

@@ -41,9 +41,7 @@ def self_licence():
         if not line.startswith("#"):
             break
         licence_lines.append(line)
-    # The [1:] is to drop the first line as this is the file encoding,
-    # i.e., not part of the licence.
-    licence = "\n".join(licence_lines[1:])
+    licence = "\n".join(licence_lines)
     return licence
 
 
