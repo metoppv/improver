@@ -30,9 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing wind direction averaging plugins."""
 
+from typing import Tuple, Union
+
 import iris
 import numpy as np
 from iris.coords import CellMethod
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.nbhood.nbhood import NeighbourhoodProcessing
@@ -93,7 +97,7 @@ class WindDirection(BasePlugin):
 
     """
 
-    def __init__(self, backup_method="neighbourhood"):
+    def __init__(self, backup_method: str = "neighbourhood") -> None:
         """Initialise class."""
         self.backup_methods = ["first_realization", "neighbourhood"]
         self.backup_method = backup_method
@@ -118,13 +122,13 @@ class WindDirection(BasePlugin):
             "square", self.nb_radius, weighted_mode=False
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return (
             '<WindDirection: backup_method "{}"; neighbourhood radius "{}"m>'
         ).format(self.backup_method, self.nb_radius)
 
-    def _reset(self):
+    def _reset(self) -> None:
         """Empties working data objects"""
         self.realization_axis = None
         self.wdir_complex = None
@@ -134,7 +138,9 @@ class WindDirection(BasePlugin):
         self.confidence_slice = None
 
     @staticmethod
-    def deg_to_complex(angle_deg, radius=1):
+    def deg_to_complex(
+        angle_deg: Union[ndarray, float], radius: Union[ndarray, float] = 1
+    ) -> Union[ndarray, float]:
         """Converts degrees to complex values.
 
         The radius value can be used to weigh values - but it is set
@@ -164,7 +170,7 @@ class WindDirection(BasePlugin):
         return real + 1j * imag
 
     @staticmethod
-    def complex_to_deg(complex_in):
+    def complex_to_deg(complex_in: ndarray) -> ndarray:
         """Converts complex to degrees.
 
         The "np.angle" function returns negative numbers when the input
@@ -203,7 +209,7 @@ class WindDirection(BasePlugin):
 
         return angle
 
-    def calc_wind_dir_mean(self):
+    def calc_wind_dir_mean(self) -> None:
         """Find the mean wind direction using complex average which actually
            signifies a point between all of the data points in POLAR
            coordinates - NOT the average DEGREE ANGLE.
@@ -225,7 +231,7 @@ class WindDirection(BasePlugin):
         self.wdir_mean_complex = np.mean(self.wdir_complex, axis=self.realization_axis)
         self.wdir_slice_mean.data = self.complex_to_deg(self.wdir_mean_complex)
 
-    def find_r_values(self):
+    def find_r_values(self) -> None:
         """Find radius values from complex numbers.
 
         Takes input wind direction in complex values and returns array
@@ -250,7 +256,7 @@ class WindDirection(BasePlugin):
         )
         self.r_vals_slice = self.wdir_slice_mean.copy(data=r_vals)
 
-    def calc_confidence_measure(self):
+    def calc_confidence_measure(self) -> None:
         """Find confidence measure of polar numbers.
 
         The average wind direction complex values represent the midpoint
@@ -328,7 +334,7 @@ class WindDirection(BasePlugin):
         )
         self.confidence_slice = self.wdir_slice_mean.copy(data=dist_from_mean_norm)
 
-    def wind_dir_decider(self, where_low_r, wdir_cube):
+    def wind_dir_decider(self, where_low_r: ndarray, wdir_cube: Cube) -> None:
         """If the wind direction is so widely scattered that the r value
            is nearly zero then this indicates that the average wind direction
            is essentially meaningless.
@@ -389,7 +395,7 @@ class WindDirection(BasePlugin):
             where_low_r, improved_values, self.wdir_slice_mean.data
         )
 
-    def process(self, cube_ens_wdir):
+    def process(self, cube_ens_wdir: Cube) -> Tuple[Cube, ndarray, ndarray]:
         """Create a cube containing the wind direction averaged over the
         ensemble realizations.
 

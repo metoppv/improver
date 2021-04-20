@@ -31,9 +31,12 @@
 """Module containing plugin for WindGustDiagnostic."""
 
 import warnings
+from typing import Tuple
 
 import iris
 import numpy as np
+from iris.coords import Coord
+from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import find_percentile_coordinate
@@ -62,7 +65,7 @@ class WindGustDiagnostic(PostProcessingPlugin):
 
     """
 
-    def __init__(self, percentile_gust, percentile_windspeed):
+    def __init__(self, percentile_gust: float, percentile_windspeed: float) -> None:
         """
         Create a WindGustDiagnostic plugin for a given set of percentiles.
 
@@ -76,7 +79,7 @@ class WindGustDiagnostic(PostProcessingPlugin):
         self.percentile_gust = percentile_gust
         self.percentile_windspeed = percentile_windspeed
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         desc = (
             "<WindGustDiagnostic: wind-gust perc="
@@ -86,7 +89,7 @@ class WindGustDiagnostic(PostProcessingPlugin):
         )
         return desc
 
-    def add_metadata(self, cube):
+    def add_metadata(self, cube: Cube) -> Cube:
         """Add metadata to cube for windgust diagnostic.
 
         Args:
@@ -111,7 +114,9 @@ class WindGustDiagnostic(PostProcessingPlugin):
         return result
 
     @staticmethod
-    def extract_percentile_data(cube, req_percentile, standard_name):
+    def extract_percentile_data(
+        cube: Cube, req_percentile: float, standard_name: str
+    ) -> Tuple[Cube, Coord]:
         """Extract percentile data from cube.
 
         Args:
@@ -153,7 +158,7 @@ class WindGustDiagnostic(PostProcessingPlugin):
             raise ValueError(msg)
         return result, perc_coord
 
-    def process(self, cube_gust, cube_ws):
+    def process(self, cube_gust: Cube, cube_ws: Cube) -> Cube:
         """
         Create a cube containing the wind_gust diagnostic.
 

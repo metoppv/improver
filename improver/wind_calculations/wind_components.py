@@ -30,12 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin to resolve wind components."""
 
+from typing import Tuple
+
 import numpy as np
 from iris.analysis import Linear
 from iris.analysis.cartography import rotate_winds
 from iris.coord_systems import GeogCS
 from iris.coords import DimCoord
 from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import compare_coords
@@ -50,12 +53,12 @@ class ResolveWindComponents(BasePlugin):
     given directions with respect to true North
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the plugin instance as a string"""
         return "<ResolveWindComponents>"
 
     @staticmethod
-    def calc_true_north_offset(reference_cube):
+    def calc_true_north_offset(reference_cube: Cube) -> ndarray:
         """
         Calculate the angles between grid North and true North, as a
         matrix of values on the grid of the input reference cube.
@@ -139,7 +142,9 @@ class ResolveWindComponents(BasePlugin):
         return angle_adjustment
 
     @staticmethod
-    def resolve_wind_components(speed, angle, adj):
+    def resolve_wind_components(
+        speed: Cube, angle: Cube, adj: ndarray
+    ) -> Tuple[Cube, Cube]:
         """
         Perform trigonometric reprojection onto x and y axes
 
@@ -176,7 +181,7 @@ class ResolveWindComponents(BasePlugin):
         vspeed = np.multiply(speed.data, cos_angle)
         return [speed.copy(data=uspeed), speed.copy(data=vspeed)]
 
-    def process(self, wind_speed, wind_dir):
+    def process(self, wind_speed: Cube, wind_dir: Cube) -> Tuple[Cube, Cube]:
 
         """
         Convert wind speed and direction into u,v components along input cube

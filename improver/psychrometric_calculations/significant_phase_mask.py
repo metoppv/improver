@@ -31,6 +31,8 @@
 """Module for calculating the significant phase mask."""
 
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -48,7 +50,7 @@ class SignificantPhaseMask(BasePlugin):
     in between.
     """
 
-    def __init__(self, model_id_attr=None):
+    def __init__(self, model_id_attr: str = None) -> None:
         """
         Initialise the class
 
@@ -67,7 +69,7 @@ class SignificantPhaseMask(BasePlugin):
         }
 
     @staticmethod
-    def _validate_snow_fraction(snow_fraction):
+    def _validate_snow_fraction(snow_fraction: Cube) -> None:
         """Ensures that the input snow-fraction field has appropriate name
         (snow_fraction), units (1) and data (between 0 and 1 inclusive).
 
@@ -89,15 +91,15 @@ class SignificantPhaseMask(BasePlugin):
                 f"Found max={snow_fraction.data.max()}; min={snow_fraction.data.min()}"
             )
 
-    def _rain_phase(self, snow_fraction_data):
+    def _rain_phase(self, snow_fraction_data: Cube) -> ndarray:
         """Calculates the rain_phase data"""
         return np.where(snow_fraction_data <= self.lower_threshold, 1, 0)
 
-    def _snow_phase(self, snow_fraction_data):
+    def _snow_phase(self, snow_fraction_data: Cube) -> ndarray:
         """Calculates the snow_phase data"""
         return np.where(snow_fraction_data >= self.upper_threshold, 1, 0)
 
-    def _sleet_phase(self, snow_fraction_data):
+    def _sleet_phase(self, snow_fraction_data: Cube) -> ndarray:
         """Calculates the sleet_phase data"""
         return np.where(
             (self.lower_threshold < snow_fraction_data)
@@ -106,7 +108,7 @@ class SignificantPhaseMask(BasePlugin):
             0,
         )
 
-    def process(self, snow_fraction, phase):
+    def process(self, snow_fraction: Cube, phase: str) -> Cube:
         """
         Make significant-phase-mask cube for the specified phase.
 
