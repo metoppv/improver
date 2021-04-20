@@ -175,23 +175,21 @@ class CubeCombiner(BasePlugin):
         self,
         cube_list: Union[List[Cube], CubeList],
         new_diagnostic_name: str,
-        use_midpoint: bool = False,
     ) -> Cube:
         """
         Combine data and metadata from a list of input cubes into a single
         cube, using the specified operation to combine the cube data.  The
         first cube in the input list provides the template for the combined
         cube metadata.
+        If coordinates are expanded as a result of this combine operation
+        (e.g. expanding time for accumulations / max in period) the upper bound
+        of the new coordinate will also be used as the point for the new coordinate.
 
         Args:
             cube_list:
                 List of cubes to combine.
             new_diagnostic_name:
                 New name for the combined diagnostic.
-            use_midpoint:
-                Determines the nature of the points and bounds for expanded
-                coordinates.  If False, the upper bound of the coordinate is
-                used as the point values.  If True, the midpoint is used.
 
         Returns:
             Cube containing the combined data.
@@ -207,9 +205,7 @@ class CubeCombiner(BasePlugin):
         result = self._combine_cube_data(cube_list)
         expanded_coord_names = self._get_expanded_coord_names(cube_list)
         if expanded_coord_names:
-            result = expand_bounds(
-                result, cube_list, expanded_coord_names, use_midpoint=use_midpoint
-            )
+            result = expand_bounds(result, cube_list, expanded_coord_names)
         result.rename(new_diagnostic_name)
         return result
 

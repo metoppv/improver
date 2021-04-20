@@ -94,24 +94,6 @@ def test_mean_temperature(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_midpoint(tmp_path):
-    """Test option to use midpoint of expanded coordinates"""
-    kgo_dir = acc.kgo_root() / "combine/bounds"
-    kgo_path = kgo_dir / "kgo_midpoint.nc"
-    temperatures = sorted(kgo_dir.glob("*temperature_at_screen_level.nc"))
-    output_path = tmp_path / "output.nc"
-    args = [
-        "--operation",
-        "mean",
-        *temperatures,
-        "--use-midpoint",
-        "--output",
-        f"{output_path}",
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
 def test_combine_broadcast(tmp_path):
     """Test combining precipitation realizations with phaseprob"""
     kgo_dir = acc.kgo_root() / "combine/broadcast"
