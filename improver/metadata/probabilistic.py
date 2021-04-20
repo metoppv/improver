@@ -31,7 +31,7 @@
 """Utilities for interrogating IMPROVER probabilistic metadata"""
 
 import re
-from typing import Optional, Pattern
+from typing import Optional, Match
 
 import iris
 from iris.coords import Coord
@@ -39,7 +39,7 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 
-def probability_cube_name_regex(cube_name: str) -> Optional[Pattern]:
+def probability_cube_name_regex(cube_name: str) -> Optional[Match]:
     """
     Regular expression matching IMPROVER probability cube name.  Returns
     None if the cube_name does not match the regular expression (ie does

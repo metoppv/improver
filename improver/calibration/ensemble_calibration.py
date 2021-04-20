@@ -38,10 +38,15 @@ Statistics (EMOS).
 
 """
 import warnings
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
+from cf_units import Unit
+from iris.coords import Coord
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
 from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
@@ -101,7 +106,12 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     # as part of the minimisation.
     BAD_VALUE = np.float64(999999)
 
-    def __init__(self, tolerance=0.02, max_iterations=1000, point_by_point=False):
+    def __init__(
+        self,
+        tolerance: float = 0.02,
+        max_iterations: int = 1000,
+        point_by_point: bool = False,
+    ) -> None:
         """
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
@@ -142,7 +152,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         self.max_iterations = max_iterations
         self.point_by_point = point_by_point
 
-    def _calculate_percentage_change_in_last_iteration(self, allvecs):
+    def _calculate_percentage_change_in_last_iteration(
+        self, allvecs: List[ndarray]
+    ) -> None:
         """
         Calculate the percentage change that has occurred within
         the last iteration of the minimisation. If the percentage change
@@ -176,14 +188,14 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
     def _minimise_caller(
         self,
-        minimisation_function,
-        initial_guess,
-        forecast_predictor_data,
-        truth_data,
-        forecast_var_data,
-        sqrt_pi,
-        predictor,
-    ):
+        minimisation_function: Callable,
+        initial_guess: Union[List[float], ndarray],
+        forecast_predictor_data: ndarray,
+        truth_data: ndarray,
+        forecast_var_data: ndarray,
+        sqrt_pi: float,
+        predictor: str,
+    ) -> ndarray:
         """Call scipy minimize with the options provided.
 
         Args:
@@ -219,8 +231,12 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         return optimised_coeffs
 
     def _set_float64_precision(
-        self, initial_guess, forecast_predictor_data, truth_data, forecast_var_data
-    ):
+        self,
+        initial_guess: Union[List[float], ndarray],
+        forecast_predictor_data: ndarray,
+        truth_data: ndarray,
+        forecast_var_data: ndarray,
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray, float]:
         """Set values to float64 precision and define a square root of pi
         variable for later usage. The increased precision is need for stable
         coefficient calculation.
@@ -248,13 +264,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
     def _process_points_independently(
         self,
-        minimisation_function,
-        initial_guess,
-        forecast_predictor,
-        truth,
-        forecast_var,
-        predictor,
-    ):
+        minimisation_function: Callable,
+        initial_guess: Union[List[float], ndarray],
+        forecast_predictor: Cube,
+        truth: Cube,
+        forecast_var: Cube,
+        predictor: str,
+    ) -> ndarray:
         """Minimise each point along the spatial dimensions independently to
         create a set of coefficients for each point. The coefficients returned
         can be either gridded (i.e. separate dimensions for x and y) or for a
@@ -330,13 +346,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
     def _process_points_together(
         self,
-        minimisation_function,
-        initial_guess,
-        forecast_predictor,
-        truth,
-        forecast_var,
-        predictor,
-    ):
+        minimisation_function: Callable,
+        initial_guess: Union[List[float], ndarray],
+        forecast_predictor: Cube,
+        truth: Cube,
+        forecast_var: Cube,
+        predictor: str,
+    ) -> ndarray:
         """Minimise all points together in one minimisation to create a single
         set of coefficients.
 
@@ -399,13 +415,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
     def process(
         self,
-        initial_guess,
-        forecast_predictor,
-        truth,
-        forecast_var,
-        predictor,
-        distribution,
-    ):
+        initial_guess: List[float],
+        forecast_predictor: Cube,
+        truth: Cube,
+        forecast_var: Cube,
+        predictor: str,
+        distribution: str,
+    ) -> ndarray:
         """
         Function to pass a given function to the scipy minimize
         function to estimate optimised values for the coefficients.
@@ -486,8 +502,14 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         return optimised_coeffs
 
     def calculate_normal_crps(
-        self, initial_guess, forecast_predictor, truth, forecast_var, sqrt_pi, predictor
-    ):
+        self,
+        initial_guess: List[float],
+        forecast_predictor: ndarray,
+        truth: ndarray,
+        forecast_var: ndarray,
+        sqrt_pi: float,
+        predictor: str,
+    ) -> float:
         """
         Calculate the CRPS for a normal distribution.
 
@@ -550,8 +572,14 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         return result
 
     def calculate_truncated_normal_crps(
-        self, initial_guess, forecast_predictor, truth, forecast_var, sqrt_pi, predictor
-    ):
+        self,
+        initial_guess: List[float],
+        forecast_predictor: ndarray,
+        truth: ndarray,
+        forecast_var: ndarray,
+        sqrt_pi: float,
+        predictor: str,
+    ) -> float:
         """
         Calculate the CRPS for a truncated normal distribution with zero
         as the lower bound.
@@ -635,14 +663,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
     def __init__(
         self,
-        distribution,
-        point_by_point=False,
-        use_default_initial_guess=False,
-        desired_units=None,
-        predictor="mean",
-        tolerance=0.02,
-        max_iterations=1000,
-    ):
+        distribution: str,
+        point_by_point: bool = False,
+        use_default_initial_guess: bool = False,
+        desired_units: Union[str, Unit] = None,
+        predictor: str = "mean",
+        tolerance: float = 0.02,
+        max_iterations: int = 1000,
+    ) -> None:
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
         Regression, calculates coefficients based on historical forecasts and
@@ -716,7 +744,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         # Setting default values for coeff_names.
         self.coeff_names = ["alpha", "beta", "gamma", "delta"]
 
-    def _validate_distribution(self):
+    def _validate_distribution(self) -> None:
         """Validate that the distribution supplied has a corresponding method
         for minimising the Continuous Ranked Probability Score.
 
@@ -734,7 +762,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             raise ValueError(msg)
 
-    def _set_attributes(self, historic_forecasts):
+    def _set_attributes(self, historic_forecasts: Cube) -> Dict[str, Any]:
         """Set attributes for use on the EMOS coefficients cube.
 
         Args:
@@ -758,7 +786,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         return attributes
 
     @staticmethod
-    def _create_temporal_coordinates(historic_forecasts):
+    def _create_temporal_coordinates(historic_forecasts: Cube) -> List[Coord]:
         """Create forecast reference time and forecast period coordinates
         for the EMOS coefficients cube.
 
@@ -786,7 +814,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         return [frt_coord, fp_coord]
 
-    def _get_spatial_associated_coordinates(self, historic_forecasts):
+    def _get_spatial_associated_coordinates(
+        self, historic_forecasts: Cube
+    ) -> List[Coord]:
         """Set-up the spatial dimensions and coordinates for the EMOS
         coefficients cube.
         Args:
@@ -816,7 +846,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             ]
         return template_dims, spatial_associated_coords
 
-    def _create_cubelist(self, optimised_coeffs, historic_forecasts):
+    def _create_cubelist(
+        self, optimised_coeffs: ndarray, historic_forecasts: Cube
+    ) -> CubeList:
         """Create a cubelist by combining the optimised coefficients and the
         appropriate metadata. The units of the alpha and gamma coefficients
         match the units of the historic forecast. If the predictor is the
@@ -877,7 +909,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             cubelist.append(cube)
         return cubelist
 
-    def create_coefficients_cubelist(self, optimised_coeffs, historic_forecasts):
+    def create_coefficients_cubelist(
+        self, optimised_coeffs: Union[List[float], ndarray], historic_forecasts: Cube
+    ) -> CubeList:
         """Create a cubelist for storing the coefficients computed using EMOS.
 
         .. See the documentation for examples of these cubes.
@@ -922,8 +956,12 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         return self._create_cubelist(optimised_coeffs, historic_forecasts)
 
     def compute_initial_guess(
-        self, truths, forecast_predictor, predictor, number_of_realizations,
-    ):
+        self,
+        truths: ndarray,
+        forecast_predictor: ndarray,
+        predictor: str,
+        number_of_realizations: int,
+    ) -> List[float]:
         """
         Function to compute initial guess of the alpha, beta, gamma
         and delta components of the EMOS coefficients by linear regression
@@ -1019,7 +1057,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         return np.array(initial_guess, dtype=np.float32)
 
     @staticmethod
-    def mask_cube(cube, landsea_mask):
+    def mask_cube(cube: Cube, landsea_mask: Cube) -> None:
         """
         Mask the input cube using the given landsea_mask. Sea points are
         filled with nans and masked.
@@ -1047,12 +1085,12 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
     def guess_and_minimise(
         self,
-        truths,
-        historic_forecasts,
-        forecast_predictor,
-        forecast_var,
-        number_of_realizations,
-    ):
+        truths: Cube,
+        historic_forecasts: Cube,
+        forecast_predictor: Cube,
+        forecast_var: Cube,
+        number_of_realizations: int,
+    ) -> CubeList:
         """Function to consolidate calls to compute the initial guess, compute
         the optimised coefficients using minimisation and store the resulting
         coefficients within a CubeList.
@@ -1129,7 +1167,12 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         return coefficients_cubelist
 
-    def process(self, historic_forecasts, truths, landsea_mask=None):
+    def process(
+        self,
+        historic_forecasts: Cube,
+        truths: Cube,
+        landsea_mask: Optional[Cube] = None,
+    ) -> CubeList:
         """
         Using Nonhomogeneous Gaussian Regression/Ensemble Model Output
         Statistics, estimate the required coefficients from historical
@@ -1244,7 +1287,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
     uncalibrated input forecast and EMOS coefficients.
     """
 
-    def __init__(self, predictor="mean"):
+    def __init__(self, predictor: str = "mean") -> None:
         """
         Create a plugin that uses the coefficients created using EMOS from
         historical forecasts and corresponding truths and applies these
@@ -1265,12 +1308,12 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         self.coefficients_cubelist = None
         self.current_forecast = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<CalibratedForecastDistributionParameters: predictor: {}>"
         return result.format(self.predictor)
 
-    def _diagnostic_match(self):
+    def _diagnostic_match(self) -> None:
         """Check that the forecast diagnostic matches the coefficients used to
         construct the coefficients.
 
@@ -1288,7 +1331,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 )
                 raise ValueError(msg)
 
-    def _spatial_domain_match(self):
+    def _spatial_domain_match(self) -> None:
         """
         Check that the domain of the current forecast and coefficients cube
         match.
@@ -1322,7 +1365,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                         )
                     )
 
-    def _calculate_location_parameter_from_mean(self):
+    def _calculate_location_parameter_from_mean(self) -> ndarray:
         """
         Function to calculate the location parameter when the ensemble mean at
         each grid point is the predictor.
@@ -1350,7 +1393,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 
         return location_parameter
 
-    def _calculate_location_parameter_from_realizations(self):
+    def _calculate_location_parameter_from_realizations(self) -> ndarray:
         """
         Function to calculate the location parameter when the ensemble
         realizations are the predictor.
@@ -1395,7 +1438,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 
         return location_parameter
 
-    def _calculate_scale_parameter(self):
+    def _calculate_scale_parameter(self) -> ndarray:
         """
         Calculation of the scale parameter using the ensemble variance
         adjusted using the gamma and delta coefficients calculated by EMOS.
@@ -1424,7 +1467,9 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         ).astype(np.float32)
         return scale_parameter
 
-    def _create_output_cubes(self, location_parameter, scale_parameter):
+    def _create_output_cubes(
+        self, location_parameter: ndarray, scale_parameter: ndarray
+    ) -> Tuple[Cube, Cube]:
         """
         Creation of output cubes containing the location and scale parameters.
 
@@ -1462,7 +1507,12 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         )
         return location_parameter_cube, scale_parameter_cube
 
-    def process(self, current_forecast, coefficients_cubelist, landsea_mask=None):
+    def process(
+        self,
+        current_forecast: Cube,
+        coefficients_cubelist: CubeList,
+        landsea_mask: Optional[Cube] = None,
+    ) -> Tuple[Cube, Cube]:
         """
         Apply the EMOS coefficients to the current forecast, in order to
         generate location and scale parameters for creating the calibrated
@@ -1541,7 +1591,9 @@ class ApplyEMOS(PostProcessingPlugin):
     """
 
     @staticmethod
-    def _get_attribute(coefficients, attribute_name, optional=False):
+    def _get_attribute(
+        coefficients: CubeList, attribute_name: str, optional: bool = False
+    ) -> Optional[Any]:
         """Get the value for the requested attribute, ensuring that the
         attribute is present consistently across the cubes within the
         coefficients cubelist.
@@ -1587,7 +1639,7 @@ class ApplyEMOS(PostProcessingPlugin):
         raise AttributeError(msg)
 
     @staticmethod
-    def _get_forecast_type(forecast):
+    def _get_forecast_type(forecast: Cube) -> str:
         """Identifies whether the forecast is in probability, realization
         or percentile space
 
@@ -1602,7 +1654,9 @@ class ApplyEMOS(PostProcessingPlugin):
             return "realizations"
         return "percentiles"
 
-    def _convert_to_realizations(self, forecast, realizations_count, ignore_ecc_bounds):
+    def _convert_to_realizations(
+        self, forecast: Cube, realizations_count: int, ignore_ecc_bounds: bool
+    ) -> Any:
         """Convert an input forecast of probabilities or percentiles into
         pseudo-realizations
 
@@ -1637,7 +1691,9 @@ class ApplyEMOS(PostProcessingPlugin):
 
         return forecast_as_realizations
 
-    def _calibrate_forecast(self, forecast, randomise, random_seed):
+    def _calibrate_forecast(
+        self, forecast: Cube, randomise: bool, random_seed: int
+    ) -> Cube:
         """
         Generate calibrated probability, percentile or realization output
 
@@ -1699,15 +1755,15 @@ class ApplyEMOS(PostProcessingPlugin):
 
     def process(
         self,
-        forecast,
-        coefficients,
-        land_sea_mask=None,
-        realizations_count=None,
-        ignore_ecc_bounds=True,
-        predictor="mean",
-        randomise=False,
-        random_seed=None,
-    ):
+        forecast: Cube,
+        coefficients: CubeList,
+        land_sea_mask: Optional[Cube] = None,
+        realizations_count: Optional[int] = None,
+        ignore_ecc_bounds: bool = True,
+        predictor: str = "mean",
+        randomise: bool = False,
+        random_seed: Optional[int] = None,
+    ) -> Cube:
         """Calibrate input forecast using pre-calculated coefficients
 
         Args:

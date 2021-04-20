@@ -130,7 +130,7 @@ class StandardiseMetadata(BasePlugin):
         return cube
 
     @staticmethod
-    def _remove_scalar_coords(cube: Cube, coords_to_remove: str) -> None:
+    def _remove_scalar_coords(cube: Cube, coords_to_remove: List[str]) -> None:
         """Removes named coordinates from the input cube."""
         for coord in coords_to_remove:
             try:

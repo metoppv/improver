@@ -654,7 +654,7 @@ class PhaseChangeLevel(BasePlugin):
         intercept: ndarray,
         phase_change_level_data: ndarray,
         sea_points: ndarray,
-    ) -> ndarray:
+    ):
         r"""
         Find the phase change level below sea level using the linear
         extrapolation of the wet bulb temperature integral and update the

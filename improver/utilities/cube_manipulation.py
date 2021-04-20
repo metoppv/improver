@@ -419,7 +419,7 @@ def compare_coords(cubes: CubeList) -> List[Dict]:
     Warns:
         Warning: If only a single cube is supplied
     """
-    unmatching_coords = []
+    unmatching_coords: List[Dict] = []
     if len(cubes) == 1:
         msg = "Only a single cube so no differences will be found "
         warnings.warn(msg)
