@@ -36,8 +36,8 @@ import operator
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import iris
-from iris import Constraint
 import numpy as np
+from iris import Constraint
 from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 from numpy import ndarray
