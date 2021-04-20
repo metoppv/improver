@@ -37,9 +37,10 @@ from datetime import datetime
 from queue import Queue
 from resource import RUSAGE_SELF, getrusage
 from threading import Thread
+from typing import Callable, Tuple
 
 
-def memory_profile_start(outfile_prefix):
+def memory_profile_start(outfile_prefix: str) -> Tuple[Thread, Queue]:
     """Starts the memory tracking profiler.
 
     Args:
@@ -57,7 +58,7 @@ def memory_profile_start(outfile_prefix):
     return thread, queue
 
 
-def memory_profile_end(queue, thread):
+def memory_profile_end(queue: Queue, thread: Thread) -> None:
     """Ends the memory tracking profiler.
 
     Args:
@@ -70,7 +71,7 @@ def memory_profile_end(queue, thread):
     thread.join()
 
 
-def memory_monitor(queue, outfile_prefix):
+def memory_monitor(queue: Queue, outfile_prefix: str) -> None:
     """Function to track memory usage, should be run in a separate
     thread to the main program.
 
@@ -112,7 +113,7 @@ def memory_monitor(queue, outfile_prefix):
             return
 
 
-def memory_profile_decorator(func, outfile_prefix):
+def memory_profile_decorator(func: Callable, outfile_prefix: str) -> Callable:
     """A decorator for convenience of running.
 
     Args:

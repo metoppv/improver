@@ -34,9 +34,10 @@ import atexit
 import cProfile
 import pstats
 import sys
+from cProfile import Profile
 
 
-def profile_start():
+def profile_start() -> Profile:
     """Start and return a new profiler instance.
 
     Returns:
@@ -47,7 +48,7 @@ def profile_start():
     return profiler
 
 
-def profile_hook_enable(dump_filename=None):
+def profile_hook_enable(dump_filename: str = None) -> None:
     """Register a hook to gather and dump profile information at exit.
 
     Args:
@@ -59,8 +60,11 @@ def profile_hook_enable(dump_filename=None):
 
 
 def profile_stop(
-    profiler, sort_field="cumulative", dump_filename=None, dump_line_count=100
-):
+    profiler: Profile,
+    sort_field: str = "cumulative",
+    dump_filename: str = None,
+    dump_line_count: int = 100,
+) -> None:
     """Stop a given profiler and print or dump stats.
 
     Args:
