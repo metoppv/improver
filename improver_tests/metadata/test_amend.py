@@ -191,12 +191,11 @@ class Test_update_mosg__model_configuration_attribute(IrisTest):
             np.zeros((2, 2, 2), dtype=np.float32),
             np.array([288, 290], dtype=np.float32),
         )
-        self.test_dict = {"existing_attribute": "test"}
 
     def test_one_input_attribute(self):
         """Test handling of model configuration attribute for one input."""
         self.cube.attributes["mosg__model_configuration"] = "uk_ens"
-        result = update_mosg__model_configuration_attribute([self.cube], self.test_dict)
+        result = update_mosg__model_configuration_attribute([self.cube])
         self.assertArrayEqual(result["mosg__model_configuration"], "uk_ens")
 
     def test_two_matching_input_attributes(self):
@@ -204,9 +203,7 @@ class Test_update_mosg__model_configuration_attribute(IrisTest):
         self.cube.attributes["mosg__model_configuration"] = "uk_ens"
         self.cube1 = self.cube.copy()
         self.cube2 = self.cube.copy()
-        result = update_mosg__model_configuration_attribute(
-            [self.cube1, self.cube2], self.test_dict
-        )
+        result = update_mosg__model_configuration_attribute([self.cube1, self.cube2])
         self.assertArrayEqual(result["mosg__model_configuration"], "uk_ens")
 
     def test_two_different_input_attributes(self):
@@ -215,9 +212,7 @@ class Test_update_mosg__model_configuration_attribute(IrisTest):
         self.cube2 = self.cube.copy()
         self.cube1.attributes["mosg__model_configuration"] = "uk_ens"
         self.cube2.attributes["mosg__model_configuration"] = "nc_det"
-        result = update_mosg__model_configuration_attribute(
-            [self.cube1, self.cube2], self.test_dict
-        )
+        result = update_mosg__model_configuration_attribute([self.cube1, self.cube2])
         self.assertArrayEqual(result["mosg__model_configuration"], "nc_det uk_ens")
 
     def test_attribute_mismatch(self):
@@ -227,14 +222,12 @@ class Test_update_mosg__model_configuration_attribute(IrisTest):
         self.cube1.attributes["mosg__model_configuration"] = "uk_ens"
         msg = "The mosg__model_configuration attribute is not available"
         with self.assertRaisesRegex(KeyError, msg):
-            update_mosg__model_configuration_attribute(
-                [self.cube1, self.cube2], self.test_dict
-            )
+            update_mosg__model_configuration_attribute([self.cube1, self.cube2])
 
     def test_no_attribute(self):
         """Test handling when no model configuration attribute is present."""
-        result = update_mosg__model_configuration_attribute([self.cube], self.test_dict)
-        self.assertArrayEqual(result, self.test_dict)
+        result = update_mosg__model_configuration_attribute([self.cube])
+        self.assertArrayEqual(result, {})
 
 
 if __name__ == "__main__":

@@ -454,9 +454,8 @@ class WeatherSymbols(BasePlugin):
                 coord.bounds = None
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
-        optional_attributes = update_mosg__model_configuration_attribute(
-            cubes, weather_code_attributes()
-        )
+        optional_attributes = weather_code_attributes()
+        optional_attributes.update(update_mosg__model_configuration_attribute(cubes))
 
         symbols = create_new_diagnostic_cube(
             "weather_code",
