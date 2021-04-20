@@ -1098,7 +1098,7 @@ class Test_create_symbol_cube(IrisTest):
     """Test the create_symbol_cube method ."""
 
     def setUp(self):
-        """Set up cube """
+        """Set up cube."""
         data = np.array(
             [
                 [[0.1, 0.3, 0.4], [0.2, 0.6, 0.7], [0.4, 0.2, 0.1]],
@@ -1110,6 +1110,7 @@ class Test_create_symbol_cube(IrisTest):
         self.cube = set_up_probability_cube(
             data, np.array([288, 290, 292], dtype=np.float32)
         )
+        self.cube.attributes["mosg__model_configuration"] = "uk_ens"
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
 
@@ -1119,33 +1120,8 @@ class Test_create_symbol_cube(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
-        self.assertNotIn("mosg__model_configuration", result.attributes)
+        self.assertArrayEqual(result.attributes["mosg__model_configuration"], "uk_ens")
         self.assertTrue((result.data.mask).all())
-
-    def test_optional_attribute_one_input(self):
-        """Test handling of model configuration attribute for one input."""
-        self.cube.attributes["mosg__model_configuration"] = "uk_ens"
-        result = WeatherSymbols().create_symbol_cube([self.cube])
-        self.assertArrayEqual(result.attributes["mosg__model_configuration"], "uk_ens")
-
-    def test_optional_attribute_two_matching_inputs(self):
-        """Test handling of model configuration attribute for two matching inputs."""
-        self.cube.attributes["mosg__model_configuration"] = "uk_ens"
-        self.cube1 = self.cube.copy()
-        self.cube2 = self.cube.copy()
-        result = WeatherSymbols().create_symbol_cube([self.cube1, self.cube2])
-        self.assertArrayEqual(result.attributes["mosg__model_configuration"], "uk_ens")
-
-    def test_optional_attribute_two_different_inputs(self):
-        """Test handling of model configuration attribute for two different inputs."""
-        self.cube1 = self.cube.copy()
-        self.cube2 = self.cube.copy()
-        self.cube1.attributes["mosg__model_configuration"] = "uk_ens"
-        self.cube2.attributes["mosg__model_configuration"] = "nc_det"
-        result = WeatherSymbols().create_symbol_cube([self.cube1, self.cube2])
-        self.assertArrayEqual(
-            result.attributes["mosg__model_configuration"], "nc_det uk_ens"
-        )
 
     def test_removes_bounds(self):
         """Test bounds are removed from time and forecast period coordinate"""

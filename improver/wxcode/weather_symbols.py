@@ -38,6 +38,7 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
+from improver.metadata.amend import update_mosg__model_configuration_attribute
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_threshold_coord_name_from_probability_name,
@@ -453,16 +454,10 @@ class WeatherSymbols(BasePlugin):
                 coord.bounds = None
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
-        optional_attributes = weather_code_attributes()
-        model_configurations = [
-            c.attributes["mosg__model_configuration"]
-            for c in cubes
-            if c.attributes.get("mosg__model_configuration")
-        ]
-        if model_configurations:
-            optional_attributes["mosg__model_configuration"] = " ".join(
-                sorted(set(model_configurations))
-            )
+        optional_attributes = update_mosg__model_configuration_attribute(
+            cubes, weather_code_attributes()
+        )
+
         symbols = create_new_diagnostic_cube(
             "weather_code",
             "1",

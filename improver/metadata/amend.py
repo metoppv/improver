@@ -102,3 +102,45 @@ def set_history_attribute(cube, value, append=False):
         cube.attributes["history"] += "; {}".format(new_history)
     else:
         cube.attributes["history"] = new_history
+
+
+def update_mosg__model_configuration_attribute(cubes, attributes):
+    """Update the attributes dictionary with the unique values of the
+    mosg__model_configuration attribute from within the input cubes.
+    If the mosg__model_configuration attribute is present on the first cube
+    then it is expected to be present on all cubes.
+
+    Args:
+        cubes (list or iris.cube.CubeList):
+            List of input cubes that might have an mosg__model_configuration
+            attribute.
+        attributes (dict):
+            Dictionary that will be amended.
+
+    Returns:
+        dict:
+            Updated attributes containing an mosg__model_configuration
+            attribute, if available.
+    """
+    if cubes[0].attributes.get("mosg__model_configuration"):
+        model_configurations = []
+        for cube in cubes:
+            try:
+                cube.attributes["mosg__model_configuration"]
+            except KeyError:
+                msg = (
+                    "The mosg__model_configuration attribute is not "
+                    f"available for the {cube.name()} cube. "
+                    f"The available attributes are {cube.attributes}"
+                )
+                print(msg)
+                raise KeyError(msg)
+            else:
+                model_configurations.append(
+                    cube.attributes["mosg__model_configuration"]
+                )
+
+        attributes["mosg__model_configuration"] = " ".join(
+            sorted(set(model_configurations))
+        )
+    return attributes
