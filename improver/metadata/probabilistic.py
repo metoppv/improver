@@ -31,7 +31,7 @@
 """Utilities for interrogating IMPROVER probabilistic metadata"""
 
 import re
-from typing import Optional, Match
+from typing import Match, Optional
 
 import iris
 from iris.coords import Coord
