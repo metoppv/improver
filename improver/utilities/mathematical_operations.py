@@ -30,9 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain mathematical operations."""
 
+from typing import Any, List, Optional, Tuple, Union
+
+from clize.parser import OptionParameter
 import iris
 import numpy as np
 import numpy.ma as ma
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -56,11 +61,11 @@ class Integration(BasePlugin):
 
     def __init__(
         self,
-        coord_name_to_integrate,
-        start_point=None,
-        end_point=None,
-        positive_integration=False,
-    ):
+        coord_name_to_integrate: str,
+        start_point: Optional[float] = None,
+        end_point: Optional[float] = None,
+        positive_integration: bool = False,
+    ) -> None:
         """
         Initialise class.
 
@@ -88,7 +93,7 @@ class Integration(BasePlugin):
         self.positive_integration = positive_integration
         self.input_cube = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<Integration: coord_name_to_integrate: {}, "
@@ -102,7 +107,7 @@ class Integration(BasePlugin):
         )
         return result
 
-    def ensure_monotonic_increase_in_chosen_direction(self, cube):
+    def ensure_monotonic_increase_in_chosen_direction(self, cube: Cube) -> Cube:
         """Ensure that the chosen coordinate is monotonically increasing in
         the specified direction.
 
@@ -128,7 +133,7 @@ class Integration(BasePlugin):
 
         return cube
 
-    def prepare_for_integration(self):
+    def prepare_for_integration(self) -> Tuple[Cube, Cube]:
         """Prepare for integration by creating the cubes needed for the
         integration. These are separate cubes for representing the upper
         and lower limits of the integration.
@@ -166,7 +171,7 @@ class Integration(BasePlugin):
 
         return upper_bounds_cube, lower_bounds_cube
 
-    def _generate_output_name_and_units(self):
+    def _generate_output_name_and_units(self) -> Tuple[str, Any]:
         """Gets suitable output name and units from input cube metadata"""
         new_name = f"{self.input_cube.name()}_integral"
         original_units = self.input_cube.units
@@ -174,7 +179,13 @@ class Integration(BasePlugin):
         new_units = "{} {}".format(original_units, integrated_units)
         return new_name, new_units
 
-    def _create_output_cube(self, template, data, points, bounds):
+    def _create_output_cube(
+        self,
+        template: Cube,
+        data: Union[List[float], ndarray],
+        points: Union[List[float], ndarray],
+        bounds: Union[List[float], ndarray],
+    ) -> Cube:
         """
         Populates a template cube with data from the integration
 
@@ -231,7 +242,9 @@ class Integration(BasePlugin):
         enforce_coordinate_ordering(integrated_cube, ordered_dimensions)
         return integrated_cube
 
-    def perform_integration(self, upper_bounds_cube, lower_bounds_cube):
+    def perform_integration(
+        self, upper_bounds_cube: Cube, lower_bounds_cube: Cube
+    ) -> Cube:
         """Perform the integration.
 
         Integration is performed by firstly defining the stride as the
@@ -336,7 +349,7 @@ class Integration(BasePlugin):
         )
         return integrated_cube
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """Integrate data along a specified coordinate.  Only positive values
         are integrated; zero and negative values are not included in the sum or
         as levels on the integrated cube.
@@ -360,8 +373,13 @@ class Integration(BasePlugin):
 
 
 def fast_linear_fit(
-    x_data, y_data, axis=None, keepdims=False, gradient_only=False, with_nan=False
-):
+    x_data: ndarray,
+    y_data: ndarray,
+    axis: Union[int, Tuple] = None,
+    keepdims: bool = False,
+    gradient_only: bool = False,
+    with_nan: bool = False,
+) -> Tuple[ndarray, ndarray]:
     """Uses a simple linear fit approach to calculate the
     gradient along specified axis (default is to fit all points).
     Uses vectorized operations, so it's much faster than using scipy lstsq

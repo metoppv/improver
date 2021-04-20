@@ -31,9 +31,12 @@
 """Module to contain interpolation functions."""
 
 import warnings
+from typing import Optional
 
 import iris
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 
@@ -41,8 +44,12 @@ from improver import BasePlugin
 
 
 def interpolate_missing_data(
-    data, method="linear", limit=None, limit_as_maximum=True, valid_points=None
-):
+    data: ndarray,
+    method: str = "linear",
+    limit: Optional[ndarray] = None,
+    limit_as_maximum: bool = True,
+    valid_points: Optional[ndarray] = None,
+) -> ndarray:
     """
     Args:
         data (numpy.ndarray):
@@ -119,12 +126,12 @@ class InterpolateUsingDifference(BasePlugin):
     field.
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """String representation of plugin."""
         return "<InterpolateUsingDifference>"
 
     @staticmethod
-    def _check_inputs(cube, reference_cube, limit):
+    def _check_inputs(cube: Cube, reference_cube: Cube, limit) -> None:
         """
         Check that the input cubes are compatible and the data is complete or
         masked as expected.
@@ -144,7 +151,13 @@ class InterpolateUsingDifference(BasePlugin):
                 " cube. " + str(err)
             )
 
-    def process(self, cube, reference_cube, limit=None, limit_as_maximum=True):
+    def process(
+        self,
+        cube: Cube,
+        reference_cube: Cube,
+        limit: Optional[Cube] = None,
+        limit_as_maximum: bool = True,
+    ) -> Cube:
         """
         Apply plugin to input data.
 

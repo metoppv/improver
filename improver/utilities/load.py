@@ -31,8 +31,11 @@
 """Module for loading cubes."""
 
 import contextlib
+from typing import List, Optional, Union
 
 import iris
+from iris import Constraint
+from iris.cube import CubeList
 
 from improver.utilities.cube_manipulation import (
     MergeCubes,
@@ -72,7 +75,11 @@ def iris_nimrod_patcher():
                 yield
 
 
-def load_cubelist(filepath, constraints=None, no_lazy_load=False):
+def load_cubelist(
+    filepath: Union[str, List[str]],
+    constraints: Optional[Union[Constraint, str]] = None,
+    no_lazy_load: bool = False,
+) -> CubeList:
     """Load cubes from filepath(s) into a cubelist. Strips off all
     var names except for "threshold"-type coordinates, where this is different
     from the standard or long name.
@@ -139,7 +146,11 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
     return cubes
 
 
-def load_cube(filepath, constraints=None, no_lazy_load=False):
+def load_cube(
+    filepath: Union[str, List[str]],
+    constraints: Optional[Union[Constraint, str]] = None,
+    no_lazy_load: bool = False,
+):
     """Load the filepath provided using Iris into a cube. Strips off all
     var names except for "threshold"-type coordinates, where this is different
     from the standard or long name.

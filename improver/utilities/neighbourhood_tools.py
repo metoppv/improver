@@ -30,10 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provides tools for neighbourhood generation"""
 
+from typing import Any, Tuple, Union
+
 import numpy as np
+from numpy import ndarray
 
 
-def rolling_window(input_array, shape, writeable=False):
+def rolling_window(
+    input_array: ndarray, shape: Tuple[int, int], writeable: bool = False
+) -> ndarray:
     """Creates a rolling window neighbourhood of the given `shape` from the
     last `len(shape)` axes of the input array. Avoids creating a large output
     array by constructing a non-continuous view mapped onto the input array.
@@ -56,7 +61,7 @@ def rolling_window(input_array, shape, writeable=False):
 
     Raises:
         ValueError: If `input_array` has fewer dimensions than `shape`.
-        RuntimeError: If any dimension of `shape` is larger than 
+        RuntimeError: If any dimension of `shape` is larger than
             the corresponding dimension of `input_array`.
     """
     num_window_dims = len(shape)
@@ -88,7 +93,9 @@ def rolling_window(input_array, shape, writeable=False):
     )
 
 
-def pad_and_roll(input_array, shape, **kwargs):
+def pad_and_roll(
+    input_array: ndarray, shape: Tuple[int, int], **kwargs: Any
+) -> ndarray:
     """Pads the last `len(shape)` axes of the input array for `rolling_window`
     to create 'neighbourhood' views of the data of a given `shape` as the last
     axes in the returned array. Collapsing over the last `len(shape)` axes
@@ -122,7 +129,9 @@ def pad_and_roll(input_array, shape, **kwargs):
     return rolling_window(input_array, shape, writeable=writeable)
 
 
-def pad_boxsum(data, boxsize, **pad_options):
+def pad_boxsum(
+    data: ndarray, boxsize: Union[int, Tuple[int, int]], **pad_options: Any
+) -> ndarray:
     """Pad an array to shape suitable for `boxsum`.
 
     Note that padding is not symmetric: there is an extra row/column at
@@ -146,7 +155,12 @@ def pad_boxsum(data, boxsize, **pad_options):
     return padded
 
 
-def boxsum(data, boxsize, cumsum=True, **pad_options):
+def boxsum(
+    data: ndarray,
+    boxsize: Union[int, Tuple[int, int]],
+    cumsum: bool = True,
+    **pad_options: Any,
+) -> ndarray:
     """Fast vectorised approach to calculating neighbourhood totals.
 
     This function makes use of the summed-area table method. An input

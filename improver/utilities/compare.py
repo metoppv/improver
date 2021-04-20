@@ -44,21 +44,25 @@ For example, the action to take could be to print the message, log the message,
 or raise an appropriate exception.
 """
 
+from os import PathLike
+from typing import Callable, List, Optional
+
 import netCDF4
 import numpy as np
+from netCDF4 import Dataset, Variable
 
 from improver.constants import DEFAULT_TOLERANCE
 
 
 def compare_netcdfs(
-    actual_path,
-    desired_path,
-    rtol=DEFAULT_TOLERANCE,
-    atol=DEFAULT_TOLERANCE,
-    exclude_vars=None,
-    ignored_attributes=None,
-    reporter=None,
-):
+    actual_path: PathLike,
+    desired_path: PathLike,
+    rtol: float = DEFAULT_TOLERANCE,
+    atol: float = DEFAULT_TOLERANCE,
+    exclude_vars: List[str] = None,
+    ignored_attributes: Optional[List[str]] = None,
+    reporter: Callable[[str], None] = None,
+) -> None:
     """
     Compare two netCDF files.
 
@@ -110,8 +114,15 @@ def compare_netcdfs(
 
 
 def compare_datasets(
-    name, actual_ds, desired_ds, rtol, atol, exclude_vars, ignored_attributes, reporter,
-):
+    name: str,
+    actual_ds: Dataset,
+    desired_ds: Dataset,
+    rtol: float,
+    atol: float,
+    exclude_vars: List[str],
+    ignored_attributes: Optional[List[str]],
+    reporter: Callable[[str], None],
+) -> None:
     """
     Compare netCDF datasets.
     This function can call itself recursively to handle nested groups in
@@ -173,7 +184,13 @@ def compare_datasets(
     )
 
 
-def compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter):
+def compare_dims(
+    name: str,
+    actual_ds: Dataset,
+    desired_ds: Dataset,
+    exclude_vars: List[str],
+    reporter: Callable[[str], None],
+) -> None:
     """
     Compare dimensions in a netCDF dataset/group.
 
@@ -209,7 +226,14 @@ def compare_dims(name, actual_ds, desired_ds, exclude_vars, reporter):
 
 
 def compare_vars(
-    name, actual_ds, desired_ds, rtol, atol, exclude_vars, ignored_attributes, reporter,
+    name: str,
+    actual_ds: Dataset,
+    desired_ds: Dataset,
+    rtol: float,
+    atol: float,
+    exclude_vars: List[str],
+    ignored_attributes: Optional[List[str]],
+    reporter: Callable[[str], None],
 ):
     """
     Compare variables in a netCDF dataset/group.
@@ -259,7 +283,13 @@ def compare_vars(
             compare_data(var_path, actual_var, desired_var, rtol, atol, reporter)
 
 
-def compare_attributes(name, actual_ds, desired_ds, ignored_attributes, reporter):
+def compare_attributes(
+    name: str,
+    actual_ds: Dataset,
+    desired_ds: Dataset,
+    ignored_attributes: Optional[List[str]],
+    reporter: Callable[[str], None],
+) -> None:
     """
     Compare attributes in a netCDF dataset/group.
 
@@ -316,7 +346,14 @@ def compare_attributes(name, actual_ds, desired_ds, ignored_attributes, reporter
             reporter(msg)
 
 
-def compare_data(name, actual_var, desired_var, rtol, atol, reporter):
+def compare_data(
+    name: str,
+    actual_var: Variable,
+    desired_var: Variable,
+    rtol: float,
+    atol: float,
+    reporter: Callable[[str], None],
+) -> None:
     """
     Compare attributes in a netCDF variable.
 

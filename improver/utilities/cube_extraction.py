@@ -31,10 +31,11 @@
 """ Utilities to parse a list of constraints and extract matching subcube """
 
 from ast import literal_eval
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from iris import Constraint
-from iris.cube import CubeList
+from iris.cube import Cube, CubeList
 
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
@@ -44,7 +45,7 @@ from improver.utilities.cube_manipulation import (
 )
 
 
-def create_range_constraint(coord_name, value):
+def create_range_constraint(coord_name: str, value: str) -> Constraint:
     """
     Create a constraint that is representative of a range.
 
@@ -65,7 +66,7 @@ def create_range_constraint(coord_name, value):
     return constr
 
 
-def is_complex_parsing_required(value):
+def is_complex_parsing_required(value: str) -> bool:
     """
     Determine if the string being parsed requires complex parsing.
     Currently, this is solely determined by the presence of a colon (:).
@@ -81,7 +82,7 @@ def is_complex_parsing_required(value):
     return ":" in value
 
 
-def create_constraint(value):
+def create_constraint(value: Union[float, List[float]]) -> Union[Callable, List[int]]:
     """
     Constructs an appropriate constraint for matching numerical values if they
     are floating point. If not, the original values are returned as a list
@@ -107,7 +108,9 @@ def create_constraint(value):
     return value
 
 
-def parse_constraint_list(constraints, units=None):
+def parse_constraint_list(
+    constraints: List[str], units: List[str] = None
+) -> Tuple[Constraint, Optional[Dict]]:
     """
     For simple constraints of a key=value format, these are passed in as a
     list of strings and converted to key-value pairs prior to creating the
@@ -179,7 +182,12 @@ def parse_constraint_list(constraints, units=None):
     return constraints, units_dict
 
 
-def apply_extraction(cube, constraint, units=None, use_original_units=True):
+def apply_extraction(
+    cube: Cube,
+    constraint: Constraint,
+    units: Optional[Dict] = None,
+    use_original_units: bool = True,
+) -> Cube:
     """
     Using a set of constraints, extract a subcube from the provided cube if it
     is available.
@@ -225,7 +233,12 @@ def apply_extraction(cube, constraint, units=None, use_original_units=True):
     return output_cube
 
 
-def extract_subcube(cube, constraints, units=None, use_original_units=True):
+def extract_subcube(
+    cube: Cube,
+    constraints: List[str],
+    units: List[str] = None,
+    use_original_units: bool = True,
+) -> Optional[Cube]:
     """
     Using a set of constraints, extract a subcube from the provided cube if it
     is available.
@@ -258,7 +271,11 @@ def extract_subcube(cube, constraints, units=None, use_original_units=True):
     return output_cube
 
 
-def subset_data(cube, grid_spec=None, site_list=None):
+def subset_data(
+    cube: Cube,
+    grid_spec: Optional[Dict[str, Dict[str, int]]] = None,
+    site_list: Optional[List] = None,
+) -> Cube:
     """Extract a spatial cutout or subset of sites from data
     to generate suite reference outputs.
 

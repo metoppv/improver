@@ -31,10 +31,13 @@
 """Class for Temporal Interpolation calculations."""
 
 from datetime import datetime, timedelta
+from typing import List, Tuple
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.constants.time_types import TIME_COORDS
@@ -55,8 +58,11 @@ class TemporalInterpolation(BasePlugin):
     """
 
     def __init__(
-        self, interval_in_minutes=None, times=None, interpolation_method="linear"
-    ):
+        self,
+        interval_in_minutes: int = None,
+        times: List[datetime] = None,
+        interpolation_method: str = "linear",
+    ) -> None:
         """
         Initialise class.
 
@@ -103,7 +109,7 @@ class TemporalInterpolation(BasePlugin):
             )
         self.interpolation_method = interpolation_method
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<TemporalInterpolation: interval_in_minutes: {}, " "times: {}, method: {}>"
@@ -112,7 +118,9 @@ class TemporalInterpolation(BasePlugin):
             self.interval_in_minutes, self.times, self.interpolation_method
         )
 
-    def construct_time_list(self, initial_time, final_time):
+    def construct_time_list(
+        self, initial_time: datetime, final_time: datetime
+    ) -> List[Tuple[str, List[datetime]]]:
         """
         A function to construct a list of datetime objects formatted
         appropriately for use by iris' interpolation method.
@@ -173,7 +181,7 @@ class TemporalInterpolation(BasePlugin):
         return [("time", time_list)]
 
     @staticmethod
-    def enforce_time_coords_dtype(cube):
+    def enforce_time_coords_dtype(cube: Cube) -> Cube:
         """
         Enforce the data type of the time, forecast_reference_time and
         forecast_period within the cube, so that time coordinates do not
@@ -208,7 +216,7 @@ class TemporalInterpolation(BasePlugin):
         return cube
 
     @staticmethod
-    def calc_sin_phi(dtval, lats, lons):
+    def calc_sin_phi(dtval: datetime, lats: ndarray, lons: ndarray) -> ndarray:
         """
         Calculate sin of solar elevation
 
@@ -232,7 +240,7 @@ class TemporalInterpolation(BasePlugin):
         return sin_phi
 
     @staticmethod
-    def calc_lats_lons(cube):
+    def calc_lats_lons(cube: Cube) -> Tuple[ndarray, ndarray]:
         """
         Calculate the lats and lons of each point from a non-latlon cube,
         or output a 2d array of lats and lons, if the input cube has latitude
@@ -260,7 +268,7 @@ class TemporalInterpolation(BasePlugin):
             lons = np.repeat(lons_col[np.newaxis, :], len(lats_row), axis=0)
         return lats, lons
 
-    def solar_interpolate(self, diag_cube, interpolated_cube):
+    def solar_interpolate(self, diag_cube: Cube, interpolated_cube: Cube) -> CubeList:
         """
         Temporal Interpolation code using solar elevation for
         parameters (e.g. solar radiation parameters like
@@ -335,7 +343,7 @@ class TemporalInterpolation(BasePlugin):
         return interpolated_cubes
 
     @staticmethod
-    def daynight_interpolate(interpolated_cube):
+    def daynight_interpolate(interpolated_cube: Cube) -> CubeList:
         """
         Set linearly interpolated data to zero for parameters
         (e.g. solar radiation parameters) which are zero if the
@@ -357,7 +365,7 @@ class TemporalInterpolation(BasePlugin):
         interpolated_cube.data[..., index] = 0.0
         return iris.cube.CubeList(list(interpolated_cube.slices_over("time")))
 
-    def process(self, cube_t0, cube_t1):
+    def process(self, cube_t0: Cube, cube_t1: Cube) -> CubeList:
         """
         Interpolate data to intermediate times between validity times of
         cube_t0 and cube_t1.

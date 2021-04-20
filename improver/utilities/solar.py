@@ -31,9 +31,12 @@
 """ Utilities to find the relative position of the sun."""
 
 import datetime as dt
+from typing import Union
 
 import iris
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -43,7 +46,7 @@ from improver.metadata.utilities import (
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 
 
-def calc_solar_declination(day_of_year):
+def calc_solar_declination(day_of_year: int) -> float:
     """
     Calculate the Declination for the day of the year.
 
@@ -68,7 +71,9 @@ def calc_solar_declination(day_of_year):
     return solar_declination
 
 
-def calc_solar_hour_angle(longitudes, day_of_year, utc_hour):
+def calc_solar_hour_angle(
+    longitudes: Union[float, ndarray], day_of_year: int, utc_hour: float
+) -> Union[float, ndarray]:
     """
     Calculate the Solar Hour angle for each element of an array of longitudes.
 
@@ -115,8 +120,12 @@ def calc_solar_hour_angle(longitudes, day_of_year, utc_hour):
 
 
 def calc_solar_elevation(
-    latitudes, longitudes, day_of_year, utc_hour, return_sine=False
-):
+    latitudes: Union[float, ndarray],
+    longitudes: Union[float, ndarray],
+    day_of_year: int,
+    utc_hour: float,
+    return_sine: bool = False,
+) -> Union[float, ndarray]:
     """
     Calculate the Solar elevation.
 
@@ -164,7 +173,9 @@ def calc_solar_elevation(
     return solar_elevation
 
 
-def daynight_terminator(longitudes, day_of_year, utc_hour):
+def daynight_terminator(
+    longitudes: ndarray, day_of_year: int, utc_hour: float
+) -> ndarray:
     """
     Calculate the Latitude values of the daynight terminator
     for the given longitudes.
@@ -202,17 +213,17 @@ class DayNightMask(BasePlugin):
     Plugin Class to generate a daynight mask for the provided cube
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """ Initial the DayNightMask Object """
         self.night = 0
         self.day = 1
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<DayNightMask : " "Day = {}, Night = {}>".format(self.day, self.night)
         return result
 
-    def _create_daynight_mask(self, cube):
+    def _create_daynight_mask(self, cube: Cube) -> Cube:
         """
         Create blank daynight mask cube
 
@@ -253,7 +264,9 @@ class DayNightMask(BasePlugin):
         )
         return daynight_mask
 
-    def _daynight_lat_lon_cube(self, mask_cube, day_of_year, utc_hour):
+    def _daynight_lat_lon_cube(
+        self, mask_cube: Cube, day_of_year: int, utc_hour: float
+    ) -> Cube:
         """
         Calculate the daynight mask for the provided Lat Lon cube
 
@@ -284,7 +297,7 @@ class DayNightMask(BasePlugin):
         mask_cube.data[index] = self.day
         return mask_cube
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """
         Calculate the daynight mask for the provided cube. Note that only the
         hours and minutes of the dtval variable are used. To ensure consistent

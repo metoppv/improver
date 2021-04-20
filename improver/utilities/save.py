@@ -32,14 +32,16 @@
 
 import os
 import warnings
+from typing import Union
 
 import cf_units
 import iris
+from iris.cube import Cube, CubeList
 
 from improver.metadata.check_datatypes import check_mandatory_standards
 
 
-def _order_cell_methods(cube):
+def _order_cell_methods(cube: Cube) -> None:
     """
     Sorts the cell methods on a cube such that if there are multiple methods
     they are always written in a consistent order in the output cube. The
@@ -53,7 +55,7 @@ def _order_cell_methods(cube):
     cube.cell_methods = cell_methods
 
 
-def _check_metadata(cube):
+def _check_metadata(cube: Cube) -> None:
     """
     Checks cube metadata that needs to be correct to guarantee data integrity
 
@@ -74,7 +76,12 @@ def _check_metadata(cube):
         raise ValueError("{} has unknown units".format(cube.name()))
 
 
-def save_netcdf(cubelist, filename, compression_level=1, least_significant_digit=None):
+def save_netcdf(
+    cubelist: Union[Cube, CubeList],
+    filename: str,
+    compression_level: int = 1,
+    least_significant_digit: int = None,
+):
     """Save the input Cube or CubeList as a NetCDF file and check metadata
     where required for integrity.
 

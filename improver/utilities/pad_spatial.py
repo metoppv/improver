@@ -35,6 +35,9 @@ from copy import deepcopy
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.coords import Coord, DimCoord
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import (
@@ -44,7 +47,7 @@ from improver.utilities.cube_manipulation import (
 from improver.utilities.spatial import distance_to_number_of_grid_cells
 
 
-def pad_coord(coord, width, method):
+def pad_coord(coord: Coord, width: int, method: str) -> Coord:
     """
     Construct a new coordinate by extending the current coordinate by the
     padding width.
@@ -97,7 +100,7 @@ def pad_coord(coord, width, method):
     return coord.copy(points=new_points, bounds=new_points_bounds)
 
 
-def create_cube_with_halo(cube, halo_radius):
+def create_cube_with_halo(cube: Cube, halo_radius: float) -> Cube:
     """
     Create a template cube defining a new grid by adding a fixed width halo
     on all sides to the input cube grid.  The cube contains no meaningful
@@ -130,7 +133,9 @@ def create_cube_with_halo(cube, halo_radius):
     return halo_cube
 
 
-def _create_cube_with_padded_data(source_cube, data, coord_x, coord_y):
+def _create_cube_with_padded_data(
+    source_cube: Cube, data: ndarray, coord_x: DimCoord, coord_y: DimCoord
+) -> Cube:
     """
     Create a cube with newly created data where the metadata is copied from
     the input cube and the supplied x and y coordinates are added to the
@@ -186,7 +191,9 @@ def _create_cube_with_padded_data(source_cube, data, coord_x, coord_y):
     return new_cube
 
 
-def pad_cube_with_halo(cube, width_x, width_y, pad_method="constant"):
+def pad_cube_with_halo(
+    cube: Cube, width_x: int, width_y: int, pad_method: str = "constant"
+) -> Cube:
     """
     Method to pad a halo around the data in an iris cube.  If halo_with_data
     is False, the halo is filled with zeros.  Otherwise the padding calculates
@@ -242,7 +249,7 @@ def pad_cube_with_halo(cube, width_x, width_y, pad_method="constant"):
     return padded_cube
 
 
-def remove_cube_halo(cube, halo_radius):
+def remove_cube_halo(cube: Cube, halo_radius: float) -> Cube:
     """
     Remove halo of halo_radius from a cube.
 
@@ -285,7 +292,7 @@ def remove_cube_halo(cube, halo_radius):
     return result
 
 
-def remove_halo_from_cube(cube, width_x, width_y):
+def remove_halo_from_cube(cube: Cube, width_x: float, width_y: float) -> Cube:
     """
     Method to remove rows/columns from the edge of an iris cube.
     Used to 'unpad' cubes which have been previously padded by
