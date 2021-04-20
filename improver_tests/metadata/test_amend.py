@@ -231,9 +231,7 @@ class Test_update_mosg__model_configuration_attribute(IrisTest):
         self.cube1 = self.cube.copy()
         self.cube2 = self.cube.copy()
         self.cube1.attributes["mosg__model_configuration"] = "uk_ens"
-        msg = (
-            "Expected to find mosg__model_configuration attribute on all or no cubes"
-        )
+        msg = "Expected to find mosg__model_configuration attribute on all or no cubes"
         with self.assertRaisesRegex(AttributeError, msg):
             update_mosg__model_configuration_attribute([self.cube1, self.cube2])
 

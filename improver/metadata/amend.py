@@ -126,9 +126,7 @@ def update_mosg__model_configuration_attribute(cubes):
     """
     attr_in_cubes = ["mosg__model_configuration" in c.attributes for c in cubes]
     if all(attr_in_cubes) != any(attr_in_cubes):
-        msg = (
-            "Expected to find mosg__model_configuration attribute on all or no cubes"
-        )
+        msg = "Expected to find mosg__model_configuration attribute on all or no cubes"
         raise AttributeError(msg)
 
     if not any(attr_in_cubes):
