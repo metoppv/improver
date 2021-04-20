@@ -30,7 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing classes for metadata interpretation"""
 
-from iris.coords import CellMethod
+from typing import Dict, List
+
+from iris.coords import CellMethod, Coord
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.check_datatypes import check_mandatory_standards
@@ -143,7 +146,7 @@ class MOMetadataInterpreter:
     DIAG = "realizations"
     ANCIL = "ancillary"
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialise class parameters, which store information about a cube to be
         parsed into a human-readable string by the
         :func:`~improver.developer_tools.metadata_interpreter.display_interpretation`
@@ -154,8 +157,8 @@ class MOMetadataInterpreter:
 
         # set up empty strings to record any non-compliance (returned as one error
         # after all checks have been made) or warnings
-        self.errors = []
-        self.warnings = []
+        self.errors: List[str] = []
+        self.warnings: List[str] = []
         # initialise information to be derived from input cube
         self.prod_type = "gridded"  # gridded or spot
         self.field_type = (
@@ -170,7 +173,7 @@ class MOMetadataInterpreter:
         self.model = None  # human-readable model name
         self.blended = None  # has it been model blended (True / False)
 
-    def check_probability_cube_metadata(self, cube):
+    def check_probability_cube_metadata(self, cube: Cube) -> None:
         """Checks probability-specific metadata"""
         if cube.units != "1":
             self.errors.append(
@@ -209,7 +212,9 @@ class MOMetadataInterpreter:
             threshold_coord = cube.coord(expected_threshold_name)
             self.check_threshold_coordinate_properties(cube.name(), threshold_coord)
 
-    def check_threshold_coordinate_properties(self, cube_name, threshold_coord):
+    def check_threshold_coordinate_properties(
+        self, cube_name: str, threshold_coord: Coord
+    ) -> None:
         """Checks threshold coordinate properties are correct and consistent with
         cube name"""
         if threshold_coord.var_name != "threshold":
@@ -250,7 +255,7 @@ class MOMetadataInterpreter:
                 f"spp__relative_to_threshold attribute '{self.relative_to_threshold}'"
             )
 
-    def check_cell_methods(self, cube):
+    def check_cell_methods(self, cube: Cube) -> None:
         """Checks cell methods are permitted and correct"""
         if any([substr in cube.name() for substr in PRECIP_ACCUM_NAMES]):
             msg = f"Expected sum over time cell method for {cube.name()}"
@@ -293,7 +298,7 @@ class MOMetadataInterpreter:
                         "ensure this is valid"
                     )
 
-    def _check_blend_and_model_attributes(self, attrs):
+    def _check_blend_and_model_attributes(self, attrs: Dict) -> None:
         """Interprets attributes for model and blending information
         and checks for self-consistency"""
         self.blended = True if BLEND_TITLE_SUBSTR in attrs["title"] else False
@@ -334,7 +339,7 @@ class MOMetadataInterpreter:
                     f"expected substring {BLEND_TITLE_SUBSTR}."
                 )
 
-    def check_attributes(self, attrs):
+    def check_attributes(self, attrs: Dict) -> None:
         """Checks for unexpected attributes, then interprets values for model
         information and checks for self-consistency"""
         if self.diagnostic in DIAG_ATTRS:
@@ -379,7 +384,9 @@ class MOMetadataInterpreter:
                 # determination of whether file is blended depends on title
                 self._check_blend_and_model_attributes(attrs)
 
-    def _check_coords_present(self, coords, expected_coords):
+    def _check_coords_present(
+        self, coords: List[str], expected_coords: List[str]
+    ) -> None:
         """Check whether all expected coordinates are present"""
         found_coords = [coord for coord in coords if coord in expected_coords]
         if not set(found_coords) == set(expected_coords):
@@ -388,14 +395,14 @@ class MOMetadataInterpreter:
                 f"expected {expected_coords}"
             )
 
-    def _check_coord_bounds(self, cube, coord):
+    def _check_coord_bounds(self, cube: Cube, coord: str) -> None:
         """If coordinate has bounds, check points are equal to upper bound"""
         if cube.coord(coord).bounds is not None:
             upper_bounds = cube.coord(coord).bounds[..., 1]
             if not (cube.coord(coord).points == upper_bounds).all():
                 self.errors.append(f"{coord} points should be equal to upper bounds")
 
-    def check_spot_data(self, cube, coords):
+    def check_spot_data(self, cube: Cube, coords: List[str]) -> None:
         """Check spot coordinates"""
         self.prod_type = "spot"
         if "title" in cube.attributes:
@@ -407,7 +414,7 @@ class MOMetadataInterpreter:
 
         self._check_coords_present(coords, SPOT_COORDS)
 
-    def run(self, cube):
+    def run(self, cube: Cube) -> None:
         """Populates self-consistent interpreted parameters, or raises collated errors
         describing (as far as posible) how the metadata are a) not self-consistent,
         and / or b) not consistent with the Met Office IMPROVER standard.
@@ -516,7 +523,9 @@ class MOMetadataInterpreter:
             raise ValueError("\n".join(self.errors))
 
 
-def _format_standard_cases(interpreter, verbose, vstring):
+def _format_standard_cases(
+    interpreter: MOMetadataInterpreter, verbose: bool, vstring: str
+) -> List[str]:
     """Format prob / perc / diagnostic information from a
     MOMetadataInterpreter instance"""
     field_type = interpreter.field_type.replace("_", " ")
@@ -546,7 +555,9 @@ def _format_standard_cases(interpreter, verbose, vstring):
     return rval
 
 
-def display_interpretation(interpreter, verbose=False):
+def display_interpretation(
+    interpreter: MOMetadataInterpreter, verbose: bool = False
+) -> str:
     """Prints metadata interpretation in human-readable form.  This should
     not be run on a MOMetadataInterpreter instance that has raised errors.
 
@@ -555,7 +566,7 @@ def display_interpretation(interpreter, verbose=False):
             Populated instance of MOMetadataInterpreter
         verbose (bool):
             Optional flag to include information about the source of the
-            metadata interpretation (eg name, coordinates, attributes, etc)        
+            metadata interpretation (eg name, coordinates, attributes, etc)
 
     Returns:
         str:
