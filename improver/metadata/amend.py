@@ -132,7 +132,6 @@ def update_mosg__model_configuration_attribute(cubes):
                     f"available for the {cube.name()} cube. "
                     f"The available attributes are {cube.attributes}"
                 )
-                print(msg)
                 raise KeyError(msg)
             else:
                 model_configurations.append(
