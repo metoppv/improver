@@ -1110,7 +1110,7 @@ class Test_create_symbol_cube(IrisTest):
         self.cube = set_up_probability_cube(
             data, np.array([288, 290, 292], dtype=np.float32)
         )
-        self.cube.attributes["mosg__model_configuration"] = "uk_ens"
+        self.cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
 
@@ -1120,7 +1120,9 @@ class Test_create_symbol_cube(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
-        self.assertArrayEqual(result.attributes["mosg__model_configuration"], "uk_ens")
+        self.assertArrayEqual(
+            result.attributes["mosg__model_configuration"], "uk_det uk_ens"
+        )
         self.assertTrue((result.data.mask).all())
 
     def test_removes_bounds(self):

@@ -215,13 +215,26 @@ class Test_update_mosg__model_configuration_attribute(IrisTest):
         result = update_mosg__model_configuration_attribute([self.cube1, self.cube2])
         self.assertArrayEqual(result["mosg__model_configuration"], "nc_det uk_ens")
 
+    def test_compound_attributes(self):
+        """Test handling of compound attributes."""
+        self.cube1 = self.cube.copy()
+        self.cube2 = self.cube.copy()
+        self.cube1.attributes["mosg__model_configuration"] = "uk_det uk_ens"
+        self.cube2.attributes["mosg__model_configuration"] = "nc_det uk_det uk_ens"
+        result = update_mosg__model_configuration_attribute([self.cube1, self.cube2])
+        self.assertArrayEqual(
+            result["mosg__model_configuration"], "nc_det uk_det uk_ens"
+        )
+
     def test_attribute_mismatch(self):
         """Test a mismatch in the presence of the model configuration attribute."""
         self.cube1 = self.cube.copy()
         self.cube2 = self.cube.copy()
         self.cube1.attributes["mosg__model_configuration"] = "uk_ens"
-        msg = "The mosg__model_configuration attribute is not available"
-        with self.assertRaisesRegex(KeyError, msg):
+        msg = (
+            "Expected to find mosg__model_configuration attribute on all or no cubes"
+        )
+        with self.assertRaisesRegex(AttributeError, msg):
             update_mosg__model_configuration_attribute([self.cube1, self.cube2])
 
     def test_no_attribute(self):

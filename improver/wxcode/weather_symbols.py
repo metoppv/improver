@@ -278,7 +278,7 @@ class WeatherSymbols(BasePlugin):
         Returns:
             list:
                 A valid condition chain is defined recursively:
-                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
+                (1) If each a_1, ..., a_n is an extract expression (i.e. a
                 constraint, or a list of constraints,
                 operator strings and floats), and b is either "AND", "OR" or "",
                 then [[a1, ..., an], b] is a valid condition chain.
@@ -577,7 +577,7 @@ class WeatherSymbols(BasePlugin):
                 weather symbols decision tree, these at co-incident times.
             condition_chain (list):
                 A valid condition chain is defined recursively:
-                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
+                (1) If each a_1, ..., a_n is an extract expression (i.e. a
                 constraint, or a list of constraints,
                 operator strings and floats), and b is either "AND", "OR" or "",
                 then [[a1, ..., an], b] is a valid condition chain.

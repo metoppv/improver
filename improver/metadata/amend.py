@@ -107,8 +107,8 @@ def set_history_attribute(cube, value, append=False):
 def update_mosg__model_configuration_attribute(cubes):
     """Update the dictionary with the unique values of the
     mosg__model_configuration attribute from within the input cubes.
-    If the mosg__model_configuration attribute is present on the first cube
-    then it is expected to be present on all cubes.
+    The mosg__model_configuration attribute is expected on all cubes or no
+    cubes.
 
     Args:
         cubes (list or iris.cube.CubeList):
@@ -119,26 +119,22 @@ def update_mosg__model_configuration_attribute(cubes):
         dict:
             Dictionary containing an mosg__model_configuration key,
             if available.
-    """
-    attributes = {}
-    if cubes[0].attributes.get("mosg__model_configuration"):
-        model_configurations = []
-        for cube in cubes:
-            try:
-                cube.attributes["mosg__model_configuration"]
-            except KeyError:
-                msg = (
-                    "The mosg__model_configuration attribute is not "
-                    f"available for the {cube.name()} cube. "
-                    f"The available attributes are {cube.attributes}"
-                )
-                raise KeyError(msg)
-            else:
-                model_configurations.append(
-                    cube.attributes["mosg__model_configuration"]
-                )
 
-        attributes["mosg__model_configuration"] = " ".join(
-            sorted(set(model_configurations))
+    Raises:
+        AttributeError: Expected to find mosg__model_configuration attribute
+            on all or no cubes.
+    """
+    attr_in_cubes = ["mosg__model_configuration" in c.attributes for c in cubes]
+    if all(attr_in_cubes) != any(attr_in_cubes):
+        msg = (
+            "Expected to find mosg__model_configuration attribute on all or no cubes"
         )
-    return attributes
+        raise AttributeError(msg)
+
+    if not any(attr_in_cubes):
+        return {}
+
+    attr_list = [
+        a for c in cubes for a in c.attributes["mosg__model_configuration"].split(" ")
+    ]
+    return {"mosg__model_configuration": " ".join(sorted(set(attr_list)))}
