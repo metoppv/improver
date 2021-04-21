@@ -426,9 +426,11 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         Args:
             cube:
                 The cube to be checked for a percentile coordinate.
+
         Returns:
             bool:
                 True if there is a multi-valued percentile dimension; False if not
+
         Raises:
             ValueError : If there is a percentile coord and it is not a
                 dimension coord in the cube.
@@ -465,6 +467,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             cube:
                 The cube upon which the compatibility of the time coords is
                 being checked.
+
         Raises:
             ValueError : If blending over forecast reference time on a cube
                          with multiple times.
@@ -496,9 +499,11 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 The data cube on which a coordinate is being blended.
             weights:
                 Cube of blending weights.
+
         Returns:
             numpy.ndarray:
                 An array of weights that matches the cube data shape.
+
         Raises:
             ValueError: If weights cube coordinates do not match the diagnostic
                         cube in the case of a multidimensional weights cube.
