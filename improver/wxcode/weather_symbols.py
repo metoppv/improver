@@ -38,7 +38,7 @@ import iris
 import numpy as np
 
 from improver import BasePlugin
-from improver.metadata.amend import update_mosg__model_configuration_attribute
+from improver.metadata.amend import update_model_id_attr_attribute
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_threshold_coord_name_from_probability_name,
@@ -90,7 +90,7 @@ class WeatherSymbols(BasePlugin):
     defined in the input cubes.
     """
 
-    def __init__(self, wxtree="high_resolution"):
+    def __init__(self, wxtree="high_resolution", model_id_attr=None):
         """
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather
@@ -101,6 +101,9 @@ class WeatherSymbols(BasePlugin):
                 Used to choose weather symbol decision tree.
                 Default is "high_resolution"
                 "global" will load the global weather symbol decision tree.
+            model_id_attr (str):
+                Name of attribute recording source models. The source models
+                are expected as a space-separated string.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
@@ -116,6 +119,7 @@ class WeatherSymbols(BasePlugin):
             return iris.coords.AuxCoord(values, units=units)
 
         self.wxtree = wxtree
+        self.model_id_attr = model_id_attr
         if wxtree == "global":
             self.queries = wxcode_decision_tree_global()
             self.start_node = START_NODE_GLOBAL
@@ -431,8 +435,7 @@ class WeatherSymbols(BasePlugin):
                 routes.extend(newroutes)
         return routes
 
-    @staticmethod
-    def create_symbol_cube(cubes):
+    def create_symbol_cube(self, cubes):
         """
         Create an empty weather symbol cube
 
@@ -455,7 +458,10 @@ class WeatherSymbols(BasePlugin):
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
         optional_attributes = weather_code_attributes()
-        optional_attributes.update(update_mosg__model_configuration_attribute(cubes))
+        if self.model_id_attr:
+            optional_attributes.update(
+                update_model_id_attr_attribute(cubes, self.model_id_attr)
+            )
 
         symbols = create_new_diagnostic_cube(
             "weather_code",

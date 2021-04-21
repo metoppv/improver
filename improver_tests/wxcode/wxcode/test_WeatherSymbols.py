@@ -1115,8 +1115,21 @@ class Test_create_symbol_cube(IrisTest):
         self.wxmeaning = " ".join(WX_DICT.values())
 
     def test_basic(self):
-        """Test cube is constructed with appropriate metadata"""
+        """Test cube is constructed with appropriate metadata without
+        model_id_attr attribute"""
         result = WeatherSymbols().create_symbol_cube([self.cube])
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
+        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
+        self.assertNotIn("mosg__model_configuration", result.attributes)
+        self.assertTrue((result.data.mask).all())
+
+    def test_model_id_attr(self):
+        """Test cube is constructed with appropriate metadata with
+        model_id_attr attribute"""
+        result = WeatherSymbols(
+            model_id_attr="mosg__model_configuration"
+        ).create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
