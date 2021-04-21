@@ -188,10 +188,8 @@ class ResamplePercentiles(BasePlugin):
         """
         lower_bound, upper_bound = bounds_pairing
         percentiles = insert_lower_and_upper_endpoint_to_1d_array(percentiles, 0, 100)
-        forecast_at_percentiles_with_endpoints = (
-            concatenate_2d_array_with_2d_array_endpoints(
-                forecast_at_percentiles, lower_bound, upper_bound
-            )
+        forecast_at_percentiles_with_endpoints = concatenate_2d_array_with_2d_array_endpoints(
+            forecast_at_percentiles, lower_bound, upper_bound
         )
 
         if np.any(np.diff(forecast_at_percentiles_with_endpoints) < 0):
@@ -221,10 +219,8 @@ class ResamplePercentiles(BasePlugin):
                     upper_bound = forecast_at_percentiles_with_endpoints.max()
                 if lower_bound > forecast_at_percentiles_with_endpoints.min():
                     lower_bound = forecast_at_percentiles_with_endpoints.min()
-                forecast_at_percentiles_with_endpoints = (
-                    concatenate_2d_array_with_2d_array_endpoints(
-                        forecast_at_percentiles, lower_bound, upper_bound
-                    )
+                forecast_at_percentiles_with_endpoints = concatenate_2d_array_with_2d_array_endpoints(
+                    forecast_at_percentiles, lower_bound, upper_bound
                 )
             else:
                 raise ValueError(msg)
@@ -305,9 +301,7 @@ class ResamplePercentiles(BasePlugin):
         template_cube = next(forecast_at_percentiles.slices_over(percentile_coord_name))
         template_cube.remove_coord(percentile_coord_name)
         percentile_cube = create_cube_with_percentiles(
-            desired_percentiles,
-            template_cube,
-            forecast_at_percentiles_data,
+            desired_percentiles, template_cube, forecast_at_percentiles_data,
         )
         return percentile_cube
 
@@ -472,10 +466,8 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                     upper_bound = max(threshold_points_with_endpoints)
                 if lower_bound > min(threshold_points_with_endpoints):
                     lower_bound = min(threshold_points_with_endpoints)
-                threshold_points_with_endpoints = (
-                    insert_lower_and_upper_endpoint_to_1d_array(
-                        threshold_points, lower_bound, upper_bound
-                    )
+                threshold_points_with_endpoints = insert_lower_and_upper_endpoint_to_1d_array(
+                    threshold_points, lower_bound, upper_bound
                 )
             else:
                 raise ValueError(msg)
@@ -709,9 +701,7 @@ class ConvertLocationAndScaleParameters:
     """
 
     def __init__(
-        self,
-        distribution: str = "norm",
-        shape_parameters: Optional[ndarray] = None,
+        self, distribution: str = "norm", shape_parameters: Optional[ndarray] = None,
     ) -> None:
         """
         Initialise the class.
@@ -973,10 +963,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
         if no_of_percentiles:
             percentiles = choose_set_of_percentiles(no_of_percentiles)
-        calibrated_forecast_percentiles = (
-            self._location_and_scale_parameters_to_percentiles(
-                location_parameter, scale_parameter, template_cube, percentiles
-            )
+        calibrated_forecast_percentiles = self._location_and_scale_parameters_to_percentiles(
+            location_parameter, scale_parameter, template_cube, percentiles
         )
 
         return calibrated_forecast_percentiles
