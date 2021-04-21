@@ -195,12 +195,10 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         _populate_reliability_bins function.
 
         Returns:
-            **index_coord**:
-                A numerical index dimension coordinate.
-            **name_coord**:
-                An auxiliary coordinate that assigns names to the index
-                coordinates, where these names correspond to the
-                reliability table rows.
+            - A numerical index dimension coordinate.
+            - An auxiliary coordinate that assigns names to the index
+              coordinates, where these names correspond to the
+              reliability table rows.
         """
         index_coord = iris.coords.DimCoord(
             np.arange(len(self.table_columns), dtype=np.int32),

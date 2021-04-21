@@ -403,15 +403,12 @@ class WindDirection(BasePlugin):
                 realizations.
 
         Returns:
-            **cube_mean_wdir**:
-                Cube containing the wind direction averaged from the
-                ensemble realizations.
-            **cube_r_vals**:
-                3D array - Radius taken from average complex wind direction
-                angle.
-            **cube_confidence_measure**:
-                3D array - The average distance from mean normalised - used
-                as a confidence value.
+            - Cube containing the wind direction averaged from the
+              ensemble realizations.
+            - 3D array - Radius taken from average complex wind direction
+              angle.
+            - 3D array - The average distance from mean normalised - used
+              as a confidence value.
 
         Raises
         ------

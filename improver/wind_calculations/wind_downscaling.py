@@ -58,7 +58,7 @@ Z0M_SEA = 0.0001
 
 
 class FrictionVelocity(BasePlugin):
-    """"Class to calculate the friction velocity.
+    """Class to calculate the friction velocity.
 
     This holds the function to calculate the friction velocity u_star,
     given a reference height h_ref, the velocity at the reference
@@ -216,12 +216,10 @@ class RoughnessCorrectionUtilities:
         h_over_2.
 
         Returns:
-            **hcmask**:
-                2D array of booleans- True for land-points,
-                false for Sea (HC)
-            **rcmask**:
-                2D array of booleans- additionally False for
-                invalid z_0 (RC)
+            - 2D array of booleans- True for land-points,
+              false for Sea (HC)
+            - 2D array of booleans- additionally False for
+              invalid z_0 (RC)
 
         """
         hcmask = np.full(self.h_over_2.shape, True, dtype=bool)
@@ -625,8 +623,8 @@ class RoughnessCorrectionUtilities:
                 3D array float32 - wind speed on these levels
 
         Returns:
-            sum of  unew: 3D array float32 - RC corrected windspeed
-            on levels HC: 3D array float32 - HC additional part
+            - RC corrected windspeed
+            - HC additional part
 
         Friedrich, M. M., 2016
         Wind Downscaling Program (Internal Met Office Report)
@@ -732,14 +730,10 @@ class RoughnessCorrection(PostProcessingPlugin):
                 some iris cube to find coordinate names from
 
         Returns:
-            **xname**:
-                name of the axis name in x-direction
-            **yname**:
-                name of the axis name in y-direction
-            **zname**:
-                name of the axis name in z-direction
-            **tname**:
-                name of the axis name in t-direction
+            - name of the axis name in x-direction
+            - name of the axis name in y-direction
+            - name of the axis name in z-direction
+            - name of the axis name in t-direction
 
         """
         clist = {cube.coords()[i].name() for i in range(len(cube.coords()))}
@@ -874,14 +868,10 @@ class RoughnessCorrection(PostProcessingPlugin):
                 cube to check the order of coordinate axis
 
         Returns:
-            **xpos**:
-                position of x axis.
-            **ypos**:
-                position of y axis.
-            **zpos**:
-                position of z axis.
-            **tpos**:
-                position of t axis.
+            - position of x axis.
+            - position of y axis.
+            - position of z axis.
+            - position of t axis.
 
         """
         coord_names = [self.x_name, self.y_name, self.z_name, self.t_name]

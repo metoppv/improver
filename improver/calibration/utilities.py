@@ -179,12 +179,10 @@ def filter_non_matching_cubes(
             compared to the historic forecasts.
 
     Returns:
-        **matching_historic_forecasts**:
-            Cube of historic forecasts where any mismatches with
-            the truth cube have been removed.
-        **matching_truths**:
-            Cube of truths where any mismatches with
-            the historic_forecasts cube have been removed.
+        - Cube of historic forecasts where any mismatches with
+          the truth cube have been removed.
+        - Cube of truths where any mismatches with
+          the historic_forecasts cube have been removed.
 
     Raises:
         ValueError: The filtering has found no matches in validity time

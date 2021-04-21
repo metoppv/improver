@@ -259,10 +259,8 @@ class WeatherSymbols(BasePlugin):
             condition:
                 A single query from the decision tree.
         Returns:
-            **inverted_threshold**:
-                A string representing the inverted comparison.
-            **inverted_combination**:
-                A string representing the inverted combination
+            - A string representing the inverted comparison.
+            - A string representing the inverted combination
         """
         inverted_threshold = self._invert_comparator(condition["threshold_condition"])
         inverted_combination = self._invert_comparator(

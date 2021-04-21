@@ -207,10 +207,8 @@ class WeightAndBlend(PostProcessingPlugin):
                 1D cube of weights varying along self.blend_coord
 
         Returns:
-            **cube**:
-                Data cube without zero-weighted slices
-            **weights**:
-                Weights without zeroes
+            - Data cube without zero-weighted slices
+            - Weights without zeroes
         """
         slice_out_vals = []
         for wslice in weights.slices_over(self.blend_coord):

@@ -127,10 +127,8 @@ class WindGustDiagnostic(PostProcessingPlugin):
                 Standard name of the data.
 
         Returns:
-            **result**:
-                Cube containing the required percentile data
-            **perc_coord**:
-                Percentile coordinate.
+            - Cube containing the required percentile data
+            - Percentile coordinate.
 
         """
         if not isinstance(cube, iris.cube.Cube):

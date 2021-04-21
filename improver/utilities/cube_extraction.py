@@ -128,10 +128,8 @@ def parse_constraint_list(
             may only be associated with coordinate constraints.
 
     Returns:
-        **constraints**:
-            A combination of all the constraints that were supplied.
-        **units_dict**:
-            A dictionary of unit keys and values
+        - A combination of all the constraints that were supplied.
+        - A dictionary of unit keys and values
     """
 
     if units is None:

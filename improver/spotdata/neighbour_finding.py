@@ -210,18 +210,14 @@ class NeighbourSelection(BasePlugin):
                 data will be extracted.
 
         Returns:
-            **sites**:
-                The sites modified to filter out the sites falling outside
-                the grid domain of the cube.
-            **site_coords**:
-                The site_coords modified to filter out the sites falling
-                outside the grid domain of the cube.
-            **site_x_coords**:
-                The x_coords modified to filter out the sites falling
-                outside the grid domain of the cube.
-            **site_y_coords**:
-                The y_coords modified to filter out the sites falling
-                outside the grid domain of the cube.
+            - The sites modified to filter out the sites falling outside
+              the grid domain of the cube.
+            - The site_coords modified to filter out the sites falling
+              outside the grid domain of the cube.
+            - The x_coords modified to filter out the sites falling
+              outside the grid domain of the cube.
+            - The y_coords modified to filter out the sites falling
+              outside the grid domain of the cube.
         """
         # Get the grid domain limits
         x_min = cube.coord(axis="x").bounds.min()
@@ -340,14 +336,12 @@ class NeighbourSelection(BasePlugin):
                 A land mask cube for the model/grid from which grid point
                 neighbours are being selected.
         Returns:
-            **scipy.spatial.ckdtree.cKDTree**:
-                A KDTree containing the required nodes, built using the
-                scipy cKDTree method.
-            **numpy.ndarray**:
-                An array of shape (n_nodes, 2) that contains the x and y
-                indices that correspond to the selected node,
-                e.g. node=100 -->  x_coord_index=10, y_coord_index=300,
-                index_nodes[100] = [10, 300]
+            - A KDTree containing the required nodes, built using the
+              scipy cKDTree method.
+            - An array of shape (n_nodes, 2) that contains the x and y
+              indices that correspond to the selected node,
+              e.g. node=100 -->  x_coord_index=10, y_coord_index=300,
+              index_nodes[100] = [10, 300]
         """
         if self.land_constraint:
             included_points = np.nonzero(land_mask.data)

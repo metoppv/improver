@@ -74,10 +74,8 @@ def generate_optical_flow_components(
             for optical flow velocities
 
     Returns:
-        **u_mean**:
-            Cube of x-advection velocities
-        **v_mean**:
-            Cube of y-advection velocities
+        - Cube of x-advection velocities
+        - Cube of y-advection velocities
     """
     cube_list.sort(key=lambda x: x.coord("time").points[0])
     time_coord = cube_list[-1].coord("time")
@@ -460,12 +458,10 @@ class OpticalFlow(BasePlugin):
                 Input field (partial derivative)
 
         Returns:
-            **boxes**:
-                List of numpy.ndarrays of size boxsize*boxsize containing
-                slices of data from input field.
-            **weights**:
-                1D numpy array containing weights values associated with
-                each listed box.
+            - List of numpy.ndarrays of size boxsize*boxsize containing
+              slices of data from input field.
+            - 1D numpy array containing weights values associated with
+              each listed box.
 
         """
         boxes = []
@@ -727,10 +723,8 @@ class OpticalFlow(BasePlugin):
                 2D array of partial input field derivatives d/dt
 
         Returns:
-            **umat**:
-                2D array of displacements in the x-direction
-            **vmat**:
-                2D array of displacements in the y-direction
+            - 2D array of displacements in the x-direction
+            - 2D array of displacements in the y-direction
         """
 
         # (a) Generate lists of subboxes over which velocity is constant
@@ -839,10 +833,8 @@ class OpticalFlow(BasePlugin):
                 Radius (in grid squares) over which to smooth the input data
 
         Returns:
-            **ucomp**:
-                Advection displacement (grid squares) in the x direction
-            **vcomp**:
-                Advection displacement (grid squares) in the y direction
+            - Advection displacement (grid squares) in the x direction
+            - Advection displacement (grid squares) in the y direction
         """
         # Smooth input data
         self.shape = data1.shape
@@ -893,10 +885,8 @@ class OpticalFlow(BasePlugin):
                 data smoothing radius.
 
         Returns:
-            **ucube**:
-                2D cube of advection velocities in the x-direction
-            **vcube**:
-                2D cube of advection velocities in the y-direction
+            - 2D cube of advection velocities in the x-direction
+            - 2D cube of advection velocities in the y-direction
         """
         # clear existing parameters
         self.data_smoothing_radius = None

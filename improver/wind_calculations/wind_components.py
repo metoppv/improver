@@ -159,12 +159,10 @@ class ResolveWindComponents(BasePlugin):
                 dimensions.
 
         Returns:
-            **u_speed**:
-                Cube containing wind vector component in the positive
-                x-direction
-            **v_speed**:
-                Cube containing wind vector component in the positive
-                y-direction
+            - Cube containing wind vector component in the positive
+              x-direction
+            - Cube containing wind vector component in the positive
+              y-direction
         """
         angle.convert_units("radians")
         angle.data += adj
@@ -191,14 +189,12 @@ class ResolveWindComponents(BasePlugin):
                 Cube containing wind direction values relative to true North
 
         Returns:
-            **ucube**:
-                Cube containing wind speeds in the positive projection
-                x-axis direction, with units and projection matching
-                wind_speed cube.
-            **vcube**:
-                Cube containing wind speeds in the positive projection
-                y-axis direction, with units and projection matching
-                wind_speed cube.
+            - Cube containing wind speeds in the positive projection
+              x-axis direction, with units and projection matching
+              wind_speed cube.
+            - Cube containing wind speeds in the positive projection
+              y-axis direction, with units and projection matching
+              wind_speed cube.
         """
         # check cubes contain the correct data (assuming CF standard names)
         if "wind_speed" not in wind_speed.name():

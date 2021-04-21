@@ -1463,12 +1463,10 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 Scale parameter of the calibrated distribution.
 
         Returns:
-            **location_parameter_cube**:
-                Location parameter of the calibrated distribution with
-                associated metadata.
-            **scale_parameter_cube**:
-                Scale parameter of the calibrated distribution with
-                associated metadata.
+            - Location parameter of the calibrated distribution with
+              associated metadata.
+            - Scale parameter of the calibrated distribution with
+              associated metadata.
         """
         template_cube = next(self.current_forecast.slices_over("realization"))
         template_cube.remove_coord("realization")
@@ -1514,18 +1512,16 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 sea points to 0.
 
         Returns:
-            **location_parameter_cube**:
-                Cube containing the location parameter of the calibrated
-                distribution calculated using either the ensemble mean or
-                the ensemble realizations. The location parameter
-                represents the point at which a resulting PDF would be
-                centred.
-            **scale_parameter_cube**:
-                Cube containing the scale parameter of the calibrated
-                distribution calculated using either the ensemble mean or
-                the ensemble realizations. The scale parameter represents
-                the statistical dispersion of the resulting PDF, so a
-                larger scale parameter will result in a broader PDF.
+            - Cube containing the location parameter of the calibrated
+              distribution calculated using either the ensemble mean or
+              the ensemble realizations. The location parameter
+              represents the point at which a resulting PDF would be
+              centred.
+            - Cube containing the scale parameter of the calibrated
+              distribution calculated using either the ensemble mean or
+              the ensemble realizations. The scale parameter represents
+              the statistical dispersion of the resulting PDF, so a
+              larger scale parameter will result in a broader PDF.
 
         """
         self.current_forecast = current_forecast

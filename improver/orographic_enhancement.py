@@ -135,12 +135,10 @@ class OrographicEnhancement(BasePlugin):
         converts coordinate units in place.
 
         Returns:
-            **gradx**:
-                2D cube of dimensionless topography gradients in the
-                positive x direction
-            **grady**:
-                2D cube of dimensionless topography gradients in the
-                positive y direction
+            - 2D cube of dimensionless topography gradients in the
+              positive x direction
+            - 2D cube of dimensionless topography gradients in the
+              positive y direction
         """
         self.topography.coord(axis="x").convert_units(self.topography.units)
         xdim = self.topography.coord_dims(self.topography.coord(axis="x"))[0]
@@ -366,10 +364,8 @@ class OrographicEnhancement(BasePlugin):
                 2D array of cos wind direction wrt grid north
 
         Returns:
-            **x_source**:
-                3D array of source point x-coordinates
-            **y_source**:
-                3D array of source point y-coordinates
+            - 3D array of source point x-coordinates
+            - 3D array of source point y-coordinates
         """
         xpos, ypos = np.meshgrid(
             np.arange(wind_speed.shape[1]), np.arange(wind_speed.shape[0])
@@ -417,11 +413,9 @@ class OrographicEnhancement(BasePlugin):
                 2D array of wind speeds
 
         Returns:
-            **orogenh**:
-                2D array containing a weighted sum of orographic
-                enhancement components from upstream source points
-            **sum_of_weights**:
-                2D array containing weights for normalisation
+            - 2D array containing a weighted sum of orographic
+              enhancement components from upstream source points
+            - 2D array containing weights for normalisation
         """
         source_values = np.fromiter(
             (

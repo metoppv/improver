@@ -50,10 +50,8 @@ def radius_by_lead_time(
             Lead times as a list provided by clize, or None if not set.
 
     Returns:
-        **radius_or_radii**:
-            Radii as a float or list of floats.
-        **lead_times**:
-            Lead times in hours as a list of ints or None.
+        - Radii as a float or list of floats.
+        - Lead times in hours as a list of ints or None.
 
     Raises:
         ValueError: If multiple radii are provided without any lead times.

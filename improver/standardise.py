@@ -287,7 +287,7 @@ class RegridLandSea(BasePlugin):
             target_grid:
                 Cube containing landmask data on the target grid
         Returns:
-            iris.cube.Cube: Adjusted cube
+            Adjusted cube
         """
         if self.landmask_name not in self.landmask_source_grid.name():
             msg = "Expected {} in input_landmask cube but found {}".format(
@@ -322,7 +322,7 @@ class RegridLandSea(BasePlugin):
                 New value for the "title" attribute to be used after
                 regridding. If not set, a default value is used.
         Returns:
-            iris.cube.Cube: Regridded cube with updated attributes
+            Regridded cube with updated attributes
         """
         regridder = Linear(extrapolation_mode=self.extrapolation_mode)
         if "nearest" in self.regrid_mode:
@@ -368,7 +368,7 @@ class RegridLandSea(BasePlugin):
                 New value for the "title" attribute to be used after
                 regridding. If not set, a default value is used.
         Returns:
-            iris.cube.Cube: Regridded cube with updated attributes
+            Regridded cube with updated attributes
         """
         # if regridding using a land-sea mask, check this covers the source
         # grid in the required coordinates

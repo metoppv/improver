@@ -136,7 +136,7 @@ def generate_mandatory_attributes(
             Name of attribute used to identify source model for blending,
             if required
     Returns:
-        dict: Dictionary of mandatory attribute "key": "value" pairs.
+        Dictionary of mandatory attribute "key": "value" pairs.
     """
     missing_value = object()
     attr_dicts = [cube.attributes for cube in diagnostic_cubes]

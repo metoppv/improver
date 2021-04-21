@@ -252,10 +252,8 @@ class LapseRate(BasePlugin):
                 2D array of orographies, in metres
 
         Returns:
-            **views of temp**:
-                Rolling windows of the padded temperature dataset.
-            **views of orog**:
-                Rolling windows of the padded orography dataset.
+            - Rolling windows of the padded temperature dataset.
+            - Rolling windows of the padded orography dataset.
         """
         window_shape = (self.nbhood_size, self.nbhood_size)
         orog_windows = neighbourhood_tools.pad_and_roll(

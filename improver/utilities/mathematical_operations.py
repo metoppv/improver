@@ -138,12 +138,10 @@ class Integration(BasePlugin):
         and lower limits of the integration.
 
         Returns:
-            **upper_bounds_cube**:
-                Cube containing the upper bounds to be used during the
-                integration.
-            **lower_bounds_cube**:
-                Cube containing the lower bounds to be used during the
-                integration.
+            - Cube containing the upper bounds to be used during the
+              integration.
+            - Cube containing the lower bounds to be used during the
+              integration.
         """
         if self.positive_integration:
             upper_bounds = self.input_cube.coord(self.coord_name_to_integrate).points[

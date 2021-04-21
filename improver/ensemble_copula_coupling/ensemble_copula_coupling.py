@@ -415,12 +415,10 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 cumulative distribution function.
 
         Returns:
-            **threshold_points**:
-                Array of threshold values padded with the lower and upper
-                bound of the distribution.
-            **probabilities_for_cdf**:
-                Array containing the probabilities padded with 0 and 1 at
-                each end.
+            - Array of threshold values padded with the lower and upper
+              bound of the distribution.
+            - Array containing the probabilities padded with 0 and 1 at
+              each end.
 
         Raises:
             ValueError: If the thresholds exceed the ECC bounds for

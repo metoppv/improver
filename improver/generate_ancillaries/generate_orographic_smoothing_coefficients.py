@@ -294,13 +294,10 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 the orography cube. How the mask is used to zero smoothing
                 coefficients is determined by the plugin configuration arguments.
         Returns:
-            **smoothing_coefficient_x** (iris.cube.Cube): A cube of
-                orography-dependent smoothing_coefficients calculated in
-                the x direction.
-
-                **smoothing_coefficient_y** (iris.cube.Cube): A cube of
-                    orography-dependent smoothing_coefficients calculated in
-                    the y direction.
+            - A cube of orography-dependent smoothing_coefficients calculated in
+              the x direction.
+            - A cube of orography-dependent smoothing_coefficients calculated in
+              the y direction.
         """
         if not isinstance(cube, iris.cube.Cube):
             raise ValueError(

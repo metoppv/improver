@@ -268,12 +268,10 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                 Cube from which the differences will be calculated.
 
         Returns:
-            **diff_along_x_cube**:
-                Cube after the differences have been calculated along the
-                x axis.
-            **diff_along_y_cube**:
-                Cube after the differences have been calculated along the
-                y axis.
+            - Cube after the differences have been calculated along the
+              x axis.
+            - Cube after the differences have been calculated along the
+              y axis.
 
         """
         diffs = []
@@ -302,7 +300,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
                 dimensions of the input cube. If False, the length of the
                 spatial dimensions of the gradient cube are one less than for
                 the input cube.
-            """
+        """
         self.regrid = regrid
 
     @staticmethod
@@ -368,12 +366,10 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
                 Cube from which the differences will be calculated.
 
         Returns:
-            **gradient_along_x_cube**:
-                Cube after the gradients have been calculated along the
-                x axis.
-            **gradient_along_y_cube**:
-                Cube after the gradients have been calculated along the
-                y axis.
+            - Cube after the gradients have been calculated along the
+              x axis.
+            - Cube after the gradients have been calculated along the
+              y axis.
 
         """
         gradients = []

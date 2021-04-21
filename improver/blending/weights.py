@@ -62,20 +62,20 @@ class WeightsUtilities:
     def normalise_weights(weights: ndarray, axis: Optional[int] = None) -> ndarray:
         """Ensures all weights add up to one.
 
-            Args:
-                weights:
-                    array of weights
-                axis:
-                    The axis that we want to normalise along for a multiple
-                    dimensional array. Defaults to None, meaning the whole
-                    array is used for the normalisation.
+        Args:
+            weights:
+                array of weights
+            axis:
+                The axis that we want to normalise along for a multiple
+                dimensional array. Defaults to None, meaning the whole
+                array is used for the normalisation.
 
-            Returns:
-                array of weights where sum = 1.0
+        Returns:
+            array of weights where sum = 1.0
 
-            Raises:
-                ValueError: any negative weights are found in input.
-                ValueError: sum of weights in the input is 0.
+        Raises:
+            ValueError: any negative weights are found in input.
+            ValueError: sum of weights in the input is 0.
         """
         if np.any(weights.min(axis=axis) < 0.0):
             msg = (
@@ -96,21 +96,21 @@ class WeightsUtilities:
     def build_weights_cube(cube: Cube, weights: ndarray, blending_coord: str,) -> Cube:
         """Build a cube containing weights for use in blending.
 
-            Args:
-                cube:
-                    The cube that is being blended over blending_coord.
-                weights:
-                    Array of weights
-                blending_coord:
-                    Name of the coordinate over which the weights will be used
-                    to blend data, e.g. across model name when grid blending.
+        Args:
+            cube:
+                The cube that is being blended over blending_coord.
+            weights:
+                Array of weights
+            blending_coord:
+                Name of the coordinate over which the weights will be used
+                to blend data, e.g. across model name when grid blending.
 
-            Returns:
-                A cube containing the array of weights.
+        Returns:
+            A cube containing the array of weights.
 
-            Raises:
-                ValueError : If weights array is not of the same length as the
-                             coordinate being blended over on cube.
+        Raises:
+            ValueError : If weights array is not of the same length as the
+                         coordinate being blended over on cube.
         """
 
         if len(weights) != len(cube.coord(blending_coord).points):
@@ -251,21 +251,17 @@ class ChooseWeightsLinear(BasePlugin):
                 for setting up the interpolation inputs.
 
         Returns:
-            **source_points**:
-                Points within the configuration dictionary that will
-                be used as the input to the interpolation.
-            **target_points**:
-                Points within the cube that will be the target points
-                for the interpolation.
-            **source_weights**:
-                Weights from the configuration dictionary that will be
-                used as the input to the interpolation.
-            **fill_value**:
-                Values that be used if extrapolation is required. The
-                fill values will be used as constants that are extrapolated
-                if the target_points are outside the source_points
-                provided. These are equal to the first and last values
-                provided by the source weights.
+            - Points within the configuration dictionary that will
+              be used as the input to the interpolation.
+            - Points within the cube that will be the target points
+              for the interpolation.
+            - Weights from the configuration dictionary that will be
+              used as the input to the interpolation.
+            - Values that be used if extrapolation is required. The
+              fill values will be used as constants that are extrapolated
+              if the target_points are outside the source_points
+              provided. These are equal to the first and last values
+              provided by the source weights.
         """
         (config_point,) = cube.coord(self.config_coord_name).points
         source_points = self.config_dict[config_point][self.weighting_coord_name]
@@ -529,12 +525,12 @@ class ChooseDefaultWeightsLinear(BasePlugin):
     def linear_weights(self, num_of_weights: int) -> ndarray:
         """Create linear weights
 
-            Args:
-                num_of_weights:
-                    Number of weights to create.
+        Args:
+            num_of_weights:
+                Number of weights to create.
 
-            Returns:
-                array of weights, sum of all weights = 1.0
+        Returns:
+            array of weights, sum of all weights = 1.0
         """
         # Special case num_of_weights == 1 i.e. Scalar coordinate.
         if num_of_weights == 1:
@@ -710,11 +706,11 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
     def __init__(self, width: float, units: Union[Unit, str] = "no_unit") -> None:
         """Set up for calculating default weights using triangular function.
 
-            Args:
-                width:
-                    The width of the triangular function from the centre point.
-                units:
-                    The cf units of the width and midpoint.
+        Args:
+            width:
+                The width of the triangular function from the centre point.
+            units:
+                The cf units of the width and midpoint.
         """
         self.width = width
         if not isinstance(units, cf_units.Unit):
@@ -733,17 +729,17 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
     ) -> ndarray:
         """Create triangular weights.
 
-            Args:
-                coord_vals:
-                    An array of coordinate values that we want to calculate
-                    weights for.
-                midpoint:
-                    The centre point of the triangular function.
-                width:
-                    The width of the triangular function from the centre point.
+        Args:
+            coord_vals:
+                An array of coordinate values that we want to calculate
+                weights for.
+            midpoint:
+                The centre point of the triangular function.
+            width:
+                The width of the triangular function from the centre point.
 
-            Returns:
-                array of weights, sum of all weights should equal 1.0.
+        Returns:
+            array of weights, sum of all weights should equal 1.0.
         """
 
         def calculate_weight(point: float, slope: float) -> float:
@@ -785,22 +781,22 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
     def process(self, cube: Cube, coord_name: str, midpoint: float) -> Cube:
         """Calculate triangular weights for a given cube and coord.
 
-            Args:
-                cube:
-                    Cube to blend across the coord.
-                coord_name:
-                    Name of coordinate in the cube to be blended.
-                midpoint:
-                    The centre point of the triangular function.  This is
-                    assumed to be provided in the same units as "self.width",
-                    ie "self.parameter_units" as initialised.
+        Args:
+            cube:
+                Cube to blend across the coord.
+            coord_name:
+                Name of coordinate in the cube to be blended.
+            midpoint:
+                The centre point of the triangular function.  This is
+                assumed to be provided in the same units as "self.width",
+                ie "self.parameter_units" as initialised.
 
-            Returns:
-                1D cube of normalised (sum = 1.0) weights matching length
-                of input dimension to be blended
+        Returns:
+            1D cube of normalised (sum = 1.0) weights matching length
+            of input dimension to be blended
 
-            Raises:
-                TypeError : input is not a cube
+        Raises:
+            TypeError : input is not a cube
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = (

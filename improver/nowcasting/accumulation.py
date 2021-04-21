@@ -103,11 +103,9 @@ class Accumulation(BasePlugin):
             cubes:
                 A cubelist containing input precipitation rate cubes.
         Returns:
-            **cubes**:
-                The cubelist in ascending time order.
-            **times**:
-                A list of the validity times of the precipitation rate
-                cubes in integer seconds since 1970-01-01 00:00:00.
+            - The cubelist in ascending time order.
+            - A list of the validity times of the precipitation rate
+              cubes in integer seconds since 1970-01-01 00:00:00.
         """
         times = np.array([cube.coord("time").points[0] for cube in cubes])
         time_sorted = np.argsort(times)
@@ -126,14 +124,11 @@ class Accumulation(BasePlugin):
                 expected to be regular.
 
         Returns:
-            **cubes**:
-                Modified version of the input cube list of precipitation
-                rates that have had the units of the coordinates and
-                cube data enforced. The cube list has also been sorted by
-                time.
-
-                **time_interval**:
-                    Interval between the timesteps from the input cubelist.
+            - Modified version of the input cube list of precipitation
+              rates that have had the units of the coordinates and
+              cube data enforced. The cube list has also been sorted by
+              time.
+            - Interval between the timesteps from the input cubelist.
 
         Raises:
             ValueError: The input rates cubes must be at regularly spaced

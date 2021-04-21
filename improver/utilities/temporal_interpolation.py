@@ -247,10 +247,8 @@ class TemporalInterpolation(BasePlugin):
             cube:
                 cube containing x and y axis
         Returns:
-            **lats**:
-                2d Array of latitudes for each point.
-            **lons**:
-                2d Array of longitudes for each point.
+            - 2d Array of latitudes for each point.
+            - 2d Array of longitudes for each point.
 
         """
         trg_crs = lat_lon_determine(cube)

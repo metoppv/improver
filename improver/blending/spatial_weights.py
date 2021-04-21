@@ -170,11 +170,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 have been set to 0
 
         Returns:
-            **weights**:
-                Weights where MASKED slices have been rescaled, but UNMASKED
-                slices have not
-            **rescaled**:
-                Binary (0/1) map showing which weights have been rescaled
+            - Weights where MASKED slices have been rescaled, but UNMASKED
+              slices have not
+            - Binary (0/1) map showing which weights have been rescaled
         """
         is_rescaled = iris.cube.CubeList()
         rescaled_weights = iris.cube.CubeList()
