@@ -213,9 +213,11 @@ def find_percentile_coordinate(cube: Cube) -> Coord:
     Args:
         cube:
             Cube contain one or more percentiles.
+
     Returns:
         iris.coords.Coord:
             Percentile coordinate.
+
     Raises:
         TypeError: If cube is not of type iris.cube.Cube.
         CoordinateNotFoundError: If no percentile coordinate is found in cube.

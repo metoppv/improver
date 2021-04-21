@@ -98,6 +98,7 @@ class RebadgePercentilesAsRealizations(BasePlugin):
                 realization coordinate. Default is None, meaning the
                 realization coordinate will be numbered 0, 1, 2 ... n-1 for n
                 percentiles on the input cube.
+
         Raises:
             InvalidCubeError:
                 If the realization coordinate already exists on the cube.
@@ -187,8 +188,10 @@ class ResamplePercentiles(BasePlugin):
         """
         lower_bound, upper_bound = bounds_pairing
         percentiles = insert_lower_and_upper_endpoint_to_1d_array(percentiles, 0, 100)
-        forecast_at_percentiles_with_endpoints = concatenate_2d_array_with_2d_array_endpoints(
-            forecast_at_percentiles, lower_bound, upper_bound
+        forecast_at_percentiles_with_endpoints = (
+            concatenate_2d_array_with_2d_array_endpoints(
+                forecast_at_percentiles, lower_bound, upper_bound
+            )
         )
 
         if np.any(np.diff(forecast_at_percentiles_with_endpoints) < 0):
@@ -218,8 +221,10 @@ class ResamplePercentiles(BasePlugin):
                     upper_bound = forecast_at_percentiles_with_endpoints.max()
                 if lower_bound > forecast_at_percentiles_with_endpoints.min():
                     lower_bound = forecast_at_percentiles_with_endpoints.min()
-                forecast_at_percentiles_with_endpoints = concatenate_2d_array_with_2d_array_endpoints(
-                    forecast_at_percentiles, lower_bound, upper_bound
+                forecast_at_percentiles_with_endpoints = (
+                    concatenate_2d_array_with_2d_array_endpoints(
+                        forecast_at_percentiles, lower_bound, upper_bound
+                    )
                 )
             else:
                 raise ValueError(msg)
@@ -254,11 +259,11 @@ class ResamplePercentiles(BasePlugin):
                 cumulative distribution function.
             percentile_coord_name:
                 Name of required percentile coordinate.
+
         Returns:
             iris.cube.Cube:
                 Cube containing values for the required diagnostic e.g.
                 air_temperature at the required percentiles.
-
         """
         original_percentiles = forecast_at_percentiles.coord(
             percentile_coord_name
@@ -300,7 +305,9 @@ class ResamplePercentiles(BasePlugin):
         template_cube = next(forecast_at_percentiles.slices_over(percentile_coord_name))
         template_cube.remove_coord(percentile_coord_name)
         percentile_cube = create_cube_with_percentiles(
-            desired_percentiles, template_cube, forecast_at_percentiles_data,
+            desired_percentiles,
+            template_cube,
+            forecast_at_percentiles_data,
         )
         return percentile_cube
 
@@ -335,11 +342,11 @@ class ResamplePercentiles(BasePlugin):
                      at dividing a Cumulative Distribution Function into
                      blocks of equal probability.
                 * Random: A random set of ordered percentiles.
+
         Returns:
             iris.cube.Cube:
                 Cube with forecast values at the desired set of percentiles.
                 The percentile coordinate is always the zeroth dimension.
-
         """
         percentile_coord = find_percentile_coordinate(forecast_at_percentiles)
 
@@ -414,6 +421,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             bounds_pairing:
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
+
         Returns:
             (tuple): tuple containing:
                 **threshold_points**:
@@ -464,8 +472,10 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                     upper_bound = max(threshold_points_with_endpoints)
                 if lower_bound > min(threshold_points_with_endpoints):
                     lower_bound = min(threshold_points_with_endpoints)
-                threshold_points_with_endpoints = insert_lower_and_upper_endpoint_to_1d_array(
-                    threshold_points, lower_bound, upper_bound
+                threshold_points_with_endpoints = (
+                    insert_lower_and_upper_endpoint_to_1d_array(
+                        threshold_points, lower_bound, upper_bound
+                    )
                 )
             else:
                 raise ValueError(msg)
@@ -492,14 +502,17 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             bounds_pairing:
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
+
         Returns:
             iris.cube.Cube:
                 Cube containing values for the required diagnostic e.g.
                 air_temperature at the required percentiles.
+
         Raises:
             NotImplementedError: If the threshold coordinate has an
                 spp__relative_to_threshold attribute that is not either
                 "above" or "below".
+
         Warns:
             Warning: If the probability values are not ascending, so the
                 resulting cdf is not monotonically increasing.
@@ -696,7 +709,9 @@ class ConvertLocationAndScaleParameters:
     """
 
     def __init__(
-        self, distribution: str = "norm", shape_parameters: Optional[ndarray] = None,
+        self,
+        distribution: str = "norm",
+        shape_parameters: Optional[ndarray] = None,
     ) -> None:
         """
         Initialise the class.
@@ -946,7 +961,6 @@ class ConvertLocationAndScaleParametersToPercentiles(
             ValueError: Ensure that it is not possible to supply
                 "no_of_percentiles" and "percentiles" simultaneously
                 as keyword arguments.
-
         """
         if no_of_percentiles and percentiles:
             msg = (
@@ -959,8 +973,10 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
         if no_of_percentiles:
             percentiles = choose_set_of_percentiles(no_of_percentiles)
-        calibrated_forecast_percentiles = self._location_and_scale_parameters_to_percentiles(
-            location_parameter, scale_parameter, template_cube, percentiles
+        calibrated_forecast_percentiles = (
+            self._location_and_scale_parameters_to_percentiles(
+                location_parameter, scale_parameter, template_cube, percentiles
+            )
         )
 
         return calibrated_forecast_percentiles
@@ -993,6 +1009,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
             cube:
                 A cube whose dimensions are checked to ensure they match what
                 is expected.
+
         Raises:
             ValueError: If cube is not of the expected dimensions.
         """
@@ -1034,6 +1051,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
                 Cube of scale parameter values.
             probability_cube_template:
                 Cube containing threshold values.
+
         Raises:
             ValueError: If units of input cubes are not compatible.
         """
@@ -1273,7 +1291,6 @@ class EnsembleReordering(BasePlugin):
                 Cube for post-processed realizations where at a particular grid
                 point, the ranking of the values within the ensemble matches
                 the ranking from the raw ensemble.
-
         """
         results = iris.cube.CubeList([])
         for rawfc, calfc in zip(
