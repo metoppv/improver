@@ -79,13 +79,9 @@ class SnowFraction(PostProcessingPlugin):
                 Contains exactly two cubes, one of rain and one of snow. Both must be
                 either rates or accumulations of the same length and of compatible units.
 
-        Returns:
-            None
-
         Raises:
             ValueError:
                 If any of the criteria above are not met.
-
         """
         if len(input_cubes) != 2:
             raise ValueError(
@@ -184,7 +180,6 @@ class SnowFraction(PostProcessingPlugin):
 
         Raises:
             ValueError: if input cubes fail any comparison tests.
-
         """
         self._get_input_cubes(input_cubes)
 
