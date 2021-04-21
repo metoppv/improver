@@ -108,28 +108,28 @@ def generate_metadata(
     """ Generate a cube with metadata only.
 
     Args:
-        name (str):
+        name:
             Output variable name, or if creating a probability cube the name of the
             underlying variable to which the probability field applies.
-        units (Optional[str]):
+        units:
             Output variable units, or if creating a probability cube the units of the
             underlying variable / threshold.
-        time_period (Optional[int]):
+        time_period:
             The period in minutes between the time bounds. This is used to calculate
             the lower time bound. If unset the diagnostic will be instantaneous, i.e.
             without time bounds.
-        ensemble_members (Optional[int]):
+        ensemble_members:
             Number of ensemble members. Default 8, unless percentile or probability set
             to True.
-        leading_dimension (Optional[List[float]]):
+        leading_dimension:
             List of realizations, percentiles or thresholds.
-        cube_type (Optional[str]):
+        cube_type:
             The type of cube to be generated. Permitted values are "variable",
             "percentile" or "probability".
-        spp__relative_to_threshold (Optional[str]):
+        spp__relative_to_threshold:
             Value of the attribute "spp__relative_to_threshold" which is required for
             IMPROVER probability cubes.
-        npoints (Optional[int]):
+        npoints:
             Number of points along each of the y and x spatial axes.
         **kwargs:
             Additional keyword arguments to pass to the required cube setup function.

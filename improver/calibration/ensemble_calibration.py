@@ -117,7 +117,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Ranked Probability Score (CRPS).
 
         Args:
-            tolerance (float):
+            tolerance:
                 The tolerance for the Continuous Ranked Probability
                 Score (CRPS) calculated by the minimisation. The CRPS is in
                 the units of the variable being calibrated. The tolerance is
@@ -125,7 +125,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 we aiming to forecast for a particular variable. Once multiple
                 iterations result in a CRPS equal to the same value within the
                 specified tolerance, the minimisation will terminate.
-            max_iterations (int):
+            max_iterations:
                 The maximum number of iterations allowed until the
                 minimisation has converged to a stable solution. If the
                 maximum number of iterations is reached, but the minimisation
@@ -134,7 +134,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 predictor_of_mean is "realizations", then the number of
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
-            point_by_point (bool):
+            point_by_point:
                 If True, coefficients are calculated independently for each
                 point within the input cube by minimising each point
                 independently.
@@ -162,7 +162,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         the threshold, a warning message is printed.
 
         Args:
-            allvecs (list):
+            allvecs:
                 List of numpy arrays containing the optimised coefficients,
                 after each iteration.
 
@@ -204,7 +204,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             forecast_predictor (numpy.ndarray)
             truth (numpy.ndarray)
             forecast_var (numpy.ndarray)
-            sqrt_pi (np.float64):
+            sqrt_pi:
                 Square root of pi for minimisation.
             predictor (str)
 
@@ -277,7 +277,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         list of sites where x and y share a common dimension.
 
         Args:
-            minimisation_function (method instance):
+            minimisation_function:
                 Function to use when minimising.
             initial_guess (list)
             forecast_predictor (iris.cube.Cube)
@@ -357,7 +357,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         set of coefficients.
 
         Args:
-            minimisation_function (method instance):
+            minimisation_function:
                 Function to use when minimising.
             initial_guess (list)
             forecast_predictor (iris.cube.Cube)
@@ -430,22 +430,22 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 <improver.calibration.ensemble_calibration>`.
 
         Args:
-            initial_guess (list):
+            initial_guess:
                 List of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
-            forecast_predictor (iris.cube.Cube):
+            forecast_predictor:
                 Cube containing the fields to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
-            truth (iris.cube.Cube):
+            truth:
                 Cube containing the field, which will be used as truth.
-            forecast_var (iris.cube.Cube):
+            forecast_var:
                 Cube containing the field containing the ensemble variance.
-            predictor (str):
+            predictor:
                 String to specify the form of the predictor used to calculate
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
-            distribution (str):
+            distribution:
                 String used to access the appropriate function for use in the
                 minimisation within self.minimisation_dict.
 
@@ -520,19 +520,19 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Monthly Weather Review, 133(5), pp.1098-1118.
 
         Args:
-            initial_guess (list):
+            initial_guess:
                 List of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
-            forecast_predictor (numpy.ndarray):
+            forecast_predictor:
                 Data to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
-            truth (numpy.ndarray):
+            truth:
                 Data to be used as truth.
-            forecast_var (numpy.ndarray):
+            forecast_var:
                 Ensemble variance data.
-            sqrt_pi (numpy.ndarray):
+            sqrt_pi:
                 Square root of Pi
-            predictor (str):
+            predictor:
                 String to specify the form of the predictor used to calculate
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
@@ -592,19 +592,19 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Series A: Statistics in Society, 173(2), pp.371-388.
 
         Args:
-            initial_guess (list):
+            initial_guess:
                 List of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
-            forecast_predictor (numpy.ndarray):
+            forecast_predictor:
                 Data to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
-            truth (numpy.ndarray):
+            truth:
                 Data to be used as truth.
-            forecast_var (numpy.ndarray):
+            forecast_var:
                 Ensemble variance data.
-            sqrt_pi (numpy.ndarray):
+            sqrt_pi:
                 Square root of Pi
-            predictor (str):
+            predictor:
                 String to specify the form of the predictor used to calculate
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
@@ -680,33 +680,33 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 <improver.calibration.ensemble_calibration>`.
 
         Args:
-            distribution (str):
+            distribution:
                 Name of distribution. Assume that a calibrated version of the
                 current forecast could be represented using this distribution.
-            point_by_point (bool):
+            point_by_point:
                 If True, coefficients are calculated independently for each
                 point within the input cube by creating an initial guess and
                 minimising each grid point independently. Please note this
                 option is memory intensive and is unsuitable for gridded input.
                 Using a default initial guess may reduce the memory overhead
                 option.
-            use_default_initial_guess (bool):
+            use_default_initial_guess:
                 If True, use the default initial guess. The default initial
                 guess assumes no adjustments are required to the initial
                 choice of predictor to generate the calibrated distribution.
                 This means coefficients of 1 for the multiplicative
                 coefficients and 0 for the additive coefficients. If False,
                 the initial guess is computed.
-            desired_units (str or cf_units.Unit):
+            desired_units:
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
                 converted as required.
-            predictor (str):
+            predictor:
                 String to specify the form of the predictor used to calculate
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
-            tolerance (float):
+            tolerance:
                 The tolerance for the Continuous Ranked Probability
                 Score (CRPS) calculated by the minimisation. The CRPS is in
                 the units of the variable being calibrated. The tolerance is
@@ -714,7 +714,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 we aiming to forecast for a particular variable. Once multiple
                 iterations result in a CRPS equal to the same value within the
                 specified tolerance, the minimisation will terminate.
-            max_iterations (int):
+            max_iterations:
                 The maximum number of iterations allowed until the
                 minimisation has converged to a stable solution. If the
                 maximum number of iterations is reached, but the minimisation
@@ -766,7 +766,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """Set attributes for use on the EMOS coefficients cube.
 
         Args:
-            historic_forecasts (iris.cube.Cube):
+            historic_forecasts:
                 Historic forecasts from the training dataset.
 
         Returns:
@@ -791,7 +791,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         for the EMOS coefficients cube.
 
         Args:
-            historic_forecasts (iris.cube.Cube):
+            historic_forecasts:
                 Historic forecasts from the training dataset.
 
         Returns:
@@ -820,7 +820,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """Set-up the spatial dimensions and coordinates for the EMOS
         coefficients cube.
         Args:
-            historic_forecasts (iris.cube.Cube):
+            historic_forecasts:
                 Historic forecasts from the training dataset.
         Returns:
             Tuple[List[int], List[iris.coords.Coord]:
@@ -857,11 +857,11 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         Args:
             optimised_coeffs (numpy.ndarray)
-            historic_forecasts (iris.cube.Cube):
+            historic_forecasts:
                 Historic forecasts from the training dataset.
 
         Returns:
-            cubelist (iris.cube.CubeList):
+            cubelist:
                 CubeList constructed using the coefficients provided and using
                 metadata from the historic_forecasts cube. Each cube within the
                 cubelist is for a separate EMOS coefficient e.g. alpha, beta,
@@ -919,10 +919,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
            ensemble_calibration/create_coefficients_cube.rst
 
         Args:
-            optimised_coeffs (list or numpy.ndarray):
+            optimised_coeffs:
                 Array or list of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
-            historic_forecasts (iris.cube.Cube):
+            historic_forecasts:
                 Historic forecasts from the training dataset.
 
         Returns:
@@ -992,17 +992,17 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         modified based on the results from the linear regression fit.
 
         Args:
-            truths (numpy.ndarray):
+            truths:
                 Array containing the truth fields.
-            forecast_predictor (numpy.ndarray):
+            forecast_predictor:
                 Array containing the fields to be used as the predictor,
                 either the ensemble mean or the ensemble realizations.
-            predictor (str):
+            predictor:
                 String to specify the form of the predictor used to calculate
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
-            number_of_realizations (int or None):
+            number_of_realizations:
                 Number of realizations within the forecast predictor. If no
                 realizations are present, this option is None.
 
@@ -1063,7 +1063,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         filled with nans and masked.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 A cube to be masked, on the same grid as the landsea_mask.
                 The last two dimensions on this cube must match the dimensions
                 in the landsea_mask cube.
@@ -1096,16 +1096,16 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         coefficients within a CubeList.
 
         Args:
-            truths (iris.cube.Cube):
+            truths:
                 Truths from the training dataset.
-            historic_forecasts (iris.cube.Cube):
+            historic_forecasts:
                 Historic forecasts from the training dataset.
-            forecast_predictor (iris.cube.Cube):
+            forecast_predictor:
                 Predictor of the forecast within the minimisation. This
                 is either the ensemble mean or the ensemble realizations.
-            forecast_var (iris.cube.Cube):
+            forecast_var:
                 Variance of the forecast for use in the minimisation.
-            number_of_realizations (int or None):
+            number_of_realizations:
                 Number of realizations within the forecast predictor. If no
                 realizations are present, this option is None.
 
@@ -1196,11 +1196,11 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         7. Perform minimisation.
 
         Args:
-            historic_forecasts (iris.cube.Cube):
+            historic_forecasts:
                 Historic forecasts from the training dataset.
-            truths (iris.cube.Cube):
+            truths:
                 Truths from the training dataset.
-            landsea_mask (iris.cube.Cube):
+            landsea_mask:
                 The optional cube containing a land-sea mask. If provided, only
                 land points are used to calculate the coefficients. Within the
                 land-sea mask cube land points should be specified as ones,
@@ -1295,7 +1295,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         parameters that represent the calibrated distribution at each point.
 
         Args:
-            predictor (str):
+            predictor:
                 String to specify the form of the predictor used to calculate
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
@@ -1474,17 +1474,17 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         Creation of output cubes containing the location and scale parameters.
 
         Args:
-            location_parameter (numpy.ndarray):
+            location_parameter:
                 Location parameter of the calibrated distribution.
-            scale_parameter (numpy.ndarray):
+            scale_parameter:
                 Scale parameter of the calibrated distribution.
 
         Returns:
             (tuple): tuple containing:
-                **location_parameter_cube** (iris.cube.Cube):
+                **location_parameter_cube**:
                     Location parameter of the calibrated distribution with
                     associated metadata.
-                **scale_parameter_cube** (iris.cube.Cube):
+                **scale_parameter_cube**:
                     Scale parameter of the calibrated distribution with
                     associated metadata.
         """
@@ -1519,13 +1519,13 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         distribution.
 
         Args:
-            current_forecast (iris.cube.Cube):
+            current_forecast:
                 The cube containing the current forecast.
-            coefficients_cubelist (iris.cube.CubeList):
+            coefficients_cubelist:
                 CubeList of EMOS coefficients where each cube within the
                 cubelist is for a separate EMOS coefficient e.g. alpha, beta,
                 gamma, delta.
-            landsea_mask (iris.cube.Cube or None):
+            landsea_mask:
                 The optional cube containing a land-sea mask. If provided sea
                 points will be masked in the output cube.
                 This cube needs to have land points set to 1 and
@@ -1533,13 +1533,13 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **location_parameter_cube** (iris.cube.Cube):
+                **location_parameter_cube**:
                     Cube containing the location parameter of the calibrated
                     distribution calculated using either the ensemble mean or
                     the ensemble realizations. The location parameter
                     represents the point at which a resulting PDF would be
                     centred.
-                **scale_parameter_cube** (iris.cube.Cube):
+                **scale_parameter_cube**:
                     Cube containing the scale parameter of the calibrated
                     distribution calculated using either the ensemble mean or
                     the ensemble realizations. The scale parameter represents
@@ -1599,11 +1599,11 @@ class ApplyEMOS(PostProcessingPlugin):
         coefficients cubelist.
 
         Args:
-            coefficients (iris.cube.CubeList):
+            coefficients:
                 EMOS coefficients
-            attribute_name (str):
+            attribute_name:
                 Name of expected attribute
-            optional (bool):
+            optional:
                 Indicate whether the attribute is allowed to be optional.
 
         Returns:
@@ -1662,7 +1662,7 @@ class ApplyEMOS(PostProcessingPlugin):
 
         Args:
             forecast (iris.cube.Cube)
-            realizations_count (int):
+            realizations_count:
                 Number of pseudo-realizations to generate from the input
                 forecast
             ignore_ecc_bounds (bool)
@@ -1698,13 +1698,13 @@ class ApplyEMOS(PostProcessingPlugin):
         Generate calibrated probability, percentile or realization output
 
         Args:
-            forecast (iris.cube.Cube):
+            forecast:
                 Uncalibrated input forecast
-            randomise (bool):
+            randomise:
                 If True, order realization output randomly rather than using
                 the input forecast.  If forecast type is not realizations, this
                 is ignored.
-            random_seed (int):
+            random_seed:
                 For realizations input if randomise is True, random seed for
                 generating re-ordered percentiles.  If randomise is False, the
                 random seed may still be used for splitting ties.
@@ -1767,28 +1767,28 @@ class ApplyEMOS(PostProcessingPlugin):
         """Calibrate input forecast using pre-calculated coefficients
 
         Args:
-            forecast (iris.cube.Cube):
+            forecast:
                 Uncalibrated forecast as probabilities, percentiles or
                 realizations
-            coefficients (iris.cube.CubeList):
+            coefficients:
                 EMOS coefficients
-            land_sea_mask (iris.cube.Cube or None):
+            land_sea_mask:
                 Land sea mask where a value of "1" represents land points and
                 "0" represents sea.  If set, allows calibration of land points
                 only.
-            realizations_count (int or None):
+            realizations_count:
                 Number of realizations to use when generating the intermediate
                 calibrated forecast from probability or percentile inputs
-            ignore_ecc_bounds (bool):
+            ignore_ecc_bounds:
                 If True, allow percentiles from probabilities to exceed the ECC
                 bounds range.  If input is not probabilities, this is ignored.
-            predictor (str):
+            predictor:
                 Predictor to be used to calculate the location parameter of the
                 calibrated distribution.  Value is "mean" or "realizations".
-            randomise (bool):
+            randomise:
                 Used in generating calibrated realizations.  If input forecast
                 is probabilities or percentiles, this is ignored.
-            random_seed (int or None):
+            random_seed:
                 Used in generating calibrated realizations.  If input forecast
                 is probabilities or percentiles, this is ignored.
 

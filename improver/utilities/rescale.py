@@ -49,17 +49,17 @@ def rescale(
     All adjustments are linear
 
     Args:
-        data (numpy.ndarray):
+        data:
             Source values
-        data_range (list):
+        data_range:
             List containing two floats
             Lowest and highest source value to rescale.
             Default value of None is converted to [min(data), max(data)]
-        scale_range (list):
+        scale_range:
             List containing two floats
             Lowest and highest value after rescaling.
             Defaults to (0., 1.)
-        clip (bool):
+        clip:
             If True, points where data were outside the scaling range
             will be set to the scale min or max appropriately.
             Default is False which continues the scaling beyond min and
@@ -107,16 +107,16 @@ def apply_double_scaling(
     containing either the higher or lower value as needed.
 
     Args:
-        data_cube (iris.cube.Cube):
+        data_cube:
             Data from which to create a rescaled data array
-        scaled_cube (iris.cube.Cube):
+        scaled_cube:
             Data already in the rescaled frame of reference which will be
             combined with the rescaled data_cube using the combine_function.
-        data_vals (tuple of three values):
+        data_vals:
             Lower, mid and upper points to rescale data_cube from
-        scaling_vals (tuple of three values):
+        scaling_vals:
             Lower, mid and upper points to rescale data_cube to
-        combine_function (Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]):
+        combine_function:
             Function that takes two arrays of the same shape and returns
             one array of the same shape.
             Expected to be numpy.minimum (default) or numpy.maximum.

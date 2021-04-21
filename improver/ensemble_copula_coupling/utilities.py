@@ -55,12 +55,12 @@ def concatenate_2d_array_with_2d_array_endpoints(
     are performed along the second (index 1) dimension.
 
     Args:
-        array_2d (numpy.ndarray):
+        array_2d:
             2d array of values
-        low_endpoint (float or int):
+        low_endpoint:
             Number used to create a 2d array of a constant value
             as the lower endpoint.
-        high_endpoint (float or int):
+        high_endpoint:
             Number of used to create a 2d array of a constant value
             as the upper endpoint.
     Returns:
@@ -83,9 +83,9 @@ def choose_set_of_percentiles(
     Function to create percentiles.
 
     Args:
-        no_of_percentiles (int):
+        no_of_percentiles:
             Number of percentiles.
-        sampling (str):
+        sampling:
             Type of sampling of the distribution to produce a set of
             percentiles e.g. quantile or random.
 
@@ -148,19 +148,19 @@ def create_cube_with_percentiles(
     desired output cube.
 
     Args:
-        percentiles (list):
+        percentiles:
             Ensemble percentiles. There should be the same number of
             percentiles as the first dimension of cube_data.
-        template_cube (iris.cube.Cube):
+        template_cube:
             Cube to copy metadata from.
-        cube_data (numpy.ndarray):
+        cube_data:
             Data to insert into the template cube.
             The shape of the cube_data, excluding the dimension associated with
             the percentile coordinate, should be the same as the shape of
             template_cube.
             For example, template_cube shape is (3, 3, 3), whilst the cube_data
             is (10, 3, 3, 3), where there are 10 percentiles.
-        cube_unit (cf_units.Unit):
+        cube_unit:
             The units of the data within the cube, if different from those of
             the template_cube.
 
@@ -199,14 +199,14 @@ def get_bounds_of_distribution(bounds_pairing_key: str, desired_units: Unit) -> 
     The units of the bounds are converted to be the desired units.
 
     Args:
-        bounds_pairing_key (str):
+        bounds_pairing_key:
             Name of key to be used for the BOUNDS_FOR_ECDF dictionary, in order
             to get the desired bounds_pairing.
-        desired_units (cf_units.Unit):
+        desired_units:
             Units to which the bounds_pairing will be converted.
 
     Returns:
-        bounds_pairing (tuple):
+        bounds_pairing:
             Lower and upper bound to be used as the ends of the
             empirical cumulative distribution function, converted to have
             the desired units.
@@ -241,11 +241,11 @@ def insert_lower_and_upper_endpoint_to_1d_array(
     For a 1d array, add a lower and upper endpoint.
 
     Args:
-        array_1d (numpy.ndarray):
+        array_1d:
             1d array of values
-        low_endpoint (float or int):
+        low_endpoint:
             Number of use as the lower endpoint.
-        high_endpoint (float or int):
+        high_endpoint:
             Number of use as the upper endpoint.
     Returns:
         numpy.ndarray:
@@ -269,15 +269,15 @@ def restore_non_percentile_dimensions(
     whilst ensuring that the probabilistic dimension is the first dimension.
 
     Args:
-        array_to_reshape (numpy.ndarray):
+        array_to_reshape:
             The array that requires reshaping.  This has dimensions "percentiles"
             by "points", where "points" is a flattened array of all the other
             original dimensions that needs reshaping.
-        original_cube (iris.cube.Cube):
+        original_cube:
             Cube slice containing the desired shape to be reshaped to, apart from
             the probabilistic dimension.  This would typically be expected to be
             either [time, y, x] or [y, x].
-        n_percentiles (int):
+        n_percentiles:
             Length of the required probabilistic dimension ("percentiles").
 
     Returns:

@@ -63,12 +63,12 @@ def choose(index_array: ndarray, array_set: ndarray) -> ndarray:
        different colours.
 
     Args:
-        index_array (numpy.ndarray of int):
+        index_array:
             This array must contain integers in the range [0, N-1], where N is
             if the length of the leading dimension of the array_set array.
             These integers determine how array_set will be reordered in the
             returned array.
-        array_set (numpy.ndarray):
+        array_set:
             A multi-dimensional array, where the leading dimension is in effect
             an indexing dimension. Within this leading dimension are the
             sub-arrays from which values are to be extracted at positions that

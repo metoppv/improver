@@ -63,9 +63,9 @@ class ExtendRadarMask(BasePlugin):
         is valid
 
         Args:
-            radar_data (iris.cube.Cube):
+            radar_data:
                 Radar data with mask corresponding to radar domains
-            coverage (iris.cube.Cube):
+            coverage:
                 Radar coverage data containing values:
                     0: outside composite
                     1: precip detected
@@ -154,7 +154,7 @@ class FillRadarHoles(BasePlugin):
         for interpolation.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing rainrates (mm/h).  Data modified in place.
         """
         mask_windows = neighbourhood_tools.pad_and_roll(
@@ -194,7 +194,7 @@ class FillRadarHoles(BasePlugin):
         to minimise gaps in the extrapolation nowcast.
 
         Args:
-            masked_radar (iris.cube.Cube):
+            masked_radar:
                 A masked cube of radar precipitation rates
 
         Returns:
@@ -223,7 +223,7 @@ class ApplyOrographicEnhancement(BasePlugin):
         """Initialise class.
 
         Args:
-            operation (str):
+            operation:
                 Operation ("add" or "subtract") to apply to the incoming cubes.
 
         Raises:
@@ -248,12 +248,12 @@ class ApplyOrographicEnhancement(BasePlugin):
         coordinate.
 
         Args:
-            precip_cube (iris.cube.Cube):
+            precip_cube:
                 Cube containing the input precipitation fields.
-            oe_cube (iris.cube.Cube):
+            oe_cube:
                 Cube containing orographic enhancement fields at one or
                 more times.
-            allowed_time_diff (int):
+            allowed_time_diff:
                 The maximum permitted difference, in integer seconds,
                 between the datetime of the precipitation cube and the time
                 points available within the orographic enhancement cube.
@@ -283,9 +283,9 @@ class ApplyOrographicEnhancement(BasePlugin):
         cube.
 
         Args:
-            precip_cube (iris.cube.Cube):
+            precip_cube:
                 Cube containing the input precipitation field.
-            oe_cube (iris.cube.Cube):
+            oe_cube:
                 Cube containing the orographic enhancement field matching
                 the validity time of the precipitation cube.
 
@@ -332,9 +332,9 @@ class ApplyOrographicEnhancement(BasePlugin):
         minimum precipitation rate.
 
         Args:
-            precip_cube (iris.cube.Cube):
+            precip_cube:
                 Cube containing a precipitation rate input field.
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the precipitation rate field after combining
                 with orographic enhancement.
 
@@ -379,10 +379,10 @@ class ApplyOrographicEnhancement(BasePlugin):
         from the input precipitation fields.
 
         Args:
-            precip_cubes (iris.cube.Cube or iterable of iris.cube.Cube):
+            precip_cubes:
                 Cube or iterable (list, CubeList or tuple) of cubes containing
                 the input precipitation fields.
-            orographic_enhancement_cube (iris.cube.Cube):
+            orographic_enhancement_cube:
                 Cube containing the orographic enhancement fields.
 
         Returns:

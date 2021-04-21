@@ -136,10 +136,10 @@ class OrographicEnhancement(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **gradx** (iris.cube.Cube):
+                **gradx**:
                     2D cube of dimensionless topography gradients in the
                     positive x direction
-                **grady** (iris.cube.Cube):
+                **grady**:
                     2D cube of dimensionless topography gradients in the
                     positive y direction
         """
@@ -169,9 +169,9 @@ class OrographicEnhancement(BasePlugin):
         units.  This function does not modify the input variable cube.
 
         Args:
-            var_cube (iris.cube.Cube):
+            var_cube:
                 Cube containing input variable data
-            unit (str):
+            unit:
                 Required unit for this variable
 
         Returns:
@@ -206,19 +206,19 @@ class OrographicEnhancement(BasePlugin):
         to SI units.  Also calculates V.gradZ as a class member.
 
         Args:
-            temperature (iris.cube.Cube):
+            temperature:
                 Temperature at top of boundary layer
-            humidity (iris.cube.Cube):
+            humidity:
                 Relative humidity at top of boundary layer
-            pressure (iris.cube.Cube):
+            pressure:
                 Pressure at top of boundary layer
-            uwind (iris.cube.Cube):
+            uwind:
                 Positive eastward wind vector component at top of boundary
                 layer
-            vwind (iris.cube.Cube):
+            vwind:
                 Positive northward wind vector component at top of boundary
                 layer
-            topography (iris.cube.Cube):
+            topography:
                 Height of topography above sea level on 1 km UKPP domain grid
         """
         # convert topography grid, datatype and units
@@ -320,11 +320,11 @@ class OrographicEnhancement(BasePlugin):
         Generate 3d array of distances to upstream components
 
         Args:
-            wind_speed (numpy.ndarray):
+            wind_speed:
                 2D array of wind speeds
-            max_roi (numpy.ndarray):
+            max_roi:
                 2D array of maximum ranges of influence in grid squares
-            max_sin_cos (numpy.ndarray):
+            max_sin_cos:
                 2D array containing the larger of sin(wind_direction) or
                 cos(wind_direction) with respect to grid north
 
@@ -361,20 +361,20 @@ class OrographicEnhancement(BasePlugin):
         ordering [y, x].
 
         Args:
-            wind_speed (numpy.ndarray):
+            wind_speed:
                 2D array of wind speed magnitudes
-            distance (numpy.ndarray):
+            distance:
                 3D array of grid point source-to-destination distances
-            sin_wind_dir (numpy.ndarray):
+            sin_wind_dir:
                 2D array of sin wind direction wrt grid north
-            cos_wind_dir (numpy.ndarray):
+            cos_wind_dir:
                 2D array of cos wind direction wrt grid north
 
         Returns:
             (tuple): tuple containing:
-                **x_source** (numpy.ndarray):
+                **x_source**:
                     3D array of source point x-coordinates
-                **y_source** (numpy.ndarray):
+                **y_source**:
                     3D array of source point y-coordinates
         """
         xpos, ypos = np.meshgrid(
@@ -409,12 +409,12 @@ class OrographicEnhancement(BasePlugin):
         according to source-destination distance.
 
         Args:
-            point_orogenh (numpy.ndarray):
+            point_orogenh:
                 2D array of point orographic enhancement values
-            x_source (numpy.ndarray):
+            x_source:
                 3D array of x-coordinates of source points from which to read
                 upstream contribution
-            y_source (numpy.ndarray):
+            y_source:
                 3D array of y-coordinates of source points from which to read
                 upstream contribution
             distance:
@@ -424,10 +424,10 @@ class OrographicEnhancement(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **orogenh** (numpy.ndarray):
+                **orogenh**:
                     2D array containing a weighted sum of orographic
                     enhancement components from upstream source points
-                **sum_of_weights** (numpy.ndarray):
+                **sum_of_weights**:
                     2D array containing weights for normalisation
         """
         source_values = np.fromiter(
@@ -461,7 +461,7 @@ class OrographicEnhancement(BasePlugin):
         Add upstream component to site orographic enhancement
 
         Args:
-            point_orogenh (numpy.ndarray):
+            point_orogenh:
                 Site orographic enhancement in mm h-1
 
         Returns:
@@ -507,9 +507,9 @@ class OrographicEnhancement(BasePlugin):
         """Creates a cube containing orographic enhancement values in SI units.
 
         Args:
-            orogenh_data (numpy.ndarray):
+            orogenh_data:
                 Orographic enhancement value in mm h-1
-            reference_cube (iris.cube.Cube):
+            reference_cube:
                 Cube with the correct time and forecast period coordinates on
                 the UK standard grid
 
@@ -564,19 +564,19 @@ class OrographicEnhancement(BasePlugin):
         are regridded to match the orography.
 
         Args:
-            temperature (iris.cube.Cube):
+            temperature:
                 Temperature at top of boundary layer
-            humidity (iris.cube.Cube):
+            humidity:
                 Relative humidity at top of boundary layer
-            pressure (iris.cube.Cube):
+            pressure:
                 Pressure at top of boundary layer
-            uwind (iris.cube.Cube):
+            uwind:
                 Positive eastward wind vector component at top of boundary
                 layer
-            vwind (iris.cube.Cube):
+            vwind:
                 Positive northward wind vector component at top of boundary
                 layer
-            topography (iris.cube.Cube):
+            topography:
                 Height of topography above sea level on high resolution (1 km)
                 UKPP domain grid
 

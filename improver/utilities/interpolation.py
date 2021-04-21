@@ -52,22 +52,22 @@ def interpolate_missing_data(
 ) -> ndarray:
     """
     Args:
-        data (numpy.ndarray):
+        data:
             The field of data to be interpolated across gaps.
-        method (str):
+        method:
             The method to use to fill in the data. This is usually "linear" for
             linear interpolation, and "nearest" for a nearest neighbour
             approach. It can take any method available to the method
             scipy.interpolate.griddata.
-        limit (numpy.ndarray):
+        limit:
             The array containing limits for each grid point that are
             imposed on any value in the region that has been interpolated.
-        limit_as_maximum (bool):
+        limit_as_maximum:
             If True the test against the limit array is that if the
             interpolated values exceed the limit they should be set to the
             limit value. If False, the test is whether the interpolated values
             fall below the limit value.
-        valid_points (numpy.ndarray):
+        valid_points:
             A boolean array that allows a subset of the unmasked data to be
             chosen as source data for the interpolation process. True values
             in this array mark points that can be used for interpolation if
@@ -162,20 +162,20 @@ class InterpolateUsingDifference(BasePlugin):
         Apply plugin to input data.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube for which interpolation is required to fill masked
                 regions.
-            reference_cube (iris.cube.Cube):
+            reference_cube:
                 A cube that covers the entire domain that it shares with
                 cube.
-            limit (iris.cube.Cube or None):
+            limit:
                 A cube of limiting values to apply to the cube that is being
                 filled in. This can be used to ensure that the resulting values
                 do not fall below / exceed the limiting values; whether the
                 limit values should be used as a minima or maxima is
                 determined by the limit_as_maximum option. These values should
                 be on an x-y grid of the same size as an x-y slice of cube.
-            limit_as_maximum (bool):
+            limit_as_maximum:
                 If True the test against the values allowed by the limit array
                 is that if the interpolated values exceed the limit they should
                 be set to the limit value. If False, the test is whether the

@@ -44,13 +44,13 @@ def rolling_window(
     array by constructing a non-continuous view mapped onto the input array.
 
     args:
-        input_array (numpy.ndarray):
+        input_array:
             An array from which rolling window neighbourhoods will be created.
-        shape (tuple(int)):
+        shape:
             The neighbourhood shape e.g. if the neighbourhood
             size is 3, the shape would be (3, 3) to create a
             3x3 array around each point in the input_array.
-        writeable (bool):
+        writeable:
             If True the returned view will be writeable. This will modify
             the input array, so use with caution.
 
@@ -102,9 +102,9 @@ def pad_and_roll(
     results in a shape of the original input array.
 
     args:
-        input_array (numpy.ndarray):
+        input_array:
             The dataset of points to pad and create rolling windows for.
-        shape (tuple(int)):
+        shape:
             Desired shape of the neighbourhood. E.g. if a neighbourhood
             width of 1 around the point is desired, this shape should be (3, 3)::
 
@@ -138,11 +138,11 @@ def pad_boxsum(
     the top/left (as required for calculating the boxsum).
 
     Args:
-        data (numpy.ndarray):
+        data:
             The input data array.
-        boxsize (int or pair of int):
+        boxsize:
             The size of the neighbourhood.
-        pad_options (dict):
+        pad_options:
             Additional keyword arguments passed to `numpy.pad` function.
     Returns:
         numpy.ndarray:
@@ -200,15 +200,15 @@ def boxsum(
     in an array filled with ones.
 
     Args:
-        data (numpy.ndarray):
+        data:
             The input data array.
-        boxsize (int or pair of int):
+        boxsize:
             The size of the neighbourhood. Must be an odd number.
-        cumsum (bool):
+        cumsum:
             If False, assume the input data is already cumulative. If True
             (default), calculate cumsum along the last two dimensions of
             the input array.
-        pad_options (dict):
+        pad_options:
             Additional keyword arguments passed to `numpy.pad` function.
             If given, the returned result will have the same shape as the input
             array.

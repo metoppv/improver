@@ -101,7 +101,7 @@ class WeatherSymbols(BasePlugin):
         symbol to each point.
 
         Key Args:
-            wxtree (str):
+            wxtree:
                 Used to choose weather symbol decision tree.
                 Default is "high_resolution"
                 "global" will load the global weather symbol decision tree.
@@ -151,7 +151,7 @@ class WeatherSymbols(BasePlugin):
         compatibility.
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes:
                 A CubeList containing the input diagnostic cubes.
 
         Returns:
@@ -257,13 +257,13 @@ class WeatherSymbols(BasePlugin):
         satisfying the negative ('fail') case.
 
         Args:
-            condition (dict):
+            condition:
                 A single query from the decision tree.
         Returns:
             (tuple): tuple containing:
-                **inverted_threshold** (str):
+                **inverted_threshold**:
                     A string representing the inverted comparison.
-                **inverted_combination** (str):
+                **inverted_combination**:
                     A string representing the inverted combination
         """
         inverted_threshold = self._invert_comparator(condition["threshold_condition"])
@@ -277,7 +277,7 @@ class WeatherSymbols(BasePlugin):
         Construct a list of all the conditions specified in a single query.
 
         Args:
-            test_conditions (dict):
+            test_conditions:
                 A query from the decision tree.
         Returns:
             list:
@@ -344,13 +344,13 @@ class WeatherSymbols(BasePlugin):
         Construct an iris constraint.
 
         Args:
-            diagnostic (str):
+            diagnostic:
                 The name of the diagnostic to be extracted from the CubeList.
-            threshold (iris.AuxCoord):
+            threshold:
                 The thresholds within the given diagnostic cube that is
                 needed, including units.  Note these are NOT coords from the
                 original cubes, just constructs to associate units with values.
-            coord_named_threshold (bool):
+            coord_named_threshold:
                 If true, use old naming convention for threshold coordinates
                 (coord.long_name=threshold).  Otherwise extract threshold
                 coordinate name from diagnostic name
@@ -392,19 +392,19 @@ class WeatherSymbols(BasePlugin):
         Function to trace all routes through the decision tree.
 
         Args:
-            graph (dict):
+            graph:
                 A dictionary that describes each node in the tree,
                 e.g. {<node_name>: [<succeed_name>, <fail_name>]}
-            start (str):
+            start:
                 The node name of the tree root (currently always
                 heavy_precipitation).
-            end (int):
+            end:
                 The weather symbol code to which we are tracing all routes.
             omit_nodes (dict) or None:
                 A dictionary of (keyword) nodes names where the diagnostic
                 data is missing and (values) node associated with
                 diagnostic_missing_action.
-            route (list):
+            route:
                 A list of node names found so far.
 
         Returns:
@@ -447,7 +447,7 @@ class WeatherSymbols(BasePlugin):
         Create an empty weather symbol cube
 
         Args:
-            cubes (list or iris.cube.CubeList):
+            cubes:
                 List of input cubes used to generate weather symbols
         Returns:
             iris.cube.Cube:
@@ -483,7 +483,7 @@ class WeatherSymbols(BasePlugin):
         Args:
             arr (numpy.array)
 
-            comparator (string):
+            comparator:
                 One of  '<', '>', '<=', '>='.
 
             threshold (float)
@@ -515,10 +515,10 @@ class WeatherSymbols(BasePlugin):
         """Evaluate a single condition.
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes:
                 A cubelist containing the diagnostics required for the
                 weather symbols decision tree, these at co-incident times.
-            expression (iris.Constraint or list):
+            expression:
                 Defined recursively:
                 A list consisting of an iris.Constraint or a list of
                 iris.Constraint, strings (representing operators) and floats
@@ -585,10 +585,10 @@ class WeatherSymbols(BasePlugin):
         We can safely use recursion here since the depth will be small.
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes:
                 A cubelist containing the diagnostics required for the
                 weather symbols decision tree, these at co-incident times.
-            condition_chain (list):
+            condition_chain:
                 A valid condition chain is defined recursively:
                 (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
                 constraint, or a list of constraints,
@@ -650,7 +650,7 @@ class WeatherSymbols(BasePlugin):
         symbol output.
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes:
                 A cubelist containing the diagnostics required for the
                 weather symbols decision tree, these at co-incident times.
 

@@ -78,15 +78,15 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         to points in a cube.
 
         Args:
-            neighbourhood_method (Class object):
+            neighbourhood_method:
                 Instance of the class containing the method that will be used
                 for the neighbourhood processing.
-            radii (float or list if defining lead times):
+            radii:
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-            lead_times (list):
+            lead_times:
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
@@ -115,7 +115,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         each cube lead time as required.
 
         Args:
-            cube_lead_times (numpy.ndarray):
+            cube_lead_times:
                 Array of forecast times found in cube.
 
         Returns:
@@ -145,10 +145,10 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         input cube.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube to apply a neighbourhood processing method to, in order to
                 generate a smoother field.
-            mask_cube (iris.cube.Cube):
+            mask_cube:
                 Cube containing the array to be used as a mask.
 
         Returns:
@@ -238,18 +238,18 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
         from a neighbourhood of points.
 
         Args:
-            neighbourhood_method (str):
+            neighbourhood_method:
                 Name of the neighbourhood method to use. Options: 'circular'.
-            radii (float or list):
+            radii:
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-            lead_times (list, optional):
+            lead_times:
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
-            percentiles (list):
+            percentiles:
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES.
         """
@@ -290,30 +290,30 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         to points in a cube.
 
         Args:
-            neighbourhood_method (str):
+            neighbourhood_method:
                 Name of the neighbourhood method to use. Options: 'circular',
                 'square'.
-            radii (float or list):
+            radii:
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-            lead_times (list):
+            lead_times:
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
-            weighted_mode (bool):
+            weighted_mode:
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
                 If False, use a circle with constant weighting.
-            sum_or_fraction (str):
+            sum_or_fraction:
                 Identifier for whether sum or fraction should be returned from
                 neighbourhooding. The sum represents the sum of the
                 neighbourhood. The fraction represents the sum of the
                 neighbourhood divided by the neighbourhood area.
                 "fraction" is the default.
                 Valid options are "sum" or "fraction".
-            re_mask (bool):
+            re_mask:
                 If re_mask is True, the original un-neighbourhood processed
                 mask is applied to mask out the neighbourhood processed cube.
                 If re_mask is False, the original un-neighbourhood processed

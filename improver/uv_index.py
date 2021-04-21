@@ -51,22 +51,22 @@ def calculate_uv_index(
     The scaling factor is configurable by the user.
 
     Args:
-        uv_upward (iris.cube.Cube):
+        uv_upward:
             A cube of the radiation flux in UV upward at surface. This is a
             UM diagnostic produced by the UM radiation scheme.
             This band covers 200-320 nm and uses six absorption coefficients
             for ozone and one Rayleigh scattering coefficient(W m-2)
-        uv_downward (iris.cube.Cube):
+        uv_downward:
             A cube of the radiation flux in UV downward at surface.
             This is a UM diagnostic produced by the UM radiation scheme
             see above or the paper referenced for more details.(W m-2)
-        scale_factor (float):
+        scale_factor:
             The uv scale factor. Default is 3.6. This factor has
             been empirically derived and should not be
             changed except if there are scientific reasons to
             do so. For more information see section 2.1.1 of the paper
             referenced below (no units)
-        model_id_attr (str):
+        model_id_attr:
             Name of the attribute used to identify the source model for
             blending.
 

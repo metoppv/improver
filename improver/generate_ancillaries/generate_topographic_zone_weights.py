@@ -65,17 +65,17 @@ class GenerateTopographicZoneWeights(BasePlugin):
         the midpoint, unless the band being processed is the uppermost band.
 
         Args:
-            topographic_zone_weights (numpy.ndarray):
+            topographic_zone_weights:
                 Weights that we have already calculated for the points
                 within the orography band.
-            orography_band (numpy.ndarray):
+            orography_band:
                 All points within the orography band of interest.
-            midpoint (float):
+            midpoint:
                 The midpoint of the band the point is in.
-            band_number (float):
+            band_number:
                 The index that corresponds to the band that is currently being
                 processed.
-            max_band_number (float):
+            max_band_number:
                 The highest index for the bands coordinate in the weights.
 
         Returns:
@@ -112,14 +112,14 @@ class GenerateTopographicZoneWeights(BasePlugin):
         the midpoint, unless the band being processed is the lowest band.
 
         Args:
-            topographic_zone_weights (numpy.ndarray):
+            topographic_zone_weights:
                 Weights that we have already calculated for the points
                 within the orography band.
-            orography_band (numpy.ndarray):
+            orography_band:
                 All points within the orography band of interest.
-            midpoint (float):
+            midpoint:
                 The midpoint of the band the point is in.
-            band_number (float):
+            band_number:
                 The index that corresponds to the band that is currently being
                 processed.
 
@@ -152,10 +152,10 @@ class GenerateTopographicZoneWeights(BasePlugin):
         assumed to be in the middle of the band.
 
         Args:
-            points (numpy.ndarray):
+            points:
                 The points at which to find the weights.
                 e.g. np.array([125]) or np.array([125, 140]).
-            band (list):
+            band:
                 The band to be used for determining the weight that the
                 selected points should have within the band
                 e.g. [100., 200.].
@@ -180,13 +180,13 @@ class GenerateTopographicZoneWeights(BasePlugin):
         within the topographic zones.
 
         Args:
-            orography (iris.cube.Cube):
+            orography:
                 Orography on standard grid.
-            thresholds_dict (dict):
+            thresholds_dict:
                 Definition of orography bands required.
                 The expected format of the dictionary is e.g.
                 `{'bounds': [[0, 50], [50, 200]], 'units': 'm'}`
-            landmask (iris.cube.Cube):
+            landmask:
                 Land mask on standard grid, with land points set to one and
                 sea points set to zero. If provided sea points are masked
                 out in the output array.

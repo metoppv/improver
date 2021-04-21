@@ -81,14 +81,14 @@ class GenerateTimezoneMask(BasePlugin):
         Configure plugin options to generate the desired ancillary.
 
         Args:
-            include_dst (Optional[bool]):
+            include_dst:
                 If True, find and use the UTC offset to a grid point including
                 the effect of daylight savings.
-            time (Optional[str]):
+            time:
                 A datetime specified in the format YYYYMMDDTHHMMZ at which to
                 calculate the mask (UTC). If daylight savings are not included
                 this will have no impact on the resulting masks.
-            groupings (Optional[Dict[int, List[int, int]]]):
+            groupings:
                 A dictionary specifying how timezones should be grouped if so
                 desired. This dictionary takes the form::
 
@@ -116,7 +116,7 @@ class GenerateTimezoneMask(BasePlugin):
         which the masks should be created. self.time is set in UTC.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube from which the validity time should be taken if one
                 has not been explicitly provided by the user.
         """
@@ -141,7 +141,7 @@ class GenerateTimezoneMask(BasePlugin):
         y-x points in the grid.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube from which the y-x grid is being taken.
         Returns:
             numpy.array:
@@ -188,7 +188,7 @@ class GenerateTimezoneMask(BasePlugin):
             offset in seconds = 3600 * np.around(longitude / 15)
 
         Args:
-            coordinate_pairs (numpy.array):
+            coordinate_pairs:
                 A numpy array containing all the pairs of coordinates that describe
                 the y-x points in the grid. This array is 2-dimensional, being
                 2 by the product of the grid's y-x dimension lengths.
@@ -214,7 +214,7 @@ class GenerateTimezoneMask(BasePlugin):
         with or without consideration of daylight savings.
 
         Args:
-            point_tz (str):
+            point_tz:
                 The string representation of the timezone for a point
                 e.g. "America/Chicago",
         Returns:
@@ -243,7 +243,7 @@ class GenerateTimezoneMask(BasePlugin):
         includes_daylight_savings is set to indicate this.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 A cube with the desired grid from which coordinates are taken
                 for inclusion in the template.
         Returns:
@@ -287,7 +287,7 @@ class GenerateTimezoneMask(BasePlugin):
         the cubes.
 
         Args:
-            timezone_mask (iris.cube.CubeList):
+            timezone_mask:
                 A cube list containing a mask cube for each UTC offset that
                 has been found necessary.
         Returns:
@@ -329,7 +329,7 @@ class GenerateTimezoneMask(BasePlugin):
         differentiates between them.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 A cube with the desired grid. If no 'time' is specified in
                 the plugin configuration the time on this cube will be used
                 for determining the validity time of the calculated UTC offsets

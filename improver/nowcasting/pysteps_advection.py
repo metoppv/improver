@@ -63,9 +63,9 @@ class PystepsExtrapolate(BasePlugin):
         Initialise the plugin
 
         Args:
-            interval (int):
+            interval:
                 Lead time interval, in minutes
-            max_lead_time (int):
+            max_lead_time:
                 Maximum lead time required, in minutes
         """
         self.interval = interval
@@ -92,13 +92,13 @@ class PystepsExtrapolate(BasePlugin):
         algorithm
 
         Args:
-            ucube (iris.cube.Cube):
+            ucube:
                 Cube of x-advection velocities
-            vcube (iris.cube.Cube):
+            vcube:
                 Cube of y-advection velocities
 
         Returns:
-            displacement (np.ndarray):
+            displacement:
                 Array of shape (2, m, n) containing the x- and y-components
                 of the m*n displacement field (format required for pysteps
                 extrapolation algorithm)
@@ -112,11 +112,11 @@ class PystepsExtrapolate(BasePlugin):
             time interval
 
             Args:
-                cube (iris.cube.Cube):
+                cube:
                     Cube of velocities in the x or y direction
-                interval (int):
+                interval:
                     Lead time interval, in minutes
-                gridlength (float):
+                gridlength:
                     Size of grid square, in metres
 
             Returns:
@@ -166,11 +166,11 @@ class PystepsExtrapolate(BasePlugin):
         All other metadata are inherited from self.analysis_cube.
 
         Args:
-            all_forecasts (np.ndarray):
+            all_forecasts:
                 Array of 2D forecast fields returned by extrapolation function
 
         Returns:
-            forecast_cubes (iris.cube.CubeList):
+            forecast_cubes:
                 List of extrapolated cubes with correct time coordinates
         """
         current_datetime = iris_time_to_datetime(self.analysis_cube.coord("time"))[0]
@@ -198,14 +198,14 @@ class PystepsExtrapolate(BasePlugin):
         orographic enhancement
 
         Args:
-            all_forecasts (np.ndarray):
+            all_forecasts:
                 Array of 2D forecast fields returned by extrapolation function
-            attributes_dict (dict or None):
+            attributes_dict:
                 Dictionary containing information for amending the attributes
                 of the output cube.
 
         Returns:
-            forecast_cubes (list):
+            forecast_cubes:
                 List of iris.cube.Cube instances containing forecasts at all
                 required lead times, and conforming to the IMPROVER metadata
                 standard.
@@ -239,21 +239,21 @@ class PystepsExtrapolate(BasePlugin):
         provided to the required forecast lead times
 
         Args:
-            initial_cube (iris.cube.Cube):
+            initial_cube:
                 Cube of precipitation at initial time
-            ucube (iris.cube.Cube):
+            ucube:
                 x-advection velocities
-            vcube (iris.cube.Cube):
+            vcube:
                 y-advection velocities
-            orographic_enhancement (iris.cube.Cube):
+            orographic_enhancement:
                 Cube containing orographic enhancement fields at all required
                 lead times
-            attributes_dict (dict or None):
+            attributes_dict:
                 Dictionary containing information for amending the attributes
                 of the output cube.
 
         Returns:
-            forecast_cubes (list):
+            forecast_cubes:
                 List of extrapolated iris.cube.Cube instances at the required
                 lead times (including T+0 / analysis time)
         """

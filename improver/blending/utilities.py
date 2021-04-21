@@ -55,9 +55,9 @@ def find_blend_dim_coord(cube: Cube, blend_coord: str) -> str:
     since the input "blend_coord" may be an auxiliary coordinate.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to be blended
-        blend_coord (str):
+        blend_coord:
             Name of coordinate to blend over
 
     Returns:
@@ -89,9 +89,9 @@ def get_coords_to_remove(cube: Cube, blend_coord: str) -> Optional[List[str]]:
     removed after blending.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to be blended
-        blend_coord (str):
+        blend_coord:
             Name of coordinate over which the blend will be performed
 
     Returns:
@@ -136,18 +136,18 @@ def update_blended_metadata(
     Modifies cube in place.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Blended cube
-        blend_coord (str):
+        blend_coord:
             Name of coordinate over which blending has been performed
-        coords_to_remove (list of str):
+        coords_to_remove:
             Name of scalar coordinates to be removed from the blended cube
-        cycletime (str):
+        cycletime:
             Current cycletime in YYYYMMDDTHHmmZ format
-        model_id_attr (str):
+        model_id_attr:
             Name of attribute for use in model blending, to record the names of
             contributing models on the blended output
-        attributes_dict (dict):
+        attributes_dict:
             Optional user-defined attributes to add to the cube
     """
     if blend_coord in ["forecast_reference_time", MODEL_BLEND_COORD]:
@@ -185,7 +185,7 @@ def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> No
 
     Args:
         blended_cube (iris.cube.Cube)
-        cycletime (str):
+        cycletime:
             Current cycletime in YYYYMMDDTHHmmZ format
     """
     try:
@@ -213,7 +213,7 @@ def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
 
     Args:
         blended_cube (iris.cube.Cube)
-        cycletime (str):
+        cycletime:
             Current cycletime in YYYYMMDDTHHmmZ format
 
     Returns:

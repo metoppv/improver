@@ -57,9 +57,9 @@ def forecast_period_coord(
     difference between time and forecast_reference_time.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube from which the lead times will be determined.
-        force_lead_time_calculation (bool):
+        force_lead_time_calculation:
             Force the lead time to be calculated from the
             forecast_reference_time and the time coordinate, even if
             the forecast_period coordinate exists. Default is False.
@@ -113,14 +113,14 @@ def _calculate_forecast_period(
     time coordinates.
 
     Args:
-        time_coord (iris.coords.Coord):
+        time_coord:
             Time coordinate
-        frt_coord (iris.coords.Coord):
+        frt_coord:
             Forecast reference coordinate
-        dim_coord (bool):
+        dim_coord:
             If true, create an iris.coords.DimCoord instance.  Default is to
             create an iris.coords.AuxCoord.
-        coord_spec (collections.namedtuple):
+        coord_spec:
             Specification of units and dtype for the forecast_period
             coordinate.
 
@@ -185,7 +185,7 @@ def _create_frt_type_coord(
     """Create a new auxiliary coordinate based on forecast reference time
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Input cube with scalar forecast reference time coordinate
         points (datetime.datetime)
             Single datetime point for output coord
@@ -212,9 +212,9 @@ def add_blend_time(cube: Cube, cycletime: str) -> None:
     on current cycle time.  Modifies cube in place.
 
      Args:
-        cubes (iris.cube.Cube):
+        cubes:
             Cube to add blend time coordinate
-        cycletime (str):
+        cycletime:
             Required blend time in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z
 
     """
@@ -232,10 +232,10 @@ def rebadge_forecasts_as_latest_cycle(
     the most recent forecast in the list (proxy for the current cycle).
 
     Args:
-        cubes (iris.cube.CubeList or list of iris.cube.Cube):
+        cubes:
             Cubes that will have their forecast_reference_time and
             forecast_period updated.
-        cycletime (str or None):
+        cycletime:
             Required forecast reference time in a YYYYMMDDTHHMMZ format
             e.g. 20171122T0100Z. If None, the latest forecast reference
             time is used.
@@ -264,11 +264,11 @@ def unify_cycletime(
     forecast_reference_time.
 
     Args:
-        cubes (iris.cube.CubeList or list of iris.cube.Cube):
+        cubes:
             Cubes that will have their forecast_reference_time and
             forecast_period updated. Any bounds on the forecast_reference_time
             coordinate will be discarded.
-        cycletime (datetime.datetime):
+        cycletime:
             Datetime for the cycletime that will be used to replace the
             forecast_reference_time on the individual cubes.
 
@@ -301,7 +301,7 @@ def _find_latest_cycletime(cubelist: Union[CubeList, List[Cube]]) -> datetime:
     a datetime object.
 
     Args:
-        cubelist (iris.cube.CubeList or list of iris.cube.Cube):
+        cubelist:
             A list of cubes each containing single time step from different
             forecast cycles.
 

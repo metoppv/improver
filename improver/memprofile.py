@@ -44,7 +44,7 @@ def memory_profile_start(outfile_prefix: str) -> Tuple[Thread, Queue]:
     """Starts the memory tracking profiler.
 
     Args:
-        outfile_prefix (str):
+        outfile_prefix:
             Prefix for the generated output. 2 files will
             be generated: \\*_SNAPSHOT and \\*_MAX_TRACKER.
 
@@ -62,9 +62,9 @@ def memory_profile_end(queue: Queue, thread: Thread) -> None:
     """Ends the memory tracking profiler.
 
     Args:
-        queue (queue.Queue):
+        queue:
             Active queue instance to communicate with active thread.
-        thread (thread.Thread):
+        thread:
             Active thread instance running memory tracking.
     """
     queue.put("Stop")
@@ -80,9 +80,9 @@ def memory_monitor(queue: Queue, outfile_prefix: str) -> None:
     performance overhead when using this.
 
     Args:
-        queue (queue.Queue):
+        queue:
             Active queue instance to communicate with the thread.
-        outfile_prefix (str):
+        outfile_prefix:
             Prefix for the generated output. 2 files will
             be generated: \\*_SNAPSHOT and \\*_MAX_TRACKER.
     """
@@ -119,7 +119,7 @@ def memory_profile_decorator(func: Callable, outfile_prefix: str) -> Callable:
     Args:
         func:
             function to track the maximum memory of.
-        outfile_prefix (str):
+        outfile_prefix:
             Prefix for the generated output. 2 files will
             be generated: \\*_SNAPSHOT and \\*_MAX_TRACKER.
     """

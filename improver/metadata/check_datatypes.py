@@ -49,7 +49,7 @@ def _is_time_coord(obj: Union[Cube, Coord]) -> bool:
     that matches a known time coord.
 
     Args:
-        obj (iris.cube.Cube or iris.coords.Coord):
+        obj:
             Object to be tested
 
     Returns:
@@ -66,7 +66,7 @@ def get_required_dtype(obj: Union[Cube, Coord]) -> dtype:
     special dtypes for time coordinates.
 
     Args:
-        obj (iris.cube.Cube or iris.coords.Coord):
+        obj:
             Object to be tested
 
     Returns:
@@ -90,7 +90,7 @@ def check_dtype(obj: Union[Cube, Coord]) -> bool:
     applied. If obj is a coord, any bounds are checked too.
 
     Args:
-        obj (iris.cube.Cube or iris.coords.Coord):
+        obj:
             Object to be tested
 
     Returns:
@@ -116,12 +116,12 @@ def enforce_dtype(
     Ensures that result has not been automatically promoted to float64.
 
     Args:
-        operation (str):
+        operation:
             The operation that was performed (for the error message)
-        inputs (list):
+        inputs:
             The Numpy arrays or cubes that the operation was performed on (for the
             error message)
-        result (np.array or iris.cube.Cube):
+        result:
             The result of the operation
 
     Raises:
@@ -144,7 +144,7 @@ def get_required_units(obj: Union[Cube, Coord]) -> Optional[str]:
     these.
 
     Args:
-        obj (iris.cube.Cube or iris.coords.Coord):
+        obj:
             Object to be tested
 
     Returns:
@@ -162,7 +162,7 @@ def check_units(obj: Union[Cube, Coord]) -> bool:
     Checks if the supplied object complies with the relevant mandatory units.
 
     Args:
-        obj (iris.cube.Cube or iris.coords.Coord):
+        obj:
             Object to be tested
 
     Returns:
@@ -185,7 +185,7 @@ def check_mandatory_standards(cube: Cube) -> None:
     useful exception if any non-compliance is found.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The cube to be checked for conformance with standards.
 
     Raises:
@@ -198,7 +198,7 @@ def check_mandatory_standards(cube: Cube) -> None:
         Check object meets the mandatory dtype and units.
 
         Args:
-            obj (iris.cube.Cube or iris.coords.Coord):
+            obj:
                 The object to be checked.
 
         Returns:

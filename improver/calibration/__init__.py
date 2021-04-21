@@ -50,20 +50,20 @@ def split_forecasts_and_truth(
     and in some instances a land-sea mask is also required.
 
     Args:
-        cubes (list):
+        cubes:
             A list of input cubes which will be split into relevant groups.
             These include the historical forecasts, in the format supported by
             the calibration CLIs, and the truth cubes.
-        truth_attribute (str):
+        truth_attribute:
             An attribute and its value in the format of "attribute=value",
             which must be present on truth cubes.
     Returns:
         (tuple): tuple containing:
-            **forecast** (iris.cube.Cube):
+            **forecast**:
                 A cube containing all the historic forecasts.
-            **truth** (iris.cube.Cube):
+            **truth**:
                 A cube containing all the truth data.
-            **land_sea_mask** (iris.cube.Cube or None):
+            **land_sea_mask**:
                 If found within the input cubes list a land-sea mask will be
                 returned, else None is returned.
     Raises:

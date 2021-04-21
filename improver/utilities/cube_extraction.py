@@ -50,9 +50,9 @@ def create_range_constraint(coord_name: str, value: str) -> Constraint:
     Create a constraint that is representative of a range.
 
     Args:
-        coord_name (str):
+        coord_name:
             Name of the coordinate for which the constraint will be created.
-        value (str):
+        value:
             A string containing the range information.
             It is assumed that the input value is of the form: "[2:10]".
 
@@ -72,7 +72,7 @@ def is_complex_parsing_required(value: str) -> bool:
     Currently, this is solely determined by the presence of a colon (:).
 
     Args:
-        value (str):
+        value:
            A string that will be parsed.
 
     Returns:
@@ -89,7 +89,7 @@ def create_constraint(value: Union[float, List[float]]) -> Union[Callable, List[
     (even if they were single valued on entry).
 
     Args:
-        value (float/int or list of float/int):
+        value:
             Constraint values that are being used to match against values in a
             cube for the purposes of extracting elements of the cube.
     Returns:
@@ -122,10 +122,10 @@ def parse_constraint_list(
     constraint.
 
     Args:
-        constraints (list):
+        constraints:
             List of string constraints with keys and values split by "=":
             e.g: ["kw1=val1", "kw2 = val2", "kw3=val3"].
-        units (list):
+        units:
             List of units (as strings) corresponding to each coordinate in the
             list of constraints.  One or more "units" may be None, and units
             may only be associated with coordinate constraints.
@@ -136,7 +136,7 @@ def parse_constraint_list(
             iris._constraints.ConstraintCombination):
                 A combination of all the constraints that were supplied.
 
-            **units_dict** (dictionary or None):
+            **units_dict**:
                 A dictionary of unit keys and values
     """
 
@@ -193,16 +193,16 @@ def apply_extraction(
     is available.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The cube from which a subcube is to be extracted.
-        constraint (iris.Constraint or iris.ConstraintCombination):
+        constraint:
             The constraint or ConstraintCombination that will be used to
             extract a subcube from the input cube.
-        units (dict):
+        units:
             A dictionary of units for the constraints. Supplied if any
             coordinate constraints are provided in different units from those
             of the input cube (eg precip in mm/h for cube threshold in m/s).
-        use_original_units (bool):
+        use_original_units:
             Boolean to state whether the coordinates used in the extraction
             should be converted back to their original units. The default is
             True, indicating that the units should be converted back to the
@@ -244,16 +244,16 @@ def extract_subcube(
     is available.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The cube from which a subcube is to be extracted.
-        constraints (list):
+        constraints:
             List of string constraints with keys and values split by "=":
             e.g: ["kw1=val1", "kw2 = val2", "kw3=val3"].
-        units (list):
+        units:
             List of units (as strings) corresponding to each coordinate in the
             list of constraints.  One or more "units" may be None, and units
             may only be associated with coordinate constraints.
-        use_original_units (bool):
+        use_original_units:
             Boolean to state whether the coordinates used in the extraction
             should be converted back to their original units. The default is
             True, indicating that the units should be converted back to the
@@ -280,15 +280,15 @@ def subset_data(
     to generate suite reference outputs.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Input dataset
-        grid_spec (Optional[Dict[str, Dict[str, int]]]):
+        grid_spec:
             Dictionary containing bounding grid points and an integer "thinning
             factor" for each of UK and global grid, to create cutouts.  Eg a
             "thinning factor" of 10 would mean every 10th point being taken for
             the cutout.  The expected dictionary has keys that are spatial coordinate
             names, with values that are dictionaries with "min", "max" and "thin" keys.
-        site_list (Optional[list]):
+        site_list:
             List of WMO site IDs to extract.  These IDs must match the type and format
             of the "wmo_id" coordinate on the input spot cube.
 

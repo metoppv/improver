@@ -70,17 +70,17 @@ class Integration(BasePlugin):
         Initialise class.
 
         Args:
-            coord_name_to_integrate (str):
+            coord_name_to_integrate:
                 Name of the coordinate to be integrated.
-            start_point (float or None):
+            start_point:
                 Point at which to start the integration.
                 Default is None. If start_point is None, integration starts
                 from the first available point.
-            end_point (float or None):
+            end_point:
                 Point at which to end the integration.
                 Default is None. If end_point is None, integration will
                 continue until the last available point.
-            positive_integration (bool):
+            positive_integration:
                 Description of the direction in which to integrate.
                 True corresponds to the values within the array
                 increasing as the array index increases.
@@ -112,7 +112,7 @@ class Integration(BasePlugin):
         the specified direction.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube containing the coordinate to check.
                 Note that the input cube will be modified by this method.
 
@@ -140,10 +140,10 @@ class Integration(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **upper_bounds_cube** (iris.cube.Cube):
+                **upper_bounds_cube**:
                     Cube containing the upper bounds to be used during the
                     integration.
-                **lower_bounds_cube** (iris.cube.Cube):
+                **lower_bounds_cube**:
                     Cube containing the lower bounds to be used during the
                     integration.
         """
@@ -190,17 +190,17 @@ class Integration(BasePlugin):
         Populates a template cube with data from the integration
 
         Args:
-            template (iris.cube.Cube):
+            template:
                 Copy of upper or lower bounds cube, based on direction of
                 integration
-            data (list or numpy.ndarray):
+            data:
                 Integrated data
-            points (list or numpy.ndarray):
+            points:
                 Points values for the integrated coordinate. These will not
                 match the template cube if any slices were skipped in the
                 integration, and therefore are used to slice the template cube
                 to match the data array.
-            bounds (list or numpy.ndarray):
+            bounds:
                 Bounds values for the integrated coordinate
 
         Returns:
@@ -259,10 +259,10 @@ class Integration(BasePlugin):
         Integration is performed ONLY over positive values.
 
         Args:
-            upper_bounds_cube (iris.cube.Cube):
+            upper_bounds_cube:
                 Cube containing the upper bounds to be used during the
                 integration.
-            lower_bounds_cube (iris.cube.Cube):
+            lower_bounds_cube:
                 Cube containing the lower bounds to be used during the
                 integration.
 
@@ -355,7 +355,7 @@ class Integration(BasePlugin):
         as levels on the integrated cube.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the data to be integrated.
 
         Returns:
@@ -386,20 +386,20 @@ def fast_linear_fit(
     in a loop. This function does not handle NaNs, but will work with masked arrays.
 
     Args:
-        x_data (numpy.ndarray):
+        x_data:
             x axis data.
-        y_data (numpy.ndarray):
+        y_data:
             y axis data.
-        axis (int or tuple of int):
+        axis:
             Optional argument, specifies the axis to operate on.
             Default is to flatten arrays and fit all points.
-        keepdims (bool):
+        keepdims:
             If this is set to True, the axes which are reduced are left in the
             result as dimensions with size one. With this option, the result
             will broadcast correctly against the input array.
-        gradient_only (bool):
+        gradient_only:
             If true only returns the gradient.
-        with_nan (bool):
+        with_nan:
             If true, there are NaNs in your data (that you know about).
 
     Returns:

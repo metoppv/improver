@@ -55,14 +55,14 @@ class ManageWarnings:
         we want to do with any remaining warnings.
 
         Args:
-            ignored_messages (list of str):
+            ignored_messages:
                 A list of messages, one for each warning message we
                 want to ignore.
-            warning_types (list):
+            warning_types:
                 A list containing the Warning category for each of the
                 messages. If not provided then the Warning Category is
                 assumed to be UserWarning for each of the messages.
-            record (bool):
+            record:
                 A flag for whether to store any warnings that are not
                 ignored. Default is False which means warnings go to
                 standard error. When set to True the warnings are
@@ -112,7 +112,7 @@ class ManageWarnings:
         required.
 
         Args:
-            func (function):
+            func:
                 A function that we want to wrap with this decorator.
         Returns:
             function:

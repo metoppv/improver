@@ -48,7 +48,7 @@ def get_leading_dimension(coord_data: Dict[str, Any]) -> Tuple[List[float], str]
     type based on what dimension key is used.
 
     Args:
-        coord_data (Dict):
+        coord_data:
             Dictionary containing values to use for either realizations, percentiles or
             thresholds.
 
@@ -85,7 +85,7 @@ def get_height_levels(coord_data: Dict[str, Any]) -> Tuple[List[float], str]:
     value based on whether heights or pressures key is used.
 
     Args:
-        coord_data (Dict):
+        coord_data:
             Dictionary containing values to use for either height or pressure levels.
 
     Returns:

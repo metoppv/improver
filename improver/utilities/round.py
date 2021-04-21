@@ -45,7 +45,7 @@ def round_close(
     Args:
         data (np.ndarray of float or float)
             Data that is very close to the nearest integer value
-        dtype (type):
+        dtype:
             Required integer datatype
 
     Returns:

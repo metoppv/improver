@@ -45,10 +45,10 @@ def calculate_sleet_probability(prob_of_snow: Cube, prob_of_rain: Cube) -> Cube:
     prob(sleet) = 1 - (prob(snow) + prob(rain))
 
     Args:
-      prob_of_snow (iris.cube.Cube):
+      prob_of_snow:
         Cube of the probability of snow. This can be a fraction (0 <= x <= 1) or
         categorical (0 or 1)
-      prob_of_rain (iris.cube.Cube):
+      prob_of_rain:
         Cube of the probability of rain. This can be a fraction (0 <= x <= 1) or
         categorical (0 or 1)
 

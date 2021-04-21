@@ -98,28 +98,28 @@ class BasicThreshold(PostProcessingPlugin):
                 7.5     |   1.0
 
         Args:
-            thresholds (float or list of float):
+            thresholds:
                 Values at which to evaluate the input data using the specified
                 comparison operator.
-            fuzzy_factor (float):
+            fuzzy_factor:
                 Optional: specifies lower bound for fuzzy membership value when
                 multiplied by each threshold. Upper bound is equivalent linear
                 distance above threshold.
-            fuzzy_bounds (tuple or list of tuple):
+            fuzzy_bounds:
                 Optional: lower and upper bounds for fuzziness. Each entry in list
                 should be a tuple of two floats representing the lower and upper
                 bounds respectively. Tuple or list should match length of (or scalar)
                 'thresholds' argument. Should not be set if fuzzy_factor is set.
-            threshold_units (str):
+            threshold_units:
                 Units of the threshold values. If not provided the units are
                 assumed to be the same as those of the input cube.
-            comparison_operator (str):
+            comparison_operator:
                 Indicates the comparison_operator to use with the threshold.
                 e.g. 'ge' or '>=' to evaluate 'data >= threshold' or '<' to
                 evaluate 'data < threshold'. When using fuzzy thresholds, there
                 is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
-            each_threshold_func (callable or sequence of callables):
+            each_threshold_func:
                 Callable or sequence of callables to apply after thresholding.
                 Eg vicinity processing or collapse over ensemble realizations.
 
@@ -240,9 +240,9 @@ class BasicThreshold(PostProcessingPlugin):
         to a 2D slice containing thresholded data.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing thresholded data (1s and 0s)
-            threshold (float):
+            threshold:
                 Value at which the data has been thresholded
         """
         coord = iris.coords.DimCoord(
@@ -300,7 +300,7 @@ class BasicThreshold(PostProcessingPlugin):
         the units of the input cube.
 
         Args:
-            input_cube (iris.cube.Cube):
+            input_cube:
                 Cube to threshold. The code is dimension-agnostic.
 
         Returns:

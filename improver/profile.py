@@ -52,7 +52,7 @@ def profile_hook_enable(dump_filename: str = None) -> None:
     """Register a hook to gather and dump profile information at exit.
 
     Args:
-        dump_filename (str):
+        dump_filename:
             File path to dump profiling info into at exit.
     """
     profiler = profile_start()
@@ -68,13 +68,13 @@ def profile_stop(
     """Stop a given profiler and print or dump stats.
 
     Args:
-        profiler (cProfile.Profile):
+        profiler:
             Active profiling instance.
-        sort_field (str):
+        sort_field:
             pstats.Stats sort field for ordering profiling results.
-        dump_filename (str):
+        dump_filename:
             File path to dump profiling stats into.
-        dump_line_count (int):
+        dump_line_count:
             Maximum lines to print out.
     """
     profiler.disable()

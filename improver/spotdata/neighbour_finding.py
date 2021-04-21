@@ -78,27 +78,27 @@ class NeighbourSelection(BasePlugin):
     ) -> None:
         """
         Args:
-            land_constraint (bool):
+            land_constraint:
                 If True the selected neighbouring grid point must be on land,
                 where this is determined using a land_mask.
-            minimum_dz (bool):
+            minimum_dz:
                 If True the selected neighbouring grid point must be chosen to
                 minimise the vertical displacement compared to the site
                 altitude.
-            search_radius (float):
+            search_radius:
                 The radius in metres from a spot site within which to search
                 for a grid point neighbour.
-            site_coordinate_system (cartopy coordinate system):
+            site_coordinate_system:
                 The coordinate system of the sitelist coordinates that will be
                 provided. This defaults to be a latitude/longitude grid, a
                 PlateCarree projection.
-            site_x_coordinate (str):
+            site_x_coordinate:
                 The key that identifies site x coordinates in the provided site
                 dictionary. Defaults to longitude.
-            site_y_coordinate (str):
+            site_y_coordinate:
                 The key that identifies site y coordinates in the provided site
                 dictionary. Defaults to latitude.
-            node_limit (int):
+            node_limit:
                 The upper limit for the number of nearest neighbours to return
                 when querying the tree for a selection of neighbours from which
                 one matching the minimum_dz constraint will be picked.
@@ -157,13 +157,13 @@ class NeighbourSelection(BasePlugin):
         want in this case, as such only the first two columns are returned.
 
         Args:
-            x_points (numpy.ndarray):
+            x_points:
                 An array of x coordinates to be transformed in conjunction
                 with the corresponding y coordinates.
-            y_points (numpy.ndarray):
+            y_points:
                 An array of y coordinates to be transformed in conjunction
                 with the corresponding x coordinates.
-            target_crs (cartopy.crs):
+            target_crs:
                 Coordinate system to which the site coordinates should be
                 transformed. This should be the coordinate system of the model
                 from which data will be spot extracted.
@@ -191,38 +191,38 @@ class NeighbourSelection(BasePlugin):
         of each rejected site are printed.
 
         Args:
-            sites (list of dict):
+            sites:
                 A list of dictionaries defining the spot sites for which
                 neighbours are to be found. e.g.:
 
                    [{'altitude': 11.0, 'latitude': 57.867000579833984,
                     'longitude': -5.632999897003174, 'wmo_id': 3034}]
 
-            site_coords (numpy.ndarray):
+            site_coords:
                 An array of shape (n_sites, 2) that contains the spot site
                 coordinates in the coordinate system of the model cube.
-            site_x_coords (numpy.ndarray):
+            site_x_coords:
                 The x coordinates of the spot sites in their original
                 coordinate system, from which invalid sites must be removed.
-            site_y_coords (numpy.ndarray):
+            site_y_coords:
                 The y coordinates of the spot sites in their original
                 coordinate system, from which invalid sites must be removed.
-            cube (iris.cube.Cube):
+            cube:
                 A cube that is representative of the model/grid from which spot
                 data will be extracted.
 
         Returns:
             (tuple): tuple containing:
-                **sites** (numpy.ndarray):
+                **sites**:
                     The sites modified to filter out the sites falling outside
                     the grid domain of the cube.
-                **site_coords** (numpy.ndarray):
+                **site_coords**:
                     The site_coords modified to filter out the sites falling
                     outside the grid domain of the cube.
-                **site_x_coords** (numpy.ndarray):
+                **site_x_coords**:
                     The x_coords modified to filter out the sites falling
                     outside the grid domain of the cube.
-                **site_y_coords** (numpy.ndarray):
+                **site_y_coords**:
                     The y_coords modified to filter out the sites falling
                     outside the grid domain of the cube.
         """
@@ -279,10 +279,10 @@ class NeighbourSelection(BasePlugin):
         grid points to a site.
 
         Args:
-            site_coords (numpy.ndarray):
+            site_coords:
                 An array of shape (n_sites, 2) that contains the x and y
                 coordinates of the sites.
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing a representative grid.
         Returns:
             numpy.ndarray:
@@ -311,13 +311,13 @@ class NeighbourSelection(BasePlugin):
         point without considering their vertical displacement.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 A cube from which is taken the globe for which the geocentric
                 coordinates are being calculated.
-            x_coords (numpy.ndarray):
+            x_coords:
                 An array of x coordinates that will represent one axis of the
                 mesh of coordinates to be transformed.
-            y_coords (numpy.ndarray):
+            y_coords:
                 An array of y coordinates that will represent one axis of the
                 mesh of coordinates to be transformed.
         Returns:
@@ -341,7 +341,7 @@ class NeighbourSelection(BasePlugin):
         land points, if required.
 
         Args:
-            land_mask (iris.cube.Cube):
+            land_mask:
                 A land mask cube for the model/grid from which grid point
                 neighbours are being selected.
         Returns:
@@ -393,18 +393,18 @@ class NeighbourSelection(BasePlugin):
         raised.
 
         Args:
-            orography (iris.cube.Cube):
+            orography:
                 A cube of orography, used to obtain the grid point altitudes.
-            site_altitude (float):
+            site_altitude:
                 The altitude of the spot site being considered.
-            index_nodes (numpy.ndarray):
+            index_nodes:
                 An array of shape (n_nodes, 2) that contains the x and y
                 indices that correspond to the selected node,
-            distance (numpy.ndarray):
+            distance:
                 An array that contains the distances from the spot site to each
                 grid point neighbour being considered. The number maybe np.inf
                 if the site is beyond the search_radius.
-            indices (numpy.ndarray):
+            indices:
                 An array of tree node indices identifying the neigbouring grid
                 points, the list corresponding to the array of distances.
         Returns:
@@ -461,16 +461,16 @@ class NeighbourSelection(BasePlugin):
         of the selected grid point neighbour.
 
         Args:
-            sites (list of dict):
+            sites:
                 A list of dictionaries defining the spot sites for which
                 neighbours are to be found. e.g.:
 
                    [{'altitude': 11.0, 'latitude': 57.867000579833984,
                     'longitude': -5.632999897003174, 'wmo_id': 3034}]
 
-            orography (iris.cube.Cube):
+            orography:
                 A cube of orography, used to obtain the grid point altitudes.
-            land_mask (iris.cube.Cube):
+            land_mask:
                 A land mask cube for the model/grid from which grid point
                 neighbours are being selected, with land points set to one and
                 sea points set to zero.

@@ -77,23 +77,23 @@ class WeightAndBlend(PostProcessingPlugin):
         Initialise central parameters
 
         Args:
-            blend_coord (str):
+            blend_coord:
                 Coordinate over which blending will be performed (eg "model"
                 for grid blending)
-            wts_calc_method (str):
+            wts_calc_method:
                 Weights calculation method ("linear", "nonlinear" or "dict")
-            weighting_coord (str):
+            weighting_coord:
                 Coordinate over which linear weights should be calculated (from
                 dictionary)
-            wts_dict (dict):
+            wts_dict:
                 Dictionary containing parameters for linear weights calculation
-            y0val (float):
+            y0val:
                 Relative weight of first file for default linear weights plugin
-            ynval (float):
+            ynval:
                 Relative weight of last file for default linear weights plugin
-            cval (float):
+            cval:
                 Parameter for default non-linear weights plugin
-            inverse_ordering (bool):
+            inverse_ordering:
                 Option to invert weighting order for non-linear weights plugin
                 so that higher blend coordinate values get higher weights (eg
                 if cycle blending over forecast reference time).
@@ -124,7 +124,7 @@ class WeightAndBlend(PostProcessingPlugin):
         method.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube of input data to be blended
 
         Returns:
@@ -160,11 +160,11 @@ class WeightAndBlend(PostProcessingPlugin):
         Update weights using spatial information
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube of input data to be blended
-            weights (iris.cube.Cube):
+            weights:
                 Initial 1D cube of weights scaled by self.weighting_coord
-            fuzzy_length (float):
+            fuzzy_length:
                 Distance (in metres) over which to smooth weights at domain
                 boundaries
 
@@ -189,16 +189,16 @@ class WeightAndBlend(PostProcessingPlugin):
         is zero
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The data cube to be blended
-            weights (iris.cube.Cube):
+            weights:
                 1D cube of weights varying along self.blend_coord
 
         Returns:
             (tuple): tuple containing:
-                **cube** (iris.cube.Cube):
+                **cube**:
                     Data cube without zero-weighted slices
-                **weights** (iris.cube.Cube):
+                **weights**:
                     Weights without zeroes
         """
         slice_out_vals = []
@@ -231,21 +231,21 @@ class WeightAndBlend(PostProcessingPlugin):
         given by self.blend_coord.
 
         Args:
-            cubelist (iris.cube.CubeList):
+            cubelist:
                 List of cubes to be merged and blended
-            cycletime (str):
+            cycletime:
                 Forecast reference time to use for output cubes, in the format
                 YYYYMMDDTHHMMZ.  If not set, the latest of the input cube
                 forecast reference times is used.
-            model_id_attr (str):
+            model_id_attr:
                 Name of the attribute by which to identify the source model and
                 construct "model" coordinates for blending.
-            spatial_weights (bool):
+            spatial_weights:
                 If true, calculate spatial weights.
-            fuzzy_length (float):
+            fuzzy_length:
                 Distance (in metres) over which to smooth spatial weights.
                 Default is 20 km.
-            attributes_dict (dict or None):
+            attributes_dict:
                 Changes to cube attributes to be applied after blending
 
         Returns:

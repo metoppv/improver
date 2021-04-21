@@ -61,19 +61,19 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
         """Set up for a Weighted Blending plugin
 
         Args:
-            coord (str):
+            coord:
                 The name of a coordinate dimension in the cube that we
                 will blend over.
-            central_point (float or int):
+            central_point:
                 Central point at which the output from the triangular weighted
                 blending will be calculated.
-            parameter_units (str):
+            parameter_units:
                 The units of the width of the triangular weighting function
                 and the units of the central_point.
                 This does not need to be the same as the units of the
                 coordinate we are blending over, but it should be possible to
                 convert between them.
-            width (float):
+            width:
                 The width of the triangular weighting function we will use
                 to blend.
         """
@@ -110,7 +110,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
         an exception.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing input for blending.
 
         Returns:
@@ -147,7 +147,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
         Apply the weighted blend for each point in the given coordinate.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing input for blending.
 
         Returns:

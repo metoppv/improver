@@ -48,7 +48,7 @@ def update_stage_v110_metadata(cube: Cube):
     are ignored.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to modify attributes in (modified in place)
 
     Returns:
@@ -68,9 +68,9 @@ def amend_attributes(cube: Cube, attributes_dict: Dict[str, str]) -> None:
     Add, update or remove attributes from a cube.  Modifies cube in place.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Input cube
-        attributes_dict (dict):
+        attributes_dict:
             Dictionary containing items of the form {attribute_name: value}.
             The "value" item is either the string "remove" or the new value
             of the attribute required.
@@ -89,11 +89,11 @@ def set_history_attribute(cube: Cube, value: str, append: bool = False):
     set to True. The history attribute is of the form "Timestamp: Description".
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The cube to which the history attribute will be added.
-        value (str):
+        value:
             String defining details to be included in the history attribute.
-        append (bool):
+        append:
             If True, add to the existing history rather than replacing the
             existing attribute.  Default is False.
     """

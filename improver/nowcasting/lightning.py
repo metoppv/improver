@@ -115,7 +115,7 @@ class NowcastLightning(PostProcessingPlugin):
         Initialise class for Nowcast of lightning probability.
 
         Args:
-            radius (float):
+            radius:
                 Radius (metres) over which to neighbourhood process the output
                 lightning probability.  The value supplied applies at T+0
                 and increases to 2*radius at T+6 hours.  The radius is applied
@@ -208,7 +208,7 @@ class NowcastLightning(PostProcessingPlugin):
         3. Discard all cell_methods
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 An input cube
 
         Returns:
@@ -236,23 +236,23 @@ class NowcastLightning(PostProcessingPlugin):
         Modify first-guess lightning probability with nowcast data.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Provides the meta-data for the Nowcast lightning probability
                 output cube.
-            first_guess_lightning_cube (iris.cube.Cube):
+            first_guess_lightning_cube:
                 First-guess lightning probability.
                 Must have same x & y dimensions as cube.
                 Time dimension should overlap that of cube (closest slice in
                 time is used with a maximum time mismatch of 2 hours).
                 This is included to allow this cube to come from a different
                 modelling system, such as the UM.
-            lightning_rate_cube (iris.cube.Cube):
+            lightning_rate_cube:
                 Nowcast lightning rate.
                 Must have same dimensions as cube.
-            prob_precip_cube (iris.cube.Cube):
+            prob_precip_cube:
                 Nowcast precipitation probability (threshold > 0.5, 7, 35).
                 Must have same other dimensions as cube.
-            prob_vii_cube (iris.cube.Cube):
+            prob_vii_cube:
                 Radar-derived vertically integrated ice content (VII).
                 Must have same x and y dimensions as cube.
                 Time should be a scalar coordinate.
@@ -330,10 +330,10 @@ class NowcastLightning(PostProcessingPlugin):
         probabilities at thresholds of 0.5, 7 and 35 mm/h.
 
         Args:
-            prob_lightning_cube (iris.cube.Cube):
+            prob_lightning_cube:
                 First-guess lightning probability.
 
-            prob_precip_cube (iris.cube.Cube):
+            prob_precip_cube:
                 Nowcast precipitation probability
                 (threshold > 0.5, 7., 35. mm hr-1)
                 Units of threshold coord modified in-place to mm hr-1
@@ -426,10 +426,10 @@ class NowcastLightning(PostProcessingPlugin):
         composite (VII; Vertically Integrated Ice)
 
         Args:
-            prob_lightning_cube (iris.cube.Cube):
+            prob_lightning_cube:
                 First-guess lightning probability.
                 The forecast_period coord is modified in-place to "minutes".
-            ice_cube (iris.cube.Cube):
+            ice_cube:
                 Analysis of vertically integrated ice (VII) from radar
                 thresholded at self.ice_thresholds.
                 Units of threshold coord modified in-place to kg m^-2
@@ -487,7 +487,7 @@ class NowcastLightning(PostProcessingPlugin):
         Produce Nowcast of lightning probability.
 
         Args:
-            cubelist (iris.cube.CubeList):
+            cubelist:
                 Where thresholds are listed, only these threshold values will
                     be used.
                 Contains cubes of

@@ -71,29 +71,29 @@ def build_spotdata_cube(
        build_spotdata_cube_examples.rst
 
     Args:
-        data (float or numpy.ndarray):
+        data:
             Float spot data or array of data points from several sites.
             The spot index should be the last dimension if the array is
             multi-dimensional (see optional additional dimensions below).
-        name (str):
+        name:
             Cube name (eg 'air_temperature')
-        units (str):
+        units:
             Cube units (eg 'K')
-        altitude (float or numpy.ndarray):
+        altitude:
             Float or 1d array of site altitudes in metres
-        latitude (float or numpy.ndarray):
+        latitude:
             Float or 1d array of site latitudes in degrees
-        longitude (float or numpy.ndarray):
+        longitude:
             Float or 1d array of site longitudes in degrees
-        wmo_id (str or list of str):
+        wmo_id:
             String or list of site 5-digit WMO identifiers
-        scalar_coords (list of iris.coords.AuxCoord):
+        scalar_coords:
             Optional list of iris.coords.AuxCoord instances
-        neighbour_methods (list of str):
+        neighbour_methods:
             Optional list of neighbour method names, e.g. 'nearest'
-        grid_attributes (list of str):
+        grid_attributes:
             Optional list of grid attribute names, e.g. x-index, y-index
-        additional_dims (list of iris.coords.DimCoord):
+        additional_dims:
             Optional list of additional dimensions to preceed the spot data dimension.
 
     Returns:

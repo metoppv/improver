@@ -62,25 +62,25 @@ def create_new_diagnostic_cube(
     Creates a new diagnostic cube with suitable metadata.
 
     Args:
-        name (str):
+        name:
             Standard or long name for output cube
-        units (str or cf_units.Unit):
+        units:
             Units for output cube
-        template_cube (iris.cube.Cube):
+        template_cube:
             Cube from which to copy dimensional and auxiliary coordinates
-        mandatory_attributes (dict):
+        mandatory_attributes:
             Dictionary containing values for the mandatory attributes
             "title", "source" and "institution".  These are overridden by
             values in the optional_attributes dictionary, if specified.
-        optional_attributes (dict or None):
+        optional_attributes:
             Dictionary of optional attribute names and values.  If values for
             mandatory attributes are included in this dictionary they override
             the values of mandatory_attributes.
-        data (numpy.ndarray or None):
+        data:
             Data array.  If not set, cube is filled with zeros using a lazy
             data object, as this will be overwritten later by the caller
             routine.
-        dtype (numpy.dtype):
+        dtype:
             Datatype for dummy cube data if "data" argument is None.
 
     Returns:
@@ -131,9 +131,9 @@ def generate_mandatory_attributes(
     otherwise set a default value.
 
     Args:
-        diagnostic_cubes (list):
+        diagnostic_cubes:
             List of diagnostic cubes used in calculating the new diagnostic
-        model_id_attr (str or None):
+        model_id_attr:
             Name of attribute used to identify source model for blending,
             if required
 
@@ -163,7 +163,7 @@ def generate_hash(data_in: Any) -> str:
     equivalent data_in.
 
     Args:
-        data_in (any):
+        data_in:
             The data from which a hash is to be generated. This can be of any
             type that can be pretty printed.
     Returns:
@@ -182,7 +182,7 @@ def create_coordinate_hash(cube: Cube) -> str:
     grids to be compared.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The cube from which x and y coordinates will be used to
             generate a hash.
     Returns:

@@ -63,9 +63,9 @@ def grid_contains_cutout(grid: Cube, cutout: Cube) -> bool:
     Check that a spatial cutout is contained within a given grid
 
     Args:
-        grid (iris.cube.Cube):
+        grid:
             A cube defining a data grid
-        cutout (iris.cube.Cube):
+        cutout:
             The cutout to search for within the grid
 
     Returns:
@@ -155,9 +155,9 @@ class StandardiseMetadata(BasePlugin):
             Returns an object updated if necessary to the required dtype
 
             Args:
-                obj (np.ndarray):
+                obj:
                     The object to be updated
-                required_dtype (np.dtype):
+                required_dtype:
                     The dtype required
 
             Returns:
@@ -197,15 +197,15 @@ class StandardiseMetadata(BasePlugin):
         metadata into the required units.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Input cube to be standardised
-            new_name (str or None):
+            new_name:
                 Optional rename for output cube
-            new_units (str or None):
+            new_units:
                 Optional unit conversion for output cube
-            coords_to_remove (list of str or None):
+            coords_to_remove:
                 Optional list of scalar coordinates to remove from output cube
-            attributes_dict (dict or None):
+            attributes_dict:
                 Optional dictionary of required attribute updates. Keys are
                 attribute names, and values are the required value or "remove".
 
@@ -252,18 +252,18 @@ class RegridLandSea(BasePlugin):
         Initialise regridding parameters
 
         Args:
-            regrid_mode (str):
+            regrid_mode:
                 Mode of interpolation in regridding.  Valid options are "bilinear",
                 "nearest" or "nearest-with-mask".  The "nearest-with-mask" option
                 triggers adjustment of regridded points to match source points in
                 terms of land / sea type.
-            extrapolation_mode (str):
+            extrapolation_mode:
                 Mode to fill regions outside the domain in regridding.
-            landmask (iris.cube.Cube or None):
+            landmask:
                 Land-sea mask ("land_binary_mask") on the input cube grid, with
                 land points set to one and sea points set to zero.  Required for
                 "nearest-with-mask" regridding option.
-            landmask_vicinity (float):
+            landmask_vicinity:
                 Radius of vicinity to search for a coastline, in metres
         """
         if regrid_mode not in self.REGRID_REQUIRES_LANDMASK:
@@ -286,9 +286,9 @@ class RegridLandSea(BasePlugin):
         matches that of the target grid.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube after initial regridding
-            target_grid (iris.cube.Cube):
+            target_grid:
                 Cube containing landmask data on the target grid
 
         Returns:
@@ -317,13 +317,13 @@ class RegridLandSea(BasePlugin):
         Regrid cube to target_grid, inherit grid attributes and update title
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube to be regridded
-            target_grid (iris.cube.Cube):
+            target_grid:
                 Data on the target grid. If regridding with mask, this cube
                 should contain land-sea mask data to be used in adjusting land
                 and sea points after regridding.
-            regridded_title (str or None):
+            regridded_title:
                 New value for the "title" attribute to be used after
                 regridding. If not set, a default value is used.
 
@@ -364,13 +364,13 @@ class RegridLandSea(BasePlugin):
         Regrids cube onto spatial grid provided by target_grid
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube to be regridded
-            target_grid (iris.cube.Cube):
+            target_grid:
                 Data on the target grid. If regridding with mask, this cube
                 should contain land-sea mask data to be used in adjusting land
                 and sea points after regridding.
-            regridded_title (str or None):
+            regridded_title:
                 New value for the "title" attribute to be used after
                 regridding. If not set, a default value is used.
 
@@ -402,14 +402,14 @@ class AdjustLandSeaPoints(BasePlugin):
         Initialise class
 
         Args:
-            extrapolation_mode (str):
+            extrapolation_mode:
                 Mode to use for extrapolating data into regions
                 beyond the limits of the source_data domain.
                 Available modes are documented in
                 `iris.analysis <https://scitools.org.uk/iris/docs/latest/iris/
                 iris/analysis.html#iris.analysis.Nearest>`_
                 Defaults to "nanmask".
-            vicinity_radius (float):
+            vicinity_radius:
                 Distance in metres to search for a sea or land point.
         """
         self.input_land = None
@@ -437,7 +437,7 @@ class AdjustLandSeaPoints(BasePlugin):
         Updates self.output_cube.data
 
         Args:
-            selector_val (int):
+            selector_val:
                 Value of mask to replace if needed.
                 Intended to be 1 for filling land points near the coast
                 and 0 for filling sea points near the coast.
@@ -495,16 +495,16 @@ class AdjustLandSeaPoints(BasePlugin):
         the grids match.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube of data to be updated (on same grid as output_land).
-            input_land (iris.cube.Cube):
+            input_land:
                 Cube of land_binary_mask data on the grid from which "cube" has
                 been reprojected (it is expected that the iris.analysis.Nearest
                 method would have been used). Land points should be set to one
                 and sea points set to zero.
                 This is used to determine where the input model data is
                 representing land and sea points.
-            output_land (iris.cube.Cube):
+            output_land:
                 Cube of land_binary_mask data on target grid.
         """
         # Check cube and output_land are on the same grid:

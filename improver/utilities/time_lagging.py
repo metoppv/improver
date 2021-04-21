@@ -56,7 +56,7 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
             3. Concatenate into one cube along the realization axis.
 
         Args:
-            cubelist (iris.cube.CubeList or list of iris.cube.Cube):
+            cubelist:
                 List of input forecasts
 
         Returns:

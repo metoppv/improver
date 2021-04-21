@@ -149,7 +149,7 @@ class ShowerCondition(BasePlugin):
         conv_ratio: probability_of_convective_ratio_above_threshold
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes:
                 List of input cubes
         Returns:
             iris.cube.Cube:

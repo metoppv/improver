@@ -38,7 +38,7 @@ def load_json_or_none(file_path: str) -> Optional[Dict]:
     """If there is a path, runs json.load and returns it. Else returns None.
 
     Args:
-        file_path (str or None):
+        file_path:
             File path to the json file to load.
 
     Returns:

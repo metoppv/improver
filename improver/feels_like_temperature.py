@@ -53,9 +53,9 @@ def _calculate_wind_chill(temperature: ndarray, wind_speed: ndarray) -> ndarray:
     Bluestein, 2005, table 2.
 
     Args:
-        temperature (numpy.ndarray):
+        temperature:
             Air temperature in degrees celsius
-        wind_speed (numpy.ndarray):
+        wind_speed:
             Wind speed in kilometres per hour
 
     Returns:
@@ -134,13 +134,13 @@ def _calculate_apparent_temperature(
     the WetBulbTemperature plugin which makes use of the Goff-Gratch method.
 
     Args:
-        temperature (numpy.ndarray):
+        temperature:
             Temperatures in degrees celsius
-        wind_speed (numpy.ndarray):
+        wind_speed:
             10m wind speeds in metres per second
-        relative_humidity (numpy.ndarray):
+        relative_humidity:
             Relative humidities (fractional)
-        pressure (numpy.ndarray):
+        pressure:
             Pressure in Pa
 
     Returns:
@@ -210,15 +210,15 @@ def calculate_feels_like_temperature(
     the wind chill index and Steadman's apparent temperature equation.
 
     Args:
-        temperature (iris.cube.Cube):
+        temperature:
             Cube of air temperatures
-        wind_speed (iris.cube.Cube):
+        wind_speed:
             Cube of 10m wind speeds
-        relative_humidity (iris.cube.Cube):
+        relative_humidity:
             Cube of relative humidities
-        pressure (iris.cube.Cube):
+        pressure:
             Cube of air pressure
-        model_id_attr (str):
+        model_id_attr:
             Name of the attribute used to identify the source model for
             blending.
 

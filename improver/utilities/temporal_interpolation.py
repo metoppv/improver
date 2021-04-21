@@ -67,7 +67,7 @@ class TemporalInterpolation(BasePlugin):
         Initialise class.
 
         Args:
-            interval_in_minutes (int):
+            interval_in_minutes:
                 Specifies the interval in minutes at which to interpolate
                 between the two input cubes. A number of minutes which does not
                 divide up the interval equally will raise an exception.
@@ -75,10 +75,10 @@ class TemporalInterpolation(BasePlugin):
                    | e.g. cube_t0 valid at 03Z, cube_t1 valid at 06Z,
                    | interval_in_minutes = 60 --> interpolate to 04Z and 05Z.
 
-            times (list or tuple of datetime.datetime):
+            times:
                 A list of datetime objects specifying the times to which to
                 interpolate.
-            interpolation_method (str):
+            interpolation_method:
                 Method of interpolation to use. Default is linear.
                 Only methods in known_interpolation_methods can be used.
 
@@ -126,7 +126,7 @@ class TemporalInterpolation(BasePlugin):
         appropriately for use by iris' interpolation method.
 
         Args:
-            initial_time (datetime.datetime):
+            initial_time:
                 The start of the period over which a time list is to be
                 constructed.
             final_time (datetime.datetime).
@@ -193,7 +193,7 @@ class TemporalInterpolation(BasePlugin):
 
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube that will have the datatype and units for the
                 time, forecast_reference_time and forecast_period coordinates
                 enforced.
@@ -221,11 +221,11 @@ class TemporalInterpolation(BasePlugin):
         Calculate sin of solar elevation
 
         Args:
-            dtval (datetime.datetime):
+            dtval:
                 Date and time.
-            lats (numpy.ndarray):
+            lats:
                 Array 2d of latitudes for each point
-            lons (numpy.ndarray):
+            lons:
                 Array 2d of longitudes for each point
         Returns:
             numpy.ndarray:
@@ -247,13 +247,13 @@ class TemporalInterpolation(BasePlugin):
         and longitude coordinates.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 cube containing x and y axis
         Returns:
             (tuple): tuple containing:
-                **lats** (numpy.ndarray):
+                **lats**:
                     2d Array of latitudes for each point.
-                **lons** (numpy.ndarray):
+                **lons**:
                     2d Array of longitudes for each point.
 
         """
@@ -278,10 +278,10 @@ class TemporalInterpolation(BasePlugin):
         horizon.
 
         Args:
-            diag_cube (iris.cube.Cube):
+            diag_cube:
                 cube containing diagnostic data valid at the beginning
                 of the period and at the end of the period.
-            interpolated_cube (iris.cube.Cube):
+            interpolated_cube:
                 cube containing Linear interpolation of
                 diag_cube at interpolation times in time_list.
         Returns:
@@ -350,7 +350,7 @@ class TemporalInterpolation(BasePlugin):
         sun is below the horizon.
 
         Args:
-            interpolated_cube (iris.cube.Cube):
+            interpolated_cube:
                 cube containing Linear interpolation of
                 cube at interpolation times in time_list.
 
@@ -371,10 +371,10 @@ class TemporalInterpolation(BasePlugin):
         cube_t0 and cube_t1.
 
         Args:
-            cube_t0 (iris.cube.Cube):
+            cube_t0:
                 A diagnostic cube valid at the beginning of the period within
                 which interpolation is to be permitted.
-            cube_t1 (iris.cube.Cube):
+            cube_t1:
                 A diagnostic cube valid at the end of the period within which
                 interpolation is to be permitted.
 

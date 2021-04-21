@@ -71,38 +71,38 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
     ) -> None:
         """
         Args:
-            lower_threshold (float):
+            lower_threshold:
                 The threshold point for 'significant' datapoints to define the
                 lower threshold e.g. 0 mm/hr.
-            higher_threshold (float):
+            higher_threshold:
                 The threshold point for 'significant' datapoints to define the
                 higher threshold e.g. 5 mm/hr.
-            neighbourhood_method (str):
+            neighbourhood_method:
                 Name of the neighbourhood method to use. Options: 'circular',
                 'square'.
-            radii (float or list if defining lead times):
+            radii:
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-            fuzzy_factor (float or None):
+            fuzzy_factor:
                 Percentage above or below threshold for fuzzy membership value.
                 If None, no fuzzy_factor is applied.
-            comparison_operator (str):
+            comparison_operator:
                 Indicates the comparison_operator to use with the threshold.
                 e.g. 'ge' or '>=' to evaluate data >= threshold or '<' to
                 evaluate data < threshold. When using fuzzy_factor, there
                 is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
-            lead_times (list):
+            lead_times:
                 List of lead times or forecast periods, at which the radii
                 within radii are defined. The lead times are expected
                 in hours.
-            weighted_mode (bool):
+            weighted_mode:
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
                 If False, use a circle with constant weighting.
-            use_adjacent_grid_square_differences (bool):
+            use_adjacent_grid_square_differences:
                 If True, use the differences between adjacent grid squares
                 to diagnose convective precipitation.
                 If False, use the raw field without calculating differences to
@@ -162,11 +162,11 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
               were exceeded, such that the convective ratio was 0/0.
 
         Args:
-            cube (iris.cube.CubeList):
+            cube:
                 Cubelist containing cubes from which the convective ratio
                 will be calculated. The cube should have been thresholded,
                 so that values within cube.data are between 0.0 and 1.0.
-            threshold_list (list):
+            threshold_list:
                 The list of thresholds.
 
         Returns:
@@ -225,7 +225,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         resulting cubes into a cubelist.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube from which adjacent grid square differences will be
                 calculated.
 
@@ -249,9 +249,9 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         Iterate over the application of thresholding to multiple cubes.
 
         Args:
-            cubelist (iris.cube.CubeList):
+            cubelist:
                 Cubelist containing cubes to be thresholded.
-            threshold (float):
+            threshold:
                 The threshold that will be applied.
 
         Returns:
@@ -285,9 +285,9 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         input cube.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube with the original grid.
-            thresholded_cubes (iris.cube.CubeList):
+            thresholded_cubes:
                 Cubelist containing differences between adjacent grid squares
                 along x and differences between adjacent grid squares along y,
                 which have been thresholded.
@@ -322,7 +322,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         the high threshold cube by the low threshold cube.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube from which the convective ratio will be calculated.
 
         Returns:
@@ -386,8 +386,8 @@ class ConvectionRatioFromComponents(BasePlugin):
         Get one cube named "name" from the list of cubes and set its units to m s-1.
 
         Args:
-            cubes (iris.cube.CubeList):
-            name (str):
+            cubes:
+            name:
 
         Returns:
             iris.cube.Cube
@@ -430,11 +430,11 @@ class ConvectionRatioFromComponents(BasePlugin):
         If convective + dynamic is zero, then the resulting point is masked.
 
         Args:
-            cubes (List[iris.cube.Cube, iris.cube.Cube]):
+            cubes:
                 Both the convective and dynamic components as iris.cube.Cube in a list
                 with names 'lwe_convective_precipitation_rate' and
                 'lwe_stratiform_precipitation_rate'
-            model_id_attr (str):
+            model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending. This is inherited from the input temperature cube.
 

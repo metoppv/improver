@@ -53,12 +53,12 @@ def create_sorted_lambda_constraint(
     of precipitation rates expressed in m s-1.
 
     Args:
-        coord_name (str):
+        coord_name:
             Name of the coordinate.
-        values (list):
+        values:
             A list of two values that represent the inclusive end points
             of a range.
-        tolerance (float):
+        tolerance:
             A relative tolerance value to ensure equivalence matching when
             using float32 values. Values of zero will be unchanged.
 

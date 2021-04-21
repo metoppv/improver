@@ -73,23 +73,23 @@ class FieldTexture(BasePlugin):
         """
 
         Args:
-            nbhood_radius (float):
+            nbhood_radius:
                 The neighbourhood radius in metres within which the number of potential
                 transitions should be calculated. This forms the denominator in the
                 calculation of the ratio of actual to potential transitions that indicates a
                 field's texture. A larger radius should be used for diagnosing larger-scale
                 textural features.
 
-            textural_threshold (float):
+            textural_threshold:
                 A unit-less threshold value that defines the ratio value above which
                 the field is considered rough and below which the field is considered
                 smoother.
 
-            diagnostic_threshold (float):
+            diagnostic_threshold:
                 A user defined threshold value related either to cloud or precipitation,
                 used to extract the corresponding dimensional cube with assumed units of 1.
 
-            model_id_attr (str):
+            model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending.
 
@@ -126,14 +126,14 @@ class FieldTexture(BasePlugin):
         is set to 1.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Input data in cube format containing a two-dimensional field
                 of binary data.
 
-            cube_name (str):
+            cube_name:
                 Name of input data cube, used for determining output texture cube name.
 
-            radius (float):
+            radius:
                 Radius for neighbourhood in metres.
 
         Returns:
@@ -189,7 +189,7 @@ class FieldTexture(BasePlugin):
         transitions for cells of value 0 is set to 0.
 
         Args:
-            data (numpy.ndarray):
+            data:
                 A NumPy array of the input cube for data manipulation.
 
         Returns:
@@ -211,7 +211,7 @@ class FieldTexture(BasePlugin):
         more scattered features.
 
         Args:
-            input_cube (iris.cube.Cube):
+            input_cube:
                 Input data in cube format containing the field for which the
                 texture is to be assessed.
 

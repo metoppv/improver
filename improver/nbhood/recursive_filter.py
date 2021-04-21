@@ -57,9 +57,9 @@ class RecursiveFilter(PostProcessingPlugin):
         Initialise the class.
 
         Args:
-            iterations (int or None):
+            iterations:
                 The number of iterations of the recursive filter.
-            edge_width (int):
+            edge_width:
                 Half the width of the padding halo applied before
                 recursive filtering.
         Raises:
@@ -110,14 +110,14 @@ class RecursiveFilter(PostProcessingPlugin):
             :math:`B_{i-1}` = New value at gridpoint i - 1
 
         Args:
-            grid (numpy.ndarray):
+            grid:
                 2D array containing the input data to which the recursive
                 filter will be applied.
-            smoothing_coefficients (numpy.ndarray):
+            smoothing_coefficients:
                 Matching 2D array of smoothing_coefficient values that will be
                 used when applying the recursive filter along the specified
                 axis.
-            axis (int):
+            axis:
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
@@ -160,14 +160,14 @@ class RecursiveFilter(PostProcessingPlugin):
             :math:`B_{i+1}` = New value at gridpoint i+1
 
         Args:
-            grid (numpy.ndarray):
+            grid:
                 2D array containing the input data to which the recursive
                 filter will be applied.
-            smoothing_coefficients (numpy.ndarray):
+            smoothing_coefficients:
                 Matching 2D array of smoothing_coefficient values that will be
                 used when applying the recursive filter along the specified
                 axis.
-            axis (int):
+            axis:
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
@@ -199,18 +199,18 @@ class RecursiveFilter(PostProcessingPlugin):
         Method to run the recursive filter.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 2D cube containing the input data to which the recursive
                 filter will be applied.
-            smoothing_coefficients_x (iris.cube.Cube):
+            smoothing_coefficients_x:
                 2D cube containing array of smoothing_coefficient values that
                 will be used when applying the recursive filter along the
                 x-axis.
-            smoothing_coefficients_y (iris.cube.Cube):
+            smoothing_coefficients_y:
                 2D cube containing array of smoothing_coefficient values that
                 will be used when applying the recursive filter along the
                 y-axis.
-            iterations (int):
+            iterations:
                 The number of iterations of the recursive filter
 
         Returns:
@@ -244,11 +244,11 @@ class RecursiveFilter(PostProcessingPlugin):
         """Validate the smoothing coefficients cubes.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 2D cube containing the input data to which the recursive
                 filter will be applied.
 
-            smoothing_coefficients (iris.cube.CubeList):
+            smoothing_coefficients:
                 A cubelist containing two cubes of smoothing_coefficient values,
                 one corresponding to smoothing in the x-direction, and the other
                 to smoothing in the y-direction.
@@ -383,10 +383,10 @@ class RecursiveFilter(PostProcessingPlugin):
         from its neighbouring cell.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the input data to which the recursive filter
                 will be applied.
-            smoothing_coefficients (iris.cube.CubeList):
+            smoothing_coefficients:
                 A cubelist containing two cubes of smoothing_coefficient values,
                 one corresponding to smoothing in the x-direction, and the other
                 to smoothing in the y-direction.

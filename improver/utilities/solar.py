@@ -55,7 +55,7 @@ def calc_solar_declination(day_of_year: int) -> float:
     https://www.esrl.noaa.gov/gmd/grad/solcalc/sollinks.html
 
     Args:
-        day_of_year (int):
+        day_of_year:
             Day of the year 0 to 365, 0 = 1st January
 
     Returns:
@@ -82,12 +82,12 @@ def calc_solar_hour_angle(
     https://www.esrl.noaa.gov/gmd/grad/solcalc/sollinks.html
 
     Args:
-        longitudes (float or numpy.ndarray):
+        longitudes:
             A single Longitude or array of Longitudes
             longitudes needs to be between 180.0 and -180.0 degrees
-        day_of_year (int):
+        day_of_year:
             Day of the year 0 to 365, 0 = 1st January
-        utc_hour (float):
+        utc_hour:
             Hour of the day in UTC
 
     Returns:
@@ -130,17 +130,17 @@ def calc_solar_elevation(
     Calculate the Solar elevation.
 
     Args:
-        latitudes (float or numpy.ndarray):
+        latitudes:
             A single Latitude or array of Latitudes
             latitudes needs to be between -90.0 and 90.0
-        longitudes (float or numpy.ndarray):
+        longitudes:
             A single Longitude or array of Longitudes
             longitudes needs to be between 180.0 and -180.0
-        day_of_year (int):
+        day_of_year:
             Day of the year 0 to 365, 0 = 1st January
-        utc_hour (float):
+        utc_hour:
             Hour of the day in UTC in hours
-        return_sine (bool):
+        return_sine:
             If True return sine of solar elevation.
             Default False.
 
@@ -181,12 +181,12 @@ def daynight_terminator(
     for the given longitudes.
 
     Args:
-        longitudes (numpy.ndarray):
+        longitudes:
             Array of longitudes.
             longitudes needs to be between 180.0 and -180.0 degrees
-        day_of_year (int):
+        day_of_year:
             Day of the year 0 to 365, 0 = 1st January
-        utc_hour (float):
+        utc_hour:
             Hour of the day in UTC
 
     Returns:
@@ -228,7 +228,7 @@ class DayNightMask(BasePlugin):
         Create blank daynight mask cube
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 cube with the times and coordinates required for mask
 
         Returns:
@@ -271,11 +271,11 @@ class DayNightMask(BasePlugin):
         Calculate the daynight mask for the provided Lat Lon cube
 
         Args:
-            mask_cube (iris.cube.Cube):
+            mask_cube:
                 daynight mask cube - data initially set to self.night
-            day_of_year (int):
+            day_of_year:
                 day of the year 0 to 365, 0 = 1st January
-            utc_hour (float):
+            utc_hour:
                 Hour in UTC
 
         Returns:
@@ -311,7 +311,7 @@ class DayNightMask(BasePlugin):
            dt(2017, 1, 1, 12, 0, 30)  -- +30 --> dt(2017, 1, 1, 12, 1, 0)
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 input cube
 
         Returns:

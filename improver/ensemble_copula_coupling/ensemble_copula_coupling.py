@@ -90,10 +90,10 @@ class RebadgePercentilesAsRealizations(BasePlugin):
         the input cube i.e. 0, 1, 2, 3, ..., n-1, if there are n percentiles.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing a percentile coordinate, which will be
                 rebadged as ensemble realization.
-            ensemble_realization_numbers (numpy.ndarray):
+            ensemble_realization_numbers:
                 An array containing the ensemble numbers required in the output
                 realization coordinate. Default is None, meaning the
                 realization coordinate will be numbered 0, 1, 2 ... n-1 for n
@@ -148,7 +148,7 @@ class ResamplePercentiles(BasePlugin):
         Initialise the class.
 
         Args:
-            ecc_bounds_warning (bool):
+            ecc_bounds_warning:
                 If true and ECC bounds are exceeded by the percentile values,
                 a warning will be generated rather than an exception.
                 Default value is FALSE.
@@ -167,12 +167,12 @@ class ResamplePercentiles(BasePlugin):
         constant lower and upper bounds.
 
         Args:
-            percentiles (numpy.ndarray):
+            percentiles:
                 Array of percentiles from a Cumulative Distribution Function.
-            forecast_at_percentiles (numpy.ndarray):
+            forecast_at_percentiles:
                 Array containing the underlying forecast values at each
                 percentile.
-            bounds_pairing (tuple):
+            bounds_pairing:
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
 
@@ -245,14 +245,14 @@ class ResamplePercentiles(BasePlugin):
         to a new set of percentiles.
 
         Args:
-            forecast_at_percentiles (iris.cube.Cube):
+            forecast_at_percentiles:
                 Cube containing a percentile coordinate.
-            desired_percentiles (numpy.ndarray):
+            desired_percentiles:
                 Array of the desired percentiles.
-            bounds_pairing (tuple):
+            bounds_pairing:
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
-            percentile_coord_name (str):
+            percentile_coord_name:
                 Name of required percentile coordinate.
         Returns:
             iris.cube.Cube:
@@ -318,14 +318,14 @@ class ResamplePercentiles(BasePlugin):
            set of percentiles using linear interpolation.
 
         Args:
-            forecast_at_percentiles (iris.cube.Cube):
+            forecast_at_percentiles:
                 Cube expected to contain a percentile coordinate.
-            no_of_percentiles (int or None):
+            no_of_percentiles:
                 Number of percentiles
                 If None, the number of percentiles within the input
                 forecast_at_percentiles cube is used as the
                 number of percentiles.
-            sampling (str):
+            sampling:
                 Type of sampling of the distribution to produce a set of
                 percentiles e.g. quantile or random.
 
@@ -386,7 +386,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         Initialise the class.
 
         Args:
-            ecc_bounds_warning (bool):
+            ecc_bounds_warning:
                 If true and ECC bounds are exceeded by the percentile values,
                 a warning will be generated rather than an exception.
                 Default value is FALSE.
@@ -405,21 +405,21 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         probabilities of 0 and 1 to the forecast probabilities.
 
         Args:
-            threshold_points (numpy.ndarray):
+            threshold_points:
                 Array of threshold values used to calculate the probabilities.
-            probabilities_for_cdf (numpy.ndarray):
+            probabilities_for_cdf:
                 Array containing the probabilities used for constructing an
                 cumulative distribution function i.e. probabilities
                 below threshold.
-            bounds_pairing (tuple):
+            bounds_pairing:
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
         Returns:
             (tuple): tuple containing:
-                **threshold_points** (numpy.ndarray):
+                **threshold_points**:
                     Array of threshold values padded with the lower and upper
                     bound of the distribution.
-                **probabilities_for_cdf** (numpy.ndarray):
+                **probabilities_for_cdf**:
                     Array containing the probabilities padded with 0 and 1 at
                     each end.
 
@@ -484,12 +484,12 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         with each threshold to a set of percentiles.
 
         Args:
-            forecast_probabilities (iris.cube.Cube):
+            forecast_probabilities:
                 Cube with a threshold coordinate.
-            percentiles (numpy.ndarray):
+            percentiles:
                 Array of percentiles, at which the corresponding values will be
                 calculated.
-            bounds_pairing (tuple):
+            bounds_pairing:
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
         Returns:
@@ -609,18 +609,18 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
            see Figure 1 from Flowerdew, 2014.
 
         Args:
-            forecast_probabilities (iris.cube.Cube):
+            forecast_probabilities:
                 Cube containing a threshold coordinate.
-            no_of_percentiles (int):
+            no_of_percentiles:
                 Number of percentiles. If None and percentiles is not set,
                 the number of thresholds within the input
                 forecast_probabilities cube is used as the number of
                 percentiles. This argument is mutually exclusive with
                 percentiles.
-            percentiles (list of float):
+            percentiles:
                 The desired percentile values in the interval [0, 100].
                 This argument is mutually exclusive with no_of_percentiles.
-            sampling (str):
+            sampling:
                 Type of sampling of the distribution to produce a set of
                 percentiles e.g. quantile or random.
 
@@ -711,9 +711,9 @@ class ConvertLocationAndScaleParameters:
         functionality within scipy.stats.
 
         Args:
-            distribution (str):
+            distribution:
                 Name of a distribution supported by scipy.stats.
-            shape_parameters (numpy.ndarray or None):
+            shape_parameters:
                 For use with distributions in scipy.stats (e.g. truncnorm) that
                 require the specification of shape parameters to be able to
                 define the shape of the distribution. For the truncated normal
@@ -778,9 +778,9 @@ calculate_truncated_normal_crps`,
         Please see :data:`scipy.stats.truncnorm` for some further information.
 
         Args:
-            location_parameter (numpy.ndarray):
+            location_parameter:
                 Location parameter to be used to scale the shape parameters.
-            scale_parameter (numpy.ndarray):
+            scale_parameter:
                 Scale parameter to be used to scale the shape parameters.
 
         """
@@ -820,16 +820,16 @@ class ConvertLocationAndScaleParametersToPercentiles(
         scale parameters.
 
         Args:
-            location_parameter (iris.cube.Cube):
+            location_parameter:
                 Location parameter of calibrated distribution.
-            scale_parameter (iris.cube.Cube):
+            scale_parameter:
                 Scale parameter of the calibrated distribution.
-            template_cube (iris.cube.Cube):
+            template_cube:
                 Template cube containing either a percentile or realization
                 coordinate. All coordinates apart from the percentile or
                 realization coordinate will be copied from the template cube.
                 Metadata will also be copied from this cube.
-            percentiles (list):
+            percentiles:
                 Percentiles at which to calculate the value of the phenomenon
                 at.
 
@@ -921,19 +921,19 @@ class ConvertLocationAndScaleParametersToPercentiles(
         Generate ensemble percentiles from the location and scale parameters.
 
         Args:
-            location_parameter (iris.cube.Cube):
+            location_parameter:
                 Cube containing the location parameters.
-            scale_parameter (iris.cube.Cube):
+            scale_parameter:
                 Cube containing the scale parameters.
-            template_cube (iris.cube.Cube):
+            template_cube:
                 Template cube containing either a percentile or realization
                 coordinate. All coordinates apart from the percentile or
                 realization coordinate will be copied from the template cube.
                 Metadata will also be copied from this cube.
-            no_of_percentiles (int):
+            no_of_percentiles:
                 Integer defining the number of percentiles that will be
                 calculated from the location and scale parameters.
-            percentiles (list):
+            percentiles:
                 List of percentiles that will be generated from the location
                 and scale parameters provided.
 
@@ -990,7 +990,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         a threshold leading order is enforced.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 A cube whose dimensions are checked to ensure they match what
                 is expected.
         Raises:
@@ -1028,11 +1028,11 @@ class ConvertLocationAndScaleParametersToProbabilities(
         parameter and scale parameter if possible.
 
         Args:
-            location_parameter (iris.cube.Cube):
+            location_parameter:
                 Cube of location parameter values.
-            scale_parameter (iris.cube.Cube):
+            scale_parameter:
                 Cube of scale parameter values.
-            probability_cube_template (iris.cube.Cube):
+            probability_cube_template:
                 Cube containing threshold values.
         Raises:
             ValueError: If units of input cubes are not compatible.
@@ -1061,11 +1061,11 @@ class ConvertLocationAndScaleParametersToProbabilities(
         on the supplied location and scale parameters.
 
         Args:
-            location_parameter (iris.cube.Cube):
+            location_parameter:
                 Predictor for the calibrated forecast location parameter.
-            scale_parameter (iris.cube.Cube):
+            scale_parameter:
                 Scale parameter for the calibrated forecast.
-            probability_cube_template (iris.cube.Cube):
+            probability_cube_template:
                 A probability cube that has a threshold coordinate, where the
                 probabilities are defined as above or below the threshold by
                 the spp__relative_to_threshold attribute. This cube matches
@@ -1131,11 +1131,11 @@ class ConvertLocationAndScaleParametersToProbabilities(
         distribution.
 
         Args:
-            location_parameter (iris.cube.Cube):
+            location_parameter:
                 Cube containing the location parameters.
-            scale_parameter (iris.cube.Cube):
+            scale_parameter:
                 Cube containing the scale parameters.
-            probability_cube_template (iris.cube.Cube):
+            probability_cube_template:
                 A probability cube that has a threshold coordinate, where the
                 probabilities are defined as above or below the threshold by
                 the spp__relative_to_threshold attribute. This cube matches
@@ -1189,13 +1189,13 @@ class EnsembleReordering(BasePlugin):
         first n ensemble realizations are used.
 
         Args:
-            post_processed_forecast_percentiles  (iris.cube.Cube):
+            post_processed_forecast_percentiles :
                 Cube for post-processed percentiles.
                 The percentiles are assumed
                 to be in ascending order.
-            raw_forecast_realizations (iris.cube.Cube):
+            raw_forecast_realizations:
                 Cube containing the raw (not post-processed) forecasts.
-            percentile_coord_name (str):
+            percentile_coord_name:
                 Name of required percentile coordinate.
 
         Returns:
@@ -1251,18 +1251,18 @@ class EnsembleReordering(BasePlugin):
         the raw forecast realizations.
 
         Args:
-            post_processed_forecast_percentiles (iris.cube.Cube):
+            post_processed_forecast_percentiles:
                 Cube for post-processed percentiles. The percentiles are
                 assumed to be in ascending order.
-            raw_forecast_realizations (iris.cube.Cube):
+            raw_forecast_realizations:
                 Cube containing the raw (not post-processed) forecasts.
                 The probabilistic dimension is assumed to be the zeroth
                 dimension.
-            random_ordering (bool):
+            random_ordering:
                 If random_ordering is True, the post-processed forecasts are
                 reordered randomly, rather than using the ordering of the
                 raw ensemble.
-            random_seed (int or None):
+            random_seed:
                 If random_seed is an integer, the integer value is used for
                 the random seed.
                 If random_seed is None, no random seed is set, so the random
@@ -1326,17 +1326,17 @@ class EnsembleReordering(BasePlugin):
         raw ensemble.
 
         Args:
-            post_processed_forecast (iris.cube.Cube):
+            post_processed_forecast:
                 The cube containing the post-processed
                 forecast realizations.
-            raw_forecast (iris.cube.Cube):
+            raw_forecast:
                 The cube containing the raw (not post-processed)
                 forecast.
-            random_ordering (bool):
+            random_ordering:
                 If random_ordering is True, the post-processed forecasts are
                 reordered randomly, rather than using the ordering of the
                 raw ensemble.
-            random_seed (int):
+            random_seed:
                 If random_seed is an integer, the integer value is used for
                 the random seed.
                 If random_seed is None, no random seed is set, so the random

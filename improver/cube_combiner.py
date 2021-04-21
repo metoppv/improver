@@ -68,7 +68,7 @@ class CubeCombiner(BasePlugin):
         """Create a CubeCombiner plugin
 
         Args:
-            operation (str):
+            operation:
                 Operation (+, - etc) to apply to the incoming cubes.
 
         Raises:
@@ -91,9 +91,9 @@ class CubeCombiner(BasePlugin):
         the comparators specified.
 
         Args:
-            cube_list (list of iris.cube.Cube):
+            cube_list:
                 List of cubes to compare
-            comparators (list of callable):
+            comparators:
                 Comparison operators, at least one of which must return "True"
                 for each coordinate in order for the match to be valid
         Raises:
@@ -121,7 +121,7 @@ class CubeCombiner(BasePlugin):
         that are present on all input cubes, but have different values.
 
         Args:
-            cube_list (list of iris.cube.Cube):
+            cube_list:
                 List of cubes to that will be combined
 
         Returns:
@@ -184,11 +184,11 @@ class CubeCombiner(BasePlugin):
         cube metadata.
 
         Args:
-            cube_list (list of iris.cube.Cube):
+            cube_list:
                 List of cubes to combine.
-            new_diagnostic_name (str):
+            new_diagnostic_name:
                 New name for the combined diagnostic.
-            use_midpoint (bool):
+            use_midpoint:
                 Determines the nature of the points and bounds for expanded
                 coordinates.  If False, the upper bound of the coordinate is
                 used as the point values.  If True, the midpoint is used.
@@ -304,13 +304,13 @@ class CubeMultiplier(CubeCombiner):
         cube in the input list provides the combined cube metadata.
 
         Args:
-            cube_list (iris.cube.CubeList or list):
+            cube_list:
                 List of cubes to combine.
-            new_diagnostic_name (str):
+            new_diagnostic_name:
                 New name for the combined diagnostic.  This should be the diagnostic
                 name, eg rainfall_rate or rainfall_rate_in_vicinity, rather than the
                 name of the probabilistic output cube.
-            broadcast_to_threshold (bool):
+            broadcast_to_threshold:
                 True if the first cube has a threshold coordinate to which the
                 following cube(s) need(s) to be broadcast prior to combining data.
 

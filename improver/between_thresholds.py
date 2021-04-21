@@ -56,10 +56,10 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         level.
 
         Args:
-            threshold_ranges (list):
+            threshold_ranges:
                 List of 2-item iterables specifying thresholds between which
                 probabilities should be calculated
-            threshold_units (str):
+            threshold_units:
                 Units in which the thresholds are specified
 
         Raises:
@@ -183,9 +183,9 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         Update output cube name and threshold coordinate
 
         Args:
-            output_cube (iris.cube.Cube):
+            output_cube:
                 Cube containing new "between_thresholds" probabilities
-            original_units (str):
+            original_units:
                 Required threshold-type coordinate units
         """
         new_name = self.cube.name().replace(
@@ -203,7 +203,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         Calculate probabilities between thresholds for the input cube
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Probability cube containing thresholded data (above or below)
 
         Returns:

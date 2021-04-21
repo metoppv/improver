@@ -75,16 +75,16 @@ class MergeCubesForWeightedBlending(BasePlugin):
         Initialise the class
 
         Args:
-            blend_coord (str):
+            blend_coord:
                 Name of coordinate over which blending will be performed.  For
                 multi-model blending this is flexible to any string containing
                 "model".  For all other coordinates this is prescriptive:
                 cube.coord(blend_coord) must return an iris.coords.Coord
                 instance for all cubes passed into the "process" method.
-            weighting_coord (str or None):
+            weighting_coord:
                 The coordinate across which weights will be scaled in a
                 multi-model blend.
-            model_id_attr (str or None):
+            model_id_attr:
                 Name of attribute used to identify model for grid blending.
                 None for cycle blending.
 
@@ -117,7 +117,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
         Modifies cubes in place.
 
         Args:
-            cubelist (iris.cube.CubeList):
+            cubelist:
                 List of cubes to be merged for blending
 
         Raises:
@@ -182,9 +182,9 @@ class MergeCubesForWeightedBlending(BasePlugin):
         needed to ensure inputs can be merged into a single cube.
 
         Args:
-            cubes_in (iris.cube.CubeList or iris.cube.Cube):
+            cubes_in:
                 Cubes to be merged.
-            cycletime (str or None):
+            cycletime:
                 The cycletime in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z.
                 Can be used in rationalise_blend_time_coordinates.
 
@@ -276,15 +276,15 @@ class PercentileBlendingAggregator:
         data must be provided with the blend coord as the first dimension.
 
         Args:
-            data (numpy.ndarray):
+            data:
                 Array containing the data to blend.
-            axis (int):
+            axis:
                 The index of the coordinate dimension in the cube. This
                 dimension will be aggregated over.
-            percentiles (numpy.ndarray):
+            percentiles:
                 Array of percentile values e.g [0, 20.0, 50.0, 70.0, 100.0],
                 same size as the percentile (second) dimension of data.
-            arr_weights (numpy.ndarray):
+            arr_weights:
                 Array of weights, same shape as data, but without the percentile
                 dimension (weights do not vary with percentile).
 
@@ -334,13 +334,13 @@ class PercentileBlendingAggregator:
             a given axis of percentile data for a single grid point.
 
         Args:
-            perc_values (numpy.ndarray):
+            perc_values:
                 Array containing the percentile values to blend, with
                 shape: (length of coord to blend, num of percentiles)
-            percentiles (numpy.ndarray):
+            percentiles:
                 Array of percentile values e.g [0, 20.0, 50.0, 70.0, 100.0],
                 same size as the percentile dimension of data.
-            weights (numpy.ndarray):
+            weights:
                 Array of weights, same size as the axis dimension of data,
                 that we will blend over.
 
@@ -389,10 +389,10 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         """Set up for a Weighted Blending plugin
 
         Args:
-            blend_coord (str):
+            blend_coord:
                 The name of the coordinate dimension over which the cube will
                 be blended.
-            timeblending (bool):
+            timeblending:
                 With the default of False the cube being blended will be
                 checked to ensure that slices across the blending coordinate
                 all have the same validity time. Setting this to True will
@@ -424,7 +424,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         coordinate.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube to be checked for a percentile coordinate.
         Returns:
             bool:
@@ -462,7 +462,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         exception.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube upon which the compatibility of the time coords is
                 being checked.
         Raises:
@@ -492,9 +492,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         returned as an array.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The data cube on which a coordinate is being blended.
-            weights (iris.cube.Cube):
+            weights:
                 Cube of blending weights.
         Returns:
             numpy.ndarray:
@@ -553,7 +553,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         the sum of weights is zero.
 
         Args:
-            weights (numpy.ndarray):
+            weights:
                 Array of weights shaped to match the data cube.
 
         Returns:
@@ -576,9 +576,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         the blending coordinate.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Template cube to reshape weights, with a leading blend coordinate
-            weights (iris.cube.Cube or None):
+            weights:
                 Cube of initial blending weights or None
         Returns:
             numpy.ndarray:
@@ -598,11 +598,11 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         Blend percentile data using the weights provided.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube which is being blended over self.blend_coord. Assumes
                 self.blend_coord and percentile are leading coordinates (enforced
                 in process).
-            weights (iris.cube.Cube):
+            weights:
                 Cube of blending weights.
         Returns:
             iris.cube.Cube:
@@ -634,10 +634,10 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         Blend data using a weighted mean using the weights provided.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube which is being blended over self.blend_coord.
                 Assumes leading blend dimension (enforced in process)
-            weights (iris.cube.Cube or None):
+            weights:
                 Cube of blending weights or None.
 
         Returns:
@@ -678,9 +678,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
            have at least two points.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube to blend across the coord.
-            weights (iris.cube.Cube):
+            weights:
                 Cube of blending weights. This will have 1 or 3 dimensions,
                 corresponding either to blend dimension on the input cube with or
                 without and additional 2 spatial dimensions. If None, the input cube

@@ -48,7 +48,7 @@ def _order_cell_methods(cube: Cube) -> None:
     input cube is modified.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The cube on which the cell methods are to be sorted.
     """
     cell_methods = tuple(sorted(cube.cell_methods))
@@ -60,7 +60,7 @@ def _check_metadata(cube: Cube) -> None:
     Checks cube metadata that needs to be correct to guarantee data integrity
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to be checked
 
     Raises:
@@ -90,14 +90,14 @@ def save_netcdf(
     global attributes.
 
     Args:
-        cubelist (iris.cube.Cube or iris.cube.CubeList):
+        cubelist:
             Cube or list of cubes to be saved
-        filename (str):
+        filename:
             Filename to save input cube(s)
-        compression_level (int):
+        compression_level:
             1-9 to specify compression level, or 0 to not compress (default compress
             with complevel 1)
-        least_significant_digit (int):
+        least_significant_digit:
             If specified will truncate the data to a precision given by 10**(-least_significant_digit),
             e.g. if least_significant_digit=2, then the data will be quantized to a precision of 0.01 (10**(-2)). See
             http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml

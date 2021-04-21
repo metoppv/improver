@@ -85,14 +85,14 @@ def load_cubelist(
     from the standard or long name.
 
     Args:
-        filepath (str or list):
+        filepath:
             Filepath(s) that will be loaded.
-        constraints (iris.Constraint, str or None):
+        constraints:
             Constraint to be applied when loading from the input filepath.
             This can be in the form of an iris.Constraint or could be a string
             that is intended to match the name of the cube.
             The default is None.
-        no_lazy_load (bool):
+        no_lazy_load:
             If True, bypass cube deferred (lazy) loading and load the whole
             cube into memory. This can increase performance at the cost of
             memory. If False (default) then lazy load.
@@ -156,15 +156,15 @@ def load_cube(
     from the standard or long name.
 
     Args:
-        filepath (str or list):
+        filepath:
             Filepath that will be loaded or list of filepaths that can be
             merged into a single cube.
-        constraints (iris.Constraint, str or None):
+        constraints:
             Constraint to be applied when loading from the input filepath.
             This can be in the form of an iris.Constraint or could be a string
             that is intended to match the name of the cube.
             The default is None.
-        no_lazy_load (bool):
+        no_lazy_load:
             If True, bypass cube deferred (lazy) loading and load the whole
             cube into memory. This can increase performance at the cost of
             memory. If False (default) then lazy load.

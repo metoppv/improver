@@ -80,9 +80,9 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         """Get difference in orography heights, in metres
 
         Args:
-            source_orog (iris.cube.Cube):
+            source_orog:
                 2D cube of source orography heights (units modified in place)
-            dest_orog (iris.cube.Cube):
+            dest_orog:
                 2D cube of destination orography heights (units modified in
                 place)
 
@@ -103,13 +103,13 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         units are modified in place.
 
         Args:
-            temperature (iris.cube.Cube):
+            temperature:
                 Input temperature field to be adjusted
-            lapse_rate (iris.cube.Cube):
+            lapse_rate:
                 Cube of pre-calculated lapse rates
-            source_orog (iris.cube.Cube):
+            source_orog:
                 2D cube of source orography heights
-            dest_orog (iris.cube.Cube):
+            dest_orog:
                 2D cube of destination orography heights
 
         Returns:
@@ -186,21 +186,21 @@ class LapseRate(BasePlugin):
         code.
 
         Args:
-            max_height_diff (float):
+            max_height_diff:
                 Maximum allowable height difference between the central point
                 and points in the neighbourhood over which the lapse rate will
                 be calculated (metres).
                 The default value of 35m is from the referenced paper.
 
-            nbhood_radius (int):
+            nbhood_radius:
                 Radius of neighbourhood around each point. The neighbourhood
                 will be a square array with side length 2*nbhood_radius + 1.
                 The default value of 7 is from the referenced paper.
 
-            max_lapse_rate (float):
+            max_lapse_rate:
                 Maximum lapse rate allowed.
 
-            min_lapse_rate (float):
+            min_lapse_rate:
                 Minimum lapse rate allowed.
 
         """
@@ -248,16 +248,16 @@ class LapseRate(BasePlugin):
         of the temp and orog datasets.
 
         Args:
-            temp (numpy.ndarray):
+            temp:
                 2D array (single realization) of temperature data, in Kelvin
-            orog (numpy.ndarray):
+            orog:
                 2D array of orographies, in metres
 
         Returns:
             (tuple): tuple_containing:
-                **views of temp** (numpy.ndarray):
+                **views of temp**:
                     Rolling windows of the padded temperature dataset.
-                **views of orog** (numpy.ndarray):
+                **views of orog**:
                     Rolling windows of the padded orography dataset.
         """
         window_shape = (self.nbhood_size, self.nbhood_size)
@@ -279,11 +279,11 @@ class LapseRate(BasePlugin):
         Calculate lapse rates and apply filters
 
         Args:
-            temperature_data (numpy.ndarray):
+            temperature_data:
                 2D array (single realization) of temperature data, in Kelvin
-            orography_data (numpy.ndarray):
+            orography_data:
                 2D array of orographies, in metres
-            land_sea_mask_data (numpy.ndarray):
+            land_sea_mask_data:
                 2D land-sea mask
 
         Returns:
@@ -354,14 +354,14 @@ class LapseRate(BasePlugin):
         """Calculates the lapse rate from the temperature and orography cubes.
 
         Args:
-            temperature (iris.cube.Cube):
+            temperature:
                 Cube of air temperatures (K).
-            orography (iris.cube.Cube):
+            orography:
                 Cube containing orography data (metres)
-            land_sea_mask (iris.cube.Cube):
+            land_sea_mask:
                 Cube containing a binary land-sea mask. True for land-points
                 and False for Sea.
-            model_id_attr (str):
+            model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending. This is inherited from the input temperature cube.
 

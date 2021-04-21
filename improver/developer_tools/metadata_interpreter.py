@@ -562,9 +562,9 @@ def display_interpretation(
     not be run on a MOMetadataInterpreter instance that has raised errors.
 
     Args:
-        interpreter (MOMetadataInterpreter):
+        interpreter:
             Populated instance of MOMetadataInterpreter
-        verbose (bool):
+        verbose:
             Optional flag to include information about the source of the
             metadata interpretation (eg name, coordinates, attributes, etc)
 

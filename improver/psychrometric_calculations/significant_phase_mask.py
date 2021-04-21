@@ -55,7 +55,7 @@ class SignificantPhaseMask(BasePlugin):
         Initialise the class
 
         Args:
-            model_id_attr (str):
+            model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending.
         """
@@ -113,9 +113,9 @@ class SignificantPhaseMask(BasePlugin):
         Make significant-phase-mask cube for the specified phase.
 
         Args:
-            snow_fraction (iris.cube.Cube):
+            snow_fraction:
                 The input snow-fraction data to derive the phase mask from.
-            phase (str):
+            phase:
                 One of "rain", "sleet" or "snow". This is the phase mask that will be
                 returned.
 

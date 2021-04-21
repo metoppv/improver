@@ -64,7 +64,7 @@ class ResolveWindComponents(BasePlugin):
         matrix of values on the grid of the input reference cube.
 
         Args:
-            reference_cube (iris.cube.Cube):
+            reference_cube:
                 2D cube on grid for which "north" is required.  Provides both
                 coordinate system (reference_cube.coord_system()) and template
                 spatial grid on which the angle adjustments should be provided.
@@ -149,11 +149,11 @@ class ResolveWindComponents(BasePlugin):
         Perform trigonometric reprojection onto x and y axes
 
         Args:
-            speed (iris.cube.Cube):
+            speed:
                 Cube containing wind speed data
-            angle (iris.cube.Cube):
+            angle:
                 Cube containing wind directions as angles from true North
-            adj (numpy.ndarray):
+            adj:
                 2D array of wind direction angle adjustments in radians, to
                 convert zero reference from true North to grid North.
                 Broadcast automatically if speed and angle cubes have extra
@@ -161,11 +161,11 @@ class ResolveWindComponents(BasePlugin):
 
         Returns:
             (tuple): tuple containing:
-                **u_speed** (iris.cube.Cube):
+                **u_speed**:
                     Cube containing wind vector component in the positive
                     x-direction
 
-                **v_speed** (iris.cube.Cube):
+                **v_speed**:
                     Cube containing wind vector component in the positive
                     y-direction
         """
@@ -188,19 +188,19 @@ class ResolveWindComponents(BasePlugin):
         projection axes.
 
         Args:
-            wind_speed (iris.cube.Cube):
+            wind_speed:
                 Cube containing wind speed values
-            wind_dir (iris.cube.Cube):
+            wind_dir:
                 Cube containing wind direction values relative to true North
 
         Returns:
             (tuple): tuple containing:
-                **ucube** (iris.cube.Cube):
+                **ucube**:
                     Cube containing wind speeds in the positive projection
                     x-axis direction, with units and projection matching
                     wind_speed cube.
 
-                **vcube** (iris.cube.Cube):
+                **vcube**:
                     Cube containing wind speeds in the positive projection
                     y-axis direction, with units and projection matching
                     wind_speed cube.

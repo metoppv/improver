@@ -64,11 +64,11 @@ class SaturatedVapourPressureTable(BasePlugin):
         that will be used.
 
         Args:
-            t_min (float):
+            t_min:
                 The minimum temperature for the range, in Kelvin.
-            t_max (float):
+            t_max:
                 The maximum temperature for the range, in Kelvin.
-            t_increment (float):
+            t_increment:
                 The temperature increment at which to create values for the
                 saturated vapour pressure between t_min and t_max.
         """
@@ -90,7 +90,7 @@ class SaturatedVapourPressureTable(BasePlugin):
         the Goff-Gratch Equation (WMO standard method).
 
         Args:
-            temperature (numpy.ndarray):
+            temperature:
                 Temperature values in Kelvin. Valid from 173K to 373K
 
         Returns:

@@ -54,7 +54,7 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
     collapsed method will not be retained.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             A Cube to be collapsed.
 
     Returns:
@@ -87,7 +87,7 @@ def collapse_realizations(cube: Cube) -> Cube:
     """Collapses the realization coord of a cube and strips the coord from the cube.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Input cube
 
     Returns:
@@ -131,9 +131,9 @@ def equalise_cube_attributes(cubes: CubeList, silent: List[str] = None) -> None:
     list.  Cubes are modified in place.
 
     Args:
-        cubes (iris.cube.CubeList):
+        cubes:
             List of cubes to check the attributes and revise.
-        silent (list or None):
+        silent:
             List of attributes to remove silently if unmatched.
 
     Warns:
@@ -202,7 +202,7 @@ class MergeCubes(BasePlugin):
         in place.
 
         Args:
-            cubelist (iris.cube.CubeList):
+            cubelist:
                 List of cubes to check the cell methods and revise.
         """
         cell_methods = cubelist[0].cell_methods
@@ -220,7 +220,7 @@ class MergeCubes(BasePlugin):
         coordinate are not compatible, raise an error.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Merged cube
         """
         for name in ["time", "forecast_period"]:
@@ -262,19 +262,19 @@ class MergeCubes(BasePlugin):
         result of premature iris merging on load).
 
         Args:
-            cubes_in (iris.cube.CubeList or iris.cube.Cube):
+            cubes_in:
                 Cubes to be merged.
-            check_time_bounds_ranges (bool):
+            check_time_bounds_ranges:
                 Flag to check whether scalar time bounds ranges match.
                 This is for when we are expecting to create a new "time" axis
                 through merging for eg precipitation accumulations, where we
                 want to make sure that the bounds match so that we are not eg
                 combining 1 hour with 3 hour accumulations.
-            slice_over_realization (bool):
+            slice_over_realization:
                 Options to combine cubes with different realization dimensions.
                 These cannot always be concatenated directly as this can create a
                 non-monotonic realization coordinate.
-            copy (bool):
+            copy:
                 If True, this will copy the cubes, thus not having any impact on
                 the original objects.
 
@@ -330,10 +330,10 @@ def get_filtered_attributes(
     attribute_filter is None, return all attributes.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             A cube from which attributes partially matching the
             attribute_filter will be returned.
-        attribute_filter (str or None):
+        attribute_filter:
             A string to match, or partially match, against attributes to build
             a filtered attribute dictionary. If None, all attributes are
             returned.
@@ -355,9 +355,9 @@ def compare_attributes(
     Function to compare attributes of cubes
 
     Args:
-        cubes (iris.cube.CubeList):
+        cubes:
             List of cubes to compare (must be more than 1)
-        attribute_filter (str or None):
+        attribute_filter:
             A string to filter which attributes are actually compared. If None
             all attributes are compared.
     Returns:
@@ -406,7 +406,7 @@ def compare_coords(cubes: CubeList) -> List[Dict]:
     Function to compare the coordinates of the cubes
 
     Args:
-        cubes (iris.cube.CubeList):
+        cubes:
             List of cubes to compare (must be more than 1)
 
     Returns:
@@ -467,11 +467,11 @@ def sort_coord_in_cube(cube: Cube, coord: str, descending: bool = False) -> Cube
     This code is based upon https://gist.github.com/pelson/9763057.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The input cube to be sorted.
-        coord (str):
+        coord:
             Name of the coordinate to be sorted.
-        descending (bool):
+        descending:
             If True it will be sorted in descending order.
 
     Returns:
@@ -508,14 +508,14 @@ def enforce_coordinate_ordering(
     Note that the input cube is modified in place.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube where the ordering will be enforced to match the order within
             the coord_names. This input cube will be modified as part of this
             function.
-        coord_names (list or str):
+        coord_names:
             List of the names of the coordinates to order. If a string is
             passed in, only the single specified coordinate is reordered.
-        anchor_start (bool):
+        anchor_start:
             Define whether the specified coordinates should be moved to the
             start (True) or end (False) of the list of dimensions. If True, the
             coordinates are inserted as the first dimensions in the order in
@@ -568,13 +568,13 @@ def clip_cube_data(cube: Cube, minimum_value: float, maximum_value: float) -> Cu
     beyond the provided minimum and maximum values.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The cube that has been processed and contains data that is to be
             clipped.
-        minimum_value (int or float):
+        minimum_value:
             The minimum value, with data in the cube that falls below this
             threshold set to it.
-        maximum_value (int or float):
+        maximum_value:
             The maximum value, with data in the cube that falls above this
             threshold set to it.
     Returns:
@@ -612,13 +612,13 @@ def expand_bounds(
     have bounds of [0000Z,0200Z]
 
     Args:
-        result_cube (iris.cube.Cube):
+        result_cube:
             Cube with coords requiring expansion
-        cubelist (iris.cube.CubeList):
+        cubelist:
             List of input cubes with source coords
-        coord_names (list of str):
+        coord_names:
             Coordinates which should be expanded
-        use_midpoint (bool):
+        use_midpoint:
             If True, coordinate points returned are halfway between the
             expanded bounds.  If False (default), the upper bound is used.
             Note if the midpoint is used then python will convert

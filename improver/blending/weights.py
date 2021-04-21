@@ -63,9 +63,9 @@ class WeightsUtilities:
         """Ensures all weights add up to one.
 
             Args:
-                weights (numpy.ndarray):
+                weights:
                     array of weights
-                axis (int):
+                axis:
                     The axis that we want to normalise along for a multiple
                     dimensional array. Defaults to None, meaning the whole
                     array is used for the normalisation.
@@ -98,11 +98,11 @@ class WeightsUtilities:
         """Build a cube containing weights for use in blending.
 
             Args:
-                cube (iris.cube.Cube):
+                cube:
                     The cube that is being blended over blending_coord.
-                weights (numpy.ndarray):
+                weights:
                     Array of weights
-                blending_coord (str):
+                blending_coord:
                     Name of the coordinate over which the weights will be used
                     to blend data, e.g. across model name when grid blending.
             Returns:
@@ -160,18 +160,18 @@ class ChooseWeightsLinear(BasePlugin):
         Set up for calculating linear weights from a dictionary or input cube
 
         Args:
-            weighting_coord_name (str):
+            weighting_coord_name:
                 Standard name of the coordinate along which the weights will be
                 interpolated. For example, if the intention is to provide
                 weights varying with forecast period, then this argument would
                 be "forecast_period". This coordinate must be included within
                 the configuration dictionary.
-            config_dict (dict):
+            config_dict:
                 Dictionary containing the configuration information, namely
                 an initial set of weights and information regarding the
                 points along the specified coordinate at which the weights are
                 valid. An example dictionary is shown below.
-            config_coord_name (str):
+            config_coord_name:
                 Name of the coordinate used to select the configuration.
                 For example, if the intention is to create weights that scale
                 differently with the weighting_coord for different models, then
@@ -246,25 +246,25 @@ class ChooseWeightsLinear(BasePlugin):
         Generate inputs required for linear interpolation.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the coordinate information that will be used
                 for setting up the interpolation inputs.
 
         Returns:
             (tuple): tuple containing:
-                **source_points** (numpy.ndarray):
+                **source_points**:
                     Points within the configuration dictionary that will
                     be used as the input to the interpolation.
 
-                **target_points** (numpy.ndarray):
+                **target_points**:
                     Points within the cube that will be the target points
                     for the interpolation.
 
-                **source_weights** (numpy.ndarray):
+                **source_weights**:
                     Weights from the configuration dictionary that will be
                     used as the input to the interpolation.
 
-                **fill_value** (tuple):
+                **fill_value**:
                     Values that be used if extrapolation is required. The
                     fill values will be used as constants that are extrapolated
                     if the target_points are outside the source_points
@@ -302,20 +302,20 @@ class ChooseWeightsLinear(BasePlugin):
         source_weights can be a multi-dimensional numpy array.
 
         Args:
-            source_points (numpy.ndarray):
+            source_points:
                 Points within the configuration dictionary that will
                 be used as the input to the interpolation.
-            target_points (numpy.ndarray):
+            target_points:
                 Points within the cube that will be the target points
                 for the interpolation.
-            source_weights (numpy.ndarray):
+            source_weights:
                 Weights from the configuration dictionary that will be
                 used as the input to the interpolation.
-            fill_value (tuple):
+            fill_value:
                 Values to be used if extrapolation is required. The
                 fill values are used for target_points that are outside
                 the source_points grid.
-            axis (int):
+            axis:
                 Axis along which the interpolation will occur.
 
         Returns:
@@ -338,10 +338,10 @@ class ChooseWeightsLinear(BasePlugin):
         of the input cube.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the coordinate information that will be used
                 for setting up the new_weights_cube.
-            weights (numpy.ndarray):
+            weights:
                 Weights calculated following interpolation.
 
         Returns:
@@ -392,7 +392,7 @@ class ChooseWeightsLinear(BasePlugin):
         of the weights by interpolation.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the coordinate information that will be used
                 for setting up the interpolation and create the new weights
                 cube.
@@ -425,7 +425,7 @@ class ChooseWeightsLinear(BasePlugin):
         create a list of cubes for blending.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube input to plugin
 
         Returns:
@@ -449,7 +449,7 @@ class ChooseWeightsLinear(BasePlugin):
         blend), with irrelevant dimensions sliced out.
 
         Args:
-            cubes (iris.cube.Cube or iris.cube.CubeList):
+            cubes:
                 Cubes passed into the plugin.
 
         Returns:
@@ -479,7 +479,7 @@ class ChooseWeightsLinear(BasePlugin):
         """Calculation of linear weights based on an input dictionary.
 
         Args:
-            cubes (iris.cube.Cube or iris.cube.CubeList):
+            cubes:
                 Cubes containing the coordinate (source point) information
                 that will be used for setting up the interpolation.  Each cube
                 should have "self.config_coord_name" as a scalar dimension; if
@@ -519,9 +519,9 @@ class ChooseDefaultWeightsLinear(BasePlugin):
         Set up for calculating default weights using linear function.
 
         Args:
-            y0val (int or float):
+            y0val:
                 Relative weight of first point.  Must be positive.
-            ynval (int or float):
+            ynval:
                 Relative weight of last point.
         """
         if y0val is None or ynval is None:
@@ -541,7 +541,7 @@ class ChooseDefaultWeightsLinear(BasePlugin):
         """Create linear weights
 
             Args:
-                num_of_weights (positive int):
+                num_of_weights:
                     Number of weights to create.
 
             Returns:
@@ -573,9 +573,9 @@ class ChooseDefaultWeightsLinear(BasePlugin):
         weightings across all input fields.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube to blend across the coord.
-            coord_name (str):
+            coord_name:
                 Name of coordinate in the cube to be blended.
 
         Returns:
@@ -614,7 +614,7 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
         Set up for calculating default weights using non-linear function.
 
         Args:
-            cval (float):
+            cval:
                 Value greater than 0, less than equal 1.0.  Weights are
                 calculated for input cubes in order such that the first has
                 weight cval**0, then cval**1, cval**2, etc.  The weights are
@@ -643,7 +643,7 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
         Create nonlinear weights.
 
         Args:
-            num_of_weights (int):
+            num_of_weights:
                 Number of weights to create
 
         Returns:
@@ -667,11 +667,11 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
         Calculate nonlinear weights for a given cube and coord.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube to be blended across the coord.
-            coord_name (str):
+            coord_name:
                 Name of coordinate in the cube to be blended.
-            inverse_ordering (bool):
+            inverse_ordering:
                 The input cube blend coordinate will be in ascending order,
                 so that calculated blend weights decrease with increasing
                 value.  For eg cycle blending by forecast reference time, we
@@ -726,9 +726,9 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
         """Set up for calculating default weights using triangular function.
 
             Args:
-                width (float):
+                width:
                     The width of the triangular function from the centre point.
-                units (cf_units.Unit):
+                units:
                     The cf units of the width and midpoint.
         """
         self.width = width
@@ -749,12 +749,12 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
         """Create triangular weights.
 
             Args:
-                coord_vals (numpy.ndarray):
+                coord_vals:
                     An array of coordinate values that we want to calculate
                     weights for.
-                midpoint (float):
+                midpoint:
                     The centre point of the triangular function.
-                width (float):
+                width:
                     The width of the triangular function from the centre point.
 
             Returns:
@@ -767,10 +767,10 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
             A helper function to calculate the weights for each point using a
             piecewise function to build up the triangular function.
             Args:
-                point (float):
+                point:
                     The point in the coordinate from the cube for
                     which we want to calculate a weight for.
-                slope (float):
+                slope:
                     The gradient of the triangle, calculated from
                     1/(width of triangle).
 
@@ -803,11 +803,11 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
         """Calculate triangular weights for a given cube and coord.
 
             Args:
-                cube (iris.cube.Cube):
+                cube:
                     Cube to blend across the coord.
-                coord_name (str):
+                coord_name:
                     Name of coordinate in the cube to be blended.
-                midpoint (float):
+                midpoint:
                     The centre point of the triangular function.  This is
                     assumed to be provided in the same units as "self.width",
                     ie "self.parameter_units" as initialised.

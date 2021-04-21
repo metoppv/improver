@@ -64,7 +64,7 @@ class PrecipPhaseProbability(BasePlugin):
         """
         Initialise plugin
         Args:
-            radius (float):
+            radius:
                 Neighbourhood radius from which 80th percentile is found (m)
         """
         self.percentile_plugin = GeneratePercentilesFromANeighbourhood
@@ -84,7 +84,7 @@ class PrecipPhaseProbability(BasePlugin):
         falling_level_cube.
 
         Args:
-            cubes (iris.cube.CubeList or list):
+            cubes:
                 Contains cubes of the altitude of the phase-change level (this
                 can be snow->sleet, or sleet->rain) and the altitude of the
                 orography. The name of the phase-change level cube must be
@@ -154,7 +154,7 @@ class PrecipPhaseProbability(BasePlugin):
         supplied, this is the probability of rain at (or above) the surface.
 
         Args:
-            cubes (iris.cube.CubeList or list):
+            cubes:
                 Contains cubes of the altitude of the phase-change level (this
                 can be snow->sleet, or sleet->rain) and the altitude of the
                 orography.

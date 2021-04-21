@@ -59,16 +59,16 @@ class SquareNeighbourhood:
         Initialise class.
 
         Args:
-            weighted_mode (bool):
+            weighted_mode:
                 This is included to allow a standard interface for both the
                 square and circular neighbourhood plugins.
-            sum_or_fraction (str):
+            sum_or_fraction:
                 Identifier for whether sum or fraction should be returned from
                 neighbourhooding. The sum represents the sum of the
                 neighbourhood. The fraction represents the sum of the
                 neighbourhood divided by the neighbourhood area.
                 Valid options are "sum" or "fraction".
-            re_mask (bool):
+            re_mask:
                 If re_mask is True, the original un-neighbourhood processed
                 mask is applied to mask out the neighbourhood processed cube.
                 If re_mask is False, the original un-neighbourhood processed
@@ -105,15 +105,15 @@ class SquareNeighbourhood:
         Apply neighbourhood processing.
 
         Args:
-            data (numpy.ndarray):
+            data:
                 Input data array.
-            mask (numpy.ndarray):
+            mask:
                 Mask of valid input data elements.
-            nb_size (int):
+            nb_size:
                 Size of the square neighbourhood as the number of grid cells.
-            sum_only (bool):
+            sum_only:
                 If true, return neighbourhood sum instead of mean.
-            re_mask (bool):
+            re_mask:
                 If true, reapply the original mask and return
                 `numpy.ma.MaskedArray`.
 
@@ -192,13 +192,13 @@ class SquareNeighbourhood:
            if required.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the array to which the square neighbourhood
                 will be applied.
-            radius (float):
+            radius:
                 Radius in metres for use in specifying the number of
                 grid cells used to create a square neighbourhood.
-            mask_cube (iris.cube.Cube):
+            mask_cube:
                 Cube containing the array to be used as a mask.
 
         Returns:

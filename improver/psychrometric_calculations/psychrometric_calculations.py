@@ -91,7 +91,7 @@ def _svp_from_lookup(temperature: ndarray) -> ndarray:
     the table to the temperatures required.
 
     Args:
-        temperature (numpy.ndarray):
+        temperature:
             Array of air temperatures (K).
     Returns:
         numpy.ndarray:
@@ -118,9 +118,9 @@ def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
     result to obtain the saturation vapour pressure in air.
 
     Args:
-        temperature (numpy.ndarray):
+        temperature:
             Array of air temperatures (K).
-        pressure (numpy.ndarray):
+        pressure:
             Array of pressure (Pa).
 
     Returns:
@@ -161,7 +161,7 @@ class WetBulbTemperature(BasePlugin):
         Initialise class.
 
         Args:
-            precision (float):
+            precision:
                 The precision to which the Newton iterator must converge before
                 returning wet bulb temperatures.
         """
@@ -208,7 +208,7 @@ class WetBulbTemperature(BasePlugin):
         vapour using the relationship employed by the UM.
 
         Args:
-            temperature (np.ndarray):
+            temperature:
                 Array of air temperatures (K).
         Returns:
             np.ndarray:
@@ -226,9 +226,9 @@ class WetBulbTemperature(BasePlugin):
         """Function to compute the mixing ratio given temperature and pressure.
 
         Args:
-            temperature (numpy.ndarray):
+            temperature:
                 Array of air temperature (K).
-            pressure (numpy.ndarray):
+            pressure:
                 Array of air pressure (Pa).
 
         Returns
@@ -253,7 +253,7 @@ class WetBulbTemperature(BasePlugin):
         dry air and water vapour in proportion given by the specific humidity.
 
         Args:
-            mixing_ratio (numpy.ndarray):
+            mixing_ratio:
                 Array of specific humidity (fractional).
         Returns:
             numpy.ndarray:
@@ -281,14 +281,14 @@ class WetBulbTemperature(BasePlugin):
             last updated 2014-12-05.
 
         Args:
-            mixing_ratio (numpy.ndarray):
+            mixing_ratio:
                 Array of mixing ratios.
-            specific_heat (numpy.ndarray):
+            specific_heat:
                 Array of specific heat capacities of moist air (J kg-1 K-1).
-            latent_heat (numpy.ndarray):
+            latent_heat:
                 Array of latent heats of condensation of water vapour
                 (J kg-1).
-            temperature (numpy.ndarray):
+            temperature:
                 Array of air temperatures (K).
         Returns:
            numpy.ndarray:
@@ -311,14 +311,14 @@ class WetBulbTemperature(BasePlugin):
         Method from referenced UM documentation.
 
         Args:
-            mixing_ratio (numpy.ndarray):
+            mixing_ratio:
                 Array of mixing ratios.
-            specific_heat (numpy.ndarray):
+            specific_heat:
                 Array of specific heat capacities of moist air (J kg-1 K-1).
-            latent_heat (numpy.ndarray):
+            latent_heat:
                 Array of latent heats of condensation of water vapour
                 (J kg-1).
-            temperature (numpy.ndarray):
+            temperature:
                 Array of temperatures (K).
 
         Returns:
@@ -341,11 +341,11 @@ class WetBulbTemperature(BasePlugin):
         temperature can be ignored.
 
         Args:
-            pressure (numpy.ndarray):
+            pressure:
                 Array of air Pressure (Pa).
-            relative_humidity (numpy.ndarray):
+            relative_humidity:
                 Array of relative humidities (1).
-            temperature (numpy.ndarray):
+            temperature:
                 Array of air temperature (K).
 
         Returns:
@@ -407,11 +407,11 @@ class WetBulbTemperature(BasePlugin):
         Creates a cube of wet bulb temperature values
 
         Args:
-            temperature (iris.cube.Cube):
+            temperature:
                 Cube of air temperatures.
-            relative_humidity (iris.cube.Cube):
+            relative_humidity:
                 Cube of relative humidities.
-            pressure (iris.cube.Cube):
+            pressure:
                 Cube of air pressures.
 
         Returns:
@@ -442,13 +442,13 @@ class WetBulbTemperature(BasePlugin):
         data.
 
         Args:
-            cubes (iris.cube.CubeList or list or iris.cube.Cube):
+            cubes:
                 containing:
-                    temperature (iris.cube.Cube):
+                    temperature:
                         Cube of air temperatures.
-                    relative_humidity (iris.cube.Cube):
+                    relative_humidity:
                         Cube of relative humidities.
-                    pressure (iris.cube.Cube):
+                    pressure:
                         Cube of air pressures.
 
         Returns:
@@ -495,11 +495,11 @@ class WetBulbTemperatureIntegral(BasePlugin):
         wet bulb temperatures on height levels.
 
         Args:
-            wet_bulb_temperature (iris.cube.Cube):
+            wet_bulb_temperature:
                 Cube of wet bulb temperatures on height levels.
 
         Returns:
-            wet_bulb_temperature_integral (iris.cube.Cube):
+            wet_bulb_temperature_integral:
                 Cube of wet bulb temperature integral (Kelvin-metres).
         """
         wbt = wet_bulb_temperature.copy()
@@ -530,21 +530,21 @@ class PhaseChangeLevel(BasePlugin):
         Initialise class.
 
         Args:
-            phase_change (str):
+            phase_change:
                 The desired phase change for which the altitude should be
                 returned. Options are:
 
                     snow-sleet - the melting of snow to sleet.
                     sleet-rain - the melting of sleet to rain.
 
-            grid_point_radius (int):
+            grid_point_radius:
                 The radius in grid points used to calculate the maximum
                 height of the orography in a neighbourhood to determine points that
                 should be excluded from interpolation for being too close to the
                 orographic feature where high-resolution models can give highly
                 localised results. Zero uses central point only (neighbourhood is disabled).
                 One uses central point and one in each direction. Two goes two points etc.
-            horizontal_interpolation (bool):
+            horizontal_interpolation:
                 If True apply horizontal interpolation to fill in holes in
                 the returned phase-change-level that occur because the level
                 falls below the orography. If False these areas will be masked.
@@ -589,11 +589,11 @@ class PhaseChangeLevel(BasePlugin):
         at that point will be set to np.nan.
 
         Args:
-            wb_int_data (numpy.ndarray):
+            wb_int_data:
                 Wet bulb integral data on heights
-            orog_data (numpy.ndarray):
+            orog_data:
                 Orographic data
-            height_points (numpy.ndarray):
+            height_points:
                 heights agl
 
         Returns:
@@ -630,13 +630,13 @@ class PhaseChangeLevel(BasePlugin):
         Set these points to the highest height level + orography.
 
         Args:
-            phase_change_level_data (numpy.ndarray):
+            phase_change_level_data:
                 Phase change level data (m).
-            orog_data (numpy.ndarray):
+            orog_data:
                 Orographic data (m)
-            highest_wb_int_data (numpy.ndarray):
+            highest_wb_int_data:
                 Wet bulb integral data on highest level (K m).
-            highest_height (float):
+            highest_height:
                 Highest height at which the integral starts (m).
         """
         points_not_freezing = np.where(
@@ -705,18 +705,18 @@ class PhaseChangeLevel(BasePlugin):
             2 m (I-threshold)}}{-m}}
 
         Args:
-            max_wb_integral (numpy.ndarray):
+            max_wb_integral:
                 The wet bulb temperature integral at sea level.
-            gradient (numpy.ndarray):
+            gradient:
                 The gradient of the line of best fit we are using in the
                 extrapolation.
-            intercept (numpy.ndarray):
+            intercept:
                 The intercept of the line of best fit we are using in the
                 extrapolation.
-            phase_change_level_data (numpy.ndarray):
+            phase_change_level_data:
                 The phase change level array with values filled in with phase
                 change levels calculated through extrapolation.
-            sea_points (numpy.ndarray):
+            sea_points:
                 A boolean array with True where the points are sea points.
 
         """
@@ -767,18 +767,18 @@ class PhaseChangeLevel(BasePlugin):
         specified by a start_point and end_point.
 
         Args:
-            wet_bulb_temperature (numpy.ndarray):
+            wet_bulb_temperature:
                 The wet bulb temperature profile at each grid point, with
                 height as the leading dimension.
-            heights (numpy.ndarray):
+            heights:
                 The vertical height levels above orography, matching the
                 leading dimension of the wet_bulb_temperature.
-            sea_points (numpy.ndarray):
+            sea_points:
                 A boolean array with True where the points are sea points.
-            start_point (int):
+            start_point:
                 The index of the the starting height we want to use in our
                 linear fit.
-            end_point (int):
+            end_point:
                 The index of the the end height we want to use in our
                 linear fit.
 
@@ -833,16 +833,16 @@ class PhaseChangeLevel(BasePlugin):
             phase_change_level_data(numpy.ndarray):
                 The phase change level array, filled with values for points
                 whose wet bulb temperature integral crossed the theshold.
-            land_sea_data (numpy.ndarray):
+            land_sea_data:
                 The binary land-sea mask
-            max_wb_integral (numpy.ndarray):
+            max_wb_integral:
                 The wet bulb temperature integral at the final height level
                 used in the integration. This has the maximum values for the
                 wet bulb temperature integral at any level.
-            wet_bulb_temperature (numpy.ndarray):
+            wet_bulb_temperature:
                 The wet bulb temperature profile at each grid point, with
                 height as the leading dimension.
-            heights (numpy.ndarray):
+            heights:
                 The vertical height levels above orography, matching the
                 leading dimension of the wet_bulb_temperature.
 
@@ -870,7 +870,7 @@ class PhaseChangeLevel(BasePlugin):
         without neighbourhooding.
 
         Args:
-            orography_cube (iris.cube.Cube):
+            orography_cube:
                 The cube containing a single 2 dimensional array of orography
                 data
         Returns:
@@ -908,22 +908,22 @@ class PhaseChangeLevel(BasePlugin):
            psychrometric_calculations/_calculate_phase_change_level.rst
 
         Args:
-            wet_bulb_temp (numpy.ndarray):
+            wet_bulb_temp:
                 Wet bulb temperature data
-            wb_integral (numpy.ndarray):
+            wb_integral:
                 Wet bulb temperature integral
-            orography (numpy.ndarray):
+            orography:
                 Orography heights
-            max_nbhood_orog (numpy.ndarray):
+            max_nbhood_orog:
                 Maximum orography height in neighbourhood (used to determine points that
                 can be used for interpolation)
-            land_sea_data (numpy.ndarray):
+            land_sea_data:
                 Mask of binary land / sea data
-            heights (np.ndarray):
+            heights:
                 All heights of wet bulb temperature input
-            height_points (numpy.ndarray):
+            height_points:
                 Heights on wet bulb temperature integral slice
-            highest_height (float):
+            highest_height:
                 Height of the highest level to which the wet bulb
                 temperature has been integrated
 
@@ -980,9 +980,9 @@ class PhaseChangeLevel(BasePlugin):
         Populate output cube with phase change data
 
         Args:
-            wbt (iris.cube.Cube):
+            wbt:
                 Wet bulb temperature cube on height levels
-            phase_change_level (numpy.ndarray):
+            phase_change_level:
                 Calculated phase change level in metres
 
         Returns:
@@ -1007,13 +1007,13 @@ class PhaseChangeLevel(BasePlugin):
 
         Args:
             cubes (iris.cube.CubeList or list of iris.cube.Cube) containing:
-                wet_bulb_temperature (iris.cube.Cube):
+                wet_bulb_temperature:
                     Cube of wet bulb temperatures on height levels.
-                wet_bulb_integral (iris.cube.Cube):
+                wet_bulb_integral:
                     Cube of wet bulb temperature integral (Kelvin-metres).
-                orog (iris.cube.Cube):
+                orog:
                     Cube of orography (m).
-                land_sea_mask (iris.cube.Cube):
+                land_sea_mask:
                     Cube containing a binary land-sea mask, with land points
                     set to one and sea points set to zero.
 

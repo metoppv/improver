@@ -70,9 +70,9 @@ class WindGustDiagnostic(PostProcessingPlugin):
         Create a WindGustDiagnostic plugin for a given set of percentiles.
 
         Args:
-            percentile_gust (float):
+            percentile_gust:
                 Percentile value required from wind-gust cube.
-            percentile_windspeed (float):
+            percentile_windspeed:
                 Percentile value required from wind-speed cube.
 
         """
@@ -93,7 +93,7 @@ class WindGustDiagnostic(PostProcessingPlugin):
         """Add metadata to cube for windgust diagnostic.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the wind-gust diagnostic data.
         Returns:
             iris.cube.Cube:
@@ -120,18 +120,18 @@ class WindGustDiagnostic(PostProcessingPlugin):
         """Extract percentile data from cube.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube contain one or more percentiles.
-            req_percentile (float):
+            req_percentile:
                 Required percentile value
-            standard_name (str):
+            standard_name:
                 Standard name of the data.
 
         Returns:
             (tuple): tuple containing:
-                **result** (iris.cube.Cube):
+                **result**:
                     Cube containing the required percentile data
-                **perc_coord** (iris.coords.Coord):
+                **perc_coord**:
                     Percentile coordinate.
 
         """
@@ -163,9 +163,9 @@ class WindGustDiagnostic(PostProcessingPlugin):
         Create a cube containing the wind_gust diagnostic.
 
         Args:
-            cube_gust (iris.cube.Cube):
+            cube_gust:
                 Cube contain one or more percentiles of wind_gust data.
-            cube_ws (iris.cube.Cube):
+            cube_ws:
                 Cube contain one or more percentiles of wind_speed data.
 
         Returns:

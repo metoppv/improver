@@ -61,12 +61,12 @@ class PercentileConverter(BasePlugin):
         Create a PDF plugin with a given source plugin.
 
         Args:
-            collapse_coord (str or list of str):
+            collapse_coord:
                 The name of the coordinate(s) to collapse over. This
                 coordinate(s) will no longer be present on the output cube, as
                 it will have been replaced by the percentile coordinate.
 
-            percentiles (Iterable list of float or None):
+            percentiles:
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES. (optional)
 
@@ -112,7 +112,7 @@ class PercentileConverter(BasePlugin):
               70%, 75%, 80%, 90%, 95%, 100%)
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Given the collapse coordinate, convert the set of values
                 along that coordinate into a PDF and extract percentiles.
 

@@ -44,15 +44,15 @@ def radius_by_lead_time(
     an exception.
 
     Args:
-        radii (list of str):
+        radii:
             Radii as a list provided by clize.
-        lead_times (list of str or None):
+        lead_times:
             Lead times as a list provided by clize, or None if not set.
     Returns:
         (tuple): tuple containing:
-            **radius_or_radii** (float or list of floats):
+            **radius_or_radii**:
                 Radii as a float or list of floats.
-            **lead_times** (None or list of ints):
+            **lead_times**:
                 Lead times in hours as a list of ints or None.
     Raises:
         ValueError: If multiple radii are provided without any lead times.

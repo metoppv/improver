@@ -60,10 +60,10 @@ def cycletime_to_datetime(
     format YYYYMMDDTHHMMZ into a datetime object.
 
     Args:
-        cycletime (str):
+        cycletime:
             A cycletime that can be converted into a datetime using the
             cycletime_format supplied.
-        cycletime_format (str):
+        cycletime_format:
             String containing the desired format for the cycletime.
     Returns:
         datetime:
@@ -79,10 +79,10 @@ def datetime_to_cycletime(
     of the format YYYYMMDDTHHMMZ.
 
     Args:
-        adatetime (datetime.datetime):
+        adatetime:
             A datetime that can be converted into a cycletime using the
             cycletime_format supplied.
-        cycletime_format (str):
+        cycletime_format:
             String containing the desired format for the cycletime.
     Returns:
         str:
@@ -101,15 +101,15 @@ def cycletime_to_number(
     time value.
 
     Args:
-        cycletime (str):
+        cycletime:
             A cycletime that can be converted into a datetime using the
             cycletime_format supplied.
-        cycletime_format (str):
+        cycletime_format:
             String containg the appropriate directives to indicate how
             the output datetime should display.
-        time_unit (str):
+        time_unit:
             String representation of the cycletime units.
-        calendar (str):
+        calendar:
             String describing the calendar used for defining the cycletime.
             The choice of calendar must be supported by cf_units.CALENDARS.
 
@@ -129,7 +129,7 @@ def iris_time_to_datetime(
     Convert iris time to python datetime object. Working in UTC.
 
     Args:
-        time_coord (iris.coords.Coord):
+        time_coord:
             Iris time coordinate element(s).
 
     Returns:
@@ -150,7 +150,7 @@ def datetime_to_iris_time(dt_in: datetime) -> float:
     Convert python datetime.datetime into seconds since 1970-01-01 00Z.
 
     Args:
-        dt_in (datetime.datetime):
+        dt_in:
             Time to be converted into seconds since 1970-01-01 00Z.
 
     Returns:
@@ -166,9 +166,9 @@ def datetime_constraint(time_in: datetime, time_max: datetime = None) -> Constra
     Constructs an iris equivalence constraint from a python datetime object.
 
     Args:
-        time_in (datetime.datetime):
+        time_in:
             The time to be used to build an iris constraint.
-        time_max (datetime.datetime):
+        time_max:
             Optional max time, which if provided leads to a range constraint
             being returned up to < time_max.
 
@@ -196,11 +196,11 @@ def extract_cube_at_time(
     Extract a single cube at a given time from a cubelist.
 
     Args:
-        cubes (iris.cube.CubeList):
+        cubes:
             CubeList of a given diagnostic over several times.
-        time (datetime.datetime object):
+        time:
             Time at which forecast data is needed.
-        time_extract (iris.Constraint):
+        time_extract:
             Iris constraint for the desired time.
 
     Returns:
@@ -227,16 +227,16 @@ def extract_nearest_time_point(
     """Find the nearest time point to the time point provided.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube or CubeList that will be extracted from using the supplied
             time_point
-        dt (datetime.datetime):
+        dt:
             Datetime representation of a time that will be used within the
             extraction from the cube supplied.
-        time_name (str):
+        time_name:
             Name of the "time" coordinate that will be extracted. This must be
             "time" or "forecast_reference_time".
-        allowed_dt_difference (int):
+        allowed_dt_difference:
             An int in seconds to define a limit to the maximum difference
             between the datetime provided and the time points available within
             the cube. If this limit is exceeded, then an error is raised.
@@ -299,10 +299,10 @@ class TimezoneExtraction(PostProcessingPlugin):
         Constructs the output cube
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube of data to extract timezone-offsets from. Must contain a time
                 coord spanning all the timezones.
-            local_time (datetime.datetime):
+            local_time:
                 The "local" time of the output cube as %Y%m%dT%H%MZ. This will form a
                 scalar "time_in_local_timezone" coord on the output cube, while the
                 "time" coord will be auxillary to the spatial coords and will show the
@@ -364,7 +364,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         or UTC_offset are the inner-most coord (dim=-1).
 
         Args:
-            input_cube (iris.cube.Cube):
+            input_cube:
                 Cube of data to extract timezone-offsets from. Must contain a time
                 coord spanning all the timezones.
 
@@ -488,13 +488,13 @@ class TimezoneExtraction(PostProcessingPlugin):
         Calculates timezone-offset data for the specified UTC output times
 
         Args:
-            input_cubes (iris.cube.Cube or list):
+            input_cubes:
                 Cube or list of cubes of data to extract timezone-offsets from. Must
                 contain a time coord spanning all the timezones.
-            timezone_cube (iris.cube.Cube):
+            timezone_cube:
                 Cube describing the UTC offset for the local time at each grid location.
                 Must have the same spatial coords as input_cube.
-            local_time (datetime.datetime):
+            local_time:
                 The "local" time of the output cube. This will form a
                 scalar "time_in_local_timezone" coord on the output cube, while the
                 "time" coord will be auxillary to the spatial coords and will show the

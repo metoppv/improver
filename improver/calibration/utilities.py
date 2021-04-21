@@ -54,12 +54,12 @@ def convert_cube_data_to_2d(
     numpy array. The result can be transposed, if required.
 
     Args:
-        forecast (iris.cube.Cube):
+        forecast:
             N-dimensional cube to be reshaped.
-        coord (str):
+        coord:
             This dimension is retained as the second dimension by default,
             and the leading dimension if "transpose" is set to False.
-        transpose (bool):
+        transpose:
             If True, the resulting flattened data is transposed.
             This will transpose a 2d array of the format [coord, :]
             to [:, coord].  If coord is not a dimension on the input cube,
@@ -94,11 +94,11 @@ def flatten_ignoring_masked_data(
     are used as predictors.
 
     Args:
-        data_array (numpy.ndarray or numpy.ma.MaskedArray):
+        data_array:
             An array or masked array to be flattened. If it is masked and the
             leading dimension is preserved the mask must be the same for every
             slice along the leading dimension.
-        preserve_leading_dimension (bool):
+        preserve_leading_dimension:
             Default False.
             If True the flattened array is reshaped so it has the same leading
             dimension as the input array. If False the returned array is 1D.
@@ -147,7 +147,7 @@ def check_predictor(predictor: str) -> None:
     later.
 
     Args:
-        predictor (str):
+        predictor:
             String to specify the form of the predictor used to calculate
             the location parameter when estimating the EMOS coefficients.
             Currently the ensemble mean ("mean") and the ensemble
@@ -173,19 +173,19 @@ def filter_non_matching_cubes(
     mismatch between the historic forecasts and truth is dealt with.
 
     Args:
-        historic_forecast (iris.cube.Cube):
+        historic_forecast:
             Cube of historic forecasts that potentially contains
             a mismatch compared to the truth.
-        truth (iris.cube.Cube):
+        truth:
             Cube of truth that potentially contains a mismatch
             compared to the historic forecasts.
 
     Returns:
         (tuple): tuple containing:
-            **matching_historic_forecasts** (iris.cube.Cube):
+            **matching_historic_forecasts**:
                 Cube of historic forecasts where any mismatches with
                 the truth cube have been removed.
-            **matching_truths** (iris.cube.Cube):
+            **matching_truths**:
                 Cube of truths where any mismatches with
                 the historic_forecasts cube have been removed.
 
@@ -239,7 +239,7 @@ def create_unified_frt_coord(forecast_reference_time: DimCoord) -> DimCoord:
     of those in the inputs.
 
     Args:
-        forecast_reference_time (iris.coord.DimCoord):
+        forecast_reference_time:
             The forecast_reference_time coordinate to be used in the
             coordinate creation.
     Returns:
@@ -265,11 +265,11 @@ def merge_land_and_sea(calibrated_land_only: Cube, uncalibrated: Cube) -> None:
     filled with the uncalibrated data.
 
     Args:
-        calibrated_land_only (iris.cube.Cube):
+        calibrated_land_only:
             A cube that has been calibrated over the land, with sea points
             masked out. Either realizations, probabilities or percentiles.
             Data is modified in place.
-        uncalibrated (iris.cube.Cube):
+        uncalibrated:
             A cube of uncalibrated data with valid data over the sea. Either
             realizations, probabilities or percentiles. Dimension coordinates
             must be the same as the calibrated_land_only cube.
@@ -297,9 +297,9 @@ def forecast_coords_match(first_cube: Cube, second_cube: Cube) -> None:
     / coefficient cube matches the forecast cube, as appropriate.
 
     Args:
-        first_cube (iris.cube.Cube):
+        first_cube:
             First cube to compare.
-        second_cube (iris.cube.Cube):
+        second_cube:
             Second cube to compare.
 
     Raises:
@@ -324,7 +324,7 @@ def get_frt_hours(forecast_reference_time: DimCoord) -> Set[int]:
     forecast reference time.
 
     Args:
-        forecast_reference_time (iris.coord.DimCoord):
+        forecast_reference_time:
             The forecast_reference_time coordinate to extract the hours from.
     Returns:
         set:
@@ -343,7 +343,7 @@ def check_forecast_consistency(forecasts: Cube) -> None:
     hour and a consistent forecast period.
 
     Args:
-        forecasts (iris.cube.Cube):
+        forecasts:
     Raises:
         ValueError: Forecast cubes have differing forecast reference time hours
         ValueError: Forecast cubes have differing forecast periods

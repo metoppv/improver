@@ -141,15 +141,15 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         Initialise the class.
 
         Args:
-            coord_for_masking (str):
+            coord_for_masking:
                 String matching the name of the coordinate that will be used
                 for masking.
-            radii (float or list if defining lead times):
+            radii:
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-            collapse_weights (iris.cube.Cube):
+            collapse_weights:
                 A cube from an ancillary file containing the weights for each
                 point in the 'coord_for_masking' at each grid point. If given,
                 the coord_for_masking coordinate will be collapsed using these
@@ -162,22 +162,22 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 when calculating the result. In this case the result returned
                 from the process method of this plugin will have the same
                 points masked.
-            lead_times (list):
+            lead_times:
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
-            weighted_mode (bool):
+            weighted_mode:
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
                 If False, use a circle with constant weighting.
-            sum_or_fraction (str):
+            sum_or_fraction:
                 Identifier for whether sum or fraction should be returned from
                 neighbourhooding. The sum represents the sum of the
                 neighbourhood.
                 The fraction represents the sum of the neighbourhood divided by
                 the neighbourhood area. "fraction" is the default.
                 Valid options are "sum" or "fraction".
-            re_mask (bool):
+            re_mask:
                 If re_mask is True, the original un-neighbourhood processed
                 mask is applied to mask out the neighbourhood processed cube.
                 If re_mask is False, the original un-neighbourhood processed
@@ -227,7 +227,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         probability.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the array to which the square neighbourhood
                 with a mask has been applied.
                 Dimensions self.coord_for_masking, y and x.
@@ -262,10 +262,10 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         collapsing the coord_for_masking if collapse_weights have been provided.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the array to which the square neighbourhood
                 will be applied.
-            mask_cube (iris.cube.Cube):
+            mask_cube:
                 Cube containing the array to be used as a mask. The data in
                 this array is not an instance of numpy.ma.MaskedArray. Any sea
                 points that should be ignored are set to zeros in every layer

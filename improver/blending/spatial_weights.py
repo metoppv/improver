@@ -60,9 +60,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         Initialise class.
 
         Args:
-            blend_coord (str):
+            blend_coord:
                 Coordinate over which the input 1D weights will vary
-            fuzzy_length (int or float):
+            fuzzy_length:
                 Distance, in grid squares, over which the weights from the input
                 data mask are smoothed. This is used to calculate a fuzzy
                 scaling factor for the input weights based on how far away each
@@ -94,7 +94,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         vary in another dimension an error is raised.
 
         Args:
-            cube_to_collapse (iris.cube.Cube):
+            cube_to_collapse:
                 The cube that will be collapsed along the blend_coord
                 using the spatial weights generated using this plugin. Must
                 be masked where there is invalid data.
@@ -153,7 +153,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         being the leading dimension, as enforced in self._create_template_slice.
 
         Args:
-            weights (iris.cube.Cube):
+            weights:
                 3D weights containing zeros for masked points, but before
                 fuzzy smoothing
         """
@@ -166,16 +166,16 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         """Apply fuzzy smoothing to weights at the edge of masked areas
 
         Args:
-            weights (iris.cube.Cube):
+            weights:
                 Pre-normalised weights where the weights of masked data points
                 have been set to 0
 
         Returns:
             (tuple): tuple containing:
-                **weights** (iris.cube.Cube):
+                **weights**:
                     Weights where MASKED slices have been rescaled, but UNMASKED
                     slices have not
-                **rescaled** (iris.cube.Cube):
+                **rescaled**:
                     Binary (0/1) map showing which weights have been rescaled
         """
         is_rescaled = iris.cube.CubeList()
@@ -225,10 +225,10 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         multiple unmasked slices are preserved.  Modifies weights cube in place.
 
         Args:
-            weights (iris.cube.Cube):
+            weights:
                 Cube of weights to which fuzzy smoothing has been applied to any
                 masked slices
-            is_rescaled (iris.cube.Cube):
+            is_rescaled:
                 Cube matching weights.shape, with value of 1 where masked weights
                 have been rescaled, and 0 where they are unchanged.
         """
@@ -261,13 +261,13 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         5. Increase weights of unmasked layers near the mask boundary.
 
         Args:
-            cube_to_collapse (iris.cube.Cube):
+            cube_to_collapse:
                 The cube that will be collapsed along self.blend_coord
                 using the spatial weights generated using this plugin. Must
                 be masked where there is invalid data. The mask may only
                 vary along the blend and spatial coordinates, and not along
                 any other dimensions on the cube.
-            one_dimensional_weights_cube (iris.cube.Cube):
+            one_dimensional_weights_cube:
                 A cube containing a single dimension coordinate with the same
                 name given blend_coord. This cube contains 1D weights
                 that will be applied along the blend_coord but need

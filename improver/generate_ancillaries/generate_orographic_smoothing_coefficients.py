@@ -89,26 +89,26 @@ class OrographicSmoothingCoefficients(BasePlugin):
         Initialise class.
 
         Args:
-            min_gradient_smoothing_coefficient (float):
+            min_gradient_smoothing_coefficient:
                 The value of recursive filter smoothing_coefficient to be used
                 where the orography gradient is a minimum. Generally this number
                 will be larger than the max_gradient_smoothing_coefficient as
                 quantities are likely to be smoothed more across flat terrain.
-            max_gradient_smoothing_coefficient (float):
+            max_gradient_smoothing_coefficient:
                 The value of recursive filter smoothing_coefficient to be used
                 where the orography gradient is a maximum. Generally this number
                 will be smaller than the min_gradient_smoothing_coefficient as
                 quantities are likely to be smoothed less across complex terrain.
-            power (float):
+            power:
                 The power to be used in the smoothing_coefficient equation
-            use_mask_boundary (bool):
+            use_mask_boundary:
                 A mask can be provided to this plugin to define a region in which
                 smoothing coefficients are set to zero, i.e. no smoothing. If this
                 option is set to True then rather than the whole masked region
                 being set to zero, only the cells that mark the transition from
                 masked to unmasked will be set to zero. The primary purpose for
                 this is to prevent smoothing across land-sea boundaries.
-            invert_mask (bool):
+            invert_mask:
                 By default, if a mask is provided and use_mask_boundary is False,
                 all the smoothing coefficients corresponding to a mask value of 1
                 will be zeroed. Setting invert_mask to True reverses this behaviour
@@ -147,7 +147,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
         max_gradient_smoothing_coefficient.
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes:
                 A list of smoothing_coefficient cubes that we need to take the
                 minimum and maximum values from.
 
@@ -183,7 +183,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
         values equal to the input gradient_cube.
 
         Args:
-            gradient_cube (iris.cube.Cube):
+            gradient_cube:
                 A cube of the normalised gradient
 
         Returns:
@@ -200,14 +200,14 @@ class OrographicSmoothingCoefficients(BasePlugin):
         coordinates and rename.
 
         Args:
-            data (numpy.ndarray):
+            data:
                 The smoothing coefficient data to store in the cube.
-            template (iris.cube.Cube):
+            template:
                 A gradient cube, the dimensions of which are used as a template
                 for the coefficient cube.
-            cube_name (str):
+            cube_name:
                 A name for the resultant cube
-            attributes (dict):
+            attributes:
                 A dictionary of attributes for the new cube.
 
         Returns:
@@ -257,11 +257,11 @@ class OrographicSmoothingCoefficients(BasePlugin):
               unmasked are also set to 0. Has no effect if use_mask_boundary=True.
 
         Args:
-            smoothing_coefficient_x (iris.cube.Cube):
+            smoothing_coefficient_x:
                 Smoothing coefficients calculated along the x-dimension.
-            smoothing_coefficient_y (iris.cube.Cube):
+            smoothing_coefficient_y:
                 Smoothing coefficients calculated along the y-dimension.
-            mask (iris.cube.Cube):
+            mask:
                 The mask defining areas in which smoothing coefficients should
                 be zeroed.
         """
@@ -288,10 +288,10 @@ class OrographicSmoothingCoefficients(BasePlugin):
         user-specified max and min.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 A 2D field of orography on the grid for which
                 smoothing_coefficients are to be generated.
-            mask (iris.cube.Cube or None):
+            mask:
                 A mask that defines where the smoothing coefficients should
                 be zeroed. The mask must have the same spatial dimensions as
                 the orography cube. How the mask is used to zero smoothing

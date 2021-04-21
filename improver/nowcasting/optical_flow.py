@@ -64,20 +64,20 @@ def generate_optical_flow_components(
     Calculate the mean optical flow components between the cubes in cube_list
 
     Args:
-        cube_list (iris.cube.CubeList):
+        cube_list:
             Cubelist from which to calculate optical flow velocities
-        ofc_box_size (int):
+        ofc_box_size:
             Size of square 'box' (in grid spaces) within which to solve
             the optical flow equations
-        smart_smoothing_iterations (int):
+        smart_smoothing_iterations:
             Number of iterations to perform in enforcing smoothness constraint
             for optical flow velocities
 
     Returns:
         (tuple) tuple containing:
-            **u_mean** (iris.cube.Cube):
+            **u_mean**:
                 Cube of x-advection velocities
-            **v_mean** (iris.cube.Cube):
+            **v_mean**:
                 Cube of y-advection velocities
     """
     cube_list.sort(key=lambda x: x.coord("time").points[0])
@@ -117,11 +117,11 @@ def generate_advection_velocities_from_winds(
     flow
 
     Args:
-        cubes (iris.cube.CubeList):
+        cubes:
             Two rainfall observations separated by a time difference
-        background_flow (iris.cube.CubeList):
+        background_flow:
             u- and v-components of a non-zero background flow field
-        orographic_enhancement (iris.cube.Cube):
+        orographic_enhancement:
             Field containing orographic enhancement data valid for both
             input cube times
 
@@ -183,9 +183,9 @@ def check_input_coords(cube: Cube, require_time: bool = False) -> None:
     raises an error if no scalar time coordinate is present.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to be checked
-        require_time (bool):
+        require_time:
             Flag to check for a scalar time coordinate
 
     Raises:
@@ -238,17 +238,17 @@ class OpticalFlow(BasePlugin):
         u- and v- velocities via optical flow.
 
         Args:
-            data_smoothing_method (str):
+            data_smoothing_method:
                 Smoothing method to be used on input fields before estimating
                 partial derivatives.  Can be square 'box' (as used in STEPS) or
                 circular 'kernel' (used in post-calculation smoothing).
-            data_smoothing_radius (float):
+            data_smoothing_radius:
                 The radius, in km, of the kernel used to smooth the input data fields
                 before calculating optical flow.  14 km is suitable for precipitation
                 rate data separated by a 15 minute time step.  If the time step is
                 greater than 15 minutes, this radius is increased by the "process"
                 method.
-            iterations (int):
+            iterations:
                 Number of iterations to perform in post-calculation smoothing.
                 The minimum value for good convergence is 20 (Bowler et al. 2004).
 
@@ -387,9 +387,9 @@ class OpticalFlow(BasePlugin):
         attempt to interpolate returns an empty array: [].
 
         Args:
-            data (numpy.ndarray):
+            data:
                 2D gridded data (dimensions M x N)
-            axis (int or None):
+            axis:
                 Optional (0 or 1): average over 2 adjacent points along the
                 specified axis, rather than all 4 corners
         Returns:
@@ -414,7 +414,7 @@ class OpticalFlow(BasePlugin):
         in both dimensions, then smooth to the original grid shape.
 
         Args:
-            axis (int):
+            axis:
                 Axis over which to calculate the spatial derivative (0 or 1)
 
         Returns:
@@ -462,15 +462,15 @@ class OpticalFlow(BasePlugin):
         8. in Bowler et al. 2004.
 
         Args:
-            field (numpy.ndarray):
+            field:
                 Input field (partial derivative)
 
         Returns:
             (tuple): tuple containing:
-                **boxes** (list of numpy.ndarray):
+                **boxes**:
                     List of numpy.ndarrays of size boxsize*boxsize containing
                     slices of data from input field.
-                **weights** (numpy.ndarray):
+                **weights**:
                     1D numpy array containing weights values associated with
                     each listed box.
 
@@ -497,7 +497,7 @@ class OpticalFlow(BasePlugin):
         equations are solved) to input data grid.
 
         Args:
-            box_data (numpy.ndarray):
+            box_data:
                 Displacement of subbox on box grid
 
         Returns:
@@ -533,7 +533,7 @@ class OpticalFlow(BasePlugin):
              [ 0.      0.      0.      0.      0.    ]]
 
         Args:
-            radius (int):
+            radius:
                 Kernel radius or half box size for smoothing
 
         Returns:
@@ -557,11 +557,11 @@ class OpticalFlow(BasePlugin):
         in equation 7 in Bowler et al. 2004.
 
         Args:
-            field (numpy.ndarray):
+            field:
                 Input field to be smoothed
-            radius (int):
+            radius:
                 Kernel radius or half box size for smoothing
-            method (str):
+            method:
                 Method to use: 'box' (as in STEPS) or 'kernel'
 
         Returns:
@@ -593,11 +593,11 @@ class OpticalFlow(BasePlugin):
         data structure from which to calculate displacements.
 
         Args:
-            vel_point (numpy.ndarray):
+            vel_point:
                 Original unsmoothed data
-            vel_iter (numpy.ndarray):
+            vel_iter:
                 Latest iteration of smart-smoothed displacement
-            weights (numpy.ndarray):
+            weights:
                 Weight of each grid point for averaging
 
         Returns:
@@ -646,9 +646,9 @@ class OpticalFlow(BasePlugin):
         Bowler et al. 2004, equations 9-11.
 
         Args:
-            box_data (numpy.ndarray):
+            box_data:
                 Displacements on box grid (modified by this function)
-            weights (numpy.ndarray):
+            weights:
                 Weights for smart smoothing
 
         Returns:
@@ -681,10 +681,10 @@ class OpticalFlow(BasePlugin):
         In these cases, the function returns displacements of 0.
 
         Args:
-            deriv_xy (numpy.ndarray):
+            deriv_xy:
                 2-column matrix containing partial field derivatives d/dx
                 (first column) and d/dy (second column)
-            deriv_t (numpy.ndarray):
+            deriv_t:
                 1-column matrix containing partial field derivatives d/dt
 
         Returns:
@@ -712,11 +712,11 @@ class OpticalFlow(BasePlugin):
         smoothing weights with zeros.  Modifies ALL input arrays in place.
 
         Args:
-            umat (numpy.ndarray):
+            umat:
                 Displacement vectors in the x direction
-            vmat (numpy.ndarray):
+            vmat:
                 Displacement vectors in the y direction
-            weights (numpy.ndarray):
+            weights:
                 Weights for smart smoothing
         """
         flag = (np.abs(umat) + np.abs(vmat)) > vmat.shape[0] / 3.0
@@ -732,18 +732,18 @@ class OpticalFlow(BasePlugin):
         "self.boxsize" sidelength have the same displacement components.
 
         Args:
-            partial_dx (numpy.ndarray):
+            partial_dx:
                 2D array of partial input field derivatives d/dx
-            partial_dy (numpy.ndarray):
+            partial_dy:
                 2D array of partial input field derivatives d/dy
-            partial_dt (numpy.ndarray):
+            partial_dt:
                 2D array of partial input field derivatives d/dt
 
         Returns:
             (tuple): tuple containing:
-                **umat** (numpy.ndarray):
+                **umat**:
                     2D array of displacements in the x-direction
-                **vmat** (numpy.ndarray):
+                **vmat**:
                     2D array of displacements in the y-direction
         """
 
@@ -797,12 +797,12 @@ class OpticalFlow(BasePlugin):
         where there is rain within the domain have zero advection velocities.
 
         Args:
-            vel_comp (numpy.ndarray):
+            vel_comp:
                 Advection velocity that will be checked to assess the
                 proportion of zeroes present in this field.
-            rain_mask (tuple):
+            rain_mask:
                 Array indices where there is rain.
-            zero_vel_threshold (float):
+            zero_vel_threshold:
                 Fractional value to specify the proportion of zero values
                 that the advection field should contain at a maximum.
                 For example, if zero_vel_threshold=0.1 then up to 10% of
@@ -841,22 +841,22 @@ class OpticalFlow(BasePlugin):
         fields.
 
         Args:
-            data1 (numpy.ndarray):
+            data1:
                 2D input data array from time 1
-            data2 (numpy.ndarray):
+            data2:
                 2D input data array from time 2
-            xaxis (int):
+            xaxis:
                 Index of x coordinate axis
-            yaxis (int):
+            yaxis:
                 Index of y coordinate axis
-            smoothing_radius (int):
+            smoothing_radius:
                 Radius (in grid squares) over which to smooth the input data
 
         Returns:
             (tuple): tuple containing:
-                **ucomp** (numpy.ndarray):
+                **ucomp**:
                     Advection displacement (grid squares) in the x direction
-                **vcomp** (numpy.ndarray):
+                **vcomp**:
                     Advection displacement (grid squares) in the y direction
         """
         # Smooth input data
@@ -895,23 +895,23 @@ class OpticalFlow(BasePlugin):
         have a scalar "time" coordinate.
 
         Args:
-            cube1 (iris.cube.Cube):
+            cube1:
                 2D cube that advection will be FROM / advection start point.
                 This may be an earlier observation or an extrapolation forecast
                 for the current time.
-            cube2 (iris.cube.Cube):
+            cube2:
                 2D cube that advection will be TO / advection end point.
                 This will be the most recent observation.
-            boxsize (int):
+            boxsize:
                 The side length of the square box over which to solve the
                 optical flow constraint.  This should be greater than the
                 data smoothing radius.
 
         Returns:
             (tuple): tuple containing:
-                **ucube** (iris.cube.Cube):
+                **ucube**:
                     2D cube of advection velocities in the x-direction
-                **vcube** (iris.cube.Cube):
+                **vcube**:
                     2D cube of advection velocities in the y-direction
         """
         # clear existing parameters

@@ -59,7 +59,7 @@ class SnowFraction(PostProcessingPlugin):
         Initialise the class
 
         Args:
-            model_id_attr (str):
+            model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending.
         """
@@ -75,7 +75,7 @@ class SnowFraction(PostProcessingPlugin):
             * Cubes are not masked (or are masked with an all-False mask)
 
         Args:
-            input_cubes (iris.cube.CubeList):
+            input_cubes:
                 Contains exactly two cubes, one of rain and one of snow. Both must be
                 either rates or accumulations of the same length and of compatible units.
 
@@ -113,7 +113,7 @@ class SnowFraction(PostProcessingPlugin):
         the cube names.
 
         Args:
-            input_cubes (iris.cube.CubeList):
+            input_cubes:
                 The unsorted rain and snow cubes.
 
         Returns:
@@ -169,7 +169,7 @@ class SnowFraction(PostProcessingPlugin):
         """Check input cubes, then calculate and interpolate a snow fraction cube.
 
         Args:
-            input_cubes (iris.cube.CubeList):
+            input_cubes:
                 Contains cubes of rain and snow, both must be either rates or accumulations.
 
         Returns:

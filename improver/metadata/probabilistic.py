@@ -46,7 +46,7 @@ def probability_cube_name_regex(cube_name: str) -> Optional[Match]:
     not start with 'probability_of').
 
     Args:
-        cube_name (str):
+        cube_name:
             Probability cube name
     """
     regex = re.compile(
@@ -64,7 +64,7 @@ def in_vicinity_name_format(cube_name: str) -> str:
     'between_thresholds' suffix required by convention.
 
     Args:
-        cube_name (str):
+        cube_name:
             The non-vicinity probability cube name to be formatted.
 
     Returns:
@@ -100,9 +100,9 @@ def _extract_diagnostic_name(cube_name: str, check_vicinity: bool = False) -> st
     'probability_of_X_in_vicinity_above/below_threshold'.
 
     Args:
-        cube_name (str):
+        cube_name:
             The probability cube name
-        check_vicinity (bool):
+        check_vicinity:
             If False the function will return X as described above, which matches
             the name of the threshold-type coordinate on the cube.  If True, the
             cube name is checked to see whether it is a vicinity diagnostic, and
@@ -147,7 +147,7 @@ def find_threshold_coordinate(cube: Cube) -> Coord:
     (cube.coord.var_name == "threshold") IMPROVER metadata standards.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube containing thresholded probability data
 
     Returns:
@@ -187,7 +187,7 @@ def probability_is_above_or_below(cube: Cube) -> Optional[str]:
     a spp__relative_to_threshold attribute it returns None.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube containing thresholded probability data
 
     Returns:
@@ -211,7 +211,7 @@ def find_percentile_coordinate(cube: Cube) -> Coord:
     """Find percentile coord in cube.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube contain one or more percentiles.
     Returns:
         iris.coords.Coord:
@@ -251,9 +251,9 @@ def format_cell_methods_for_probability(cube: Cube, threshold_name: str) -> None
     data to which they now refer is on a coordinate.  Modifies cube in place.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to update
-        threshold_name (str):
+        threshold_name:
             Name of the threshold-type coordinate to which the cell
             method now refers
     """
@@ -274,7 +274,7 @@ def format_cell_methods_for_diagnostic(cube: Cube) -> None:
     were previously on a probability cube.  Modifies cube in place.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to update
     """
     cell_methods = []

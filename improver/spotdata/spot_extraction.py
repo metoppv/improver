@@ -57,7 +57,7 @@ class SpotExtraction(BasePlugin):
     def __init__(self, neighbour_selection_method: str = "nearest") -> None:
         """
         Args:
-            neighbour_selection_method (str):
+            neighbour_selection_method:
                 The neighbour cube may contain one or several sets of grid
                 coordinates that match a spot site. These are determined by
                 the neighbour finding method employed. This keyword is used to
@@ -77,7 +77,7 @@ class SpotExtraction(BasePlugin):
         sites from the neighbour cube.
 
         Args:
-            neighbour_cube (iris.cube.Cube):
+            neighbour_cube:
                 A cube containing information about the spot data sites and
                 their grid point neighbours.
         Returns:
@@ -121,10 +121,10 @@ class SpotExtraction(BasePlugin):
         before the indices are used to extract data.
 
         Args:
-            coordinate_cube (iris.cube.Cube):
+            coordinate_cube:
                 A cube containing the x and y grid coordinates for the grid
                 point neighbours.
-            diagnostic_cube (iris.cube.Cube):
+            diagnostic_cube:
                 A cube of diagnostic data from which spot data is being taken.
         Returns:
             numpy.ndarray:
@@ -155,18 +155,18 @@ class SpotExtraction(BasePlugin):
         Builds a spot data cube containing the extracted diagnostic values.
 
         Args:
-            neighbour_cube (iris.cube.Cube):
+            neighbour_cube:
                 This cube is needed as a source for information about the spot
                 sites which needs to be included in the spot diagnostic cube.
-            diagnostic_cube (iris.cube.Cube):
+            diagnostic_cube:
                 The cube is needed to provide the name and units of the
                 diagnostic that is being processed.
-            spot_values (numpy.ndarray):
+            spot_values:
                 An array containing the diagnostic values extracted for the
                 required spot sites.
-            additional_dims (list):
+            additional_dims:
                 Optional list containing iris.coord.DimCoords with any leading dimensions required before spot data.
-            scalar_coords (list):
+            scalar_coords:
                 Optional list containing iris.coord.AuxCoords with all scalar coordinates relevant for the spot sites.
         Returns:
             iris.cube.Cube:
@@ -201,12 +201,12 @@ class SpotExtraction(BasePlugin):
            spot_extraction_examples.rst
 
         Args:
-            neighbour_cube (iris.cube.Cube):
+            neighbour_cube:
                 A cube containing information about the spot data sites and
                 their grid point neighbours.
-            diagnostic_cube (iris.cube.Cube):
+            diagnostic_cube:
                 A cube of diagnostic data from which spot data is being taken.
-            new_title (str or None):
+            new_title:
                 New title for spot-extracted data.  If None, this attribute is
                 reset to a default value, since it has no prescribed standard
                 and may therefore contain grid information that is no longer
@@ -266,7 +266,7 @@ def check_grid_match(cubes: Cube) -> None:
     exception is raised to prevent the use of unmatched cubes.
 
     Args:
-        cubes (list of iris.cube.Cube):
+        cubes:
             A list of cubes to check for grid compatibility.
     Raises:
         ValueError: Raised if the cubes are not on matching grids as

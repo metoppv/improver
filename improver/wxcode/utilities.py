@@ -96,9 +96,9 @@ def expand_nested_lists(query: Dict, key: str) -> List:
     Produce flat lists from list and nested lists.
 
     Args:
-        query (dict):
+        query:
             A single query from the decision tree.
-        key (str):
+        key:
             A string denoting the field to be taken from the dict.
 
     Returns:
@@ -166,7 +166,7 @@ def interrogate_decision_tree(wxtree: str) -> List[str]:
     the necessary inputs.
 
     Args:
-        wxtree (str):
+        wxtree:
             The weather symbol tree that is to be interrogated.
 
     Returns:
@@ -238,7 +238,7 @@ def get_parameter_names(diagnostic_fields: List[List[str]]) -> List[List[str]]:
     just the parameter names.
 
     Args:
-        diagnostic_fields (list of lists of str):
+        diagnostic_fields:
 
     Returns:
         list of lists of str

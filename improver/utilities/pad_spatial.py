@@ -53,13 +53,13 @@ def pad_coord(coord: Coord, width: int, method: str) -> Coord:
     padding width.
 
     Args:
-        coord (iris.coords.Coord):
+        coord:
             Original coordinate which will be used as the basis of the
             new extended coordinate.
-        width (int):
+        width:
             The width of padding in grid cells (the extent of the
             neighbourhood radius in grid cells in a given direction).
-        method (str):
+        method:
             A string determining whether the coordinate is being expanded
             or contracted. Options: 'remove' to remove points from coord;
             'add' to add points to coord.
@@ -107,9 +107,9 @@ def create_cube_with_halo(cube: Cube, halo_radius: float) -> Cube:
     data.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube on original grid
-        halo_radius (float):
+        halo_radius:
             Size of border to pad original grid, in metres
 
     Returns:
@@ -142,14 +142,14 @@ def _create_cube_with_padded_data(
     cube.
 
     Args:
-        source_cube (iris.cube.Cube):
+        source_cube:
             Template cube used for copying metadata and non x and y axes
             coordinates.
-        data (numpy.ndarray):
+        data:
             Data to be put into the new cube.
-        coord_x (iris.coords.DimCoord):
+        coord_x:
             Coordinate to be added to the new cube to represent the x axis.
-        coord_y (iris.coords.DimCoord):
+        coord_y:
             Coordinate to be added to the new cube to represent the y axis.
 
     Returns:
@@ -200,19 +200,19 @@ def pad_cube_with_halo(
     a mean within half the padding width with which to fill the halo region.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The original cube prior to applying padding. The cube should
             contain only x and y dimensions, so will generally be a slice
             of a cube.
-        width_x (int):
+        width_x:
             The width in x directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.
-        width_y (int):
+        width_y:
             The width in y directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.
-        pad_method (str):
+        pad_method:
             The numpy.pad method with which to populate the halo. The default
             is 'constant' which will populate the region with zeros. All other
             np.pad methods are accepted, though they are not fully configurable.
@@ -261,9 +261,9 @@ def remove_cube_halo(cube: Cube, halo_radius: float) -> Cube:
     ensuring the resulting cube has the same dimension coordinates.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube on extended grid
-        halo_radius (float):
+        halo_radius:
             Size of border to remove, in metres
 
     Returns:
@@ -299,15 +299,15 @@ def remove_halo_from_cube(cube: Cube, width_x: float, width_y: float) -> Cube:
     pad_cube_with_halo.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The original cube to be trimmed of edge data. The cube should
             contain only x and y dimensions, so will generally be a slice
             of a cube.
-        width_x (int or float):
+        width_x:
             The width in x directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.
-        width_y (int or float):
+        width_y:
             The width in y directions of the neighbourhood radius in
             grid cells. This will be the width of padding to be added to
             the numpy array.
