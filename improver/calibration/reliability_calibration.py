@@ -128,12 +128,14 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                 Mandates that the highest bin should be single valued,
                 with a small precision tolerance, defined as 1.0E-6.
                 The bin is thus (1 - 1.0E-6) to 1.
+
         Returns:
             numpy.ndarray:
                 An array of 2-element arrays that contain the bounds of the
                 probability bins. These bounds are non-overlapping, with
                 adjacent bin boundaries spaced at the smallest representable
                 interval.
+
         Raises:
             ValueError: If trying to use both single_value_lower_limit and
                         single_value_upper_limit with 2 or fewer probability bins.
@@ -222,6 +224,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         Args:
             forecast_slice:
                 The source cube from which to get pre-existing metadata of use.
+
         Returns:
             dict:
                 A dictionary of attributes that are appropriate for the
@@ -248,6 +251,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                 relate to the reliability_table_data.
             threshold_coord:
                 The threshold coordinate.
+
         Returns:
             iris.cube.Cube:
                 A reliability table cube.
@@ -317,6 +321,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             truth:
                 An array containing a thresholded gridded truth at an
                 equivalent validity time to the forecast array.
+
         Returns:
             numpy.ma.MaskedArray:
                 An array containing reliability table data for a single time
@@ -365,6 +370,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             truth:
                 An array containing a thresholded gridded truth at an
                 equivalent validity time to the forecast array.
+
         Returns:
             numpy.ma.MaskedArray:
                 An array containing reliability table data for a single time
@@ -396,6 +402,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                 equivalent validity time to the forecast array.
             threshold_reliability:
                 The current reliability table that will be added to.
+
         Returns:
             numpy.ndarray or numpy.ma.MaskedArray:
                 An array containing reliability table data for a single time
@@ -454,10 +461,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             truths:
                 A cube containing the thresholded gridded truths used in
                 calibration.
+
         Returns:
             iris.cube.CubeList:
                 A cubelist of reliability table cubes, one for each threshold
                 in the historic forecast cubes.
+
         Raises:
             ValueError: If the forecast and truth cubes have differing
                         threshold coordinates.
@@ -531,6 +540,7 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
             cubes:
                 The list of reliability calibration tables for which the
                 forecast reference time coordinates should be checked.
+
         Raises:
             ValueError: If the bounds overlap.
         """
@@ -615,8 +625,10 @@ class ManipulateReliabilityTable(BasePlugin):
                 The minimum number of forecast counts in a forecast probability
                 bin for it to be used in calibration.
                 The default value of 200 is that used in Flowerdew 2014.
+
         Raises:
             ValueError: If minimum_forecast_count is less than 1.
+
         References:
             Flowerdew J. 2014. Calibrating ensemble reliability whilst
             preserving spatial structure. Tellus, Ser. A Dyn. Meteorol.
@@ -742,12 +754,12 @@ class ManipulateReliabilityTable(BasePlugin):
                 Forecast count extracted from reliability table.
             probability_bin_coord:
                 Original probability bin coordinate.
+
         Returns:
             Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, iris.coords.DimCoord]
                 Tuple containing the updated observation count,
                 forecast probability sum, forecast count and probability bin
                 coordinate.
-
         """
         while (
             any(x < self.minimum_forecast_count for x in forecast_count)
@@ -866,7 +878,6 @@ class ManipulateReliabilityTable(BasePlugin):
         Returns:
             numpy.ndarray:
                 Observation count computed from a monotonic observation frequency.
-
         """
         observation_frequency = np.array(observation_count / forecast_count)
 
@@ -1048,10 +1059,12 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 The forecast to be calibrated.
             reliability_table:
                 The reliability table to use for applying calibration.
+
         Returns:
             iris.cube.Cube:
                 A reliability table who's threshold coordinate matches
                 the forecast cube.
+
         Raises:
             ValueError: If no matching reliability table is found.
         """
@@ -1081,9 +1094,11 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             cube:
                 The probability cube for which monotonicity is to be checked
                 and enforced. This cube is modified in place.
+
         Raises:
             ValueError: Threshold coordinate lacks the
                         spp__relative_to_threshold attribute.
+
         Warns:
             UserWarning: If the probabilities must be sorted to reinstate
                          expected monotonicity following calibration.
@@ -1135,6 +1150,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 A reliability table for a single threshold from which to
                 calculate the forecast probabilities and observation
                 frequencies.
+
         Returns:
             Optional[Tuple[numpy.ndarray, numpy.ndarray]]:
                 Tuple containing forecast probabilities calculated by dividing
@@ -1216,6 +1232,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             reliability_table:
                 The reliability table to use for applying calibration.
                 x and y dimensions must be collapsed.
+
         Returns:
             iris.cube.Cube:
                 The forecast cube following calibration.

@@ -57,6 +57,7 @@ def split_forecasts_and_truth(
         truth_attribute:
             An attribute and its value in the format of "attribute=value",
             which must be present on truth cubes.
+
     Returns:
         (tuple): tuple containing:
             **forecast**:
@@ -66,6 +67,7 @@ def split_forecasts_and_truth(
             **land_sea_mask**:
                 If found within the input cubes list a land-sea mask will be
                 returned, else None is returned.
+
     Raises:
         ValueError:
             An unexpected number of distinct cube names were passed in.

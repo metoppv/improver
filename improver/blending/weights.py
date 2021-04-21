@@ -105,9 +105,11 @@ class WeightsUtilities:
                 blending_coord:
                     Name of the coordinate over which the weights will be used
                     to blend data, e.g. across model name when grid blending.
+
             Returns:
                 iris.cube.Cube:
                     A cube containing the array of weights.
+
             Raises:
                 ValueError : If weights array is not of the same length as the
                              coordinate being blended over on cube.
@@ -255,22 +257,18 @@ class ChooseWeightsLinear(BasePlugin):
                 **source_points**:
                     Points within the configuration dictionary that will
                     be used as the input to the interpolation.
-
                 **target_points**:
                     Points within the cube that will be the target points
                     for the interpolation.
-
                 **source_weights**:
                     Weights from the configuration dictionary that will be
                     used as the input to the interpolation.
-
                 **fill_value**:
                     Values that be used if extrapolation is required. The
                     fill values will be used as constants that are extrapolated
                     if the target_points are outside the source_points
                     provided. These are equal to the first and last values
                     provided by the source weights.
-
         """
         (config_point,) = cube.coord(self.config_coord_name).points
         source_points = self.config_dict[config_point][self.weighting_coord_name]
