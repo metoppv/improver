@@ -155,10 +155,9 @@ class WeatherSymbols(BasePlugin):
                 A CubeList containing the input diagnostic cubes.
 
         Returns:
-            dict or None:
-                A dictionary of (keyword) nodes names where the diagnostic
-                data is missing and (values) node associated with
-                diagnostic_missing_action.
+            A dictionary of (keyword) nodes names where the diagnostic
+            data is missing and (values) node associated with
+            diagnostic_missing_action.
 
         Raises:
             IOError:
@@ -260,11 +259,10 @@ class WeatherSymbols(BasePlugin):
             condition:
                 A single query from the decision tree.
         Returns:
-            (tuple): tuple containing:
-                **inverted_threshold**:
-                    A string representing the inverted comparison.
-                **inverted_combination**:
-                    A string representing the inverted combination
+            **inverted_threshold**:
+                A string representing the inverted comparison.
+            **inverted_combination**:
+                A string representing the inverted combination
         """
         inverted_threshold = self._invert_comparator(condition["threshold_condition"])
         inverted_combination = self._invert_comparator(
@@ -280,15 +278,14 @@ class WeatherSymbols(BasePlugin):
             test_conditions:
                 A query from the decision tree.
         Returns:
-            list:
-                A valid condition chain is defined recursively:
-                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
-                constraint, or a list of constraints,
-                operator strings and floats), and b is either "AND", "OR" or "",
-                then [[a1, ..., an], b] is a valid condition chain.
-                (2) If a1, ..., an are each valid conditions chain, and b is
-                either "AND" or "OR", then [[a1, ..., an], b] is a valid
-                condition chain.
+            A valid condition chain is defined recursively:
+            (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
+            constraint, or a list of constraints,
+            operator strings and floats), and b is either "AND", "OR" or "",
+            then [[a1, ..., an], b] is a valid condition chain.
+            (2) If a1, ..., an are each valid conditions chain, and b is
+            either "AND" or "OR", then [[a1, ..., an], b] is a valid
+            condition chain.
         """
         conditions = []
         loop = 0
@@ -354,7 +351,6 @@ class WeatherSymbols(BasePlugin):
                 If true, use old naming convention for threshold coordinates
                 (coord.long_name=threshold).  Otherwise extract threshold
                 coordinate name from diagnostic name
-
         Returns:
             iris.Constraint
         """
@@ -408,9 +404,8 @@ class WeatherSymbols(BasePlugin):
                 A list of node names found so far.
 
         Returns:
-            list of str:
-                A list of node names that defines the route from the tree root
-                to the weather symbol leaf (end of chain).
+            A list of node names that defines the route from the tree root
+            to the weather symbol leaf (end of chain).
 
         References:
             Method based upon Python Patterns - Implementing Graphs essay
@@ -450,10 +445,9 @@ class WeatherSymbols(BasePlugin):
             cubes:
                 List of input cubes used to generate weather symbols
         Returns:
-            iris.cube.Cube:
-                A cube with suitable metadata to describe the weather symbols
-                that will fill it and data initiated with the value -1 to allow
-                any unset points to be readily identified.
+            A cube with suitable metadata to describe the weather symbols
+            that will fill it and data initiated with the value -1 to allow
+            any unset points to be readily identified.
         """
         threshold_coord = find_threshold_coordinate(cubes[0])
         template_cube = next(cubes[0].slices_over([threshold_coord])).copy()
@@ -489,8 +483,7 @@ class WeatherSymbols(BasePlugin):
             threshold (float)
 
         Returns:
-            np.array:
-                Array of booleans.
+            Array of booleans.
 
         Raises:
             ValueError: If comparator is not one of '<', '>', '<=', '>='.
@@ -527,8 +520,7 @@ class WeatherSymbols(BasePlugin):
                 operators) and floats is a valid expression.
 
         Returns:
-            numpy.array:
-                An array or masked array of booleans
+            An array or masked array of booleans
         """
         operator_map = {
             "+": operator.add,
@@ -599,8 +591,7 @@ class WeatherSymbols(BasePlugin):
                 condition chain.
 
         Returns:
-            numpy.array:
-                An array of masked array of booleans
+            An array of masked array of booleans
         """
 
         def is_chain(item):
@@ -655,8 +646,7 @@ class WeatherSymbols(BasePlugin):
                 weather symbols decision tree, these at co-incident times.
 
         Returns:
-            iris.cube.Cube:
-                A cube of weather symbols.
+            A cube of weather symbols.
         """
         # Check input cubes contain required data
         optional_node_data_missing = self.check_input_cubes(cubes)

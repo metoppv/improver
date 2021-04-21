@@ -85,7 +85,6 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
             dest_orog:
                 2D cube of destination orography heights (units modified in
                 place)
-
         Returns:
             iris.cube.Cube
         """
@@ -113,8 +112,7 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
                 2D cube of destination orography heights
 
         Returns:
-            iris.cube.Cube:
-                Lapse-rate adjusted temperature field, in Kelvin
+            Lapse-rate adjusted temperature field, in Kelvin
         """
         lapse_rate.convert_units("K m-1")
         self.xy_coords = [lapse_rate.coord(axis="y"), lapse_rate.coord(axis="x")]
@@ -254,11 +252,10 @@ class LapseRate(BasePlugin):
                 2D array of orographies, in metres
 
         Returns:
-            (tuple): tuple_containing:
-                **views of temp**:
-                    Rolling windows of the padded temperature dataset.
-                **views of orog**:
-                    Rolling windows of the padded orography dataset.
+            **views of temp**:
+                Rolling windows of the padded temperature dataset.
+            **views of orog**:
+                Rolling windows of the padded orography dataset.
         """
         window_shape = (self.nbhood_size, self.nbhood_size)
         orog_windows = neighbourhood_tools.pad_and_roll(
@@ -287,8 +284,7 @@ class LapseRate(BasePlugin):
                 2D land-sea mask
 
         Returns:
-            numpy.ndarray:
-                Lapse rate values
+            Lapse rate values
         """
         # Fill sea points with NaN values.
         temperature_data = np.where(land_sea_mask_data, temperature_data, np.nan)
@@ -366,8 +362,7 @@ class LapseRate(BasePlugin):
                 blending. This is inherited from the input temperature cube.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing lapse rate (K m-1)
+            Cube containing lapse rate (K m-1)
 
         Raises
         ------

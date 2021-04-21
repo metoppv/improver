@@ -125,8 +125,7 @@ class CubeCombiner(BasePlugin):
                 List of cubes to that will be combined
 
         Returns:
-            list of str:
-                List of coordinate names to expand
+            List of coordinate names to expand
         """
         shared_scalar_coords = {
             coord.name() for coord in cube_list[0].coords(dim_coords=False)
@@ -153,7 +152,6 @@ class CubeCombiner(BasePlugin):
 
         Args:
             cube_list (list of iris.cube.Cube)
-
         Returns:
             iris.cube.Cube
 
@@ -194,8 +192,7 @@ class CubeCombiner(BasePlugin):
                 used as the point values.  If True, the midpoint is used.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the combined data.
+            Cube containing the combined data.
 
         Raises:
             ValueError: If the cube_list contains only one cube.
@@ -240,7 +237,6 @@ class CubeMultiplier(CubeCombiner):
 
         Args:
             cube_list (list of iris.cube.Cube)
-
         Returns:
             iris.cube.CubeList
                 Updated version of cube_list
@@ -315,8 +311,7 @@ class CubeMultiplier(CubeCombiner):
                 following cube(s) need(s) to be broadcast prior to combining data.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the combined data.
+            Cube containing the combined data.
 
         Raises:
             ValueError: If the cube_list contains only one cube.

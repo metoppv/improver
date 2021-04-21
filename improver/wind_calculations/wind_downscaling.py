@@ -109,8 +109,7 @@ class FrictionVelocity(BasePlugin):
         roughness length.
 
         Returns:
-            numpy.ndarray:
-                A 2D array of float32 friction velocities
+            A 2D array of float32 friction velocities
 
         """
         ustar = np.full(self.u_href.shape, RMDI, dtype=np.float32)
@@ -217,13 +216,12 @@ class RoughnessCorrectionUtilities:
         h_over_2.
 
         Returns:
-            (tuple): tuple containing:
-                **hcmask**:
-                    2D array of booleans- True for land-points,
-                    false for Sea (HC)
-                **rcmask**:
-                    2D array of booleans- additionally False for
-                    invalid z_0 (RC)
+            **hcmask**:
+                2D array of booleans- True for land-points,
+                false for Sea (HC)
+            **rcmask**:
+                2D array of booleans- additionally False for
+                invalid z_0 (RC)
 
         """
         hcmask = np.full(self.h_over_2.shape, True, dtype=bool)
@@ -256,8 +254,7 @@ class RoughnessCorrectionUtilities:
                 grid cell.
 
         Returns:
-            numpy.ndarray:
-                2D array of float32 - half peak-to-trough height.
+            2D array of float32 - half peak-to-trough height.
 
         Comments:
             Points that had sigma = 0 (i.e. sea points) are set to
@@ -312,9 +309,8 @@ class RoughnessCorrectionUtilities:
               = \\rm{a\\_over\\_s} * \\pi / \\rm{h\\_over\\_2}
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - wavenumber in units of inverse units of
-                supplied h_over_2.
+            2D array float32 - wavenumber in units of inverse units of
+            supplied h_over_2.
 
         """
         wavn = np.full(self.a_over_s.shape, RMDI, dtype=np.float32)
@@ -347,8 +343,7 @@ class RoughnessCorrectionUtilities:
         epsilon in both Vosper and Clark)
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - reference height for roughness correction
+            2D array float32 - reference height for roughness correction
 
         """
         alpha = -np.log(ABSOLUTE_CORRECTION_TOL)
@@ -381,9 +376,8 @@ class RoughnessCorrectionUtilities:
                  and False for invalid z_0.
 
         Returns:
-            numpy.ndarray:
-                3D np.array float32 - Corrected wind speed on hgrid. Above
-                href, this is equal to uold.
+            3D np.array float32 - Corrected wind speed on hgrid. Above
+            href, this is equal to uold.
 
         Comments:
             Replace the windspeed profile below the reference height with one
@@ -436,8 +430,7 @@ class RoughnessCorrectionUtilities:
                 if True, log interpolation, default False
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - velocity interpolated at h
+            2D array float32 - velocity interpolated at h
 
         """
         u_in = np.ma.masked_less(u_in, 0.0)
@@ -505,9 +498,8 @@ class RoughnessCorrectionUtilities:
                 2D array float32 - y(xlow)
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - y(at_x) assuming a lin function
-                between xlow and xup
+            2D array float32 - y(at_x) assuming a lin function
+            between xlow and xup
 
         """
         interp = np.full(xup.shape, RMDI, dtype=np.float32)
@@ -540,9 +532,8 @@ class RoughnessCorrectionUtilities:
                 2D array float32 -y(xlow)
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - y(at_x) assuming a log function
-                between xlow and xup
+            2D array float32 - y(at_x) assuming a log function
+            between xlow and xup
 
         """
         ain = np.full(xup.shape, RMDI, dtype=np.float32)
@@ -578,8 +569,7 @@ class RoughnessCorrectionUtilities:
                 height, e.g. a 3D array (float32)
 
         Returns:
-            numpy.ndarray:
-                3D array float32 - additive height correction to wind speed
+            3D array float32 - additive height correction to wind speed
 
         Comments:
             The height correction is a disturbance of the flow that
@@ -618,8 +608,7 @@ class RoughnessCorrectionUtilities:
         grid height.
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - height difference, ppgrid-model
+            2D array float32 - height difference, ppgrid-model
 
         """
         delt_z = np.full(self.pporo.shape, RMDI, dtype=np.float32)
@@ -636,9 +625,8 @@ class RoughnessCorrectionUtilities:
                 3D array float32 - wind speed on these levels
 
         Returns:
-            numpy.ndarray:
-                sum of  unew: 3D array float32 - RC corrected windspeed
-                on levels HC: 3D array float32 - HC additional part
+            sum of  unew: 3D array float32 - RC corrected windspeed
+            on levels HC: 3D array float32 - HC additional part
 
         Friedrich, M. M., 2016
         Wind Downscaling Program (Internal Met Office Report)
@@ -744,15 +732,14 @@ class RoughnessCorrection(PostProcessingPlugin):
                 some iris cube to find coordinate names from
 
         Returns:
-            (tuple): tuple containing:
-                **xname**:
-                    name of the axis name in x-direction
-                **yname**:
-                    name of the axis name in y-direction
-                **zname**:
-                    name of the axis name in z-direction
-                **tname**:
-                    name of the axis name in t-direction
+            **xname**:
+                name of the axis name in x-direction
+            **yname**:
+                name of the axis name in y-direction
+            **zname**:
+                name of the axis name in z-direction
+            **tname**:
+                name of the axis name in t-direction
 
         """
         clist = {cube.coords()[i].name() for i in range(len(cube.coords()))}
@@ -783,8 +770,7 @@ class RoughnessCorrection(PostProcessingPlugin):
                 Cube to calculate average resolution of
 
         Returns:
-            np.float32:
-                Average grid resolution.
+            Average grid resolution.
 
         """
         x_name, y_name, _, _ = self.find_coord_names(a_cube)
@@ -832,8 +818,7 @@ class RoughnessCorrection(PostProcessingPlugin):
                 holding the model orography on post processing grid
 
         Returns:
-            numpy.ndarray:
-                Containing bools describing whether or not the tests passed
+            Containing bools describing whether or not the tests passed
 
         """
         ancil_list = [a_over_s_cube, sigma_cube, pp_oro_cube, model_oro_cube]
@@ -889,15 +874,14 @@ class RoughnessCorrection(PostProcessingPlugin):
                 cube to check the order of coordinate axis
 
         Returns:
-            (tuple): tuple containing:
-                **xpos**:
-                    position of x axis.
-                **ypos**:
-                    position of y axis.
-                **zpos**:
-                    position of z axis.
-                **tpos**:
-                    position of t axis.
+            **xpos**:
+                position of x axis.
+            **ypos**:
+                position of y axis.
+            **zpos**:
+                position of z axis.
+            **tpos**:
+                position of t axis.
 
         """
         coord_names = [self.x_name, self.y_name, self.z_name, self.t_name]
@@ -919,8 +903,7 @@ class RoughnessCorrection(PostProcessingPlugin):
                 3D or 4D - representing the wind data.
 
         Returns:
-            numpy.ndarray:
-                1D or 3D array - representing the height grid.
+            1D or 3D array - representing the height grid.
 
         """
         if self.height_levels is None:
@@ -977,9 +960,8 @@ class RoughnessCorrection(PostProcessingPlugin):
                 height_levels for all desired forecast times.
 
         Returns:
-            iris.cube.Cube:
-                The 4d wind field with roughness and height correction
-                applied in the same order as the input cube.
+            The 4d wind field with roughness and height correction
+            applied in the same order as the input cube.
 
         Raises
         ------

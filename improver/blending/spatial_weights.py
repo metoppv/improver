@@ -100,9 +100,8 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 be masked where there is invalid data.
 
         Returns:
-            iris.cube.Cube:
-                A cube with dimensions blend_coord, y, x, on which to shape the
-                output weights cube.
+            A cube with dimensions blend_coord, y, x, on which to shape the
+            output weights cube.
 
         Raises:
             ValueError: if the blend coordinate is associated with more than
@@ -171,12 +170,11 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 have been set to 0
 
         Returns:
-            (tuple): tuple containing:
-                **weights**:
-                    Weights where MASKED slices have been rescaled, but UNMASKED
-                    slices have not
-                **rescaled**:
-                    Binary (0/1) map showing which weights have been rescaled
+            **weights**:
+                Weights where MASKED slices have been rescaled, but UNMASKED
+                slices have not
+            **rescaled**:
+                Binary (0/1) map showing which weights have been rescaled
         """
         is_rescaled = iris.cube.CubeList()
         rescaled_weights = iris.cube.CubeList()
@@ -274,10 +272,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
                 adjusting spatially based on missing data.
 
         Returns:
-            iris.cube.Cube:
-                A cube containing normalised 3D spatial weights based on the
-                cube_to_collapse mask and the one_dimensional weights supplied.
-                Has dimensions: self.blend_coord, y, x.
+            A cube containing normalised 3D spatial weights based on the
+            cube_to_collapse mask and the one_dimensional weights supplied.
+            Has dimensions: self.blend_coord, y, x.
         """
         template_cube = self._create_template_slice(cube_to_collapse)
         (self.blend_axis,) = template_cube.coord_dims(self.blend_coord)

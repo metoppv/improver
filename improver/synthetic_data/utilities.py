@@ -53,9 +53,8 @@ def get_leading_dimension(coord_data: Dict[str, Any]) -> Tuple[List[float], str]
             thresholds.
 
     Returns:
-        Tuple[List(float), str]:
-            A tuple containing the list of values to use for the leading dimension and
-            a string specifying what cube type to create.
+        A tuple containing the list of values to use for the leading dimension and
+        a string specifying what cube type to create.
     """
     leading_dimension = None
     cube_type = "variable"
@@ -89,10 +88,9 @@ def get_height_levels(coord_data: Dict[str, Any]) -> Tuple[List[float], str]:
             Dictionary containing values to use for either height or pressure levels.
 
     Returns:
-        Tuple[List(float), bool]:
-            A tuple containing a list of values to use for the height/pressure dimension
-            and a bool specifying whether the coordinate should be created as height
-            levels or pressure levels.
+        A tuple containing a list of values to use for the height/pressure dimension
+        and a bool specifying whether the coordinate should be created as height
+        levels or pressure levels.
     """
     height_levels = None
     pressure = False

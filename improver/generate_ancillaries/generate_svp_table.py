@@ -94,9 +94,8 @@ class SaturatedVapourPressureTable(BasePlugin):
                 Temperature values in Kelvin. Valid from 173K to 373K
 
         Returns:
-            numpy.ndarray:
-                Corresponding values of saturation vapour pressure for a pure
-                water vapour system, in hPa.
+            Corresponding values of saturation vapour pressure for a pure
+            water vapour system, in hPa.
 
         References:
             Numerical data and functional relationships in science and
@@ -155,9 +154,8 @@ class SaturatedVapourPressureTable(BasePlugin):
         vapour system for the range of required temperatures.
 
         Returns:
-            iris.cube.Cube:
-               A cube of saturated vapour pressure values at temperature
-               points defined by t_min, t_max, and t_increment (defined above).
+           A cube of saturated vapour pressure values at temperature
+           points defined by t_min, t_max, and t_increment (defined above).
         """
         temperatures = np.arange(
             self.t_min, self.t_max + 0.5 * self.t_increment, self.t_increment

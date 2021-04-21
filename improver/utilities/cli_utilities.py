@@ -42,10 +42,9 @@ def load_json_or_none(file_path: str) -> Optional[Dict]:
             File path to the json file to load.
 
     Returns:
-        dict or None:
-            A dictionary loaded from a json file.
-            or
-            None
+        A dictionary loaded from a json file.
+        or
+        None
     """
     metadata_dict = None
     if file_path:

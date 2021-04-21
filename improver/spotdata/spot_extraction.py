@@ -82,12 +82,11 @@ class SpotExtraction(BasePlugin):
                 their grid point neighbours.
 
         Returns:
-            iris.cube.Cube:
-                A cube containing only the x and y grid coordinates for the
-                grid point neighbours given the chosen neighbour selection
-                method. The neighbour cube contains the indices stored as
-                floating point values, so they are converted to integers
-                in this cube.
+            A cube containing only the x and y grid coordinates for the
+            grid point neighbours given the chosen neighbour selection
+            method. The neighbour cube contains the indices stored as
+            floating point values, so they are converted to integers
+            in this cube.
 
         Raises:
             ValueError if the neighbour_selection_method expected is not found
@@ -130,9 +129,8 @@ class SpotExtraction(BasePlugin):
                 A cube of diagnostic data from which spot data is being taken.
 
         Returns:
-            numpy.ndarray:
-                An array of diagnostic values at the grid coordinates found
-                within the coordinate cube.
+            An array of diagnostic values at the grid coordinates found
+            within the coordinate cube.
         """
         enforce_coordinate_ordering(
             diagnostic_cube,
@@ -173,8 +171,7 @@ class SpotExtraction(BasePlugin):
                 Optional list containing iris.coord.AuxCoords with all scalar coordinates relevant for the spot sites.
 
         Returns:
-            iris.cube.Cube:
-                A spot data cube containing the extracted diagnostic data.
+            A spot data cube containing the extracted diagnostic data.
         """
 
         neighbour_cube = build_spotdata_cube(
@@ -217,9 +214,8 @@ class SpotExtraction(BasePlugin):
                 correct after spot-extraction.
 
         Returns:
-            iris.cube.Cube:
-                A cube containing diagnostic data for each spot site, as well
-                as information about the sites themselves.
+            A cube containing diagnostic data for each spot site, as well
+            as information about the sites themselves.
         """
         # Check we are using a matched neighbour/diagnostic cube pair
         check_grid_match([neighbour_cube, diagnostic_cube])

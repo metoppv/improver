@@ -75,8 +75,7 @@ def _svp_table() -> ndarray:
     function.
 
     Returns:
-        numpy.ndarray:
-            Array of saturated vapour pressures (Pa).
+        Array of saturated vapour pressures (Pa).
     """
     svp_data = SaturatedVapourPressureTable(
         t_min=SVP_T_MIN, t_max=SVP_T_MAX, t_increment=SVP_T_INCREMENT
@@ -94,8 +93,7 @@ def _svp_from_lookup(temperature: ndarray) -> ndarray:
         temperature:
             Array of air temperatures (K).
     Returns:
-        numpy.ndarray:
-            Array of saturated vapour pressures (Pa).
+        Array of saturated vapour pressures (Pa).
     """
     # where temperatures are outside the SVP table range, clip data to
     # within the available range
@@ -124,8 +122,7 @@ def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
             Array of pressure (Pa).
 
     Returns:
-        numpy.ndarray:
-            Saturation vapour pressure in air (Pa).
+        Saturation vapour pressure in air (Pa).
 
     References:
         Atmosphere-Ocean Dynamics, Adrian E. Gill, International Geophysics
@@ -211,8 +208,7 @@ class WetBulbTemperature(BasePlugin):
             temperature:
                 Array of air temperatures (K).
         Returns:
-            np.ndarray:
-                Temperature adjusted latent heat of condensation (J kg-1).
+            Temperature adjusted latent heat of condensation (J kg-1).
         """
         temp_Celsius = temperature + consts.ABSOLUTE_ZERO
         latent_heat = (
@@ -232,8 +228,7 @@ class WetBulbTemperature(BasePlugin):
                 Array of air pressure (Pa).
 
         Returns
-            numpy.ndarray:
-                Array of mixing ratios.
+            Array of mixing ratios.
 
         Method from referenced documentation. Note that EARTH_REPSILON is
         simply given as an unnamed constant in the reference (0.62198).
@@ -256,8 +251,7 @@ class WetBulbTemperature(BasePlugin):
             mixing_ratio:
                 Array of specific humidity (fractional).
         Returns:
-            numpy.ndarray:
-                Specific heat capacity of moist air (J kg-1 K-1).
+            Specific heat capacity of moist air (J kg-1 K-1).
         """
         specific_heat = (
             -1.0 * mixing_ratio + 1.0
@@ -291,9 +285,8 @@ class WetBulbTemperature(BasePlugin):
             temperature:
                 Array of air temperatures (K).
         Returns:
-           numpy.ndarray:
-               Array of enthalpy values calculated at the same points as the
-               input cubes (J kg-1).
+           Array of enthalpy values calculated at the same points as the
+           input cubes (J kg-1).
         """
         enthalpy = latent_heat * mixing_ratio + specific_heat * temperature
         return enthalpy
@@ -322,8 +315,7 @@ class WetBulbTemperature(BasePlugin):
                 Array of temperatures (K).
 
         Returns:
-            numpy.ndarray:
-                Array of the enthalpy gradient with respect to temperature.
+            Array of the enthalpy gradient with respect to temperature.
         """
         numerator = mixing_ratio * latent_heat * latent_heat
         denominator = consts.R_WATER_VAPOUR * temperature * temperature
@@ -349,8 +341,7 @@ class WetBulbTemperature(BasePlugin):
                 Array of air temperature (K).
 
         Returns:
-            numpy.ndarray:
-                Array of wet bulb temperature (K).
+            Array of wet bulb temperature (K).
 
         """
         # Initialise psychrometric variables
@@ -415,8 +406,7 @@ class WetBulbTemperature(BasePlugin):
                 Cube of air pressures.
 
         Returns:
-            iris.cube.Cube:
-                Cube of wet bulb temperature (K).
+            Cube of wet bulb temperature (K).
 
         """
         temperature.convert_units("K")
@@ -452,8 +442,7 @@ class WetBulbTemperature(BasePlugin):
                         Cube of air pressures.
 
         Returns:
-            iris.cube.Cube:
-                Cube of wet bulb temperature (K).
+            Cube of wet bulb temperature (K).
         """
         names_to_extract = ["air_temperature", "relative_humidity", "air_pressure"]
         if len(cubes) != len(names_to_extract):
@@ -499,8 +488,7 @@ class WetBulbTemperatureIntegral(BasePlugin):
                 Cube of wet bulb temperatures on height levels.
 
         Returns:
-            wet_bulb_temperature_integral:
-                Cube of wet bulb temperature integral (Kelvin-metres).
+            Cube of wet bulb temperature integral (Kelvin-metres).
         """
         wbt = wet_bulb_temperature.copy()
         wbt.convert_units("degC")
@@ -597,8 +585,7 @@ class PhaseChangeLevel(BasePlugin):
                 heights agl
 
         Returns:
-            numpy.ndarray:
-                Phase change level data asl.
+            Phase change level data asl.
 
         """
         # Create cube of heights above sea level for each height in
@@ -783,16 +770,14 @@ class PhaseChangeLevel(BasePlugin):
                 linear fit.
 
         Returns:
-            (tuple): tuple containing:
-                **gradient** (numpy.ndarray) - An array, the same shape as a
-                2D slice of the wet_bulb_temperature input, containing the
-                gradients of the fitted straight line at each point where it
-                could be found, filled with zeros elsewhere.
-
-                **intercept** (numpy.ndarray) - An array, the same shape as a
-                2D slice of the wet_bulb_temperature input, containing the
-                intercepts of the fitted straight line at each point where it
-                could be found, filled with zeros elsewhere.
+            **gradient** - An array, the same shape as a
+            2D slice of the wet_bulb_temperature input, containing the
+            gradients of the fitted straight line at each point where it
+            could be found, filled with zeros elsewhere.
+            **intercept** - An array, the same shape as a
+            2D slice of the wet_bulb_temperature input, containing the
+            intercepts of the fitted straight line at each point where it
+            could be found, filled with zeros elsewhere.
 
         """
         # Set up empty arrays for gradient and intercept
@@ -830,7 +815,7 @@ class PhaseChangeLevel(BasePlugin):
         Assumes that height is the first axis in the wet_bulb_integral array.
 
         Args:
-            phase_change_level_data(numpy.ndarray):
+            phase_change_level_data:
                 The phase change level array, filled with values for points
                 whose wet bulb temperature integral crossed the theshold.
             land_sea_data:
@@ -874,9 +859,8 @@ class PhaseChangeLevel(BasePlugin):
                 The cube containing a single 2 dimensional array of orography
                 data
         Returns:
-            iris.cube.Cube:
-                The cube containing the maximum in the grid_point_radius neighbourhood
-                of the orography data or the orography data itself if the radius is zero
+            The cube containing the maximum in the grid_point_radius neighbourhood
+            of the orography data or the orography data itself if the radius is zero
         """
         if self.grid_point_radius >= 1:
             radius_in_metres = number_of_grid_cells_to_distance(
@@ -928,8 +912,7 @@ class PhaseChangeLevel(BasePlugin):
                 temperature has been integrated
 
         Returns:
-            np.ndarray:
-                Level at which phase changes
+            Level at which phase changes
 
         """
         phase_change_data = self.find_falling_level(
@@ -984,7 +967,6 @@ class PhaseChangeLevel(BasePlugin):
                 Wet bulb temperature cube on height levels
             phase_change_level:
                 Calculated phase change level in metres
-
         Returns:
             iris.cube.Cube
         """
@@ -1018,8 +1000,7 @@ class PhaseChangeLevel(BasePlugin):
                     set to one and sea points set to zero.
 
         Returns:
-            iris.cube.Cube:
-                Cube of phase change level above sea level (asl).
+            Cube of phase change level above sea level (asl).
         """
 
         names_to_extract = [

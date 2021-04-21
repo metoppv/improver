@@ -119,8 +119,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
                 Array of forecast times found in cube.
 
         Returns:
-            float or numpy.ndarray:
-                Required neighbourhood sizes.
+            Required neighbourhood sizes.
         """
         if cube_lead_times is None:
             return self.radii
@@ -152,9 +151,8 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
                 Cube containing the array to be used as a mask.
 
         Returns:
-            iris.cube.Cube:
-                Cube after applying a neighbourhood processing method, so that
-                the resulting field is smoothed.
+            Cube after applying a neighbourhood processing method, so that
+            the resulting field is smoothed.
 
         """
         if not getattr(self.neighbourhood_method, "run", None) or not callable(

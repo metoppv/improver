@@ -71,8 +71,7 @@ def calculate_uv_index(
             blending.
 
     Returns:
-        iris.cube.Cube:
-            A cube of the calculated UV index.
+        A cube of the calculated UV index.
 
     Raises:
         ValueError: If uv_upward is not named correctly.

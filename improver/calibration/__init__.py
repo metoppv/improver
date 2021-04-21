@@ -59,14 +59,13 @@ def split_forecasts_and_truth(
             which must be present on truth cubes.
 
     Returns:
-        (tuple): tuple containing:
-            **forecast**:
-                A cube containing all the historic forecasts.
-            **truth**:
-                A cube containing all the truth data.
-            **land_sea_mask**:
-                If found within the input cubes list a land-sea mask will be
-                returned, else None is returned.
+        **forecast**:
+            A cube containing all the historic forecasts.
+        **truth**:
+            A cube containing all the truth data.
+        **land_sea_mask**:
+            If found within the input cubes list a land-sea mask will be
+            returned, else None is returned.
 
     Raises:
         ValueError:

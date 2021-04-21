@@ -57,8 +57,7 @@ def create_range_constraint(coord_name: str, value: str) -> Constraint:
             It is assumed that the input value is of the form: "[2:10]".
 
     Returns:
-        iris.Constraint:
-            The constraint that has been created to represent the range.
+        The constraint that has been created to represent the range.
 
     """
     value = value.replace("[", "").replace("]", "").split(":")
@@ -76,8 +75,7 @@ def is_complex_parsing_required(value: str) -> bool:
            A string that will be parsed.
 
     Returns:
-        bool:
-            Flag value to indicate whether the string requires complex parsing.
+        Flag value to indicate whether the string requires complex parsing.
     """
     return ":" in value
 
@@ -93,12 +91,11 @@ def create_constraint(value: Union[float, List[float]]) -> Union[Callable, List[
             Constraint values that are being used to match against values in a
             cube for the purposes of extracting elements of the cube.
     Returns:
-        lambda function or list:
-            If the input value(s) are floating point this function returns a
-            lambda function that will enable for approximate matching to
-            ensure they can be matched to cube values. If the inputs are int
-            or non-numeric, they will be returned unchanged, except for single
-            values that will have become lists.
+        If the input value(s) are floating point this function returns a
+        lambda function that will enable for approximate matching to
+        ensure they can be matched to cube values. If the inputs are int
+        or non-numeric, they will be returned unchanged, except for single
+        values that will have become lists.
     """
     if not isinstance(value, list):
         value = [value]
@@ -131,13 +128,10 @@ def parse_constraint_list(
             may only be associated with coordinate constraints.
 
     Returns:
-        (tuple): tuple containing:
-            **constraints** (iris.Constraint or \
-            iris._constraints.ConstraintCombination):
-                A combination of all the constraints that were supplied.
-
-            **units_dict**:
-                A dictionary of unit keys and values
+        **constraints**:
+            A combination of all the constraints that were supplied.
+        **units_dict**:
+            A dictionary of unit keys and values
     """
 
     if units is None:
@@ -209,9 +203,8 @@ def apply_extraction(
             original units.
 
     Returns:
-        iris.cube.Cube:
-            A single cube matching the input constraints, or None if no subcube
-            is found within cube that matches the constraints.
+        A single cube matching the input constraints, or None if no subcube
+        is found within cube that matches the constraints.
     """
     if units is None:
         output_cube = cube.extract(constraint)
@@ -260,9 +253,8 @@ def extract_subcube(
             original units.
 
     Returns:
-        iris.cube.Cube or None:
-            A single cube matching the input constraints, or None if no subcube
-            is found within cube that matches the constraints.
+        A single cube matching the input constraints, or None if no subcube
+        is found within cube that matches the constraints.
     """
     constraints, units = parse_constraint_list(constraints, units=units)
     output_cube = apply_extraction(
@@ -293,8 +285,7 @@ def subset_data(
             of the "wmo_id" coordinate on the input spot cube.
 
     Returns:
-        iris.cube.Cube:
-            Subset of input cube as specified by input constraints
+        Subset of input cube as specified by input constraints
 
     Raises:
         ValueError:

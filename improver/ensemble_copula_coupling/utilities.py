@@ -64,9 +64,8 @@ def concatenate_2d_array_with_2d_array_endpoints(
             Number of used to create a 2d array of a constant value
             as the upper endpoint.
     Returns:
-        numpy.ndarray:
-            2d array of values after padding with the low_endpoint and
-            high_endpoint.
+        2d array of values after padding with the low_endpoint and
+        high_endpoint.
     """
     if array_2d.ndim != 2:
         raise ValueError("Expected 2D input, got {}D input".format(array_2d.ndim))
@@ -97,8 +96,7 @@ def choose_set_of_percentiles(
             * Random: A random set of ordered percentiles.
 
     Returns:
-        list of float:
-            Percentiles calculated using the sampling technique specified.
+        Percentiles calculated using the sampling technique specified.
 
     Raises:
         ValueError: if the sampling option is not one of the accepted options.
@@ -165,9 +163,8 @@ def create_cube_with_percentiles(
             the template_cube.
 
     Returns:
-        iris.cube.Cube:
-            Cube containing a percentile coordinate as the leading dimension (or
-            scalar percentile coordinate if single-valued)
+        Cube containing a percentile coordinate as the leading dimension (or
+        scalar percentile coordinate if single-valued)
     """
     # create cube with new percentile dimension
     cubes = iris.cube.CubeList([])
@@ -206,10 +203,9 @@ def get_bounds_of_distribution(bounds_pairing_key: str, desired_units: Unit) -> 
             Units to which the bounds_pairing will be converted.
 
     Returns:
-        bounds_pairing:
-            Lower and upper bound to be used as the ends of the
-            empirical cumulative distribution function, converted to have
-            the desired units.
+        Lower and upper bound to be used as the ends of the
+        empirical cumulative distribution function, converted to have
+        the desired units.
 
     Raises:
         KeyError: If the bounds_pairing_key is not within the BOUNDS_FOR_ECDF
@@ -248,8 +244,7 @@ def insert_lower_and_upper_endpoint_to_1d_array(
         high_endpoint:
             Number of use as the upper endpoint.
     Returns:
-        numpy.ndarray:
-            1d array of values padded with the low_endpoint and high_endpoint.
+        1d array of values padded with the low_endpoint and high_endpoint.
     """
     if array_1d.ndim != 1:
         raise ValueError("Expected 1D input, got {}D input".format(array_1d.ndim))
@@ -281,8 +276,7 @@ def restore_non_percentile_dimensions(
             Length of the required probabilistic dimension ("percentiles").
 
     Returns:
-        numpy.ndarray:
-            The array after reshaping.
+        The array after reshaping.
 
     Raises:
         ValueError: If the probabilistic dimension is not the first on the

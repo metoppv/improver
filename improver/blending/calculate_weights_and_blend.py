@@ -142,8 +142,7 @@ class WeightAndBlend(PostProcessingPlugin):
                 Cube of input data to be blended
 
         Returns:
-            iris.cube.Cube:
-                Cube containing 1D array of weights for blending
+            Cube containing 1D array of weights for blending
         """
         if self.wts_calc_method == "dict":
             if "model" in self.blend_coord:
@@ -183,8 +182,7 @@ class WeightAndBlend(PostProcessingPlugin):
                 boundaries
 
         Returns:
-            iris.cube.Cube:
-                Updated 3D cube of spatially-varying weights
+            Updated 3D cube of spatially-varying weights
         """
         check_if_grid_is_equal_area(cube)
         grid_cells = distance_to_number_of_grid_cells(
@@ -209,11 +207,10 @@ class WeightAndBlend(PostProcessingPlugin):
                 1D cube of weights varying along self.blend_coord
 
         Returns:
-            (tuple): tuple containing:
-                **cube**:
-                    Data cube without zero-weighted slices
-                **weights**:
-                    Weights without zeroes
+            **cube**:
+                Data cube without zero-weighted slices
+            **weights**:
+                Weights without zeroes
         """
         slice_out_vals = []
         for wslice in weights.slices_over(self.blend_coord):
@@ -277,8 +274,7 @@ class WeightAndBlend(PostProcessingPlugin):
                 Dictionary describing required changes to attributes after blending
 
         Returns:
-            iris.cube.Cube:
-                Cube of blended data.
+            Cube of blended data.
 
         Warns:
             UserWarning: If blending masked data without spatial weights.

@@ -77,9 +77,8 @@ def wxcode_decision_tree_global() -> Dict[str, Dict[str, Any]]:
               the thresholding is as expected.
 
     Returns:
-        dict:
-            A dictionary containing the queries that comprise the decision
-            tree.
+        A dictionary containing the queries that comprise the decision
+        tree.
     """
     queries = {
         "heavy_precipitation": {

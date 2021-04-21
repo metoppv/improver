@@ -61,8 +61,7 @@ def find_blend_dim_coord(cube: Cube, blend_coord: str) -> str:
             Name of coordinate to blend over
 
     Returns:
-        str:
-            Name of dimension coordinate associated with blend dimension
+        Name of dimension coordinate associated with blend dimension
 
     Raises:
         ValueError:
@@ -95,8 +94,7 @@ def get_coords_to_remove(cube: Cube, blend_coord: str) -> Optional[List[str]]:
             Name of coordinate over which the blend will be performed
 
     Returns:
-        list:
-            List of names of coordinates to remove
+        List of names of coordinates to remove
     """
     try:
         (blend_dim,) = cube.coord_dims(blend_coord)
@@ -217,9 +215,8 @@ def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
             Current cycletime in YYYYMMDDTHHmmZ format
 
     Returns:
-        numpy.int64:
-            Cycle time point in units matching the input cube forecast reference
-            time coordinate
+        Cycle time point in units matching the input cube forecast reference
+        time coordinate
     """
     frt_coord = cube.coord("forecast_reference_time")
     frt_units = frt_coord.units.origin

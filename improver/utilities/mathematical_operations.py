@@ -117,9 +117,8 @@ class Integration(BasePlugin):
                 Note that the input cube will be modified by this method.
 
         Returns:
-            iris.cube.Cube:
-                The cube containing a coordinate that is monotonically
-                increasing in the desired direction.
+            The cube containing a coordinate that is monotonically
+            increasing in the desired direction.
 
         """
         coord_name = self.coord_name_to_integrate
@@ -139,13 +138,12 @@ class Integration(BasePlugin):
         and lower limits of the integration.
 
         Returns:
-            (tuple): tuple containing:
-                **upper_bounds_cube**:
-                    Cube containing the upper bounds to be used during the
-                    integration.
-                **lower_bounds_cube**:
-                    Cube containing the lower bounds to be used during the
-                    integration.
+            **upper_bounds_cube**:
+                Cube containing the upper bounds to be used during the
+                integration.
+            **lower_bounds_cube**:
+                Cube containing the lower bounds to be used during the
+                integration.
         """
         if self.positive_integration:
             upper_bounds = self.input_cube.coord(self.coord_name_to_integrate).points[
@@ -202,7 +200,6 @@ class Integration(BasePlugin):
                 to match the data array.
             bounds:
                 Bounds values for the integrated coordinate
-
         Returns:
             iris.cube.Cube
         """
@@ -267,8 +264,7 @@ class Integration(BasePlugin):
                 integration.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the output from the integration.
+            Cube containing the output from the integration.
 
         """
 
@@ -359,10 +355,9 @@ class Integration(BasePlugin):
                 Cube containing the data to be integrated.
 
         Returns:
-            iris.cube.Cube:
-                The cube containing the result of the integration.
-                This will have the same name and units as the input cube (TODO
-                same name and units are incorrect - fix this).
+            The cube containing the result of the integration.
+            This will have the same name and units as the input cube (TODO
+            same name and units are incorrect - fix this).
         """
         self.input_cube = self.ensure_monotonic_increase_in_chosen_direction(cube)
         upper_bounds_cube, lower_bounds_cube = self.prepare_for_integration()
@@ -403,9 +398,8 @@ def fast_linear_fit(
             If true, there are NaNs in your data (that you know about).
 
     Returns:
-        Tuple[numpy.ndarray, numpy.ndarray]:
-            tuple with first element being the gradient between x and y, and
-            the second element being the calculated y-intercepts.
+        tuple with first element being the gradient between x and y, and
+        the second element being the calculated y-intercepts.
     """
     # Check that the positions of nans match in x and y
     if with_nan and not (np.isnan(x_data) == np.isnan(y_data)).all():

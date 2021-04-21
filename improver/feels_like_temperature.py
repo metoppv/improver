@@ -59,8 +59,7 @@ def _calculate_wind_chill(temperature: ndarray, wind_speed: ndarray) -> ndarray:
             Wind speed in kilometres per hour
 
     Returns:
-        numpy.ndarray:
-            Wind chill temperatures in degrees celsius
+        Wind chill temperatures in degrees celsius
 
     References:
         Osczevski, R. and Bluestein, M. (2005). THE NEW WIND CHILL EQUIVALENT
@@ -144,8 +143,7 @@ def _calculate_apparent_temperature(
             Pressure in Pa
 
     Returns:
-        numpy.ndarray:
-            Apparent temperatures in degrees celsius
+        Apparent temperatures in degrees celsius
 
     References:
         Steadman, R. (1984). A Universal Scale of Apparent Temperature.
@@ -178,12 +176,12 @@ def _feels_like_temperature(
     in order to blend between the wind chill and the apparent temperature.
 
     Args:
-        temperature (numpy.ndarray)
-        apparent_temperature (numpy.ndarray)
-        wind_chill (numpy.ndarray)
+        temperature
+        apparent_temperature
+        wind_chill
 
     Returns:
-        numpy.ndarray
+        Feels like temperature.
     """
     feels_like_temperature = np.zeros(temperature.shape, dtype=np.float32)
     feels_like_temperature[temperature < 10] = wind_chill[temperature < 10]
@@ -223,9 +221,8 @@ def calculate_feels_like_temperature(
             blending.
 
     Returns:
-        iris.cube.Cube:
-            Cube of feels like temperatures in the same units as the input
-            temperature cube.
+        Cube of feels like temperatures in the same units as the input
+        temperature cube.
     """
     t_cube = temperature.copy()
     t_cube.convert_units("degC")

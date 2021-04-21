@@ -121,10 +121,9 @@ class RecursiveFilter(PostProcessingPlugin):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
-            numpy.ndarray:
-                2D array containing the smoothed field after the recursive
-                filter method has been applied to the input array in the
-                forward direction along the specified axis.
+            2D array containing the smoothed field after the recursive
+            filter method has been applied to the input array in the
+            forward direction along the specified axis.
         """
         lim = grid.shape[axis]
         for i in range(1, lim):
@@ -171,10 +170,9 @@ class RecursiveFilter(PostProcessingPlugin):
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
-            numpy.ndarray:
-                2D array containing the smoothed field after the recursive
-                filter method has been applied to the input array in the
-                backwards direction along the specified axis.
+            2D array containing the smoothed field after the recursive
+            filter method has been applied to the input array in the
+            backwards direction along the specified axis.
         """
         lim = grid.shape[axis]
         for i in range(lim - 2, -1, -1):
@@ -214,9 +212,8 @@ class RecursiveFilter(PostProcessingPlugin):
                 The number of iterations of the recursive filter
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the smoothed field after the recursive filter
-                method has been applied to the input cube.
+            Cube containing the smoothed field after the recursive filter
+            method has been applied to the input cube.
         """
         (x_index,) = cube.coord_dims(cube.coord(axis="x").name())
         (y_index,) = cube.coord_dims(cube.coord(axis="y").name())
@@ -254,8 +251,7 @@ class RecursiveFilter(PostProcessingPlugin):
                 to smoothing in the y-direction.
 
         Returns:
-            list:
-                A list of smoothing coefficients cubes ordered: [x-coeffs, y-coeffs].
+            A list of smoothing coefficients cubes ordered: [x-coeffs, y-coeffs].
 
         Raises:
             ValueError: Smoothing coefficient cubes are not named correctly.
@@ -343,8 +339,7 @@ class RecursiveFilter(PostProcessingPlugin):
             mask (iris.cube.Cube)
 
         Returns:
-            tuple of iris.cube.Cube:
-                Updated smoothing coefficients
+            Updated smoothing coefficients
         """
         plugin = OrographicSmoothingCoefficients(
             use_mask_boundary=False, invert_mask=False
@@ -392,9 +387,8 @@ class RecursiveFilter(PostProcessingPlugin):
                 to smoothing in the y-direction.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the smoothed field after the recursive filter
-                method has been applied.
+            Cube containing the smoothed field after the recursive filter
+            method has been applied.
 
         Raises:
             ValueError:

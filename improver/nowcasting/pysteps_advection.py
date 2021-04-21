@@ -77,8 +77,7 @@ class PystepsExtrapolate(BasePlugin):
         with orographic enhancement subtracted, as required for advection
 
         Returns:
-            np.ndarray:
-                2D precipitation rate array in mm h-1
+            2D precipitation rate array in mm h-1
         """
         (self.analysis_cube,) = ApplyOrographicEnhancement("subtract").process(
             self.analysis_cube, self.orogenh
@@ -98,10 +97,9 @@ class PystepsExtrapolate(BasePlugin):
                 Cube of y-advection velocities
 
         Returns:
-            displacement:
-                Array of shape (2, m, n) containing the x- and y-components
-                of the m*n displacement field (format required for pysteps
-                extrapolation algorithm)
+            Array of shape (2, m, n) containing the x- and y-components
+            of the m*n displacement field (format required for pysteps
+            extrapolation algorithm)
         """
 
         def _calculate_displacement(
@@ -120,8 +118,7 @@ class PystepsExtrapolate(BasePlugin):
                     Size of grid square, in metres
 
             Returns:
-                np.ndarray:
-                    Array of displacements in grid squares per time step
+                Array of displacements in grid squares per time step
             """
             cube_ms = cube.copy()
             cube_ms.convert_units("m s-1")
@@ -170,8 +167,7 @@ class PystepsExtrapolate(BasePlugin):
                 Array of 2D forecast fields returned by extrapolation function
 
         Returns:
-            forecast_cubes:
-                List of extrapolated cubes with correct time coordinates
+            List of extrapolated cubes with correct time coordinates
         """
         current_datetime = iris_time_to_datetime(self.analysis_cube.coord("time"))[0]
         forecast_cubes = [self.analysis_cube.copy()]
@@ -205,10 +201,9 @@ class PystepsExtrapolate(BasePlugin):
                 of the output cube.
 
         Returns:
-            forecast_cubes:
-                List of iris.cube.Cube instances containing forecasts at all
-                required lead times, and conforming to the IMPROVER metadata
-                standard.
+            List of iris.cube.Cube instances containing forecasts at all
+            required lead times, and conforming to the IMPROVER metadata
+            standard.
         """
         # re-mask forecast data
         all_forecasts = np.ma.masked_invalid(all_forecasts)
@@ -253,9 +248,8 @@ class PystepsExtrapolate(BasePlugin):
                 of the output cube.
 
         Returns:
-            forecast_cubes:
-                List of extrapolated iris.cube.Cube instances at the required
-                lead times (including T+0 / analysis time)
+            List of extrapolated iris.cube.Cube instances at the required
+            lead times (including T+0 / analysis time)
         """
         # ensure input cube is suitable for advection
         if "rate" not in initial_cube.name():

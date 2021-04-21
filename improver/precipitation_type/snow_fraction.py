@@ -113,8 +113,7 @@ class SnowFraction(PostProcessingPlugin):
                 The unsorted rain and snow cubes.
 
         Returns:
-            tuple:
-                rain_name and snow_name, in that order.
+            rain_name and snow_name, in that order.
 
         """
         cube_names = [cube.name() for cube in input_cubes]
@@ -134,8 +133,7 @@ class SnowFraction(PostProcessingPlugin):
         Calculates the snow fraction data and interpolates to fill in the missing points.
 
         Returns:
-            iris.cube.Cube:
-                Snow fraction cube.
+            Snow fraction cube.
 
         """
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -169,10 +167,9 @@ class SnowFraction(PostProcessingPlugin):
                 Contains cubes of rain and snow, both must be either rates or accumulations.
 
         Returns:
-            iris.cube.Cube:
-                Cube of snow-fraction. The data within this
-                cube will contain values between 0 and 1. Points where no precipitation
-                is present will be filled using a nearest-neighbour interpolation.
+            Cube of snow-fraction. The data within this
+            cube will contain values between 0 and 1. Points where no precipitation
+            is present will be filled using a nearest-neighbour interpolation.
 
                 The cube meta-data will contain:
                 * Input_cube name "snow_fraction"

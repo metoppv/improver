@@ -97,8 +97,7 @@ def build_spotdata_cube(
             Optional list of additional dimensions to preceed the spot data dimension.
 
     Returns:
-        iris.cube.Cube:
-            A cube containing the extracted spot data with spot data being the final dimension.
+        A cube containing the extracted spot data with spot data being the final dimension.
     """
 
     # construct auxiliary coordinates

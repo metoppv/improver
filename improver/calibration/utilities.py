@@ -66,8 +66,7 @@ def convert_cube_data_to_2d(
             the resulting array will be 2d with items of length 1.
 
     Returns:
-        numpy.ndarray:
-            Reshaped 2d array.
+        Reshaped 2d array.
 
     """
     forecast_data = []
@@ -104,10 +103,9 @@ def flatten_ignoring_masked_data(
             dimension as the input array. If False the returned array is 1D.
 
     Returns:
-        numpy.ndarray:
-            A flattened array containing only valid data. Either 1D or, if
-            preserving the leading dimension 2D. In the latter case the
-            leading dimension is the same as the input data_array.
+        A flattened array containing only valid data. Either 1D or, if
+        preserving the leading dimension 2D. In the latter case the
+        leading dimension is the same as the input data_array.
 
     Raises:
         ValueError: If preserving the leading dimension and the mask on the
@@ -181,13 +179,12 @@ def filter_non_matching_cubes(
             compared to the historic forecasts.
 
     Returns:
-        (tuple): tuple containing:
-            **matching_historic_forecasts**:
-                Cube of historic forecasts where any mismatches with
-                the truth cube have been removed.
-            **matching_truths**:
-                Cube of truths where any mismatches with
-                the historic_forecasts cube have been removed.
+        **matching_historic_forecasts**:
+            Cube of historic forecasts where any mismatches with
+            the truth cube have been removed.
+        **matching_truths**:
+            Cube of truths where any mismatches with
+            the historic_forecasts cube have been removed.
 
     Raises:
         ValueError: The filtering has found no matches in validity time
@@ -243,10 +240,9 @@ def create_unified_frt_coord(forecast_reference_time: DimCoord) -> DimCoord:
             The forecast_reference_time coordinate to be used in the
             coordinate creation.
     Returns:
-        iris.coord.DimCoord:
-            A dimension coordinate containing the forecast reference time
-            coordinate with suitable bounds. The coordinate point is that
-            of the latest contributing forecast.
+        A dimension coordinate containing the forecast reference time
+        coordinate with suitable bounds. The coordinate point is that
+        of the latest contributing forecast.
     """
     frt_point = forecast_reference_time.points.max()
     frt_bounds_min = forecast_reference_time.points.min()
@@ -327,9 +323,8 @@ def get_frt_hours(forecast_reference_time: DimCoord) -> Set[int]:
         forecast_reference_time:
             The forecast_reference_time coordinate to extract the hours from.
     Returns:
-        set:
-            A set of integer representations of the forecast reference time
-            hours.
+        A set of integer representations of the forecast reference time
+        hours.
     """
     frt_hours = []
     for frt in forecast_reference_time.cells():
@@ -365,8 +360,7 @@ def statsmodels_available():
     """True if statsmodels library is importable.
 
     Returns:
-        bool:
-            If True, statsmodels is available, otherwise, False.
+        If True, statsmodels is available, otherwise, False.
     """
     if importlib.util.find_spec("statsmodels"):
         return True

@@ -78,8 +78,7 @@ DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 def weather_code_attributes() -> Dict[str, Any]:
     """
     Returns:
-        dict:
-            Attributes defining weather code meanings.
+        Attributes defining weather code meanings.
     """
     import numpy as np
 
@@ -102,8 +101,7 @@ def expand_nested_lists(query: Dict, key: str) -> List:
             A string denoting the field to be taken from the dict.
 
     Returns:
-        list:
-            A 1D list containing all the values for a given key.
+        A 1D list containing all the values for a given key.
     """
     items = []
     for item in query[key]:
@@ -122,8 +120,7 @@ def update_daynight(cubewx):
             Cube containing only daytime weather symbols.
 
     Returns:
-        iris.cube.Cube:
-            Cube containing day and night weather symbols
+        Cube containing day and night weather symbols
 
     Raises:
         CoordinateNotFoundError : cube must have time coordinate.
@@ -170,9 +167,8 @@ def interrogate_decision_tree(wxtree: str) -> List[str]:
             The weather symbol tree that is to be interrogated.
 
     Returns:
-        list of str:
-            Returns a formatted string descring the diagnostics required,
-            including threshold details.
+        Returns a formatted string descring the diagnostics required,
+        including threshold details.
     """
 
     # Get current weather symbol decision tree and populate a list of
@@ -219,9 +215,8 @@ def is_variable(thing: str) -> bool:
             The string to operate on
 
     Returns:
-        bool:
-            False if thing is one of ["+", "-", "*", "/"] or if float(
-            thing) does not raise a ValueError, else True.
+        False if thing is one of ["+", "-", "*", "/"] or if float(
+        thing) does not raise a ValueError, else True.
 
     """
     valid_operators = ["+", "-", "*", "/"]
@@ -239,7 +234,6 @@ def get_parameter_names(diagnostic_fields: List[List[str]]) -> List[List[str]]:
 
     Args:
         diagnostic_fields:
-
     Returns:
         list of lists of str
 

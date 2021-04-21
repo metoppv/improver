@@ -65,11 +65,10 @@ def forecast_period_coord(
             the forecast_period coordinate exists. Default is False.
 
     Returns:
-        iris.coords.Coord:
-            New forecast_period coord. A DimCoord is returned if the
-            forecast_period coord is already present in the cube as a
-            DimCoord and this coord does not need changing, otherwise
-            it will be an AuxCoord.
+        New forecast_period coord. A DimCoord is returned if the
+        forecast_period coord is already present in the cube as a
+        DimCoord and this coord does not need changing, otherwise
+        it will be an AuxCoord.
     """
     create_dim_coord = False
     if cube.coords("forecast_period"):
@@ -125,9 +124,8 @@ def _calculate_forecast_period(
             coordinate.
 
     Returns:
-        iris.coords.Coord:
-            Forecast period coordinate corresponding to the input times and
-            forecast reference times specified
+        Forecast period coordinate corresponding to the input times and
+        forecast reference times specified
 
     Warns:
         UserWarning: If any calculated forecast periods are negative
@@ -191,7 +189,6 @@ def _create_frt_type_coord(
             Single datetime point for output coord
         name (str)
             Name of aux coord to be returned
-
     Returns:
         iris.coords.AuxCoord
     """
@@ -241,8 +238,7 @@ def rebadge_forecasts_as_latest_cycle(
             time is used.
 
     Returns:
-        iris.cube.CubeList:
-            Updated cubes
+        Updated cubes
     """
     if cycletime is None and len(cubes) == 1:
         return cubes
@@ -273,8 +269,7 @@ def unify_cycletime(
             forecast_reference_time on the individual cubes.
 
     Returns:
-        iris.cube.CubeList:
-            Updated cubes
+        Updated cubes
 
     Raises:
         ValueError: if forecast_reference_time is a dimension coordinate
@@ -306,9 +301,8 @@ def _find_latest_cycletime(cubelist: Union[CubeList, List[Cube]]) -> datetime:
             forecast cycles.
 
     Returns:
-        datetime.datetime:
-            A datetime object corresponding to the latest forecast reference
-            time in the input cubelist.
+        A datetime object corresponding to the latest forecast reference
+        time in the input cubelist.
     """
     # Get cycle time as latest forecast reference time
     if any(cube.coord_dims("forecast_reference_time") for cube in cubelist):

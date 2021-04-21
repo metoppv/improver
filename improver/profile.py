@@ -39,7 +39,6 @@ from cProfile import Profile
 
 def profile_start() -> Profile:
     """Start and return a new profiler instance.
-
     Returns:
         Active cProfile.Profile instance.
     """

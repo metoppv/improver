@@ -98,9 +98,8 @@ def load_cubelist(
             memory. If False (default) then lazy load.
 
     Returns:
-        iris.cube.CubeList:
-            CubeList that has been created from the input filepath given the
-            constraints provided.
+        CubeList that has been created from the input filepath given the
+        constraints provided.
     """
     # Remove legacy metadata prefix cube if present
     constraints = (
@@ -170,9 +169,8 @@ def load_cube(
             memory. If False (default) then lazy load.
 
     Returns:
-        iris.cube.Cube:
-            Cube that has been loaded from the input filepath given the
-            constraints provided.
+        Cube that has been loaded from the input filepath given the
+        constraints provided.
     """
     cubes = load_cubelist(filepath, constraints, no_lazy_load)
     # Merge loaded cubes

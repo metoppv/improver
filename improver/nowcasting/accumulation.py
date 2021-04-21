@@ -103,12 +103,11 @@ class Accumulation(BasePlugin):
             cubes:
                 A cubelist containing input precipitation rate cubes.
         Returns:
-            tuple: tuple containing:
-                **cubes**:
-                    The cubelist in ascending time order.
-                **times**:
-                    A list of the validity times of the precipitation rate
-                    cubes in integer seconds since 1970-01-01 00:00:00.
+            **cubes**:
+                The cubelist in ascending time order.
+            **times**:
+                A list of the validity times of the precipitation rate
+                cubes in integer seconds since 1970-01-01 00:00:00.
         """
         times = np.array([cube.coord("time").points[0] for cube in cubes])
         time_sorted = np.argsort(times)
@@ -127,12 +126,11 @@ class Accumulation(BasePlugin):
                 expected to be regular.
 
         Returns:
-            (tuple): tuple containing:
-                **cubes**:
-                    Modified version of the input cube list of precipitation
-                    rates that have had the units of the coordinates and
-                    cube data enforced. The cube list has also been sorted by
-                    time.
+            **cubes**:
+                Modified version of the input cube list of precipitation
+                rates that have had the units of the coordinates and
+                cube data enforced. The cube list has also been sorted by
+                time.
 
                 **time_interval**:
                     Interval between the timesteps from the input cubelist.
@@ -245,9 +243,8 @@ class Accumulation(BasePlugin):
                 accumulation period.
 
         Returns:
-            iris.cube.CubeList:
-                Cubelist that defines the cubes used to calculate
-                the accumulations.
+            Cubelist that defines the cubes used to calculate
+            the accumulations.
 
         """
         # If the input is a numpy array, get the integer value from the array
@@ -281,14 +278,13 @@ class Accumulation(BasePlugin):
                 Interval between the timesteps from the input cubelist.
 
         Returns:
-            accumulation (numpy.ndarray) or None:
-                If either the forecast period given by the input cube is not
-                a requested forecast_period at which to calculate the
-                accumulations, or the number of input cubelist is only
-                sufficient to partially cover the desired accumulation, then
-                None is returned.
-                If an accumulation can be successfully computed, then a
-                numpy array is returned.
+            If either the forecast period given by the input cube is not
+            a requested forecast_period at which to calculate the
+            accumulations, or the number of input cubelist is only
+            sufficient to partially cover the desired accumulation, then
+            None is returned.
+            If an accumulation can be successfully computed, then a
+            numpy array is returned.
 
         """
         accumulation = 0.0
@@ -313,8 +309,7 @@ class Accumulation(BasePlugin):
                 to set the metadata on the output accumulation cube.
 
         Returns:
-            iris.cube.Cube:
-                Accumulation cube with the desired metadata.
+            Accumulation cube with the desired metadata.
 
         """
         cube_name = "lwe_thickness_of_precipitation_amount"
@@ -343,10 +338,9 @@ class Accumulation(BasePlugin):
             cubes:
                 A cubelist containing input precipitation rate cubes.
         Returns:
-            iris.cube.CubeList:
-                A cubelist containing precipitation accumulation cubes where
-                the accumulation periods are determined by plugin argument
-                accumulation_period.
+            A cubelist containing precipitation accumulation cubes where
+            the accumulation periods are determined by plugin argument
+            accumulation_period.
         """
         cubes, time_interval = self._check_inputs(cubes)
 

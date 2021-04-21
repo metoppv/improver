@@ -70,9 +70,8 @@ class ResolveWindComponents(BasePlugin):
                 spatial grid on which the angle adjustments should be provided.
 
         Returns:
-            numpy.ndarray:
-                Angle in radians by which wind direction wrt true North at
-                each point must be rotated to be relative to grid North.
+            Angle in radians by which wind direction wrt true North at
+            each point must be rotated to be relative to grid North.
         """
         reference_x_coord = reference_cube.coord(axis="x")
         reference_y_coord = reference_cube.coord(axis="y")
@@ -160,14 +159,12 @@ class ResolveWindComponents(BasePlugin):
                 dimensions.
 
         Returns:
-            (tuple): tuple containing:
-                **u_speed**:
-                    Cube containing wind vector component in the positive
-                    x-direction
-
-                **v_speed**:
-                    Cube containing wind vector component in the positive
-                    y-direction
+            **u_speed**:
+                Cube containing wind vector component in the positive
+                x-direction
+            **v_speed**:
+                Cube containing wind vector component in the positive
+                y-direction
         """
         angle.convert_units("radians")
         angle.data += adj
@@ -194,16 +191,14 @@ class ResolveWindComponents(BasePlugin):
                 Cube containing wind direction values relative to true North
 
         Returns:
-            (tuple): tuple containing:
-                **ucube**:
-                    Cube containing wind speeds in the positive projection
-                    x-axis direction, with units and projection matching
-                    wind_speed cube.
-
-                **vcube**:
-                    Cube containing wind speeds in the positive projection
-                    y-axis direction, with units and projection matching
-                    wind_speed cube.
+            **ucube**:
+                Cube containing wind speeds in the positive projection
+                x-axis direction, with units and projection matching
+                wind_speed cube.
+            **vcube**:
+                Cube containing wind speeds in the positive projection
+                y-axis direction, with units and projection matching
+                wind_speed cube.
         """
         # check cubes contain the correct data (assuming CF standard names)
         if "wind_speed" not in wind_speed.name():

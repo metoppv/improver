@@ -569,8 +569,7 @@ def display_interpretation(
             metadata interpretation (eg name, coordinates, attributes, etc)
 
     Returns:
-        str:
-            Formatted string describing metadata in human-readable form
+        Formatted string describing metadata in human-readable form
     """
     if interpreter.unhandled:
         return f"{interpreter.diagnostic} is not handled by this interpreter\n"

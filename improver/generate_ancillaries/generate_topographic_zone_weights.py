@@ -79,10 +79,9 @@ class GenerateTopographicZoneWeights(BasePlugin):
                 The highest index for the bands coordinate in the weights.
 
         Returns:
-            numpy.ndarray:
-                Weights that we have already calculated for the points within
-                the orography band that has been updated to account for the
-                upper adjacent band.
+            Weights that we have already calculated for the points within
+            the orography band that has been updated to account for the
+            upper adjacent band.
 
         """
         weights = topographic_zone_weights[band_number]
@@ -124,10 +123,9 @@ class GenerateTopographicZoneWeights(BasePlugin):
                 processed.
 
         Returns:
-            numpy.ndarray:
-                Topographic zone array containing the weights that we have
-                already calculated for the points within the orography band
-                that has been updated to account for the lower adjacent band.
+            Topographic zone array containing the weights that we have
+            already calculated for the points within the orography band
+            that has been updated to account for the lower adjacent band.
 
         """
         weights = topographic_zone_weights[band_number]
@@ -161,9 +159,8 @@ class GenerateTopographicZoneWeights(BasePlugin):
                 e.g. [100., 200.].
 
         Returns:
-            numpy.ndarray:
-                The weights generated to indicate the contribution of each
-                point to a band.
+            The weights generated to indicate the contribution of each
+            point to a band.
         """
         weights = np.array([0.5, 1.0, 0.5], np.float32)
         midpoint = np.mean(band)
@@ -191,9 +188,8 @@ class GenerateTopographicZoneWeights(BasePlugin):
                 sea points set to zero. If provided sea points are masked
                 out in the output array.
         Returns:
-            iris.cube.Cube:
-                Cube containing the weights depending upon where the orography
-                point is within the topographic zones.
+            Cube containing the weights depending upon where the orography
+            point is within the topographic zones.
         """
         # Check that orography is a 2d cube.
         if len(orography.shape) != 2:

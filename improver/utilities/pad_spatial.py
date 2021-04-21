@@ -65,9 +65,8 @@ def pad_coord(coord: Coord, width: int, method: str) -> Coord:
             'add' to add points to coord.
 
     Returns:
-        iris.coords.Coord:
-            Coordinate with expanded or contracted length, to be added to
-            the padded or unpadded iris cube.
+        Coordinate with expanded or contracted length, to be added to
+        the padded or unpadded iris cube.
 
     Raises:
         ValueError: Raise an error if non-uniform increments exist between
@@ -113,8 +112,7 @@ def create_cube_with_halo(cube: Cube, halo_radius: float) -> Cube:
             Size of border to pad original grid, in metres
 
     Returns:
-        iris.cube.Cube:
-            New cube defining the halo-padded grid (data set to zero)
+        New cube defining the halo-padded grid (data set to zero)
     """
     halo_size_x = distance_to_number_of_grid_cells(cube, halo_radius, axis="x")
     halo_size_y = distance_to_number_of_grid_cells(cube, halo_radius, axis="y")
@@ -153,9 +151,8 @@ def _create_cube_with_padded_data(
             Coordinate to be added to the new cube to represent the y axis.
 
     Returns:
-        iris.cube.Cube:
-            Cube built from the template cube using the requested data and
-            the supplied x and y axis coordinates.
+        Cube built from the template cube using the requested data and
+        the supplied x and y axis coordinates.
     """
     check_for_x_and_y_axes(source_cube)
 
@@ -218,9 +215,8 @@ def pad_cube_with_halo(
             np.pad methods are accepted, though they are not fully configurable.
 
     Returns:
-        iris.cube.Cube:
-            Cube containing the new padded cube, with appropriate
-            changes to the cube's dimension coordinates.
+        Cube containing the new padded cube, with appropriate
+        changes to the cube's dimension coordinates.
     """
     check_for_x_and_y_axes(cube)
 
@@ -267,8 +263,7 @@ def remove_cube_halo(cube: Cube, halo_radius: float) -> Cube:
             Size of border to remove, in metres
 
     Returns:
-        iris.cube.Cube:
-            New cube with the halo removed.
+        New cube with the halo removed.
     """
     halo_size_x = distance_to_number_of_grid_cells(cube, halo_radius, axis="x")
     halo_size_y = distance_to_number_of_grid_cells(cube, halo_radius, axis="y")
@@ -313,9 +308,8 @@ def remove_halo_from_cube(cube: Cube, width_x: float, width_y: float) -> Cube:
             the numpy array.
 
     Returns:
-        iris.cube.Cube:
-            Cube containing the new trimmed cube, with appropriate
-            changes to the cube's dimension coordinates.
+        Cube containing the new trimmed cube, with appropriate
+        changes to the cube's dimension coordinates.
     """
     check_for_x_and_y_axes(cube)
 

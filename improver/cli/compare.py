@@ -61,7 +61,6 @@ def process(
             List of attributes to ignore in the comparison. This option allows for
             attributes such as "history" to be ignored, where such attributes often
             vary between files without indicating any differences in the data.
-
     Returns:
         None
     """

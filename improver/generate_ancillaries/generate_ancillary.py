@@ -88,9 +88,8 @@ def _make_mask_cube(
             points have been included when the ancillary is generated.
 
     Returns:
-        iris.cube.Cube:
-            Cube containing the mask_data array, with appropriate coordinate
-            and attribute information.
+        Cube containing the mask_data array, with appropriate coordinate
+        and attribute information.
     """
     mask_data = mask_data.astype(np.int32)
     mask_cube = iris.cube.Cube(mask_data, long_name="topography_mask")
@@ -160,8 +159,7 @@ class CorrectLandSeaMask(BasePlugin):
                 input landmask on standard grid.
 
         Returns:
-            iris.cube.Cube:
-                output landmask of boolean values.
+            output landmask of boolean values.
         """
         mask_sea = standard_landmask.data < 0.5
         standard_landmask.data[mask_sea] = False
@@ -207,10 +205,9 @@ class GenerateOrographyBandAncils(BasePlugin):
                 masked array with a default fill value.
 
         Returns:
-            numpy.ndarray:
-                An array where the sea points have been masked out and filled
-                with a default fill value, or just filled with the given
-                sea_fill_value and not masked.
+            An array where the sea points have been masked out and filled
+            with a default fill value, or just filled with the given
+            sea_fill_value and not masked.
         """
         points_to_mask = np.logical_not(landmask)
 
@@ -268,8 +265,7 @@ class GenerateOrographyBandAncils(BasePlugin):
                 this will default to meters.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing topographical band mask.
+            Cube containing topographical band mask.
 
         Raises:
             KeyError: if the key does not match any in THRESHOLD_DICT.
@@ -334,8 +330,7 @@ class GenerateOrographyBandAncils(BasePlugin):
                 zero in every band.
 
         Returns:
-            iris.cube.CubeList:
-              list of orographic band mask cubes.
+            list of orographic band mask cubes.
         """
         cubelist = iris.cube.CubeList()
         if len(thresholds_dict) == 0:

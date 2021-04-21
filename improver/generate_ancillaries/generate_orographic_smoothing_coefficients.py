@@ -152,9 +152,8 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 minimum and maximum values from.
 
         Returns:
-            iris.cube.CubeList:
-                A list of smoothing_coefficient cubes scaled to within the
-                range specified.
+            A list of smoothing_coefficient cubes scaled to within the
+            range specified.
         """
         cube_min = min([abs(cube.data).min() for cube in cubes])
         cube_max = max([abs(cube.data).max() for cube in cubes])
@@ -187,8 +186,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 A cube of the normalised gradient
 
         Returns:
-            numpy.ndarray:
-                An array containing the unscaled smoothing_coefficients.
+            An array containing the unscaled smoothing_coefficients.
         """
         return np.abs(gradient_cube.data) ** self.power
 
@@ -211,8 +209,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 A dictionary of attributes for the new cube.
 
         Returns:
-            iris.cube.Cube:
-                A new cube of smoothing_coefficients
+            A new cube of smoothing_coefficients
         """
         for coord in template.coords(dim_coords=False):
             for coord_name in ["time", "period", "realization"]:
@@ -297,10 +294,9 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 the orography cube. How the mask is used to zero smoothing
                 coefficients is determined by the plugin configuration arguments.
         Returns:
-            (iris.cube.CubeList): containing:
-                **smoothing_coefficient_x** (iris.cube.Cube): A cube of
-                    orography-dependent smoothing_coefficients calculated in
-                    the x direction.
+            **smoothing_coefficient_x** (iris.cube.Cube): A cube of
+                orography-dependent smoothing_coefficients calculated in
+                the x direction.
 
                 **smoothing_coefficient_y** (iris.cube.Cube): A cube of
                     orography-dependent smoothing_coefficients calculated in

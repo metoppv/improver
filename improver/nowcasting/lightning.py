@@ -212,10 +212,9 @@ class NowcastLightning(PostProcessingPlugin):
                 An input cube
 
         Returns:
-            iris.cube.Cube:
-                Output cube - a copy of input cube with meta-data relating to
-                a Nowcast of lightning probability.
-                The data array will be a copy of the input cube.data
+            Output cube - a copy of input cube with meta-data relating to
+            a Nowcast of lightning probability.
+            The data array will be a copy of the input cube.data
         """
         new_cube = cube.copy()
         new_cube.rename("probability_of_rate_of_lightning_above_threshold")
@@ -261,8 +260,7 @@ class NowcastLightning(PostProcessingPlugin):
                 Can be <No cube> or None or anything that evaluates to False.
 
         Returns:
-            iris.cube.Cube:
-                Output cube containing Nowcast lightning probability.
+            Output cube containing Nowcast lightning probability.
 
         Raises:
             iris.exceptions.ConstraintMismatchError:
@@ -339,10 +337,9 @@ class NowcastLightning(PostProcessingPlugin):
                 Units of threshold coord modified in-place to mm hr-1
 
         Returns:
-            iris.cube.Cube:
-                Output cube containing updated nowcast lightning probability.
-                This cube will have the same dimensions and meta-data as
-                prob_lightning_cube.
+            Output cube containing updated nowcast lightning probability.
+            This cube will have the same dimensions and meta-data as
+            prob_lightning_cube.
 
         Raises:
             iris.exceptions.ConstraintMismatchError:
@@ -435,12 +432,11 @@ class NowcastLightning(PostProcessingPlugin):
                 Units of threshold coord modified in-place to kg m^-2
 
         Returns:
-            iris.cube.Cube:
-                Output cube containing updated nowcast lightning probability.
-                This cube will have the same dimensions and meta-data as
-                prob_lightning_cube.
-                The influence of the data in ice_cube reduces linearly to zero
-                as forecast_period increases to 2H30M.
+            Output cube containing updated nowcast lightning probability.
+            This cube will have the same dimensions and meta-data as
+            prob_lightning_cube.
+            The influence of the data in ice_cube reduces linearly to zero
+            as forecast_period increases to 2H30M.
 
         Raises:
             iris.exceptions.ConstraintMismatchError:
@@ -500,11 +496,10 @@ class NowcastLightning(PostProcessingPlugin):
                       at self.ice_thresholds.
 
         Returns:
-            iris.cube.Cube:
-                Output cube containing Nowcast lightning probability.
-                This cube will have the same dimensions as the input
-                Nowcast precipitation probability after the threshold coord
-                has been removed.
+            Output cube containing Nowcast lightning probability.
+            This cube will have the same dimensions as the input
+            Nowcast precipitation probability after the threshold coord
+            has been removed.
 
         Raises:
             iris.exceptions.ConstraintMismatchError:

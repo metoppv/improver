@@ -53,8 +53,7 @@ def _is_time_coord(obj: Union[Cube, Coord]) -> bool:
             Object to be tested
 
     Returns:
-        bool:
-            True if obj is a recognised time coord.
+        True if obj is a recognised time coord.
 
     """
     return isinstance(obj, iris.coords.Coord) and obj.name() in TIME_COORDS
@@ -70,8 +69,7 @@ def get_required_dtype(obj: Union[Cube, Coord]) -> dtype:
             Object to be tested
 
     Returns:
-        np.dtype:
-            The mandatory dtype corresponding to the object supplied.
+        The mandatory dtype corresponding to the object supplied.
     """
     if _is_time_coord(obj):
         return np.dtype(TIME_COORDS[obj.name()].dtype)
@@ -94,8 +92,7 @@ def check_dtype(obj: Union[Cube, Coord]) -> bool:
             Object to be tested
 
     Returns:
-        bool:
-            True if obj is of the mandated dtype.
+        True if obj is of the mandated dtype.
 
     """
     # if coord, acts on coord.points
@@ -148,9 +145,8 @@ def get_required_units(obj: Union[Cube, Coord]) -> Optional[str]:
             Object to be tested
 
     Returns:
-        str or None:
-            The mandatory units corresponding to the object supplied or None
-            if there are no specific requirements for the object.
+        The mandatory units corresponding to the object supplied or None
+        if there are no specific requirements for the object.
     """
     if _is_time_coord(obj):
         return TIME_COORDS[obj.name()].units
@@ -166,9 +162,8 @@ def check_units(obj: Union[Cube, Coord]) -> bool:
             Object to be tested
 
     Returns:
-        bool:
-            True if obj meets the mandatory units requirements or has no
-            mandatory units requirement.
+        True if obj meets the mandatory units requirements or has no
+        mandatory units requirement.
 
     """
     req_units = get_required_units(obj)
@@ -202,8 +197,7 @@ def check_mandatory_standards(cube: Cube) -> None:
                 The object to be checked.
 
         Returns:
-            list:
-                Contains formatted strings describing each conformance breach.
+            Contains formatted strings describing each conformance breach.
 
         """
         dtype_ok = check_dtype(obj)

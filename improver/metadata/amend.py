@@ -50,7 +50,6 @@ def update_stage_v110_metadata(cube: Cube):
     Args:
         cube:
             Cube to modify attributes in (modified in place)
-
     Returns:
         None
     """

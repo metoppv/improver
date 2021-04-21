@@ -160,15 +160,14 @@ class PrecipPhaseProbability(BasePlugin):
                 orography.
 
         Returns:
-            iris.cube.Cube:
-                Contains the probability of a specific precipitation phase
-                reaching the surface orography. If the falling_level_cube was
-                snow->sleet, then this will be the probability of snow at the
-                surface. If the falling_level_cube was sleet->rain, then this
-                will be the probability of rain at the surface.
-                The probabilities are categorical (1 or 0) allowing
-                precipitation to be divided uniquely between snow, sleet and
-                rain phases.
+            Contains the probability of a specific precipitation phase
+            reaching the surface orography. If the falling_level_cube was
+            snow->sleet, then this will be the probability of snow at the
+            surface. If the falling_level_cube was sleet->rain, then this
+            will be the probability of rain at the surface.
+            The probabilities are categorical (1 or 0) allowing
+            precipitation to be divided uniquely between snow, sleet and
+            rain phases.
         """
         self._extract_input_cubes(cubes)
         processed_falling_level = iris.util.squeeze(

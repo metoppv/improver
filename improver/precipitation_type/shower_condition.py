@@ -153,8 +153,7 @@ class ShowerCondition(BasePlugin):
                 List of input cubes
 
         Returns:
-            iris.cube.Cube:
-                Binary (0/1) "precipitation is showery"
+            Binary (0/1) "precipitation is showery"
 
         Raises:
             ValueError: If inputs are incomplete

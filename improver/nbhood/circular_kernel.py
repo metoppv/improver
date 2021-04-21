@@ -92,9 +92,8 @@ def circular_kernel(full_ranges: ndarray, ranges: int, weighted_mode: bool) -> n
             If False, use a circle with constant weighting.
 
     Returns:
-        numpy.ndarray:
-            Array containing the circular smoothing kernel.
-            This will have the same number of dimensions as fullranges.
+        Array containing the circular smoothing kernel.
+        This will have the same number of dimensions as fullranges.
 
     """
     # The range is square
@@ -188,9 +187,8 @@ class CircularNeighbourhood:
                 the kernel.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the smoothed field after the kernel has been
-                applied.
+            Cube containing the smoothed field after the kernel has been
+            applied.
 
         """
         data = cube.data
@@ -230,9 +228,8 @@ class CircularNeighbourhood:
                 Cube containing the array to be used as a mask.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the smoothed field after the kernel has been
-                applied.
+            Cube containing the smoothed field after the kernel has been
+            applied.
 
         """
         if mask_cube is not None:
@@ -427,9 +424,8 @@ class GeneratePercentilesFromACircularNeighbourhood:
                 Cube containing the array to be used as a mask.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the percentile fields.
-                Has percentile as an added dimension.
+            Cube containing the percentile fields.
+            Has percentile as an added dimension.
 
         """
         if mask_cube is not None:
@@ -488,9 +484,8 @@ class GeneratePercentilesFromACircularNeighbourhood:
             cube:
                 Cube to copy meta data from.
         Returns:
-            iris.cube.Cube:
-                Cube like input but with added percentiles coordinate.
-                Each slice along this coordinate is identical.
+            Cube like input but with added percentiles coordinate.
+            Each slice along this coordinate is identical.
         """
         pctcubelist = iris.cube.CubeList()
         pct_coord_name = "percentile"

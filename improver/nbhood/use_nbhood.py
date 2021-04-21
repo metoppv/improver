@@ -233,9 +233,8 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 Dimensions self.coord_for_masking, y and x.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the weighted mean from neighbourhood after
-                collapsing the chosen coordinate.
+            Cube containing the weighted mean from neighbourhood after
+            collapsing the chosen coordinate.
 
         """
         # Mask out any NaNs in the neighbourhood data so that Iris ignores
@@ -271,12 +270,11 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 points that should be ignored are set to zeros in every layer
                 of the mask_cube.
         Returns:
-            iris.cube.Cube:
-                Cube containing the smoothed field after the square
-                neighbourhood method has been applied when applying masking
-                for each point along the coord_for_masking coordinate.
-                The resulting cube is concatenated so that the dimension
-                coordinates match the input cube.
+            Cube containing the smoothed field after the square
+            neighbourhood method has been applied when applying masking
+            for each point along the coord_for_masking coordinate.
+            The resulting cube is concatenated so that the dimension
+            coordinates match the input cube.
 
         """
         plugin = NeighbourhoodProcessing(

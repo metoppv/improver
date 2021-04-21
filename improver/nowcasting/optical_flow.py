@@ -74,11 +74,10 @@ def generate_optical_flow_components(
             for optical flow velocities
 
     Returns:
-        (tuple) tuple containing:
-            **u_mean**:
-                Cube of x-advection velocities
-            **v_mean**:
-                Cube of y-advection velocities
+        **u_mean**:
+            Cube of x-advection velocities
+        **v_mean**:
+            Cube of y-advection velocities
     """
     cube_list.sort(key=lambda x: x.coord("time").points[0])
     time_coord = cube_list[-1].coord("time")
@@ -126,8 +125,7 @@ def generate_advection_velocities_from_winds(
             input cube times
 
         Returns:
-        iris.cube.CubeList:
-            u- and v- advection velocities
+        u- and v- advection velocities
     """
     cubes.sort(key=lambda x: x.coord("time").points[0])
 
@@ -163,7 +161,6 @@ def _perturb_background_flow(
     Args:
         background (list of iris.cube.Cube)
         adjustment (list of iris.cube.Cube)
-
     Returns:
         iris.cube.CubeList
     """
@@ -393,9 +390,8 @@ class OpticalFlow(BasePlugin):
                 Optional (0 or 1): average over 2 adjacent points along the
                 specified axis, rather than all 4 corners
         Returns:
-            numpy.ndarray:
-                2D gridded interpolated average (dimensions M-1 x N-1 if
-                axis=None; M-1 x N if axis=0; M x N-1 if axis=1)
+            2D gridded interpolated average (dimensions M-1 x N-1 if
+            axis=None; M-1 x N if axis=0; M x N-1 if axis=1)
         """
         if axis is None:
             midpoints = 0.25 * (
@@ -418,8 +414,7 @@ class OpticalFlow(BasePlugin):
                 Axis over which to calculate the spatial derivative (0 or 1)
 
         Returns:
-            numpy.ndarray:
-                Smoothed spatial derivative
+            Smoothed spatial derivative
         """
         outdata = []
         for data in [self.data1, self.data2]:
@@ -439,8 +434,7 @@ class OpticalFlow(BasePlugin):
         array, and smooth to the original grid shape.
 
         Returns:
-            numpy.ndarray:
-                Smoothed temporal derivative
+            Smoothed temporal derivative
         """
         tdiff = self.data2 - self.data1
         smoothed_diffs = np.zeros(
@@ -466,13 +460,12 @@ class OpticalFlow(BasePlugin):
                 Input field (partial derivative)
 
         Returns:
-            (tuple): tuple containing:
-                **boxes**:
-                    List of numpy.ndarrays of size boxsize*boxsize containing
-                    slices of data from input field.
-                **weights**:
-                    1D numpy array containing weights values associated with
-                    each listed box.
+            **boxes**:
+                List of numpy.ndarrays of size boxsize*boxsize containing
+                slices of data from input field.
+            **weights**:
+                1D numpy array containing weights values associated with
+                each listed box.
 
         """
         boxes = []
@@ -501,8 +494,7 @@ class OpticalFlow(BasePlugin):
                 Displacement of subbox on box grid
 
         Returns:
-            numpy.ndarray:
-                Displacement on original data grid
+            Displacement on original data grid
         """
         grid_data = np.repeat(
             np.repeat(box_data, self.boxsize, axis=0), self.boxsize, axis=1
@@ -537,8 +529,7 @@ class OpticalFlow(BasePlugin):
                 Kernel radius or half box size for smoothing
 
         Returns:
-            numpy.ndarray:
-                Kernel to use for generating a smoothed field.
+            Kernel to use for generating a smoothed field.
 
         """
         kernel_1d = 1 - np.abs(np.linspace(-1, 1, radius * 2 + 1))
@@ -565,8 +556,7 @@ class OpticalFlow(BasePlugin):
                 Method to use: 'box' (as in STEPS) or 'kernel'
 
         Returns:
-            numpy.ndarray:
-                Smoothed data on input-shaped grid
+            Smoothed data on input-shaped grid
 
         """
         if method == "kernel":
@@ -601,8 +591,7 @@ class OpticalFlow(BasePlugin):
                 Weight of each grid point for averaging
 
         Returns:
-            numpy.ndarray:
-                Next iteration of smart-smoothed displacement
+            Next iteration of smart-smoothed displacement
         """
         # define kernel for neighbour weighting
         neighbour_kernel = (
@@ -652,8 +641,7 @@ class OpticalFlow(BasePlugin):
                 Weights for smart smoothing
 
         Returns:
-            numpy.ndarray:
-                Smoothed displacement vectors on input data grid
+            Smoothed displacement vectors on input data grid
 
         """
         v_orig = np.copy(box_data)
@@ -688,8 +676,7 @@ class OpticalFlow(BasePlugin):
                 1-column matrix containing partial field derivatives d/dt
 
         Returns:
-            numpy.ndarray:
-                2-column matrix (u, v) containing scalar displacement values
+            2-column matrix (u, v) containing scalar displacement values
 
         """
         deriv_t = deriv_t.reshape([deriv_t.size, 1])
@@ -740,11 +727,10 @@ class OpticalFlow(BasePlugin):
                 2D array of partial input field derivatives d/dt
 
         Returns:
-            (tuple): tuple containing:
-                **umat**:
-                    2D array of displacements in the x-direction
-                **vmat**:
-                    2D array of displacements in the y-direction
+            **umat**:
+                2D array of displacements in the x-direction
+            **vmat**:
+                2D array of displacements in the y-direction
         """
 
         # (a) Generate lists of subboxes over which velocity is constant
@@ -853,11 +839,10 @@ class OpticalFlow(BasePlugin):
                 Radius (in grid squares) over which to smooth the input data
 
         Returns:
-            (tuple): tuple containing:
-                **ucomp**:
-                    Advection displacement (grid squares) in the x direction
-                **vcomp**:
-                    Advection displacement (grid squares) in the y direction
+            **ucomp**:
+                Advection displacement (grid squares) in the x direction
+            **vcomp**:
+                Advection displacement (grid squares) in the y direction
         """
         # Smooth input data
         self.shape = data1.shape
@@ -908,11 +893,10 @@ class OpticalFlow(BasePlugin):
                 data smoothing radius.
 
         Returns:
-            (tuple): tuple containing:
-                **ucube**:
-                    2D cube of advection velocities in the x-direction
-                **vcube**:
-                    2D cube of advection velocities in the y-direction
+            **ucube**:
+                2D cube of advection velocities in the x-direction
+            **vcube**:
+                2D cube of advection velocities in the y-direction
         """
         # clear existing parameters
         self.data_smoothing_radius = None

@@ -134,10 +134,9 @@ class TemporalInterpolation(BasePlugin):
                 constructed.
 
         Returns:
-            list of Tuple[str, List[datetime.datetime]]:
-                A list containing a tuple that specifies the coordinate and a
-                list of points along that coordinate to which to interpolate,
-                as required by the iris interpolation method, e.g.::
+            A list containing a tuple that specifies the coordinate and a
+            list of points along that coordinate to which to interpolate,
+            as required by the iris interpolation method, e.g.::
 
                     [('time', [<datetime object 0>,
                                <datetime object 1>])]
@@ -199,10 +198,9 @@ class TemporalInterpolation(BasePlugin):
                 enforced.
 
         Returns:
-            iris.cube.Cube:
-                Cube where the datatype and units for the
-                time, forecast_reference_time and forecast_period coordinates
-                have been enforced.
+            Cube where the datatype and units for the
+            time, forecast_reference_time and forecast_period coordinates
+            have been enforced.
 
         """
         for coord_name in ["time", "forecast_reference_time", "forecast_period"]:
@@ -228,8 +226,7 @@ class TemporalInterpolation(BasePlugin):
             lons:
                 Array 2d of longitudes for each point
         Returns:
-            numpy.ndarray:
-                Array of sine of solar elevation at each point
+            Array of sine of solar elevation at each point
 
         """
         day_of_year = (dtval - datetime(dtval.year, 1, 1)).days
@@ -250,11 +247,10 @@ class TemporalInterpolation(BasePlugin):
             cube:
                 cube containing x and y axis
         Returns:
-            (tuple): tuple containing:
-                **lats**:
-                    2d Array of latitudes for each point.
-                **lons**:
-                    2d Array of longitudes for each point.
+            **lats**:
+                2d Array of latitudes for each point.
+            **lons**:
+                2d Array of longitudes for each point.
 
         """
         trg_crs = lat_lon_determine(cube)
@@ -285,8 +281,7 @@ class TemporalInterpolation(BasePlugin):
                 cube containing Linear interpolation of
                 diag_cube at interpolation times in time_list.
         Returns:
-            iris.cube.CubeList:
-                A list of cubes interpolated to the desired times.
+            A list of cubes interpolated to the desired times.
 
         """
 
@@ -355,8 +350,7 @@ class TemporalInterpolation(BasePlugin):
                 cube at interpolation times in time_list.
 
         Returns:
-            iris.cube.CubeList:
-                A list of cubes interpolated to the desired times.
+            A list of cubes interpolated to the desired times.
 
         """
         daynightplugin = DayNightMask()
@@ -379,8 +373,7 @@ class TemporalInterpolation(BasePlugin):
                 interpolation is to be permitted.
 
         Returns:
-            iris.cube.CubeList:
-                A list of cubes interpolated to the desired times.
+            A list of cubes interpolated to the desired times.
 
         Raises:
             TypeError: If cube_t0 and cube_t1 are not of type iris.cube.Cube.

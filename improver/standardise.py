@@ -69,8 +69,7 @@ def grid_contains_cutout(grid: Cube, cutout: Cube) -> bool:
             The cutout to search for within the grid
 
     Returns:
-        bool:
-            True if cutout is contained within grid, False otherwise
+        True if cutout is contained within grid, False otherwise
     """
     if spatial_coords_match(grid, cutout):
         return True
@@ -117,7 +116,6 @@ class StandardiseMetadata(BasePlugin):
         """
         Demote any scalar dimensions (excluding "realization") on the input
         cube to auxiliary coordinates.
-
         Returns:
             iris.cube.Cube
         """
@@ -159,7 +157,6 @@ class StandardiseMetadata(BasePlugin):
                     The object to be updated
                 required_dtype:
                     The dtype required
-
             Returns:
                 np.ndarray
             """
@@ -208,7 +205,6 @@ class StandardiseMetadata(BasePlugin):
             attributes_dict:
                 Optional dictionary of required attribute updates. Keys are
                 attribute names, and values are the required value or "remove".
-
         Returns:
             iris.cube.Cube
         """
@@ -290,7 +286,6 @@ class RegridLandSea(BasePlugin):
                 Cube after initial regridding
             target_grid:
                 Cube containing landmask data on the target grid
-
         Returns:
             iris.cube.Cube: Adjusted cube
         """
@@ -326,7 +321,6 @@ class RegridLandSea(BasePlugin):
             regridded_title:
                 New value for the "title" attribute to be used after
                 regridding. If not set, a default value is used.
-
         Returns:
             iris.cube.Cube: Regridded cube with updated attributes
         """
@@ -373,7 +367,6 @@ class RegridLandSea(BasePlugin):
             regridded_title:
                 New value for the "title" attribute to be used after
                 regridding. If not set, a default value is used.
-
         Returns:
             iris.cube.Cube: Regridded cube with updated attributes
         """

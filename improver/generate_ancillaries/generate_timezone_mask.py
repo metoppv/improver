@@ -144,10 +144,9 @@ class GenerateTimezoneMask(BasePlugin):
             cube:
                 The cube from which the y-x grid is being taken.
         Returns:
-            numpy.array:
-                A numpy array containing all the pairs of coordinates that describe
-                the y-x points in the grid. This array is 2-dimensional, with
-                shape (2,  (len(y-points) * len(x-points))).
+            A numpy array containing all the pairs of coordinates that describe
+            the y-x points in the grid. This array is 2-dimensional, with
+            shape (2,  (len(y-points) * len(x-points))).
         """
         if lat_lon_determine(cube) is not None:
             yy, xx = transform_grid_to_lat_lon(cube)
@@ -193,9 +192,8 @@ class GenerateTimezoneMask(BasePlugin):
                 the y-x points in the grid. This array is 2-dimensional, being
                 2 by the product of the grid's y-x dimension lengths.
         Returns:
-            numpy.array:
-                A 1-dimensional array of grid offsets with a length equal
-                to the product of the grid's y-x dimension lengths.
+            A 1-dimensional array of grid offsets with a length equal
+            to the product of the grid's y-x dimension lengths.
         """
         grid_offsets = []
         for latitude, longitude in coordinate_pairs:
@@ -218,8 +216,7 @@ class GenerateTimezoneMask(BasePlugin):
                 The string representation of the timezone for a point
                 e.g. "America/Chicago",
         Returns:
-            int:
-                Timezone offset from UTC in seconds.
+            Timezone offset from UTC in seconds.
         """
         # The timezone for Ireland does not capture DST:
         # https://github.com/regebro/tzlocal/issues/80
@@ -247,8 +244,7 @@ class GenerateTimezoneMask(BasePlugin):
                 A cube with the desired grid from which coordinates are taken
                 for inclusion in the template.
         Returns:
-            iris.cube.Cube:
-                A template cube in which each timezone mask can be stored.
+            A template cube in which each timezone mask can be stored.
         """
         time_point = np.array(self.time.timestamp(), dtype=np.int64)
         time_coord = iris.coords.DimCoord(
@@ -291,9 +287,8 @@ class GenerateTimezoneMask(BasePlugin):
                 A cube list containing a mask cube for each UTC offset that
                 has been found necessary.
         Returns:
-            iris.cube.CubeList:
-                A cube list containing cubes created by blending together
-                different UTC offset cubes to create larger masked regions.
+            A cube list containing cubes created by blending together
+            different UTC offset cubes to create larger masked regions.
         """
         grouped_timezone_masks = iris.cube.CubeList()
         for offset, group in self.groupings.items():
@@ -335,11 +330,10 @@ class GenerateTimezoneMask(BasePlugin):
                 for determining the validity time of the calculated UTC offsets
                 (this is only relevant if daylight savings times are being included).
         Returns:
-            iris.cube.Cube:
-                A timezone mask cube with a leading UTC_offset dimension. Each
-                UTC_offset slice contains a field of ones (masked out) and zeros
-                (masked in) that correspond to the grid points whose local times
-                are at the relevant UTC_offset.
+            A timezone mask cube with a leading UTC_offset dimension. Each
+            UTC_offset slice contains a field of ones (masked out) and zeros
+            (masked in) that correspond to the grid points whose local times
+            are at the relevant UTC_offset.
         """
         self._set_time(cube)
         coordinate_pairs = self._get_coordinate_pairs(cube)

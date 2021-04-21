@@ -84,8 +84,7 @@ def construct_yx_coords(
             provided, a grid is created centred around (0,0).
 
     Returns:
-        Tuple[iris.coords.DimCoord, iris.coords.DimCoord]:
-            Tuple containing y and x iris.coords.DimCoords
+        Tuple containing y and x iris.coords.DimCoords
     """
     if spatial_grid not in GRID_COORD_ATTRIBUTES.keys():
         raise ValueError("Grid type {} not recognised".format(spatial_grid))
@@ -126,8 +125,7 @@ def _create_yx_arrays(
     Creates arrays for constructing y and x DimCoords.
 
     Returns:
-        Tuple[numpy.ndarray, numpy.ndarray]:
-            Tuple containing arrays of y and x coordinate values
+        Tuple containing arrays of y and x coordinate values
     """
     y_stop = domain_corner[0] + (grid_spacing * (ypoints - 1))
     x_stop = domain_corner[1] + (grid_spacing * (xpoints - 1))
@@ -145,8 +143,7 @@ def _set_domain_corner(
     Set domain corner to create a grid around 0,0.
 
     Returns:
-        Tuple[float, float]:
-            (y,x) values of the bottom left corner of the domain
+        (y,x) values of the bottom left corner of the domain
     """
     y_start = 0 - ((ypoints - 1) * grid_spacing) / 2
     x_start = 0 - ((xpoints - 1) * grid_spacing) / 2
@@ -159,8 +156,7 @@ def _create_time_point(time: datetime) -> int:
     from a datetime.datetime instance.
 
     Returns:
-        Any:
-            Returns coordinate point as datatype specified in TIME_COORDS["time"]
+        Returns coordinate point as datatype specified in TIME_COORDS["time"]
     """
     coord_spec = TIME_COORDS["time"]
     point = date2num(time, coord_spec.units, coord_spec.calendar)
@@ -182,9 +178,8 @@ def construct_scalar_time_coords(
             Single forecast reference time point
 
     Returns:
-        List[Tuple[iris.coord.DimCoord, bool]]:
-            List of iris.coords.DimCoord instances with the associated "None"
-            dimension (format required by iris.cube.Cube initialisation).
+        List of iris.coords.DimCoord instances with the associated "None"
+        dimension (format required by iris.cube.Cube initialisation).
     """
     # generate time coordinate points
     time_point_seconds = _create_time_point(time)
@@ -392,8 +387,7 @@ def set_up_variable_cube(
             Flag to indicate whether the height levels are specified as pressure, in Pa. If False, use height in metres.
 
     Returns:
-        iris.cube.Cube:
-            Cube containing a single variable field
+        Cube containing a single variable field
     """
     # construct spatial dimension coordimates
     ypoints = data.shape[-2]
@@ -460,8 +454,7 @@ def set_up_percentile_cube(
             Additional keyword arguments passed to 'set_up_variable_cube' function
 
     Returns:
-        iris.cube.Cube:
-            Cube containing percentiles
+        Cube containing percentiles
     """
     cube = set_up_variable_cube(data, realizations=percentiles, **kwargs,)
     cube.coord("realization").rename("percentile")
@@ -508,8 +501,7 @@ def set_up_probability_cube(
             Additional keyword arguments passed to 'set_up_variable_cube' function
 
     Returns:
-        iris.cube.Cube:
-            Cube containing probabilities at thresholds
+        Cube containing probabilities at thresholds
     """
     # create a "relative to threshold" attribute
     coord_attributes = {"spp__relative_to_threshold": spp__relative_to_threshold}
@@ -583,8 +575,7 @@ def add_coordinate(
             Optional coordinate attributes.
 
     Returns:
-        iris.cube.Cube:
-            Cube containing an additional dimension coordinate.
+        Cube containing an additional dimension coordinate.
     """
     # if the coordinate already exists as a scalar coordinate, remove it
     cube = incube.copy()

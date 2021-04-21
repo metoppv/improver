@@ -66,8 +66,7 @@ def cycletime_to_datetime(
         cycletime_format:
             String containing the desired format for the cycletime.
     Returns:
-        datetime:
-            A correctly formatted datetime object.
+        A correctly formatted datetime object.
     """
     return datetime.strptime(cycletime, cycletime_format)
 
@@ -85,8 +84,7 @@ def datetime_to_cycletime(
         cycletime_format:
             String containing the desired format for the cycletime.
     Returns:
-        str:
-            A correctly formatted string.
+        A correctly formatted string.
     """
     return datetime.strftime(adatetime, cycletime_format)
 
@@ -114,9 +112,8 @@ def cycletime_to_number(
             The choice of calendar must be supported by cf_units.CALENDARS.
 
     Returns:
-        float:
-            A numeric value to represent the datetime using assumed choices
-            for the unit of time and the calendar.
+        A numeric value to represent the datetime using assumed choices
+        for the unit of time and the calendar.
     """
     dtval = cycletime_to_datetime(cycletime, cycletime_format=cycletime_format)
     return cf_units.date2num(dtval, time_unit, calendar)
@@ -133,8 +130,7 @@ def iris_time_to_datetime(
             Iris time coordinate element(s).
 
     Returns:
-        list of datetime.datetime:
-            The time element(s) recast as a python datetime object.
+        The time element(s) recast as a python datetime object.
     """
     coord = time_coord.copy()
     coord.convert_units("seconds since 1970-01-01 00:00:00")
@@ -154,8 +150,7 @@ def datetime_to_iris_time(dt_in: datetime) -> float:
             Time to be converted into seconds since 1970-01-01 00Z.
 
     Returns:
-        float:
-            Time since epoch in the seconds as desired dtype.
+        Time since epoch in the seconds as desired dtype.
     """
     result = dt_in.replace(tzinfo=timezone.utc).timestamp()
     return np.int64(result)
@@ -173,9 +168,8 @@ def datetime_constraint(time_in: datetime, time_max: datetime = None) -> Constra
             being returned up to < time_max.
 
     Returns:
-        iris.Constraint:
-            An iris constraint to be used in extracting data at the given time
-            from a cube.
+        An iris constraint to be used in extracting data at the given time
+        from a cube.
     """
     time_start = PartialDateTime(time_in.year, time_in.month, time_in.day, time_in.hour)
 
@@ -204,8 +198,7 @@ def extract_cube_at_time(
             Iris constraint for the desired time.
 
     Returns:
-        iris.cube.Cube:
-            Cube of data at the desired time.
+        Cube of data at the desired time.
 
     Raises:
         ValueError if the desired time is not available within the cubelist.
@@ -244,9 +237,8 @@ def extract_nearest_time_point(
             Default is 0.
 
     Returns:
-        iris.cube.Cube:
-            Cube following extraction to return the cube that is nearest
-            to the time point supplied.
+        Cube following extraction to return the cube that is nearest
+        to the time point supplied.
 
     Raises:
         ValueError: The requested datetime is not available within the
@@ -501,10 +493,9 @@ class TimezoneExtraction(PostProcessingPlugin):
                 UTC time that matches the local_time at each point.
 
         Returns:
-            iris.cube.Cube:
-                Output local-time cube. The time coord will span the spatial coords.
-                The time_in_local_timezone coord will match the local_time supplied.
-                All other coords and attributes will match those found on input_cube.
+            Output local-time cube. The time coord will span the spatial coords.
+            The time_in_local_timezone coord will match the local_time supplied.
+            All other coords and attributes will match those found on input_cube.
         """
         if isinstance(input_cubes, iris.cube.Cube):
             input_cube = input_cubes

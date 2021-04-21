@@ -246,7 +246,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             forecast_predictor_data (numpy.ndarray)
             truth_data (numpy.ndarray)
             forecast_var_data (numpy.ndarray)
-
         Returns:
             Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.float64]
                 Tuple containing the initial guess, forecast predictor, truth
@@ -286,10 +285,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             predictor (str)
 
         Returns:
-            numpy.ndarray:
-                Separate optimised coefficients for each point. The shape of the
-                coefficients array is (number of coefficients, length of spatial dimensions).
-                Order of coefficients is [alpha, beta, gamma, delta].
+            Separate optimised coefficients for each point. The shape of the
+            coefficients array is (number of coefficients, length of spatial dimensions).
+            Order of coefficients is [alpha, beta, gamma, delta].
         """
         (
             initial_guess,
@@ -366,8 +364,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             predictor (str)
 
         Returns:
-            numpy.ndarray:
-                The optimised coefficients. Order of coefficients is [alpha, beta, gamma, delta].
+            The optimised coefficients. Order of coefficients is [alpha, beta, gamma, delta].
         """
         # Flatten the data arrays and remove any missing data.
         truth_data = flatten_ignoring_masked_data(truth.data)
@@ -450,14 +447,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 minimisation within self.minimisation_dict.
 
         Returns:
-            numpy.ndarray:
-                The optimised coefficients following the order
-                [alpha, beta, gamma, delta]. If point_by_point is False, then
-                one set of coefficients are generated. If point_by_point
-                is True, then the leading dimension of the numpy array is
-                the length of the spatial dimensions within the forecast and
-                truth cubes. Each set of coefficients are appropriate for a
-                particular point.
+            The optimised coefficients following the order
+            [alpha, beta, gamma, delta]. If point_by_point is False, then
+            one set of coefficients are generated. If point_by_point
+            is True, then the leading dimension of the numpy array is
+            the length of the spatial dimensions within the forecast and
+            truth cubes. Each set of coefficients are appropriate for a
+            particular point.
 
         Raises:
             KeyError: If the distribution is not supported.
@@ -539,9 +535,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 realizations ("realizations") are supported as the predictors.
 
         Returns:
-            float:
-                CRPS for the current set of coefficients. This CRPS is a mean
-                value across all points.
+            CRPS for the current set of coefficients. This CRPS is a mean
+            value across all points.
 
         """
         if predictor.lower() == "mean":
@@ -611,9 +606,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 realizations ("realizations") are supported as the predictors.
 
         Returns:
-            float:
-                CRPS for the current set of coefficients. This CRPS is a mean
-                value across all points.
+            CRPS for the current set of coefficients. This CRPS is a mean
+            value across all points.
 
         """
         if predictor.lower() == "mean":
@@ -770,10 +764,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Historic forecasts from the training dataset.
 
         Returns:
-            dict:
-                Attributes for an EMOS coefficients cube including
-                "diagnostic standard name", "distribution", "shape_parameters"
-                and an updated title.
+            Attributes for an EMOS coefficients cube including
+            "diagnostic standard name", "distribution", "shape_parameters"
+            and an updated title.
         """
         attributes = {}
         attributes["diagnostic_standard_name"] = historic_forecasts.name()
@@ -795,8 +788,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Historic forecasts from the training dataset.
 
         Returns:
-            List[iris.coords.Coord]:
-                List of the temporal coordinates.
+            List of the temporal coordinates.
         """
         # Create forecast reference time coordinate.
         frt_coord = create_unified_frt_coord(
@@ -823,10 +815,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecasts:
                 Historic forecasts from the training dataset.
         Returns:
-            Tuple[List[int], List[iris.coords.Coord]:
-                List of the spatial dimensions to retain within the
-                coefficients cube and a list of the auxiliary coordinates that
-                share the same dimension as the spatial coordinates.
+            List of the spatial dimensions to retain within the
+            coefficients cube and a list of the auxiliary coordinates that
+            share the same dimension as the spatial coordinates.
         """
         template_dims = []
         if self.point_by_point:
@@ -861,11 +852,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Historic forecasts from the training dataset.
 
         Returns:
-            cubelist:
-                CubeList constructed using the coefficients provided and using
-                metadata from the historic_forecasts cube. Each cube within the
-                cubelist is for a separate EMOS coefficient e.g. alpha, beta,
-                gamma, delta.
+            CubeList constructed using the coefficients provided and using
+            metadata from the historic_forecasts cube. Each cube within the
+            cubelist is for a separate EMOS coefficient e.g. alpha, beta,
+            gamma, delta.
         """
         (
             template_dims,
@@ -926,11 +916,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Historic forecasts from the training dataset.
 
         Returns:
-            iris.cube.CubeList:
-                CubeList constructed using the coefficients provided and using
-                metadata from the historic_forecasts cube. Each cube within the
-                cubelist is for a separate EMOS coefficient e.g. alpha, beta,
-                gamma, delta.
+            CubeList constructed using the coefficients provided and using
+            metadata from the historic_forecasts cube. Each cube within the
+            cubelist is for a separate EMOS coefficient e.g. alpha, beta,
+            gamma, delta.
 
         Raises:
             ValueError: If the number of coefficients in the optimised_coeffs
@@ -1007,9 +996,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 realizations are present, this option is None.
 
         Returns:
-            list of float:
-                List of coefficients to be used as initial guess.
-                Order of coefficients is [alpha, beta, gamma, delta].
+            List of coefficients to be used as initial guess.
+            Order of coefficients is [alpha, beta, gamma, delta].
 
         """
         default_initial_guess = (
@@ -1110,11 +1098,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 realizations are present, this option is None.
 
         Returns:
-            iris.cube.CubeList:
-                CubeList constructed using the coefficients provided and using
-                metadata from the historic_forecasts cube. Each cube within the
-                cubelist is for a separate EMOS coefficient e.g. alpha, beta,
-                gamma, delta.
+            CubeList constructed using the coefficients provided and using
+            metadata from the historic_forecasts cube. Each cube within the
+            cubelist is for a separate EMOS coefficient e.g. alpha, beta,
+            gamma, delta.
 
         """
         if self.point_by_point and not self.use_default_initial_guess:
@@ -1207,11 +1194,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 and sea points as zeros.
 
         Returns:
-            iris.cube.CubeList:
-                CubeList constructed using the coefficients provided and using
-                metadata from the historic_forecasts cube. Each cube within the
-                cubelist is for a separate EMOS coefficient e.g. alpha, beta,
-                gamma, delta.
+            CubeList constructed using the coefficients provided and using
+            metadata from the historic_forecasts cube. Each cube within the
+            cubelist is for a separate EMOS coefficient e.g. alpha, beta,
+            gamma, delta.
 
         Raises:
             ValueError: If either the historic_forecasts or truths cubes were not
@@ -1374,9 +1360,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 <improver.calibration.ensemble_calibration>`.
 
         Returns:
-            numpy.ndarray:
-                Location parameter calculated using the ensemble mean as the
-                predictor.
+            Location parameter calculated using the ensemble mean as the
+            predictor.
 
         """
         forecast_predictor = collapsed(
@@ -1402,9 +1387,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 <improver.calibration.ensemble_calibration>`.
 
         Returns:
-            numpy.ndarray:
-                Location parameter calculated using the ensemble realizations
-                as the predictor.
+            Location parameter calculated using the ensemble realizations
+            as the predictor.
         """
         forecast_predictor = self.current_forecast
         # Calculate location parameter = a + b1*X1 .... + bn*Xn, where X is the
@@ -1447,9 +1431,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 <improver.calibration.ensemble_calibration>`.
 
         Returns:
-            numpy.ndarray:
-                Scale parameter for defining the distribution of the calibrated
-                forecast.
+            Scale parameter for defining the distribution of the calibrated
+            forecast.
 
         """
         forecast_var = self.current_forecast.collapsed(
@@ -1480,13 +1463,12 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 Scale parameter of the calibrated distribution.
 
         Returns:
-            (tuple): tuple containing:
-                **location_parameter_cube**:
-                    Location parameter of the calibrated distribution with
-                    associated metadata.
-                **scale_parameter_cube**:
-                    Scale parameter of the calibrated distribution with
-                    associated metadata.
+            **location_parameter_cube**:
+                Location parameter of the calibrated distribution with
+                associated metadata.
+            **scale_parameter_cube**:
+                Scale parameter of the calibrated distribution with
+                associated metadata.
         """
         template_cube = next(self.current_forecast.slices_over("realization"))
         template_cube.remove_coord("realization")
@@ -1532,19 +1514,18 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 sea points to 0.
 
         Returns:
-            (tuple): tuple containing:
-                **location_parameter_cube**:
-                    Cube containing the location parameter of the calibrated
-                    distribution calculated using either the ensemble mean or
-                    the ensemble realizations. The location parameter
-                    represents the point at which a resulting PDF would be
-                    centred.
-                **scale_parameter_cube**:
-                    Cube containing the scale parameter of the calibrated
-                    distribution calculated using either the ensemble mean or
-                    the ensemble realizations. The scale parameter represents
-                    the statistical dispersion of the resulting PDF, so a
-                    larger scale parameter will result in a broader PDF.
+            **location_parameter_cube**:
+                Cube containing the location parameter of the calibrated
+                distribution calculated using either the ensemble mean or
+                the ensemble realizations. The location parameter
+                represents the point at which a resulting PDF would be
+                centred.
+            **scale_parameter_cube**:
+                Cube containing the scale parameter of the calibrated
+                distribution calculated using either the ensemble mean or
+                the ensemble realizations. The scale parameter represents
+                the statistical dispersion of the resulting PDF, so a
+                larger scale parameter will result in a broader PDF.
 
         """
         self.current_forecast = current_forecast
@@ -1607,9 +1588,8 @@ class ApplyEMOS(PostProcessingPlugin):
                 Indicate whether the attribute is allowed to be optional.
 
         Returns:
-            None or Any:
-                Returns None if the attribute is not present. Otherwise,
-                the value of the attribute is returned.
+            Returns None if the attribute is not present. Otherwise,
+            the value of the attribute is returned.
 
         Raises:
             ValueError: If coefficients do not share the expected attributes.
@@ -1710,8 +1690,7 @@ class ApplyEMOS(PostProcessingPlugin):
                 random seed may still be used for splitting ties.
 
         Returns:
-            iris.cube.Cube:
-                Calibrated forecast
+            Calibrated forecast
         """
         if self.forecast_type == "probabilities":
             conversion_plugin = ConvertLocationAndScaleParametersToProbabilities(
@@ -1793,9 +1772,8 @@ class ApplyEMOS(PostProcessingPlugin):
                 is probabilities or percentiles, this is ignored.
 
         Returns:
-            iris.cube.Cube:
-                Calibrated forecast in the form of the input (ie probabilities
-                percentiles or realizations)
+            Calibrated forecast in the form of the input (ie probabilities
+            percentiles or realizations)
         """
         self.forecast_type = self._get_forecast_type(forecast)
 

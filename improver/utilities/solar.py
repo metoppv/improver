@@ -59,8 +59,7 @@ def calc_solar_declination(day_of_year: int) -> float:
             Day of the year 0 to 365, 0 = 1st January
 
     Returns:
-        float:
-            Declination in degrees.North-South
+        Declination in degrees.North-South
     """
     # Declination (degrees):
     # = -(axial_tilt)*cos(360./orbital_year * day_of_year - solstice_offset)
@@ -89,7 +88,6 @@ def calc_solar_hour_angle(
             Day of the year 0 to 365, 0 = 1st January
         utc_hour:
             Hour of the day in UTC
-
     Returns:
         solar_hour_angle (float or numpy.ndarray)
             Hour angles in degrees East-West
@@ -145,8 +143,7 @@ def calc_solar_elevation(
             Default False.
 
     Returns:
-        float or numpy.ndarray:
-            Solar elevation in degrees for each location.
+        Solar elevation in degrees for each location.
     """
     if np.min(latitudes) < -90.0 or np.max(latitudes) > 90.0:
         msg = "Latitudes must be between -90.0 and 90.0"
@@ -190,8 +187,7 @@ def daynight_terminator(
             Hour of the day in UTC
 
     Returns:
-        numpy.ndarray:
-            latitudes of the daynight terminator
+        latitudes of the daynight terminator
     """
     if day_of_year < 0 or day_of_year > 365:
         msg = "Day of the year must be between 0 and 365"
@@ -232,11 +228,10 @@ class DayNightMask(BasePlugin):
                 cube with the times and coordinates required for mask
 
         Returns:
-            iris.cube.Cube:
-                Blank daynight mask cube. The resulting cube will be the
-                same shape as the time, y, and x coordinate, other coordinates
-                will be ignored although they might appear as attributes
-                on the cube as it is extracted from the first slice.
+            Blank daynight mask cube. The resulting cube will be the
+            same shape as the time, y, and x coordinate, other coordinates
+            will be ignored although they might appear as attributes
+            on the cube as it is extracted from the first slice.
         """
         slice_coords = [cube.coord(axis="y"), cube.coord(axis="x")]
         if cube.coord("time") in cube.coords(dim_coords=True):
@@ -279,8 +274,7 @@ class DayNightMask(BasePlugin):
                 Hour in UTC
 
         Returns:
-            iris.cube.Cube:
-                daynight mask cube - daytime set to self.day
+            daynight mask cube - daytime set to self.day
         """
         lons = mask_cube.coord("longitude").points
         lats = mask_cube.coord("latitude").points
@@ -315,13 +309,12 @@ class DayNightMask(BasePlugin):
                 input cube
 
         Returns:
-            iris.cube.Cube:
-                daynight mask cube, daytime set to self.day
-                nighttime set to self.night.
-                The resulting cube will be the same shape as
-                the time, y, and x coordinate, other coordinates
-                will be ignored although they might appear as attributes
-                on the cube as it is extracted from the first slice.
+            daynight mask cube, daytime set to self.day
+            nighttime set to self.night.
+            The resulting cube will be the same shape as
+            the time, y, and x coordinate, other coordinates
+            will be ignored although they might appear as attributes
+            on the cube as it is extracted from the first slice.
         """
         daynight_mask = self._create_daynight_mask(cube)
 

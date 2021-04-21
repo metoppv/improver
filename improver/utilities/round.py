@@ -49,8 +49,7 @@ def round_close(
             Required integer datatype
 
     Returns:
-        np.ndarray of int or int:
-            Rounded data value
+        Rounded data value
 
     Raises:
         ValueError: If rounding would significantly change the input value

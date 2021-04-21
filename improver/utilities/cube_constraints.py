@@ -63,8 +63,7 @@ def create_sorted_lambda_constraint(
             using float32 values. Values of zero will be unchanged.
 
     Returns:
-        iris.Constraint:
-            Constraint representative of a range of values.
+        Constraint representative of a range of values.
 
     """
     values = [float(i) for i in values]

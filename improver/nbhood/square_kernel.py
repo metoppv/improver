@@ -118,9 +118,8 @@ class SquareNeighbourhood:
                 `numpy.ma.MaskedArray`.
 
         Returns:
-            numpy.ndarray:
-                Array containing the smoothed field after the square
-                neighbourhood method has been applied.
+            Array containing the smoothed field after the square
+            neighbourhood method has been applied.
         """
         if not sum_only:
             min_val = np.nanmin(data)
@@ -202,9 +201,8 @@ class SquareNeighbourhood:
                 Cube containing the array to be used as a mask.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the smoothed field after the square
-                neighbourhood method has been applied.
+            Cube containing the smoothed field after the square
+            neighbourhood method has been applied.
         """
         # If the data is masked, the mask will be processed as well as the
         # original_data * mask array.

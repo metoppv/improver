@@ -115,9 +115,8 @@ class ManageWarnings:
             func:
                 A function that we want to wrap with this decorator.
         Returns:
-            function:
-                The wrapped function with the warnings context manager and
-                necessary filters turned on.
+            The wrapped function with the warnings context manager and
+            necessary filters turned on.
         """
 
         def warnings_wrapper(*args: Any, **kwargs: Any) -> NoReturn:

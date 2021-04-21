@@ -304,10 +304,9 @@ class BasicThreshold(PostProcessingPlugin):
                 Cube to threshold. The code is dimension-agnostic.
 
         Returns:
-            iris.cube.Cube:
-                Cube after a threshold has been applied. The data within this
-                cube will contain values between 0 and 1 to indicate whether
-                a given threshold has been exceeded or not.
+            Cube after a threshold has been applied. The data within this
+            cube will contain values between 0 and 1 to indicate whether
+            a given threshold has been exceeded or not.
 
                 The cube meta-data will contain:
                 * Input_cube name prepended with

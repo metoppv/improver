@@ -120,9 +120,8 @@ class SignificantPhaseMask(BasePlugin):
                 returned.
 
         Returns:
-            iris.cube.Cube:
-                The requested phase mask containing 1 where that phase is dominant
-                and 0 elsewhere. Dimensions will be identical to snow-fraction.
+            The requested phase mask containing 1 where that phase is dominant
+            and 0 elsewhere. Dimensions will be identical to snow-fraction.
         """
         self._validate_snow_fraction(snow_fraction)
 

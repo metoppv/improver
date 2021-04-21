@@ -257,9 +257,8 @@ class ResamplePercentiles(BasePlugin):
                 Name of required percentile coordinate.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing values for the required diagnostic e.g.
-                air_temperature at the required percentiles.
+            Cube containing values for the required diagnostic e.g.
+            air_temperature at the required percentiles.
         """
         original_percentiles = forecast_at_percentiles.coord(
             percentile_coord_name
@@ -338,9 +337,8 @@ class ResamplePercentiles(BasePlugin):
                 * Random: A random set of ordered percentiles.
 
         Returns:
-            iris.cube.Cube:
-                Cube with forecast values at the desired set of percentiles.
-                The percentile coordinate is always the zeroth dimension.
+            Cube with forecast values at the desired set of percentiles.
+            The percentile coordinate is always the zeroth dimension.
         """
         percentile_coord = find_percentile_coordinate(forecast_at_percentiles)
 
@@ -417,13 +415,12 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 cumulative distribution function.
 
         Returns:
-            (tuple): tuple containing:
-                **threshold_points**:
-                    Array of threshold values padded with the lower and upper
-                    bound of the distribution.
-                **probabilities_for_cdf**:
-                    Array containing the probabilities padded with 0 and 1 at
-                    each end.
+            **threshold_points**:
+                Array of threshold values padded with the lower and upper
+                bound of the distribution.
+            **probabilities_for_cdf**:
+                Array containing the probabilities padded with 0 and 1 at
+                each end.
 
         Raises:
             ValueError: If the thresholds exceed the ECC bounds for
@@ -496,9 +493,8 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 cumulative distribution function.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing values for the required diagnostic e.g.
-                air_temperature at the required percentiles.
+            Cube containing values for the required diagnostic e.g.
+            air_temperature at the required percentiles.
 
         Raises:
             NotImplementedError: If the threshold coordinate has an
@@ -637,9 +633,8 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 * Random: A random set of ordered percentiles.
 
         Returns:
-            iris.cube.Cube:
-                Cube with forecast values at the desired set of percentiles.
-                The threshold coordinate is always the zeroth dimension.
+            Cube with forecast values at the desired set of percentiles.
+            The threshold coordinate is always the zeroth dimension.
 
         Raises:
             ValueError: If both no_of_percentiles and percentiles are provided
@@ -839,9 +834,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
                 at.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the values for the phenomenon at each of the
-                percentiles requested.
+            Cube containing the values for the phenomenon at each of the
+            percentiles requested.
 
         Raises:
             ValueError: If any of the resulting percentile values are
@@ -943,9 +937,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
                 and scale parameters provided.
 
         Returns:
-            iris.cube.Cube:
-                Cube for calibrated percentiles.
-                The percentile coordinate is always the zeroth dimension.
+            Cube for calibrated percentiles.
+            The percentile coordinate is always the zeroth dimension.
 
         Raises:
             ValueError: Ensure that it is not possible to supply
@@ -1078,10 +1071,9 @@ class ConvertLocationAndScaleParametersToProbabilities(
                 the desired output cube format.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the data expressed as probabilities relative to
-                the provided thresholds in the way described by
-                spp__relative_to_threshold.
+            Cube containing the data expressed as probabilities relative to
+            the provided thresholds in the way described by
+            spp__relative_to_threshold.
         """
         # Define a mask to be reapplied later
         loc_mask = np.ma.getmaskarray(location_parameter.data)
@@ -1148,9 +1140,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
                 the desired output cube format.
 
         Returns:
-            iris.cube.Cube:
-                A cube of diagnostic data expressed as probabilities relative
-                to the thresholds found in the probability_cube_template.
+            A cube of diagnostic data expressed as probabilities relative
+            to the thresholds found in the probability_cube_template.
         """
         self._check_template_cube(probability_cube_template)
         self._check_unit_compatibility(
@@ -1205,11 +1196,10 @@ class EnsembleReordering(BasePlugin):
                 Name of required percentile coordinate.
 
         Returns:
-            iris cube.Cube:
-                Cube for the raw ensemble forecast, where the raw ensemble
-                realizations have either been recycled or constrained,
-                depending upon the number of percentiles present
-                in the post-processed forecast cube.
+            Cube for the raw ensemble forecast, where the raw ensemble
+            realizations have either been recycled or constrained,
+            depending upon the number of percentiles present
+            in the post-processed forecast cube.
         """
         plen = len(
             post_processed_forecast_percentiles.coord(percentile_coord_name).points
@@ -1275,10 +1265,9 @@ class EnsembleReordering(BasePlugin):
                 values generated are not reproducible.
 
         Returns:
-            iris.cube.Cube:
-                Cube for post-processed realizations where at a particular grid
-                point, the ranking of the values within the ensemble matches
-                the ranking from the raw ensemble.
+            Cube for post-processed realizations where at a particular grid
+            point, the ranking of the values within the ensemble matches
+            the ranking from the raw ensemble.
         """
         results = iris.cube.CubeList([])
         for rawfc, calfc in zip(
@@ -1348,10 +1337,9 @@ class EnsembleReordering(BasePlugin):
                 values generated are not reproducible.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the new ensemble realizations where all points
-                within the dataset have been reordered in comparison to the
-                input percentiles.
+            Cube containing the new ensemble realizations where all points
+            within the dataset have been reordered in comparison to the
+            input percentiles.
         """
 
         percentile_coord_name = find_percentile_coordinate(

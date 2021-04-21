@@ -84,8 +84,7 @@ def create_new_diagnostic_cube(
             Datatype for dummy cube data if "data" argument is None.
 
     Returns:
-        iris.cube.Cube:
-            Cube with correct metadata to accommodate new diagnostic field
+        Cube with correct metadata to accommodate new diagnostic field
     """
     attributes = mandatory_attributes
     if optional_attributes is not None:
@@ -136,7 +135,6 @@ def generate_mandatory_attributes(
         model_id_attr:
             Name of attribute used to identify source model for blending,
             if required
-
     Returns:
         dict: Dictionary of mandatory attribute "key": "value" pairs.
     """
@@ -167,9 +165,8 @@ def generate_hash(data_in: Any) -> str:
             The data from which a hash is to be generated. This can be of any
             type that can be pretty printed.
     Returns:
-        str:
-            A hexadecimal string which is a hash hexdigest of the data as a
-            string.
+        A hexadecimal string which is a hash hexdigest of the data as a
+        string.
     """
     bytestring = pprint.pformat(data_in).encode("utf-8")
     return hashlib.sha256(bytestring).hexdigest()
@@ -186,8 +183,7 @@ def create_coordinate_hash(cube: Cube) -> str:
             The cube from which x and y coordinates will be used to
             generate a hash.
     Returns:
-        str:
-            A hash created using the x and y coordinates of the input cube.
+        A hash created using the x and y coordinates of the input cube.
     """
     hashable_data = []
     for axis in ("x", "y"):

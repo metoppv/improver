@@ -117,9 +117,8 @@ class PercentileConverter(BasePlugin):
                 along that coordinate into a PDF and extract percentiles.
 
         Returns:
-            iris.cube.Cube:
-                A single merged cube of all the cubes produced by each
-                percentile collapse.
+            A single merged cube of all the cubes produced by each
+            percentile collapse.
 
         """
         # Store data type and enforce the same type on return.

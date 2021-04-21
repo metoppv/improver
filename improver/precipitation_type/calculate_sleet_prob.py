@@ -53,7 +53,6 @@ def calculate_sleet_probability(prob_of_snow: Cube, prob_of_rain: Cube) -> Cube:
         categorical (0 or 1)
 
     Returns:
-      iris.cube.Cube:
         Cube of the probability of sleet. This will be fractional or categorical,
         matching the highest precision of the inputs.
 

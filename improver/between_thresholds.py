@@ -81,9 +81,8 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         Extract required slices from input cube
 
         Returns:
-            list or iris.cube.Cube:
-                List of 2-item lists containing lower and upper
-                threshold cubes
+            List of 2-item lists containing lower and upper
+            threshold cubes
 
         Raises:
             ValueError:
@@ -130,8 +129,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         multiplying the difference by -1.
 
         Returns:
-            float:
-                1. or -1.
+            1. or -1.
 
         Raises:
             ValueError: If the spp__relative_to_threshold attribute is
@@ -154,8 +152,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         Calculate between_threshold probabilities cube
 
         Returns:
-            iris.cube.Cube:
-                Merged cube containing recalculated probabilities
+            Merged cube containing recalculated probabilities
         """
         multiplier = self._get_multiplier()
         thresh_name = self.thresh_coord.name()
@@ -207,8 +204,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
                 Probability cube containing thresholded data (above or below)
 
         Returns:
-            iris.cube.Cube:
-                Cube containing probability of occurrence between thresholds
+            Cube containing probability of occurrence between thresholds
         """
         # if cube has no threshold-type coordinate, raise an error
         try:

@@ -76,7 +76,6 @@ def compare_netcdfs(
             from comparison.
         reporter (Callable[[str], None]): callback function for
             reporting differences
-
     Returns:
         None
     """
@@ -140,7 +139,6 @@ def compare_datasets(
             from comparison.
         reporter (Callable[[str], None]): callback function for
             reporting differences
-
     Returns:
         None
     """
@@ -201,7 +199,6 @@ def compare_dims(
         exclude_vars (List[str]): variable names to exclude from comparison
         reporter (Callable[[str], None]): callback function for
             reporting differences
-
     Returns:
         None
     """
@@ -249,7 +246,6 @@ def compare_vars(
             from comparison.
         reporter (Callable[[str], None]): callback function for
             reporting differences
-
     Returns:
         None
     """
@@ -301,7 +297,6 @@ def compare_attributes(
             from comparison.
         reporter (Callable[[str], None]): callback function for
             reporting differences
-
     Returns:
         None
     """
@@ -365,7 +360,6 @@ def compare_data(
         atol (float): absolute tolerance
         reporter (Callable[[str], None]): callback function for
             reporting differences
-
     Returns:
         None
     """

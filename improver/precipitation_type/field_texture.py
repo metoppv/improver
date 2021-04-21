@@ -137,8 +137,7 @@ class FieldTexture(BasePlugin):
                 Radius for neighbourhood in metres.
 
         Returns:
-            iris.cube.Cube:
-                A ratio between 0 and 1 of actual transitions over potential transitions.
+            A ratio between 0 and 1 of actual transitions over potential transitions.
         """
         # Calculate the potential transitions within neighbourhoods.
         potential_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
@@ -193,8 +192,7 @@ class FieldTexture(BasePlugin):
                 A NumPy array of the input cube for data manipulation.
 
         Returns:
-            numpy.ndarray:
-                A NumPy array containing the transitions for ratio calculation.
+            A NumPy array containing the transitions for ratio calculation.
         """
         padded_data = np.pad(data, 1, mode="edge")
         diff_x = np.abs(np.diff(padded_data, axis=1))
@@ -216,11 +214,10 @@ class FieldTexture(BasePlugin):
                 texture is to be assessed.
 
         Returns:
-            iris.cube.Cube:
-                A cube containing either the mean across realization of the
-                thresholded ratios to give the field texture, if a realization
-                coordinate is present, or the thresholded ratios directly, if
-                no realization coordinate is present.
+            A cube containing either the mean across realization of the
+            thresholded ratios to give the field texture, if a realization
+            coordinate is present, or the thresholded ratios directly, if
+            no realization coordinate is present.
         """
 
         values = np.unique(input_cube.data)

@@ -55,9 +55,8 @@ def rolling_window(
             the input array, so use with caution.
 
     Returns:
-        numpy.ndarray:
-            "views" into the data, each view represents
-            a neighbourhood of points.
+        "views" into the data, each view represents
+        a neighbourhood of points.
 
     Raises:
         ValueError: If `input_array` has fewer dimensions than `shape`.
@@ -117,10 +116,9 @@ def pad_and_roll(
             additional keyword arguments passed to `numpy.pad` function.
 
     Returns:
-        numpy.ndarray:
-            Contains the views of the input_array, the final dimension of
-            the array will be the specified shape in the input arguments,
-            the leading dimensions will depend on the shape of the input array.
+        Contains the views of the input_array, the final dimension of
+        the array will be the specified shape in the input arguments,
+        the leading dimensions will depend on the shape of the input array.
     """
     writeable = kwargs.pop("writeable", False)
     pad_extent = [(0, 0)] * (len(input_array.shape) - len(shape))
@@ -145,8 +143,7 @@ def pad_boxsum(
         pad_options:
             Additional keyword arguments passed to `numpy.pad` function.
     Returns:
-        numpy.ndarray:
-            Array padded to shape suitable for `boxsum`.
+        Array padded to shape suitable for `boxsum`.
     """
     boxsize = np.atleast_1d(boxsize)
     ih, jh = boxsize[0] // 2, boxsize[-1] // 2
@@ -214,8 +211,7 @@ def boxsum(
             array.
 
     Returns:
-        numpy.ndarray:
-            Array containing the calculated neighbourhood total.
+        Array containing the calculated neighbourhood total.
 
     Raises:
         ValueError: If `boxsize` has non-integer type.

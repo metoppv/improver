@@ -135,9 +135,8 @@ def generate_metadata(
             Additional keyword arguments to pass to the required cube setup function.
 
     Returns:
-        iris.cube.Cube:
-            Output of set_up_variable_cube(), set_up_percentile_cube() or
-            set_up_probability_cube()
+        Output of set_up_variable_cube(), set_up_percentile_cube() or
+        set_up_probability_cube()
     """
     if cube_type not in CUBE_TYPES:
         raise ValueError(

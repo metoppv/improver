@@ -75,9 +75,8 @@ def interpolate_missing_data(
             should not be used, even if they are otherwise valid data points.
 
     Returns:
-        numpy.ndarray:
-            The original data plus interpolated data in masked regions where it
-            was possible to fill these in.
+        The original data plus interpolated data in masked regions where it
+        was possible to fill these in.
     """
     if valid_points is None:
         valid_points = np.full_like(data, True, dtype=np.bool)

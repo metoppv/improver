@@ -58,8 +58,7 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
             A Cube to be collapsed.
 
     Returns:
-        iris.cube.Cube:
-            A collapsed cube where the cell methods match the input cube.
+        A collapsed cube where the cell methods match the input cube.
     """
     original_methods = cube.cell_methods
     new_cube = cube.collapsed(*args, **kwargs)
@@ -91,8 +90,7 @@ def collapse_realizations(cube: Cube) -> Cube:
             Input cube
 
     Returns:
-        iris.cube.Cube:
-            Cube with realization coord collapsed and removed.
+        Cube with realization coord collapsed and removed.
     """
     returned_cube = collapsed(cube, "realization", iris.analysis.MEAN)
     returned_cube.remove_coord("realization")
@@ -105,7 +103,6 @@ def get_dim_coord_names(cube: Cube) -> List[str]:
 
     Args:
         cube (iris.cube.Cube)
-
     Returns:
         list of str
     """
@@ -118,7 +115,6 @@ def get_coord_names(cube: Cube) -> List[str]:
 
     Args:
         cube (iris.cube.Cube)
-
     Returns:
         list of str
     """
@@ -167,7 +163,6 @@ def strip_var_names(cubes: CubeList) -> CubeList:
 
     Args:
         cubes (iris.cube.CubeList or iris.cube.Cube)
-
     Returns:
         iris.cube.CubeList
     """
@@ -279,8 +274,7 @@ class MergeCubes(BasePlugin):
                 the original objects.
 
         Returns:
-            iris.cube.Cube:
-                Merged cube.
+            Merged cube.
         """
         # if input is already a single cube, return unchanged
         if isinstance(cubes_in, iris.cube.Cube):
@@ -338,9 +332,8 @@ def get_filtered_attributes(
             a filtered attribute dictionary. If None, all attributes are
             returned.
     Returns:
-        dict:
-            A dictionary of attributes partially matching the attribute_filter
-            that were found on the input cube.
+        A dictionary of attributes partially matching the attribute_filter
+        that were found on the input cube.
     """
     attributes = cube.attributes
     if attribute_filter is not None:
@@ -360,9 +353,10 @@ def compare_attributes(
         attribute_filter:
             A string to filter which attributes are actually compared. If None
             all attributes are compared.
+
     Returns:
-        list of dict:
-            List of dictionaries of unmatching attributes
+        List of dictionaries of unmatching attributes
+
     Warns:
         Warning: If only a single cube is supplied
     """
@@ -410,11 +404,10 @@ def compare_coords(cubes: CubeList) -> List[Dict]:
             List of cubes to compare (must be more than 1)
 
     Returns:
-        list of dict:
-            List of dictionaries of unmatching coordinates
-            Number of dictionaries equals number of cubes
-            unless cubes is a single cube in which case
-            unmatching_coords returns an empty list.
+        List of dictionaries of unmatching coordinates
+        Number of dictionaries equals number of cubes
+        unless cubes is a single cube in which case
+        unmatching_coords returns an empty list.
 
     Warns:
         Warning: If only a single cube is supplied
@@ -475,9 +468,8 @@ def sort_coord_in_cube(cube: Cube, coord: str, descending: bool = False) -> Cube
             If True it will be sorted in descending order.
 
     Returns:
-        iris.cube.Cube:
-            Cube where the chosen coordinate has been sorted into either
-            ascending or descending order.
+        Cube where the chosen coordinate has been sorted into either
+        ascending or descending order.
 
     Warns:
         Warning if the coordinate being processed is a circular coordinate.
@@ -578,9 +570,8 @@ def clip_cube_data(cube: Cube, minimum_value: float, maximum_value: float) -> Cu
             The maximum value, with data in the cube that falls above this
             threshold set to it.
     Returns:
-        iris.cube.Cube:
-            The processed cube with the data clipped to the limits of the
-            original preprocessed cube.
+        The processed cube with the data clipped to the limits of the
+        original preprocessed cube.
     """
     original_attributes = cube.attributes
     original_methods = cube.cell_methods
@@ -627,8 +618,7 @@ def expand_bounds(
             not rounded down, for example when times are in hours.
 
     Returns:
-        iris.cube.Cube:
-            Cube with coords expanded.
+        Cube with coords expanded.
     """
     for coord in coord_names:
 

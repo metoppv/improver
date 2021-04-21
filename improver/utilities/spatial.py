@@ -87,8 +87,7 @@ def calculate_grid_spacing(cube: Cube, units: str, axis: str = "x") -> float:
             Axis ('x' or 'y') to use in determining grid spacing
 
     Returns:
-        float:
-            Grid spacing in required unit
+        Grid spacing in required unit
 
     Raises:
         ValueError: If points are not equally spaced
@@ -125,9 +124,8 @@ def distance_to_number_of_grid_cells(
             Axis ('x' or 'y') to use in determining grid spacing
 
     Returns:
-        int or float:
-            Number of grid cells along the specified (x or y) axis equal to the
-            requested distance in metres.
+        Number of grid cells along the specified (x or y) axis equal to the
+        requested distance in metres.
 
     Raises:
         ValueError: If a non-positive distance is provided.
@@ -160,8 +158,7 @@ def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
         grid_points:
             Number of grid points to convert.
     Returns:
-        float:
-            The radius in metres.
+        The radius in metres.
     """
     check_if_grid_is_equal_area(cube)
     spacing = calculate_grid_spacing(cube, "metres")
@@ -215,9 +212,8 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                 Array containing the differences.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the differences calculated along the
-                specified axis.
+            Cube containing the differences calculated along the
+            specified axis.
         """
         points = cube.coord(coord_name).points
         mean_points = (points[1:] + points[:-1]) / 2
@@ -254,9 +250,8 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                 Name of coordinate along which the difference is calculated.
 
         Returns:
-           np.ndarray:
-                Array after the differences have been calculated along the
-                specified axis.
+            Array after the differences have been calculated along the
+            specified axis.
         """
         diff_axis = cube.coord_dims(coord_name)[0]
         diff_along_axis = np.diff(cube.data, axis=diff_axis)
@@ -273,13 +268,12 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                 Cube from which the differences will be calculated.
 
         Returns:
-            (tuple): tuple containing:
-                **diff_along_x_cube**:
-                    Cube after the differences have been calculated along the
-                    x axis.
-                **diff_along_y_cube**:
-                    Cube after the differences have been calculated along the
-                    y axis.
+            **diff_along_x_cube**:
+                Cube after the differences have been calculated along the
+                x axis.
+            **diff_along_y_cube**:
+                Cube after the differences have been calculated along the
+                y axis.
 
         """
         diffs = []
@@ -330,8 +324,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
                 iris.util.guess_coord_axis.
 
         Returns:
-            iris.cube.Cube:
-                A cube of the gradients in the coordinate direction specified.
+            A cube of the gradients in the coordinate direction specified.
         """
         grad_cube = create_new_diagnostic_cube(
             "gradient_of_" + cube.name(),
@@ -358,8 +351,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
                 iris.util.guess_coord_axis.
 
         Returns:
-            numpy.ndarray:
-                Array of the gradients in the coordinate direction specified.
+            Array of the gradients in the coordinate direction specified.
         """
         grid_spacing = np.diff(diff.coord(axis=axis).points)[0]
         gradient = diff.data / grid_spacing
@@ -376,13 +368,12 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
                 Cube from which the differences will be calculated.
 
         Returns:
-            (tuple): tuple containing:
-                **gradient_along_x_cube**:
-                    Cube after the gradients have been calculated along the
-                    x axis.
-                **gradient_along_y_cube**:
-                    Cube after the gradients have been calculated along the
-                    y axis.
+            **gradient_along_x_cube**:
+                Cube after the gradients have been calculated along the
+                x axis.
+            **gradient_along_y_cube**:
+                Cube after the gradients have been calculated along the
+                y axis.
 
         """
         gradients = []
@@ -431,10 +422,9 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 Thresholded cube.
 
         Returns:
-            iris.cube.Cube:
-                Cube where the occurrences have been spatially spread, so that
-                they're equally likely to have occurred anywhere within the
-                vicinity defined using the specified distance.
+            Cube where the occurrences have been spatially spread, so that
+            they're equally likely to have occurred anywhere within the
+            vicinity defined using the specified distance.
 
         """
         grid_spacing = distance_to_number_of_grid_cells(cube, self.distance)
@@ -468,7 +458,6 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         Args:
             cube:
                 Thresholded cube.
-
         Returns:
             Iris.cube.Cube
                 Cube containing the occurrences within a vicinity for each
@@ -496,10 +485,9 @@ def lat_lon_determine(cube: Cube) -> Optional[Any]:
             A diagnostic cube to examine for coordinate system.
 
     Returns:
-        cartopy.crs.CRS or None:
-            Coordinate system of the diagnostic cube in a cartopy format unless
-            it is already a latitude/longitude grid, in which case None is
-            returned.
+        Coordinate system of the diagnostic cube in a cartopy format unless
+        it is already a latitude/longitude grid, in which case None is
+        returned.
 
     """
     trg_crs = None

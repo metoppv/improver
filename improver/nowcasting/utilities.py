@@ -73,9 +73,8 @@ class ExtendRadarMask(BasePlugin):
                     3: precip not detected & 1/32 mm/h NOT detectable
 
         Returns:
-            iris.cube.Cube:
-                Radar data with mask extended to mask out regions where
-                1/32 mm/h are not detectable
+            Radar data with mask extended to mask out regions where
+            1/32 mm/h are not detectable
         """
         # check cube coordinates match
         for crd in radar_data.coords():
@@ -198,9 +197,8 @@ class FillRadarHoles(BasePlugin):
                 A masked cube of radar precipitation rates
 
         Returns:
-            iris.cube.Cube:
-                A masked cube with continuous coverage over the radar composite
-                domain, where missing data has been interpolated
+            A masked cube with continuous coverage over the radar composite
+            domain, where missing data has been interpolated
         """
         # extract precipitation rate data in mm h-1
         masked_radar_mmh = masked_radar.copy()
@@ -261,9 +259,8 @@ class ApplyOrographicEnhancement(BasePlugin):
 
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the orographic enhancement field at the
-                required time.
+            Cube containing the orographic enhancement field at the
+            required time.
 
         Raises:
             ValueError: If required time step is not available within tolerance
@@ -290,9 +287,8 @@ class ApplyOrographicEnhancement(BasePlugin):
                 the validity time of the precipitation cube.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the precipitation rate field modified by the
-                orographic enhancement cube.
+            Cube containing the precipitation rate field modified by the
+            orographic enhancement cube.
 
         """
         # Convert orographic enhancement into the units of the precipitation
@@ -339,10 +335,9 @@ class ApplyOrographicEnhancement(BasePlugin):
                 with orographic enhancement.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the precipitation rate field where any
-                negative precipitation rates have been capped at the defined
-                minimum precipitation rate.
+            Cube containing the precipitation rate field where any
+            negative precipitation rates have been capped at the defined
+            minimum precipitation rate.
 
         """
         if self.operation == "subtract":
@@ -386,9 +381,8 @@ class ApplyOrographicEnhancement(BasePlugin):
                 Cube containing the orographic enhancement fields.
 
         Returns:
-            iris.cube.CubeList:
-                CubeList of precipitation rate cubes that have been updated
-                using orographic enhancement.
+            CubeList of precipitation rate cubes that have been updated
+            using orographic enhancement.
         """
         if isinstance(precip_cubes, iris.cube.Cube):
             precip_cubes = iris.cube.CubeList([precip_cubes])

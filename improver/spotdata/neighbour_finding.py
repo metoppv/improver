@@ -136,9 +136,8 @@ class NeighbourSelection(BasePlugin):
         provided.
 
         Returns:
-            str:
-                A string that describes the neighbour finding method employed.
-                This is essentially a concatenation of the options.
+            A string that describes the neighbour finding method employed.
+            This is essentially a concatenation of the options.
         """
         method_name = "{}{}{}".format(
             "nearest",
@@ -168,10 +167,9 @@ class NeighbourSelection(BasePlugin):
                 transformed. This should be the coordinate system of the model
                 from which data will be spot extracted.
         Returns:
-            numpy.ndarray:
-                An array containing the x and y coordinates of the spot sites
-                in the target coordinate system, shaped as (n_sites, 2). The
-                z coordinate column is excluded from the return.
+            An array containing the x and y coordinates of the spot sites
+            in the target coordinate system, shaped as (n_sites, 2). The
+            z coordinate column is excluded from the return.
         """
         return target_crs.transform_points(
             self.site_coordinate_system, x_points, y_points
@@ -212,19 +210,18 @@ class NeighbourSelection(BasePlugin):
                 data will be extracted.
 
         Returns:
-            (tuple): tuple containing:
-                **sites**:
-                    The sites modified to filter out the sites falling outside
-                    the grid domain of the cube.
-                **site_coords**:
-                    The site_coords modified to filter out the sites falling
-                    outside the grid domain of the cube.
-                **site_x_coords**:
-                    The x_coords modified to filter out the sites falling
-                    outside the grid domain of the cube.
-                **site_y_coords**:
-                    The y_coords modified to filter out the sites falling
-                    outside the grid domain of the cube.
+            **sites**:
+                The sites modified to filter out the sites falling outside
+                the grid domain of the cube.
+            **site_coords**:
+                The site_coords modified to filter out the sites falling
+                outside the grid domain of the cube.
+            **site_x_coords**:
+                The x_coords modified to filter out the sites falling
+                outside the grid domain of the cube.
+            **site_y_coords**:
+                The y_coords modified to filter out the sites falling
+                outside the grid domain of the cube.
         """
         # Get the grid domain limits
         x_min = cube.coord(axis="x").bounds.min()
@@ -285,9 +282,8 @@ class NeighbourSelection(BasePlugin):
             cube:
                 Cube containing a representative grid.
         Returns:
-            numpy.ndarray:
-                A list of shape (n_sites, 2) that contains the x and y indices
-                of the nearest grid points to the sites.
+            A list of shape (n_sites, 2) that contains the x and y indices
+            of the nearest grid points to the sites.
         """
         nearest_indices = np.zeros((len(site_coords), 2)).astype(np.int)
         for index, (x_point, y_point) in enumerate(site_coords):
@@ -321,10 +317,9 @@ class NeighbourSelection(BasePlugin):
                 An array of y coordinates that will represent one axis of the
                 mesh of coordinates to be transformed.
         Returns:
-            numpy.ndarray:
-                An array of all the xyz combinations that describe the nodes of
-                the grid, now in 3D geocentric cartesian coordinates. The shape
-                of the array is (n_nodes, 3), order x[:, 0], y[:, 1], z[:, 2].
+            An array of all the xyz combinations that describe the nodes of
+            the grid, now in 3D geocentric cartesian coordinates. The shape
+            of the array is (n_nodes, 3), order x[:, 0], y[:, 1], z[:, 2].
         """
         coordinate_system = cube.coord_system().as_cartopy_crs()
         cartesian_calculator = coordinate_system.as_geocentric()
@@ -345,15 +340,14 @@ class NeighbourSelection(BasePlugin):
                 A land mask cube for the model/grid from which grid point
                 neighbours are being selected.
         Returns:
-            (tuple): tuple containing:
-                **scipy.spatial.ckdtree.cKDTree**:
-                    A KDTree containing the required nodes, built using the
-                    scipy cKDTree method.
-                **numpy.ndarray**:
-                    An array of shape (n_nodes, 2) that contains the x and y
-                    indices that correspond to the selected node,
-                    e.g. node=100 -->  x_coord_index=10, y_coord_index=300,
-                    index_nodes[100] = [10, 300]
+            **scipy.spatial.ckdtree.cKDTree**:
+                A KDTree containing the required nodes, built using the
+                scipy cKDTree method.
+            **numpy.ndarray**:
+                An array of shape (n_nodes, 2) that contains the x and y
+                indices that correspond to the selected node,
+                e.g. node=100 -->  x_coord_index=10, y_coord_index=300,
+                index_nodes[100] = [10, 300]
         """
         if self.land_constraint:
             included_points = np.nonzero(land_mask.data)
@@ -408,10 +402,9 @@ class NeighbourSelection(BasePlugin):
                 An array of tree node indices identifying the neigbouring grid
                 points, the list corresponding to the array of distances.
         Returns:
-            numpy.ndarray or None:
-                A 2-element array giving the x and y indices of the chosen grid
-                point neighbour. Returns None if no valid neighbours were found
-                in the tree query.
+            A 2-element array giving the x and y indices of the chosen grid
+            point neighbour. Returns None if no valid neighbours were found
+            in the tree query.
         """
         # Values beyond the imposed search radius are set to inf,
         # these need to be excluded.
@@ -475,10 +468,9 @@ class NeighbourSelection(BasePlugin):
                 neighbours are being selected, with land points set to one and
                 sea points set to zero.
         Returns:
-            iris.cube.Cube:
-                A cube containing both the spot site information and for each
-                the grid point indices of its nearest neighbour as per the
-                imposed constraints.
+            A cube containing both the spot site information and for each
+            the grid point indices of its nearest neighbour as per the
+            imposed constraints.
         """
         # Check if we are dealing with a global grid.
         self.global_coordinate_system = orography.coord(axis="x").circular

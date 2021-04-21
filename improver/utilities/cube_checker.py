@@ -87,10 +87,9 @@ def check_cube_coordinates(
             new_cube but are not available within the original cube.
 
     Returns:
-        iris.cube.Cube:
-            Modified cube with relevant scalar coordinates promoted to
-            dimension coordinates with the dimension coordinates re-ordered,
-            as best as can be done based on the original cube.
+        Modified cube with relevant scalar coordinates promoted to
+        dimension coordinates with the dimension coordinates re-ordered,
+        as best as can be done based on the original cube.
 
     Raises:
         CoordinateNotFoundError : Raised if the final dimension
@@ -170,9 +169,8 @@ def find_dimension_coordinate_mismatch(
                 second_cube - first_cube
 
     Returns:
-        list of str:
-            List of the dimension coordinates that are only present in
-            one out of the two cubes.
+        List of the dimension coordinates that are only present in
+        one out of the two cubes.
 
     """
     first_dim_names = [coord.name() for coord in first_cube.dim_coords]
@@ -197,10 +195,9 @@ def spatial_coords_match(first_cube: Cube, second_cube: Cube) -> bool:
             Second cube to compare.
 
     Returns:
-        bool:
-            True if the x and y coords are the exactly the same to the
-            precision of the floating-point values (this should be true for
-            any cubes derived using cube.regrid()), otherwise False.
+        True if the x and y coords are the exactly the same to the
+        precision of the floating-point values (this should be true for
+        any cubes derived using cube.regrid()), otherwise False.
     """
     return first_cube.coord(axis="x") == second_cube.coord(
         axis="x"

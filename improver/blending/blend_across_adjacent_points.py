@@ -114,8 +114,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
                 Cube containing input for blending.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing central point.
+            Cube containing central point.
 
         Raises:
             ValueError: Central point is not available within the input cube.
@@ -151,11 +150,10 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
                 Cube containing input for blending.
 
         Returns:
-            iris.cube.Cube:
-                The processed cube, with the same coordinates as the input
-                central_cube. The points in one coordinate will be blended
-                with the adjacent points based on a triangular weighting
-                function of the specified width.
+            The processed cube, with the same coordinates as the input
+            central_cube. The points in one coordinate will be blended
+            with the adjacent points based on a triangular weighting
+            function of the specified width.
 
         """
         # Extract the central point from the input cube.
