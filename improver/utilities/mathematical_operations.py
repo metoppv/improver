@@ -119,7 +119,6 @@ class Integration(BasePlugin):
         Returns:
             The cube containing a coordinate that is monotonically
             increasing in the desired direction.
-
         """
         coord_name = self.coord_name_to_integrate
         increasing_order = np.all(np.diff(cube.coord(coord_name).points) > 0)
@@ -264,7 +263,6 @@ class Integration(BasePlugin):
 
         Returns:
             Cube containing the output from the integration.
-
         """
 
         def skip_slice(upper_bound, lower_bound, direction, start_point, end_point):

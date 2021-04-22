@@ -171,7 +171,6 @@ def find_dimension_coordinate_mismatch(
     Returns:
         List of the dimension coordinates that are only present in
         one out of the two cubes.
-
     """
     first_dim_names = [coord.name() for coord in first_cube.dim_coords]
     second_dim_names = [coord.name() for coord in second_cube.dim_coords]

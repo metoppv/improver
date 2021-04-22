@@ -65,6 +65,7 @@ def cycletime_to_datetime(
             cycletime_format supplied.
         cycletime_format:
             String containing the desired format for the cycletime.
+
     Returns:
         A correctly formatted datetime object.
     """
@@ -83,6 +84,7 @@ def datetime_to_cycletime(
             cycletime_format supplied.
         cycletime_format:
             String containing the desired format for the cycletime.
+
     Returns:
         A correctly formatted string.
     """

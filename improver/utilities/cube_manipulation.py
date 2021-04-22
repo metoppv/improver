@@ -476,7 +476,6 @@ def sort_coord_in_cube(cube: Cube, coord: str, descending: bool = False) -> Cube
 
     Warns:
         Warning if the coordinate being processed is a circular coordinate.
-
     """
     coord_to_sort = cube.coord(coord)
     if isinstance(coord_to_sort, DimCoord):
@@ -572,6 +571,7 @@ def clip_cube_data(cube: Cube, minimum_value: float, maximum_value: float) -> Cu
         maximum_value:
             The maximum value, with data in the cube that falls above this
             threshold set to it.
+
     Returns:
         The processed cube with the data clipped to the limits of the
         original preprocessed cube.

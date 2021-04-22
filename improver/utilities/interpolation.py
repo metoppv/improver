@@ -179,12 +179,14 @@ class InterpolateUsingDifference(BasePlugin):
                 is that if the interpolated values exceed the limit they should
                 be set to the limit value. If False, the test is whether the
                 interpolated values fall below the limit value.
+
         Return:
             iris.cube.Cube:
                 A copy of the input cube in which the missing data has been
                 populated with values obtained through interpolating the
                 difference field and subtracting the result from the reference
                 cube.
+
         Raises:
             ValueError: If the reference cube is not complete across the
                         entire domain.

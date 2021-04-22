@@ -88,6 +88,7 @@ def calc_solar_hour_angle(
             Day of the year 0 to 365, 0 = 1st January
         utc_hour:
             Hour of the day in UTC
+
     Returns:
         solar_hour_angle (float or numpy.ndarray)
             Hour angles in degrees East-West

@@ -81,7 +81,7 @@ def save_netcdf(
     filename: str,
     compression_level: int = 1,
     least_significant_digit: int = None,
-):
+) -> None:
     """Save the input Cube or CubeList as a NetCDF file and check metadata
     where required for integrity.
 
@@ -103,6 +103,7 @@ def save_netcdf(
             http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml
             for details. When used with `compression level`, this will result in lossy
             compression.
+
     Raises:
         warning if cubelist contains cubes of varying dimensions.
     """

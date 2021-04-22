@@ -85,7 +85,6 @@ class TemporalInterpolation(BasePlugin):
         Raises:
             ValueError: If neither interval_in_minutes nor times are set.
             ValueError: If interpolation method not in known list.
-
         """
         if interval_in_minutes is None and times is None:
             raise ValueError(
@@ -190,7 +189,6 @@ class TemporalInterpolation(BasePlugin):
         The units of forecast_period are enforced to be seconds with a datatype
         of int32. This functions modifies the cube in-place.
 
-
         Args:
             cube:
                 The cube that will have the datatype and units for the
@@ -201,7 +199,6 @@ class TemporalInterpolation(BasePlugin):
             Cube where the datatype and units for the
             time, forecast_reference_time and forecast_period coordinates
             have been enforced.
-
         """
         for coord_name in ["time", "forecast_reference_time", "forecast_period"]:
             coord_spec = TIME_COORDS[coord_name]
@@ -225,9 +222,9 @@ class TemporalInterpolation(BasePlugin):
                 Array 2d of latitudes for each point
             lons:
                 Array 2d of longitudes for each point
+
         Returns:
             Array of sine of solar elevation at each point
-
         """
         day_of_year = (dtval - datetime(dtval.year, 1, 1)).days
         utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
@@ -246,10 +243,10 @@ class TemporalInterpolation(BasePlugin):
         Args:
             cube:
                 cube containing x and y axis
+
         Returns:
             - 2d Array of latitudes for each point.
             - 2d Array of longitudes for each point.
-
         """
         trg_crs = lat_lon_determine(cube)
         if trg_crs is not None:
@@ -278,9 +275,9 @@ class TemporalInterpolation(BasePlugin):
             interpolated_cube:
                 cube containing Linear interpolation of
                 diag_cube at interpolation times in time_list.
+
         Returns:
             A list of cubes interpolated to the desired times.
-
         """
 
         interpolated_cubes = iris.cube.CubeList()
@@ -349,7 +346,6 @@ class TemporalInterpolation(BasePlugin):
 
         Returns:
             A list of cubes interpolated to the desired times.
-
         """
         daynightplugin = DayNightMask()
         daynight_mask = daynightplugin(interpolated_cube)

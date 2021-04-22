@@ -157,6 +157,7 @@ def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
             Cube for which the distance is to be calculated.
         grid_points:
             Number of grid points to convert.
+
     Returns:
         The radius in metres.
     """
@@ -167,7 +168,6 @@ def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
 
 
 class DifferenceBetweenAdjacentGridSquares(BasePlugin):
-
     """
     Calculate the difference between adjacent grid squares within
     a cube. The difference is calculated along the x and y axis
@@ -271,7 +271,6 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
               x axis.
             - Cube after the differences have been calculated along the
               y axis.
-
         """
         diffs = []
         for axis in ["x", "y"]:
@@ -369,7 +368,6 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
               x axis.
             - Cube after the gradients have been calculated along the
               y axis.
-
         """
         gradients = []
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)
@@ -395,7 +393,6 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             distance:
                 Distance in metres used to define the vicinity within which to
                 search for an occurrence.
-
         """
         self.distance = distance
 
@@ -420,7 +417,6 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             Cube where the occurrences have been spatially spread, so that
             they're equally likely to have occurred anywhere within the
             vicinity defined using the specified distance.
-
         """
         grid_spacing = distance_to_number_of_grid_cells(cube, self.distance)
 
@@ -457,7 +453,6 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         Returns:
             Cube containing the occurrences within a vicinity for each
             xy 2d slice, which have been merged back together.
-
         """
 
         max_cubes = CubeList([])
@@ -483,7 +478,6 @@ def lat_lon_determine(cube: Cube) -> Optional[Any]:
         Coordinate system of the diagnostic cube in a cartopy format unless
         it is already a latitude/longitude grid, in which case None is
         returned.
-
     """
     trg_crs = None
     if (
@@ -503,12 +497,10 @@ def transform_grid_to_lat_lon(cube: Cube) -> Tuple[ndarray, ndarray]:
             Cube with points to transform
 
     Returns
-        (tuple): tuple containing:
-            **lats**:
-                Array of cube.data.shape of Latitude values
-            **lons**:
-                Array of cube.data.shape of Longitude values
-
+        lats:
+            Array of cube.data.shape of Latitude values
+        lons:
+            Array of cube.data.shape of Longitude values
     """
     trg_latlon = ccrs.PlateCarree()
     trg_crs = cube.coord_system().as_cartopy_crs()

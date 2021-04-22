@@ -112,6 +112,7 @@ class ManageWarnings:
         Args:
             func:
                 A function that we want to wrap with this decorator.
+
         Returns:
             The wrapped function with the warnings context manager and
             necessary filters turned on.

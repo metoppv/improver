@@ -64,7 +64,6 @@ def create_sorted_lambda_constraint(
 
     Returns:
         Constraint representative of a range of values.
-
     """
     values = [float(i) for i in values]
     values = sorted(values)

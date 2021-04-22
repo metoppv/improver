@@ -58,7 +58,6 @@ def create_range_constraint(coord_name: str, value: str) -> Constraint:
 
     Returns:
         The constraint that has been created to represent the range.
-
     """
     value = value.replace("[", "").replace("]", "").split(":")
     constr = create_sorted_lambda_constraint(coord_name, value)
@@ -90,6 +89,7 @@ def create_constraint(value: Union[float, List[float]]) -> Union[Callable, List[
         value:
             Constraint values that are being used to match against values in a
             cube for the purposes of extracting elements of the cube.
+
     Returns:
         If the input value(s) are floating point this function returns a
         lambda function that will enable for approximate matching to
