@@ -33,6 +33,8 @@
 from collections import OrderedDict
 from typing import Any, Dict, List
 
+from iris.cube import Cube
+
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import wxcode_decision_tree_global
 
@@ -112,11 +114,11 @@ def expand_nested_lists(query: Dict, key: str) -> List:
     return items
 
 
-def update_daynight(cubewx):
+def update_daynight(cubewx: Cube) -> Cube:
     """ Update weather cube depending on whether it is day or night
 
     Args:
-        cubewx(iris.cube.Cube):
+        cubewx:
             Cube containing only daytime weather symbols.
 
     Returns:
@@ -124,7 +126,6 @@ def update_daynight(cubewx):
 
     Raises:
         CoordinateNotFoundError : cube must have time coordinate.
-
     """
     import numpy as np
     from iris.exceptions import CoordinateNotFoundError
@@ -217,7 +218,6 @@ def is_variable(thing: str) -> bool:
     Returns:
         False if thing is one of ["+", "-", "*", "/"] or if float(
         thing) does not raise a ValueError, else True.
-
     """
     valid_operators = ["+", "-", "*", "/"]
     try:
@@ -234,9 +234,9 @@ def get_parameter_names(diagnostic_fields: List[List[str]]) -> List[List[str]]:
 
     Args:
         diagnostic_fields:
+
     Returns:
         list of lists of str
-
     """
     parameter_names = []
     for condition in diagnostic_fields:

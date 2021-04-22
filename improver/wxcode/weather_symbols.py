@@ -100,7 +100,7 @@ class WeatherSymbols(BasePlugin):
         the input diagnostics. Use this decision tree to allocate a weather
         symbol to each point.
 
-        Key Args:
+        Args:
             wxtree:
                 Used to choose weather symbol decision tree.
                 Default is "high_resolution"
@@ -258,6 +258,7 @@ class WeatherSymbols(BasePlugin):
         Args:
             condition:
                 A single query from the decision tree.
+
         Returns:
             - A string representing the inverted comparison.
             - A string representing the inverted combination
@@ -275,6 +276,7 @@ class WeatherSymbols(BasePlugin):
         Args:
             test_conditions:
                 A query from the decision tree.
+
         Returns:
             A valid condition chain is defined recursively:
             (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
@@ -443,6 +445,7 @@ class WeatherSymbols(BasePlugin):
         Args:
             cubes:
                 List of input cubes used to generate weather symbols
+
         Returns:
             A cube with suitable metadata to describe the weather symbols
             that will fill it and data initiated with the value -1 to allow
