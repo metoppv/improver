@@ -74,7 +74,6 @@ class WindGustDiagnostic(PostProcessingPlugin):
                 Percentile value required from wind-gust cube.
             percentile_windspeed:
                 Percentile value required from wind-speed cube.
-
         """
         self.percentile_gust = percentile_gust
         self.percentile_windspeed = percentile_windspeed
@@ -95,10 +94,10 @@ class WindGustDiagnostic(PostProcessingPlugin):
         Args:
             cube:
                 Cube containing the wind-gust diagnostic data.
+
         Returns:
             Cube containing the wind-gust diagnostic data with
             corrected Metadata.
-
         """
         result = cube
         result.rename("wind_speed_of_gust")
@@ -129,7 +128,6 @@ class WindGustDiagnostic(PostProcessingPlugin):
         Returns:
             - Cube containing the required percentile data
             - Percentile coordinate.
-
         """
         if not isinstance(cube, iris.cube.Cube):
             msg = (
@@ -166,7 +164,6 @@ class WindGustDiagnostic(PostProcessingPlugin):
 
         Returns:
             Cube containing the wind-gust diagnostic data.
-
         """
 
         # Extract wind-gust data

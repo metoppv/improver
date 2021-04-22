@@ -94,7 +94,6 @@ class WindDirection(BasePlugin):
             "neighbourhood" (default) recalculates using the complex numbers
             approach with additional realizations extracted from neighbouring
             grid points from all available realizations.
-
     """
 
     def __init__(self, backup_method: str = "neighbourhood") -> None:
@@ -155,7 +154,6 @@ class WindDirection(BasePlugin):
         Returns:
             3D array or float - wind direction translated to
             complex numbers.
-
         """
 
         # Convert from degrees to radians.
@@ -184,10 +182,8 @@ class WindDirection(BasePlugin):
         Returns:
             3D array - wind direction in angle form
 
-        Raises
-        ------
-        TypeError: If complex_in is not an array.
-
+        Raises:
+            TypeError: If complex_in is not an array.
         """
 
         if not isinstance(complex_in, np.ndarray):
@@ -342,7 +338,7 @@ class WindDirection(BasePlugin):
            rerunning the main technique.
            This is invoked rarely (1 : 100 000)
 
-        Arguments:
+        Args:
             where_low_r:
                 Array of boolean values. True where original wind direction
                 estimate has low confidence. These points are replaced
@@ -410,10 +406,8 @@ class WindDirection(BasePlugin):
             - 3D array - The average distance from mean normalised - used
               as a confidence value.
 
-        Raises
-        ------
-        TypeError: If cube_wdir is not a cube.
-
+        Raises:
+            TypeError: If cube_wdir is not a cube.
         """
 
         if not isinstance(cube_ens_wdir, iris.cube.Cube):

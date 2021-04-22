@@ -85,7 +85,6 @@ class FrictionVelocity(BasePlugin):
             * z_0 and h_ref need to have identical units.
             * the calculated friction velocity will have the units of the
                 supplied velocity u_href.
-
         """
         self.u_href = u_href
         self.h_ref = h_ref
@@ -110,7 +109,6 @@ class FrictionVelocity(BasePlugin):
 
         Returns:
             A 2D array of float32 friction velocities
-
         """
         ustar = np.full(self.u_href.shape, RMDI, dtype=np.float32)
         numerator = self.u_href[self.mask]
@@ -134,7 +132,6 @@ class RoughnessCorrectionUtilities:
      * model grid orography interpolated on post-processing grid modoro
      * height level 3D/ 1D grid
      * windspeed 3D field on height level 3D grid (from above).
-
     """
 
     def __init__(
@@ -173,7 +170,6 @@ class RoughnessCorrectionUtilities:
                 Float - Grid cell length of post processing grid
             modres:
                 Float - Grid cell length of model grid
-
         """
         self.a_over_s = a_over_s
         self.z_0 = z_0
@@ -200,7 +196,6 @@ class RoughnessCorrectionUtilities:
         done before because the mask is used to calculate the
         wavenumber which can and should be calculated for all points
         where h_over_2 and a_over_s is a valid number.
-
         """
         self.hcmask[self.pporo == RMDI] = False
         self.hcmask[self.modoro == RMDI] = False
@@ -220,7 +215,6 @@ class RoughnessCorrectionUtilities:
               false for Sea (HC)
             - 2D array of booleans- additionally False for
               invalid z_0 (RC)
-
         """
         hcmask = np.full(self.h_over_2.shape, True, dtype=bool)
         hcmask[self.h_over_2 <= 0] = False
@@ -257,7 +251,6 @@ class RoughnessCorrectionUtilities:
         Comments:
             Points that had sigma = 0 (i.e. sea points) are set to
             RMDI.
-
         """
         h_o_2 = np.full(sigma.shape, RMDI, dtype=np.float32)
         h_o_2[sigma > 0] = sigma[sigma > 0] * np.sqrt(2.0)
@@ -309,7 +302,6 @@ class RoughnessCorrectionUtilities:
         Returns:
             2D array float32 - wavenumber in units of inverse units of
             supplied h_over_2.
-
         """
         wavn = np.full(self.a_over_s.shape, RMDI, dtype=np.float32)
         wavn[self.hcmask] = (self.a_over_s[self.hcmask] * np.pi) / self.h_over_2[
@@ -342,7 +334,6 @@ class RoughnessCorrectionUtilities:
 
         Returns:
             2D array float32 - reference height for roughness correction
-
         """
         alpha = -np.log(ABSOLUTE_CORRECTION_TOL)
         tunable_param = np.full(self.wavenum.shape, RMDI, dtype=np.float32)
@@ -382,7 +373,6 @@ class RoughnessCorrectionUtilities:
             that increases logarithmically with height, bound by the original
             velocity uhref at the reference height h_ref and by a 0 velocity at
             the vegetative roughness height z_0
-
         """
         uhref = self._calc_u_at_h(uold, hgrid, self.h_ref, mask)
         if hgrid.ndim == 1:
@@ -429,7 +419,6 @@ class RoughnessCorrectionUtilities:
 
         Returns:
             2D array float32 - velocity interpolated at h
-
         """
         u_in = np.ma.masked_less(u_in, 0.0)
         h_in = np.ma.masked_less(h_in, 0.0)
@@ -498,7 +487,6 @@ class RoughnessCorrectionUtilities:
         Returns:
             2D array float32 - y(at_x) assuming a lin function
             between xlow and xup
-
         """
         interp = np.full(xup.shape, RMDI, dtype=np.float32)
         diffs = xup - xlow
@@ -532,7 +520,6 @@ class RoughnessCorrectionUtilities:
         Returns:
             2D array float32 - y(at_x) assuming a log function
             between xlow and xup
-
         """
         ain = np.full(xup.shape, RMDI, dtype=np.float32)
         loginterp = np.full(xup.shape, RMDI, dtype=np.float32)
@@ -583,7 +570,6 @@ class RoughnessCorrectionUtilities:
 
             A final factor of 1 is assumed and omitted for the Bessel
             function term.
-
         """
         (xdim, ydim) = u_a.shape
         if heightg.ndim == 1:
@@ -607,7 +593,6 @@ class RoughnessCorrectionUtilities:
 
         Returns:
             2D array float32 - height difference, ppgrid-model
-
         """
         delt_z = np.full(self.pporo.shape, RMDI, dtype=np.float32)
         delt_z[self.hcmask] = self.pporo[self.hcmask] - self.modoro[self.hcmask]
@@ -628,7 +613,6 @@ class RoughnessCorrectionUtilities:
 
         Friedrich, M. M., 2016
         Wind Downscaling Program (Internal Met Office Report)
-
         """
         if hgrid.ndim == 3:
             condition1 = (hgrid == RMDI).any(axis=2)
@@ -734,7 +718,6 @@ class RoughnessCorrection(PostProcessingPlugin):
             - name of the axis name in y-direction
             - name of the axis name in z-direction
             - name of the axis name in t-direction
-
         """
         clist = {cube.coords()[i].name() for i in range(len(cube.coords()))}
         try:
@@ -765,7 +748,6 @@ class RoughnessCorrection(PostProcessingPlugin):
 
         Returns:
             Average grid resolution.
-
         """
         x_name, y_name, _, _ = self.find_coord_names(a_cube)
         [exp_xname, exp_yname] = ["projection_x_coordinate", "projection_y_coordinate"]
@@ -813,7 +795,6 @@ class RoughnessCorrection(PostProcessingPlugin):
 
         Returns:
             Containing bools describing whether or not the tests passed
-
         """
         ancil_list = [a_over_s_cube, sigma_cube, pp_oro_cube, model_oro_cube]
         unwanted_coord_list = [
@@ -872,7 +853,6 @@ class RoughnessCorrection(PostProcessingPlugin):
             - position of y axis.
             - position of z axis.
             - position of t axis.
-
         """
         coord_names = [self.x_name, self.y_name, self.z_name, self.t_name]
         positions = len(coord_names) * [np.nan]
@@ -894,7 +874,6 @@ class RoughnessCorrection(PostProcessingPlugin):
 
         Returns:
             1D or 3D array - representing the height grid.
-
         """
         if self.height_levels is None:
             hld = wind.coord(self.z_name).points
@@ -933,7 +912,6 @@ class RoughnessCorrection(PostProcessingPlugin):
                 representing the position of the x-axis in the wind cube
             ywp:
                 representing the position of the y-axis of the wind cube
-
         """
         xap, yap, _, _ = self.find_coord_order(self.pp_oro)
         if xwp - ywp != xap - yap:
@@ -953,10 +931,8 @@ class RoughnessCorrection(PostProcessingPlugin):
             The 4d wind field with roughness and height correction
             applied in the same order as the input cube.
 
-        Raises
-        ------
-        TypeError: If input_cube is not a cube.
-
+        Raises:
+            TypeError: If input_cube is not a cube.
         """
         if not isinstance(input_cube, iris.cube.Cube):
             msg = "wind input is not a cube, but {}"
