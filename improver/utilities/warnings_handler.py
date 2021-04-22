@@ -32,9 +32,7 @@
 
 import sys
 import warnings
-from typing import Any, Callable, List
-
-from mypy_extensions import NoReturn
+from typing import Any, Callable, List, NoReturn
 
 
 class ManageWarnings:
