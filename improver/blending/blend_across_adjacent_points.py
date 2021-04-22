@@ -118,7 +118,6 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
 
         Raises:
             ValueError: Central point is not available within the input cube.
-
         """
         # Convert central point into the units of the cube, so that a
         # central point can be extracted.
@@ -154,7 +153,6 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
             central_cube. The points in one coordinate will be blended
             with the adjacent points based on a triangular weighting
             function of the specified width.
-
         """
         # Extract the central point from the input cube.
         central_point_cube = self._find_central_point(cube)

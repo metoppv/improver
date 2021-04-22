@@ -579,6 +579,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 Template cube to reshape weights, with a leading blend coordinate
             weights:
                 Cube of initial blending weights or None
+
         Returns:
             An array of weights that matches the template cube shape.
         """
@@ -602,6 +603,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
                 in process).
             weights:
                 Cube of blending weights.
+
         Returns:
             The cube with percentile values blended over self.blend_coord,
             with suitable weightings applied.
