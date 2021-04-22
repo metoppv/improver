@@ -77,7 +77,6 @@ class Accumulation(BasePlugin):
             forecast_periods:
                 The forecast periods in seconds that define the end of an
                 accumulation period.
-
         """
         self.accumulation_units = accumulation_units
         self.accumulation_period = accumulation_period
@@ -102,6 +101,7 @@ class Accumulation(BasePlugin):
         Args:
             cubes:
                 A cubelist containing input precipitation rate cubes.
+
         Returns:
             - The cubelist in ascending time order.
             - A list of the validity times of the precipitation rate
@@ -137,7 +137,6 @@ class Accumulation(BasePlugin):
                 between the rates cubes.
             ValueError: The specified accumulation period is not cleanly
                 divisible by the time interval.
-
         """
         # Standardise inputs to expected units
         standardised_cubes = []
@@ -223,7 +222,9 @@ class Accumulation(BasePlugin):
 
         return cubes, time_interval
 
-    def _get_cube_subsets(self, cubes: CubeList, forecast_period: Union[int, ndarray]):
+    def _get_cube_subsets(
+        self, cubes: CubeList, forecast_period: Union[int, ndarray]
+    ) -> CubeList:
         """Finding the subset of cubes from the input cubelist that are
         within the accumulation period, based on the required forecast period
         that defines the upper bound of the accumulation period and the length
@@ -240,7 +241,6 @@ class Accumulation(BasePlugin):
         Returns:
             Cubelist that defines the cubes used to calculate
             the accumulations.
-
         """
         # If the input is a numpy array, get the integer value from the array
         # for use in the constraint.
@@ -280,7 +280,6 @@ class Accumulation(BasePlugin):
             None is returned.
             If an accumulation can be successfully computed, then a
             numpy array is returned.
-
         """
         accumulation = 0.0
         # Accumulations are calculated using the mean precipitation rate
@@ -305,7 +304,6 @@ class Accumulation(BasePlugin):
 
         Returns:
             Accumulation cube with the desired metadata.
-
         """
         cube_name = "lwe_thickness_of_precipitation_amount"
         accumulation_cube = expand_bounds(

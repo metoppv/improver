@@ -120,7 +120,6 @@ class NowcastLightning(PostProcessingPlugin):
                 lightning probability.  The value supplied applies at T+0
                 and increases to 2*radius at T+6 hours.  The radius is applied
                 in "process" using the circular neighbourhood plugin.
-
         """
         self.radius = radius
         lead_times = [0.0, 6.0]

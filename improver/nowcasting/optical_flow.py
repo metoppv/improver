@@ -388,6 +388,7 @@ class OpticalFlow(BasePlugin):
             axis:
                 Optional (0 or 1): average over 2 adjacent points along the
                 specified axis, rather than all 4 corners
+
         Returns:
             2D gridded interpolated average (dimensions M-1 x N-1 if
             axis=None; M-1 x N if axis=0; M x N-1 if axis=1)
@@ -463,7 +464,6 @@ class OpticalFlow(BasePlugin):
               slices of data from input field.
             - 1D numpy array containing weights values associated with
               each listed box.
-
         """
         boxes = []
         weights = []
@@ -554,7 +554,6 @@ class OpticalFlow(BasePlugin):
 
         Returns:
             Smoothed data on input-shaped grid
-
         """
         if method == "kernel":
             kernel = self.makekernel(radius)
@@ -639,7 +638,6 @@ class OpticalFlow(BasePlugin):
 
         Returns:
             Smoothed displacement vectors on input data grid
-
         """
         v_orig = np.copy(box_data)
 
@@ -674,7 +672,6 @@ class OpticalFlow(BasePlugin):
 
         Returns:
             2-column matrix (u, v) containing scalar displacement values
-
         """
         deriv_t = deriv_t.reshape([deriv_t.size, 1])
         m_to_invert = (deriv_xy.transpose()).dot(deriv_xy)
@@ -793,7 +790,6 @@ class OpticalFlow(BasePlugin):
         Warns:
             Warning: If the proportion of zero advection velocities is
                 above the threshold specified by zero_vel_threshold.
-
         """
         zeroes_in_rain = np.count_nonzero(vel_comp[rain_mask] == 0)
         rain_pixels = vel_comp[rain_mask].size
