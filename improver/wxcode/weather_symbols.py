@@ -473,12 +473,10 @@ class WeatherSymbols(BasePlugin):
         """Compare two arrays element-wise and return a boolean array.
 
         Args:
-            arr (numpy.array)
-
+            arr
             comparator:
                 One of  '<', '>', '<=', '>='.
-
-            threshold (float)
+            threshold
 
         Returns:
             Array of booleans.

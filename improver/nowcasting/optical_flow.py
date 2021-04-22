@@ -157,10 +157,11 @@ def _perturb_background_flow(
     has the units of the adjustment field.
 
     Args:
-        background (list of iris.cube.Cube)
-        adjustment (list of iris.cube.Cube)
+        background
+        adjustment
+
     Returns:
-        iris.cube.CubeList
+        The adjusted CubeList.
     """
     for flow, adj in zip(background, adjustment):
         flow.convert_units(adj.units)

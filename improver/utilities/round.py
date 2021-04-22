@@ -43,7 +43,7 @@ def round_close(
     data is expected to be very close to the nearest integer.
 
     Args:
-        data (np.ndarray of float or float)
+        data
             Data that is very close to the nearest integer value
         dtype:
             Required integer datatype

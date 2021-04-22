@@ -151,7 +151,8 @@ class CubeCombiner(BasePlugin):
         Perform cumulative operation to combine cube data
 
         Args:
-            cube_list (list of iris.cube.Cube)
+            cube_list
+
         Returns:
             iris.cube.Cube
 
@@ -236,7 +237,8 @@ class CubeMultiplier(CubeCombiner):
         match the dimensions, in order, of the first cube in the list
 
         Args:
-            cube_list (list of iris.cube.Cube)
+            cube_list
+
         Returns:
             iris.cube.CubeList
                 Updated version of cube_list

@@ -199,18 +199,17 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         """Call scipy minimize with the options provided.
 
         Args:
-            minimisation_function (method instance)
-            initial_guess (list)
-            forecast_predictor (numpy.ndarray)
-            truth (numpy.ndarray)
-            forecast_var (numpy.ndarray)
+            minimisation_function
+            initial_guess
+            forecast_predictor
+            truth
+            forecast_var
             sqrt_pi:
                 Square root of pi for minimisation.
-            predictor (str)
+            predictor
 
         Return:
-            numpy.ndarray:
-                A single set of coefficients with the order [alpha, beta, gamma, delta].
+            A single set of coefficients with the order [alpha, beta, gamma, delta].
 
         """
         optimised_coeffs = minimize(
@@ -242,16 +241,16 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         coefficient calculation.
 
         Args:
-            initial_guess (list)
-            forecast_predictor_data (numpy.ndarray)
-            truth_data (numpy.ndarray)
-            forecast_var_data (numpy.ndarray)
+            initial_guess
+            forecast_predictor_data
+            truth_data
+            forecast_var_data
+
         Returns:
-            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.ndarray, numpy.float64]
-                Tuple containing the initial guess, forecast predictor, truth
-                and forecast variance that have been set to float64 precision
-                as well as defining a square root of pi variable with float64
-                precision.
+            Tuple containing the initial guess, forecast predictor, truth
+            and forecast variance that have been set to float64 precision
+            as well as defining a square root of pi variable with float64
+            precision.
         """
         return (
             np.array(initial_guess, dtype=np.float64),
@@ -847,7 +846,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         coordinate.
 
         Args:
-            optimised_coeffs (numpy.ndarray)
+            optimised_coeffs
             historic_forecasts:
                 Historic forecasts from the training dataset.
 
@@ -1620,7 +1619,7 @@ class ApplyEMOS(PostProcessingPlugin):
         or percentile space
 
         Args:
-            forecast (iris.cube.Cube)
+            forecast
         """
         try:
             find_percentile_coordinate(forecast)
@@ -1637,11 +1636,11 @@ class ApplyEMOS(PostProcessingPlugin):
         pseudo-realizations
 
         Args:
-            forecast (iris.cube.Cube)
+            forecast
             realizations_count:
                 Number of pseudo-realizations to generate from the input
                 forecast
-            ignore_ecc_bounds (bool)
+            ignore_ecc_bounds
         """
         if not realizations_count:
             raise ValueError(

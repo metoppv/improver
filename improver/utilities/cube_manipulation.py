@@ -102,9 +102,10 @@ def get_dim_coord_names(cube: Cube) -> List[str]:
     Returns an ordered list of dimension coordinate names on the cube
 
     Args:
-        cube (iris.cube.Cube)
+        cube
+
     Returns:
-        list of str
+        List of dimension coordinate names
     """
     return [coord.name() for coord in cube.coords(dim_coords=True)]
 
@@ -114,9 +115,10 @@ def get_coord_names(cube: Cube) -> List[str]:
     Returns a list of all coordinate names on the cube
 
     Args:
-        cube (iris.cube.Cube)
+        cube
+
     Returns:
-        list of str
+        List of all coordinate names
     """
     return [coord.name() for coord in cube.coords()]
 
@@ -162,9 +164,10 @@ def strip_var_names(cubes: CubeList) -> CubeList:
     required to support probabilistic metadata.  Inputs are modified in place.
 
     Args:
-        cubes (iris.cube.CubeList or iris.cube.Cube)
+        cubes
+
     Returns:
-        iris.cube.CubeList
+        cubes with stripped var_name
     """
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])

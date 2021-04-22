@@ -182,7 +182,7 @@ def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> No
     Modifies cube in place.
 
     Args:
-        blended_cube (iris.cube.Cube)
+        blended_cube
         cycletime:
             Current cycletime in YYYYMMDDTHHmmZ format
     """
@@ -210,7 +210,7 @@ def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
     the cube after blending.
 
     Args:
-        blended_cube (iris.cube.Cube)
+        blended_cube
         cycletime:
             Current cycletime in YYYYMMDDTHHmmZ format
 

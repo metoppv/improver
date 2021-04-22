@@ -179,10 +179,9 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         """Rename cube, add attribute and cell method to describe difference.
 
         Args:
-            diff_cube (iris.cube.Cube)
-            coord_name (str)
-            cube_name (str)
-
+            diff_cube
+            coord_name
+            cube_name
         """
         # Add metadata to indicate that a difference has been calculated.
         # TODO: update metadata for difference when

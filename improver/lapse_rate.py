@@ -61,8 +61,8 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         temperature and lapse rate cubes
 
         Args:
-            temperature (iris.cube.Cube)
-            lapse_rate (iris.cube.Cube)
+            temperature
+            lapse_rate
         """
         for crd in temperature.coords(dim_coords=True):
             try:

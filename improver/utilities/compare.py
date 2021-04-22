@@ -67,17 +67,20 @@ def compare_netcdfs(
     Compare two netCDF files.
 
     Args:
-        actual_path (os.Pathlike): data file produced by test run
-        desired_path (os.Pathlike): data file considered good eg. KGO
-        rtol (float): relative tolerance
-        atol (float): absolute tolerance
-        exclude_vars (Iterable[str]): variable names to exclude from comparison
-        ignored_attributes (Optional(List[str])): list of attributes to exclude
-            from comparison.
-        reporter (Callable[[str], None]): callback function for
-            reporting differences
-    Returns:
-        None
+        actual_path:
+            data file produced by test run
+        desired_path:
+            data file considered good eg. KGO
+        rtol:
+            relative tolerance
+        atol:
+            absolute tolerance
+        exclude_vars:
+            variable names to exclude from comparison
+        ignored_attributes:
+            list of attributes to exclude from comparison.
+        reporter:
+            callback function for reporting differences
     """
 
     def raise_reporter(message):
@@ -129,18 +132,22 @@ def compare_datasets(
     python-netCDF4.
 
     Args:
-        name (str): group name
-        actual_ds (netCDF.Dataset): dataset produced by test run
-        desired_ds (netCDF.Dataset): dataset considered good
-        rtol (float): relative tolerance
-        atol (float): absolute tolerance
-        exclude_vars (List[str]): variable names to exclude from comparison
-        ignored_attributes (Optional(List[str])): list of attributes to exclude
-            from comparison.
-        reporter (Callable[[str], None]): callback function for
-            reporting differences
-    Returns:
-        None
+        name:
+            group name
+        actual_ds:
+            dataset produced by test run
+        desired_ds:
+            dataset considered good
+        rtol:
+            relative tolerance
+        atol:
+            absolute tolerance
+        exclude_vars:
+            variable names to exclude from comparison
+        ignored_attributes:
+            list of attributes to exclude from comparison.
+        reporter:
+            callback function for reporting differences
     """
     compare_attributes("root", actual_ds, desired_ds, ignored_attributes, reporter)
     actual_groups = set(actual_ds.groups.keys())
@@ -193,14 +200,16 @@ def compare_dims(
     Compare dimensions in a netCDF dataset/group.
 
     Args:
-        name (str): group name
-        actual_ds (netCDF.Dataset): dataset produced by test run
-        desired_ds (netCDF.Dataset): dataset considered good
-        exclude_vars (List[str]): variable names to exclude from comparison
-        reporter (Callable[[str], None]): callback function for
-            reporting differences
-    Returns:
-        None
+        name:
+            group name
+        actual_ds:
+            dataset produced by test run
+        desired_ds:
+            dataset considered good
+        exclude_vars:
+            variable names to exclude from comparison
+        reporter:
+            callback function for reporting differences
     """
     if exclude_vars is None:
         exclude_vars = []
@@ -231,23 +240,27 @@ def compare_vars(
     exclude_vars: List[str],
     ignored_attributes: Optional[List[str]],
     reporter: Callable[[str], None],
-):
+) -> None:
     """
     Compare variables in a netCDF dataset/group.
 
     Args:
-        name (str): group name
-        actual_ds (netCDF.Dataset): dataset produced by test run
-        desired_ds (netCDF.Dataset): dataset considered good
-        rtol (float): relative tolerance
-        atol (float): absolute tolerance
-        exclude_vars (List[str]): variable names to exclude from comparison
-        ignored_attributes (Optional(List[str])): list of attributes to exclude
-            from comparison.
-        reporter (Callable[[str], None]): callback function for
-            reporting differences
-    Returns:
-        None
+        name:
+            group name
+        actual_ds:
+            dataset produced by test run
+        desired_ds:
+            dataset considered good
+        rtol:
+            relative tolerance
+        atol:
+            absolute tolerance
+        exclude_vars:
+            variable names to exclude from comparison
+        ignored_attributes:
+            list of attributes to exclude from comparison.
+        reporter:
+            callback function for reporting differences
     """
     if exclude_vars is None:
         exclude_vars = []
@@ -290,15 +303,16 @@ def compare_attributes(
     Compare attributes in a netCDF dataset/group.
 
     Args:
-        name (str): group name
-        actual_ds (netCDF.Dataset): dataset produced by test run
-        desired_ds (netCDF.Dataset): dataset considered good
-        ignored_attributes (Optional(List[str])): list of attributes to exclude
-            from comparison.
-        reporter (Callable[[str], None]): callback function for
-            reporting differences
-    Returns:
-        None
+        name:
+            group name
+        actual_ds:
+            dataset produced by test run
+        desired_ds:
+            dataset considered good
+        ignored_attributes:
+            list of attributes to exclude from comparison.
+        reporter:
+            callback function for reporting differences
     """
     actual_attrs = set(actual_ds.ncattrs())
     desired_attrs = set(desired_ds.ncattrs())
@@ -353,15 +367,18 @@ def compare_data(
     Compare attributes in a netCDF variable.
 
     Args:
-        name (str): variable name
-        actual_var (netCDF.Variable): variable produced by test run
-        desired_var (netCDF.Variable): variable considered good
-        rtol (float): relative tolerance
-        atol (float): absolute tolerance
-        reporter (Callable[[str], None]): callback function for
-            reporting differences
-    Returns:
-        None
+        name:
+            variable name
+        actual_var:
+            variable produced by test run
+        desired_var:
+            variable considered good
+        rtol:
+            relative tolerance
+        atol:
+            absolute tolerance
+        reporter:
+            callback function for reporting differences
     """
     if actual_var.dtype != desired_var.dtype:
         msg = f"different type {name} - {actual_var.dtype} {desired_var.dtype}"

@@ -334,9 +334,9 @@ class RecursiveFilter(PostProcessingPlugin):
         Zero all smoothing coefficients for data points that are masked
 
         Args:
-            coeffs_x (iris.cube.Cube)
-            coeffs_y (iris.cube.Cube)
-            mask (iris.cube.Cube)
+            coeffs_x
+            coeffs_y
+            mask
 
         Returns:
             Updated smoothing coefficients
