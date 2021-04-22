@@ -92,6 +92,7 @@ def _svp_from_lookup(temperature: ndarray) -> ndarray:
     Args:
         temperature:
             Array of air temperatures (K).
+
     Returns:
         Array of saturated vapour pressures (Pa).
     """
@@ -135,7 +136,6 @@ def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
 
 
 class WetBulbTemperature(BasePlugin):
-
     """
     A plugin to calculate wet bulb temperatures from air temperature, relative
     humidity, and pressure data. Calculations are performed using a Newton
@@ -150,7 +150,6 @@ class WetBulbTemperature(BasePlugin):
     References:
         Met Office UM Documentation Paper 080, UM Version 10.8,
         last updated 2014-12-05.
-
     """
 
     def __init__(self, precision: float = 0.005) -> None:
@@ -207,6 +206,7 @@ class WetBulbTemperature(BasePlugin):
         Args:
             temperature:
                 Array of air temperatures (K).
+
         Returns:
             Temperature adjusted latent heat of condensation (J kg-1).
         """
@@ -250,6 +250,7 @@ class WetBulbTemperature(BasePlugin):
         Args:
             mixing_ratio:
                 Array of specific humidity (fractional).
+
         Returns:
             Specific heat capacity of moist air (J kg-1 K-1).
         """
@@ -284,6 +285,7 @@ class WetBulbTemperature(BasePlugin):
                 (J kg-1).
             temperature:
                 Array of air temperatures (K).
+
         Returns:
            Array of enthalpy values calculated at the same points as the
            input cubes (J kg-1).
@@ -407,7 +409,6 @@ class WetBulbTemperature(BasePlugin):
 
         Returns:
             Cube of wet bulb temperature (K).
-
         """
         temperature.convert_units("K")
         relative_humidity.convert_units(1)
@@ -586,7 +587,6 @@ class PhaseChangeLevel(BasePlugin):
 
         Returns:
             Phase change level data asl.
-
         """
         # Create cube of heights above sea level for each height in
         # the wet bulb integral cube.
@@ -641,7 +641,7 @@ class PhaseChangeLevel(BasePlugin):
         intercept: ndarray,
         phase_change_level_data: ndarray,
         sea_points: ndarray,
-    ):
+    ) -> None:
         r"""
         Find the phase change level below sea level using the linear
         extrapolation of the wet bulb temperature integral and update the
@@ -705,7 +705,6 @@ class PhaseChangeLevel(BasePlugin):
                 change levels calculated through extrapolation.
             sea_points:
                 A boolean array with True where the points are sea points.
-
         """
 
         # Make sure we only try to extrapolate points with a valid gradient.
@@ -770,15 +769,14 @@ class PhaseChangeLevel(BasePlugin):
                 linear fit.
 
         Returns:
-            **gradient** - An array, the same shape as a
-            2D slice of the wet_bulb_temperature input, containing the
-            gradients of the fitted straight line at each point where it
-            could be found, filled with zeros elsewhere.
-            **intercept** - An array, the same shape as a
-            2D slice of the wet_bulb_temperature input, containing the
-            intercepts of the fitted straight line at each point where it
-            could be found, filled with zeros elsewhere.
-
+            - An array, the same shape as a
+              2D slice of the wet_bulb_temperature input, containing the
+              gradients of the fitted straight line at each point where it
+              could be found, filled with zeros elsewhere.
+            - An array, the same shape as a
+              2D slice of the wet_bulb_temperature input, containing the
+              intercepts of the fitted straight line at each point where it
+              could be found, filled with zeros elsewhere.
         """
         # Set up empty arrays for gradient and intercept
         result_shape = wet_bulb_temperature.shape[1:]
@@ -830,7 +828,6 @@ class PhaseChangeLevel(BasePlugin):
             heights:
                 The vertical height levels above orography, matching the
                 leading dimension of the wet_bulb_temperature.
-
         """
         sea_points = (
             np.isnan(phase_change_level_data)
@@ -858,6 +855,7 @@ class PhaseChangeLevel(BasePlugin):
             orography_cube:
                 The cube containing a single 2 dimensional array of orography
                 data
+
         Returns:
             The cube containing the maximum in the grid_point_radius neighbourhood
             of the orography data or the orography data itself if the radius is zero
@@ -913,7 +911,6 @@ class PhaseChangeLevel(BasePlugin):
 
         Returns:
             Level at which phase changes
-
         """
         phase_change_data = self.find_falling_level(
             wb_integral, orography, height_points

@@ -63,6 +63,7 @@ class PrecipPhaseProbability(BasePlugin):
     def __init__(self, radius: float = 10000.0) -> None:
         """
         Initialise plugin
+
         Args:
             radius:
                 Neighbourhood radius from which 80th percentile is found (m)
@@ -97,7 +98,6 @@ class PrecipPhaseProbability(BasePlugin):
             ValueError: If cubes does not have the expected length of 2.
             ValueError: If the extracted cubes do not have matching spatial
                         coordinates.
-
         """
         if isinstance(cubes, list):
             cubes = iris.cube.CubeList(cubes)

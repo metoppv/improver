@@ -73,6 +73,9 @@ class SignificantPhaseMask(BasePlugin):
         """Ensures that the input snow-fraction field has appropriate name
         (snow_fraction), units (1) and data (between 0 and 1 inclusive).
 
+        Args:
+            snow_fraction
+
         Raises
             ValueError:
                 If any of the above are not True.
