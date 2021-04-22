@@ -54,7 +54,6 @@ def _is_time_coord(obj: Union[Cube, Coord]) -> bool:
 
     Returns:
         True if obj is a recognised time coord.
-
     """
     return isinstance(obj, iris.coords.Coord) and obj.name() in TIME_COORDS
 
@@ -93,7 +92,6 @@ def check_dtype(obj: Union[Cube, Coord]) -> bool:
 
     Returns:
         True if obj is of the mandated dtype.
-
     """
     # if coord, acts on coord.points
     req_dtype = get_required_dtype(obj)
@@ -124,7 +122,6 @@ def enforce_dtype(
     Raises:
         TypeError:
             If result.dtype does not match the meta-data standard.
-
     """
     if not check_dtype(result):
         unique_cube_types = set([c.dtype for c in inputs])
@@ -164,7 +161,6 @@ def check_units(obj: Union[Cube, Coord]) -> bool:
     Returns:
         True if obj meets the mandatory units requirements or has no
         mandatory units requirement.
-
     """
     req_units = get_required_units(obj)
     if req_units is None:
@@ -198,7 +194,6 @@ def check_mandatory_standards(cube: Cube) -> None:
 
         Returns:
             Contains formatted strings describing each conformance breach.
-
         """
         dtype_ok = check_dtype(obj)
         units_ok = check_units(obj)

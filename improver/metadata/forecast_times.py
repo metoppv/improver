@@ -214,7 +214,6 @@ def add_blend_time(cube: Cube, cycletime: str) -> None:
             Cube to add blend time coordinate
         cycletime:
             Required blend time in a YYYYMMDDTHHMMZ format e.g. 20171122T0100Z
-
     """
     cycle_datetime = cycletime_to_datetime(cycletime)
     blend_coord = _create_frt_type_coord(cube, cycle_datetime, name="blend_time")

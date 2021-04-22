@@ -135,6 +135,7 @@ def generate_mandatory_attributes(
         model_id_attr:
             Name of attribute used to identify source model for blending,
             if required
+
     Returns:
         Dictionary of mandatory attribute "key": "value" pairs.
     """
@@ -164,6 +165,7 @@ def generate_hash(data_in: Any) -> str:
         data_in:
             The data from which a hash is to be generated. This can be of any
             type that can be pretty printed.
+
     Returns:
         A hexadecimal string which is a hash hexdigest of the data as a
         string.
@@ -182,6 +184,7 @@ def create_coordinate_hash(cube: Cube) -> str:
         cube:
             The cube from which x and y coordinates will be used to
             generate a hash.
+
     Returns:
         A hash created using the x and y coordinates of the input cube.
     """

@@ -48,6 +48,9 @@ def probability_cube_name_regex(cube_name: str) -> Optional[Match]:
     Args:
         cube_name:
             Probability cube name
+
+    Returns:
+        The regex match
     """
     regex = re.compile(
         "(probability_of_)"  # always starts this way
@@ -128,7 +131,7 @@ def _extract_diagnostic_name(cube_name: str, check_vicinity: bool = False) -> st
     return diagnostic_name
 
 
-def is_probability(cube):
+def is_probability(cube: Cube) -> bool:
     """Determines whether an iris.cube.Cube contains probability data at
     a range of thresholds"""
     try:
