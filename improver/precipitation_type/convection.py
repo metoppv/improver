@@ -175,7 +175,6 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         Raises:
             ValueError: If a value of infinity or a value greater than 1.0
                         are found within the convective ratio.
-
         """
         neighbourhooded_cube_dict = {}
         for cube, threshold in zip(cubelist, threshold_list):

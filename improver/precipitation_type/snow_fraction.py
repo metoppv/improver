@@ -114,7 +114,6 @@ class SnowFraction(PostProcessingPlugin):
 
         Returns:
             rain_name and snow_name, in that order.
-
         """
         cube_names = [cube.name() for cube in input_cubes]
         try:
@@ -134,7 +133,6 @@ class SnowFraction(PostProcessingPlugin):
 
         Returns:
             Snow fraction cube.
-
         """
         with np.errstate(divide="ignore", invalid="ignore"):
             snow_fraction = self.snow.data / (self.rain.data + self.snow.data)

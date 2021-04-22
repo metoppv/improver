@@ -71,7 +71,6 @@ class FieldTexture(BasePlugin):
         model_id_attr: str = None,
     ) -> None:
         """
-
         Args:
             nbhood_radius:
                 The neighbourhood radius in metres within which the number of potential
@@ -92,7 +91,6 @@ class FieldTexture(BasePlugin):
             model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending.
-
         """
         self.nbhood_radius = nbhood_radius
         self.textural_threshold = textural_threshold
@@ -129,10 +127,8 @@ class FieldTexture(BasePlugin):
             cube:
                 Input data in cube format containing a two-dimensional field
                 of binary data.
-
             cube_name:
                 Name of input data cube, used for determining output texture cube name.
-
             radius:
                 Radius for neighbourhood in metres.
 
