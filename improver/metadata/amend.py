@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing utilities for modifying cube metadata"""
 from datetime import datetime
-from typing import Dict
+from typing import Any, Dict
 
 from dateutil import tz
 from iris.cube import Cube
@@ -41,7 +41,7 @@ from improver.metadata.constants.mo_attributes import (
 )
 
 
-def update_stage_v110_metadata(cube: Cube):
+def update_stage_v110_metadata(cube: Cube) -> None:
     """Translates attributes relating to the grid_id attribute from StaGE
     version 1.1.0 to later StaGE versions.
     Cubes that have no "grid_id" attribute are not recognised as v1.1.0 and
@@ -50,8 +50,6 @@ def update_stage_v110_metadata(cube: Cube):
     Args:
         cube:
             Cube to modify attributes in (modified in place)
-    Returns:
-        None
     """
     try:
         grid_id = cube.attributes.pop("grid_id")
@@ -62,7 +60,7 @@ def update_stage_v110_metadata(cube: Cube):
     cube.attributes["mosg__grid_version"] = "1.1.0"
 
 
-def amend_attributes(cube: Cube, attributes_dict: Dict[str, str]) -> None:
+def amend_attributes(cube: Cube, attributes_dict: Dict[str, Any]) -> None:
     """
     Add, update or remove attributes from a cube.  Modifies cube in place.
 
@@ -81,7 +79,7 @@ def amend_attributes(cube: Cube, attributes_dict: Dict[str, str]) -> None:
             cube.attributes[attribute_name] = value
 
 
-def set_history_attribute(cube: Cube, value: str, append: bool = False):
+def set_history_attribute(cube: Cube, value: str, append: bool = False) -> None:
     """Add a history attribute to a cube. This uses the current datetime to
     generate the timestamp for the history attribute. The new history attribute
     will overwrite any existing history attribute unless the "append" option is
