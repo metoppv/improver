@@ -144,7 +144,7 @@ class CorrectLandSeaMask(BasePlugin):
     def __init__(self) -> None:
         pass
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string"""
         result = "<CorrectLandSeaMask>"
         return result
@@ -181,7 +181,7 @@ class GenerateOrographyBandAncils(BasePlugin):
     def __init__(self) -> None:
         pass
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<GenerateOrographyBandAncils>"
         return result

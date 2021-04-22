@@ -82,7 +82,6 @@ class GenerateTopographicZoneWeights(BasePlugin):
             Weights that we have already calculated for the points within
             the orography band that has been updated to account for the
             upper adjacent band.
-
         """
         weights = topographic_zone_weights[band_number]
 
@@ -126,7 +125,6 @@ class GenerateTopographicZoneWeights(BasePlugin):
             Topographic zone array containing the weights that we have
             already calculated for the points within the orography band
             that has been updated to account for the lower adjacent band.
-
         """
         weights = topographic_zone_weights[band_number]
 
@@ -187,6 +185,7 @@ class GenerateTopographicZoneWeights(BasePlugin):
                 Land mask on standard grid, with land points set to one and
                 sea points set to zero. If provided sea points are masked
                 out in the output array.
+
         Returns:
             Cube containing the weights depending upon where the orography
             point is within the topographic zones.

@@ -143,6 +143,7 @@ class GenerateTimezoneMask(BasePlugin):
         Args:
             cube:
                 The cube from which the y-x grid is being taken.
+
         Returns:
             A numpy array containing all the pairs of coordinates that describe
             the y-x points in the grid. This array is 2-dimensional, with
@@ -191,6 +192,7 @@ class GenerateTimezoneMask(BasePlugin):
                 A numpy array containing all the pairs of coordinates that describe
                 the y-x points in the grid. This array is 2-dimensional, being
                 2 by the product of the grid's y-x dimension lengths.
+
         Returns:
             A 1-dimensional array of grid offsets with a length equal
             to the product of the grid's y-x dimension lengths.
@@ -215,6 +217,7 @@ class GenerateTimezoneMask(BasePlugin):
             point_tz:
                 The string representation of the timezone for a point
                 e.g. "America/Chicago",
+
         Returns:
             Timezone offset from UTC in seconds.
         """
@@ -243,6 +246,7 @@ class GenerateTimezoneMask(BasePlugin):
             cube:
                 A cube with the desired grid from which coordinates are taken
                 for inclusion in the template.
+
         Returns:
             A template cube in which each timezone mask can be stored.
         """
@@ -286,6 +290,7 @@ class GenerateTimezoneMask(BasePlugin):
             timezone_mask:
                 A cube list containing a mask cube for each UTC offset that
                 has been found necessary.
+
         Returns:
             A cube list containing cubes created by blending together
             different UTC offset cubes to create larger masked regions.
@@ -329,6 +334,7 @@ class GenerateTimezoneMask(BasePlugin):
                 the plugin configuration the time on this cube will be used
                 for determining the validity time of the calculated UTC offsets
                 (this is only relevant if daylight savings times are being included).
+
         Returns:
             A timezone mask cube with a leading UTC_offset dimension. Each
             UTC_offset slice contains a field of ones (masked out) and zeros

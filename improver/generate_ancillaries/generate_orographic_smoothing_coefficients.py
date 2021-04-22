@@ -293,6 +293,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
                 be zeroed. The mask must have the same spatial dimensions as
                 the orography cube. How the mask is used to zero smoothing
                 coefficients is determined by the plugin configuration arguments.
+
         Returns:
             - A cube of orography-dependent smoothing_coefficients calculated in
               the x direction.
