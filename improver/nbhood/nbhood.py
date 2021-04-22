@@ -153,7 +153,6 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         Returns:
             Cube after applying a neighbourhood processing method, so that
             the resulting field is smoothed.
-
         """
         if not getattr(self.neighbourhood_method, "run", None) or not callable(
             self.neighbourhood_method.run
@@ -270,7 +269,6 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
 
 
 class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
-
     """Class for applying neighbourhood processing to produce a smoothed field
     within the chosen neighbourhood."""
 

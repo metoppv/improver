@@ -47,7 +47,6 @@ from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_
 
 
 class RecursiveFilter(PostProcessingPlugin):
-
     """
     Apply a recursive filter to the input cube.
     """

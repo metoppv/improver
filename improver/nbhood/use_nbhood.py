@@ -235,7 +235,6 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         Returns:
             Cube containing the weighted mean from neighbourhood after
             collapsing the chosen coordinate.
-
         """
         # Mask out any NaNs in the neighbourhood data so that Iris ignores
         # them when calculating the weighted mean.
@@ -269,13 +268,13 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 this array is not an instance of numpy.ma.MaskedArray. Any sea
                 points that should be ignored are set to zeros in every layer
                 of the mask_cube.
+
         Returns:
             Cube containing the smoothed field after the square
             neighbourhood method has been applied when applying masking
             for each point along the coord_for_masking coordinate.
             The resulting cube is concatenated so that the dimension
             coordinates match the input cube.
-
         """
         plugin = NeighbourhoodProcessing(
             self.neighbourhood_method,

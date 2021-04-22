@@ -59,7 +59,6 @@ def check_radius_against_distance(cube: Cube, radius: float) -> None:
         radius:
             The radius, which cannot be more than half of the
             size of the domain.
-
     """
     axes = []
     for axis in ["x", "y"]:
@@ -76,7 +75,6 @@ def check_radius_against_distance(cube: Cube, radius: float) -> None:
 
 def circular_kernel(full_ranges: ndarray, ranges: int, weighted_mode: bool) -> ndarray:
     """
-
     Method to create a circular kernel.
 
     Args:
@@ -94,7 +92,6 @@ def circular_kernel(full_ranges: ndarray, ranges: int, weighted_mode: bool) -> n
     Returns:
         Array containing the circular smoothing kernel.
         This will have the same number of dimensions as fullranges.
-
     """
     # The range is square
 
@@ -118,7 +115,6 @@ def circular_kernel(full_ranges: ndarray, ranges: int, weighted_mode: bool) -> n
 
 
 class CircularNeighbourhood:
-
     """
     Methods for use in the calculation and application of a circular
     neighbourhood.
@@ -189,7 +185,6 @@ class CircularNeighbourhood:
         Returns:
             Cube containing the smoothed field after the kernel has been
             applied.
-
         """
         data = cube.data
         full_ranges = np.zeros([np.ndim(data)])
@@ -213,7 +208,6 @@ class CircularNeighbourhood:
 
     def run(self, cube: Cube, radius: float, mask_cube: Optional[Cube] = None) -> Cube:
         """
-
         Call the methods required to calculate and apply a circular
         neighbourhood.
 
@@ -230,7 +224,6 @@ class CircularNeighbourhood:
         Returns:
             Cube containing the smoothed field after the kernel has been
             applied.
-
         """
         if mask_cube is not None:
             msg = (
@@ -264,7 +257,6 @@ class GeneratePercentilesFromACircularNeighbourhood:
             percentiles:
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES.
-
         """
         try:
             self.percentiles = tuple(percentiles)
@@ -426,7 +418,6 @@ class GeneratePercentilesFromACircularNeighbourhood:
         Returns:
             Cube containing the percentile fields.
             Has percentile as an added dimension.
-
         """
         if mask_cube is not None:
             msg = (
@@ -483,6 +474,7 @@ class GeneratePercentilesFromACircularNeighbourhood:
         Args:
             cube:
                 Cube to copy meta data from.
+
         Returns:
             Cube like input but with added percentiles coordinate.
             Each slice along this coordinate is identical.
