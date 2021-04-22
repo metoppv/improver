@@ -166,9 +166,11 @@ class SpotExtraction(BasePlugin):
                 An array containing the diagnostic values extracted for the
                 required spot sites.
             additional_dims:
-                Optional list containing iris.coord.DimCoords with any leading dimensions required before spot data.
+                Optional list containing iris.coord.DimCoords with any leading
+                dimensions required before spot data.
             scalar_coords:
-                Optional list containing iris.coord.AuxCoords with all scalar coordinates relevant for the spot sites.
+                Optional list containing iris.coord.AuxCoords with all scalar coordinates
+                relevant for the spot sites.
 
         Returns:
             A spot data cube containing the extracted diagnostic data.
@@ -269,6 +271,7 @@ def check_grid_match(cubes: Cube) -> None:
     Args:
         cubes:
             A list of cubes to check for grid compatibility.
+
     Raises:
         ValueError: Raised if the cubes are not on matching grids as
                     identified by the model_grid_hash.

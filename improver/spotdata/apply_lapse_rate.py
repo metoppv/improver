@@ -101,6 +101,7 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
             gridded_lapse_rate_cube:
                 A cube of temperature lapse rates on the same grid as that from
                 which the spot data temperatures were extracted.
+
         Returns:
             A copy of the input spot_data_cube with the data modified by
             the lapse rates to give a better representation of the site's

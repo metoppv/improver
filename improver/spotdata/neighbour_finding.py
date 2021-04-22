@@ -166,6 +166,7 @@ class NeighbourSelection(BasePlugin):
                 Coordinate system to which the site coordinates should be
                 transformed. This should be the coordinate system of the model
                 from which data will be spot extracted.
+
         Returns:
             An array containing the x and y coordinates of the spot sites
             in the target coordinate system, shaped as (n_sites, 2). The
@@ -277,6 +278,7 @@ class NeighbourSelection(BasePlugin):
                 coordinates of the sites.
             cube:
                 Cube containing a representative grid.
+
         Returns:
             A list of shape (n_sites, 2) that contains the x and y indices
             of the nearest grid points to the sites.
@@ -312,6 +314,7 @@ class NeighbourSelection(BasePlugin):
             y_coords:
                 An array of y coordinates that will represent one axis of the
                 mesh of coordinates to be transformed.
+
         Returns:
             An array of all the xyz combinations that describe the nodes of
             the grid, now in 3D geocentric cartesian coordinates. The shape
@@ -335,6 +338,7 @@ class NeighbourSelection(BasePlugin):
             land_mask:
                 A land mask cube for the model/grid from which grid point
                 neighbours are being selected.
+
         Returns:
             - A KDTree containing the required nodes, built using the
               scipy cKDTree method.
@@ -395,6 +399,7 @@ class NeighbourSelection(BasePlugin):
             indices:
                 An array of tree node indices identifying the neigbouring grid
                 points, the list corresponding to the array of distances.
+
         Returns:
             A 2-element array giving the x and y indices of the chosen grid
             point neighbour. Returns None if no valid neighbours were found
@@ -461,6 +466,7 @@ class NeighbourSelection(BasePlugin):
                 A land mask cube for the model/grid from which grid point
                 neighbours are being selected, with land points set to one and
                 sea points set to zero.
+
         Returns:
             A cube containing both the spot site information and for each
             the grid point indices of its nearest neighbour as per the
