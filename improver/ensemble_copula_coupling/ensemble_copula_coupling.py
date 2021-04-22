@@ -99,6 +99,9 @@ class RebadgePercentilesAsRealizations(BasePlugin):
                 realization coordinate will be numbered 0, 1, 2 ... n-1 for n
                 percentiles on the input cube.
 
+        Returns:
+            Processed cube
+
         Raises:
             InvalidCubeError:
                 If the realization coordinate already exists on the cube.
@@ -176,6 +179,10 @@ class ResamplePercentiles(BasePlugin):
             bounds_pairing:
                 Lower and upper bound to be used as the ends of the
                 cumulative distribution function.
+
+        Returns:
+            - Percentiles
+            - Forecast at percentiles with endpoints
 
         Raises:
             ValueError: If the percentile points are outside the ECC bounds
@@ -780,7 +787,6 @@ calculate_truncated_normal_crps`,
                 Location parameter to be used to scale the shape parameters.
             scale_parameter:
                 Scale parameter to be used to scale the shape parameters.
-
         """
         if self.distribution.name == "truncnorm":
             rescaled_values = []

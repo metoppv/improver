@@ -63,6 +63,7 @@ def concatenate_2d_array_with_2d_array_endpoints(
         high_endpoint:
             Number of used to create a 2d array of a constant value
             as the upper endpoint.
+
     Returns:
         2d array of values after padding with the low_endpoint and
         high_endpoint.
@@ -210,7 +211,6 @@ def get_bounds_of_distribution(bounds_pairing_key: str, desired_units: Unit) -> 
     Raises:
         KeyError: If the bounds_pairing_key is not within the BOUNDS_FOR_ECDF
             dictionary.
-
     """
     # Extract bounds from dictionary of constants.
     try:
@@ -243,6 +243,7 @@ def insert_lower_and_upper_endpoint_to_1d_array(
             Number of use as the lower endpoint.
         high_endpoint:
             Number of use as the upper endpoint.
+
     Returns:
         1d array of values padded with the low_endpoint and high_endpoint.
     """
