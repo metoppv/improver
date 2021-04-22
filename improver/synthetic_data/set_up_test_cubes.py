@@ -124,6 +124,12 @@ def _create_yx_arrays(
     """
     Creates arrays for constructing y and x DimCoords.
 
+    Args:
+        ypoints
+        xpoints
+        domain_corner
+        grid_spacing
+
     Returns:
         Tuple containing arrays of y and x coordinate values
     """
@@ -142,6 +148,11 @@ def _set_domain_corner(
     """
     Set domain corner to create a grid around 0,0.
 
+    Args:
+        ypoints
+        xpoints
+        grid_spacing
+
     Returns:
         (y,x) values of the bottom left corner of the domain
     """
@@ -154,6 +165,9 @@ def _set_domain_corner(
 def _create_time_point(time: datetime) -> int:
     """Returns a coordinate point with appropriate units and datatype
     from a datetime.datetime instance.
+
+    Args:
+        time
 
     Returns:
         Returns coordinate point as datatype specified in TIME_COORDS["time"]
@@ -231,7 +245,8 @@ def _create_dimension_coord(
     coord_array: Any, data_length: int, coord_name: str, **kwargs: Any
 ) -> DimCoord:
     """
-    Creates dimension coordinate from coord_array if not None, otherwise creating an array of integers with an interval of 1
+    Creates dimension coordinate from coord_array if not None, otherwise creating an
+    array of integers with an interval of 1
     """
     if coord_array is not None:
         if len(coord_array) != data_length:
@@ -264,7 +279,8 @@ def _construct_dimension_coords(
     height_levels: Optional[Any],
     pressure: bool,
 ) -> DimCoord:
-    """ Create array of all dimension coordinates. These dimensions will be ordered: realization, height/pressure, y, x. """
+    """ Create array of all dimension coordinates. These dimensions will be ordered:
+    realization, height/pressure, y, x. """
     data_shape = data.shape
     ndims = len(data_shape)
 
@@ -384,7 +400,8 @@ def set_up_variable_cube(
         height_levels:
             List of height levels in metres or pressure levels in Pa.
         pressure:
-            Flag to indicate whether the height levels are specified as pressure, in Pa. If False, use height in metres.
+            Flag to indicate whether the height levels are specified as pressure, in Pa.
+            If False, use height in metres.
 
     Returns:
         Cube containing a single variable field
