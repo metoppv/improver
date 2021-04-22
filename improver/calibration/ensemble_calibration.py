@@ -138,7 +138,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 If True, coefficients are calculated independently for each
                 point within the input cube by minimising each point
                 independently.
-
         """
         # Dictionary containing the functions that will be minimised,
         # depending upon the distribution requested. The names of these
@@ -210,7 +209,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         Return:
             A single set of coefficients with the order [alpha, beta, gamma, delta].
-
         """
         optimised_coeffs = minimize(
             minimisation_function,
@@ -536,7 +534,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Returns:
             CRPS for the current set of coefficients. This CRPS is a mean
             value across all points.
-
         """
         if predictor.lower() == "mean":
             a, b, gamma, delta = initial_guess
@@ -607,7 +604,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Returns:
             CRPS for the current set of coefficients. This CRPS is a mean
             value across all points.
-
         """
         if predictor.lower() == "mean":
             a, b, gamma, delta = initial_guess
@@ -716,7 +712,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 predictor_of_mean is "realizations", then the number of
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
-
         """
         self.distribution = distribution
         self.point_by_point = point_by_point
@@ -743,7 +738,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         Raises:
             ValueError: If the distribution requested is not supported.
-
         """
         valid_distributions = (
             ContinuousRankedProbabilityScoreMinimisers().minimisation_dict.keys()
@@ -810,9 +804,11 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
     ) -> List[Coord]:
         """Set-up the spatial dimensions and coordinates for the EMOS
         coefficients cube.
+
         Args:
             historic_forecasts:
                 Historic forecasts from the training dataset.
+
         Returns:
             List of the spatial dimensions to retain within the
             coefficients cube and a list of the auxiliary coordinates that
@@ -997,7 +993,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Returns:
             List of coefficients to be used as initial guess.
             Order of coefficients is [alpha, beta, gamma, delta].
-
         """
         default_initial_guess = (
             self.use_default_initial_guess
@@ -1101,7 +1096,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             metadata from the historic_forecasts cube. Each cube within the
             cubelist is for a separate EMOS coefficient e.g. alpha, beta,
             gamma, delta.
-
         """
         if self.point_by_point and not self.use_default_initial_guess:
             index = [
@@ -1203,7 +1197,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 passed in.
             ValueError: If the units of the historic and truth cubes do not
                 match.
-
         """
         if landsea_mask and self.point_by_point:
             msg = (
@@ -1285,7 +1278,6 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
-
         """
         check_predictor(predictor)
         self.predictor = predictor
@@ -1361,7 +1353,6 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         Returns:
             Location parameter calculated using the ensemble mean as the
             predictor.
-
         """
         forecast_predictor = collapsed(
             self.current_forecast, "realization", iris.analysis.MEAN
@@ -1432,7 +1423,6 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         Returns:
             Scale parameter for defining the distribution of the calibrated
             forecast.
-
         """
         forecast_var = self.current_forecast.collapsed(
             "realization", iris.analysis.VARIANCE
@@ -1521,7 +1511,6 @@ class CalibratedForecastDistributionParameters(BasePlugin):
               the ensemble realizations. The scale parameter represents
               the statistical dispersion of the resulting PDF, so a
               larger scale parameter will result in a broader PDF.
-
         """
         self.current_forecast = current_forecast
         self.coefficients_cubelist = coefficients_cubelist
@@ -1620,6 +1609,9 @@ class ApplyEMOS(PostProcessingPlugin):
 
         Args:
             forecast
+
+        Returns:
+            The forecast type
         """
         try:
             find_percentile_coordinate(forecast)

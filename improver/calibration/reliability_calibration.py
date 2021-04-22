@@ -562,6 +562,9 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
                 calibration table using summation. If the argument is None and
                 a single cube is provided, this cube will be returned
                 unchanged.
+
+        Returns:
+            Aggregated cube
         """
         coordinates = [] if coordinates is None else coordinates
 
@@ -740,11 +743,11 @@ class ManipulateReliabilityTable(BasePlugin):
                 Forecast count extracted from reliability table.
             probability_bin_coord:
                 Original probability bin coordinate.
+
         Returns:
-            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, iris.coords.DimCoord]
-                Tuple containing the updated observation count,
-                forecast probability sum, forecast count and probability bin
-                coordinate.
+            Tuple containing the updated observation count,
+            forecast probability sum, forecast count and probability bin
+            coordinate.
         """
         while (
             any(x < self.minimum_forecast_count for x in forecast_count)
@@ -810,11 +813,11 @@ class ManipulateReliabilityTable(BasePlugin):
                 Forecast count extracted from reliability table.
             probability_bin_coord:
                 Original probability bin coordinate.
+
         Returns:
-            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, iris.coords.DimCoord]
-                Tuple containing the updated observation count,
-                forecast probability sum, forecast count and probability bin
-                coordinate.
+            Tuple containing the updated observation count,
+            forecast probability sum, forecast count and probability bin
+            coordinate.
         """
         observation_frequency = np.array(observation_count / forecast_count)
         for upper in np.arange(len(observation_frequency) - 1, 0, -1):

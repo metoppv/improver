@@ -67,7 +67,6 @@ def convert_cube_data_to_2d(
 
     Returns:
         Reshaped 2d array.
-
     """
     forecast_data = []
     if np.ma.is_masked(forecast.data):
@@ -187,7 +186,6 @@ def filter_non_matching_cubes(
     Raises:
         ValueError: The filtering has found no matches in validity time
             between the historic forecasts and the truths.
-
     """
     matching_historic_forecasts = iris.cube.CubeList([])
     matching_truths = iris.cube.CubeList([])
@@ -237,6 +235,7 @@ def create_unified_frt_coord(forecast_reference_time: DimCoord) -> DimCoord:
         forecast_reference_time:
             The forecast_reference_time coordinate to be used in the
             coordinate creation.
+
     Returns:
         A dimension coordinate containing the forecast reference time
         coordinate with suitable bounds. The coordinate point is that
@@ -320,6 +319,7 @@ def get_frt_hours(forecast_reference_time: DimCoord) -> Set[int]:
     Args:
         forecast_reference_time:
             The forecast_reference_time coordinate to extract the hours from.
+
     Returns:
         A set of integer representations of the forecast reference time
         hours.
@@ -337,6 +337,7 @@ def check_forecast_consistency(forecasts: Cube) -> None:
 
     Args:
         forecasts:
+
     Raises:
         ValueError: Forecast cubes have differing forecast reference time hours
         ValueError: Forecast cubes have differing forecast periods
@@ -354,7 +355,7 @@ def check_forecast_consistency(forecasts: Cube) -> None:
         raise ValueError(msg.format(forecasts.coord("forecast_period").points))
 
 
-def statsmodels_available():
+def statsmodels_available() -> bool:
     """True if statsmodels library is importable.
 
     Returns:
