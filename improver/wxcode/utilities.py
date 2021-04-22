@@ -33,8 +33,6 @@
 from collections import OrderedDict
 from typing import Any, Dict, List
 
-from iris.cube import Cube
-
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import wxcode_decision_tree_global
 
@@ -114,7 +112,7 @@ def expand_nested_lists(query: Dict, key: str) -> List:
     return items
 
 
-def update_daynight(cubewx: Cube) -> Cube:
+def update_daynight(cubewx):
     """ Update weather cube depending on whether it is day or night
 
     Args:
