@@ -383,8 +383,9 @@ class ConvectionRatioFromComponents(BasePlugin):
         Args:
             cubes:
             name:
+
         Returns:
-            iris.cube.Cube
+            Cube with units set
         """
         try:
             (cube,) = cubes.extract(name)

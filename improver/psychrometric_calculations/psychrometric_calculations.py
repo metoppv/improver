@@ -967,8 +967,9 @@ class PhaseChangeLevel(BasePlugin):
                 Wet bulb temperature cube on height levels
             phase_change_level:
                 Calculated phase change level in metres
+
         Returns:
-            iris.cube.Cube
+            Cube with phase change data
         """
         name = "altitude_of_{}_level".format(self.phase_change_name)
         attributes = generate_mandatory_attributes([wbt])

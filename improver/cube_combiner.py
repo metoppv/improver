@@ -154,7 +154,7 @@ class CubeCombiner(BasePlugin):
             cube_list
 
         Returns:
-            iris.cube.Cube
+            Combined cube
 
         Raises:
             TypeError: if the operation results in an escalated datatype
@@ -240,8 +240,7 @@ class CubeMultiplier(CubeCombiner):
             cube_list
 
         Returns:
-            iris.cube.CubeList
-                Updated version of cube_list
+            Updated version of cube_list
 
         Raises:
             CoordinateNotFoundError: if there is no threshold coordinate on the

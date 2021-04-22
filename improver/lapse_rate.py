@@ -85,8 +85,9 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
             dest_orog:
                 2D cube of destination orography heights (units modified in
                 place)
+
         Returns:
-            iris.cube.Cube
+            The difference cube
         """
         source_orog.convert_units("m")
         dest_orog.convert_units("m")

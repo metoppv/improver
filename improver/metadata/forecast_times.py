@@ -189,8 +189,9 @@ def _create_frt_type_coord(
             Single datetime point for output coord
         name (str)
             Name of aux coord to be returned
+
     Returns:
-        iris.coords.AuxCoord
+        New auxliarry coordinate
     """
     frt_coord_name = "forecast_reference_time"
     coord_type_spec = TIME_COORDS[frt_coord_name]

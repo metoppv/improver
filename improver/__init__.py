@@ -77,9 +77,9 @@ class PostProcessingPlugin(BasePlugin):
                 Positional arguments.
             **kwargs:
                 Keyword arguments.
+
         Returns:
-            iris.cube.Cube:
-                Output of self.process() with updated title attribute
+            Output of self.process() with updated title attribute
         """
         cube = super().__call__(*args, **kwargs)
         self.post_processed_title(cube)

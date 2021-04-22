@@ -198,8 +198,9 @@ class Integration(BasePlugin):
                 to match the data array.
             bounds:
                 Bounds values for the integrated coordinate
+
         Returns:
-            iris.cube.Cube
+            Cube with data from integration
         """
         # extract required slices from template cube
         template = template.extract(

@@ -349,8 +349,9 @@ class WeatherSymbols(BasePlugin):
                 If true, use old naming convention for threshold coordinates
                 (coord.long_name=threshold).  Otherwise extract threshold
                 coordinate name from diagnostic name
+
         Returns:
-            iris.Constraint
+            A constraint
         """
 
         if coord_named_threshold:

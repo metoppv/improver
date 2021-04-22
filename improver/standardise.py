@@ -116,8 +116,12 @@ class StandardiseMetadata(BasePlugin):
         """
         Demote any scalar dimensions (excluding "realization") on the input
         cube to auxiliary coordinates.
+
+        Args:
+            The cube
+
         Returns:
-            iris.cube.Cube
+            The collapsed cube
         """
         coords_to_collapse = []
         for coord in cube.coords(dim_coords=True):
@@ -143,7 +147,7 @@ class StandardiseMetadata(BasePlugin):
         standards.
 
         Args:
-            cube (iris.cube.Cube:
+            cube:
                 Cube to be updated in place
 
         """
@@ -157,8 +161,9 @@ class StandardiseMetadata(BasePlugin):
                     The object to be updated
                 required_dtype:
                     The dtype required
+
             Returns:
-                np.ndarray
+                The updated object
             """
             if obj.dtype != required_dtype:
                 return obj.astype(required_dtype)
@@ -205,8 +210,9 @@ class StandardiseMetadata(BasePlugin):
             attributes_dict:
                 Optional dictionary of required attribute updates. Keys are
                 attribute names, and values are the required value or "remove".
+
         Returns:
-            iris.cube.Cube
+            The processed cube
         """
         cube = self._collapse_scalar_dimensions(cube)
 

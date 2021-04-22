@@ -453,10 +453,10 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         Args:
             cube:
                 Thresholded cube.
+
         Returns:
-            Iris.cube.Cube
-                Cube containing the occurrences within a vicinity for each
-                xy 2d slice, which have been merged back together.
+            Cube containing the occurrences within a vicinity for each
+            xy 2d slice, which have been merged back together.
 
         """
 
