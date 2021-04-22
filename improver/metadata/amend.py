@@ -107,7 +107,7 @@ def set_history_attribute(cube, value, append=False):
 def update_model_id_attr_attribute(cubes, model_id_attr):
     """Update the dictionary with the unique values of the model_id_attr
     attribute from within the input cubes. The model_id_attr attribute is
-    expected on all cubes or no cubes.
+    expected on all cubes.
 
     Args:
         cubes (list or iris.cube.CubeList):
@@ -122,15 +122,12 @@ def update_model_id_attr_attribute(cubes, model_id_attr):
 
     Raises:
         AttributeError: Expected to find the model_id_attr attribute on all
-            cubes or no cubes.
+            cubes.
     """
     attr_in_cubes = [model_id_attr in c.attributes for c in cubes]
-    if all(attr_in_cubes) != any(attr_in_cubes):
-        msg = f"Expected to find {model_id_attr} attribute on all cubes or no cubes"
+    if not all(attr_in_cubes):
+        msg = f"Expected to find {model_id_attr} attribute on all cubes"
         raise AttributeError(msg)
-
-    if not any(attr_in_cubes):
-        return {}
 
     attr_list = [a for c in cubes for a in c.attributes[model_id_attr].split(" ")]
     return {model_id_attr: " ".join(sorted(set(attr_list)))}

@@ -238,14 +238,9 @@ class Test_update_model_id_attr_attribute(IrisTest):
         self.cube1 = self.cube.copy()
         self.cube2 = self.cube.copy()
         self.cube1.attributes["mosg__model_configuration"] = "uk_ens"
-        msg = "Expected to find mosg__model_configuration attribute on all cubes or no cubes"
+        msg = "Expected to find mosg__model_configuration attribute on all cubes"
         with self.assertRaisesRegex(AttributeError, msg):
             update_model_id_attr_attribute([self.cube1, self.cube2], self.model_id_attr)
-
-    def test_no_attribute(self):
-        """Test handling when no model_id_attr attribute is present."""
-        result = update_model_id_attr_attribute([self.cube], self.model_id_attr)
-        self.assertArrayEqual(result, {})
 
 
 if __name__ == "__main__":

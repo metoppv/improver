@@ -102,8 +102,9 @@ class WeatherSymbols(BasePlugin):
                 Default is "high_resolution"
                 "global" will load the global weather symbol decision tree.
             model_id_attr (str):
-                Name of attribute recording source models. The source models
-                are expected as a space-separated string.
+                Name of attribute recording source models that should be
+                inherited by the output cube. The source models are expected as
+                a space-separated string.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.

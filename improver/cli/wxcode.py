@@ -64,8 +64,9 @@ def process(*cubes: cli.inputcube, wxtree="high_resolution", model_id_attr: str 
         wxtree (str):
             Weather Code tree: high_resolution or global.
         model_id_attr (str):
-            Name of attribute recording source models. The source models are
-            expected as a space-separated string.
+            Name of attribute recording source models that should be
+            inherited by the output cube. The source models are expected as
+            a space-separated string.
 
     Returns:
         iris.cube.Cube:
