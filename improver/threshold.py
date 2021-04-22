@@ -234,7 +234,7 @@ class BasicThreshold(PostProcessingPlugin):
         )
         return comparison_operator_dict
 
-    def _add_threshold_coord(self, cube: Cube, threshold: float):
+    def _add_threshold_coord(self, cube: Cube, threshold: float) -> None:
         """
         Add a scalar threshold-type coordinate with correct name and units
         to a 2D slice containing thresholded data.
@@ -320,7 +320,6 @@ class BasicThreshold(PostProcessingPlugin):
 
         Raises:
             ValueError: if a np.nan value is detected within the input cube.
-
         """
         if np.isnan(input_cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")

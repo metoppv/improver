@@ -96,6 +96,7 @@ class CubeCombiner(BasePlugin):
             comparators:
                 Comparison operators, at least one of which must return "True"
                 for each coordinate in order for the match to be valid
+
         Raises:
             ValueError: If dimension coordinates do not match
         """

@@ -47,9 +47,10 @@ def memory_profile_start(outfile_prefix: str) -> Tuple[Thread, Queue]:
         outfile_prefix:
             Prefix for the generated output. 2 files will
             be generated: \\*_SNAPSHOT and \\*_MAX_TRACKER.
+
     Returns:
-        Active Thread tracking the memory.
-        Active Queue for communication to the thread.
+        - Active Thread tracking the memory.
+        - Active Queue for communication to the thread.
     """
     queue = Queue()
     thread = Thread(target=memory_monitor, args=(queue, outfile_prefix))
@@ -121,6 +122,9 @@ def memory_profile_decorator(func: Callable, outfile_prefix: str) -> Callable:
         outfile_prefix:
             Prefix for the generated output. 2 files will
             be generated: \\*_SNAPSHOT and \\*_MAX_TRACKER.
+
+    Returns:
+        The wrapper
     """
 
     def wrapper(*args, **kwargs):

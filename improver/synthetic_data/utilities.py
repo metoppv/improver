@@ -79,7 +79,7 @@ def get_leading_dimension(coord_data: Dict[str, Any]) -> Tuple[List[float], str]
     return leading_dimension, cube_type
 
 
-def get_height_levels(coord_data: Dict[str, Any]) -> Tuple[List[float], str]:
+def get_height_levels(coord_data: Dict[str, Any]) -> Tuple[List[float], bool]:
     """Gets height level values from coords nested dictionary and sets pressure
     value based on whether heights or pressures key is used.
 

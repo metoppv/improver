@@ -190,18 +190,14 @@ class LapseRate(BasePlugin):
                 and points in the neighbourhood over which the lapse rate will
                 be calculated (metres).
                 The default value of 35m is from the referenced paper.
-
             nbhood_radius:
                 Radius of neighbourhood around each point. The neighbourhood
                 will be a square array with side length 2*nbhood_radius + 1.
                 The default value of 7 is from the referenced paper.
-
             max_lapse_rate:
                 Maximum lapse rate allowed.
-
             min_lapse_rate:
                 Minimum lapse rate allowed.
-
         """
 
         self.max_height_diff = max_height_diff

@@ -65,14 +65,12 @@ class PercentileConverter(BasePlugin):
                 The name of the coordinate(s) to collapse over. This
                 coordinate(s) will no longer be present on the output cube, as
                 it will have been replaced by the percentile coordinate.
-
             percentiles:
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES. (optional)
 
         Raises:
             TypeError: If collapse_coord is not a string.
-
         """
         if not isinstance(collapse_coord, list):
             collapse_coord = [collapse_coord]
@@ -119,7 +117,6 @@ class PercentileConverter(BasePlugin):
         Returns:
             A single merged cube of all the cubes produced by each
             percentile collapse.
-
         """
         # Store data type and enforce the same type on return.
         data_type = cube.dtype

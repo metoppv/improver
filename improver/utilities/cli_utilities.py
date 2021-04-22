@@ -34,7 +34,7 @@ import json
 from typing import Dict, Optional
 
 
-def load_json_or_none(file_path: str) -> Optional[Dict]:
+def load_json_or_none(file_path: Optional[str]) -> Optional[Dict]:
     """If there is a path, runs json.load and returns it. Else returns None.
 
     Args:

@@ -35,10 +35,12 @@ import cProfile
 import pstats
 import sys
 from cProfile import Profile
+from typing import Optional
 
 
 def profile_start() -> Profile:
     """Start and return a new profiler instance.
+
     Returns:
         Active cProfile.Profile instance.
     """
@@ -47,7 +49,7 @@ def profile_start() -> Profile:
     return profiler
 
 
-def profile_hook_enable(dump_filename: str = None) -> None:
+def profile_hook_enable(dump_filename: Optional[str] = None) -> None:
     """Register a hook to gather and dump profile information at exit.
 
     Args:

@@ -34,7 +34,7 @@ from typing import List, Optional, Tuple, Union
 
 
 def radius_by_lead_time(
-    radii: List[str], lead_times: List[str]
+    radii: List[str], lead_times: Optional[List[str]] = None
 ) -> Tuple[Union[float, List[float], Optional[List[int]]]]:
     """
     Parse radii and lead_times provided to CLIs that use neighbourhooding.

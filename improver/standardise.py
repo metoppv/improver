@@ -149,7 +149,6 @@ class StandardiseMetadata(BasePlugin):
         Args:
             cube:
                 Cube to be updated in place
-
         """
 
         def as_correct_dtype(obj: ndarray, required_dtype: dtype) -> ndarray:
@@ -292,6 +291,7 @@ class RegridLandSea(BasePlugin):
                 Cube after initial regridding
             target_grid:
                 Cube containing landmask data on the target grid
+
         Returns:
             Adjusted cube
         """
@@ -327,6 +327,7 @@ class RegridLandSea(BasePlugin):
             regridded_title:
                 New value for the "title" attribute to be used after
                 regridding. If not set, a default value is used.
+
         Returns:
             Regridded cube with updated attributes
         """
@@ -373,6 +374,7 @@ class RegridLandSea(BasePlugin):
             regridded_title:
                 New value for the "title" attribute to be used after
                 regridding. If not set, a default value is used.
+
         Returns:
             Regridded cube with updated attributes
         """
@@ -426,7 +428,7 @@ class AdjustLandSeaPoints(BasePlugin):
             self.regridder, self.vicinity
         )
 
-    def correct_where_input_true(self, selector_val: int):
+    def correct_where_input_true(self, selector_val: int) -> None:
         """
         Replace points in the output_cube where output_land matches the
         selector_val and the input_land does not match, but has matching
@@ -505,6 +507,9 @@ class AdjustLandSeaPoints(BasePlugin):
                 representing land and sea points.
             output_land:
                 Cube of land_binary_mask data on target grid.
+
+        Returns:
+            Processed cube
         """
         # Check cube and output_land are on the same grid:
         if not spatial_coords_match(cube, output_land):
