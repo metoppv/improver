@@ -53,10 +53,7 @@ def get_cube_coord_names(cube):
         List[str]:
             List of coordinate names
     """
-    cube_coord_names = []
-    for coord in cube.dim_coords:
-        cube_coord_names.append(coord.standard_name)
-    return cube_coord_names
+    return [coord.standard_name for coord in cube.dim_coords]
 
 
 def variable_name(cube, names):
@@ -72,15 +69,14 @@ def variable_name(cube, names):
          str:
             matching name of the variable
     """
-    coord_names = get_cube_coord_names(cube)
-    found_name = None
-    for name in names:
-        if name in coord_names:
-            found_name = name
-            break
-    if found_name is None:
-        raise ValueError(f"Unable to find a variable matching {str(names)}")
-    return found_name
+    coord_names = set(get_cube_coord_names(cube))
+    matched_names = coord_names.intersection(names)
+    if not matched_names:
+        raise ValueError(f"Unable to find a variable matching {names}")
+    elif len(matched_names) > 1:
+        raise ValueError(f"find more than a variable matching {names}")
+    else:
+        return list(matched_names)[0]
 
 
 def latlon_names(cube):
@@ -115,13 +111,11 @@ def latlon_from_cube(cube):
     lats_data = cube.coord(lats_name).points
     lons_data = cube.coord(lons_name).points
     lats_mesh, lons_mesh = np.meshgrid(lats_data, lons_data, indexing="ij")
-    lats = lats_mesh.flatten()
-    lons = lons_mesh.flatten()
-    latlon = np.dstack((lats, lons)).squeeze()
+    latlon = np.dstack((lats_mesh, lons_mesh)).reshape((-1, 2))
     return latlon
 
 
-def get_grid_size(cube):
+def get_grid_spacing(cube):
     """
     get cube grid size (cube in even lats/lons system)
 
@@ -305,7 +299,7 @@ def slice_cube_by_domain(cube_in, output_domain):
             data cube after slicing
     """
     lat_max, lon_max, lat_min, lon_min = output_domain
-    lat_d, lon_d = get_grid_size(cube_in)
+    lat_d, lon_d = get_grid_spacing(cube_in)
 
     domain = iris.Constraint(
         latitude=lambda val: lat_min - 2.0 * lat_d < val < lat_max + 2.0 * lat_d
@@ -334,8 +328,8 @@ def slice_mask_cube_by_domain(cube_in, cube_in_mask, output_domain):
             data cube after slicing, mask cube after slicing
     """
     lat_max, lon_max, lat_min, lon_min = output_domain
-    lat_d_1, lon_d_1 = get_grid_size(cube_in)
-    lat_d_2, lon_d_2 = get_grid_size(cube_in_mask)
+    lat_d_1, lon_d_1 = get_grid_spacing(cube_in)
+    lat_d_2, lon_d_2 = get_grid_spacing(cube_in_mask)
     lat_d = lat_d_1 if lat_d_1 > lat_d_2 else lat_d_2
     lon_d = lon_d_1 if lon_d_1 > lon_d_2 else lon_d_2
 

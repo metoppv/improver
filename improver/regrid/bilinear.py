@@ -40,6 +40,9 @@ from improver.regrid.idw import (
     similar_surface_classify,
 )
 
+OPTIMUM_IDW_POWER = 1.80
+NUM_NEIGHBOURS = 4
+
 
 def apply_weights(indexes, in_values, weights):
     """
@@ -65,16 +68,16 @@ def apply_weights(indexes, in_values, weights):
     return out_values
 
 
-def basic_indexes(out_latlons, in_latlons, in_lons_dim):
+def basic_indexes(out_latlons, in_latlons, in_lons_size):
     """
     locating source points for each target point
 
     Args:
         in_latlons(numpy.ndarray):
-            tource points's latitude-longitudes
+            source points's latitude-longitudes
         out_latlons(numpy.ndarray):
             target points's latitude-longitudes
-        in_lons_dim (int):
+        in_lons_size (int):
             source grid's longitude dimension
 
     Returns:
@@ -82,7 +85,7 @@ def basic_indexes(out_latlons, in_latlons, in_lons_dim):
             Updated array of source grid point number for all target grid points
     """
     # Set up input points spacing values
-    lat_spacing = in_latlons[in_lons_dim, 0] - in_latlons[0, 0]
+    lat_spacing = in_latlons[in_lons_size, 0] - in_latlons[0, 0]
     lon_spacing = in_latlons[1, 1] - in_latlons[0, 1]
 
     # Calculate input/output offset, expressed in terms of the spacing
@@ -92,8 +95,8 @@ def basic_indexes(out_latlons, in_latlons, in_lons_dim):
     m_lon = m_lon.astype(int)
 
     # Four surrounding input points for each output point, in a rectangle shape
-    index0 = n_lat * in_lons_dim + m_lon
-    index1 = index0 + in_lons_dim
+    index0 = n_lat * in_lons_size + m_lon
+    index1 = index0 + in_lons_size
     index2 = index1 + 1
     index3 = index0 + 1
 
@@ -103,7 +106,7 @@ def basic_indexes(out_latlons, in_latlons, in_lons_dim):
     return indexes
 
 
-def basic_weights(index_range, indexes, out_latlons, in_latlons, in_lons_dim):
+def basic_weights(index_range, indexes, out_latlons, in_latlons, in_lons_size):
     """
     calculate weighting for selecting target points using standard bilinear function
     Args:
@@ -115,7 +118,7 @@ def basic_weights(index_range, indexes, out_latlons, in_latlons, in_lons_dim):
             source points's latitude-longitudes
         out_latlons(numpy.ndarray):
             target points's latitude-longitudes
-        in_lons_dim (int):
+        in_lons_size (int):
             source grid's longitude dimension
 
     Returns:
@@ -123,7 +126,7 @@ def basic_weights(index_range, indexes, out_latlons, in_latlons, in_lons_dim):
             weigting array of source grid point number for target grid points
     """
     # Set up input points spacing values
-    lat_spacing = in_latlons[in_lons_dim, 0] - in_latlons[0, 0]
+    lat_spacing = in_latlons[in_lons_size, 0] - in_latlons[0, 0]
     lon_spacing = in_latlons[1, 1] - in_latlons[0, 1]
     latlon_area = lat_spacing * lon_spacing
 
@@ -157,7 +160,7 @@ def adjust_for_surface_mismatch(
     weights,
     indexes,
     surface_type_mask,
-    in_lons_dim,
+    in_lons_size,
     vicinity,
 ):
     """
@@ -178,7 +181,7 @@ def adjust_for_surface_mismatch(
             land_sea type for source grid points (land =>True)
         out_classified(numpy.ndarray):
             land_sea type for terget grid points (land =>True)
-        in_lons_dim (int):
+        in_lons_size (int):
             longitude dimension in cube_in
         vicinity (float32):
             radius of specified searching domain (unit: m)
@@ -206,12 +209,12 @@ def adjust_for_surface_mismatch(
         weights,
         out_latlons,
         in_latlons,
-        in_lons_dim,
+        in_lons_size,
     )
 
     # Cases with two and three mismatched input points
-    three_mismatch = (np.where(count_same_surface_type == 1))[0]
-    two_mismatch = (np.where(count_same_surface_type == 2))[0]
+    three_mismatch = np.where(count_same_surface_type == 1)[0]
+    two_mismatch = np.where(count_same_surface_type == 2)[0]
 
     # Use inverse distance weighting to handle the cases with 2/3 mismatched input points
     # and the leftover one mismatched cases that were found to involve extrapolation
@@ -244,7 +247,7 @@ def adjust_for_surface_mismatch(
             out_latlons,
             in_classified,
             out_classified,
-            in_lons_dim,
+            in_lons_size,
             vicinity,
         )
 
@@ -258,10 +261,12 @@ def one_mismatched_input_point(
     weights,
     out_latlons,
     in_latlons,
-    in_lons_dim,
+    in_lons_size,
 ):
     """
     updating source points and weighting for one mismatched source-point cases
+    if traget is not within the triangle formed by 3 matched-sourced-points,
+    updating of weights is defered to inverse-distance-weight method
 
     Args:
         one_mismatch_indexes(numpy.ndarray):
@@ -276,7 +281,7 @@ def one_mismatched_input_point(
             tource points's latitude-longitudes
         out_latlons(numpy.ndarray):
             target points's latitude-longitudes
-        in_lons_dim (int):
+        in_lons_size (int):
             source grid's longitude dimension
 
     Returns:
@@ -286,17 +291,17 @@ def one_mismatched_input_point(
     """
 
     # Set up input points spacing values
-    lat_spacing = in_latlons[in_lons_dim, 0] - in_latlons[0, 0]
+    lat_spacing = in_latlons[in_lons_size, 0] - in_latlons[0, 0]
     lon_spacing = in_latlons[1, 1] - in_latlons[0, 1]
     lat_lon_area = lat_spacing * lon_spacing
     excluded_indexes = np.array([], dtype=int)
 
     # Process groups of output points which have each one of the four surrounding
     # input points as mismatched surface type
-    for i in range(4):
+    for i in range(NUM_NEIGHBOURS):
         # Determine group of output points to process in this iteration
-        inverse_mask_i = (
-            np.where(np.logical_not(surface_type_mask[one_mismatch_indexes, i]))
+        inverse_mask_i = np.where(
+            np.logical_not(surface_type_mask[one_mismatch_indexes, i])
         )[0]
         indexes_with_i_mismatched = one_mismatch_indexes[inverse_mask_i]
 
@@ -348,10 +353,10 @@ def one_mismatched_input_point(
         weights_i_positive = weights_i > -1.0e-8
         all_weights_positive = np.all(weights_i_positive, axis=1)
 
-        not_all_weights_positive = (np.where(np.logical_not(all_weights_positive)))[0]
+        not_all_weights_positive = np.where(np.logical_not(all_weights_positive))[0]
 
         if not_all_weights_positive.shape[0] > 0:
-            good_update_indexes = (np.where(all_weights_positive))[0]
+            good_update_indexes = np.where(all_weights_positive)[0]
             weights[indexes_with_i_mismatched[good_update_indexes]] = weights_i[
                 good_update_indexes
             ]
@@ -374,7 +379,7 @@ def lakes_islands(
     out_latlons,
     in_classified,
     out_classified,
-    in_lons_dim,
+    in_lons_size,
     vicinity,
 ):
     """
@@ -400,7 +405,7 @@ def lakes_islands(
             land_sea type for source grid points (land =>True)
         out_classified (numpy.ndarray):
             land_sea type for terget grid points (land =>True)
-        in_lons_dim (int):
+        in_lons_size (int):
             source grid's longitude dimension
         vicinity (float32):
             radius of specified searching domain (unit: m)
@@ -437,7 +442,7 @@ def lakes_islands(
     )
 
     count_matching_surface = np.count_nonzero(surface_type_mask_updates, axis=1)
-    points_with_no_match = (np.where(count_matching_surface == 0))[0]
+    points_with_no_match = np.where(count_matching_surface == 0)[0]
 
     # If the expanded search area hasn't found any same surface type matches anywhere
     # just ignore surface type, use normal bilinear approach
@@ -446,10 +451,10 @@ def lakes_islands(
         # revert back to the basic bilinear weights, indexes unchanged
         no_match_indexes = lake_island_indexes[points_with_no_match]
         weights[no_match_indexes] = basic_weights(
-            no_match_indexes, indexes, out_latlons, in_latlons, in_lons_dim
+            no_match_indexes, indexes, out_latlons, in_latlons, in_lons_size
         )
 
-    points_with_match = (np.where(count_matching_surface > 0))[0]
+    points_with_match = np.where(count_matching_surface > 0)[0]
     # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
 
@@ -459,7 +464,7 @@ def lakes_islands(
 
     # Where a same surface type match has been found among the 8 nearest inputs, apply
     # inverse distance weighting with those matched points
-    new_distances = np.zeros([count_of_points_with_match, 4])
+    new_distances = np.zeros([count_of_points_with_match, NUM_NEIGHBOURS])
     # pylint: disable=unsubscriptable-object
     for point_idx in range(points_with_match.shape[0]):
         match_indexes = lake_island_indexes[points_with_match[point_idx]]

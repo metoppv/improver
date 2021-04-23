@@ -45,7 +45,6 @@ def nearest_with_mask_regrid(
     out_latlons,
     in_classified,
     out_classified,
-    in_values,
     vicinity,
 ):
     """
@@ -67,14 +66,14 @@ def nearest_with_mask_regrid(
             land_sea type for source grid points (land =>True)
         out_classified(numpy.ndarray):
             land_sea type for terget grid points (land =>True)
-        in_values(numpy.ndarray):
-            input values (maybe multidimensional, reshaped in function _reshape_data_cube)
         vicinity (float32):
             radius of specified searching domain (unit: m)
 
     Return:
-        numpy.ndarray:
-            output values (multidimensional)
+        Tuple[numpy.ndarray, numpy.ndarray]:
+             distances: updated distnace array from each target grid point to its source grid points
+             indexes: updated array of four source grid point number for each target grid points
+ 
     """
     if distances.shape != surface_type_mask.shape:
         raise ValueError("Distance and mask arrays must be same shape")
@@ -116,10 +115,10 @@ def nearest_with_mask_regrid(
 
     # Replace distances with infinity where they should not be used
     masked_distances = np.where(inverse_surface_mask, np.float64(np.inf), distances)
+
     # Distances and indexes have been prepared to handle the mask, so can now
-    # call the non-masked regrid function
-    output = nearest_regrid(masked_distances, indexes, in_values)
-    return output
+    # call the non-masked regrid function in process
+    return masked_distances, indexes
 
 
 def nearest_regrid(distances, indexes, in_values):

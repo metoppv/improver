@@ -63,6 +63,7 @@ BILINEAR2 = f"{BILINEAR}-2"
 NEAREST2 = f"{NEAREST}-2"
 NEAREST_MASK2 = f"{NEAREST}{WITH_MASK}-2"
 BILINEAR_MASK2 = f"{BILINEAR}{WITH_MASK}-2"
+NUM_NEIGHBOURS = 4
 
 
 class RegridWithLandSeaMask(BasePlugin):
@@ -132,30 +133,13 @@ class RegridWithLandSeaMask(BasePlugin):
         in_latlons = latlon_from_cube(cube_in)
         # Number of grid points in X dimension is used to work out length of flattened array
         # stripes for finding surrounding points for bilinear interpolation
-        in_lons_dim = cube_in.coord(axis="x").shape[0]  # longitude
-
-        # Locate nearby input points for output points
-        indexes = basic_indexes(out_latlons, in_latlons, in_lons_dim)
-        # Initialise distances and weights to zero. Weights are only used for the bilinear case
-        distances = np.zeros((out_latlons.shape[0], 4))
-        weights = np.zeros((out_latlons.shape[0], 4), dtype=np.float32)
-        # Fill in distances and weights
-        if NEAREST in self.regrid_mode:
-            for i in range(4):
-                distances[:, i] = np.square(
-                    in_latlons[indexes[:, i], 0] - out_latlons[:, 0]
-                ) + np.square(in_latlons[indexes[:, i], 1] - out_latlons[:, 1])
-        elif BILINEAR in self.regrid_mode:
-            # Assume all four nearby points are same surface type and calculate default weights
-            # These will be updated for mask/mismatched surface type further below
-            # pylint: disable=unsubscriptable-object
-            index_range = np.arange(weights.shape[0])
-            weights[index_range] = basic_weights(
-                index_range, indexes, out_latlons, in_latlons, in_lons_dim
-            )
+        in_lons_size = cube_in.coord(axis="x").shape[0]  # longitude
 
         # Reshape input data so that spatial dimensions can be handled as one
         in_values, lats_index, lons_index = flatten_spatial_dimensions(cube_in)
+
+        # Locate nearby input points for output points
+        indexes = basic_indexes(out_latlons, in_latlons, in_lons_size)
 
         if WITH_MASK in self.regrid_mode:
             in_classified = classify_input_surface_type(cube_in_mask, in_latlons)
@@ -164,8 +148,46 @@ class RegridWithLandSeaMask(BasePlugin):
             surface_type_mask = similar_surface_classify(
                 in_classified, out_classified, indexes
             )
-            if BILINEAR in self.regrid_mode:
-                # For bilinear-with-mask, adjust weights and indexes for mismatched
+
+        # Initialise distances and weights to zero. Weights are only used for the bilinear case
+        distances = np.zeros((out_latlons.shape[0], NUM_NEIGHBOURS), dtype=np.float32)
+        weights = np.zeros((out_latlons.shape[0], NUM_NEIGHBOURS), dtype=np.float32)
+
+        # handle nearest option
+        if NEAREST in self.regrid_mode:
+            for i in range(NUM_NEIGHBOURS):
+                distances[:, i] = np.square(
+                    in_latlons[indexes[:, i], 0] - out_latlons[:, 0]
+                ) + np.square(in_latlons[indexes[:, i], 1] - out_latlons[:, 1])
+
+            # for nearest-with-mask-2,adjust indexes and distance for mismatched
+            # surface type location
+            if WITH_MASK in self.regrid_mode:
+                distances, indexes = nearest_with_mask_regrid(
+                    distances,
+                    indexes,
+                    surface_type_mask,
+                    in_latlons,
+                    out_latlons,
+                    in_classified,
+                    out_classified,
+                    self.vicinity,
+                )
+
+            # apply nearest distance rule
+            output_flat = nearest_regrid(distances, indexes, in_values)
+
+        elif BILINEAR in self.regrid_mode:
+            # Assume all four nearby points are same surface type and calculate default weights
+            # These will be updated for mask/mismatched surface type further below
+            # pylint: disable=unsubscriptable-object
+            index_range = np.arange(weights.shape[0])
+            weights[index_range] = basic_weights(
+                index_range, indexes, out_latlons, in_latlons, in_lons_size
+            )
+
+            if WITH_MASK in self.regrid_mode:
+                # For bilinear-with-mask-2, adjust weights and indexes for mismatched
                 # surface type locations
                 weights, indexes = adjust_for_surface_mismatch(
                     in_latlons,
@@ -175,29 +197,11 @@ class RegridWithLandSeaMask(BasePlugin):
                     weights,
                     indexes,
                     surface_type_mask,
-                    in_lons_dim,
+                    in_lons_size,
                     self.vicinity,
                 )
-
-            if BILINEAR in self.regrid_mode:
-                output_flat = apply_weights(indexes, in_values, weights)
-            else:
-                output_flat = nearest_with_mask_regrid(
-                    distances,
-                    indexes,
-                    surface_type_mask,
-                    in_latlons,
-                    out_latlons,
-                    in_classified,
-                    out_classified,
-                    in_values,
-                    self.vicinity,
-                )
-        else:  # not WITH_MASK
-            if BILINEAR in self.regrid_mode:
-                output_flat = apply_weights(indexes, in_values, weights)
-            else:
-                output_flat = nearest_regrid(distances, indexes, in_values)
+            # apply bilinear rule
+            output_flat = apply_weights(indexes, in_values, weights)
 
         # Un-flatten spatial dimensions and put into output cube
         output_array = unflatten_spatial_dimensions(

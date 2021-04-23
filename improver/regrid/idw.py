@@ -32,15 +32,14 @@
 Inverse distance weighting interpolation functions
 """
 
-import math
-
 import numpy as np
 from scipy.spatial.ckdtree import cKDTree as KDTree
 
+# WGS84: The World Geodetic System 1984
 WGS84_A = 6378137.0
 WGS84_IF = 298.257223563
 WGS84_F = 1.0 / WGS84_IF
-WGS84_E = math.sqrt((2.0 * WGS84_F) - (WGS84_F * WGS84_F))
+WGS84_E = np.sqrt((2.0 * WGS84_F) - (WGS84_F * WGS84_F))
 
 
 def inverse_distance_weighting(
