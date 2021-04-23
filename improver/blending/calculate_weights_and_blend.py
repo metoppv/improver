@@ -79,18 +79,32 @@ class WeightAndBlend(PostProcessingPlugin):
                 Coordinate over which blending will be performed (eg "model"
                 for grid blending)
             wts_calc_method (str):
-                Weights calculation method ("linear", "nonlinear" or "dict")
+                Method to use to calculate weights used in blending.
+                "linear" (default): calculate linearly varying blending weights.
+                "nonlinear": calculate blending weights that decrease
+                exponentially with increasing blending coordinates.
+                "dict": calculate weights using a dictionary passed in.
             weighting_coord (str):
-                Coordinate over which linear weights should be calculated (from
-                dictionary)
+                Name of coordinate over which linear weights should be scaled.
+                This coordinate must be available in the weights dictionary.
             wts_dict (dict):
-                Dictionary containing parameters for linear weights calculation
+                Dictionary from which to calculate blending weights. Dictionary
+                format is as specified in
+                improver.blending.weights.ChoosingWeightsLinear
             y0val (float):
-                Relative weight of first file for default linear weights plugin
+                The relative value of the weighting start point (lowest value of
+                blend coord) for choosing default linear weights.
+                If used this must be a positive float or 0.
             ynval (float):
-                Relative weight of last file for default linear weights plugin
+                The relative value of the weighting end point (highest value of
+                blend coord) for choosing default linear weights. This must be a
+                positive float or 0.
+                Note that if blending over forecast reference time, ynval >= y0val
+                would normally be expected (to give greater weight to the more
+                recent forecast).
             cval (float):
-                Parameter for default non-linear weights plugin
+                Factor used to determine how skewed the non-linear weights will be.
+                A value of 1 implies equal weighting.
             inverse_ordering (bool):
                 Option to invert weighting order for non-linear weights plugin
                 so that higher blend coordinate values get higher weights (eg
@@ -228,19 +242,33 @@ class WeightAndBlend(PostProcessingPlugin):
             cubelist (iris.cube.CubeList):
                 List of cubes to be merged and blended
             cycletime (str):
-                Forecast reference time to use for output cubes, in the format
-                YYYYMMDDTHHMMZ.  If not set, the latest of the input cube
-                forecast reference times is used.
+                The forecast reference time to be used after blending has been
+                applied, in the format YYYYMMDDTHHMMZ. If not provided, the
+                blended file takes the latest available forecast reference time
+                from the input datasets supplied.
             model_id_attr (str):
-                Name of the attribute by which to identify the source model and
-                construct "model" coordinates for blending.
+                The name of the dataset attribute to be used to identify the source
+                model when blending data from different models.
             spatial_weights (bool):
-                If true, calculate spatial weights.
+                If True, this option will result in the generation of spatially
+                varying weights based on the masks of the data we are blending.
+                The one dimensional weights are first calculated using the chosen
+                weights calculation method, but the weights will then be adjusted
+                spatially based on where there is masked data in the data we are
+                blending. The spatial weights are calculated using the
+                SpatiallyVaryingWeightsFromMask plugin.
             fuzzy_length (float):
-                Distance (in metres) over which to smooth spatial weights.
-                Default is 20 km.
+                When calculating spatially varying weights we can smooth the
+                weights so that areas close to areas that are masked have lower
+                weights than those further away. This fuzzy length controls the
+                scale over which the weights are smoothed. The fuzzy length is in
+                terms of m, the default is 20km. This distance is then converted
+                into a number of grid squares, which does not have to be an
+                integer. Assumes the grid spacing is the same in the x and y
+                directions and raises an error if this is not true. See
+                SpatiallyVaryingWeightsFromMask for more details.
             attributes_dict (dict or None):
-                Changes to cube attributes to be applied after blending
+                Dictionary describing required changes to attributes after blending
 
         Returns:
             iris.cube.Cube:

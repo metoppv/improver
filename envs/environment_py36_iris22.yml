@@ -26,6 +26,7 @@ dependencies:
   - black=19.10b0
   - bandit
   - safety
+  - statsmodels
   - pip
   - pip:
     - od

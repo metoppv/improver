@@ -44,36 +44,11 @@ from improver.calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers as Plugin,
 )
 from improver.calibration.utilities import convert_cube_data_to_2d
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
 from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
-
-
-class Test__repr__(IrisTest):
-
-    """Test the __repr__ method."""
-
-    def test_basic(self):
-        """A simple tests for the __repr__ method."""
-        result = str(Plugin())
-        msg = (
-            "<ContinuousRankedProbabilityScoreMinimisers: "
-            "minimisation_dict: {'norm': 'calculate_normal_crps', "
-            "'truncnorm': 'calculate_truncated_normal_crps'}; "
-            "tolerance: 0.02; max_iterations: 1000>"
-        )
-        self.assertEqual(result, msg)
-
-    def test_update_kwargs(self):
-        """A test to update the available keyword argument."""
-        result = str(Plugin(tolerance=10, max_iterations=10))
-        msg = (
-            "<ContinuousRankedProbabilityScoreMinimisers: "
-            "minimisation_dict: {'norm': 'calculate_normal_crps', "
-            "'truncnorm': 'calculate_truncated_normal_crps'}; "
-            "tolerance: 10; max_iterations: 10>"
-        )
-        self.assertEqual(result, msg)
 
 
 class SetupInputs(IrisTest):
@@ -136,6 +111,12 @@ class Test_calculate_normal_crps(SetupNormalInputs):
     used as the predictors.
     """
 
+    def setUp(self):
+        """Set up plugin."""
+        super().setUp()
+        self.precision = 4
+        self.plugin = Plugin(tolerance=1e-4)
+
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
@@ -145,8 +126,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         """
         predictor = "mean"
 
-        plugin = Plugin()
-        result = plugin.calculate_normal_crps(
+        result = self.plugin.calculate_normal_crps(
             self.initial_guess_for_mean,
             self.forecast_predictor_data,
             self.truth_data,
@@ -156,7 +136,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.2609063)
+        self.assertAlmostEqual(result, 0.3006, places=self.precision)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
@@ -167,8 +147,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         """
         predictor = "realizations"
 
-        plugin = Plugin()
-        result = plugin.calculate_normal_crps(
+        result = self.plugin.calculate_normal_crps(
             self.initial_guess_for_realization,
             self.forecast_predictor_data_realizations,
             self.truth_data,
@@ -178,7 +157,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.2609116)
+        self.assertAlmostEqual(result, 0.3006, places=self.precision)
 
     @ManageWarnings(
         ignored_messages=[
@@ -199,8 +178,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
 
         predictor = "mean"
 
-        plugin = Plugin()
-        result = plugin.calculate_normal_crps(
+        result = self.plugin.calculate_normal_crps(
             initial_guess,
             self.forecast_predictor_data,
             self.truth_data,
@@ -210,7 +188,7 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, plugin.BAD_VALUE)
+        self.assertAlmostEqual(result, self.plugin.BAD_VALUE, self.precision)
 
 
 class Test_process_normal_distribution(
@@ -230,15 +208,86 @@ class Test_process_normal_distribution(
         super().setUp()
         self.tolerance = 1e-4
         self.plugin = Plugin(tolerance=self.tolerance)
-        self.expected_mean_coefficients = [-0.0008, 1.0009, 0.0023, 0.8070]
+        self.expected_mean_coefficients = [-0.0003, 1.0013, 0.0012, 0.5945]
         self.expected_realizations_coefficients = [
-            0.0427,
-            0.4117,
-            0.1946,
-            0.8907,
-            -0.1435,
-            0.037,
+            0.0254,
+            0.4349,
+            0.39,
+            0.8122,
+            -0.0016,
+            0.2724,
         ]
+        self.expected_mean_coefficients_point_by_point = np.array(
+            [
+                [
+                    [0.0015, 0.0037, -0.002],
+                    [-0.0009, 0.0008, 0.0015],
+                    [-0.0046, 0.0053, -0.0038],
+                ],
+                [
+                    [1.0039, 1.0035, 1.0009],
+                    [1.0013, 1.0011, 1.001],
+                    [1.002, 1.0015, 1.0008],
+                ],
+                [
+                    [0.0017, -0.0009, -0.0002],
+                    [0.0054, 0.0003, -0.0002],
+                    [-0.0001, -0.0018, 0.0002],
+                ],
+                [
+                    [-0.0, 0.0007, -0.0009],
+                    [0.0003, -0.0001, -0.001],
+                    [-0.0013, 0.0, 0.0006],
+                ],
+            ],
+            dtype=np.float32,
+        )
+
+        self.expected_mean_coefficients_point_by_point_sites = np.array(
+            [
+                [0.0017, 0.0017, 0.0017, 0.0017],
+                [1.0036, 1.0036, 1.0036, 1.0036],
+                [0.0017, 0.0017, 0.0017, 0.0017],
+                [-0.0, -0.0, -0.0, 0.0],
+            ],
+            dtype=np.float32,
+        )
+
+        self.expected_realizations_coefficients_point_by_point = np.array(
+            [
+                [
+                    [0.0001, 0.0001, 0.0001],
+                    [0.0001, 0.0001, 0.0],
+                    [0.0001, 0.0001, 0.0001],
+                ],
+                [
+                    [0.579, 0.5793, 0.5782],
+                    [0.5782, 0.5778, 0.5781],
+                    [0.5786, 0.5782, 0.5783],
+                ],
+                [
+                    [0.5795, 0.5786, 0.5782],
+                    [0.5783, 0.578, 0.5767],
+                    [0.5791, 0.578, 0.5763],
+                ],
+                [
+                    [0.5773, 0.5769, 0.5763],
+                    [0.5769, 0.5771, 0.5782],
+                    [0.5764, 0.5773, 0.5783],
+                ],
+                [
+                    [0.0001, 0.0001, 0.0001],
+                    [0.0001, 0.0001, 0.0001],
+                    [0.0001, 0.0001, 0.0],
+                ],
+                [
+                    [1.0194, 1.0143, 1.0199],
+                    [1.0199, 1.02, 1.013],
+                    [1.0144, 0.9885, 1.0246],
+                ],
+            ],
+            dtype=np.float32,
+        )
 
     @ManageWarnings(
         ignored_messages=[
@@ -332,8 +381,7 @@ class Test_process_normal_distribution(
         equal to specific values, when the ensemble mean is the predictor
         assuming a normal distribution and the value specified for the
         max_iterations is overridden. The coefficients are calculated by
-        minimising the CRPS and using a set default value for the
-        initial guess.
+        minimising the CRPS.
         """
         predictor = "mean"
         max_iterations = 400
@@ -365,8 +413,7 @@ class Test_process_normal_distribution(
         equal to specific values, when the ensemble realizations are the
         predictor assuming a truncated normal distribution and the value
         specified for the MAX_ITERATIONS is overridden. The coefficients are
-        calculated by minimising the CRPS and using a set default value for
-        the initial guess.
+        calculated by minimising the CRPS.
         """
         predictor = "realizations"
         max_iterations = 1000
@@ -385,6 +432,143 @@ class Test_process_normal_distribution(
             result, self.expected_realizations_coefficients
         )
 
+    @ManageWarnings(
+        ignored_messages=[
+            "Collapsing a non-contiguous coordinate.",
+            "Minimisation did not result in convergence",
+            "divide by zero encountered in",
+        ],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning],
+    )
+    def test_mean_predictor_point_by_point(self):
+        """
+        Test that the expected coefficients are generated when the ensemble
+        mean is the predictor for a normal distribution and coefficients are
+        calculated independently at each grid point. The coefficients are
+        calculated by minimising the CRPS.
+        """
+        predictor = "mean"
+        distribution = "norm"
+
+        initial_guess = np.broadcast_to(
+            self.initial_guess_for_mean,
+            (
+                len(self.truth.coord(axis="y").points)
+                * len(self.truth.coord(axis="x").points),
+                len(self.initial_guess_for_mean),
+            ),
+        )
+
+        plugin = Plugin(tolerance=self.tolerance, point_by_point=True)
+        result = plugin.process(
+            initial_guess,
+            self.forecast_predictor_mean,
+            self.truth,
+            self.forecast_variance,
+            predictor,
+            distribution,
+        )
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_mean_coefficients_point_by_point
+        )
+
+    @ManageWarnings(
+        ignored_messages=[
+            "Collapsing a non-contiguous coordinate.",
+            "Minimisation did not result in convergence",
+            "divide by zero encountered in",
+        ],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning],
+    )
+    def test_mean_predictor_point_by_point_sites(self):
+        """
+        Test that the expected coefficients are generated when the ensemble
+        mean is the predictor for a normal distribution and coefficients are
+        calculated independently at each site location. The coefficients are
+        calculated by minimising the CRPS.
+        """
+        forecast_spot_cube = self.historic_forecast_spot_cube.collapsed(
+            "realization", iris.analysis.MEAN
+        )
+        forecast_var_spot_cube = forecast_spot_cube.copy()
+        forecast_var_spot_cube.data = forecast_var_spot_cube.data / 10.0
+
+        predictor = "mean"
+        distribution = "norm"
+
+        initial_guess = np.broadcast_to(
+            self.initial_guess_for_mean,
+            (
+                len(self.truth.coord(axis="y").points)
+                * len(self.truth.coord(axis="x").points),
+                len(self.initial_guess_for_mean),
+            ),
+        )
+
+        plugin = Plugin(tolerance=self.tolerance, point_by_point=True)
+        result = plugin.process(
+            initial_guess,
+            forecast_spot_cube,
+            self.truth_spot_cube,
+            forecast_var_spot_cube,
+            predictor,
+            distribution,
+        )
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_mean_coefficients_point_by_point_sites
+        )
+
+    @ManageWarnings(
+        ignored_messages=[
+            "Collapsing a non-contiguous coordinate.",
+            "Minimisation did not result in convergence",
+            "divide by zero encountered in",
+            "invalid value encountered in",
+        ],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning, RuntimeWarning],
+    )
+    def test_realizations_predictor_point_by_point(self):
+        """
+        Test that the expected coefficients are generated when the ensemble
+        realizations are the predictor for a normal distribution and
+        coefficients are calculated independently at each grid point. The
+        coefficients are calculated by minimising the CRPS.
+        """
+        predictor = "realizations"
+        distribution = "norm"
+
+        initial_guess = np.broadcast_to(
+            self.initial_guess_for_realization,
+            (
+                len(self.truth.coord(axis="y").points)
+                * len(self.truth.coord(axis="x").points),
+                len(self.initial_guess_for_realization),
+            ),
+        )
+
+        # Use a larger value for the tolerance to terminate sooner to avoid
+        # minimising in computational noise.
+        plugin = Plugin(tolerance=0.01, point_by_point=True)
+        result = plugin.process(
+            initial_guess,
+            self.forecast_predictor_realizations,
+            self.truth,
+            self.forecast_variance,
+            predictor,
+            distribution,
+        )
+        self.assertArrayAlmostEqual(
+            result, self.expected_realizations_coefficients_point_by_point, decimal=2
+        )
+
+    @ManageWarnings(
+        ignored_messages=[
+            "Collapsing a non-contiguous coordinate.",
+            "Minimisation did not result in convergence",
+            "divide by zero encountered in",
+        ],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning],
+    )
     @ManageWarnings(
         record=True, ignored_messages=["Collapsing a non-contiguous coordinate."]
     )
@@ -484,6 +668,12 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
     as the predictors.
     """
 
+    def setUp(self):
+        """Set up plugin."""
+        super().setUp()
+        self.precision = 4
+        self.plugin = Plugin(tolerance=1e-4)
+
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
@@ -493,8 +683,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         """
         predictor = "mean"
 
-        plugin = Plugin()
-        result = plugin.calculate_truncated_normal_crps(
+        result = self.plugin.calculate_truncated_normal_crps(
             self.initial_guess_for_mean,
             self.forecast_predictor_data,
             self.truth_data,
@@ -504,7 +693,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.1670168)
+        self.assertAlmostEqual(result, 0.2150, self.precision)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
@@ -515,8 +704,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         """
         predictor = "realizations"
 
-        plugin = Plugin()
-        result = plugin.calculate_truncated_normal_crps(
+        result = self.plugin.calculate_truncated_normal_crps(
             self.initial_guess_for_realization,
             self.forecast_predictor_data_realizations,
             self.truth_data,
@@ -526,7 +714,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, 0.1670168)
+        self.assertAlmostEqual(result, 0.2150, self.precision)
 
     @ManageWarnings(
         ignored_messages=[
@@ -547,8 +735,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
 
         predictor = "mean"
 
-        plugin = Plugin()
-        result = plugin.calculate_truncated_normal_crps(
+        result = self.plugin.calculate_truncated_normal_crps(
             initial_guess,
             self.forecast_predictor_data,
             self.truth_data,
@@ -558,7 +745,7 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         )
 
         self.assertIsInstance(result, np.float64)
-        self.assertAlmostEqual(result, plugin.BAD_VALUE)
+        self.assertAlmostEqual(result, self.plugin.BAD_VALUE, self.precision)
 
 
 class Test_process_truncated_normal_distribution(
@@ -576,14 +763,14 @@ class Test_process_truncated_normal_distribution(
         super().setUp()
         self.tolerance = 1e-4
         self.plugin = Plugin(tolerance=self.tolerance)
-        self.expected_mean_coefficients = [0.3965, 0.958, 0.0459, 0.6047]
+        self.expected_mean_coefficients = [0.3958, 0.9854, -0.0, 0.621]
         self.expected_realizations_coefficients = [
-            0.2692,
-            0.0126,
-            0.5965,
-            0.7952,
-            0.0265,
-            0.2175,
+            0.1898,
+            -0.1558,
+            0.4452,
+            0.8877,
+            -0.1331,
+            -0.0002,
         ]
 
     @ManageWarnings(
@@ -687,8 +874,7 @@ class Test_process_truncated_normal_distribution(
         equal to specific values, when the ensemble mean is the predictor
         assuming a truncated normal distribution and the value specified
         for the max_iterations is overridden. The coefficients are
-        calculated by minimising the CRPS and using a set default value for
-        the initial guess.
+        calculated by minimising the CRPS.
         """
         predictor = "mean"
         max_iterations = 400
@@ -720,8 +906,7 @@ class Test_process_truncated_normal_distribution(
         equal to specific values, when the ensemble realizations are the
         predictor assuming a truncated normal distribution and the value
         specified for the max_iterations is overridden. The coefficients are
-        calculated by minimising the CRPS and using a set default value for
-        the initial guess.
+        calculated by minimising the CRPS.
         """
         predictor = "realizations"
         max_iterations = 1000

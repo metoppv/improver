@@ -54,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [py36_iris22]
+        env: [py37_iris24]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
@@ -81,7 +81,7 @@ jobs:
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda activate improver_${{ matrix.env }}
-        isort --check-only --recursive .
+        isort --check-only .
     - name: black
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'

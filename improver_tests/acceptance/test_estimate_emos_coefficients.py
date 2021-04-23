@@ -118,6 +118,36 @@ def test_truncated_normal(tmp_path):
 
 
 @pytest.mark.slow
+def test_normal_default_initial_guess(tmp_path):
+    """
+    Test estimate-emos-coefficients for diagnostic with assumed
+    normal distribution with the default initial guess.
+    """
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
+    kgo_path = kgo_dir / "default_initial_guess_kgo.nc"
+    history_path = kgo_dir / "history/*.nc"
+    truth_path = kgo_dir / "truth/*.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "norm",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--use-default-initial-guess",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
+
+
+@pytest.mark.slow
 def test_units(tmp_path):
     """Test prescribed units that may not match inputs"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
@@ -150,7 +180,7 @@ def test_units(tmp_path):
 def test_using_realizations_as_predictor_no_sm(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    kgo_path = kgo_dir / "realizations/without_statsmodels_kgo.nc"
+    kgo_path = kgo_dir / "normal/realizations/without_statsmodels_kgo.nc"
     history_path = kgo_dir / "normal/history/*.nc"
     truth_path = kgo_dir / "normal/truth/*.nc"
     output_path = tmp_path / "output.nc"
@@ -180,7 +210,7 @@ def test_using_realizations_as_predictor_no_sm(tmp_path):
 def test_using_realizations_as_predictor_sm(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    kgo_path = kgo_dir / "realizations/with_statsmodels_kgo.nc"
+    kgo_path = kgo_dir / "normal/realizations/with_statsmodels_kgo.nc"
     history_path = kgo_dir / "normal/history/*.nc"
     truth_path = kgo_dir / "normal/truth/*.nc"
     output_path = tmp_path / "output.nc"
@@ -231,4 +261,107 @@ def test_land_points_only(tmp_path):
     run_cli(args)
     acc.compare(
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
+
+
+@pytest.mark.slow
+def test_normal_point_by_point_sites(tmp_path):
+    """
+    Test estimate-emos-coefficients for diagnostic with assumed
+    normal distribution where coefficients are computed independently at each
+    site location (initial guess and minimisation).
+    """
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
+    kgo_path = kgo_dir / "point_by_point" / "kgo.nc"
+    history_path = kgo_dir / "history/*.nc"
+    truth_path = kgo_dir / "truth/*.nc"
+    output_path = tmp_path / "output.nc"
+    est_emos_tol = str(0.01)
+    compare_emos_tolerance = 0.1
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "norm",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--tolerance",
+        est_emos_tol,
+        "--point-by-point",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path, kgo_path, atol=compare_emos_tolerance, rtol=compare_emos_tolerance
+    )
+
+
+@pytest.mark.slow
+@acc.skip_if_statsmodels
+def test_normal_realizations_point_by_point_sites(tmp_path):
+    """
+    Test estimate-emos-coefficients for diagnostic with assumed
+    normal distribution where coefficients are computed independently at each
+    site location (initial guess and minimisation).
+    """
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
+    kgo_path = kgo_dir / "point_by_point" / "realizations_kgo.nc"
+    history_path = kgo_dir / "history/*.nc"
+    truth_path = kgo_dir / "truth/*.nc"
+    output_path = tmp_path / "output.nc"
+    est_emos_tol = str(0.01)
+    compare_emos_tolerance = 0.1
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "norm",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--predictor",
+        "realizations",
+        "--tolerance",
+        est_emos_tol,
+        "--point-by-point",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path, kgo_path, atol=compare_emos_tolerance, rtol=compare_emos_tolerance
+    )
+
+
+@pytest.mark.slow
+def test_normal_point_by_point_default_initial_guess_sites(tmp_path):
+    """
+    Test estimate-emos-coefficients for diagnostic with assumed
+    normal distribution where coefficients are computed independently at each
+    site location (minimisation only).
+    """
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
+    kgo_path = kgo_dir / "point_by_point_default_initial_guess" / "kgo.nc"
+    history_path = kgo_dir / "history/*.nc"
+    truth_path = kgo_dir / "truth/*.nc"
+    output_path = tmp_path / "output.nc"
+    est_emos_tol = str(0.01)
+    compare_emos_tolerance = 0.1
+    args = [
+        history_path,
+        truth_path,
+        "--distribution",
+        "norm",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--tolerance",
+        est_emos_tol,
+        "--point-by-point",
+        "--use-default-initial-guess",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path, kgo_path, atol=compare_emos_tolerance, rtol=compare_emos_tolerance
     )

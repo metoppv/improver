@@ -82,7 +82,8 @@ def process(
             "calibration."
         realizations_count (int):
             Option to specify the number of ensemble realizations that will be
-            created from probabilities or percentiles for input into EMOS.
+            created from probabilities or percentiles when applying the EMOS
+            coefficients.
         randomise (bool):
             Option to reorder the post-processed forecasts randomly. If not
             set, the ordering of the raw ensemble is used. This option is

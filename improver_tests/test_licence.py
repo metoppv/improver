@@ -28,33 +28,37 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the percentiles-to-probabilities CLI
-"""
+"""Licence checks"""
 
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from pathlib import Path
 
 
-def test_basic(tmp_path):
-    """Test basic percentile to probability conversion"""
-    kgo_dir = acc.kgo_root() / "percentiles-to-probabilities/basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "../snow_level.nc"
-    orography_path = kgo_dir / "../enukx_orography.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        orography_path,
-        "--output-diagnostic-name",
-        "probability_of_snow_falling_level_below_ground_level",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+def self_licence():
+    """Collect licence text from this file"""
+    self_lines = Path(__file__).read_text().splitlines()
+    licence_lines = list()
+    for line in self_lines:
+        if not line.startswith("#"):
+            break
+        licence_lines.append(line)
+    licence = "\n".join(licence_lines)
+    return licence
+
+
+def test_py_licence():
+    """
+    Check that non-empty python files contain the utf8 header and
+    3-clause BSD licence text
+    """
+    top_level = (Path(__file__).parent / "..").resolve()
+    directories_covered = [top_level / "improver", top_level / "improver_tests"]
+    failed_files = []
+    licence_text = self_licence()
+    for directory in directories_covered:
+        python_files = list(directory.glob("**/*.py"))
+        for file in python_files:
+            contents = file.read_text()
+            # skip zero-byte empty files such as __init__.py
+            if len(contents) > 0 and licence_text not in contents:
+                failed_files.append(str(file))
+    assert len(failed_files) == 0, "\n".join(failed_files)
