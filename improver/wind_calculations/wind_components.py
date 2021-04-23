@@ -160,9 +160,9 @@ class ResolveWindComponents(BasePlugin):
 
         Returns:
             - Cube containing wind vector component in the positive
-              x-direction
+              x-direction u_speed
             - Cube containing wind vector component in the positive
-              y-direction
+              y-direction v_speed
         """
         angle.convert_units("radians")
         angle.data += adj

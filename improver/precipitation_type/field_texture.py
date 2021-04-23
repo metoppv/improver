@@ -31,6 +31,8 @@
 """ Module containing plugin to calculate whether or not the input field texture
     exceeds a given threshold."""
 
+from typing import Optional
+
 import iris
 import numpy as np
 from iris.cube import Cube
@@ -68,7 +70,7 @@ class FieldTexture(BasePlugin):
         nbhood_radius: float,
         textural_threshold: float,
         diagnostic_threshold: float,
-        model_id_attr: str = None,
+        model_id_attr: Optional[str] = None,
     ) -> None:
         """
         Args:

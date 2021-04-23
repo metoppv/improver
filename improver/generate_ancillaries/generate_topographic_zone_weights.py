@@ -31,7 +31,7 @@
 """Module for generating the weights for topographic zones."""
 
 import warnings
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import iris
 import numpy as np
@@ -169,7 +169,10 @@ class GenerateTopographicZoneWeights(BasePlugin):
         return interpolated_weights
 
     def process(
-        self, orography: Cube, thresholds_dict: Dict[str, Any], landmask: Cube = None
+        self,
+        orography: Cube,
+        thresholds_dict: Dict[str, List[float]],
+        landmask: Cube = None,
     ) -> Cube:
         """Calculate the weights depending upon where the orography point is
         within the topographic zones.

@@ -32,7 +32,7 @@
 
 import copy
 import itertools
-from typing import Tuple, Union
+from typing import Tuple, Optional, Union
 
 import iris
 import numpy as np
@@ -408,7 +408,7 @@ class RoughnessCorrectionUtilities:
         Args:
             u_in:
                 3D array float32 - velocity on h_in layer, last dim is height
-            h_in(numpy.ndarray):
+            h_in:
                 3D or 1D array float32 - height layer array
             hhere:
                 2D array float32 - height grid to interpolate at
@@ -500,7 +500,7 @@ class RoughnessCorrectionUtilities:
 
     @staticmethod
     def _interpolate_log(
-        xup: ndarray, xlow: ndarray, at_x: ndarray, yup: ndarray, ylow
+        xup: ndarray, xlow: ndarray, at_x: ndarray, yup: ndarray, ylow: ndarray
     ) -> ndarray:
         """Simple 1D log interpolation y(x), except if lowest layer is
         ground level.
@@ -771,7 +771,7 @@ class RoughnessCorrection(PostProcessingPlugin):
     def check_ancils(
         a_over_s_cube: Cube,
         sigma_cube: Cube,
-        z0_cube: Cube,
+        z0_cube: Optional[Cube],
         pp_oro_cube: Cube,
         model_oro_cube: Cube,
     ) -> ndarray:

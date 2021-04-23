@@ -90,7 +90,7 @@ def calc_solar_hour_angle(
             Hour of the day in UTC
 
     Returns:
-        solar_hour_angle (float or numpy.ndarray)
+        solar_hour_angle
             Hour angles in degrees East-West
     """
     if day_of_year < 0 or day_of_year > 365:

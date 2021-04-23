@@ -166,7 +166,7 @@ class Integration(BasePlugin):
 
         return upper_bounds_cube, lower_bounds_cube
 
-    def _generate_output_name_and_units(self) -> Tuple[str, Any]:
+    def _generate_output_name_and_units(self) -> Tuple[str, str]:
         """Gets suitable output name and units from input cube metadata"""
         new_name = f"{self.input_cube.name()}_integral"
         original_units = self.input_cube.units
@@ -367,7 +367,7 @@ class Integration(BasePlugin):
 def fast_linear_fit(
     x_data: ndarray,
     y_data: ndarray,
-    axis: Union[int, Tuple] = None,
+    axis: Union[int, Tuple[int, ...]] = None,
     keepdims: bool = False,
     gradient_only: bool = False,
     with_nan: bool = False,

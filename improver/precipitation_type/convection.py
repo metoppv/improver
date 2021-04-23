@@ -65,7 +65,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         radii: Union[float, List[float]],
         fuzzy_factor: Optional[float] = None,
         comparison_operator: str = ">",
-        lead_times: List[float] = None,
+        lead_times: Optional[List[float]] = None,
         weighted_mode: bool = True,
         use_adjacent_grid_square_differences: bool = True,
     ) -> None:
@@ -416,7 +416,7 @@ class ConvectionRatioFromComponents(BasePlugin):
             )
         return convective_ratios
 
-    def process(self, cubes: List[Cube], model_id_attr: str = None) -> Cube:
+    def process(self, cubes: List[Cube], model_id_attr: Optional[str] = None) -> Cube:
         """
         Calculate the convective ratio from the convective and dynamic components as:
             convective_ratio = convective / (convective + dynamic)

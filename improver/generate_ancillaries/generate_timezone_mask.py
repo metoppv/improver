@@ -33,7 +33,7 @@
 import importlib
 import warnings
 from datetime import datetime
-from typing import Any, List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import iris
 import numpy as np
@@ -75,7 +75,7 @@ class GenerateTimezoneMask(BasePlugin):
         self,
         include_dst: bool = False,
         time: Optional[str] = None,
-        groupings: Optional[Any] = None,
+        groupings: Optional[Dict[int, List[int]]] = None,
     ) -> None:
         """
         Configure plugin options to generate the desired ancillary.

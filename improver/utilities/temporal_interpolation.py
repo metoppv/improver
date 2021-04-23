@@ -31,7 +31,7 @@
 """Class for Temporal Interpolation calculations."""
 
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import iris
 import numpy as np
@@ -59,8 +59,8 @@ class TemporalInterpolation(BasePlugin):
 
     def __init__(
         self,
-        interval_in_minutes: int = None,
-        times: List[datetime] = None,
+        interval_in_minutes: Optional[int] = None,
+        times: Optional[List[datetime]] = None,
         interpolation_method: str = "linear",
     ) -> None:
         """
@@ -128,7 +128,7 @@ class TemporalInterpolation(BasePlugin):
             initial_time:
                 The start of the period over which a time list is to be
                 constructed.
-            final_time (datetime.datetime).
+            final_time:
                 The end of the period over which a time list is to be
                 constructed.
 

@@ -59,7 +59,7 @@ def compare_netcdfs(
     desired_path: PathLike,
     rtol: float = DEFAULT_TOLERANCE,
     atol: float = DEFAULT_TOLERANCE,
-    exclude_vars: List[str] = None,
+    exclude_vars: Optional[List[str]] = None,
     ignored_attributes: Optional[List[str]] = None,
     reporter: Callable[[str], None] = None,
 ) -> None:

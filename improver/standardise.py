@@ -312,7 +312,7 @@ class RegridLandSea(BasePlugin):
         )
 
     def _regrid_to_target(
-        self, cube: Cube, target_grid: Cube, regridded_title: str
+        self, cube: Cube, target_grid: Cube, regridded_title: Optional[str]
     ) -> Cube:
         """
         Regrid cube to target_grid, inherit grid attributes and update title

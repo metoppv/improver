@@ -31,11 +31,13 @@
 """ Provides support utilities."""
 
 import copy
-from typing import Any, Optional, Tuple
+from typing import Any, Optional, Tuple, Union
 
 import cartopy.crs as ccrs
 import iris
 import numpy as np
+from cartopy.crs import CRS
+from cf_units import Unit
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from numpy import ndarray
@@ -74,7 +76,9 @@ def check_if_grid_is_equal_area(
         raise ValueError("Grid does not have equal spacing in x and y dimensions")
 
 
-def calculate_grid_spacing(cube: Cube, units: str, axis: str = "x") -> float:
+def calculate_grid_spacing(
+    cube: Cube, units: Union[Unit, str], axis: str = "x"
+) -> float:
     """
     Returns the grid spacing of a given spatial axis
 
@@ -103,7 +107,7 @@ def calculate_grid_spacing(cube: Cube, units: str, axis: str = "x") -> float:
 
 
 def distance_to_number_of_grid_cells(
-    cube: Cube, distance: int, axis: str = "x", return_int: bool = True
+    cube: Cube, distance: float, axis: str = "x", return_int: bool = True
 ) -> float:
     """
     Return the number of grid cells in the x and y direction based on the
@@ -340,8 +344,6 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         Args:
             diff:
                 Cube containing differences along the x or y axis
-            cube:
-                Cube with correct output dimensions
             axis:
                 Short-hand reference for the x or y coordinate, as allowed by
                 iris.util.guess_coord_axis.
@@ -465,7 +467,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         return result_cube
 
 
-def lat_lon_determine(cube: Cube) -> Optional[Any]:
+def lat_lon_determine(cube: Cube) -> Optional[CRS]:
     """
     Test whether a diagnostic cube is on a latitude/longitude grid or uses an
     alternative projection.

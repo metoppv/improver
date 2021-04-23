@@ -282,6 +282,10 @@ class GeneratePercentilesFromACircularNeighbourhood:
                 Kernel used to specify the neighbourhood to consider when
                 calculating the percentiles within a neighbourhood.
 
+        Returns:
+            A cube containing percentiles generated from a
+            neighbourhood.
+
         Examples:
 
             1. Take the input slice_2d cube with the data, where 1 is an

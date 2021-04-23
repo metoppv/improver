@@ -62,8 +62,10 @@ class BasicThreshold(PostProcessingPlugin):
     def __init__(
         self,
         thresholds: Union[float, List[float]],
-        fuzzy_factor: float = None,
-        fuzzy_bounds: Union[Tuple[float, float], List[Tuple[float, float]]] = None,
+        fuzzy_factor: Optional[float] = None,
+        fuzzy_bounds: Optional[
+            Union[Tuple[float, float], List[Tuple[float, float]]]
+        ] = None,
         threshold_units: Optional[str] = None,
         comparison_operator: str = ">",
         each_threshold_func: Union[Callable, List[Callable]] = (),

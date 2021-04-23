@@ -74,8 +74,8 @@ def generate_optical_flow_components(
             for optical flow velocities
 
     Returns:
-        - Cube of x-advection velocities
-        - Cube of y-advection velocities
+        - Cube of x-advection velocities u_mean
+        - Cube of y-advection velocities v_mean
     """
     cube_list.sort(key=lambda x: x.coord("time").points[0])
     time_coord = cube_list[-1].coord("time")

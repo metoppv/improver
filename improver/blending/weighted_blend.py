@@ -291,7 +291,7 @@ class PercentileBlendingAggregator:
         using a different name for this variable.
 
         Returns:
-            Containing the weighted percentile blend data across
+            Array containing the weighted percentile blend data across
             the chosen coord. The dimension associated with axis
             has been collapsed, and the rest of the dimensions remain.
         """

@@ -316,8 +316,6 @@ class OrographicEnhancement(BasePlugin):
         Args:
             wind_speed:
                 2D array of wind speeds
-            max_roi:
-                2D array of maximum ranges of influence in grid squares
             max_sin_cos:
                 2D array containing the larger of sin(wind_direction) or
                 cos(wind_direction) with respect to grid north

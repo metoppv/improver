@@ -242,7 +242,10 @@ def construct_scalar_time_coords(
 
 
 def _create_dimension_coord(
-    coord_array: Any, data_length: int, coord_name: str, **kwargs: Any
+    coord_array: Optional[List[float]],
+    data_length: int,
+    coord_name: str,
+    **kwargs: Any,
 ) -> DimCoord:
     """
     Creates dimension coordinate from coord_array if not None, otherwise creating an
@@ -275,8 +278,8 @@ def _construct_dimension_coords(
     data: Union[MaskedArray, ndarray],
     y_coord: DimCoord,
     x_coord: DimCoord,
-    realizations: Any,
-    height_levels: Optional[Any],
+    realizations: Union[List[float], ndarray],
+    height_levels: Union[List[float], ndarray],
     pressure: bool,
 ) -> DimCoord:
     """ Create array of all dimension coordinates. These dimensions will be ordered:
@@ -347,13 +350,13 @@ def set_up_variable_cube(
     time: datetime = datetime(2017, 11, 10, 4, 0),
     time_bounds: Optional[Tuple[datetime, datetime]] = None,
     frt: datetime = datetime(2017, 11, 10, 0, 0),
-    realizations: Optional[List[ndarray]] = None,
+    realizations: Optional[Union[List[float], ndarray]] = None,
     include_scalar_coords: Optional[List[Coord]] = None,
     attributes: Optional[Dict[str, str]] = None,
     standard_grid_metadata: Optional[str] = None,
     grid_spacing: Optional[float] = None,
-    domain_corner: Optional[Any] = None,
-    height_levels: Optional[Any] = None,
+    domain_corner: Optional[Tuple[float, float]] = None,
+    height_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
 ) -> Cube:
     """
@@ -553,7 +556,7 @@ def set_up_probability_cube(
 
 def add_coordinate(
     incube: Cube,
-    coord_points: Any,
+    coord_points: List,
     coord_name: str,
     coord_units: Optional[str] = None,
     dtype: type = np.float32,

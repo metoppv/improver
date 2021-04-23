@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities for using neighbourhood processing."""
 
-from typing import List, Union
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
@@ -131,7 +131,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         self,
         coord_for_masking: str,
         radii: Union[float, List[float]],
-        lead_times: List = None,
+        lead_times: Optional[List[float]] = None,
         collapse_weights: Cube = None,
         weighted_mode: bool = True,
         sum_or_fraction: str = "fraction",

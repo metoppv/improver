@@ -49,7 +49,9 @@ from improver.metadata.probabilistic import (
 class OccurrenceBetweenThresholds(PostProcessingPlugin):
     """Calculate the probability of occurrence between thresholds"""
 
-    def __init__(self, threshold_ranges: List, threshold_units: str) -> None:
+    def __init__(
+        self, threshold_ranges: List[List[float]], threshold_units: str
+    ) -> None:
         """
         Initialise the class.  Threshold ranges must be specified in a unit
         that is NOT sensitive to differences at the 1e-5 (float32) precision

@@ -130,7 +130,7 @@ class InterpolateUsingDifference(BasePlugin):
         return "<InterpolateUsingDifference>"
 
     @staticmethod
-    def _check_inputs(cube: Cube, reference_cube: Cube, limit) -> None:
+    def _check_inputs(cube: Cube, reference_cube: Cube, limit: Optional[Cube]) -> None:
         """
         Check that the input cubes are compatible and the data is complete or
         masked as expected.
@@ -181,11 +181,10 @@ class InterpolateUsingDifference(BasePlugin):
                 interpolated values fall below the limit value.
 
         Return:
-            iris.cube.Cube:
-                A copy of the input cube in which the missing data has been
-                populated with values obtained through interpolating the
-                difference field and subtracting the result from the reference
-                cube.
+            A copy of the input cube in which the missing data has been
+            populated with values obtained through interpolating the
+            difference field and subtracting the result from the reference
+            cube.
 
         Raises:
             ValueError: If the reference cube is not complete across the

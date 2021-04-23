@@ -106,7 +106,7 @@ def create_constraint(value: Union[float, List[float]]) -> Union[Callable, List[
 
 
 def parse_constraint_list(
-    constraints: List[str], units: List[str] = None
+    constraints: List[str], units: Optional[List[str]] = None
 ) -> Tuple[Constraint, Optional[Dict]]:
     """
     For simple constraints of a key=value format, these are passed in as a

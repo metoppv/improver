@@ -275,11 +275,11 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Args:
             minimisation_function:
                 Function to use when minimising.
-            initial_guess (list)
-            forecast_predictor (iris.cube.Cube)
-            truth (iris.cube.Cube)
-            forecast_var (iris.cube.Cube)
-            predictor (str)
+            initial_guess
+            forecast_predictor
+            truth
+            forecast_var
+            predictor
 
         Returns:
             Separate optimised coefficients for each point. The shape of the
@@ -354,11 +354,11 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Args:
             minimisation_function:
                 Function to use when minimising.
-            initial_guess (list)
-            forecast_predictor (iris.cube.Cube)
-            truth (iris.cube.Cube)
-            forecast_var (iris.cube.Cube)
-            predictor (str)
+            initial_guess
+            forecast_predictor
+            truth
+            forecast_var
+            predictor
 
         Returns:
             The optimised coefficients. Order of coefficients is [alpha, beta, gamma, delta].
@@ -801,7 +801,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
     def _get_spatial_associated_coordinates(
         self, historic_forecasts: Cube
-    ) -> List[Coord]:
+    ) -> Tuple[List[int], List[Coord]]:
         """Set-up the spatial dimensions and coordinates for the EMOS
         coefficients cube.
 
@@ -944,7 +944,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         truths: ndarray,
         forecast_predictor: ndarray,
         predictor: str,
-        number_of_realizations: int,
+        number_of_realizations: Optional[int],
     ) -> List[float]:
         """
         Function to compute initial guess of the alpha, beta, gamma
@@ -1071,7 +1071,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         historic_forecasts: Cube,
         forecast_predictor: Cube,
         forecast_var: Cube,
-        number_of_realizations: int,
+        number_of_realizations: Optional[int],
     ) -> CubeList:
         """Function to consolidate calls to compute the initial guess, compute
         the optimised coefficients using minimisation and store the resulting
@@ -1623,7 +1623,7 @@ class ApplyEMOS(PostProcessingPlugin):
 
     def _convert_to_realizations(
         self, forecast: Cube, realizations_count: int, ignore_ecc_bounds: bool
-    ) -> Any:
+    ) -> Cube:
         """Convert an input forecast of probabilities or percentiles into
         pseudo-realizations
 
@@ -1633,6 +1633,9 @@ class ApplyEMOS(PostProcessingPlugin):
                 Number of pseudo-realizations to generate from the input
                 forecast
             ignore_ecc_bounds
+
+        Returns:
+            Cube with pseudo-realizations
         """
         if not realizations_count:
             raise ValueError(

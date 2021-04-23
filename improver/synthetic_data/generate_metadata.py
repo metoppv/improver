@@ -31,12 +31,13 @@
 """Module to generate a metadata cube."""
 
 from datetime import datetime, timedelta
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 from iris.cube import Cube
 from iris.std_names import STD_NAMES
 from iris.util import squeeze
+from numpy import ndarray
 
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
@@ -60,7 +61,7 @@ def _get_units(name: str) -> str:
     return units
 
 
-def _create_time_bounds(time, time_period):
+def _create_time_bounds(time: datetime, time_period: int) -> Tuple[datetime, datetime]:
     """ Create time bounds using time - time_period as the lower bound and time as the
     upper bound"""
     lower_bound = time - timedelta(minutes=time_period)
@@ -69,7 +70,12 @@ def _create_time_bounds(time, time_period):
     return (lower_bound, upper_bound)
 
 
-def _create_data_array(ensemble_members, leading_dimension, npoints, height_levels):
+def _create_data_array(
+    ensemble_members: int,
+    leading_dimension: Optional[List[float]],
+    npoints: int,
+    height_levels: Optional[List[float]],
+) -> ndarray:
     """ Create data array of specified shape filled with zeros """
     if leading_dimension is not None:
         nleading_dimension = len(leading_dimension)
@@ -98,11 +104,11 @@ def generate_metadata(
     name: str = "air_pressure_at_sea_level",
     units: Optional[str] = None,
     time_period: Optional[int] = None,
-    ensemble_members: Optional[int] = 8,
+    ensemble_members: int = 8,
     leading_dimension: Optional[List[float]] = None,
-    cube_type: Optional[str] = "variable",
-    spp__relative_to_threshold: Optional[str] = "greater_than",
-    npoints: Optional[int] = 71,
+    cube_type: str = "variable",
+    spp__relative_to_threshold: str = "greater_than",
+    npoints: int = 71,
     **kwargs: Any,
 ) -> Cube:
     """ Generate a cube with metadata only.

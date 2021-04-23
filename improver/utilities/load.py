@@ -35,7 +35,7 @@ from typing import List, Optional, Union
 
 import iris
 from iris import Constraint
-from iris.cube import CubeList
+from iris.cube import Cube, CubeList
 
 from improver.utilities.cube_manipulation import (
     MergeCubes,
@@ -149,7 +149,7 @@ def load_cube(
     filepath: Union[str, List[str]],
     constraints: Optional[Union[Constraint, str]] = None,
     no_lazy_load: bool = False,
-):
+) -> Cube:
     """Load the filepath provided using Iris into a cube. Strips off all
     var names except for "threshold"-type coordinates, where this is different
     from the standard or long name.

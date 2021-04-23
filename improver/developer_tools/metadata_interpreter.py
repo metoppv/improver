@@ -157,8 +157,8 @@ class MOMetadataInterpreter:
 
         # set up empty strings to record any non-compliance (returned as one error
         # after all checks have been made) or warnings
-        self.errors: List[str] = []
-        self.warnings: List[str] = []
+        self.errors = []
+        self.warnings = []
         # initialise information to be derived from input cube
         self.prod_type = "gridded"  # gridded or spot
         self.field_type = (

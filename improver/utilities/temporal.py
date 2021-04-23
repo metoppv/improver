@@ -32,7 +32,7 @@
 
 import warnings
 from datetime import datetime, timedelta, timezone
-from typing import List, Union
+from typing import List, Union, Optional
 
 import cf_units
 import iris
@@ -41,6 +41,7 @@ from iris import Constraint
 from iris.coords import AuxCoord, Coord
 from iris.cube import Cube, CubeList
 from iris.time import PartialDateTime
+from numpy import ndarray
 
 from improver import PostProcessingPlugin
 from improver.metadata.check_datatypes import enforce_dtype
@@ -346,7 +347,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         )
         return output_cube
 
-    def _fill_timezones(self, input_cube: Cube):
+    def _fill_timezones(self, input_cube: Cube) -> None:
         """
         Populates the output cube data with data from input_cube. This is done by
         multiplying the inverse of the timezone_cube.data with the input_cube.data and
@@ -391,7 +392,7 @@ class TimezoneExtraction(PostProcessingPlugin):
             ) + self.time_points.reshape(list(self.time_points.shape) + [1])
 
     @staticmethod
-    def _get_time_bounds_offset(input_cube: Cube):
+    def _get_time_bounds_offset(input_cube: Cube) -> Optional[ndarray]:
         """Returns the generalised offset of bounds[0] and bounds[1] from points on the
         time coord. Bound intervals must match as we have used MergeCubes, so only need
         to access the first time point.
@@ -404,7 +405,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         else:
             return None
 
-    def check_input_cube_dims(self, input_cube: Cube, timezone_cube: Cube):
+    def check_input_cube_dims(self, input_cube: Cube, timezone_cube: Cube) -> None:
         """Ensures input cube has at least three dimensions: time, y, x. Promotes time
         to be the inner-most dimension (dim=-1). Does the same for the timezone_cube
         UTC_offset dimension.
@@ -432,7 +433,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 "Spatial coordinates on input_cube and timezone_cube do not match."
             )
 
-    def check_input_cube_time(self, input_cube: Cube, local_time: datetime):
+    def check_input_cube_time(self, input_cube: Cube, local_time: datetime) -> None:
         """Ensures input cube and timezone_cube cover exactly the right points and that
         the time and UTC_offset coords have the same order.
 
@@ -459,7 +460,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 + "\n".join([f"{t:%Y%m%dT%H%MZ}" for t in input_time_points])
             )
 
-    def check_timezones_are_unique(self, timezone_cube: Cube):
+    def check_timezones_are_unique(self, timezone_cube: Cube) -> None:
         """Ensures that each grid point falls into exactly one time zone
 
         Raises:

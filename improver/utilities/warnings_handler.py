@@ -32,7 +32,7 @@
 
 import sys
 import warnings
-from typing import Any, Callable, List, NoReturn
+from typing import Any, Callable, List, NoReturn, Optional
 
 
 class ManageWarnings:
@@ -44,8 +44,8 @@ class ManageWarnings:
 
     def __init__(
         self,
-        ignored_messages: List[str] = None,
-        warning_types: List[Any] = None,
+        ignored_messages: Optional[List[str]] = None,
+        warning_types: Optional[List[Any]] = None,
         record: bool = False,
     ) -> None:
         """

@@ -210,7 +210,7 @@ def is_variable(thing: str) -> bool:
     identifying the exceptions.
 
     Args:
-        thing: str
+        thing:
             The string to operate on
 
     Returns:

@@ -32,10 +32,11 @@
 """Neighbour finding for the Improver site specific process chain."""
 
 import warnings
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import cartopy.crs as ccrs
 import numpy as np
+from cartopy.crs import CRS
 from iris.cube import Cube
 from numpy import ndarray
 from scipy.spatial import cKDTree
@@ -71,7 +72,7 @@ class NeighbourSelection(BasePlugin):
         land_constraint: bool = False,
         minimum_dz: bool = False,
         search_radius: float = 1.0e4,
-        site_coordinate_system: Any = ccrs.PlateCarree(),
+        site_coordinate_system: CRS = ccrs.PlateCarree(),
         site_x_coordinate: str = "longitude",
         site_y_coordinate: str = "latitude",
         node_limit: int = 36,
@@ -147,7 +148,7 @@ class NeighbourSelection(BasePlugin):
         return method_name
 
     def _transform_sites_coordinate_system(
-        self, x_points: ndarray, y_points: ndarray, target_crs: Any
+        self, x_points: ndarray, y_points: ndarray, target_crs: CRS
     ) -> ndarray:
         """
         Function to convert coordinate pairs that specify spot sites into the
@@ -328,7 +329,7 @@ class NeighbourSelection(BasePlugin):
         )
         return cartesian_nodes
 
-    def build_KDTree(self, land_mask: Cube) -> Tuple[Any, ndarray]:
+    def build_KDTree(self, land_mask: Cube) -> Tuple[cKDTree, ndarray]:
         """
         Build a KDTree for extracting the nearest point or points to a site.
         The tree can be built with a constrained set of grid points, e.g. only
@@ -373,7 +374,7 @@ class NeighbourSelection(BasePlugin):
         index_nodes: ndarray,
         distance: ndarray,
         indices: ndarray,
-    ) -> ndarray:
+    ) -> Optional[ndarray]:
         """
         Given a selection of nearest neighbours to a given site, this function
         calculates the absolute vertical displacement between the site and the

@@ -31,12 +31,12 @@
 
 """Spot data extraction from diagnostic fields using neighbour cubes."""
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
 from iris.coords import AuxCoord, DimCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import BasePlugin
@@ -149,8 +149,8 @@ class SpotExtraction(BasePlugin):
         neighbour_cube: Cube,
         diagnostic_cube: Cube,
         spot_values: ndarray,
-        additional_dims: List[DimCoord] = None,
-        scalar_coords: List[AuxCoord] = None,
+        additional_dims: Optional[List[DimCoord]] = None,
+        scalar_coords: Optional[List[AuxCoord]] = None,
     ) -> Cube:
         """
         Builds a spot data cube containing the extracted diagnostic values.
@@ -259,7 +259,7 @@ class SpotExtraction(BasePlugin):
         return spotdata_cube
 
 
-def check_grid_match(cubes: Cube) -> None:
+def check_grid_match(cubes: Union[List[Cube], CubeList]) -> None:
     """
     Checks that cubes are on, or originate from, compatible coordinate grids.
     Each cube is first checked for an existing 'model_grid_hash' which can be

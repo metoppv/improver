@@ -138,7 +138,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         )
         return result.format(neighbourhood_method, self.radii, self.lead_times)
 
-    def process(self, cube: Cube, mask_cube: Cube = None) -> Cube:
+    def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
         """
         Supply neighbourhood processing method, in order to smooth the
         input cube.

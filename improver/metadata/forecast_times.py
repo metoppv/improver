@@ -185,9 +185,9 @@ def _create_frt_type_coord(
     Args:
         cube:
             Input cube with scalar forecast reference time coordinate
-        points (datetime.datetime)
+        points
             Single datetime point for output coord
-        name (str)
+        name
             Name of aux coord to be returned
 
     Returns:

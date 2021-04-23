@@ -160,7 +160,7 @@ class PrecipPhaseProbability(BasePlugin):
                 orography.
 
         Returns:
-            Contains the probability of a specific precipitation phase
+            Cube containing the probability of a specific precipitation phase
             reaching the surface orography. If the falling_level_cube was
             snow->sleet, then this will be the probability of snow at the
             surface. If the falling_level_cube was sleet->rain, then this

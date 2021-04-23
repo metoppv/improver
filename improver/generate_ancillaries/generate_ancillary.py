@@ -309,7 +309,10 @@ class GenerateOrographyBandAncils(BasePlugin):
         return mask_cube
 
     def process(
-        self, orography: Cube, thresholds_dict: Dict[str, Any], landmask: Cube = None
+        self,
+        orography: Cube,
+        thresholds_dict: Dict[str, Any],
+        landmask: Optional[Cube] = None,
     ) -> CubeList:
         """Loops over the supplied orographic bands, adding a cube
            for each band to the mask cubelist.

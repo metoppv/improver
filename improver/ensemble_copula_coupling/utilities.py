@@ -34,7 +34,7 @@ plugins.
 
 """
 
-from typing import Any, List, Optional, Union
+from typing import List, Optional, Union
 
 import cf_units as unit
 import iris
@@ -135,7 +135,7 @@ def choose_set_of_percentiles(
 
 
 def create_cube_with_percentiles(
-    percentiles: Any,
+    percentiles: Union[List[float], ndarray],
     template_cube: Cube,
     cube_data: ndarray,
     cube_unit: Optional[Union[Unit, str]] = None,

@@ -39,7 +39,7 @@ import numpy as np
 import scipy
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
-from numpy import int32, int64, ndarray
+from numpy import ndarray
 from numpy.ma.core import MaskedArray
 
 from improver import BasePlugin, PostProcessingPlugin
@@ -936,8 +936,8 @@ class ManipulateReliabilityTable(BasePlugin):
                 coordinate and a probability_bin coordinate.
 
         Returns:
-            Containing a reliability table cube for each threshold in the
-            input reliablity table. For tables where monotonicity has been
+            CubeList containing a reliability table cube for each threshold in
+            the input reliablity table. For tables where monotonicity has been
             enforced the probability_bin coordinate will have one less
             bin than the tables that were already monotonic. If
             under-sampled bins have been combined, then the probability_bin
@@ -1045,8 +1045,8 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 The reliability table to use for applying calibration.
 
         Returns:
-            A reliability table who's threshold coordinate matches
-            the forecast cube.
+            A reliability table with a threshold coordinate that
+            matches the forecast cube.
 
         Raises:
             ValueError: If no matching reliability table is found.

@@ -58,8 +58,8 @@ class Accumulation(BasePlugin):
     def __init__(
         self,
         accumulation_units: str = "m",
-        accumulation_period: int = None,
-        forecast_periods: List[float] = None,
+        accumulation_period: Optional[int] = None,
+        forecast_periods: Optional[List[float]] = None,
     ) -> None:
         """
         Initialise the plugin.
@@ -297,7 +297,7 @@ class Accumulation(BasePlugin):
         upper bound of the accumulation period.
 
         Args:
-            cube_subset(iris.cube.CubeList):
+            cube_subset:
                 Cubelist containing the subset of cubes used to calculate
                 the accumulations. The bounds from these cubes will be used
                 to set the metadata on the output accumulation cube.

@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provides support utility for rescaling data."""
 
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 from iris.cube import Cube
@@ -39,7 +39,7 @@ from numpy import ndarray
 
 def rescale(
     data: ndarray,
-    data_range: Union[Tuple[float, float], List[float]] = None,
+    data_range: Optional[Union[Tuple[float, float], List[float]]] = None,
     scale_range: Union[Tuple[float, float], List[float]] = (0.0, 1.0),
     clip: bool = False,
 ) -> ndarray:
@@ -96,7 +96,7 @@ def apply_double_scaling(
     scaled_cube: Cube,
     data_vals: Tuple[float, float, float],
     scaling_vals: Tuple[float, float, float],
-    combine_function: Callable[[ndarray, ndarray], ndarray] = np.minimum,
+    combine_function: Callable = np.minimum,
 ) -> ndarray:
     """
     From data_cube, an array of limiting values is created based on a linear
