@@ -40,6 +40,7 @@ from iris.tests import IrisTest
 from improver.metadata.amend import (
     amend_attributes,
     set_history_attribute,
+    update_model_id_attr_attribute,
     update_stage_v110_metadata,
 )
 from improver.synthetic_data.set_up_test_cubes import (
@@ -178,6 +179,68 @@ class Test_set_history_attribute(IrisTest):
         set_history_attribute(cube, "Nowcast", append=True)
         self.assertTrue("history" in cube.attributes)
         self.assertTrue("Nowcast" in cube.attributes["history"])
+
+
+class Test_update_model_id_attr_attribute(IrisTest):
+
+    """Test the update_model_id_attr_attribute function."""
+
+    def setUp(self):
+        """Set up cube."""
+        self.cube = set_up_probability_cube(
+            np.zeros((2, 2, 2), dtype=np.float32),
+            np.array([288, 290], dtype=np.float32),
+        )
+        self.model_id_attr = "mosg__model_configuration"
+
+    def test_one_input_attribute(self):
+        """Test handling of model_id_attr attribute for one input."""
+        self.cube.attributes["mosg__model_configuration"] = "uk_ens"
+        result = update_model_id_attr_attribute([self.cube], self.model_id_attr)
+        self.assertArrayEqual(result["mosg__model_configuration"], "uk_ens")
+
+    def test_two_matching_input_attributes(self):
+        """Test handling of model_id_attr attribute for two matching inputs."""
+        self.cube.attributes["mosg__model_configuration"] = "uk_ens"
+        self.cube1 = self.cube.copy()
+        self.cube2 = self.cube.copy()
+        result = update_model_id_attr_attribute(
+            [self.cube1, self.cube2], self.model_id_attr
+        )
+        self.assertArrayEqual(result["mosg__model_configuration"], "uk_ens")
+
+    def test_two_different_input_attributes(self):
+        """Test handling of model_id_attr attribute for two different inputs."""
+        self.cube1 = self.cube.copy()
+        self.cube2 = self.cube.copy()
+        self.cube1.attributes["mosg__model_configuration"] = "uk_ens"
+        self.cube2.attributes["mosg__model_configuration"] = "nc_det"
+        result = update_model_id_attr_attribute(
+            [self.cube1, self.cube2], self.model_id_attr
+        )
+        self.assertArrayEqual(result["mosg__model_configuration"], "nc_det uk_ens")
+
+    def test_compound_attributes(self):
+        """Test handling of compound attributes."""
+        self.cube1 = self.cube.copy()
+        self.cube2 = self.cube.copy()
+        self.cube1.attributes["mosg__model_configuration"] = "uk_det uk_ens"
+        self.cube2.attributes["mosg__model_configuration"] = "nc_det uk_det uk_ens"
+        result = update_model_id_attr_attribute(
+            [self.cube1, self.cube2], self.model_id_attr
+        )
+        self.assertArrayEqual(
+            result["mosg__model_configuration"], "nc_det uk_det uk_ens"
+        )
+
+    def test_attribute_mismatch(self):
+        """Test a mismatch in the presence of the model_id_attr attribute."""
+        self.cube1 = self.cube.copy()
+        self.cube2 = self.cube.copy()
+        self.cube1.attributes["mosg__model_configuration"] = "uk_ens"
+        msg = "Expected to find mosg__model_configuration attribute on all cubes"
+        with self.assertRaisesRegex(AttributeError, msg):
+            update_model_id_attr_attribute([self.cube1, self.cube2], self.model_id_attr)
 
 
 if __name__ == "__main__":
