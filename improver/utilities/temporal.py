@@ -32,7 +32,7 @@
 
 import warnings
 from datetime import datetime, timedelta, timezone
-from typing import List, Union, Optional
+from typing import List, Optional, Union
 
 import cf_units
 import iris

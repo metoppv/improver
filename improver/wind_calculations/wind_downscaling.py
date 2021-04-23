@@ -32,7 +32,7 @@
 
 import copy
 import itertools
-from typing import Tuple, Optional, Union
+from typing import Optional, Tuple, Union
 
 import iris
 import numpy as np
