@@ -35,7 +35,7 @@ from improver import cli
 
 
 @cli.clizefy
-def process(*file_paths: cli.inputpath, verbose=False, failures=False):
+def process(*file_paths: cli.inputpath, verbose=False, failures_only=False):
     """Intepret the metadata of an IMPROVER output into human readable format
     according to the IMPROVER standard. An optional verbosity flag, if set to
     True, will specify the source of each interpreted element.
@@ -49,7 +49,7 @@ def process(*file_paths: cli.inputpath, verbose=False, failures=False):
         verbose (bool):
             Boolean flag to output information about sources of metadata
             interpretation.
-        failures (bool):
+        failures_only (bool):
             Boolean flag that, if set, means only information about non-compliant
             files is printed.
     Raises:
@@ -74,7 +74,7 @@ def process(*file_paths: cli.inputpath, verbose=False, failures=False):
                 output = "Non-compliant :\n{}".format(str(err))
                 any_failures = True
             else:
-                if failures:
+                if failures_only:
                     continue
                 output = display_interpretation(interpreter, verbose=verbose)
             print(f"\nfile : {file}")

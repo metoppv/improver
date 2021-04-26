@@ -42,9 +42,9 @@ from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
     get_threshold_coord_name_from_probability_name,
 )
-from improver.utilities.cube_manipulation import get_coord_names, get_dim_coord_names
+from improver.utilities.cube_manipulation import get_coord_names
 
-### Constants relating to metadata encoding
+# Constants relating to metadata encoding
 
 # Model name-to-attribute maps
 MODEL_CODES = {
@@ -555,7 +555,7 @@ def display_interpretation(interpreter, verbose=False):
             Populated instance of MOMetadataInterpreter
         verbose (bool):
             Optional flag to include information about the source of the
-            metadata interpretation (eg name, coordinates, attributes, etc)        
+            metadata interpretation (eg name, coordinates, attributes, etc)
 
     Returns:
         str:

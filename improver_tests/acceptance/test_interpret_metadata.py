@@ -83,7 +83,7 @@ ALL_KGOS = [KGO_compliant, KGO_non_compliant, KGO_verbose]
         (
             ["non_compliant_weather_codes.nc", "temperature_realizations.nc"],
             [KGO_non_compliant],
-            ["--failures"],
+            ["--failures-only"],
         ),
     ),
 )
@@ -92,7 +92,7 @@ def test_interpretation(capsys, inputs, kgos, options):
     - A single compliant file
     - A single compliant file with verbose output
     - Multiple files, the first of which is non-compliant
-    - Using the --failures option to only print output for non-compliant files.
+    - Using the --failures-only option to only print output for non-compliant files.
 
     capsys is a pytest fixture that captures standard output/error for testing.
     """
