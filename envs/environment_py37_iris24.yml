@@ -7,6 +7,7 @@ channels:
 dependencies:
   - python=3.7
   # Required
+  - attrs=19.1.0
   - cartopy
   - cftime=1.0.1
   - cf_units

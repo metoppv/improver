@@ -14,6 +14,7 @@ dependencies:
   - cftime=1.0.1
   - python-stratify=0.1
   - sphinx=3.4.3
+  - attrs=19.1.0
   - pytest
   - pytest-cov
   - codacy-coverage
