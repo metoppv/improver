@@ -35,11 +35,16 @@ This module defines plugins used to create nowcast extrapolation forecasts.
 """
 import datetime
 import warnings
+from datetime import timedelta
+from typing import Dict, Optional, Union
 
 import iris
 import numpy as np
-from iris.coords import AuxCoord
+from iris.coords import AuxCoord, Coord
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
+from numpy import ndarray
+from numpy.ma.core import MaskedArray
 
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes, set_history_attribute
@@ -59,20 +64,20 @@ class AdvectField(BasePlugin):
     dimensions
     """
 
-    def __init__(self, vel_x, vel_y, attributes_dict=None):
+    def __init__(self, vel_x: Cube, vel_y: Cube, attributes_dict: Dict = None) -> None:
         """
         Initialises the plugin.  Velocities are expected to be on a regular
         grid (such that grid spacing in metres is the same at all points in
         the domain).
 
         Args:
-            vel_x (iris.cube.Cube):
+            vel_x:
                 Cube containing a 2D array of velocities along the x
                 coordinate axis
-            vel_y (iris.cube.Cube):
+            vel_y:
                 Cube containing a 2D array of velocities along the y
                 coordinate axis
-            attributes_dict (dict):
+            attributes_dict:
                 Dictionary containing information for amending the attributes
                 of the output cube.
         """
@@ -102,7 +107,7 @@ class AdvectField(BasePlugin):
             attributes_dict = {}
         self.attributes_dict = attributes_dict
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the plugin instance as a string."""
         result = "<AdvectField: vel_x={}, vel_y={}, " "attributes_dict={}>".format(
             repr(self.vel_x), repr(self.vel_y), self.attributes_dict
@@ -111,40 +116,40 @@ class AdvectField(BasePlugin):
 
     @staticmethod
     def _increment_output_array(
-        indata,
-        outdata,
-        cond,
-        xdest_grid,
-        ydest_grid,
-        xsrc_grid,
-        ysrc_grid,
-        x_weight,
-        y_weight,
-    ):
+        indata: ndarray,
+        outdata: ndarray,
+        cond: ndarray,
+        xdest_grid: ndarray,
+        ydest_grid: ndarray,
+        xsrc_grid: ndarray,
+        ysrc_grid: ndarray,
+        x_weight: ndarray,
+        y_weight: ndarray,
+    ) -> None:
         """
         Calculate and add contribution to the advected array from one source
         grid point, for all points where boolean condition "cond" is valid.
 
         Args:
-            indata (numpy.ndarray):
+            indata:
                 2D numpy array of source data to be advected
-            outdata (numpy.ndarray):
+            outdata:
                 2D numpy array for advected output, modified in place by
                 this method (is both input and output).
-            cond (numpy.ndarray):
+            cond:
                 2D boolean mask of points to be processed
-            xdest_grid (numpy.ndarray):
+            xdest_grid:
                 Integer x-coordinates of all points on destination grid
-            ydest_grid (numpy.ndarray):
+            ydest_grid:
                 Integer y-coordinates of all points on destination grid
-            xsrc_grid (numpy.ndarray):
+            xsrc_grid:
                 Integer x-coordinates of all points on source grid
-            ysrc_grid (numpy.ndarray):
+            ysrc_grid:
                 Integer y-coordinates of all points on source grid
-            x_weight (numpy.ndarray):
+            x_weight:
                 Fractional contribution to destination grid of source data
                 advected along the x-axis.  Positive definite.
-            y_weight (numpy.ndarray):
+            y_weight:
                 Fractional contribution to destination grid of source data
                 advected along the y-axis.  Positive definite.
         """
@@ -156,7 +161,13 @@ class AdvectField(BasePlugin):
             indata[ysrc, xsrc] * x_weight[ydest, xdest] * y_weight[ydest, xdest]
         )
 
-    def _advect_field(self, data, grid_vel_x, grid_vel_y, timestep):
+    def _advect_field(
+        self,
+        data: Union[ndarray, MaskedArray],
+        grid_vel_x: ndarray,
+        grid_vel_y: ndarray,
+        timestep: int,
+    ) -> Union[ndarray, MaskedArray]:
         """
         Performs a dimensionless grid-based extrapolation of spatial data
         using advection velocities via a backwards method.  Points where data
@@ -164,19 +175,18 @@ class AdvectField(BasePlugin):
         fill value of np.nan and masked.
 
         Args:
-            data (numpy.ndarray or numpy.ma.MaskedArray):
+            data:
                 2D numpy data array to be advected
-            grid_vel_x (numpy.ndarray):
+            grid_vel_x:
                 Velocity in the x direction (in grid points per second)
-            grid_vel_y (numpy.ndarray):
+            grid_vel_y:
                 Velocity in the y direction (in grid points per second)
-            timestep (int):
+            timestep:
                 Advection time step in seconds
 
         Returns:
-            numpy.ma.MaskedArray:
-                2D float array of advected data values with masked "no data"
-                regions
+            2D float array of advected data values with masked "no data"
+            regions
         """
         # Cater for special case where timestep (int) is 0
         if timestep == 0:
@@ -239,15 +249,17 @@ class AdvectField(BasePlugin):
         return adv_field
 
     @staticmethod
-    def _update_time(input_time, advected_cube, timestep):
+    def _update_time(
+        input_time: Coord, advected_cube: Cube, timestep: timedelta
+    ) -> None:
         """Increment validity time on the advected cube
 
         Args:
-            input_time (iris.coords.Coord):
+            input_time:
                 Time coordinate from source cube
-            advected_cube (iris.cube.Cube):
+            advected_cube:
                 Cube containing advected data (modified in place)
-            timestep (datetime.timedelta)
+            timestep:
                 Time difference between the advected output and the source
         """
         original_datetime = next(input_time.cells())[0]
@@ -261,7 +273,7 @@ class AdvectField(BasePlugin):
         time_coord.points = round_close(time_coord.points, dtype=time_coord_spec.dtype)
 
     @staticmethod
-    def _add_forecast_reference_time(input_time, advected_cube):
+    def _add_forecast_reference_time(input_time: Coord, advected_cube: Cube) -> None:
         """Add or replace a forecast reference time on the advected cube"""
         try:
             advected_cube.remove_coord("forecast_reference_time")
@@ -276,7 +288,7 @@ class AdvectField(BasePlugin):
         advected_cube.add_aux_coord(frt_coord)
 
     @staticmethod
-    def _add_forecast_period(advected_cube, timestep):
+    def _add_forecast_period(advected_cube: Cube, timestep: timedelta) -> None:
         """Add or replace a forecast period on the advected cube"""
         try:
             advected_cube.remove_coord("forecast_period")
@@ -289,20 +301,22 @@ class AdvectField(BasePlugin):
         )
         advected_cube.add_aux_coord(forecast_period_coord)
 
-    def _create_output_cube(self, cube, advected_data, timestep):
+    def _create_output_cube(
+        self, cube: Cube, advected_data: ndarray, timestep: timedelta
+    ) -> Cube:
         """
         Create a cube and appropriate metadata to contain the advected forecast
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Source cube (before advection)
-            advected_data (numpy.ndarray):
+            advected_data:
                 Advected data
-            timestep (datetime.timedelta):
+            timestep:
                 Time difference between the advected output and the source
 
         Returns:
-            iris.cube.Cube
+            The output cube
         """
         attributes = generate_mandatory_attributes([cube])
         if "institution" in cube.attributes.keys():
@@ -321,7 +335,7 @@ class AdvectField(BasePlugin):
 
         return advected_cube
 
-    def process(self, cube, timestep):
+    def process(self, cube: Cube, timestep: timedelta) -> Cube:
         """
         Extrapolates input cube data and updates validity time.  The input
         cube should have precisely two non-scalar dimension coordinates
@@ -330,18 +344,16 @@ class AdvectField(BasePlugin):
         domain.  The input cube should also have a "time" coordinate.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The 2D cube containing data to be advected
-            timestep (datetime.timedelta):
+            timestep:
                 Advection time step
 
         Returns:
-            iris.cube.Cube:
-                New cube with updated time and extrapolated data.  New data
-                are filled with np.nan and masked where source data were
-                out of bounds (ie where data could not be advected from outside
-                the cube domain).
-
+            New cube with updated time and extrapolated data.  New data
+            are filled with np.nan and masked where source data were
+            out of bounds (ie where data could not be advected from outside
+            the cube domain).
         """
         # check that the input cube has precisely two non-scalar dimension
         # coordinates (spatial x/y) and a scalar time coordinate
@@ -354,7 +366,7 @@ class AdvectField(BasePlugin):
             )
 
         # derive velocities in "grid squares per second"
-        def grid_spacing(coord):
+        def grid_spacing(coord: Coord) -> float:
             """Calculate grid spacing along a given spatial axis"""
             new_coord = coord.copy()
             new_coord.convert_units("m")
@@ -384,12 +396,12 @@ class CreateExtrapolationForecast(BasePlugin):
 
     def __init__(
         self,
-        input_cube,
-        vel_x,
-        vel_y,
-        orographic_enhancement_cube=None,
-        attributes_dict=None,
-    ):
+        input_cube: Cube,
+        vel_x: Cube,
+        vel_y: Cube,
+        orographic_enhancement_cube: Optional[Cube] = None,
+        attributes_dict: Optional[Dict] = None,
+    ) -> None:
         """
         Initialises the object.
         This includes checking if orographic enhancement is provided and
@@ -399,20 +411,20 @@ class CreateExtrapolationForecast(BasePlugin):
         orographic enhancement cube is provided.
 
         Args:
-            input_cube (iris.cube.Cube):
+            input_cube:
                 A 2D cube containing data to be advected.
-            vel_x (iris.cube.Cube):
+            vel_x:
                 Cube containing a 2D array of velocities along the x
                 coordinate axis
-            vel_y (iris.cube.Cube):
+            vel_y:
                 Cube containing a 2D array of velocities along the y
                 coordinate axis
-            orographic_enhancement_cube (iris.cube.Cube):
+            orographic_enhancement_cube:
                 Cube containing the orographic enhancement fields. May have
                 data for multiple times in the cube. The orographic enhancement
                 is removed from the input_cube before advecting, and added
                 back on after advection.
-            attributes_dict (dict):
+            attributes_dict:
                 Dictionary containing information for amending the attributes
                 of the output cube.
         """
@@ -438,7 +450,7 @@ class CreateExtrapolationForecast(BasePlugin):
             vel_x, vel_y, attributes_dict=attributes_dict
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the plugin instance as a string."""
         result = (
             "<CreateExtrapolationForecast: input_cube = {}, "
@@ -451,23 +463,22 @@ class CreateExtrapolationForecast(BasePlugin):
         )
         return result
 
-    def extrapolate(self, leadtime_minutes):
+    def extrapolate(self, leadtime_minutes: float) -> Cube:
         """
         Produce a new forecast cube for the supplied lead time. Creates a new
         advected forecast and then reapplies the orographic enhancement if it
         is supplied.
 
         Args:
-            leadtime_minutes (float):
+            leadtime_minutes:
                 The forecast leadtime we want to generate a forecast for
                 in minutes.
 
         Returns:
-            iris.cube.Cube:
-                New cube with updated time and extrapolated data.  New data
-                are filled with np.nan and masked where source data were
-                out of bounds (ie where data could not be advected from outside
-                the cube domain).
+            New cube with updated time and extrapolated data.  New data
+            are filled with np.nan and masked where source data were
+            out of bounds (ie where data could not be advected from outside
+            the cube domain).
 
         Raises:
             ValueError: If no leadtime_minutes are provided.
@@ -483,19 +494,18 @@ class CreateExtrapolationForecast(BasePlugin):
 
         return forecast_cube
 
-    def process(self, interval, max_lead_time):
+    def process(self, interval: int, max_lead_time: int) -> CubeList:
         """
         Generate nowcasts at required intervals up to the maximum lead time
 
         Args:
-            interval (int):
+            interval:
                 Lead time interval, in minutes
-            max_lead_time (int):
+            max_lead_time:
                 Maximum lead time required, in minutes
 
         Returns:
-            iris.cube.CubeList:
-                List of forecast cubes at the required lead times
+            List of forecast cubes at the required lead times
         """
         lead_times = np.arange(0, max_lead_time + 1, interval)
         forecast_cubes = iris.cube.CubeList()
