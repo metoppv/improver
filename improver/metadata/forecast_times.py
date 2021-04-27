@@ -191,7 +191,7 @@ def _create_frt_type_coord(
             Name of aux coord to be returned
 
     Returns:
-        New auxliarry coordinate
+        New auxiliary coordinate
     """
     frt_coord_name = "forecast_reference_time"
     coord_type_spec = TIME_COORDS[frt_coord_name]
