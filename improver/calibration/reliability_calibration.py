@@ -547,7 +547,9 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
             )
 
     def process(
-        self, cubes: List[Cube], coordinates: Optional[List[str]] = None
+        self,
+        cubes: Union[CubeList, List[Cube]],
+        coordinates: Optional[List[str]] = None,
     ) -> Cube:
         """
         Aggregate the input reliability calibration table cubes and return the

@@ -655,7 +655,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         distribution: str,
         point_by_point: bool = False,
         use_default_initial_guess: bool = False,
-        desired_units: Union[str, Unit] = None,
+        desired_units: Optional[Union[str, Unit]] = None,
         predictor: str = "mean",
         tolerance: float = 0.02,
         max_iterations: int = 1000,
@@ -1049,7 +1049,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 A cube to be masked, on the same grid as the landsea_mask.
                 The last two dimensions on this cube must match the dimensions
                 in the landsea_mask cube.
-            landsea_mask(iris.cube.Cube):
+            landsea_mask:
                 A cube containing a land-sea mask. Within the
                 land-sea mask cube land points should be specified as ones,
                 and sea points as zeros.

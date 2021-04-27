@@ -668,7 +668,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
 
         return result
 
-    def process(self, cube: Cube, weights: Cube = None) -> Cube:
+    def process(self, cube: Cube, weights: Optional[Cube] = None) -> Cube:
         """Calculate weighted blend across the chosen coord, for either
            probabilistic or percentile data. If there is a percentile
            coordinate on the cube, it will blend using the
