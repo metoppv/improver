@@ -43,6 +43,7 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import BasePlugin
+from improver.metadata.amend import update_model_id_attr_attribute
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_threshold_coord_name_from_probability_name,
@@ -94,7 +95,9 @@ class WeatherSymbols(BasePlugin):
     defined in the input cubes.
     """
 
-    def __init__(self, wxtree: str = "high_resolution") -> None:
+    def __init__(
+        self, wxtree: str = "high_resolution", model_id_attr: Optional[str] = None
+    ) -> None:
         """
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather
@@ -105,6 +108,10 @@ class WeatherSymbols(BasePlugin):
                 Used to choose weather symbol decision tree.
                 Default is "high_resolution"
                 "global" will load the global weather symbol decision tree.
+            model_id_attr:
+                Name of attribute recording source models that should be
+                inherited by the output cube. The source models are expected as
+                a space-separated string.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
@@ -120,6 +127,7 @@ class WeatherSymbols(BasePlugin):
             return iris.coords.AuxCoord(values, units=units)
 
         self.wxtree = wxtree
+        self.model_id_attr = model_id_attr
         if wxtree == "global":
             self.queries = wxcode_decision_tree_global()
             self.start_node = START_NODE_GLOBAL
@@ -279,7 +287,7 @@ class WeatherSymbols(BasePlugin):
 
         Returns:
             A valid condition chain is defined recursively:
-            (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
+            (1) If each a_1, ..., a_n is an extract expression (i.e. a
             constraint, or a list of constraints,
             operator strings and floats), and b is either "AND", "OR" or "",
             then [[a1, ..., an], b] is a valid condition chain.
@@ -437,8 +445,7 @@ class WeatherSymbols(BasePlugin):
                 routes.extend(newroutes)
         return routes
 
-    @staticmethod
-    def create_symbol_cube(cubes: Union[List[Cube], CubeList]) -> Cube:
+    def create_symbol_cube(self, cubes: Union[List[Cube], CubeList]) -> Cube:
         """
         Create an empty weather symbol cube
 
@@ -459,13 +466,19 @@ class WeatherSymbols(BasePlugin):
             if coord.name() in ["forecast_period", "time"]:
                 coord.bounds = None
 
-        attributes = generate_mandatory_attributes(cubes)
+        mandatory_attributes = generate_mandatory_attributes(cubes)
+        optional_attributes = weather_code_attributes()
+        if self.model_id_attr:
+            optional_attributes.update(
+                update_model_id_attr_attribute(cubes, self.model_id_attr)
+            )
+
         symbols = create_new_diagnostic_cube(
             "weather_code",
             "1",
             template_cube,
-            attributes,
-            optional_attributes=weather_code_attributes(),
+            mandatory_attributes,
+            optional_attributes=optional_attributes,
             data=np.ma.masked_all_like(template_cube.data).astype(np.int32),
         )
         return symbols
@@ -582,7 +595,7 @@ class WeatherSymbols(BasePlugin):
                 weather symbols decision tree, these at co-incident times.
             condition_chain:
                 A valid condition chain is defined recursively:
-                (1) If each a_1, ..., a_n is an extract expresssion (i.e. a
+                (1) If each a_1, ..., a_n is an extract expression (i.e. a
                 constraint, or a list of constraints,
                 operator strings and floats), and b is either "AND", "OR" or "",
                 then [[a1, ..., an], b] is a valid condition chain.
