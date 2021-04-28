@@ -27,6 +27,7 @@ dependencies:
   - bandit
   - safety
   - statsmodels
+  - myst-parser
   - pip
   - pip:
     - od
