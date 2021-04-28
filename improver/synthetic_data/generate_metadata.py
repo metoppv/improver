@@ -39,6 +39,7 @@ from iris.std_names import STD_NAMES
 from iris.util import squeeze
 from numpy import ndarray
 
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
@@ -193,6 +194,11 @@ def generate_metadata(
     data = _create_data_array(
         ensemble_members, leading_dimension, npoints, kwargs["height_levels"]
     )
+    if "attributes" not in kwargs:
+        kwargs["attributes"] = {}
+    for attribute, value in MANDATORY_ATTRIBUTE_DEFAULTS.items():
+        if attribute not in kwargs["attributes"]:
+            kwargs["attributes"][attribute] = value
 
     # Set up requested cube
     if cube_type == "percentile":

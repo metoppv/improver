@@ -37,6 +37,7 @@ import numpy as np
 import pytest
 
 from improver.grids import GLOBAL_GRID_CCRS, STANDARD_GRID_CCRS
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.probabilistic import probability_is_above_or_below
 from improver.synthetic_data.generate_metadata import generate_metadata
 from improver.utilities.temporal import datetime_to_iris_time, iris_time_to_datetime
@@ -50,22 +51,27 @@ TIME_DEFAULT = datetime(2017, 11, 10, 4, 0)
 FRT_DEFAULT = datetime(2017, 11, 10, 0, 0)
 FORECAST_PERIOD_DEFAULT = 14400
 NDIMS_DEFAULT = 3
-ATTRIBUTES_DEFAULT = {}
 RELATIVE_TO_THRESHOLD_DEFAULT = "greater_than"
 SPATIAL_GRID_ATTRIBUTE_DEFAULTS = {
     "latlon": {
-        "y": "latitude",
-        "x": "longitude",
-        "grid_spacing": 0.02,
-        "units": "degrees",
-        "coord_system": GLOBAL_GRID_CCRS,
+        **{
+            "y": "latitude",
+            "x": "longitude",
+            "grid_spacing": 0.02,
+            "units": "degrees",
+            "coord_system": GLOBAL_GRID_CCRS,
+        },
+        **MANDATORY_ATTRIBUTE_DEFAULTS,
     },
     "equalarea": {
-        "y": "projection_y_coordinate",
-        "x": "projection_x_coordinate",
-        "grid_spacing": 2000,
-        "units": "metres",
-        "coord_system": STANDARD_GRID_CCRS,
+        **{
+            "y": "projection_y_coordinate",
+            "x": "projection_x_coordinate",
+            "grid_spacing": 2000,
+            "units": "metres",
+            "coord_system": STANDARD_GRID_CCRS,
+        },
+        **MANDATORY_ATTRIBUTE_DEFAULTS,
     },
 }
 
@@ -110,7 +116,7 @@ def test_default():
     )
     assert cube.coord("forecast_period").points == FORECAST_PERIOD_DEFAULT
 
-    assert cube.attributes == ATTRIBUTES_DEFAULT
+    assert cube.attributes == MANDATORY_ATTRIBUTE_DEFAULTS
 
 
 def test_set_name_no_units():
@@ -404,6 +410,8 @@ def test_set_attributes():
     attributes = {"source": "IMPROVER"}
     cube = generate_metadata(attributes=attributes)
 
+    expected_attributes = MANDATORY_ATTRIBUTE_DEFAULTS
+    expected_attributes["source"] = "IMPROVER"
     assert cube.attributes == attributes
 
     # Assert that no other values have unexpectedly changed by returning changed values
