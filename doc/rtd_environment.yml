@@ -11,7 +11,6 @@ dependencies:
   - cf_units
   - python-stratify
   - sphinx
-  - myst-parser
   - pip
   - pip:
     - clize

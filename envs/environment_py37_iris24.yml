@@ -34,7 +34,6 @@ dependencies:
   - filelock
   - isort=5.*
   - mock
-  - myst-parser
   - pylint
   - pytest
   - pytest-cov

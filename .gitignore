@@ -20,7 +20,8 @@
 etc/site-init
 
 # Files from build of doc
-*.rst
+doc/source/modules.rst
+doc/source/improver*.rst
 !/doc/source/extended_documentation/**
 /doc/build/
 
