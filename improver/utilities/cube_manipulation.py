@@ -594,10 +594,7 @@ def clip_cube_data(cube: Cube, minimum_value: float, maximum_value: float) -> Cu
 
 
 def expand_bounds(
-    result_cube: Cube,
-    cubelist: Union[List[Cube], CubeList],
-    coord_names: List[str],
-    use_midpoint: bool = False,
+    result_cube: Cube, cubelist: Union[List[Cube], CubeList], coord_names: List[str],
 ) -> Cube:
     """Alter a coordinate on result_cube such that bounds are expanded to cover
     the entire range of the input cubes (cubelist).  The input result_cube is
@@ -605,7 +602,8 @@ def expand_bounds(
 
     For example, in the case of time cubes if the input cubes have
     bounds of [0000Z, 0100Z] & [0100Z, 0200Z] then the output cube will
-    have bounds of [0000Z,0200Z]
+    have bounds of [0000Z,0200Z]. The returned coordinate point will be
+    equal to the upper bound.
 
     Args:
         result_cube:
@@ -614,13 +612,6 @@ def expand_bounds(
             List of input cubes with source coords
         coord_names:
             Coordinates which should be expanded
-        use_midpoint:
-            If True, coordinate points returned are halfway between the
-            expanded bounds.  If False (default), the upper bound is used.
-            Note if the midpoint is used then python will convert
-            result.coord('coord').points[0] to a float UNLESS the coord
-            units contain 'seconds'.  This is to ensure that midpoints are
-            not rounded down, for example when times are in hours.
 
     Returns:
         Cube with coords expanded.
@@ -653,23 +644,7 @@ def expand_bounds(
         if result_coord.bounds.dtype in FLOAT_TYPES:
             result_coord.bounds = result_coord.bounds.astype(FLOAT_DTYPE)
 
-        if use_midpoint:
-            if "seconds" in str(result_coord.units):
-                # integer division of seconds required to retain precision
-                dtype_orig = result_coord.dtype
-                result_coord.points = [
-                    (new_top_bound - new_low_bound) // 2 + new_low_bound
-                ]
-                # re-cast to original precision to avoid escalating int32s
-                result_coord.points = result_coord.points.astype(dtype_orig)
-            else:
-                # float division of hours required for accuracy
-                result_coord.points = [
-                    (new_top_bound - new_low_bound) / 2.0 + new_low_bound
-                ]
-        else:
-            result_coord.points = [new_top_bound]
-
+        result_coord.points = [new_top_bound]
         if result_coord.points.dtype in FLOAT_TYPES:
             result_coord.points = result_coord.points.astype(FLOAT_DTYPE)
 

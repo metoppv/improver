@@ -36,14 +36,12 @@ from datetime import datetime
 import iris
 import numpy as np
 from iris.cube import Cube
-from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.cube_combiner import CubeCombiner
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
-    set_up_variable_cube,
 )
 from improver_tests import ImproverTest
 
@@ -209,16 +207,6 @@ class Test_process(CombinerTest):
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(result.coord("time").points[0], 1447894800)
-        self.assertArrayEqual(result.coord("time").bounds, [[1447887600, 1447894800]])
-
-    def test_bounds_expansion_midpoint(self):
-        """Test option to use the midpoint between the bounds as the time
-        coordinate point, rather than the (default) maximum."""
-        plugin = CubeCombiner("add")
-        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        result = plugin.process(cubelist, "new_cube_name", use_midpoint=True)
-        self.assertEqual(result.name(), "new_cube_name")
-        self.assertEqual(result.coord("time").points[0], 1447891200)
         self.assertArrayEqual(result.coord("time").bounds, [[1447887600, 1447894800]])
 
     def test_unmatched_scalar_coords(self):

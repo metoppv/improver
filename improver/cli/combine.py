@@ -37,17 +37,15 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube,
-    operation="+",
-    new_name=None,
-    use_midpoint=False,
-    check_metadata=False,
-    broadcast_to_threshold=False,
+    *cubes: cli.inputcube, operation="+", new_name=None, broadcast_to_threshold=False,
 ):
     r"""Combine input cubes.
 
     Combine the input cubes into a single cube using the requested operation.
     The first cube in the input list provides the template for output metadata.
+    If coordinates are expanded as a result of this combine operation
+    (e.g. expanding time for accumulations / max in period) the upper bound of
+    the new coordinate will also be used as the point for the new coordinate.
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
@@ -57,12 +55,6 @@ def process(
             +, -, \*, add, subtract, multiply, min, max, mean
         new_name (str):
             New name for the resulting dataset.
-        use_midpoint (bool):
-            If False (not set), uses the upper bound as the new coordinate
-            point for expanded coordinates (eg time for accumulations / max in
-            period).  If True, uses the mid-point.
-        check_metadata (bool):
-            If True, warn on metadata mismatch between inputs.
         broadcast_to_threshold (bool):
             If True, broadcast input cubes to the threshold coord prior to combining -
             a threshold coord must already exist on the first input cube.
@@ -86,8 +78,6 @@ def process(
         )
 
     else:
-        result = CubeCombiner(operation)(
-            CubeList(cubes), new_name, use_midpoint=use_midpoint,
-        )
+        result = CubeCombiner(operation)(CubeList(cubes), new_name)
 
     return result
