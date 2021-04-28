@@ -144,9 +144,15 @@ class Test_process(IrisTest):
     def test_discard_cellmethod(self):
         """Test changes to cell_methods"""
         cube = self.cube.copy()
-        cube.cell_methods = [iris.coords.CellMethod(method="point", coords="time")]
+        cube.cell_methods = [
+            iris.coords.CellMethod(method="point", coords="time"),
+            iris.coords.CellMethod(method="max", coords="realization"),
+        ]
         result = self.plugin.process(cube,)
-        self.assertEqual(result.cell_methods, tuple())
+        self.assertEqual(
+            result.cell_methods,
+            (iris.coords.CellMethod(method="max", coords="realization"),),
+        )
 
     def test_float_deescalation(self):
         """Test precision de-escalation from float64 to float32"""
