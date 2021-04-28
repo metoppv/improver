@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing lapse rate calculation plugins."""
 
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import iris
 import numpy as np
