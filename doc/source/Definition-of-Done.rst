@@ -4,8 +4,7 @@ Definition of done
 1) Meets acceptance criteria in issue (if it is a bugfix PR, the bugfix
    PR should accurately spell out the problem being fixed with a user
    story).
-2) Meets `code style
-   guide <https://github.com/metoppv/improver/wiki/Code-Style-Guide>`__.
+2) Meets :doc:`Code-Style-Guide`.
 3) All new functionality unit tested if it is reasonable to do so
    (i.e. if the code is anything other than obvious).
 4) CLI acceptance tests have been added if CLI has been added. The known
@@ -21,6 +20,5 @@ Definition of done
    raised.
 8) Reviewed by at least one person, but always at least 2 for serious
    non-bugfix changes.
-9) Ensure licence information referred to in the `code style
-   guide <https://github.com/metoppv/improver/wiki/Code-Style-Guide>`__
+9) Ensure licence information referred to in the :doc:`Code-Style-Guide`
    is included within any new files.

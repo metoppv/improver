@@ -24,8 +24,7 @@ processing plugin using code from ``improver/nbhood.py``.
 IMPROVER plugins
 ----------------
 
-Plugins are Python classes with unit tests. See the `code style
-guide <https://github.com/metoppv/improver/wiki/Code-Style-Guide#plugins>`__
+Plugins are Python classes with unit tests. See the :doc:`Code-Style-Guide`
 section on plugins for more information.
 
 Command line testing
@@ -40,8 +39,7 @@ explain and test normal use of the CLI. These acceptance tests consist
 of reference NetCDF input files and a ‘known good output’ (KGO) NetCDF
 output file.
 
-See the `Running at your
-site <https://github.com/metoppv/improver/wiki/Running-at-your-site#test-suite>`__
+See the :doc:`Running-at-your-site`
 page for information on how to run the acceptance tests.
 
 Recreating acceptance test data
@@ -57,8 +55,7 @@ place it is possible to generate the expected output:
    unset RECREATE_KGO
 
 The ``RECREATE_KGO`` path must be distinct from the input path
-(``IMPROVER_ACC_TEST_DIR``, see `Running at your
-site <https://github.com/metoppv/improver/wiki/Running-at-your-site#test-suite>`__).
+(``IMPROVER_ACC_TEST_DIR``, see :doc:`Running-at-your-site`).
 It is also possible to use this method to recreate all KGOs following
 changes that may affect them, for example modifications to metadata.
 

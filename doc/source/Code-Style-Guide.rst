@@ -684,9 +684,7 @@ necessary nesting.
 CLI acceptance tests
 ~~~~~~~~~~~~~~~~~~~~
 
-See the `How to implement a command line
-utility <https://github.com/metoppv/improver/wiki/How-to-implement-a-command-line-utility>`__
-wiki page.
+See the :doc:`How-to-implement-a-command-line-utility` page.
 
 Licence information
 -------------------
