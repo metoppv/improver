@@ -1,6 +1,9 @@
 Code style guide
 ================
 
+.. contents:: Contents
+    :depth: 3
+
 Developer advice
 ----------------
 
