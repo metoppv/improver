@@ -172,9 +172,7 @@ class CubeCombiner(BasePlugin):
         return result
 
     def process(
-        self,
-        cube_list: Union[List[Cube], CubeList],
-        new_diagnostic_name: str,
+        self, cube_list: Union[List[Cube], CubeList], new_diagnostic_name: str,
     ) -> Cube:
         """
         Combine data and metadata from a list of input cubes into a single
