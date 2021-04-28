@@ -30,8 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """This module contains methods for square neighbourhood processing."""
 
+from typing import Optional
+
 import iris
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver.nbhood.circular_kernel import check_radius_against_distance
 from improver.utilities.cube_checker import check_cube_coordinates
@@ -45,21 +49,26 @@ class SquareNeighbourhood:
     Methods for use in application of a square neighbourhood.
     """
 
-    def __init__(self, weighted_mode=True, sum_or_fraction="fraction", re_mask=True):
+    def __init__(
+        self,
+        weighted_mode: bool = True,
+        sum_or_fraction: str = "fraction",
+        re_mask: bool = True,
+    ) -> None:
         """
         Initialise class.
 
         Args:
-            weighted_mode (bool):
+            weighted_mode:
                 This is included to allow a standard interface for both the
                 square and circular neighbourhood plugins.
-            sum_or_fraction (str):
+            sum_or_fraction:
                 Identifier for whether sum or fraction should be returned from
                 neighbourhooding. The sum represents the sum of the
                 neighbourhood. The fraction represents the sum of the
                 neighbourhood divided by the neighbourhood area.
                 Valid options are "sum" or "fraction".
-            re_mask (bool):
+            re_mask:
                 If re_mask is True, the original un-neighbourhood processed
                 mask is applied to mask out the neighbourhood processed cube.
                 If re_mask is False, the original un-neighbourhood processed
@@ -80,7 +89,7 @@ class SquareNeighbourhood:
         self.sum_or_fraction = sum_or_fraction
         self.re_mask = re_mask
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<SquareNeighbourhood: weighted_mode: {}, "
@@ -89,27 +98,28 @@ class SquareNeighbourhood:
         return result.format(self.weighted_mode, self.sum_or_fraction, self.re_mask)
 
     @staticmethod
-    def _calculate_neighbourhood(data, mask, nb_size, sum_only, re_mask):
+    def _calculate_neighbourhood(
+        data: ndarray, mask: ndarray, nb_size: int, sum_only: bool, re_mask: bool
+    ) -> ndarray:
         """
         Apply neighbourhood processing.
 
         Args:
-            data (numpy.ndarray):
+            data:
                 Input data array.
-            mask (numpy.ndarray):
+            mask:
                 Mask of valid input data elements.
-            nb_size (int):
+            nb_size:
                 Size of the square neighbourhood as the number of grid cells.
-            sum_only (bool):
+            sum_only:
                 If true, return neighbourhood sum instead of mean.
-            re_mask (bool):
+            re_mask:
                 If true, reapply the original mask and return
                 `numpy.ma.MaskedArray`.
 
         Returns:
-            numpy.ndarray:
-                Array containing the smoothed field after the square
-                neighbourhood method has been applied.
+            Array containing the smoothed field after the square
+            neighbourhood method has been applied.
         """
         if not sum_only:
             min_val = np.nanmin(data)
@@ -167,7 +177,7 @@ class SquareNeighbourhood:
 
         return data
 
-    def run(self, cube, radius, mask_cube=None):
+    def run(self, cube: Cube, radius: float, mask_cube: Optional[Cube] = None) -> Cube:
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.
@@ -181,19 +191,18 @@ class SquareNeighbourhood:
            if required.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the array to which the square neighbourhood
                 will be applied.
-            radius (float):
+            radius:
                 Radius in metres for use in specifying the number of
                 grid cells used to create a square neighbourhood.
-            mask_cube (iris.cube.Cube):
+            mask_cube:
                 Cube containing the array to be used as a mask.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the smoothed field after the square
-                neighbourhood method has been applied.
+            Cube containing the smoothed field after the square
+            neighbourhood method has been applied.
         """
         # If the data is masked, the mask will be processed as well as the
         # original_data * mask array.

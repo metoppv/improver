@@ -34,6 +34,8 @@ import warnings
 
 import iris
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.constants import TRIPLE_PT_WATER
@@ -48,7 +50,9 @@ class SaturatedVapourPressureTable(BasePlugin):
     MAX_VALID_TEMPERATURE = 373.0
     MIN_VALID_TEMPERATURE = 173.0
 
-    def __init__(self, t_min=183.15, t_max=338.25, t_increment=0.1):
+    def __init__(
+        self, t_min: float = 183.15, t_max: float = 338.25, t_increment: float = 0.1
+    ) -> None:
         """
         Create a table of saturated vapour pressures that can be interpolated
         through to obtain an SVP value for any temperature within the range
@@ -60,11 +64,11 @@ class SaturatedVapourPressureTable(BasePlugin):
         that will be used.
 
         Args:
-            t_min (float):
+            t_min:
                 The minimum temperature for the range, in Kelvin.
-            t_max (float):
+            t_max:
                 The maximum temperature for the range, in Kelvin.
-            t_increment (float):
+            t_increment:
                 The temperature increment at which to create values for the
                 saturated vapour pressure between t_min and t_max.
         """
@@ -72,7 +76,7 @@ class SaturatedVapourPressureTable(BasePlugin):
         self.t_max = t_max
         self.t_increment = t_increment
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<SaturatedVapourPressureTable: t_min: {}; t_max: {}; "
@@ -80,19 +84,18 @@ class SaturatedVapourPressureTable(BasePlugin):
         )
         return result
 
-    def saturation_vapour_pressure_goff_gratch(self, temperature):
+    def saturation_vapour_pressure_goff_gratch(self, temperature: ndarray) -> ndarray:
         """
         Saturation Vapour pressure in a water vapour system calculated using
         the Goff-Gratch Equation (WMO standard method).
 
         Args:
-            temperature (numpy.ndarray):
+            temperature:
                 Temperature values in Kelvin. Valid from 173K to 373K
 
         Returns:
-            numpy.ndarray:
-                Corresponding values of saturation vapour pressure for a pure
-                water vapour system, in hPa.
+            Corresponding values of saturation vapour pressure for a pure
+            water vapour system, in hPa.
 
         References:
             Numerical data and functional relationships in science and
@@ -145,15 +148,14 @@ class SaturatedVapourPressureTable(BasePlugin):
 
         return svp
 
-    def process(self):
+    def process(self) -> Cube:
         """
         Create a lookup table of saturation vapour pressure in a pure water
         vapour system for the range of required temperatures.
 
         Returns:
-            iris.cube.Cube:
-               A cube of saturated vapour pressure values at temperature
-               points defined by t_min, t_max, and t_increment (defined above).
+           A cube of saturated vapour pressure values at temperature
+           points defined by t_min, t_max, and t_increment (defined above).
         """
         temperatures = np.arange(
             self.t_min, self.t_max + 0.5 * self.t_increment, self.t_increment

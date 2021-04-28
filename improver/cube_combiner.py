@@ -31,10 +31,12 @@
 """Module containing plugins for combining cubes"""
 
 from operator import eq
+from typing import Callable, List, Union
 
 import iris
 import numpy as np
-from iris.cube import CubeList
+from iris.coords import DimCoord
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
@@ -62,11 +64,11 @@ class CubeCombiner(BasePlugin):
         "mean": np.add,
     }  # mean is calculated in two steps: sum and normalise
 
-    def __init__(self, operation):
+    def __init__(self, operation: str) -> None:
         """Create a CubeCombiner plugin
 
         Args:
-            operation (str):
+            operation:
                 Operation (+, - etc) to apply to the incoming cubes.
 
         Raises:
@@ -81,17 +83,20 @@ class CubeCombiner(BasePlugin):
         self.normalise = operation == "mean"
 
     @staticmethod
-    def _check_dimensions_match(cube_list, comparators=[eq]):
+    def _check_dimensions_match(
+        cube_list: Union[List[Cube], CubeList], comparators: List[Callable] = [eq],
+    ) -> None:
         """
         Check all coordinate dimensions on the input cubes match according to
         the comparators specified.
 
         Args:
-            cube_list (list of iris.cube.Cube):
+            cube_list:
                 List of cubes to compare
-            comparators (list of callable):
+            comparators:
                 Comparison operators, at least one of which must return "True"
                 for each coordinate in order for the match to be valid
+
         Raises:
             ValueError: If dimension coordinates do not match
         """
@@ -110,19 +115,18 @@ class CubeCombiner(BasePlugin):
                 raise ValueError(msg)
 
     @staticmethod
-    def _get_expanded_coord_names(cube_list):
+    def _get_expanded_coord_names(cube_list: Union[List[Cube], CubeList]) -> List[str]:
         """
         Get names of coordinates whose bounds need expanding and points
         recalculating after combining cubes. These are the scalar coordinates
         that are present on all input cubes, but have different values.
 
         Args:
-            cube_list (list of iris.cube.Cube):
+            cube_list:
                 List of cubes to that will be combined
 
         Returns:
-            list of str:
-                List of coordinate names to expand
+            List of coordinate names to expand
         """
         shared_scalar_coords = {
             coord.name() for coord in cube_list[0].coords(dim_coords=False)
@@ -143,15 +147,15 @@ class CubeCombiner(BasePlugin):
                     expanded_coords.append(coord)
         return expanded_coords
 
-    def _combine_cube_data(self, cube_list):
+    def _combine_cube_data(self, cube_list: Union[List[Cube], CubeList]) -> Cube:
         """
         Perform cumulative operation to combine cube data
 
         Args:
-            cube_list (list of iris.cube.Cube)
+            cube_list
 
         Returns:
-            iris.cube.Cube
+            Combined cube
 
         Raises:
             TypeError: if the operation results in an escalated datatype
@@ -168,8 +172,11 @@ class CubeCombiner(BasePlugin):
         return result
 
     def process(
-        self, cube_list, new_diagnostic_name, use_midpoint=False,
-    ):
+        self,
+        cube_list: Union[List[Cube], CubeList],
+        new_diagnostic_name: str,
+        use_midpoint: bool = False,
+    ) -> Cube:
         """
         Combine data and metadata from a list of input cubes into a single
         cube, using the specified operation to combine the cube data.  The
@@ -177,18 +184,17 @@ class CubeCombiner(BasePlugin):
         cube metadata.
 
         Args:
-            cube_list (list of iris.cube.Cube):
+            cube_list:
                 List of cubes to combine.
-            new_diagnostic_name (str):
+            new_diagnostic_name:
                 New name for the combined diagnostic.
-            use_midpoint (bool):
+            use_midpoint:
                 Determines the nature of the points and bounds for expanded
                 coordinates.  If False, the upper bound of the coordinate is
                 used as the point values.  If True, the midpoint is used.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the combined data.
+            Cube containing the combined data.
 
         Raises:
             ValueError: If the cube_list contains only one cube.
@@ -221,22 +227,21 @@ class CubeMultiplier(CubeCombiner):
 
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Create a CubeMultiplier plugin"""
         self.operator = np.multiply
         self.normalise = False
 
-    def _setup_coords_for_broadcast(self, cube_list):
+    def _setup_coords_for_broadcast(self, cube_list: CubeList) -> CubeList:
         """
         Adds a scalar threshold to any subsequent cube in cube_list so that they all
         match the dimensions, in order, of the first cube in the list
 
         Args:
-            cube_list (list of iris.cube.Cube)
+            cube_list
 
         Returns:
-            iris.cube.CubeList
-                Updated version of cube_list
+            Updated version of cube_list
 
         Raises:
             CoordinateNotFoundError: if there is no threshold coordinate on the
@@ -274,7 +279,7 @@ class CubeMultiplier(CubeCombiner):
         return new_list
 
     @staticmethod
-    def _coords_are_broadcastable(coord1, coord2):
+    def _coords_are_broadcastable(coord1: DimCoord, coord2: DimCoord) -> bool:
         """
         Broadcastable coords will differ only in length, so create a copy of one with
         the points and bounds of the other and compare. Also ensure length of at least
@@ -287,26 +292,28 @@ class CubeMultiplier(CubeCombiner):
         )
 
     def process(
-        self, cube_list, new_diagnostic_name, broadcast_to_threshold=False,
-    ):
+        self,
+        cube_list: Union[List[Cube], CubeList],
+        new_diagnostic_name: str,
+        broadcast_to_threshold: bool = False,
+    ) -> Cube:
         """
         Multiply data from a list of input cubes into a single cube.  The first
         cube in the input list provides the combined cube metadata.
 
         Args:
-            cube_list (iris.cube.CubeList or list):
+            cube_list:
                 List of cubes to combine.
-            new_diagnostic_name (str):
+            new_diagnostic_name:
                 New name for the combined diagnostic.  This should be the diagnostic
                 name, eg rainfall_rate or rainfall_rate_in_vicinity, rather than the
                 name of the probabilistic output cube.
-            broadcast_to_threshold (bool):
+            broadcast_to_threshold:
                 True if the first cube has a threshold coordinate to which the
                 following cube(s) need(s) to be broadcast prior to combining data.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the combined data.
+            Cube containing the combined data.
 
         Raises:
             ValueError: If the cube_list contains only one cube.

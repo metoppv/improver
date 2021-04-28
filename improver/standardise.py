@@ -32,11 +32,14 @@
 """Plugin to regrid cube data and standardise metadata"""
 
 import warnings
+from typing import Any, Dict, List, Optional
 
 import iris
 import numpy as np
 from iris.analysis import Linear, Nearest
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from numpy import dtype, ndarray
 from scipy.interpolate import griddata
 
 from improver import BasePlugin
@@ -55,19 +58,18 @@ from improver.utilities.round import round_close
 from improver.utilities.spatial import OccurrenceWithinVicinity
 
 
-def grid_contains_cutout(grid, cutout):
+def grid_contains_cutout(grid: Cube, cutout: Cube) -> bool:
     """
     Check that a spatial cutout is contained within a given grid
 
     Args:
-        grid (iris.cube.Cube):
+        grid:
             A cube defining a data grid
-        cutout (iris.cube.Cube):
+        cutout:
             The cutout to search for within the grid
 
     Returns:
-        bool:
-            True if cutout is contained within grid, False otherwise
+        True if cutout is contained within grid, False otherwise
     """
     if spatial_coords_match(grid, cutout):
         return True
@@ -110,13 +112,16 @@ class StandardiseMetadata(BasePlugin):
     """Plugin to standardise cube metadata"""
 
     @staticmethod
-    def _collapse_scalar_dimensions(cube):
+    def _collapse_scalar_dimensions(cube: Cube) -> Cube:
         """
         Demote any scalar dimensions (excluding "realization") on the input
         cube to auxiliary coordinates.
 
+        Args:
+            cube: The cube
+
         Returns:
-            iris.cube.Cube
+            The collapsed cube
         """
         coords_to_collapse = []
         for coord in cube.coords(dim_coords=True):
@@ -127,7 +132,7 @@ class StandardiseMetadata(BasePlugin):
         return cube
 
     @staticmethod
-    def _remove_scalar_coords(cube, coords_to_remove):
+    def _remove_scalar_coords(cube: Cube, coords_to_remove: List[str]) -> None:
         """Removes named coordinates from the input cube."""
         for coord in coords_to_remove:
             try:
@@ -136,29 +141,28 @@ class StandardiseMetadata(BasePlugin):
                 continue
 
     @staticmethod
-    def _standardise_dtypes_and_units(cube):
+    def _standardise_dtypes_and_units(cube: Cube) -> None:
         """
         Modify input cube in place to conform to mandatory dtype and unit
         standards.
 
         Args:
-            cube (iris.cube.Cube:
+            cube:
                 Cube to be updated in place
-
         """
 
-        def as_correct_dtype(obj, required_dtype):
+        def as_correct_dtype(obj: ndarray, required_dtype: dtype) -> ndarray:
             """
             Returns an object updated if necessary to the required dtype
 
             Args:
-                obj (np.ndarray):
+                obj:
                     The object to be updated
-                required_dtype (np.dtype):
+                required_dtype:
                     The dtype required
 
             Returns:
-                np.ndarray
+                The updated object
             """
             if obj.dtype != required_dtype:
                 return obj.astype(required_dtype)
@@ -180,12 +184,12 @@ class StandardiseMetadata(BasePlugin):
 
     def process(
         self,
-        cube,
-        new_name=None,
-        new_units=None,
-        coords_to_remove=None,
-        attributes_dict=None,
-    ):
+        cube: Cube,
+        new_name: Optional[str] = None,
+        new_units: Optional[str] = None,
+        coords_to_remove: Optional[List[str]] = None,
+        attributes_dict: Optional[Dict[str, Any]] = None,
+    ) -> Cube:
         """
         Perform compulsory and user-configurable metadata adjustments.  The
         compulsory adjustments are to collapse any scalar dimensions apart from
@@ -194,20 +198,20 @@ class StandardiseMetadata(BasePlugin):
         metadata into the required units.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Input cube to be standardised
-            new_name (str or None):
+            new_name:
                 Optional rename for output cube
-            new_units (str or None):
+            new_units:
                 Optional unit conversion for output cube
-            coords_to_remove (list of str or None):
+            coords_to_remove:
                 Optional list of scalar coordinates to remove from output cube
-            attributes_dict (dict or None):
+            attributes_dict:
                 Optional dictionary of required attribute updates. Keys are
                 attribute names, and values are the required value or "remove".
 
         Returns:
-            iris.cube.Cube
+            The processed cube
         """
         cube = self._collapse_scalar_dimensions(cube)
 
@@ -240,27 +244,27 @@ class RegridLandSea(BasePlugin):
 
     def __init__(
         self,
-        regrid_mode="bilinear",
-        extrapolation_mode="nanmask",
-        landmask=None,
-        landmask_vicinity=25000,
-    ):
+        regrid_mode: str = "bilinear",
+        extrapolation_mode: str = "nanmask",
+        landmask: Optional[Cube] = None,
+        landmask_vicinity: float = 25000,
+    ) -> None:
         """
         Initialise regridding parameters
 
         Args:
-            regrid_mode (str):
+            regrid_mode:
                 Mode of interpolation in regridding.  Valid options are "bilinear",
                 "nearest" or "nearest-with-mask".  The "nearest-with-mask" option
                 triggers adjustment of regridded points to match source points in
                 terms of land / sea type.
-            extrapolation_mode (str):
+            extrapolation_mode:
                 Mode to fill regions outside the domain in regridding.
-            landmask (iris.cube.Cube or None):
+            landmask:
                 Land-sea mask ("land_binary_mask") on the input cube grid, with
                 land points set to one and sea points set to zero.  Required for
                 "nearest-with-mask" regridding option.
-            landmask_vicinity (float):
+            landmask_vicinity:
                 Radius of vicinity to search for a coastline, in metres
         """
         if regrid_mode not in self.REGRID_REQUIRES_LANDMASK:
@@ -275,7 +279,7 @@ class RegridLandSea(BasePlugin):
         self.landmask_vicinity = None if landmask is None else landmask_vicinity
         self.landmask_name = "land_binary_mask"
 
-    def _adjust_landsea(self, cube, target_grid):
+    def _adjust_landsea(self, cube: Cube, target_grid: Cube) -> Cube:
         """
         Adjust regridded data using differences between the target landmask
         and that obtained by regridding the source grid landmask, to ensure
@@ -283,13 +287,13 @@ class RegridLandSea(BasePlugin):
         matches that of the target grid.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube after initial regridding
-            target_grid (iris.cube.Cube):
+            target_grid:
                 Cube containing landmask data on the target grid
 
         Returns:
-            iris.cube.Cube: Adjusted cube
+            Adjusted cube
         """
         if self.landmask_name not in self.landmask_source_grid.name():
             msg = "Expected {} in input_landmask cube but found {}".format(
@@ -307,23 +311,25 @@ class RegridLandSea(BasePlugin):
             cube, self.landmask_source_grid, target_grid
         )
 
-    def _regrid_to_target(self, cube, target_grid, regridded_title):
+    def _regrid_to_target(
+        self, cube: Cube, target_grid: Cube, regridded_title: Optional[str]
+    ) -> Cube:
         """
         Regrid cube to target_grid, inherit grid attributes and update title
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube to be regridded
-            target_grid (iris.cube.Cube):
+            target_grid:
                 Data on the target grid. If regridding with mask, this cube
                 should contain land-sea mask data to be used in adjusting land
                 and sea points after regridding.
-            regridded_title (str or None):
+            regridded_title:
                 New value for the "title" attribute to be used after
                 regridding. If not set, a default value is used.
 
         Returns:
-            iris.cube.Cube: Regridded cube with updated attributes
+            Regridded cube with updated attributes
         """
         regridder = Linear(extrapolation_mode=self.extrapolation_mode)
         if "nearest" in self.regrid_mode:
@@ -352,23 +358,25 @@ class RegridLandSea(BasePlugin):
 
         return cube
 
-    def process(self, cube, target_grid, regridded_title=None):
+    def process(
+        self, cube: Cube, target_grid: Cube, regridded_title: Optional[str] = None
+    ) -> Cube:
         """
         Regrids cube onto spatial grid provided by target_grid
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube to be regridded
-            target_grid (iris.cube.Cube):
+            target_grid:
                 Data on the target grid. If regridding with mask, this cube
                 should contain land-sea mask data to be used in adjusting land
                 and sea points after regridding.
-            regridded_title (str or None):
+            regridded_title:
                 New value for the "title" attribute to be used after
                 regridding. If not set, a default value is used.
 
         Returns:
-            iris.cube.Cube: Regridded cube with updated attributes
+            Regridded cube with updated attributes
         """
         # if regridding using a land-sea mask, check this covers the source
         # grid in the required coordinates
@@ -388,19 +396,21 @@ class AdjustLandSeaPoints(BasePlugin):
     Where no match is found within the vicinity, the data value is not changed.
     """
 
-    def __init__(self, extrapolation_mode="nanmask", vicinity_radius=25000.0):
+    def __init__(
+        self, extrapolation_mode: str = "nanmask", vicinity_radius: float = 25000.0
+    ) -> None:
         """
         Initialise class
 
         Args:
-            extrapolation_mode (str):
+            extrapolation_mode:
                 Mode to use for extrapolating data into regions
                 beyond the limits of the source_data domain.
                 Available modes are documented in
                 `iris.analysis <https://scitools.org.uk/iris/docs/latest/iris/
                 iris/analysis.html#iris.analysis.Nearest>`_
                 Defaults to "nanmask".
-            vicinity_radius (float):
+            vicinity_radius:
                 Distance in metres to search for a sea or land point.
         """
         self.input_land = None
@@ -410,7 +420,7 @@ class AdjustLandSeaPoints(BasePlugin):
         self.regridder = Nearest(extrapolation_mode=extrapolation_mode)
         self.vicinity = OccurrenceWithinVicinity(vicinity_radius)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Print a human-readable representation of the instantiated object.
         """
@@ -418,7 +428,7 @@ class AdjustLandSeaPoints(BasePlugin):
             self.regridder, self.vicinity
         )
 
-    def correct_where_input_true(self, selector_val):
+    def correct_where_input_true(self, selector_val: int) -> None:
         """
         Replace points in the output_cube where output_land matches the
         selector_val and the input_land does not match, but has matching
@@ -428,7 +438,7 @@ class AdjustLandSeaPoints(BasePlugin):
         Updates self.output_cube.data
 
         Args:
-            selector_val (int):
+            selector_val:
                 Value of mask to replace if needed.
                 Intended to be 1 for filling land points near the coast
                 and 0 for filling sea points near the coast.
@@ -477,7 +487,7 @@ class AdjustLandSeaPoints(BasePlugin):
         # Replace these points with the filled-domain data
         self.output_cube.data[mismatch_points] = selector_data[mismatch_points]
 
-    def process(self, cube, input_land, output_land):
+    def process(self, cube: Cube, input_land: Cube, output_land: Cube) -> Cube:
         """
         Update cube.data so that output_land and sea points match an input_land
         or sea point respectively so long as one is present within the
@@ -486,17 +496,20 @@ class AdjustLandSeaPoints(BasePlugin):
         the grids match.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube of data to be updated (on same grid as output_land).
-            input_land (iris.cube.Cube):
+            input_land:
                 Cube of land_binary_mask data on the grid from which "cube" has
                 been reprojected (it is expected that the iris.analysis.Nearest
                 method would have been used). Land points should be set to one
                 and sea points set to zero.
                 This is used to determine where the input model data is
                 representing land and sea points.
-            output_land (iris.cube.Cube):
+            output_land:
                 Cube of land_binary_mask data on target grid.
+
+        Returns:
+            Processed cube
         """
         # Check cube and output_land are on the same grid:
         if not spatial_coords_match(cube, output_land):

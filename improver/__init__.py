@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin base class."""
+
 from abc import ABC, abstractmethod
 
 from pkg_resources import DistributionNotFound, get_distribution
@@ -76,9 +77,9 @@ class PostProcessingPlugin(BasePlugin):
                 Positional arguments.
             **kwargs:
                 Keyword arguments.
+
         Returns:
-            iris.cube.Cube:
-                Output of self.process() with updated title attribute
+            Output of self.process() with updated title attribute
         """
         cube = super().__call__(*args, **kwargs)
         self.post_processed_title(cube)

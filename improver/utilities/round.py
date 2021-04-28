@@ -30,22 +30,26 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Rounding utility"""
 
+from typing import Type, Union
+
 import numpy as np
+from numpy import ndarray
 
 
-def round_close(data, dtype=np.int64):
+def round_close(
+    data: Union[float, ndarray], dtype: Type = np.int64
+) -> Union[int, ndarray]:
     """Casts input data to the nearest integer value, where the input
     data is expected to be very close to the nearest integer.
 
     Args:
-        data (np.ndarray of float or float)
+        data
             Data that is very close to the nearest integer value
-        dtype (type):
+        dtype:
             Required integer datatype
 
     Returns:
-        np.ndarray of int or int:
-            Rounded data value
+        Rounded data value
 
     Raises:
         ValueError: If rounding would significantly change the input value

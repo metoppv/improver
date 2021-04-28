@@ -31,6 +31,7 @@
 """This module defines the utilities required for wxcode plugin """
 
 from collections import OrderedDict
+from typing import Any, Dict, List
 
 from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
 from improver.wxcode.wxcode_decision_tree_global import wxcode_decision_tree_global
@@ -74,11 +75,10 @@ WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 
 
-def weather_code_attributes():
+def weather_code_attributes() -> Dict[str, Any]:
     """
     Returns:
-        dict:
-            Attributes defining weather code meanings.
+        Attributes defining weather code meanings.
     """
     import numpy as np
 
@@ -90,19 +90,18 @@ def weather_code_attributes():
     return attributes
 
 
-def expand_nested_lists(query, key):
+def expand_nested_lists(query: Dict, key: str) -> List:
     """
     Produce flat lists from list and nested lists.
 
     Args:
-        query (dict):
+        query:
             A single query from the decision tree.
-        key (str):
+        key:
             A string denoting the field to be taken from the dict.
 
     Returns:
-        list:
-            A 1D list containing all the values for a given key.
+        A 1D list containing all the values for a given key.
     """
     items = []
     for item in query[key]:
@@ -117,16 +116,14 @@ def update_daynight(cubewx):
     """ Update weather cube depending on whether it is day or night
 
     Args:
-        cubewx(iris.cube.Cube):
+        cubewx:
             Cube containing only daytime weather symbols.
 
     Returns:
-        iris.cube.Cube:
-            Cube containing day and night weather symbols
+        Cube containing day and night weather symbols
 
     Raises:
         CoordinateNotFoundError : cube must have time coordinate.
-
     """
     import numpy as np
     from iris.exceptions import CoordinateNotFoundError
@@ -156,7 +153,7 @@ def update_daynight(cubewx):
     return cubewx_daynight
 
 
-def interrogate_decision_tree(wxtree):
+def interrogate_decision_tree(wxtree: str) -> List[str]:
     """
     Obtain a list of necessary inputs from the decision tree as it is currently
     defined. Return a formatted string that contains the diagnostic names, the
@@ -165,13 +162,12 @@ def interrogate_decision_tree(wxtree):
     the necessary inputs.
 
     Args:
-        wxtree (str):
+        wxtree:
             The weather symbol tree that is to be interrogated.
 
     Returns:
-        list of str:
-            Returns a formatted string descring the diagnostics required,
-            including threshold details.
+        Returns a formatted string descring the diagnostics required,
+        including threshold details.
     """
 
     # Get current weather symbol decision tree and populate a list of
@@ -208,20 +204,18 @@ def interrogate_decision_tree(wxtree):
     return formatted_output
 
 
-def is_variable(thing):
+def is_variable(thing: str) -> bool:
     """
     Identify whether given string is likely to be a variable name by
     identifying the exceptions.
 
     Args:
-        thing: str
+        thing:
             The string to operate on
 
     Returns:
-        bool:
-            False if thing is one of ["+", "-", "*", "/"] or if float(
-            thing) does not raise a ValueError, else True.
-
+        False if thing is one of ["+", "-", "*", "/"] or if float(
+        thing) does not raise a ValueError, else True.
     """
     valid_operators = ["+", "-", "*", "/"]
     try:
@@ -231,17 +225,16 @@ def is_variable(thing):
         return thing not in valid_operators
 
 
-def get_parameter_names(diagnostic_fields):
+def get_parameter_names(diagnostic_fields: List[List[str]]) -> List[List[str]]:
     """
     For diagnostic fields that can contain operators and values, strips out
     just the parameter names.
 
     Args:
-        diagnostic_fields (list of lists of str):
+        diagnostic_fields:
 
     Returns:
-        list of lists of str
-
+        The parameter names
     """
     parameter_names = []
     for condition in diagnostic_fields:

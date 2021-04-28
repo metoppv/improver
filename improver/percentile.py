@@ -30,9 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing percentiling classes."""
 
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
@@ -49,23 +51,26 @@ class PercentileConverter(BasePlugin):
 
     """
 
-    def __init__(self, collapse_coord, percentiles=None, fast_percentile_method=True):
+    def __init__(
+        self,
+        collapse_coord: Union[str, List[str]],
+        percentiles: Optional[List[float]] = None,
+        fast_percentile_method: bool = True,
+    ) -> None:
         """
         Create a PDF plugin with a given source plugin.
 
         Args:
-            collapse_coord (str or list of str):
+            collapse_coord:
                 The name of the coordinate(s) to collapse over. This
                 coordinate(s) will no longer be present on the output cube, as
                 it will have been replaced by the percentile coordinate.
-
-            percentiles (Iterable list of float or None):
+            percentiles:
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES. (optional)
 
         Raises:
             TypeError: If collapse_coord is not a string.
-
         """
         if not isinstance(collapse_coord, list):
             collapse_coord = [collapse_coord]
@@ -89,14 +94,14 @@ class PercentileConverter(BasePlugin):
         self.collapse_coord = sorted(collapse_coord)
         self.fast_percentile_method = fast_percentile_method
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         desc = "<PercentileConverter: collapse_coord={}, percentiles={}".format(
             self.collapse_coord, self.percentiles
         )
         return desc
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """
         Create a cube containing the percentiles as a new dimension.
 
@@ -105,15 +110,13 @@ class PercentileConverter(BasePlugin):
               70%, 75%, 80%, 90%, 95%, 100%)
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Given the collapse coordinate, convert the set of values
                 along that coordinate into a PDF and extract percentiles.
 
         Returns:
-            iris.cube.Cube:
-                A single merged cube of all the cubes produced by each
-                percentile collapse.
-
+            A single merged cube of all the cubes produced by each
+            percentile collapse.
         """
         # Store data type and enforce the same type on return.
         data_type = cube.dtype

@@ -31,10 +31,12 @@
 """Module for calculating the probability of specific precipitation phases."""
 
 import operator
+from typing import List, Union
 
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -58,18 +60,19 @@ class PrecipPhaseProbability(BasePlugin):
     probability-of-rain is 1, else 0.
     """
 
-    def __init__(self, radius=10000.0):
+    def __init__(self, radius: float = 10000.0) -> None:
         """
         Initialise plugin
+
         Args:
-            radius (float):
+            radius:
                 Neighbourhood radius from which 80th percentile is found (m)
         """
         self.percentile_plugin = GeneratePercentilesFromANeighbourhood
         self._nbhood_shape = "circular"
         self.radius = radius
 
-    def _extract_input_cubes(self, cubes):
+    def _extract_input_cubes(self, cubes: Union[CubeList, List[Cube]]) -> None:
         """
         Separates the input list into the required cubes for this plugin,
         detects whether snow or rain are required from the input phase-level
@@ -82,7 +85,7 @@ class PrecipPhaseProbability(BasePlugin):
         falling_level_cube.
 
         Args:
-            cubes (iris.cube.CubeList or list):
+            cubes:
                 Contains cubes of the altitude of the phase-change level (this
                 can be snow->sleet, or sleet->rain) and the altitude of the
                 orography. The name of the phase-change level cube must be
@@ -95,7 +98,6 @@ class PrecipPhaseProbability(BasePlugin):
             ValueError: If cubes does not have the expected length of 2.
             ValueError: If the extracted cubes do not have matching spatial
                         coordinates.
-
         """
         if isinstance(cubes, list):
             cubes = iris.cube.CubeList(cubes)
@@ -144,7 +146,7 @@ class PrecipPhaseProbability(BasePlugin):
             self.falling_level_cube = self.falling_level_cube.copy()
             self.falling_level_cube.convert_units(self.orography_cube.units)
 
-    def process(self, cubes):
+    def process(self, cubes: Union[CubeList, List[Cube]]) -> Cube:
         """
         Derives the probability of a precipitation phase at the surface. If
         the snow-sleet falling-level is supplied, this is the probability of
@@ -152,21 +154,20 @@ class PrecipPhaseProbability(BasePlugin):
         supplied, this is the probability of rain at (or above) the surface.
 
         Args:
-            cubes (iris.cube.CubeList or list):
+            cubes:
                 Contains cubes of the altitude of the phase-change level (this
                 can be snow->sleet, or sleet->rain) and the altitude of the
                 orography.
 
         Returns:
-            iris.cube.Cube:
-                Contains the probability of a specific precipitation phase
-                reaching the surface orography. If the falling_level_cube was
-                snow->sleet, then this will be the probability of snow at the
-                surface. If the falling_level_cube was sleet->rain, then this
-                will be the probability of rain at the surface.
-                The probabilities are categorical (1 or 0) allowing
-                precipitation to be divided uniquely between snow, sleet and
-                rain phases.
+            Cube containing the probability of a specific precipitation phase
+            reaching the surface orography. If the falling_level_cube was
+            snow->sleet, then this will be the probability of snow at the
+            surface. If the falling_level_cube was sleet->rain, then this
+            will be the probability of rain at the surface.
+            The probabilities are categorical (1 or 0) allowing
+            precipitation to be divided uniquely between snow, sleet and
+            rain phases.
         """
         self._extract_input_cubes(cubes)
         processed_falling_level = iris.util.squeeze(

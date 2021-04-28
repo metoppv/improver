@@ -31,10 +31,13 @@
 """ Provides support utilities for cube manipulation."""
 
 import warnings
+from typing import Any, Dict, List, Optional, Union
 
 import iris
 import numpy as np
+from iris._cube_coord_common import LimitedAttributeDict
 from iris.coords import DimCoord
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
@@ -43,7 +46,7 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
-def collapsed(cube, *args, **kwargs):
+def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
     """Collapses the cube with given arguments.
 
     The cell methods of the output cube will match the cell methods
@@ -51,12 +54,11 @@ def collapsed(cube, *args, **kwargs):
     collapsed method will not be retained.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             A Cube to be collapsed.
 
     Returns:
-        iris.cube.Cube:
-            A collapsed cube where the cell methods match the input cube.
+        A collapsed cube where the cell methods match the input cube.
     """
     original_methods = cube.cell_methods
     new_cube = cube.collapsed(*args, **kwargs)
@@ -80,57 +82,58 @@ def collapsed(cube, *args, **kwargs):
     return new_cube
 
 
-def collapse_realizations(cube):
+def collapse_realizations(cube: Cube) -> Cube:
     """Collapses the realization coord of a cube and strips the coord from the cube.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Input cube
 
     Returns:
-        iris.cube.Cube:
-            Cube with realization coord collapsed and removed.
+        Cube with realization coord collapsed and removed.
     """
     returned_cube = collapsed(cube, "realization", iris.analysis.MEAN)
     returned_cube.remove_coord("realization")
     return returned_cube
 
 
-def get_dim_coord_names(cube):
+def get_dim_coord_names(cube: Cube) -> List[str]:
     """
     Returns an ordered list of dimension coordinate names on the cube
 
     Args:
-        cube (iris.cube.Cube)
+        cube
 
     Returns:
-        list of str
+        List of dimension coordinate names
     """
     return [coord.name() for coord in cube.coords(dim_coords=True)]
 
 
-def get_coord_names(cube):
+def get_coord_names(cube: Cube) -> List[str]:
     """
     Returns a list of all coordinate names on the cube
 
     Args:
-        cube (iris.cube.Cube)
+        cube
 
     Returns:
-        list of str
+        List of all coordinate names
     """
     return [coord.name() for coord in cube.coords()]
 
 
-def equalise_cube_attributes(cubes, silent=None):
+def equalise_cube_attributes(
+    cubes: CubeList, silent: Optional[List[str]] = None
+) -> None:
     """
     Function to remove attributes that do not match between all cubes in the
     list.  Cubes are modified in place.
 
     Args:
-        cubes (iris.cube.CubeList):
+        cubes:
             List of cubes to check the attributes and revise.
-        silent (list or None):
+        silent:
             List of attributes to remove silently if unmatched.
 
     Warns:
@@ -157,16 +160,16 @@ def equalise_cube_attributes(cubes, silent=None):
                 cube.attributes.pop(attr)
 
 
-def strip_var_names(cubes):
+def strip_var_names(cubes: Union[Cube, CubeList]) -> CubeList:
     """
     Strips var_name from the cube and from all coordinates except where
     required to support probabilistic metadata.  Inputs are modified in place.
 
     Args:
-        cubes (iris.cube.CubeList or iris.cube.Cube)
+        cubes
 
     Returns:
-        iris.cube.CubeList
+        cubes with stripped var_name
     """
     if isinstance(cubes, iris.cube.Cube):
         cubes = iris.cube.CubeList([cubes])
@@ -187,19 +190,19 @@ class MergeCubes(BasePlugin):
     avoid merge failures and anonymous dimensions.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialise constants"""
         # List of attributes to remove silently if unmatched
         self.silent_attributes = ["history", "title", "mosg__grid_version"]
 
     @staticmethod
-    def _equalise_cell_methods(cubelist):
+    def _equalise_cell_methods(cubelist: CubeList) -> None:
         """
         Function to equalise cell methods that do not match.  Modifies cubes
         in place.
 
         Args:
-            cubelist (iris.cube.CubeList):
+            cubelist:
                 List of cubes to check the cell methods and revise.
         """
         cell_methods = cubelist[0].cell_methods
@@ -209,7 +212,7 @@ class MergeCubes(BasePlugin):
             cube.cell_methods = tuple(cell_methods)
 
     @staticmethod
-    def _check_time_bounds_ranges(cube):
+    def _check_time_bounds_ranges(cube: Cube) -> None:
         """
         Check the bounds on any dimensional time coordinates after merging.
         For example, to check time and forecast period ranges for accumulations
@@ -217,7 +220,7 @@ class MergeCubes(BasePlugin):
         coordinate are not compatible, raise an error.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Merged cube
         """
         for name in ["time", "forecast_period"]:
@@ -242,11 +245,11 @@ class MergeCubes(BasePlugin):
 
     def process(
         self,
-        cubes_in,
-        check_time_bounds_ranges=False,
-        slice_over_realization=False,
-        copy=True,
-    ):
+        cubes_in: Union[List[Cube], CubeList],
+        check_time_bounds_ranges: bool = False,
+        slice_over_realization: bool = False,
+        copy: bool = True,
+    ) -> Cube:
         """
         Function to merge cubes, accounting for differences in attributes,
         coordinates and cell methods.  Note that cubes with different sets
@@ -259,25 +262,24 @@ class MergeCubes(BasePlugin):
         result of premature iris merging on load).
 
         Args:
-            cubes_in (iris.cube.CubeList or iris.cube.Cube):
+            cubes_in:
                 Cubes to be merged.
-            check_time_bounds_ranges (bool):
+            check_time_bounds_ranges:
                 Flag to check whether scalar time bounds ranges match.
                 This is for when we are expecting to create a new "time" axis
                 through merging for eg precipitation accumulations, where we
                 want to make sure that the bounds match so that we are not eg
                 combining 1 hour with 3 hour accumulations.
-            slice_over_realization (bool):
+            slice_over_realization:
                 Options to combine cubes with different realization dimensions.
                 These cannot always be concatenated directly as this can create a
                 non-monotonic realization coordinate.
-            copy (bool):
+            copy:
                 If True, this will copy the cubes, thus not having any impact on
                 the original objects.
 
         Returns:
-            iris.cube.Cube:
-                Merged cube.
+            Merged cube.
         """
         # if input is already a single cube, return unchanged
         if isinstance(cubes_in, iris.cube.Cube):
@@ -319,23 +321,24 @@ class MergeCubes(BasePlugin):
         return result
 
 
-def get_filtered_attributes(cube, attribute_filter=None):
+def get_filtered_attributes(
+    cube: Cube, attribute_filter: Optional[str] = None
+) -> LimitedAttributeDict:
     """
     Build dictionary of attributes that match the attribute_filter. If the
     attribute_filter is None, return all attributes.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             A cube from which attributes partially matching the
             attribute_filter will be returned.
-        attribute_filter (str or None):
+        attribute_filter:
             A string to match, or partially match, against attributes to build
             a filtered attribute dictionary. If None, all attributes are
             returned.
     Returns:
-        dict:
-            A dictionary of attributes partially matching the attribute_filter
-            that were found on the input cube.
+        A dictionary of attributes partially matching the attribute_filter
+        that were found on the input cube.
     """
     attributes = cube.attributes
     if attribute_filter is not None:
@@ -343,19 +346,22 @@ def get_filtered_attributes(cube, attribute_filter=None):
     return attributes
 
 
-def compare_attributes(cubes, attribute_filter=None):
+def compare_attributes(
+    cubes: CubeList, attribute_filter: Optional[str] = None
+) -> List[Dict]:
     """
     Function to compare attributes of cubes
 
     Args:
-        cubes (iris.cube.CubeList):
+        cubes:
             List of cubes to compare (must be more than 1)
-        attribute_filter (str or None):
+        attribute_filter:
             A string to filter which attributes are actually compared. If None
             all attributes are compared.
+
     Returns:
-        list of dict:
-            List of dictionaries of unmatching attributes
+        List of dictionaries of unmatching attributes
+
     Warns:
         Warning: If only a single cube is supplied
     """
@@ -394,20 +400,19 @@ def compare_attributes(cubes, attribute_filter=None):
     return unmatching_attributes
 
 
-def compare_coords(cubes):
+def compare_coords(cubes: CubeList) -> List[Dict]:
     """
     Function to compare the coordinates of the cubes
 
     Args:
-        cubes (iris.cube.CubeList):
+        cubes:
             List of cubes to compare (must be more than 1)
 
     Returns:
-        list of dict:
-            List of dictionaries of unmatching coordinates
-            Number of dictionaries equals number of cubes
-            unless cubes is a single cube in which case
-            unmatching_coords returns an empty list.
+        List of dictionaries of unmatching coordinates
+        Number of dictionaries equals number of cubes
+        unless cubes is a single cube in which case
+        unmatching_coords returns an empty list.
 
     Warns:
         Warning: If only a single cube is supplied
@@ -454,27 +459,25 @@ def compare_coords(cubes):
     return unmatching_coords
 
 
-def sort_coord_in_cube(cube, coord, descending=False):
+def sort_coord_in_cube(cube: Cube, coord: str, descending: bool = False) -> Cube:
     """Sort a cube based on the ordering within the chosen coordinate.
     Sorting can either be in ascending or descending order.
     This code is based upon https://gist.github.com/pelson/9763057.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The input cube to be sorted.
-        coord (str):
+        coord:
             Name of the coordinate to be sorted.
-        descending (bool):
+        descending:
             If True it will be sorted in descending order.
 
     Returns:
-        iris.cube.Cube:
-            Cube where the chosen coordinate has been sorted into either
-            ascending or descending order.
+        Cube where the chosen coordinate has been sorted into either
+        ascending or descending order.
 
     Warns:
         Warning if the coordinate being processed is a circular coordinate.
-
     """
     coord_to_sort = cube.coord(coord)
     if isinstance(coord_to_sort, DimCoord):
@@ -493,20 +496,22 @@ def sort_coord_in_cube(cube, coord, descending=False):
     return cube[tuple(index)]
 
 
-def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
+def enforce_coordinate_ordering(
+    cube: Cube, coord_names: Union[List[str], str], anchor_start: bool = True
+) -> None:
     """
     Function to reorder dimensions within a cube.
     Note that the input cube is modified in place.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube where the ordering will be enforced to match the order within
             the coord_names. This input cube will be modified as part of this
             function.
-        coord_names (list or str):
+        coord_names:
             List of the names of the coordinates to order. If a string is
             passed in, only the single specified coordinate is reordered.
-        anchor_start (bool):
+        anchor_start:
             Define whether the specified coordinates should be moved to the
             start (True) or end (False) of the list of dimensions. If True, the
             coordinates are inserted as the first dimensions in the order in
@@ -554,24 +559,24 @@ def enforce_coordinate_ordering(cube, coord_names, anchor_start=True):
         cube.transpose(new_dims)
 
 
-def clip_cube_data(cube, minimum_value, maximum_value):
+def clip_cube_data(cube: Cube, minimum_value: float, maximum_value: float) -> Cube:
     """Apply np.clip to data in a cube to ensure that the limits do not go
     beyond the provided minimum and maximum values.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The cube that has been processed and contains data that is to be
             clipped.
-        minimum_value (int or float):
+        minimum_value:
             The minimum value, with data in the cube that falls below this
             threshold set to it.
-        maximum_value (int or float):
+        maximum_value:
             The maximum value, with data in the cube that falls above this
             threshold set to it.
+
     Returns:
-        iris.cube.Cube:
-            The processed cube with the data clipped to the limits of the
-            original preprocessed cube.
+        The processed cube with the data clipped to the limits of the
+        original preprocessed cube.
     """
     original_attributes = cube.attributes
     original_methods = cube.cell_methods
@@ -588,7 +593,12 @@ def clip_cube_data(cube, minimum_value, maximum_value):
     return result
 
 
-def expand_bounds(result_cube, cubelist, coord_names, use_midpoint=False):
+def expand_bounds(
+    result_cube: Cube,
+    cubelist: Union[List[Cube], CubeList],
+    coord_names: List[str],
+    use_midpoint: bool = False,
+) -> Cube:
     """Alter a coordinate on result_cube such that bounds are expanded to cover
     the entire range of the input cubes (cubelist).  The input result_cube is
     modified in place and returned.
@@ -598,13 +608,13 @@ def expand_bounds(result_cube, cubelist, coord_names, use_midpoint=False):
     have bounds of [0000Z,0200Z]
 
     Args:
-        result_cube (iris.cube.Cube):
+        result_cube:
             Cube with coords requiring expansion
-        cubelist (iris.cube.CubeList):
+        cubelist:
             List of input cubes with source coords
-        coord_names (list of str):
+        coord_names:
             Coordinates which should be expanded
-        use_midpoint (bool):
+        use_midpoint:
             If True, coordinate points returned are halfway between the
             expanded bounds.  If False (default), the upper bound is used.
             Note if the midpoint is used then python will convert
@@ -613,8 +623,7 @@ def expand_bounds(result_cube, cubelist, coord_names, use_midpoint=False):
             not rounded down, for example when times are in hours.
 
     Returns:
-        iris.cube.Cube:
-            Cube with coords expanded.
+        Cube with coords expanded.
     """
     for coord in coord_names:
 

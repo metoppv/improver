@@ -32,10 +32,13 @@
 This module contains a plugin to calculate the enhancement of precipitation
 over orography.
 """
+from typing import Tuple
 
 import iris
 import numpy as np
 from iris.analysis.cartography import rotate_winds
+from iris.cube import Cube
+from numpy import ndarray
 from scipy.ndimage import uniform_filter1d
 
 from improver import BasePlugin
@@ -72,7 +75,7 @@ class OrographicEnhancement(BasePlugin):
             and Planetary Sciences, 33, 645-671.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialise the plugin with thresholds from STEPS code.  Usage as
         follows:
@@ -120,11 +123,11 @@ class OrographicEnhancement(BasePlugin):
         self.svp = None
         self.grid_spacing_km = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the plugin instance as a string"""
         return "<OrographicEnhancement()>"
 
-    def _orography_gradients(self):
+    def _orography_gradients(self) -> Tuple[Cube, Cube]:
         """
         Calculates the dimensionless gradient of self.topography along both
         spatial axes, smoothed along the perpendicular axis.  If spatial
@@ -132,13 +135,10 @@ class OrographicEnhancement(BasePlugin):
         converts coordinate units in place.
 
         Returns:
-            (tuple): tuple containing:
-                **gradx** (iris.cube.Cube):
-                    2D cube of dimensionless topography gradients in the
-                    positive x direction
-                **grady** (iris.cube.Cube):
-                    2D cube of dimensionless topography gradients in the
-                    positive y direction
+            - 2D cube of dimensionless topography gradients in the
+              positive x direction
+            - 2D cube of dimensionless topography gradients in the
+              positive y direction
         """
         self.topography.coord(axis="x").convert_units(self.topography.units)
         xdim = self.topography.coord_dims(self.topography.coord(axis="x"))[0]
@@ -159,21 +159,20 @@ class OrographicEnhancement(BasePlugin):
 
         return gradx, grady
 
-    def _regrid_variable(self, var_cube, unit):
+    def _regrid_variable(self, var_cube: Cube, unit: str) -> Cube:
         """
         Sorts spatial coordinates in ascending order, regrids the input
         variable onto the topography grid and converts to the required
         units.  This function does not modify the input variable cube.
 
         Args:
-            var_cube (iris.cube.Cube):
+            var_cube:
                 Cube containing input variable data
-            unit (str):
+            unit:
                 Required unit for this variable
 
         Returns:
-            iris.cube.Cube:
-                Cube containing regridded variable data
+            Cube containing regridded variable data
         """
         for axis in ["x", "y"]:
             var_cube = sort_coord_in_cube(var_cube, var_cube.coord(axis=axis))
@@ -189,27 +188,33 @@ class OrographicEnhancement(BasePlugin):
         return out_cube
 
     def _regrid_and_populate(
-        self, temperature, humidity, pressure, uwind, vwind, topography
-    ):
+        self,
+        temperature: Cube,
+        humidity: Cube,
+        pressure: Cube,
+        uwind: Cube,
+        vwind: Cube,
+        topography: Cube,
+    ) -> None:
         """
         Regrids input variables onto the high resolution orography field, then
         populates the class instance with regridded variables before converting
         to SI units.  Also calculates V.gradZ as a class member.
 
         Args:
-            temperature (iris.cube.Cube):
+            temperature:
                 Temperature at top of boundary layer
-            humidity (iris.cube.Cube):
+            humidity:
                 Relative humidity at top of boundary layer
-            pressure (iris.cube.Cube):
+            pressure:
                 Pressure at top of boundary layer
-            uwind (iris.cube.Cube):
+            uwind:
                 Positive eastward wind vector component at top of boundary
                 layer
-            vwind (iris.cube.Cube):
+            vwind:
                 Positive northward wind vector component at top of boundary
                 layer
-            topography (iris.cube.Cube):
+            topography:
                 Height of topography above sea level on 1 km UKPP domain grid
         """
         # convert topography grid, datatype and units
@@ -252,7 +257,7 @@ class OrographicEnhancement(BasePlugin):
             grady.data, self.vwind.data
         )
 
-    def _generate_mask(self):
+    def _generate_mask(self) -> ndarray:
         """
         Generates a boolean mask of areas NOT to calculate orographic
         enhancement.  Criteria for calculating orographic enhancement are that
@@ -265,9 +270,8 @@ class OrographicEnhancement(BasePlugin):
         The mask is therefore "True" if any of these conditions are false.
 
         Returns:
-            numpy.ndarray:
-                Boolean mask - where True, set orographic enhancement to a
-                default zero value
+            Boolean mask - where True, set orographic enhancement to a
+            default zero value
         """
         # calculate mean 3x3 (square nbhood) orography heights
         radius = number_of_grid_cells_to_distance(self.topography, 1)
@@ -281,7 +285,7 @@ class OrographicEnhancement(BasePlugin):
         mask = np.where(abs(self.vgradz) < self.vgradz_thresh_ms, True, mask)
         return mask
 
-    def _point_orogenh(self):
+    def _point_orogenh(self) -> ndarray:
         """
         Calculate the grid-point precipitation enhancement contribution due to
         orographic uplift using:
@@ -290,8 +294,7 @@ class OrographicEnhancement(BasePlugin):
                        (R_WATER_VAPOUR * temperature)) * 60 * 60
 
         Returns:
-            numpy.ndarray:
-                Orographic enhancement values in mm/h
+            Orographic enhancement values in mm/h
         """
         mask = np.logical_not(self._generate_mask())
         point_orogenh = np.zeros(self.temperature.data.shape, dtype=np.float32)
@@ -304,23 +307,22 @@ class OrographicEnhancement(BasePlugin):
         )
         return np.where(point_orogenh > 0, point_orogenh, 0)
 
-    def _get_point_distances(self, wind_speed, max_sin_cos):
+    def _get_point_distances(
+        self, wind_speed: ndarray, max_sin_cos: ndarray
+    ) -> ndarray:
         """
         Generate 3d array of distances to upstream components
 
         Args:
-            wind_speed (numpy.ndarray):
+            wind_speed:
                 2D array of wind speeds
-            max_roi (numpy.ndarray):
-                2D array of maximum ranges of influence in grid squares
-            max_sin_cos (numpy.ndarray):
+            max_sin_cos:
                 2D array containing the larger of sin(wind_direction) or
                 cos(wind_direction) with respect to grid north
 
         Returns:
-            numpy.ndarray:
-                3D array of source-to-destination distances in grid points,
-                with np.nan filled in for out of range values
+            3D array of source-to-destination distances in grid points,
+            with np.nan filled in for out of range values
         """
         # calculate maximum upstream radius of influence at each grid cell
         upstream_roi = self.upstream_range_of_influence_km / self.grid_spacing_km
@@ -338,28 +340,30 @@ class OrographicEnhancement(BasePlugin):
         return distance
 
     @staticmethod
-    def _locate_source_points(wind_speed, distance, sin_wind_dir, cos_wind_dir):
+    def _locate_source_points(
+        wind_speed: ndarray,
+        distance: ndarray,
+        sin_wind_dir: ndarray,
+        cos_wind_dir: ndarray,
+    ) -> Tuple[ndarray, ndarray]:
         """
         Generate 3D arrays of source points from which to add upstream
         orographic enhancement contribution.  Assumes spatial coordinate
         ordering [y, x].
 
         Args:
-            wind_speed (numpy.ndarray):
+            wind_speed:
                 2D array of wind speed magnitudes
-            distance (numpy.ndarray):
+            distance:
                 3D array of grid point source-to-destination distances
-            sin_wind_dir (numpy.ndarray):
+            sin_wind_dir:
                 2D array of sin wind direction wrt grid north
-            cos_wind_dir (numpy.ndarray):
+            cos_wind_dir:
                 2D array of cos wind direction wrt grid north
 
         Returns:
-            (tuple): tuple containing:
-                **x_source** (numpy.ndarray):
-                    3D array of source point x-coordinates
-                **y_source** (numpy.ndarray):
-                    3D array of source point y-coordinates
+            - 3D array of source point x-coordinates
+            - 3D array of source point y-coordinates
         """
         xpos, ypos = np.meshgrid(
             np.arange(wind_speed.shape[1]), np.arange(wind_speed.shape[0])
@@ -381,19 +385,24 @@ class OrographicEnhancement(BasePlugin):
         return x_source, y_source
 
     def _compute_weighted_values(
-        self, point_orogenh, x_source, y_source, distance, wind_speed
-    ):
+        self,
+        point_orogenh: ndarray,
+        x_source: ndarray,
+        y_source: ndarray,
+        distance: ndarray,
+        wind_speed: ndarray,
+    ) -> Tuple[ndarray, ndarray]:
         """
         Extract orographic enhancement values from source points and weight
         according to source-destination distance.
 
         Args:
-            point_orogenh (numpy.ndarray):
+            point_orogenh:
                 2D array of point orographic enhancement values
-            x_source (numpy.ndarray):
+            x_source:
                 3D array of x-coordinates of source points from which to read
                 upstream contribution
-            y_source (numpy.ndarray):
+            y_source:
                 3D array of y-coordinates of source points from which to read
                 upstream contribution
             distance:
@@ -402,12 +411,9 @@ class OrographicEnhancement(BasePlugin):
                 2D array of wind speeds
 
         Returns:
-            (tuple): tuple containing:
-                **orogenh** (numpy.ndarray):
-                    2D array containing a weighted sum of orographic
-                    enhancement components from upstream source points
-                **sum_of_weights** (numpy.ndarray):
-                    2D array containing weights for normalisation
+            - 2D array containing a weighted sum of orographic
+              enhancement components from upstream source points
+            - 2D array containing weights for normalisation
         """
         source_values = np.fromiter(
             (
@@ -435,17 +441,16 @@ class OrographicEnhancement(BasePlugin):
 
         return np.sum(weighted_values, axis=0), sum_of_weights
 
-    def _add_upstream_component(self, point_orogenh):
+    def _add_upstream_component(self, point_orogenh: ndarray) -> ndarray:
         """
         Add upstream component to site orographic enhancement
 
         Args:
-            point_orogenh (numpy.ndarray):
+            point_orogenh:
                 Site orographic enhancement in mm h-1
 
         Returns:
-            numpy.ndarray:
-                Total orographic enhancement in mm h-1
+            Total orographic enhancement in mm h-1
         """
         # get wind speed and sin / cos direction wrt grid North
         wind_speed = np.sqrt(np.square(self.uwind.data) + np.square(self.vwind.data))
@@ -482,19 +487,18 @@ class OrographicEnhancement(BasePlugin):
 
         return orogenh
 
-    def _create_output_cube(self, orogenh_data, reference_cube):
+    def _create_output_cube(self, orogenh_data: ndarray, reference_cube: Cube) -> Cube:
         """Creates a cube containing orographic enhancement values in SI units.
 
         Args:
-            orogenh_data (numpy.ndarray):
+            orogenh_data:
                 Orographic enhancement value in mm h-1
-            reference_cube (iris.cube.Cube):
+            reference_cube:
                 Cube with the correct time and forecast period coordinates on
                 the UK standard grid
 
         Returns:
-            iris.cube.Cube:
-                Orographic enhancement cube (m s-1)
+            Orographic enhancement cube (m s-1)
         """
         # create cube containing high resolution data in mm/h
         x_coord = self.topography.coord(axis="x")
@@ -528,32 +532,39 @@ class OrographicEnhancement(BasePlugin):
 
         return orog_enhance_cube
 
-    def process(self, temperature, humidity, pressure, uwind, vwind, topography):
+    def process(
+        self,
+        temperature: Cube,
+        humidity: Cube,
+        pressure: Cube,
+        uwind: Cube,
+        vwind: Cube,
+        topography: Cube,
+    ) -> Cube:
         """
         Calculate precipitation enhancement over orography on high resolution
         grid. Input diagnostics are all expected to be on the same grid, and
         are regridded to match the orography.
 
         Args:
-            temperature (iris.cube.Cube):
+            temperature:
                 Temperature at top of boundary layer
-            humidity (iris.cube.Cube):
+            humidity:
                 Relative humidity at top of boundary layer
-            pressure (iris.cube.Cube):
+            pressure:
                 Pressure at top of boundary layer
-            uwind (iris.cube.Cube):
+            uwind:
                 Positive eastward wind vector component at top of boundary
                 layer
-            vwind (iris.cube.Cube):
+            vwind:
                 Positive northward wind vector component at top of boundary
                 layer
-            topography (iris.cube.Cube):
+            topography:
                 Height of topography above sea level on high resolution (1 km)
                 UKPP domain grid
 
         Returns:
-            iris.cube.Cube:
-                Precipitation enhancement due to orography in m/s.
+            Precipitation enhancement due to orography in m/s.
         """
         # check input variable cube coordinates match
         unmatched_coords = compare_coords(

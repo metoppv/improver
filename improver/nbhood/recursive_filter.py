@@ -30,9 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to apply a recursive filter to neighbourhooded data."""
 import warnings
+from typing import List, Optional, Tuple
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver import PostProcessingPlugin
 from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
@@ -44,19 +47,18 @@ from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_
 
 
 class RecursiveFilter(PostProcessingPlugin):
-
     """
     Apply a recursive filter to the input cube.
     """
 
-    def __init__(self, iterations=None, edge_width=15):
+    def __init__(self, iterations: Optional[int] = None, edge_width: int = 15) -> None:
         """
         Initialise the class.
 
         Args:
-            iterations (int or None):
+            iterations:
                 The number of iterations of the recursive filter.
-            edge_width (int):
+            edge_width:
                 Half the width of the padding halo applied before
                 recursive filtering.
         Raises:
@@ -80,13 +82,15 @@ class RecursiveFilter(PostProcessingPlugin):
         self.edge_width = edge_width
         self.smoothing_coefficient_name_format = "smoothing_coefficient_{}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<RecursiveFilter: iterations: {}, edge_width: {}"
         return result.format(self.iterations, self.edge_width)
 
     @staticmethod
-    def _recurse_forward(grid, smoothing_coefficients, axis):
+    def _recurse_forward(
+        grid: ndarray, smoothing_coefficients: ndarray, axis: int
+    ) -> ndarray:
         """
         Method to run the recursive filter in the forward direction.
 
@@ -105,21 +109,20 @@ class RecursiveFilter(PostProcessingPlugin):
             :math:`B_{i-1}` = New value at gridpoint i - 1
 
         Args:
-            grid (numpy.ndarray):
+            grid:
                 2D array containing the input data to which the recursive
                 filter will be applied.
-            smoothing_coefficients (numpy.ndarray):
+            smoothing_coefficients:
                 Matching 2D array of smoothing_coefficient values that will be
                 used when applying the recursive filter along the specified
                 axis.
-            axis (int):
+            axis:
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
-            numpy.ndarray:
-                2D array containing the smoothed field after the recursive
-                filter method has been applied to the input array in the
-                forward direction along the specified axis.
+            2D array containing the smoothed field after the recursive
+            filter method has been applied to the input array in the
+            forward direction along the specified axis.
         """
         lim = grid.shape[axis]
         for i in range(1, lim):
@@ -134,7 +137,9 @@ class RecursiveFilter(PostProcessingPlugin):
         return grid
 
     @staticmethod
-    def _recurse_backward(grid, smoothing_coefficients, axis):
+    def _recurse_backward(
+        grid: ndarray, smoothing_coefficients: ndarray, axis: int
+    ) -> ndarray:
         """
         Method to run the recursive filter in the backwards direction.
 
@@ -153,21 +158,20 @@ class RecursiveFilter(PostProcessingPlugin):
             :math:`B_{i+1}` = New value at gridpoint i+1
 
         Args:
-            grid (numpy.ndarray):
+            grid:
                 2D array containing the input data to which the recursive
                 filter will be applied.
-            smoothing_coefficients (numpy.ndarray):
+            smoothing_coefficients:
                 Matching 2D array of smoothing_coefficient values that will be
                 used when applying the recursive filter along the specified
                 axis.
-            axis (int):
+            axis:
                 Index of the spatial axis (0 or 1) over which to recurse.
 
         Returns:
-            numpy.ndarray:
-                2D array containing the smoothed field after the recursive
-                filter method has been applied to the input array in the
-                backwards direction along the specified axis.
+            2D array containing the smoothed field after the recursive
+            filter method has been applied to the input array in the
+            backwards direction along the specified axis.
         """
         lim = grid.shape[axis]
         for i in range(lim - 2, -1, -1):
@@ -183,30 +187,32 @@ class RecursiveFilter(PostProcessingPlugin):
 
     @staticmethod
     def _run_recursion(
-        cube, smoothing_coefficients_x, smoothing_coefficients_y, iterations
-    ):
+        cube: Cube,
+        smoothing_coefficients_x: Cube,
+        smoothing_coefficients_y: Cube,
+        iterations: int,
+    ) -> Cube:
         """
         Method to run the recursive filter.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 2D cube containing the input data to which the recursive
                 filter will be applied.
-            smoothing_coefficients_x (iris.cube.Cube):
+            smoothing_coefficients_x:
                 2D cube containing array of smoothing_coefficient values that
                 will be used when applying the recursive filter along the
                 x-axis.
-            smoothing_coefficients_y (iris.cube.Cube):
+            smoothing_coefficients_y:
                 2D cube containing array of smoothing_coefficient values that
                 will be used when applying the recursive filter along the
                 y-axis.
-            iterations (int):
+            iterations:
                 The number of iterations of the recursive filter
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the smoothed field after the recursive filter
-                method has been applied to the input cube.
+            Cube containing the smoothed field after the recursive filter
+            method has been applied to the input cube.
         """
         (x_index,) = cube.coord_dims(cube.coord(axis="x").name())
         (y_index,) = cube.coord_dims(cube.coord(axis="y").name())
@@ -228,22 +234,23 @@ class RecursiveFilter(PostProcessingPlugin):
             cube.data = output
         return cube
 
-    def _validate_coefficients(self, cube, smoothing_coefficients):
+    def _validate_coefficients(
+        self, cube: Cube, smoothing_coefficients: CubeList
+    ) -> List[Cube]:
         """Validate the smoothing coefficients cubes.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 2D cube containing the input data to which the recursive
                 filter will be applied.
 
-            smoothing_coefficients (iris.cube.CubeList):
+            smoothing_coefficients:
                 A cubelist containing two cubes of smoothing_coefficient values,
                 one corresponding to smoothing in the x-direction, and the other
                 to smoothing in the y-direction.
 
         Returns:
-            list:
-                A list of smoothing coefficients cubes ordered: [x-coeffs, y-coeffs].
+            A list of smoothing coefficients cubes ordered: [x-coeffs, y-coeffs].
 
         Raises:
             ValueError: Smoothing coefficient cubes are not named correctly.
@@ -319,18 +326,19 @@ class RecursiveFilter(PostProcessingPlugin):
         return pad_x, pad_y
 
     @staticmethod
-    def _update_coefficients_from_mask(coeffs_x, coeffs_y, mask):
+    def _update_coefficients_from_mask(
+        coeffs_x: Cube, coeffs_y: Cube, mask: Cube
+    ) -> Tuple[Cube, Cube]:
         """
         Zero all smoothing coefficients for data points that are masked
 
         Args:
-            coeffs_x (iris.cube.Cube)
-            coeffs_y (iris.cube.Cube)
-            mask (iris.cube.Cube)
+            coeffs_x
+            coeffs_y
+            mask
 
         Returns:
-            tuple of iris.cube.Cube:
-                Updated smoothing coefficients
+            Updated smoothing coefficients
         """
         plugin = OrographicSmoothingCoefficients(
             use_mask_boundary=False, invert_mask=False
@@ -338,7 +346,7 @@ class RecursiveFilter(PostProcessingPlugin):
         plugin.zero_masked(coeffs_x, coeffs_y, mask)
         return coeffs_x, coeffs_y
 
-    def process(self, cube, smoothing_coefficients):
+    def process(self, cube: Cube, smoothing_coefficients: CubeList) -> Cube:
         """
         Set up the smoothing_coefficient parameters and run the recursive
         filter. Smoothing coefficients can be generated using
@@ -369,18 +377,17 @@ class RecursiveFilter(PostProcessingPlugin):
         from its neighbouring cell.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the input data to which the recursive filter
                 will be applied.
-            smoothing_coefficients (iris.cube.CubeList):
+            smoothing_coefficients:
                 A cubelist containing two cubes of smoothing_coefficient values,
                 one corresponding to smoothing in the x-direction, and the other
                 to smoothing in the y-direction.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the smoothed field after the recursive filter
-                method has been applied.
+            Cube containing the smoothed field after the recursive filter
+            method has been applied.
 
         Raises:
             ValueError:

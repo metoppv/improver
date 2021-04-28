@@ -31,8 +31,11 @@
 """Module containing Blending classes that blend over adjacent points, as
 opposed to collapsing the whole dimension."""
 
+from typing import Union
+
 import iris
 from cf_units import Unit
+from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
@@ -48,23 +51,29 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
     function of a specified width.
     """
 
-    def __init__(self, coord, central_point, parameter_units, width):
+    def __init__(
+        self,
+        coord: str,
+        central_point: Union[int, float],
+        parameter_units: str,
+        width: float,
+    ) -> None:
         """Set up for a Weighted Blending plugin
 
         Args:
-            coord (str):
+            coord:
                 The name of a coordinate dimension in the cube that we
                 will blend over.
-            central_point (float or int):
+            central_point:
                 Central point at which the output from the triangular weighted
                 blending will be calculated.
-            parameter_units (str):
+            parameter_units:
                 The units of the width of the triangular weighting function
                 and the units of the central_point.
                 This does not need to be the same as the units of the
                 coordinate we are blending over, but it should be possible to
                 convert between them.
-            width (float):
+            width:
                 The width of the triangular weighting function we will use
                 to blend.
         """
@@ -84,7 +93,7 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
             coord, timeblending=True
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         msg = (
             "<TriangularWeightedBlendAcrossAdjacentPoints:"
@@ -95,22 +104,20 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
             self.coord, self.central_point, self.parameter_units, self.width
         )
 
-    def _find_central_point(self, cube):
+    def _find_central_point(self, cube: Cube) -> Cube:
         """
         Find the cube that contains the central point, otherwise, raise
         an exception.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing input for blending.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing central point.
+            Cube containing central point.
 
         Raises:
             ValueError: Central point is not available within the input cube.
-
         """
         # Convert central point into the units of the cube, so that a
         # central point can be extracted.
@@ -133,21 +140,19 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
             raise ValueError(msg)
         return central_point_cube
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """
         Apply the weighted blend for each point in the given coordinate.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing input for blending.
 
         Returns:
-            iris.cube.Cube:
-                The processed cube, with the same coordinates as the input
-                central_cube. The points in one coordinate will be blended
-                with the adjacent points based on a triangular weighting
-                function of the specified width.
-
+            The processed cube, with the same coordinates as the input
+            central_cube. The points in one coordinate will be blended
+            with the adjacent points based on a triangular weighting
+            function of the specified width.
         """
         # Extract the central point from the input cube.
         central_point_cube = self._find_central_point(cube)

@@ -30,9 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing wind direction averaging plugins."""
 
+from typing import Tuple, Union
+
 import iris
 import numpy as np
 from iris.coords import CellMethod
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.nbhood.nbhood import NeighbourhoodProcessing
@@ -83,17 +87,16 @@ class WindDirection(BasePlugin):
     as a placeholder.
 
     Args:
-        backup_method (str):
+        backup_method:
             Backup method to use if the complex numbers approach has low
             confidence.
             "first_realization" uses the value of realization zero.
             "neighbourhood" (default) recalculates using the complex numbers
             approach with additional realizations extracted from neighbouring
             grid points from all available realizations.
-
     """
 
-    def __init__(self, backup_method="neighbourhood"):
+    def __init__(self, backup_method: str = "neighbourhood") -> None:
         """Initialise class."""
         self.backup_methods = ["first_realization", "neighbourhood"]
         self.backup_method = backup_method
@@ -118,13 +121,13 @@ class WindDirection(BasePlugin):
             "square", self.nb_radius, weighted_mode=False
         )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return (
             '<WindDirection: backup_method "{}"; neighbourhood radius "{}"m>'
         ).format(self.backup_method, self.nb_radius)
 
-    def _reset(self):
+    def _reset(self) -> None:
         """Empties working data objects"""
         self.realization_axis = None
         self.wdir_complex = None
@@ -134,23 +137,23 @@ class WindDirection(BasePlugin):
         self.confidence_slice = None
 
     @staticmethod
-    def deg_to_complex(angle_deg, radius=1):
+    def deg_to_complex(
+        angle_deg: Union[ndarray, float], radius: Union[ndarray, float] = 1
+    ) -> Union[ndarray, float]:
         """Converts degrees to complex values.
 
         The radius value can be used to weigh values - but it is set
         to 1 for now.
 
         Args:
-            angle_deg (numpy.ndarray or float):
+            angle_deg:
                 3D array or float - wind direction angles in degrees.
-            radius (numpy.ndarray):
+            radius:
                 3D array or float - radius value for each point, default=1.
 
         Returns:
-            numpy.ndarray or float:
-                3D array or float - wind direction translated to
-                complex numbers.
-
+            3D array or float - wind direction translated to
+            complex numbers.
         """
 
         # Convert from degrees to radians.
@@ -164,7 +167,7 @@ class WindDirection(BasePlugin):
         return real + 1j * imag
 
     @staticmethod
-    def complex_to_deg(complex_in):
+    def complex_to_deg(complex_in: ndarray) -> ndarray:
         """Converts complex to degrees.
 
         The "np.angle" function returns negative numbers when the input
@@ -172,18 +175,15 @@ class WindDirection(BasePlugin):
         to ensure that the angle is between 0-359.
 
         Args:
-            complex_in (numpy.ndarray):
+            complex_in:
                 3D array - wind direction angles in
                 complex number form.
 
         Returns:
-            numpy.ndarray:
-                3D array - wind direction in angle form
+            3D array - wind direction in angle form
 
-        Raises
-        ------
-        TypeError: If complex_in is not an array.
-
+        Raises:
+            TypeError: If complex_in is not an array.
         """
 
         if not isinstance(complex_in, np.ndarray):
@@ -203,43 +203,43 @@ class WindDirection(BasePlugin):
 
         return angle
 
-    def calc_wind_dir_mean(self):
+    def calc_wind_dir_mean(self) -> None:
         """Find the mean wind direction using complex average which actually
            signifies a point between all of the data points in POLAR
            coordinates - NOT the average DEGREE ANGLE.
 
         Uses:
-            self.wdir_complex (numpy.ndarray or float):
+            self.wdir_complex:
                 3D array or float - wind direction angles in degrees.
-            self.realization_axis (int):
+            self.realization_axis:
                 Axis to collapse over.
 
         Defines:
-            self.wdir_mean_complex (numpy.ndarray or float):
+            self.wdir_mean_complex:
                 3D array or float - wind direction angles as complex numbers
                 collapsed along an axis using np.mean().
-            self.wdir_slice_mean (numpy.ndarray or float):
+            self.wdir_slice_mean:
                 3D array or float - wind direction angles in degrees collapsed
                 along an axis using np.mean().
         """
         self.wdir_mean_complex = np.mean(self.wdir_complex, axis=self.realization_axis)
         self.wdir_slice_mean.data = self.complex_to_deg(self.wdir_mean_complex)
 
-    def find_r_values(self):
+    def find_r_values(self) -> None:
         """Find radius values from complex numbers.
 
         Takes input wind direction in complex values and returns array
         containing r values using Pythagoras theorem.
 
         Uses:
-            self.wdir_mean_complex (numpy.ndarray or float):
+            self.wdir_mean_complex:
                 3D array or float - wind direction angles in complex numbers.
-            self.wdir_slice_mean (iris.cube.Cube):
+            self.wdir_slice_mean:
                 3D array or float - mean wind direction angles in complex
                 numbers.
 
         Defines:
-            self.r_vals_slice (iris.cube.Cube):
+            self.r_vals_slice:
                 Contains r values and inherits meta-data from
                 self.wdir_slice_mean.
         """
@@ -250,7 +250,7 @@ class WindDirection(BasePlugin):
         )
         self.r_vals_slice = self.wdir_slice_mean.copy(data=r_vals)
 
-    def calc_confidence_measure(self):
+    def calc_confidence_measure(self) -> None:
         """Find confidence measure of polar numbers.
 
         The average wind direction complex values represent the midpoint
@@ -267,20 +267,20 @@ class WindDirection(BasePlugin):
            is below threshold as any r value is regarded as meaningless.
 
         Uses:
-            self.wdir_complex (numpy.ndarray):
+            self.wdir_complex:
                 3D array - wind direction angles in complex numbers.
-            self.wdir_slice_mean (iris.cube.Cube):
+            self.wdir_slice_mean:
                 Contains average wind direction in angles.
-            self.realization_axis (int):
+            self.realization_axis:
                 Axis to collapse over.
-            self.r_vals_slice.data (numpy.ndarray):
+            self.r_vals_slice.data:
                 3D array - Radius taken from average complex wind direction
                 angle.
-            self.r_thresh (float):
+            self.r_thresh:
                 Any r value below threshold is regarded as meaningless.
 
         Defines:
-            self.confidence_slice (iris.cube.Cube):
+            self.confidence_slice:
                 Contains the average distance from mean normalised - used
                 as a confidence value. Inherits meta-data from
                 self.wdir_slice_mean
@@ -328,7 +328,7 @@ class WindDirection(BasePlugin):
         )
         self.confidence_slice = self.wdir_slice_mean.copy(data=dist_from_mean_norm)
 
-    def wind_dir_decider(self, where_low_r, wdir_cube):
+    def wind_dir_decider(self, where_low_r: ndarray, wdir_cube: Cube) -> None:
         """If the wind direction is so widely scattered that the r value
            is nearly zero then this indicates that the average wind direction
            is essentially meaningless.
@@ -338,33 +338,33 @@ class WindDirection(BasePlugin):
            rerunning the main technique.
            This is invoked rarely (1 : 100 000)
 
-        Arguments:
-            where_low_r (numpy.ndarray):
+        Args:
+            where_low_r:
                 Array of boolean values. True where original wind direction
                 estimate has low confidence. These points are replaced
                 according to self.backup_method
-            wdir_cube (iris.cube.Cube):
+            wdir_cube:
                 Contains array of wind direction data (realization, y, x)
 
         Uses:
-            self.wdir_slice_mean (iris.cube.Cube):
+            self.wdir_slice_mean:
                 Containing average wind direction angle (in degrees).
-            self.wdir_complex (numpy.ndarray):
+            self.wdir_complex:
                 3D array - wind direction angles from ensembles (in complex).
-            self.r_vals_slice.data (numpy.ndarray):
+            self.r_vals_slice.data:
                 2D array - Radius taken from average complex wind direction
                 angle.
-            self.r_thresh (float):
+            self.r_thresh:
                 Any r value below threshold is regarded as meaningless.
-            self.realization_axis (int):
+            self.realization_axis:
                 Axis to collapse over.
-            self.n_realizations (int):
+            self.n_realizations:
                 Number of realizations available in the plugin. Used to set the
                 neighbourhood radius as this is used to adjust the radius again
                 in the neighbourhooding plugin.
 
         Defines:
-            self.wdir_slice_mean.data (numpy.ndarray):
+            self.wdir_slice_mean.data:
                 2D array - Wind direction degrees where ambigious values have
                 been replaced with data from first ensemble realization.
         """
@@ -389,30 +389,25 @@ class WindDirection(BasePlugin):
             where_low_r, improved_values, self.wdir_slice_mean.data
         )
 
-    def process(self, cube_ens_wdir):
+    def process(self, cube_ens_wdir: Cube) -> Tuple[Cube, ndarray, ndarray]:
         """Create a cube containing the wind direction averaged over the
         ensemble realizations.
 
         Args:
-            cube_ens_wdir (iris.cube.Cube):
+            cube_ens_wdir:
                 Cube containing wind direction from multiple ensemble
                 realizations.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the wind direction averaged from the
-                ensemble realizations.
-            cube_r_vals (numpy.ndarray):
-                3D array - Radius taken from average complex wind direction
-                angle.
-            cube_confidence_measure (numpy.ndarray):
-                3D array - The average distance from mean normalised - used
-                as a confidence value.
+            - Cube containing the wind direction averaged from the
+              ensemble realizations.
+            - 3D array - Radius taken from average complex wind direction
+              angle.
+            - 3D array - The average distance from mean normalised - used
+              as a confidence value.
 
-        Raises
-        ------
-        TypeError: If cube_wdir is not a cube.
-
+        Raises:
+            TypeError: If cube_wdir is not a cube.
         """
 
         if not isinstance(cube_ens_wdir, iris.cube.Cube):

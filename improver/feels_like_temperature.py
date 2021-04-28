@@ -30,7 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing feels like temperature calculation plugins"""
 
+from typing import Optional
+
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
@@ -41,7 +45,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 )
 
 
-def _calculate_wind_chill(temperature, wind_speed):
+def _calculate_wind_chill(temperature: ndarray, wind_speed: ndarray) -> ndarray:
     """
     Calculates the wind chill from 10 m wind speed and temperature based on
     the wind chill temperature index from a linear regression equation detailed
@@ -49,14 +53,13 @@ def _calculate_wind_chill(temperature, wind_speed):
     Bluestein, 2005, table 2.
 
     Args:
-        temperature (numpy.ndarray):
+        temperature:
             Air temperature in degrees celsius
-        wind_speed (numpy.ndarray):
+        wind_speed:
             Wind speed in kilometres per hour
 
     Returns:
-        numpy.ndarray:
-            Wind chill temperatures in degrees celsius
+        Wind chill temperatures in degrees celsius
 
     References:
         Osczevski, R. and Bluestein, M. (2005). THE NEW WIND CHILL EQUIVALENT
@@ -104,8 +107,11 @@ def _calculate_wind_chill(temperature, wind_speed):
 
 
 def _calculate_apparent_temperature(
-    temperature, wind_speed, relative_humidity, pressure
-):
+    temperature: ndarray,
+    wind_speed: ndarray,
+    relative_humidity: ndarray,
+    pressure: ndarray,
+) -> ndarray:
     """
     Calculates the apparent temperature from 10 m wind speed, temperature
     and actual vapour pressure using the linear regression equation
@@ -127,18 +133,17 @@ def _calculate_apparent_temperature(
     the WetBulbTemperature plugin which makes use of the Goff-Gratch method.
 
     Args:
-        temperature (numpy.ndarray):
+        temperature:
             Temperatures in degrees celsius
-        wind_speed (numpy.ndarray):
+        wind_speed:
             10m wind speeds in metres per second
-        relative_humidity (numpy.ndarray):
+        relative_humidity:
             Relative humidities (fractional)
-        pressure (numpy.ndarray):
+        pressure:
             Pressure in Pa
 
     Returns:
-        numpy.ndarray:
-            Apparent temperatures in degrees celsius
+        Apparent temperatures in degrees celsius
 
     References:
         Steadman, R. (1984). A Universal Scale of Apparent Temperature.
@@ -153,7 +158,9 @@ def _calculate_apparent_temperature(
     return apparent_temperature
 
 
-def _feels_like_temperature(temperature, apparent_temperature, wind_chill):
+def _feels_like_temperature(
+    temperature: ndarray, apparent_temperature: ndarray, wind_chill: ndarray
+) -> ndarray:
     """
     Calculates feels like temperature from inputs in degrees Celsius using a
     combination of the wind chill index and Steadman's apparent temperature
@@ -169,12 +176,12 @@ def _feels_like_temperature(temperature, apparent_temperature, wind_chill):
     in order to blend between the wind chill and the apparent temperature.
 
     Args:
-        temperature (numpy.ndarray)
-        apparent_temperature (numpy.ndarray)
-        wind_chill (numpy.ndarray)
+        temperature
+        apparent_temperature
+        wind_chill
 
     Returns:
-        numpy.ndarray
+        Feels like temperature.
     """
     feels_like_temperature = np.zeros(temperature.shape, dtype=np.float32)
     feels_like_temperature[temperature < 10] = wind_chill[temperature < 10]
@@ -190,29 +197,32 @@ def _feels_like_temperature(temperature, apparent_temperature, wind_chill):
 
 
 def calculate_feels_like_temperature(
-    temperature, wind_speed, relative_humidity, pressure, model_id_attr=None
-):
+    temperature: Cube,
+    wind_speed: Cube,
+    relative_humidity: Cube,
+    pressure: Cube,
+    model_id_attr: Optional[str] = None,
+) -> Cube:
     """
     Calculates the feels like temperature using a combination of
     the wind chill index and Steadman's apparent temperature equation.
 
     Args:
-        temperature (iris.cube.Cube):
+        temperature:
             Cube of air temperatures
-        wind_speed (iris.cube.Cube):
+        wind_speed:
             Cube of 10m wind speeds
-        relative_humidity (iris.cube.Cube):
+        relative_humidity:
             Cube of relative humidities
-        pressure (iris.cube.Cube):
+        pressure:
             Cube of air pressure
-        model_id_attr (str):
+        model_id_attr:
             Name of the attribute used to identify the source model for
             blending.
 
     Returns:
-        iris.cube.Cube:
-            Cube of feels like temperatures in the same units as the input
-            temperature cube.
+        Cube of feels like temperatures in the same units as the input
+        temperature cube.
     """
     t_cube = temperature.copy()
     t_cube.convert_units("degC")

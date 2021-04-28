@@ -30,12 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing plugin to resolve wind components."""
 
+from typing import Tuple
+
 import numpy as np
 from iris.analysis import Linear
 from iris.analysis.cartography import rotate_winds
 from iris.coord_systems import GeogCS
 from iris.coords import DimCoord
 from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import compare_coords
@@ -50,26 +53,25 @@ class ResolveWindComponents(BasePlugin):
     given directions with respect to true North
     """
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the plugin instance as a string"""
         return "<ResolveWindComponents>"
 
     @staticmethod
-    def calc_true_north_offset(reference_cube):
+    def calc_true_north_offset(reference_cube: Cube) -> ndarray:
         """
         Calculate the angles between grid North and true North, as a
         matrix of values on the grid of the input reference cube.
 
         Args:
-            reference_cube (iris.cube.Cube):
+            reference_cube:
                 2D cube on grid for which "north" is required.  Provides both
                 coordinate system (reference_cube.coord_system()) and template
                 spatial grid on which the angle adjustments should be provided.
 
         Returns:
-            numpy.ndarray:
-                Angle in radians by which wind direction wrt true North at
-                each point must be rotated to be relative to grid North.
+            Angle in radians by which wind direction wrt true North at
+            each point must be rotated to be relative to grid North.
         """
         reference_x_coord = reference_cube.coord(axis="x")
         reference_y_coord = reference_cube.coord(axis="y")
@@ -139,30 +141,28 @@ class ResolveWindComponents(BasePlugin):
         return angle_adjustment
 
     @staticmethod
-    def resolve_wind_components(speed, angle, adj):
+    def resolve_wind_components(
+        speed: Cube, angle: Cube, adj: ndarray
+    ) -> Tuple[Cube, Cube]:
         """
         Perform trigonometric reprojection onto x and y axes
 
         Args:
-            speed (iris.cube.Cube):
+            speed:
                 Cube containing wind speed data
-            angle (iris.cube.Cube):
+            angle:
                 Cube containing wind directions as angles from true North
-            adj (numpy.ndarray):
+            adj:
                 2D array of wind direction angle adjustments in radians, to
                 convert zero reference from true North to grid North.
                 Broadcast automatically if speed and angle cubes have extra
                 dimensions.
 
         Returns:
-            (tuple): tuple containing:
-                **u_speed** (iris.cube.Cube):
-                    Cube containing wind vector component in the positive
-                    x-direction
-
-                **v_speed** (iris.cube.Cube):
-                    Cube containing wind vector component in the positive
-                    y-direction
+            - Cube containing wind vector component in the positive
+              x-direction u_speed
+            - Cube containing wind vector component in the positive
+              y-direction v_speed
         """
         angle.convert_units("radians")
         angle.data += adj
@@ -176,29 +176,25 @@ class ResolveWindComponents(BasePlugin):
         vspeed = np.multiply(speed.data, cos_angle)
         return [speed.copy(data=uspeed), speed.copy(data=vspeed)]
 
-    def process(self, wind_speed, wind_dir):
+    def process(self, wind_speed: Cube, wind_dir: Cube) -> Tuple[Cube, Cube]:
 
         """
         Convert wind speed and direction into u,v components along input cube
         projection axes.
 
         Args:
-            wind_speed (iris.cube.Cube):
+            wind_speed:
                 Cube containing wind speed values
-            wind_dir (iris.cube.Cube):
+            wind_dir:
                 Cube containing wind direction values relative to true North
 
         Returns:
-            (tuple): tuple containing:
-                **ucube** (iris.cube.Cube):
-                    Cube containing wind speeds in the positive projection
-                    x-axis direction, with units and projection matching
-                    wind_speed cube.
-
-                **vcube** (iris.cube.Cube):
-                    Cube containing wind speeds in the positive projection
-                    y-axis direction, with units and projection matching
-                    wind_speed cube.
+            - Cube containing wind speeds in the positive projection
+              x-axis direction, with units and projection matching
+              wind_speed cube.
+            - Cube containing wind speeds in the positive projection
+              y-axis direction, with units and projection matching
+              wind_speed cube.
         """
         # check cubes contain the correct data (assuming CF standard names)
         if "wind_speed" not in wind_speed.name():

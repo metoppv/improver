@@ -32,9 +32,11 @@
 
 import warnings
 from copy import copy
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -62,50 +64,50 @@ class WeightAndBlend(PostProcessingPlugin):
 
     def __init__(
         self,
-        blend_coord,
-        wts_calc_method,
-        weighting_coord=None,
-        wts_dict=None,
-        y0val=None,
-        ynval=None,
-        cval=None,
-        inverse_ordering=False,
-    ):
+        blend_coord: str,
+        wts_calc_method: str,
+        weighting_coord: Optional[str] = None,
+        wts_dict: Optional[Dict[str, Dict[str, Any]]] = None,
+        y0val: Optional[float] = None,
+        ynval: Optional[float] = None,
+        cval: Optional[float] = None,
+        inverse_ordering: bool = False,
+    ) -> None:
         """
         Initialise central parameters
 
         Args:
-            blend_coord (str):
+            blend_coord:
                 Coordinate over which blending will be performed (eg "model"
                 for grid blending)
-            wts_calc_method (str):
+            wts_calc_method:
                 Method to use to calculate weights used in blending.
                 "linear" (default): calculate linearly varying blending weights.
                 "nonlinear": calculate blending weights that decrease
                 exponentially with increasing blending coordinates.
                 "dict": calculate weights using a dictionary passed in.
-            weighting_coord (str):
+            weighting_coord:
                 Name of coordinate over which linear weights should be scaled.
                 This coordinate must be available in the weights dictionary.
-            wts_dict (dict):
+            wts_dict:
                 Dictionary from which to calculate blending weights. Dictionary
                 format is as specified in
                 improver.blending.weights.ChoosingWeightsLinear
-            y0val (float):
+            y0val:
                 The relative value of the weighting start point (lowest value of
                 blend coord) for choosing default linear weights.
                 If used this must be a positive float or 0.
-            ynval (float):
+            ynval:
                 The relative value of the weighting end point (highest value of
                 blend coord) for choosing default linear weights. This must be a
                 positive float or 0.
                 Note that if blending over forecast reference time, ynval >= y0val
                 would normally be expected (to give greater weight to the more
                 recent forecast).
-            cval (float):
+            cval:
                 Factor used to determine how skewed the non-linear weights will be.
                 A value of 1 implies equal weighting.
-            inverse_ordering (bool):
+            inverse_ordering:
                 Option to invert weighting order for non-linear weights plugin
                 so that higher blend coordinate values get higher weights (eg
                 if cycle blending over forecast reference time).
@@ -130,18 +132,17 @@ class WeightAndBlend(PostProcessingPlugin):
                 )
             )
 
-    def _calculate_blending_weights(self, cube):
+    def _calculate_blending_weights(self, cube: Cube) -> Cube:
         """
         Wrapper for plugins to calculate blending weights by the appropriate
         method.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube of input data to be blended
 
         Returns:
-            iris.cube.Cube:
-                Cube containing 1D array of weights for blending
+            Cube containing 1D array of weights for blending
         """
         if self.wts_calc_method == "dict":
             if "model" in self.blend_coord:
@@ -165,22 +166,23 @@ class WeightAndBlend(PostProcessingPlugin):
 
         return weights
 
-    def _update_spatial_weights(self, cube, weights, fuzzy_length):
+    def _update_spatial_weights(
+        self, cube: Cube, weights: Cube, fuzzy_length: float
+    ) -> Cube:
         """
         Update weights using spatial information
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube of input data to be blended
-            weights (iris.cube.Cube):
+            weights:
                 Initial 1D cube of weights scaled by self.weighting_coord
-            fuzzy_length (float):
+            fuzzy_length:
                 Distance (in metres) over which to smooth weights at domain
                 boundaries
 
         Returns:
-            iris.cube.Cube:
-                Updated 3D cube of spatially-varying weights
+            Updated 3D cube of spatially-varying weights
         """
         check_if_grid_is_equal_area(cube)
         grid_cells = distance_to_number_of_grid_cells(
@@ -192,22 +194,21 @@ class WeightAndBlend(PostProcessingPlugin):
         weights = plugin(cube, weights)
         return weights
 
-    def _remove_zero_weighted_slices(self, cube, weights):
+    def _remove_zero_weighted_slices(
+        self, cube: Cube, weights: Cube
+    ) -> Tuple[Cube, Cube]:
         """Removes any cube and weights slices where the 1D weighting factor
         is zero
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The data cube to be blended
-            weights (iris.cube.Cube):
+            weights:
                 1D cube of weights varying along self.blend_coord
 
         Returns:
-            (tuple): tuple containing:
-                **cube** (iris.cube.Cube):
-                    Data cube without zero-weighted slices
-                **weights** (iris.cube.Cube):
-                    Weights without zeroes
+            - Data cube without zero-weighted slices
+            - Weights without zeroes
         """
         slice_out_vals = []
         for wslice in weights.slices_over(self.blend_coord):
@@ -226,30 +227,30 @@ class WeightAndBlend(PostProcessingPlugin):
 
     def process(
         self,
-        cubelist,
-        cycletime=None,
-        model_id_attr=None,
-        spatial_weights=False,
-        fuzzy_length=20000,
-        attributes_dict=None,
-    ):
+        cubelist: Union[List[Cube], CubeList],
+        cycletime: Optional[str] = None,
+        model_id_attr: Optional[str] = None,
+        spatial_weights: bool = False,
+        fuzzy_length: float = 20000,
+        attributes_dict: Optional[Dict[str, str]] = None,
+    ) -> Cube:
         """
         Merge a cubelist, calculate appropriate blend weights and compute the
         weighted mean. Returns a single cube collapsed over the dimension
         given by self.blend_coord.
 
         Args:
-            cubelist (iris.cube.CubeList):
+            cubelist:
                 List of cubes to be merged and blended
-            cycletime (str):
+            cycletime:
                 The forecast reference time to be used after blending has been
                 applied, in the format YYYYMMDDTHHMMZ. If not provided, the
                 blended file takes the latest available forecast reference time
                 from the input datasets supplied.
-            model_id_attr (str):
+            model_id_attr:
                 The name of the dataset attribute to be used to identify the source
                 model when blending data from different models.
-            spatial_weights (bool):
+            spatial_weights:
                 If True, this option will result in the generation of spatially
                 varying weights based on the masks of the data we are blending.
                 The one dimensional weights are first calculated using the chosen
@@ -257,7 +258,7 @@ class WeightAndBlend(PostProcessingPlugin):
                 spatially based on where there is masked data in the data we are
                 blending. The spatial weights are calculated using the
                 SpatiallyVaryingWeightsFromMask plugin.
-            fuzzy_length (float):
+            fuzzy_length:
                 When calculating spatially varying weights we can smooth the
                 weights so that areas close to areas that are masked have lower
                 weights than those further away. This fuzzy length controls the
@@ -267,12 +268,11 @@ class WeightAndBlend(PostProcessingPlugin):
                 integer. Assumes the grid spacing is the same in the x and y
                 directions and raises an error if this is not true. See
                 SpatiallyVaryingWeightsFromMask for more details.
-            attributes_dict (dict or None):
+            attributes_dict:
                 Dictionary describing required changes to attributes after blending
 
         Returns:
-            iris.cube.Cube:
-                Cube of blended data.
+            Cube of blended data.
 
         Warns:
             UserWarning: If blending masked data without spatial weights.

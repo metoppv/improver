@@ -31,11 +31,14 @@
 """Module for generating the weights for topographic zones."""
 
 import warnings
+from typing import Dict, List, Optional
 
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import Cube
 from iris.exceptions import InvalidCubeError
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.generate_ancillaries.generate_ancillary import (
@@ -51,32 +54,34 @@ class GenerateTopographicZoneWeights(BasePlugin):
 
     @staticmethod
     def add_weight_to_upper_adjacent_band(
-        topographic_zone_weights, orography_band, midpoint, band_number, max_band_number
-    ):
+        topographic_zone_weights: ndarray,
+        orography_band: ndarray,
+        midpoint: float,
+        band_number: float,
+        max_band_number: float,
+    ) -> ndarray:
         """Once we have found the weight for a point in one band,
         we need to add 1-weight to the band above for points that are above
         the midpoint, unless the band being processed is the uppermost band.
 
         Args:
-            topographic_zone_weights (numpy.ndarray):
+            topographic_zone_weights:
                 Weights that we have already calculated for the points
                 within the orography band.
-            orography_band (numpy.ndarray):
+            orography_band:
                 All points within the orography band of interest.
-            midpoint (float):
+            midpoint:
                 The midpoint of the band the point is in.
-            band_number (float):
+            band_number:
                 The index that corresponds to the band that is currently being
                 processed.
-            max_band_number (float):
+            max_band_number:
                 The highest index for the bands coordinate in the weights.
 
         Returns:
-            numpy.ndarray:
-                Weights that we have already calculated for the points within
-                the orography band that has been updated to account for the
-                upper adjacent band.
-
+            Weights that we have already calculated for the points within
+            the orography band that has been updated to account for the
+            upper adjacent band.
         """
         weights = topographic_zone_weights[band_number]
 
@@ -95,30 +100,31 @@ class GenerateTopographicZoneWeights(BasePlugin):
 
     @staticmethod
     def add_weight_to_lower_adjacent_band(
-        topographic_zone_weights, orography_band, midpoint, band_number
-    ):
+        topographic_zone_weights: ndarray,
+        orography_band: ndarray,
+        midpoint: float,
+        band_number: float,
+    ) -> ndarray:
         """Once we have found the weight for a point in one band,
         we need to add 1-weight to the band below for points that are below
         the midpoint, unless the band being processed is the lowest band.
 
         Args:
-            topographic_zone_weights (numpy.ndarray):
+            topographic_zone_weights:
                 Weights that we have already calculated for the points
                 within the orography band.
-            orography_band (numpy.ndarray):
+            orography_band:
                 All points within the orography band of interest.
-            midpoint (float):
+            midpoint:
                 The midpoint of the band the point is in.
-            band_number (float):
+            band_number:
                 The index that corresponds to the band that is currently being
                 processed.
 
         Returns:
-            numpy.ndarray:
-                Topographic zone array containing the weights that we have
-                already calculated for the points within the orography band
-                that has been updated to account for the lower adjacent band.
-
+            Topographic zone array containing the weights that we have
+            already calculated for the points within the orography band
+            that has been updated to account for the lower adjacent band.
         """
         weights = topographic_zone_weights[band_number]
 
@@ -136,24 +142,23 @@ class GenerateTopographicZoneWeights(BasePlugin):
         return topographic_zone_weights
 
     @staticmethod
-    def calculate_weights(points, band):
+    def calculate_weights(points: ndarray, band: List[float]) -> ndarray:
         """Calculate weights where the weight at the midpoint of a band is 1.0
         and the weights at the edge of the band is 0.5. The midpoint is
         assumed to be in the middle of the band.
 
         Args:
-            points (numpy.ndarray):
+            points:
                 The points at which to find the weights.
                 e.g. np.array([125]) or np.array([125, 140]).
-            band (list):
+            band:
                 The band to be used for determining the weight that the
                 selected points should have within the band
                 e.g. [100., 200.].
 
         Returns:
-            numpy.ndarray:
-                The weights generated to indicate the contribution of each
-                point to a band.
+            The weights generated to indicate the contribution of each
+            point to a band.
         """
         weights = np.array([0.5, 1.0, 0.5], np.float32)
         midpoint = np.mean(band)
@@ -163,25 +168,30 @@ class GenerateTopographicZoneWeights(BasePlugin):
         )
         return interpolated_weights
 
-    def process(self, orography, thresholds_dict, landmask=None):
+    def process(
+        self,
+        orography: Cube,
+        thresholds_dict: Dict[str, List[float]],
+        landmask: Optional[Cube] = None,
+    ) -> Cube:
         """Calculate the weights depending upon where the orography point is
         within the topographic zones.
 
         Args:
-            orography (iris.cube.Cube):
+            orography:
                 Orography on standard grid.
-            thresholds_dict (dict):
+            thresholds_dict:
                 Definition of orography bands required.
                 The expected format of the dictionary is e.g.
                 `{'bounds': [[0, 50], [50, 200]], 'units': 'm'}`
-            landmask (iris.cube.Cube):
+            landmask:
                 Land mask on standard grid, with land points set to one and
                 sea points set to zero. If provided sea points are masked
                 out in the output array.
+
         Returns:
-            iris.cube.Cube:
-                Cube containing the weights depending upon where the orography
-                point is within the topographic zones.
+            Cube containing the weights depending upon where the orography
+            point is within the topographic zones.
         """
         # Check that orography is a 2d cube.
         if len(orography.shape) != 2:

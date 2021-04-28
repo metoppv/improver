@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing weather symbol decision tree for Global data"""
 
+from typing import Any, Dict
+
 from improver.wxcode import (
     CLOUD_PROB_ABOVE,
     CONVECTION_PROB_ABOVE,
@@ -45,7 +47,7 @@ from improver.wxcode import (
 START_NODE_GLOBAL = "heavy_precipitation"
 
 
-def wxcode_decision_tree_global():
+def wxcode_decision_tree_global() -> Dict[str, Dict[str, Any]]:
     """
     Define queries that comprise the weather symbol decision tree.
     Each query contains the following elements:
@@ -75,9 +77,8 @@ def wxcode_decision_tree_global():
               the thresholding is as expected.
 
     Returns:
-        dict:
-            A dictionary containing the queries that comprise the decision
-            tree.
+        A dictionary containing the queries that comprise the decision
+        tree.
     """
     queries = {
         "heavy_precipitation": {
