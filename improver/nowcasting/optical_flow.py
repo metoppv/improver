@@ -122,7 +122,7 @@ def generate_advection_velocities_from_winds(
             Field containing orographic enhancement data valid for both
             input cube times
 
-        Returns:
+    Returns:
         u- and v- advection velocities
     """
     cubes.sort(key=lambda x: x.coord("time").points[0])
@@ -768,7 +768,7 @@ class OpticalFlow(BasePlugin):
 
     @staticmethod
     def _zero_advection_velocities_warning(
-        vel_comp: ndarray, rain_mask: Tuple, zero_vel_threshold: float = 0.1
+        vel_comp: ndarray, rain_mask: Tuple[int, ...], zero_vel_threshold: float = 0.1
     ) -> None:
         """
         Raise warning if more than a fixed threshold (default 10%) of cells

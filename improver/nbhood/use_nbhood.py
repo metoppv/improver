@@ -132,7 +132,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         coord_for_masking: str,
         radii: Union[float, List[float]],
         lead_times: Optional[List[float]] = None,
-        collapse_weights: Cube = None,
+        collapse_weights: Optional[Cube] = None,
         weighted_mode: bool = True,
         sum_or_fraction: str = "fraction",
         re_mask: bool = False,

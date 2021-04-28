@@ -228,7 +228,7 @@ class PystepsExtrapolate(BasePlugin):
         vcube: Cube,
         orographic_enhancement: Cube,
         attributes_dict: Optional[Dict] = None,
-    ) -> Cube:
+    ) -> List[Cube]:
         """
         Extrapolate the initial precipitation field using the velocities
         provided to the required forecast lead times

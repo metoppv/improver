@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing lapse rate calculation plugins."""
 
-from typing import Tuple
+from typing import Tuple, Optional
 
 import iris
 import numpy as np
@@ -340,7 +340,7 @@ class LapseRate(BasePlugin):
         temperature: Cube,
         orography: Cube,
         land_sea_mask: Cube,
-        model_id_attr: str = None,
+        model_id_attr: Optional[str] = None,
     ) -> Cube:
         """Calculates the lapse rate from the temperature and orography cubes.
 

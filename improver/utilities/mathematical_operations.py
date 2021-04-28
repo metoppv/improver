@@ -367,7 +367,7 @@ class Integration(BasePlugin):
 def fast_linear_fit(
     x_data: ndarray,
     y_data: ndarray,
-    axis: Union[int, Tuple[int, ...]] = None,
+    axis: Optional[Union[int, Tuple[int, ...]]] = None,
     keepdims: bool = False,
     gradient_only: bool = False,
     with_nan: bool = False,

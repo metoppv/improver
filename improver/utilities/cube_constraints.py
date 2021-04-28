@@ -31,14 +31,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for helping to create Iris constraints."""
 
-from typing import List, Tuple
+from typing import List
 
 import iris
 from iris import Constraint
 
 
 def create_sorted_lambda_constraint(
-    coord_name: str, values: List[Tuple[float, float]], tolerance: float = 1.0e-7
+    coord_name: str, values: List[float], tolerance: float = 1.0e-7
 ) -> Constraint:
     """
     Create a lambda constraint for a range. This formulation of specifying

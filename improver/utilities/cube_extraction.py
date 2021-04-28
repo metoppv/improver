@@ -227,7 +227,7 @@ def apply_extraction(
 def extract_subcube(
     cube: Cube,
     constraints: List[str],
-    units: List[str] = None,
+    units: Optional[List[str]] = None,
     use_original_units: bool = True,
 ) -> Optional[Cube]:
     """

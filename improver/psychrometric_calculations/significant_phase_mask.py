@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for calculating the significant phase mask."""
 
+from typing import Optional
+
 import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
@@ -50,7 +52,7 @@ class SignificantPhaseMask(BasePlugin):
     in between.
     """
 
-    def __init__(self, model_id_attr: str = None) -> None:
+    def __init__(self, model_id_attr: Optional[str] = None) -> None:
         """
         Initialise the class
 

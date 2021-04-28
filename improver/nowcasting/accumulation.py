@@ -117,7 +117,7 @@ class Accumulation(BasePlugin):
         """Check the inputs prior to calculating the accumulations.
 
         Args:
-            cubes: iris.cube.CubeList
+            cubes:
                 Cube list of precipitation rates that will be checked for their
                 appropriateness in calculating the requested accumulations.
                 The timesteps between the cubes in this cubelist are

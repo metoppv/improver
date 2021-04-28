@@ -653,7 +653,7 @@ class RoughnessCorrection(PostProcessingPlugin):
         modoro_cube: Cube,
         modres: float,
         z0_cube: Cube = None,
-        height_levels_cube: Cube = None,
+        height_levels_cube: Optional[Cube] = None,
     ) -> None:
         """Initialise the RoughnessCorrection instance.
 

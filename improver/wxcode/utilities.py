@@ -234,7 +234,7 @@ def get_parameter_names(diagnostic_fields: List[List[str]]) -> List[List[str]]:
         diagnostic_fields:
 
     Returns:
-        list of lists of str
+        The parameter names
     """
     parameter_names = []
     for condition in diagnostic_fields:

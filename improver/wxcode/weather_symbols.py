@@ -391,7 +391,7 @@ class WeatherSymbols(BasePlugin):
         start: str,
         end: int,
         omit_nodes: Optional[Dict] = None,
-        route: List[str] = None,
+        route: Optional[List[str]] = None,
     ) -> List[str]:
         """
         Function to trace all routes through the decision tree.
@@ -405,7 +405,7 @@ class WeatherSymbols(BasePlugin):
                 heavy_precipitation).
             end:
                 The weather symbol code to which we are tracing all routes.
-            omit_nodes (dict) or None:
+            omit_nodes:
                 A dictionary of (keyword) nodes names where the diagnostic
                 data is missing and (values) node associated with
                 diagnostic_missing_action.

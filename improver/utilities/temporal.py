@@ -159,7 +159,9 @@ def datetime_to_iris_time(dt_in: datetime) -> float:
     return np.int64(result)
 
 
-def datetime_constraint(time_in: datetime, time_max: datetime = None) -> Constraint:
+def datetime_constraint(
+    time_in: datetime, time_max: Optional[datetime] = None
+) -> Constraint:
     """
     Constructs an iris equivalence constraint from a python datetime object.
 

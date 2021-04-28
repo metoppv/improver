@@ -69,7 +69,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
 
     def __init__(
         self,
-        neighbourhood_method,
+        neighbourhood_method: Union[CircularNeighbourhood, SquareNeighbourhood],
         radii: Union[float, List[float]],
         lead_times: Optional[List] = None,
     ) -> None:
@@ -107,7 +107,9 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
                 )
                 raise ValueError(msg)
 
-    def _find_radii(self, cube_lead_times: ndarray = None) -> Union[float, ndarray]:
+    def _find_radii(
+        self, cube_lead_times: Optional[ndarray] = None
+    ) -> Union[float, ndarray]:
         """Revise radius or radii for found lead times.
         If cube_lead_times is None, no automatic adjustment
         of the radii will take place.

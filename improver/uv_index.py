@@ -31,6 +31,8 @@
 """Module for calculating the uv index using radiation flux in UV downward
 at surface and radiation flux in UV upward at the surface."""
 
+from typing import Optional
+
 from iris.cube import Cube
 
 from improver.metadata.utilities import (
@@ -43,7 +45,7 @@ def calculate_uv_index(
     uv_upward: Cube,
     uv_downward: Cube,
     scale_factor: float = 3.6,
-    model_id_attr: str = None,
+    model_id_attr: Optional[str] = None,
 ) -> Cube:
     """
     A plugin to calculate the uv index using radiation flux in UV downward

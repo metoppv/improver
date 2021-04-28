@@ -96,7 +96,7 @@ def apply_double_scaling(
     scaled_cube: Cube,
     data_vals: Tuple[float, float, float],
     scaling_vals: Tuple[float, float, float],
-    combine_function: Callable = np.minimum,
+    combine_function: Callable[[ndarray, ndarray], ndarray] = np.minimum,
 ) -> ndarray:
     """
     From data_cube, an array of limiting values is created based on a linear

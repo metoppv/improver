@@ -32,7 +32,7 @@
 
 import hashlib
 import pprint
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Type, Union
 
 import dask.array as da
 import iris
@@ -54,9 +54,9 @@ def create_new_diagnostic_cube(
     units: Union[Unit, str],
     template_cube: Cube,
     mandatory_attributes: Union[Dict[str, str], LimitedAttributeDict],
-    optional_attributes: Optional[Any] = None,
-    data: Union[MaskedArray, ndarray] = None,
-    dtype: type = np.float32,
+    optional_attributes: Optional[Union[Dict[str, str], LimitedAttributeDict]] = None,
+    data: Optional[Union[MaskedArray, ndarray]] = None,
+    dtype: Type = np.float32,
 ) -> Cube:
     """
     Creates a new diagnostic cube with suitable metadata.

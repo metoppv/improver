@@ -35,7 +35,7 @@ including coordinate order expected by IMPROVER plugins.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 import iris
 import numpy as np
@@ -559,7 +559,7 @@ def add_coordinate(
     coord_points: List,
     coord_name: str,
     coord_units: Optional[str] = None,
-    dtype: type = np.float32,
+    dtype: Type = np.float32,
     order: Optional[List[int]] = None,
     is_datetime: bool = False,
     attributes: Optional[Dict[str, Any]] = None,

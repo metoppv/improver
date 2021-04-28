@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to apply a recursive filter to neighbourhooded data."""
 import warnings
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import iris
 import numpy as np
@@ -328,7 +328,7 @@ class RecursiveFilter(PostProcessingPlugin):
     @staticmethod
     def _update_coefficients_from_mask(
         coeffs_x: Cube, coeffs_y: Cube, mask: Cube
-    ) -> Cube:
+    ) -> Tuple[Cube, Cube]:
         """
         Zero all smoothing coefficients for data points that are masked
 

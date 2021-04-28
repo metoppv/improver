@@ -118,7 +118,7 @@ class StandardiseMetadata(BasePlugin):
         cube to auxiliary coordinates.
 
         Args:
-            The cube
+            cube: The cube
 
         Returns:
             The collapsed cube

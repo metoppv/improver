@@ -179,7 +179,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
     """
 
     @staticmethod
-    def _update_metadata(diff_cube: Cube, coord_name: str, cube_name: str):
+    def _update_metadata(diff_cube: Cube, coord_name: str, cube_name: str) -> None:
         """Rename cube, add attribute and cell method to describe difference.
 
         Args:

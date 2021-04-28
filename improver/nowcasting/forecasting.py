@@ -64,7 +64,9 @@ class AdvectField(BasePlugin):
     dimensions
     """
 
-    def __init__(self, vel_x: Cube, vel_y: Cube, attributes_dict: Dict = None) -> None:
+    def __init__(
+        self, vel_x: Cube, vel_y: Cube, attributes_dict: Optional[Dict] = None
+    ) -> None:
         """
         Initialises the plugin.  Velocities are expected to be on a regular
         grid (such that grid spacing in metres is the same at all points in
@@ -167,7 +169,7 @@ class AdvectField(BasePlugin):
         grid_vel_x: ndarray,
         grid_vel_y: ndarray,
         timestep: int,
-    ) -> Union[ndarray, MaskedArray]:
+    ) -> MaskedArray:
         """
         Performs a dimensionless grid-based extrapolation of spatial data
         using advection velocities via a backwards method.  Points where data

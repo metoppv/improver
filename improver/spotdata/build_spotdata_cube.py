@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Functions to create spotdata cubes."""
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
@@ -46,7 +46,7 @@ def build_spotdata_cube(
     altitude: ndarray,
     latitude: ndarray,
     longitude: ndarray,
-    wmo_id: List[str],
+    wmo_id: Union[str, List[str]],
     scalar_coords: Optional[List[AuxCoord]] = None,
     neighbour_methods: Optional[List[str]] = None,
     grid_attributes: Optional[List[str]] = None,

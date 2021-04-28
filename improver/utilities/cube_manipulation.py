@@ -123,7 +123,9 @@ def get_coord_names(cube: Cube) -> List[str]:
     return [coord.name() for coord in cube.coords()]
 
 
-def equalise_cube_attributes(cubes: CubeList, silent: List[str] = None) -> None:
+def equalise_cube_attributes(
+    cubes: CubeList, silent: Optional[List[str]] = None
+) -> None:
     """
     Function to remove attributes that do not match between all cubes in the
     list.  Cubes are modified in place.
@@ -158,7 +160,7 @@ def equalise_cube_attributes(cubes: CubeList, silent: List[str] = None) -> None:
                 cube.attributes.pop(attr)
 
 
-def strip_var_names(cubes: CubeList) -> CubeList:
+def strip_var_names(cubes: Union[Cube, CubeList]) -> CubeList:
     """
     Strips var_name from the cube and from all coordinates except where
     required to support probabilistic metadata.  Inputs are modified in place.

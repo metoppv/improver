@@ -32,7 +32,7 @@
 
 import os
 import warnings
-from typing import Union
+from typing import Optional, Union
 
 import cf_units
 import iris
@@ -80,7 +80,7 @@ def save_netcdf(
     cubelist: Union[Cube, CubeList],
     filename: str,
     compression_level: int = 1,
-    least_significant_digit: int = None,
+    least_significant_digit: Optional[int] = None,
 ) -> None:
     """Save the input Cube or CubeList as a NetCDF file and check metadata
     where required for integrity.
