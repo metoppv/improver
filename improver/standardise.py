@@ -35,7 +35,9 @@ from typing import Any, Dict, List, Optional
 
 import iris
 import numpy as np
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from numpy import dtype, ndarray
 
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes

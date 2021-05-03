@@ -34,7 +34,8 @@ Nearest neighbour interpolation functions
 
 import numpy as np
 
-from improver.regrid.idw import nearest_input_pts, similar_surface_classify
+from improver.regrid.grid import similar_surface_classify
+from improver.regrid.idw import nearest_input_pts
 
 
 def nearest_with_mask_regrid(

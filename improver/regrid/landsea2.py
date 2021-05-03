@@ -49,11 +49,11 @@ from improver.regrid.grid import (
     create_regrid_cube,
     flatten_spatial_dimensions,
     latlon_from_cube,
+    similar_surface_classify,
     slice_cube_by_domain,
     slice_mask_cube_by_domain,
     unflatten_spatial_dimensions,
 )
-from improver.regrid.idw import similar_surface_classify
 from improver.regrid.nearest import nearest_regrid, nearest_with_mask_regrid
 
 NEAREST = "nearest"
@@ -82,6 +82,15 @@ class RegridWithLandSeaMask(BasePlugin):
     def __init__(self, regrid_mode="bilinear-2", vicinity_radius=25000.0):
         """
         Initialise class
+        
+        Args:
+            regrid_mode (str):
+                Mode of interpolation in regridding.  Valid options are "bilinear-2",
+                "nearest-2","nearest-with-mask-2" and "bilinear-with-mask-2".  
+                The last two options trigger adjustment of regridded points to match
+                source points in terms of land / sea type.              
+            vicinity_radius (float):
+                Radius of vicinity to search for a coastline, in metres
         """
         self.regrid_mode = regrid_mode
         self.vicinity = vicinity_radius
@@ -200,6 +209,7 @@ class RegridWithLandSeaMask(BasePlugin):
                     in_lons_size,
                     self.vicinity,
                 )
+
             # apply bilinear rule
             output_flat = apply_weights(indexes, in_values, weights)
 

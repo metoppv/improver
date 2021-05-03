@@ -34,11 +34,8 @@ Bilinear interpolation functions
 
 import numpy as np
 
-from improver.regrid.idw import (
-    inverse_distance_weighting,
-    nearest_input_pts,
-    similar_surface_classify,
-)
+from improver.regrid.grid import similar_surface_classify
+from improver.regrid.idw import inverse_distance_weighting, nearest_input_pts
 
 OPTIMUM_IDW_POWER = 1.80
 NUM_NEIGHBOURS = 4
@@ -103,6 +100,94 @@ def basic_indexes(out_latlons, in_latlons, in_lons_size):
     # Rearrange order to match expected output style
     # note: lat (X) but ordering  (lat0, lon0)(lat0,lon1)....(lat0,lon_last),(lat1,lon0),
     indexes = np.transpose([index0, index1, index2, index3])
+
+    # if identical max latitude and/or longitude between source/target grids,index algorithm
+    # needs change at relevant boundary
+    lat_max_in, lon_max_in = in_latlons.max(axis=0)
+    lat_max_out, lon_max_out = out_latlons.max(axis=0)
+    lat_max_equal = np.isclose(lat_max_in, lat_max_out)
+    lon_max_equal = np.isclose(lon_max_in, lon_max_out)
+    if lat_max_equal or lon_max_equal:
+        adjust_boundary_indexes(
+            in_lons_size,
+            lat_max_equal,
+            lon_max_equal,
+            lat_max_in,
+            lon_max_in,
+            out_latlons,
+            indexes,
+        )
+
+    return indexes
+
+
+def adjust_boundary_indexes(
+    in_lons_size,
+    lat_max_equal,
+    lon_max_equal,
+    lat_max_in,
+    lon_max_in,
+    out_latlons,
+    indexes,
+):
+    """
+    adjust surrounding source point indexes for boundary target points
+    it is required when maximum latitude and logitude are identical between
+    source and target grids
+
+    Args:
+        in_lons_size (int):
+            source grid's longitude dimension
+        lat_max_equal(bool):
+            whether maximum latitude is identical between source/targin grids
+        lon_max_equal(bool):
+            whether maximum longitude is identical between source/targin grids
+        lat_max_in(float32):
+            input grid's maximum latitude
+        lon_max_in(float32):
+            input grid's maximum longtitude
+        out_latlons(numpy.ndarray):
+            target points's latitude-longitudes          
+        indexes(numpy.ndarray):
+            Updated array of source grid point number for all target grid points          
+    Returns:
+        numpy.ndarray:
+            Updated array of source grid point number for all target grid points
+    """
+    # find a list of target points with its latitude
+    if lat_max_equal:
+        point_lat_max = np.where(np.isclose(out_latlons[:, 0], lat_max_in))[0]
+    if lon_max_equal:
+        point_lon_max = np.where(np.isclose(out_latlons[:, 1], lon_max_in))[0]
+
+    if lon_max_equal and lat_max_equal:
+        point_lat_lon_max_index = np.where(
+            np.isclose(out_latlons[point_lat_max, 1], lon_max_in)
+        )[0]
+        point_lat_lon_max = point_lat_max[point_lat_lon_max_index[0]]
+        point_lat_max = np.delete(
+            point_lat_max, np.where(point_lat_max == point_lat_lon_max)[0]
+        )
+        point_lon_max = np.delete(
+            point_lon_max, np.where(point_lon_max == point_lat_lon_max)[0]
+        )
+        indexes[point_lat_lon_max, 2] = indexes[point_lat_lon_max, 0]
+        indexes[point_lat_lon_max, 1] = indexes[point_lat_lon_max, 2] - 1
+        indexes[point_lat_lon_max, 0] = indexes[point_lat_lon_max, 1] - in_lons_size
+        indexes[point_lat_lon_max, 3] = indexes[point_lat_lon_max, 0] + 1
+
+    if lat_max_equal:
+        indexes[point_lat_max, 1] = indexes[point_lat_max, 0]
+        indexes[point_lat_max, 2] = indexes[point_lat_max, 1] + 1
+        indexes[point_lat_max, 0] = indexes[point_lat_max, 1] - in_lons_size
+        indexes[point_lat_max, 3] = indexes[point_lat_max, 0] + 1
+
+    if lon_max_equal:
+        indexes[point_lon_max, 0] = indexes[point_lon_max, 0] - 1
+        indexes[point_lon_max, 1] = indexes[point_lon_max, 1] - 1
+        indexes[point_lon_max, 2] = indexes[point_lon_max, 1] + 1
+        indexes[point_lon_max, 3] = indexes[point_lon_max, 0] + 1
+
     return indexes
 
 
@@ -171,16 +256,16 @@ def adjust_for_surface_mismatch(
             source points's latitude-longitudes
         out_latlons(numpy.ndarray):
             target points's latitude-longitudes
-        surface_type_mask(numpy.ndarray)):
-            numpy ndarray of bool, true if source point type matches target point type
-        indexes(numpy.ndarray):
-            array of source grid point number for all target grid points
-        weights(numpy.ndarray):
-            array of source grid point weighting for all target grid points
         in_classified(numpy.ndarray):
             land_sea type for source grid points (land =>True)
         out_classified(numpy.ndarray):
             land_sea type for terget grid points (land =>True)
+        weights(numpy.ndarray):
+            array of source grid point weighting for all target grid points
+        indexes(numpy.ndarray):
+            array of source grid point number for all target grid points
+        surface_type_mask(numpy.ndarray)):
+            numpy ndarray of bool, true if source point type matches target point type
         in_lons_size (int):
             longitude dimension in cube_in
         vicinity (float32):
@@ -195,8 +280,6 @@ def adjust_for_surface_mismatch(
 
     # Initialise weights to zero at locations with mismatched surface types
     mismatched_surface_type = np.where(np.logical_not(surface_type_mask))
-    # this would be safer with a copy to avoid values unexpectedly changing without
-    # the calling function realising. eg make a copy, update the copy, return the copy
     weights[mismatched_surface_type] = 0.0
 
     # Cases with one mismatched input point by adjusting bilinear weights

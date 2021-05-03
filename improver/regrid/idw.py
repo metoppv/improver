@@ -35,6 +35,8 @@ Inverse distance weighting interpolation functions
 import numpy as np
 from scipy.spatial.ckdtree import cKDTree as KDTree
 
+from improver.regrid.grid import similar_surface_classify
+
 # WGS84: The World Geodetic System 1984
 WGS84_A = 6378137.0
 WGS84_IF = 298.257223563
@@ -183,36 +185,3 @@ def ecef_coords(lats, lons, alts=np.array(0.0)):
     y = (n + alts) * clats * slons
     z = (n * (1.0 - (WGS84_E * WGS84_E)) + alts) * slats
     return x, y, z
-
-
-def similar_surface_classify(in_is_land, out_is_land, nearest_in_indexes):
-    """
-    Classify surface types as matched (True) or unmatched(False) between target points
-    and their source point
-
-    Args:
-        in_is_land (numpy.ndarray):
-            source point classifications (N)
-        out_is_land (numpy.ndarray):
-            target point classifications (M)
-        nearest_in_indexes (numpy.ndarray)
-            indexes of input points nearby output points (M x K)
-
-    Return:
-        numpy.ndarray:
-            Boolean true if input surface type matches output or no matches (M x K)
-    """
-    k = nearest_in_indexes.shape[1]
-    out_is_land_bcast = np.broadcast_to(
-        out_is_land, (k, out_is_land.shape[0])
-    ).transpose()  # dimensions M x K
-
-    # classify the input points surrounding each output point
-    nearest_is_land = in_is_land[nearest_in_indexes]  # dimensions M x K
-
-    # these input points surrounding output points have the same surface type
-    nearest_same_type = np.logical_not(
-        np.logical_xor(nearest_is_land, out_is_land_bcast)
-    )  # dimensions M x K
-
-    return nearest_same_type

@@ -284,6 +284,39 @@ def classify_input_surface_type(cube_in_mask, classify_latlons):
     return is_land
 
 
+def similar_surface_classify(in_is_land, out_is_land, nearest_in_indexes):
+    """
+    Classify surface types as matched (True) or unmatched(False) between target points
+    and their source point
+
+    Args:
+        in_is_land (numpy.ndarray):
+            source point classifications (N)
+        out_is_land (numpy.ndarray):
+            target point classifications (M)
+        nearest_in_indexes (numpy.ndarray)
+            indexes of input points nearby output points (M x K)
+
+    Return:
+        numpy.ndarray:
+            Boolean true if input surface type matches output or no matches (M x K)
+    """
+    k = nearest_in_indexes.shape[1]
+    out_is_land_bcast = np.broadcast_to(
+        out_is_land, (k, out_is_land.shape[0])
+    ).transpose()  # dimensions M x K
+
+    # classify the input points surrounding each output point
+    nearest_is_land = in_is_land[nearest_in_indexes]  # dimensions M x K
+
+    # these input points surrounding output points have the same surface type
+    nearest_same_type = np.logical_not(
+        np.logical_xor(nearest_is_land, out_is_land_bcast)
+    )  # dimensions M x K
+
+    return nearest_same_type
+
+
 def slice_cube_by_domain(cube_in, output_domain):
     """
     extract cube domain to be consistent as cube_reference's domain
