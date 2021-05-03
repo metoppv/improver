@@ -31,8 +31,13 @@
 
 """Spot data extraction from diagnostic fields using neighbour cubes."""
 
+from typing import List, Optional, Union
+
 import iris
 import numpy as np
+from iris.coords import AuxCoord, DimCoord
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -49,10 +54,10 @@ class SpotExtraction(BasePlugin):
     data.
     """
 
-    def __init__(self, neighbour_selection_method="nearest"):
+    def __init__(self, neighbour_selection_method: str = "nearest") -> None:
         """
         Args:
-            neighbour_selection_method (str):
+            neighbour_selection_method:
                 The neighbour cube may contain one or several sets of grid
                 coordinates that match a spot site. These are determined by
                 the neighbour finding method employed. This keyword is used to
@@ -60,28 +65,29 @@ class SpotExtraction(BasePlugin):
         """
         self.neighbour_selection_method = neighbour_selection_method
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return "<SpotExtraction: neighbour_selection_method: {}>".format(
             self.neighbour_selection_method
         )
 
-    def extract_coordinates(self, neighbour_cube):
+    def extract_coordinates(self, neighbour_cube: Cube) -> Cube:
         """
         Extract the desired set of grid coordinates that correspond to spot
         sites from the neighbour cube.
 
         Args:
-            neighbour_cube (iris.cube.Cube):
+            neighbour_cube:
                 A cube containing information about the spot data sites and
                 their grid point neighbours.
+
         Returns:
-            iris.cube.Cube:
-                A cube containing only the x and y grid coordinates for the
-                grid point neighbours given the chosen neighbour selection
-                method. The neighbour cube contains the indices stored as
-                floating point values, so they are converted to integers
-                in this cube.
+            A cube containing only the x and y grid coordinates for the
+            grid point neighbours given the chosen neighbour selection
+            method. The neighbour cube contains the indices stored as
+            floating point values, so they are converted to integers
+            in this cube.
+
         Raises:
             ValueError if the neighbour_selection_method expected is not found
             in the neighbour cube.
@@ -106,7 +112,9 @@ class SpotExtraction(BasePlugin):
         )
 
     @staticmethod
-    def extract_diagnostic_data(coordinate_cube, diagnostic_cube):
+    def extract_diagnostic_data(
+        coordinate_cube: Cube, diagnostic_cube: Cube
+    ) -> ndarray:
         """
         Extracts diagnostic data from the desired grid points in the diagnostic
         cube. The neighbour finding routine that produces the coordinate cube
@@ -114,15 +122,15 @@ class SpotExtraction(BasePlugin):
         before the indices are used to extract data.
 
         Args:
-            coordinate_cube (iris.cube.Cube):
+            coordinate_cube:
                 A cube containing the x and y grid coordinates for the grid
                 point neighbours.
-            diagnostic_cube (iris.cube.Cube):
+            diagnostic_cube:
                 A cube of diagnostic data from which spot data is being taken.
+
         Returns:
-            numpy.ndarray:
-                An array of diagnostic values at the grid coordinates found
-                within the coordinate cube.
+            An array of diagnostic values at the grid coordinates found
+            within the coordinate cube.
         """
         enforce_coordinate_ordering(
             diagnostic_cube,
@@ -138,32 +146,34 @@ class SpotExtraction(BasePlugin):
 
     @staticmethod
     def build_diagnostic_cube(
-        neighbour_cube,
-        diagnostic_cube,
-        spot_values,
-        additional_dims=None,
-        scalar_coords=None,
-    ):
+        neighbour_cube: Cube,
+        diagnostic_cube: Cube,
+        spot_values: ndarray,
+        additional_dims: Optional[List[DimCoord]] = None,
+        scalar_coords: Optional[List[AuxCoord]] = None,
+    ) -> Cube:
         """
         Builds a spot data cube containing the extracted diagnostic values.
 
         Args:
-            neighbour_cube (iris.cube.Cube):
+            neighbour_cube:
                 This cube is needed as a source for information about the spot
                 sites which needs to be included in the spot diagnostic cube.
-            diagnostic_cube (iris.cube.Cube):
+            diagnostic_cube:
                 The cube is needed to provide the name and units of the
                 diagnostic that is being processed.
-            spot_values (numpy.ndarray):
+            spot_values:
                 An array containing the diagnostic values extracted for the
                 required spot sites.
-            additional_dims (list):
-                Optional list containing iris.coord.DimCoords with any leading dimensions required before spot data.
-            scalar_coords (list):
-                Optional list containing iris.coord.AuxCoords with all scalar coordinates relevant for the spot sites.
+            additional_dims:
+                Optional list containing iris.coord.DimCoords with any leading
+                dimensions required before spot data.
+            scalar_coords:
+                Optional list containing iris.coord.AuxCoords with all scalar coordinates
+                relevant for the spot sites.
+
         Returns:
-            iris.cube.Cube:
-                A spot data cube containing the extracted diagnostic data.
+            A spot data cube containing the extracted diagnostic data.
         """
 
         neighbour_cube = build_spotdata_cube(
@@ -179,7 +189,12 @@ class SpotExtraction(BasePlugin):
         )
         return neighbour_cube
 
-    def process(self, neighbour_cube, diagnostic_cube, new_title=None):
+    def process(
+        self,
+        neighbour_cube: Cube,
+        diagnostic_cube: Cube,
+        new_title: Optional[str] = None,
+    ) -> Cube:
         """
         Create a spot data cube containing diagnostic data extracted at the
         coordinates provided by the neighbour cube.
@@ -189,20 +204,20 @@ class SpotExtraction(BasePlugin):
            spot_extraction_examples.rst
 
         Args:
-            neighbour_cube (iris.cube.Cube):
+            neighbour_cube:
                 A cube containing information about the spot data sites and
                 their grid point neighbours.
-            diagnostic_cube (iris.cube.Cube):
+            diagnostic_cube:
                 A cube of diagnostic data from which spot data is being taken.
-            new_title (str or None):
+            new_title:
                 New title for spot-extracted data.  If None, this attribute is
                 reset to a default value, since it has no prescribed standard
                 and may therefore contain grid information that is no longer
                 correct after spot-extraction.
+
         Returns:
-            iris.cube.Cube:
-                A cube containing diagnostic data for each spot site, as well
-                as information about the sites themselves.
+            A cube containing diagnostic data for each spot site, as well
+            as information about the sites themselves.
         """
         # Check we are using a matched neighbour/diagnostic cube pair
         check_grid_match([neighbour_cube, diagnostic_cube])
@@ -244,7 +259,7 @@ class SpotExtraction(BasePlugin):
         return spotdata_cube
 
 
-def check_grid_match(cubes):
+def check_grid_match(cubes: Union[List[Cube], CubeList]) -> None:
     """
     Checks that cubes are on, or originate from, compatible coordinate grids.
     Each cube is first checked for an existing 'model_grid_hash' which can be
@@ -254,8 +269,9 @@ def check_grid_match(cubes):
     exception is raised to prevent the use of unmatched cubes.
 
     Args:
-        cubes (list of iris.cube.Cube):
+        cubes:
             A list of cubes to check for grid compatibility.
+
     Raises:
         ValueError: Raised if the cubes are not on matching grids as
                     identified by the model_grid_hash.

@@ -30,7 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for calculating the significant phase mask."""
 
+from typing import Optional
+
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -48,12 +52,12 @@ class SignificantPhaseMask(BasePlugin):
     in between.
     """
 
-    def __init__(self, model_id_attr=None):
+    def __init__(self, model_id_attr: Optional[str] = None) -> None:
         """
         Initialise the class
 
         Args:
-            model_id_attr (str):
+            model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending.
         """
@@ -67,9 +71,12 @@ class SignificantPhaseMask(BasePlugin):
         }
 
     @staticmethod
-    def _validate_snow_fraction(snow_fraction):
+    def _validate_snow_fraction(snow_fraction: Cube) -> None:
         """Ensures that the input snow-fraction field has appropriate name
         (snow_fraction), units (1) and data (between 0 and 1 inclusive).
+
+        Args:
+            snow_fraction
 
         Raises
             ValueError:
@@ -89,15 +96,15 @@ class SignificantPhaseMask(BasePlugin):
                 f"Found max={snow_fraction.data.max()}; min={snow_fraction.data.min()}"
             )
 
-    def _rain_phase(self, snow_fraction_data):
+    def _rain_phase(self, snow_fraction_data: Cube) -> ndarray:
         """Calculates the rain_phase data"""
         return np.where(snow_fraction_data <= self.lower_threshold, 1, 0)
 
-    def _snow_phase(self, snow_fraction_data):
+    def _snow_phase(self, snow_fraction_data: Cube) -> ndarray:
         """Calculates the snow_phase data"""
         return np.where(snow_fraction_data >= self.upper_threshold, 1, 0)
 
-    def _sleet_phase(self, snow_fraction_data):
+    def _sleet_phase(self, snow_fraction_data: Cube) -> ndarray:
         """Calculates the sleet_phase data"""
         return np.where(
             (self.lower_threshold < snow_fraction_data)
@@ -106,21 +113,20 @@ class SignificantPhaseMask(BasePlugin):
             0,
         )
 
-    def process(self, snow_fraction, phase):
+    def process(self, snow_fraction: Cube, phase: str) -> Cube:
         """
         Make significant-phase-mask cube for the specified phase.
 
         Args:
-            snow_fraction (iris.cube.Cube):
+            snow_fraction:
                 The input snow-fraction data to derive the phase mask from.
-            phase (str):
+            phase:
                 One of "rain", "sleet" or "snow". This is the phase mask that will be
                 returned.
 
         Returns:
-            iris.cube.Cube:
-                The requested phase mask containing 1 where that phase is dominant
-                and 0 elsewhere. Dimensions will be identical to snow-fraction.
+            The requested phase mask containing 1 where that phase is dominant
+            and 0 elsewhere. Dimensions will be identical to snow-fraction.
         """
         self._validate_snow_fraction(snow_fraction)
 

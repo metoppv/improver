@@ -30,35 +30,43 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provides support utility for rescaling data."""
 
+from typing import Callable, List, Optional, Tuple, Union
+
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 
-def rescale(data, data_range=None, scale_range=(0.0, 1.0), clip=False):
+def rescale(
+    data: ndarray,
+    data_range: Optional[Union[Tuple[float, float], List[float]]] = None,
+    scale_range: Union[Tuple[float, float], List[float]] = (0.0, 1.0),
+    clip: bool = False,
+) -> ndarray:
     """
     Rescale data array so that data_min => scale_min
     and data_max => scale max.
     All adjustments are linear
 
     Args:
-        data (numpy.ndarray):
+        data:
             Source values
-        data_range (list):
+        data_range:
             List containing two floats
             Lowest and highest source value to rescale.
             Default value of None is converted to [min(data), max(data)]
-        scale_range (list):
+        scale_range:
             List containing two floats
             Lowest and highest value after rescaling.
             Defaults to (0., 1.)
-        clip (bool):
+        clip:
             If True, points where data were outside the scaling range
             will be set to the scale min or max appropriately.
             Default is False which continues the scaling beyond min and
             max.
 
     Returns:
-        numpy.ndarray:
-            Output array of scaled data. Has same shape as data.
+        Output array of scaled data. Has same shape as data.
     """
     data_min = np.min(data) if data_range is None else data_range[0]
     data_max = np.max(data) if data_range is None else data_range[1]
@@ -84,8 +92,12 @@ def rescale(data, data_range=None, scale_range=(0.0, 1.0), clip=False):
 
 
 def apply_double_scaling(
-    data_cube, scaled_cube, data_vals, scaling_vals, combine_function=np.minimum
-):
+    data_cube: Cube,
+    scaled_cube: Cube,
+    data_vals: Tuple[float, float, float],
+    scaling_vals: Tuple[float, float, float],
+    combine_function: Callable[[ndarray, ndarray], ndarray] = np.minimum,
+) -> ndarray:
     """
     From data_cube, an array of limiting values is created based on a linear
     rescaling from three data_vals to three scaling_vals.
@@ -94,25 +106,24 @@ def apply_double_scaling(
     containing either the higher or lower value as needed.
 
     Args:
-        data_cube (iris.cube.Cube):
+        data_cube:
             Data from which to create a rescaled data array
-        scaled_cube (iris.cube.Cube):
+        scaled_cube:
             Data already in the rescaled frame of reference which will be
             combined with the rescaled data_cube using the combine_function.
-        data_vals (tuple of three values):
+        data_vals:
             Lower, mid and upper points to rescale data_cube from
-        scaling_vals (tuple of three values):
+        scaling_vals:
             Lower, mid and upper points to rescale data_cube to
-        combine_function (Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray]):
+        combine_function:
             Function that takes two arrays of the same shape and returns
             one array of the same shape.
             Expected to be numpy.minimum (default) or numpy.maximum.
 
     Returns:
-        numpy.ndarray:
-            Output data from data_cube after rescaling and combining with
-            scaled_cube.
-            This array will have the same dimensions as scaled_cube.
+        Output data from data_cube after rescaling and combining with
+        scaled_cube.
+        This array will have the same dimensions as scaled_cube.
     """
     # Where data are below the specified mid-point (data_vals[1]):
     #  Set rescaled_data to be a rescaled value between the first and mid-point

@@ -27,6 +27,7 @@ dependencies:
   - bandit
   - safety
   - statsmodels
+  - sphinx-autodoc-typehints
   - pip
   - pip:
     - od

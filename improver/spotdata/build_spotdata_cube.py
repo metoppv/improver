@@ -30,24 +30,28 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Functions to create spotdata cubes."""
 
+from typing import List, Optional, Union
+
 import iris
 import numpy as np
 from iris.coords import AuxCoord, DimCoord
+from iris.cube import Cube
+from numpy import ndarray
 
 
 def build_spotdata_cube(
-    data,
-    name,
-    units,
-    altitude,
-    latitude,
-    longitude,
-    wmo_id,
-    scalar_coords=None,
-    neighbour_methods=None,
-    grid_attributes=None,
-    additional_dims=None,
-):
+    data: ndarray,
+    name: str,
+    units: str,
+    altitude: ndarray,
+    latitude: ndarray,
+    longitude: ndarray,
+    wmo_id: Union[str, List[str]],
+    scalar_coords: Optional[List[AuxCoord]] = None,
+    neighbour_methods: Optional[List[str]] = None,
+    grid_attributes: Optional[List[str]] = None,
+    additional_dims: Optional[List[DimCoord]] = None,
+) -> Cube:
     """
     Function to build a spotdata cube with expected dimension and auxiliary
     coordinate structure.
@@ -67,34 +71,33 @@ def build_spotdata_cube(
        build_spotdata_cube_examples.rst
 
     Args:
-        data (float or numpy.ndarray):
+        data:
             Float spot data or array of data points from several sites.
             The spot index should be the last dimension if the array is
             multi-dimensional (see optional additional dimensions below).
-        name (str):
+        name:
             Cube name (eg 'air_temperature')
-        units (str):
+        units:
             Cube units (eg 'K')
-        altitude (float or numpy.ndarray):
+        altitude:
             Float or 1d array of site altitudes in metres
-        latitude (float or numpy.ndarray):
+        latitude:
             Float or 1d array of site latitudes in degrees
-        longitude (float or numpy.ndarray):
+        longitude:
             Float or 1d array of site longitudes in degrees
-        wmo_id (str or list of str):
+        wmo_id:
             String or list of site 5-digit WMO identifiers
-        scalar_coords (list of iris.coords.AuxCoord):
+        scalar_coords:
             Optional list of iris.coords.AuxCoord instances
-        neighbour_methods (list of str):
+        neighbour_methods:
             Optional list of neighbour method names, e.g. 'nearest'
-        grid_attributes (list of str):
+        grid_attributes:
             Optional list of grid attribute names, e.g. x-index, y-index
-        additional_dims (list of iris.coords.DimCoord):
+        additional_dims:
             Optional list of additional dimensions to preceed the spot data dimension.
 
     Returns:
-        iris.cube.Cube:
-            A cube containing the extracted spot data with spot data being the final dimension.
+        A cube containing the extracted spot data with spot data being the final dimension.
     """
 
     # construct auxiliary coordinates

@@ -30,8 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing convection diagnosis utilities."""
 
+from typing import List, Optional, Union
+
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import find_threshold_coordinate
@@ -55,50 +59,50 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
 
     def __init__(
         self,
-        lower_threshold,
-        higher_threshold,
-        neighbourhood_method,
-        radii,
-        fuzzy_factor=None,
-        comparison_operator=">",
-        lead_times=None,
-        weighted_mode=True,
-        use_adjacent_grid_square_differences=True,
-    ):
+        lower_threshold: float,
+        higher_threshold: float,
+        neighbourhood_method: str,
+        radii: Union[float, List[float]],
+        fuzzy_factor: Optional[float] = None,
+        comparison_operator: str = ">",
+        lead_times: Optional[List[float]] = None,
+        weighted_mode: bool = True,
+        use_adjacent_grid_square_differences: bool = True,
+    ) -> None:
         """
         Args:
-            lower_threshold (float):
+            lower_threshold:
                 The threshold point for 'significant' datapoints to define the
                 lower threshold e.g. 0 mm/hr.
-            higher_threshold (float):
+            higher_threshold:
                 The threshold point for 'significant' datapoints to define the
                 higher threshold e.g. 5 mm/hr.
-            neighbourhood_method (str):
+            neighbourhood_method:
                 Name of the neighbourhood method to use. Options: 'circular',
                 'square'.
-            radii (float or list if defining lead times):
+            radii:
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-            fuzzy_factor (float or None):
+            fuzzy_factor:
                 Percentage above or below threshold for fuzzy membership value.
                 If None, no fuzzy_factor is applied.
-            comparison_operator (str):
+            comparison_operator:
                 Indicates the comparison_operator to use with the threshold.
                 e.g. 'ge' or '>=' to evaluate data >= threshold or '<' to
                 evaluate data < threshold. When using fuzzy_factor, there
                 is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
-            lead_times (list):
+            lead_times:
                 List of lead times or forecast periods, at which the radii
                 within radii are defined. The lead times are expected
                 in hours.
-            weighted_mode (bool):
+            weighted_mode:
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
                 If False, use a circle with constant weighting.
-            use_adjacent_grid_square_differences (bool):
+            use_adjacent_grid_square_differences:
                 If True, use the differences between adjacent grid squares
                 to diagnose convective precipitation.
                 If False, use the raw field without calculating differences to
@@ -114,7 +118,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         self.weighted_mode = weighted_mode
         self.use_adjacent_grid_square_differences = use_adjacent_grid_square_differences
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<DiagnoseConvectivePrecipitation: lower_threshold {}; "
@@ -136,7 +140,9 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
             self.use_adjacent_grid_square_differences,
         )
 
-    def _calculate_convective_ratio(self, cubelist, threshold_list):
+    def _calculate_convective_ratio(
+        self, cubelist: CubeList, threshold_list: List[float]
+    ) -> ndarray:
         """
         Calculate the convective ratio by:
 
@@ -156,21 +162,19 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
               were exceeded, such that the convective ratio was 0/0.
 
         Args:
-            cube (iris.cube.CubeList):
+            cube:
                 Cubelist containing cubes from which the convective ratio
                 will be calculated. The cube should have been thresholded,
                 so that values within cube.data are between 0.0 and 1.0.
-            threshold_list (list):
+            threshold_list:
                 The list of thresholds.
 
         Returns:
-            numpy.ndarray:
-                Array of convective ratio.
+            Array of convective ratio.
 
         Raises:
             ValueError: If a value of infinity or a value greater than 1.0
                         are found within the convective ratio.
-
         """
         neighbourhooded_cube_dict = {}
         for cube, threshold in zip(cubelist, threshold_list):
@@ -213,20 +217,19 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         return convective_ratio
 
     @staticmethod
-    def absolute_differences_between_adjacent_grid_squares(cube):
+    def absolute_differences_between_adjacent_grid_squares(cube: Cube) -> CubeList:
         """
         Compute the absolute differences between grid squares and put the
         resulting cubes into a cubelist.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube from which adjacent grid square differences will be
                 calculated.
 
         Returns:
-            iris.cube.CubeList:
-                Cubelist containing cubes with the absolute difference
-                between adjacent grid squares along x and y, respectively.
+            Cubelist containing cubes with the absolute difference
+            between adjacent grid squares along x and y, respectively.
         """
         diff_along_x_cube, diff_along_y_cube = DifferenceBetweenAdjacentGridSquares()(
             cube
@@ -238,19 +241,18 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         cubelist = iris.cube.CubeList([diff_along_x_cube, diff_along_y_cube])
         return cubelist
 
-    def iterate_over_threshold(self, cubelist, threshold):
+    def iterate_over_threshold(self, cubelist: CubeList, threshold: float) -> CubeList:
         """
         Iterate over the application of thresholding to multiple cubes.
 
         Args:
-            cubelist (iris.cube.CubeList):
+            cubelist:
                 Cubelist containing cubes to be thresholded.
-            threshold (float):
+            threshold:
                 The threshold that will be applied.
 
         Returns:
-            iris.cube.CubeList:
-                Cubelist after thresholding each cube.
+            Cubelist after thresholding each cube.
         """
         cubes = iris.cube.CubeList([])
         for cube in cubelist:
@@ -269,7 +271,9 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         return cubes
 
     @staticmethod
-    def sum_differences_between_adjacent_grid_squares(cube, thresholded_cubes):
+    def sum_differences_between_adjacent_grid_squares(
+        cube: Cube, thresholded_cubes: CubeList
+    ) -> Cube:
         """
         Put the differences back onto the original grid by summing together
         the array with offsets. This covers the fact that the difference
@@ -277,18 +281,17 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         input cube.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube with the original grid.
-            thresholded_cubes (iris.cube.CubeList):
+            thresholded_cubes:
                 Cubelist containing differences between adjacent grid squares
                 along x and differences between adjacent grid squares along y,
                 which have been thresholded.
 
         Returns:
-            iris.cube.Cube:
-                Cube on the original grid with the values from the thresholded
-                adjacent grid square difference cubes inserted. The resulting
-                values have been restricted to be between 0 and 1.
+            Cube on the original grid with the values from the thresholded
+            adjacent grid square difference cubes inserted. The resulting
+            values have been restricted to be between 0 and 1.
         """
         threshold_cube_x, threshold_cube_y = thresholded_cubes
         cube_on_orig_grid = cube.copy()
@@ -299,7 +302,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         cube_on_orig_grid.data[..., :, 1:] += threshold_cube_x.data
         return cube_on_orig_grid
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """
         Calculate the convective ratio either for the underlying field e.g.
         precipitation rate, or using the differences between adjacent grid
@@ -314,14 +317,13 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         the high threshold cube by the low threshold cube.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube from which the convective ratio will be calculated.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the convective ratio defined as the ratio
-                between a cube with a high threshold applied and a cube with a
-                low threshold applied.
+            Cube containing the convective ratio defined as the ratio
+            between a cube with a high threshold applied and a cube with a
+            low threshold applied.
         """
         cubelist = iris.cube.CubeList([])
         threshold_list = [self.lower_threshold, self.higher_threshold]
@@ -358,11 +360,11 @@ class ConvectionRatioFromComponents(BasePlugin):
     convective and dynamic components.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.convective = None
         self.dynamic = None
 
-    def _split_input(self, cubes):
+    def _split_input(self, cubes: Union[CubeList, List[Cube]]) -> None:
         """
         Extracts convective and dynamic components from the list as objects on the class
         and ensures units are m s-1
@@ -373,16 +375,16 @@ class ConvectionRatioFromComponents(BasePlugin):
         self.dynamic = self._get_cube(cubes, "lwe_stratiform_precipitation_rate")
 
     @staticmethod
-    def _get_cube(cubes, name):
+    def _get_cube(cubes: CubeList, name: str) -> Cube:
         """
         Get one cube named "name" from the list of cubes and set its units to m s-1.
 
         Args:
-            cubes (iris.cube.CubeList):
-            name (str):
+            cubes:
+            name:
 
         Returns:
-            iris.cube.Cube
+            Cube with units set
         """
         try:
             (cube,) = cubes.extract(name)
@@ -400,7 +402,7 @@ class ConvectionRatioFromComponents(BasePlugin):
                 )
         return cube
 
-    def _convective_ratio(self):
+    def _convective_ratio(self) -> ndarray:
         """
         Calculates the convective ratio from the convective and dynamic precipitation
         rate components, masking data where both are zero. The tolerance for comparing
@@ -414,7 +416,7 @@ class ConvectionRatioFromComponents(BasePlugin):
             )
         return convective_ratios
 
-    def process(self, cubes, model_id_attr=None):
+    def process(self, cubes: List[Cube], model_id_attr: Optional[str] = None) -> Cube:
         """
         Calculate the convective ratio from the convective and dynamic components as:
             convective_ratio = convective / (convective + dynamic)
@@ -422,17 +424,16 @@ class ConvectionRatioFromComponents(BasePlugin):
         If convective + dynamic is zero, then the resulting point is masked.
 
         Args:
-            cubes (List[iris.cube.Cube, iris.cube.Cube]):
+            cubes:
                 Both the convective and dynamic components as iris.cube.Cube in a list
                 with names 'lwe_convective_precipitation_rate' and
                 'lwe_stratiform_precipitation_rate'
-            model_id_attr (str):
+            model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending. This is inherited from the input temperature cube.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the convective ratio.
+            Cube containing the convective ratio.
         """
 
         self._split_input(cubes)

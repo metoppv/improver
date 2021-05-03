@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing weather symbol decision tree"""
 
+from typing import Any, Dict
+
 from improver.wxcode import (
     CLOUD_PROB_ABOVE,
     LIGHTNING_VICINITY_PROB,
@@ -47,7 +49,7 @@ from improver.wxcode import (
 START_NODE = "lightning"
 
 
-def wxcode_decision_tree():
+def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
     """
     Define queries that comprise the weather symbol decision tree.
     Each query contains the following elements:
@@ -81,9 +83,8 @@ def wxcode_decision_tree():
               the thresholding is as expected.
 
     Returns:
-        dict:
-            A dictionary containing the queries that comprise the decision
-            tree.
+        A dictionary containing the queries that comprise the decision
+        tree.
     """
     queries = {
         "lightning": {

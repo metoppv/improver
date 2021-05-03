@@ -34,9 +34,11 @@ import atexit
 import cProfile
 import pstats
 import sys
+from cProfile import Profile
+from typing import Optional
 
 
-def profile_start():
+def profile_start() -> Profile:
     """Start and return a new profiler instance.
 
     Returns:
@@ -47,11 +49,11 @@ def profile_start():
     return profiler
 
 
-def profile_hook_enable(dump_filename=None):
+def profile_hook_enable(dump_filename: Optional[str] = None) -> None:
     """Register a hook to gather and dump profile information at exit.
 
     Args:
-        dump_filename (str):
+        dump_filename:
             File path to dump profiling info into at exit.
     """
     profiler = profile_start()
@@ -59,18 +61,21 @@ def profile_hook_enable(dump_filename=None):
 
 
 def profile_stop(
-    profiler, sort_field="cumulative", dump_filename=None, dump_line_count=100
-):
+    profiler: Profile,
+    sort_field: str = "cumulative",
+    dump_filename: str = None,
+    dump_line_count: int = 100,
+) -> None:
     """Stop a given profiler and print or dump stats.
 
     Args:
-        profiler (cProfile.Profile):
+        profiler:
             Active profiling instance.
-        sort_field (str):
+        sort_field:
             pstats.Stats sort field for ordering profiling results.
-        dump_filename (str):
+        dump_filename:
             File path to dump profiling stats into.
-        dump_line_count (int):
+        dump_line_count:
             Maximum lines to print out.
     """
     profiler.disable()

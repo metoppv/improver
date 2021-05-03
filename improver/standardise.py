@@ -30,6 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to standardise metadata"""
 
+import warnings
+from typing import Any, Dict, List, Optional
+
 import iris
 import numpy as np
 from iris.exceptions import CoordinateNotFoundError
@@ -49,13 +52,16 @@ class StandardiseMetadata(BasePlugin):
     """Plugin to standardise cube metadata"""
 
     @staticmethod
-    def _collapse_scalar_dimensions(cube):
+    def _collapse_scalar_dimensions(cube: Cube) -> Cube:
         """
         Demote any scalar dimensions (excluding "realization") on the input
         cube to auxiliary coordinates.
 
+        Args:
+            cube: The cube
+
         Returns:
-            iris.cube.Cube
+            The collapsed cube
         """
         coords_to_collapse = []
         for coord in cube.coords(dim_coords=True):
@@ -66,7 +72,7 @@ class StandardiseMetadata(BasePlugin):
         return cube
 
     @staticmethod
-    def _remove_scalar_coords(cube, coords_to_remove):
+    def _remove_scalar_coords(cube: Cube, coords_to_remove: List[str]) -> None:
         """Removes named coordinates from the input cube."""
         for coord in coords_to_remove:
             try:
@@ -75,29 +81,28 @@ class StandardiseMetadata(BasePlugin):
                 continue
 
     @staticmethod
-    def _standardise_dtypes_and_units(cube):
+    def _standardise_dtypes_and_units(cube: Cube) -> None:
         """
         Modify input cube in place to conform to mandatory dtype and unit
         standards.
 
         Args:
-            cube (iris.cube.Cube:
+            cube:
                 Cube to be updated in place
-
         """
 
-        def as_correct_dtype(obj, required_dtype):
+        def as_correct_dtype(obj: ndarray, required_dtype: dtype) -> ndarray:
             """
             Returns an object updated if necessary to the required dtype
 
             Args:
-                obj (np.ndarray):
+                obj:
                     The object to be updated
-                required_dtype (np.dtype):
+                required_dtype:
                     The dtype required
 
             Returns:
-                np.ndarray
+                The updated object
             """
             if obj.dtype != required_dtype:
                 return obj.astype(required_dtype)
@@ -119,12 +124,12 @@ class StandardiseMetadata(BasePlugin):
 
     def process(
         self,
-        cube,
-        new_name=None,
-        new_units=None,
-        coords_to_remove=None,
-        attributes_dict=None,
-    ):
+        cube: Cube,
+        new_name: Optional[str] = None,
+        new_units: Optional[str] = None,
+        coords_to_remove: Optional[List[str]] = None,
+        attributes_dict: Optional[Dict[str, Any]] = None,
+    ) -> Cube:
         """
         Perform compulsory and user-configurable metadata adjustments.  The
         compulsory adjustments are to collapse any scalar dimensions apart from
@@ -133,20 +138,20 @@ class StandardiseMetadata(BasePlugin):
         metadata into the required units.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Input cube to be standardised
-            new_name (str or None):
+            new_name:
                 Optional rename for output cube
-            new_units (str or None):
+            new_units:
                 Optional unit conversion for output cube
-            coords_to_remove (list of str or None):
+            coords_to_remove:
                 Optional list of scalar coordinates to remove from output cube
-            attributes_dict (dict or None):
+            attributes_dict:
                 Optional dictionary of required attribute updates. Keys are
                 attribute names, and values are the required value or "remove".
 
         Returns:
-            iris.cube.Cube
+            The processed cube
         """
         cube = self._collapse_scalar_dimensions(cube)
 

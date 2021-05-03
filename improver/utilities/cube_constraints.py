@@ -31,10 +31,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for helping to create Iris constraints."""
 
+from typing import List
+
 import iris
+from iris import Constraint
 
 
-def create_sorted_lambda_constraint(coord_name, values, tolerance=1.0e-7):
+def create_sorted_lambda_constraint(
+    coord_name: str, values: List[float], tolerance: float = 1.0e-7
+) -> Constraint:
     """
     Create a lambda constraint for a range. This formulation of specifying
     a lambda constraint has the benefit of not needing to hardcode the name
@@ -48,19 +53,17 @@ def create_sorted_lambda_constraint(coord_name, values, tolerance=1.0e-7):
     of precipitation rates expressed in m s-1.
 
     Args:
-        coord_name (str):
+        coord_name:
             Name of the coordinate.
-        values (list):
+        values:
             A list of two values that represent the inclusive end points
             of a range.
-        tolerance (float):
+        tolerance:
             A relative tolerance value to ensure equivalence matching when
             using float32 values. Values of zero will be unchanged.
 
     Returns:
-        iris.Constraint:
-            Constraint representative of a range of values.
-
+        Constraint representative of a range of values.
     """
     values = [float(i) for i in values]
     values = sorted(values)

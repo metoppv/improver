@@ -73,6 +73,7 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
+    "sphinx_autodoc_typehints",
 ]
 
 autodoc_default_flags = ["members", "private-members"]

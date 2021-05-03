@@ -31,10 +31,13 @@
 """Module to generate a metadata cube."""
 
 from datetime import datetime, timedelta
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
+from iris.cube import Cube
 from iris.std_names import STD_NAMES
 from iris.util import squeeze
+from numpy import ndarray
 
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
@@ -48,7 +51,7 @@ DEFAULT_TIME = datetime(2017, 11, 10, 4, 0)
 CUBE_TYPES = ("variable", "percentile", "probability")
 
 
-def _get_units(name):
+def _get_units(name: str) -> str:
     """ Get output variable units from iris.std_names.STD_NAMES """
     try:
         units = STD_NAMES[name]["canonical_units"]
@@ -58,7 +61,7 @@ def _get_units(name):
     return units
 
 
-def _create_time_bounds(time, time_period):
+def _create_time_bounds(time: datetime, time_period: int) -> Tuple[datetime, datetime]:
     """ Create time bounds using time - time_period as the lower bound and time as the
     upper bound"""
     lower_bound = time - timedelta(minutes=time_period)
@@ -67,7 +70,12 @@ def _create_time_bounds(time, time_period):
     return (lower_bound, upper_bound)
 
 
-def _create_data_array(ensemble_members, leading_dimension, npoints, height_levels):
+def _create_data_array(
+    ensemble_members: int,
+    leading_dimension: Optional[List[float]],
+    npoints: int,
+    height_levels: Optional[List[float]],
+) -> ndarray:
     """ Create data array of specified shape filled with zeros """
     if leading_dimension is not None:
         nleading_dimension = len(leading_dimension)
@@ -93,49 +101,48 @@ def _create_data_array(ensemble_members, leading_dimension, npoints, height_leve
 
 
 def generate_metadata(
-    name="air_pressure_at_sea_level",
-    units=None,
-    time_period=None,
-    ensemble_members=8,
-    leading_dimension=None,
-    cube_type="variable",
-    spp__relative_to_threshold="greater_than",
-    npoints=71,
-    **kwargs,
-):
+    name: str = "air_pressure_at_sea_level",
+    units: Optional[str] = None,
+    time_period: Optional[int] = None,
+    ensemble_members: int = 8,
+    leading_dimension: Optional[List[float]] = None,
+    cube_type: str = "variable",
+    spp__relative_to_threshold: str = "greater_than",
+    npoints: int = 71,
+    **kwargs: Any,
+) -> Cube:
     """ Generate a cube with metadata only.
 
     Args:
-        name (str):
+        name:
             Output variable name, or if creating a probability cube the name of the
             underlying variable to which the probability field applies.
-        units (Optional[str]):
+        units:
             Output variable units, or if creating a probability cube the units of the
             underlying variable / threshold.
-        time_period (Optional[int]):
+        time_period:
             The period in minutes between the time bounds. This is used to calculate
             the lower time bound. If unset the diagnostic will be instantaneous, i.e.
             without time bounds.
-        ensemble_members (Optional[int]):
+        ensemble_members:
             Number of ensemble members. Default 8, unless percentile or probability set
             to True.
-        leading_dimension (Optional[List[float]]):
+        leading_dimension:
             List of realizations, percentiles or thresholds.
-        cube_type (Optional[str]):
+        cube_type:
             The type of cube to be generated. Permitted values are "variable",
             "percentile" or "probability".
-        spp__relative_to_threshold (Optional[str]):
+        spp__relative_to_threshold:
             Value of the attribute "spp__relative_to_threshold" which is required for
             IMPROVER probability cubes.
-        npoints (Optional[int]):
+        npoints:
             Number of points along each of the y and x spatial axes.
         **kwargs:
             Additional keyword arguments to pass to the required cube setup function.
 
     Returns:
-        iris.cube.Cube:
-            Output of set_up_variable_cube(), set_up_percentile_cube() or
-            set_up_probability_cube()
+        Output of set_up_variable_cube(), set_up_percentile_cube() or
+        set_up_probability_cube()
     """
     if cube_type not in CUBE_TYPES:
         raise ValueError(

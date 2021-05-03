@@ -31,6 +31,9 @@
 """init for calibration"""
 
 from collections import OrderedDict
+from typing import List, Optional, Tuple
+
+from iris.cube import Cube
 
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
@@ -38,29 +41,29 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import MergeCubes
 
 
-def split_forecasts_and_truth(cubes, truth_attribute):
+def split_forecasts_and_truth(
+    cubes: List[Cube], truth_attribute: str
+) -> Tuple[Cube, Cube, Optional[Cube]]:
     """
     A common utility for splitting the various inputs cubes required for
     calibration CLIs. These are generally the forecast cubes, historic truths,
     and in some instances a land-sea mask is also required.
 
     Args:
-        cubes (list):
+        cubes:
             A list of input cubes which will be split into relevant groups.
             These include the historical forecasts, in the format supported by
             the calibration CLIs, and the truth cubes.
-        truth_attribute (str):
+        truth_attribute:
             An attribute and its value in the format of "attribute=value",
             which must be present on truth cubes.
+
     Returns:
-        (tuple): tuple containing:
-            **forecast** (iris.cube.Cube):
-                A cube containing all the historic forecasts.
-            **truth** (iris.cube.Cube):
-                A cube containing all the truth data.
-            **land_sea_mask** (iris.cube.Cube or None):
-                If found within the input cubes list a land-sea mask will be
-                returned, else None is returned.
+        - A cube containing all the historic forecasts.
+        - A cube containing all the truth data.
+        - If found within the input cubes list a land-sea mask will be
+          returned, else None is returned.
+
     Raises:
         ValueError:
             An unexpected number of distinct cube names were passed in.

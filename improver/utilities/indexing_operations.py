@@ -31,9 +31,10 @@
 """Module to contain indexing operation functions."""
 
 import numpy as np
+from numpy import ndarray
 
 
-def choose(index_array, array_set):
+def choose(index_array: ndarray, array_set: ndarray) -> ndarray:
     """
     Create a reordered copy of a data array, where an index array of matching
     shape determines how the data is reordered.
@@ -62,21 +63,22 @@ def choose(index_array, array_set):
        different colours.
 
     Args:
-        index_array (numpy.ndarray of int):
+        index_array:
             This array must contain integers in the range [0, N-1], where N is
             if the length of the leading dimension of the array_set array.
             These integers determine how array_set will be reordered in the
             returned array.
-        array_set (numpy.ndarray):
+        array_set:
             A multi-dimensional array, where the leading dimension is in effect
             an indexing dimension. Within this leading dimension are the
             sub-arrays from which values are to be extracted at positions that
             match those given in the index_array.
+
     Returns:
-        numpy.ndarray:
-            An array containing the reordered data extracted from array_set.
-            The returned array will have the same shape as the index_array and
-            array_set arrays.
+        An array containing the reordered data extracted from array_set.
+        The returned array will have the same shape as the index_array and
+        array_set arrays.
+
     Raises:
         ValueError: If index_array and array_set do not have matching shapes.
         IndexError: If an index exceeds the length of the leading dimension

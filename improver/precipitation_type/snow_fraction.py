@@ -30,9 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing the SnowFraction class."""
 
+from typing import Optional, Tuple
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
 from improver.metadata.utilities import (
@@ -52,18 +54,18 @@ class SnowFraction(PostProcessingPlugin):
     snow_fraction = snow / (snow + rain)
     """
 
-    def __init__(self, model_id_attr=None):
+    def __init__(self, model_id_attr: Optional[str] = None) -> None:
         """
         Initialise the class
 
         Args:
-            model_id_attr (str):
+            model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending.
         """
         self.model_id_attr = model_id_attr
 
-    def _get_input_cubes(self, input_cubes):
+    def _get_input_cubes(self, input_cubes: CubeList) -> None:
         """
         Separates out the rain and snow cubes from the input list and checks that
             * No other cubes are present
@@ -73,17 +75,13 @@ class SnowFraction(PostProcessingPlugin):
             * Cubes are not masked (or are masked with an all-False mask)
 
         Args:
-            input_cubes (iris.cube.CubeList):
+            input_cubes:
                 Contains exactly two cubes, one of rain and one of snow. Both must be
                 either rates or accumulations of the same length and of compatible units.
-
-        Returns:
-            None
 
         Raises:
             ValueError:
                 If any of the criteria above are not met.
-
         """
         if len(input_cubes) != 2:
             raise ValueError(
@@ -105,19 +103,17 @@ class SnowFraction(PostProcessingPlugin):
             self.snow.data = self.snow.data.data
 
     @staticmethod
-    def _get_input_cube_names(input_cubes):
+    def _get_input_cube_names(input_cubes: CubeList) -> Tuple[str, str]:
         """
         Identifies the rain and snow cubes from the presence of "rain" or "snow" in
         the cube names.
 
         Args:
-            input_cubes (iris.cube.CubeList):
+            input_cubes:
                 The unsorted rain and snow cubes.
 
         Returns:
-            tuple:
-                rain_name and snow_name, in that order.
-
+            rain_name and snow_name, in that order.
         """
         cube_names = [cube.name() for cube in input_cubes]
         try:
@@ -131,14 +127,12 @@ class SnowFraction(PostProcessingPlugin):
             )
         return rain_name, snow_name
 
-    def _calculate_snow_fraction(self):
+    def _calculate_snow_fraction(self) -> Cube:
         """
         Calculates the snow fraction data and interpolates to fill in the missing points.
 
         Returns:
-            iris.cube.Cube:
-                Snow fraction cube.
-
+            Snow fraction cube.
         """
         with np.errstate(divide="ignore", invalid="ignore"):
             snow_fraction = self.snow.data / (self.rain.data + self.snow.data)
@@ -163,18 +157,17 @@ class SnowFraction(PostProcessingPlugin):
             )
         return snow_fraction_interpolated.merge_cube()
 
-    def process(self, input_cubes):
+    def process(self, input_cubes: CubeList) -> Cube:
         """Check input cubes, then calculate and interpolate a snow fraction cube.
 
         Args:
-            input_cubes (iris.cube.CubeList):
+            input_cubes:
                 Contains cubes of rain and snow, both must be either rates or accumulations.
 
         Returns:
-            iris.cube.Cube:
-                Cube of snow-fraction. The data within this
-                cube will contain values between 0 and 1. Points where no precipitation
-                is present will be filled using a nearest-neighbour interpolation.
+            Cube of snow-fraction. The data within this
+            cube will contain values between 0 and 1. Points where no precipitation
+            is present will be filled using a nearest-neighbour interpolation.
 
                 The cube meta-data will contain:
                 * Input_cube name "snow_fraction"
@@ -182,7 +175,6 @@ class SnowFraction(PostProcessingPlugin):
 
         Raises:
             ValueError: if input cubes fail any comparison tests.
-
         """
         self._get_input_cubes(input_cubes)
 

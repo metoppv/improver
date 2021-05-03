@@ -31,9 +31,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module with utilities required for nowcasting."""
 
+from typing import List, Union
+
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.utilities import neighbourhood_tools
@@ -47,22 +50,22 @@ class ExtendRadarMask(BasePlugin):
     """Extend the mask on radar rainrate data based on the radar coverage
     composite"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialise with known values of the coverage composite for which radar
         data is valid.  All other areas will be masked.
         """
         self.coverage_valid = [1, 2]
 
-    def process(self, radar_data, coverage):
+    def process(self, radar_data: Cube, coverage: Cube) -> Cube:
         """
         Update the mask on the input rainrate cube to reflect where coverage
         is valid
 
         Args:
-            radar_data (iris.cube.Cube):
+            radar_data:
                 Radar data with mask corresponding to radar domains
-            coverage (iris.cube.Cube):
+            coverage:
                 Radar coverage data containing values:
                     0: outside composite
                     1: precip detected
@@ -70,9 +73,8 @@ class ExtendRadarMask(BasePlugin):
                     3: precip not detected & 1/32 mm/h NOT detectable
 
         Returns:
-            iris.cube.Cube:
-                Radar data with mask extended to mask out regions where
-                1/32 mm/h are not detectable
+            Radar data with mask extended to mask out regions where
+            1/32 mm/h are not detectable
         """
         # check cube coordinates match
         for crd in radar_data.coords():
@@ -114,7 +116,7 @@ class FillRadarHoles(BasePlugin):
 
     MIN_RR_MMH = 0.001
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialise parameters of interpolation
 
         The constants defining neighbourhood size and proportion of neighbouring
@@ -140,7 +142,7 @@ class FillRadarHoles(BasePlugin):
         # radius of neighbourhood from which to calculate interpolated values
         self.r_interp = 2
 
-    def _find_and_interpolate_speckle(self, cube):
+    def _find_and_interpolate_speckle(self, cube: Cube) -> None:
         """Identify and interpolate "speckle" points, where "speckle" is defined
         as areas of "no data" that are small enough to fill by interpolation
         without affecting data integrity.  We would not wish to interpolate large
@@ -151,7 +153,7 @@ class FillRadarHoles(BasePlugin):
         for interpolation.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing rainrates (mm/h).  Data modified in place.
         """
         mask_windows = neighbourhood_tools.pad_and_roll(
@@ -185,19 +187,18 @@ class FillRadarHoles(BasePlugin):
             else:
                 cube.data[row_ind, col_ind] = np.power(10, mean)
 
-    def process(self, masked_radar):
+    def process(self, masked_radar: Cube) -> Cube:
         """
         Fills in and unmasks small "no data" regions within the radar composite,
         to minimise gaps in the extrapolation nowcast.
 
         Args:
-            masked_radar (iris.cube.Cube):
+            masked_radar:
                 A masked cube of radar precipitation rates
 
         Returns:
-            iris.cube.Cube:
-                A masked cube with continuous coverage over the radar composite
-                domain, where missing data has been interpolated
+            A masked cube with continuous coverage over the radar composite
+            domain, where missing data has been interpolated
         """
         # extract precipitation rate data in mm h-1
         masked_radar_mmh = masked_radar.copy()
@@ -216,41 +217,40 @@ class ApplyOrographicEnhancement(BasePlugin):
     """Apply orographic enhancement to precipitation rate input, either to
      add or subtract an orographic enhancement component."""
 
-    def __init__(self, operation):
+    def __init__(self, operation: str) -> None:
         """Initialise class.
 
         Args:
-            operation (str):
+            operation:
                 Operation ("add" or "subtract") to apply to the incoming cubes.
 
         Raises:
             ValueError: Operation not supported.
-
         """
         # A minimum precipitation rate in mm/h that will be used as a lower
         # precipitation rate threshold.
         self.min_precip_rate_mmh = 1 / 32.0
         self.operation = operation
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<ApplyOrographicEnhancement: operation: {}>"
         return result.format(self.operation)
 
     @staticmethod
     def _select_orographic_enhancement_cube(
-        precip_cube, oe_cube, allowed_time_diff=1800
-    ):
+        precip_cube: Cube, oe_cube: Cube, allowed_time_diff: int = 1800
+    ) -> Cube:
         """Select the orographic enhancement cube with the required time
         coordinate.
 
         Args:
-            precip_cube (iris.cube.Cube):
+            precip_cube:
                 Cube containing the input precipitation fields.
-            oe_cube (iris.cube.Cube):
+            oe_cube:
                 Cube containing orographic enhancement fields at one or
                 more times.
-            allowed_time_diff (int):
+            allowed_time_diff:
                 The maximum permitted difference, in integer seconds,
                 between the datetime of the precipitation cube and the time
                 points available within the orographic enhancement cube.
@@ -258,16 +258,14 @@ class ApplyOrographicEnhancement(BasePlugin):
 
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the orographic enhancement field at the
-                required time.
+            Cube containing the orographic enhancement field at the
+            required time.
 
         Raises:
             ValueError: If required time step is not available within tolerance
                 (in theory.  In practise, the tolerance is left as the default
                 None, which matches ANY available field regardless of time
                 offset.  So this error will never be thrown.)
-
         """
         (time_point,) = iris_time_to_datetime(precip_cube.coord("time").copy())
         oe_cube_slice = extract_nearest_time_point(
@@ -275,22 +273,20 @@ class ApplyOrographicEnhancement(BasePlugin):
         )
         return oe_cube_slice
 
-    def _apply_orographic_enhancement(self, precip_cube, oe_cube):
+    def _apply_orographic_enhancement(self, precip_cube: Cube, oe_cube: Cube) -> Cube:
         """Combine the precipitation rate cube and the orographic enhancement
         cube.
 
         Args:
-            precip_cube (iris.cube.Cube):
+            precip_cube:
                 Cube containing the input precipitation field.
-            oe_cube (iris.cube.Cube):
+            oe_cube:
                 Cube containing the orographic enhancement field matching
                 the validity time of the precipitation cube.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the precipitation rate field modified by the
-                orographic enhancement cube.
-
+            Cube containing the precipitation rate field modified by the
+            orographic enhancement cube.
         """
         # Convert orographic enhancement into the units of the precipitation
         # rate cube.
@@ -324,23 +320,21 @@ class ApplyOrographicEnhancement(BasePlugin):
 
         return cube
 
-    def _apply_minimum_precip_rate(self, precip_cube, cube):
+    def _apply_minimum_precip_rate(self, precip_cube: Cube, cube: Cube) -> Cube:
         """Ensure that negative precipitation rates are capped at the defined
         minimum precipitation rate.
 
         Args:
-            precip_cube (iris.cube.Cube):
+            precip_cube:
                 Cube containing a precipitation rate input field.
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the precipitation rate field after combining
                 with orographic enhancement.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the precipitation rate field where any
-                negative precipitation rates have been capped at the defined
-                minimum precipitation rate.
-
+            Cube containing the precipitation rate field where any
+            negative precipitation rates have been capped at the defined
+            minimum precipitation rate.
         """
         if self.operation == "subtract":
             original_units = Unit("mm/hr")
@@ -368,22 +362,23 @@ class ApplyOrographicEnhancement(BasePlugin):
                 cube.data[mask] = threshold_in_cube_units
         return cube
 
-    def process(self, precip_cubes, orographic_enhancement_cube):
+    def process(
+        self, precip_cubes: Union[Cube, List[Cube]], orographic_enhancement_cube: Cube
+    ) -> CubeList:
         """Apply orographic enhancement by modifying the input fields. This can
         include either adding or deleting the orographic enhancement component
         from the input precipitation fields.
 
         Args:
-            precip_cubes (iris.cube.Cube or iterable of iris.cube.Cube):
+            precip_cubes:
                 Cube or iterable (list, CubeList or tuple) of cubes containing
                 the input precipitation fields.
-            orographic_enhancement_cube (iris.cube.Cube):
+            orographic_enhancement_cube:
                 Cube containing the orographic enhancement fields.
 
         Returns:
-            iris.cube.CubeList:
-                CubeList of precipitation rate cubes that have been updated
-                using orographic enhancement.
+            CubeList of precipitation rate cubes that have been updated
+            using orographic enhancement.
         """
         if isinstance(precip_cubes, iris.cube.Cube):
             precip_cubes = iris.cube.CubeList([precip_cubes])

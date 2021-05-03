@@ -30,33 +30,37 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provides tools for neighbourhood generation"""
 
+from typing import Any, Tuple, Union
+
 import numpy as np
+from numpy import ndarray
 
 
-def rolling_window(input_array, shape, writeable=False):
+def rolling_window(
+    input_array: ndarray, shape: Tuple[int, int], writeable: bool = False
+) -> ndarray:
     """Creates a rolling window neighbourhood of the given `shape` from the
     last `len(shape)` axes of the input array. Avoids creating a large output
     array by constructing a non-continuous view mapped onto the input array.
 
     args:
-        input_array (numpy.ndarray):
+        input_array:
             An array from which rolling window neighbourhoods will be created.
-        shape (tuple(int)):
+        shape:
             The neighbourhood shape e.g. if the neighbourhood
             size is 3, the shape would be (3, 3) to create a
             3x3 array around each point in the input_array.
-        writeable (bool):
+        writeable:
             If True the returned view will be writeable. This will modify
             the input array, so use with caution.
 
     Returns:
-        numpy.ndarray:
-            "views" into the data, each view represents
-            a neighbourhood of points.
+        "views" into the data, each view represents
+        a neighbourhood of points.
 
     Raises:
         ValueError: If `input_array` has fewer dimensions than `shape`.
-        RuntimeError: If any dimension of `shape` is larger than 
+        RuntimeError: If any dimension of `shape` is larger than
             the corresponding dimension of `input_array`.
     """
     num_window_dims = len(shape)
@@ -88,16 +92,18 @@ def rolling_window(input_array, shape, writeable=False):
     )
 
 
-def pad_and_roll(input_array, shape, **kwargs):
+def pad_and_roll(
+    input_array: ndarray, shape: Tuple[int, int], **kwargs: Any
+) -> ndarray:
     """Pads the last `len(shape)` axes of the input array for `rolling_window`
     to create 'neighbourhood' views of the data of a given `shape` as the last
     axes in the returned array. Collapsing over the last `len(shape)` axes
     results in a shape of the original input array.
 
     args:
-        input_array (numpy.ndarray):
+        input_array:
             The dataset of points to pad and create rolling windows for.
-        shape (tuple(int)):
+        shape:
             Desired shape of the neighbourhood. E.g. if a neighbourhood
             width of 1 around the point is desired, this shape should be (3, 3)::
 
@@ -110,10 +116,9 @@ def pad_and_roll(input_array, shape, **kwargs):
             additional keyword arguments passed to `numpy.pad` function.
 
     Returns:
-        numpy.ndarray:
-            Contains the views of the input_array, the final dimension of
-            the array will be the specified shape in the input arguments,
-            the leading dimensions will depend on the shape of the input array.
+        Contains the views of the input_array, the final dimension of
+        the array will be the specified shape in the input arguments,
+        the leading dimensions will depend on the shape of the input array.
     """
     writeable = kwargs.pop("writeable", False)
     pad_extent = [(0, 0)] * (len(input_array.shape) - len(shape))
@@ -122,22 +127,23 @@ def pad_and_roll(input_array, shape, **kwargs):
     return rolling_window(input_array, shape, writeable=writeable)
 
 
-def pad_boxsum(data, boxsize, **pad_options):
+def pad_boxsum(
+    data: ndarray, boxsize: Union[int, Tuple[int, int]], **pad_options: Any
+) -> ndarray:
     """Pad an array to shape suitable for `boxsum`.
 
     Note that padding is not symmetric: there is an extra row/column at
     the top/left (as required for calculating the boxsum).
 
     Args:
-        data (numpy.ndarray):
+        data:
             The input data array.
-        boxsize (int or pair of int):
+        boxsize:
             The size of the neighbourhood.
-        pad_options (dict):
+        pad_options:
             Additional keyword arguments passed to `numpy.pad` function.
     Returns:
-        numpy.ndarray:
-            Array padded to shape suitable for `boxsum`.
+        Array padded to shape suitable for `boxsum`.
     """
     boxsize = np.atleast_1d(boxsize)
     ih, jh = boxsize[0] // 2, boxsize[-1] // 2
@@ -146,7 +152,12 @@ def pad_boxsum(data, boxsize, **pad_options):
     return padded
 
 
-def boxsum(data, boxsize, cumsum=True, **pad_options):
+def boxsum(
+    data: ndarray,
+    boxsize: Union[int, Tuple[int, int]],
+    cumsum: bool = True,
+    **pad_options: Any,
+) -> ndarray:
     """Fast vectorised approach to calculating neighbourhood totals.
 
     This function makes use of the summed-area table method. An input
@@ -186,22 +197,21 @@ def boxsum(data, boxsize, cumsum=True, **pad_options):
     in an array filled with ones.
 
     Args:
-        data (numpy.ndarray):
+        data:
             The input data array.
-        boxsize (int or pair of int):
+        boxsize:
             The size of the neighbourhood. Must be an odd number.
-        cumsum (bool):
+        cumsum:
             If False, assume the input data is already cumulative. If True
             (default), calculate cumsum along the last two dimensions of
             the input array.
-        pad_options (dict):
+        pad_options:
             Additional keyword arguments passed to `numpy.pad` function.
             If given, the returned result will have the same shape as the input
             array.
 
     Returns:
-        numpy.ndarray:
-            Array containing the calculated neighbourhood total.
+        Array containing the calculated neighbourhood total.
 
     Raises:
         ValueError: If `boxsize` has non-integer type.
