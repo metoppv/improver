@@ -40,7 +40,6 @@ def process(
     cube: cli.inputcube,
     *,
     grid_spec: cli.inputjson = None,
-    site_list: cli.comma_separated_list = None,
 ):
     """
     Extract a thinned spatial cutout or subset of sites from a data file. Supports
@@ -63,9 +62,6 @@ def process(
             names, with values that are dictionaries with "min", "max" and "thin" keys.
             The dictionary MUST contain entries for the spatial coordinates on the
             input cube, and MAY contain additional entries (which will be ignored).
-        site_list (list):
-            List of WMO site IDs to extract.  These IDs must match the type and format
-            of the "wmo_id" coordinate on the input spot cube.
 
     Returns:
         iris.cube.Cube:
@@ -73,4 +69,4 @@ def process(
     """
     from improver.utilities.cube_extraction import subset_data
 
-    return subset_data(cube, grid_spec=grid_spec, site_list=site_list)
+    return subset_data(cube, grid_spec=grid_spec)

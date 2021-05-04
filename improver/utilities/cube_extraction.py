@@ -45,7 +45,7 @@ from improver.utilities.cube_manipulation import (
 )
 
 
-def create_range_constraint(coord_name: str, value: str) -> Constraint:
+def create_range_constraint(coord_name: str, value: List[str]) -> Constraint:
     """
     Create a constraint that is representative of a range.
 
@@ -54,29 +54,29 @@ def create_range_constraint(coord_name: str, value: str) -> Constraint:
             Name of the coordinate for which the constraint will be created.
         value:
             A string containing the range information.
-            It is assumed that the input value is of the form: "[2:10]".
+            It is assumed that the input value is of the form: ["2", "10"].
 
     Returns:
         The constraint that has been created to represent the range.
     """
-    value = value.replace("[", "").replace("]", "").split(":")
-    constr = create_sorted_lambda_constraint(coord_name, value)
-    return constr
+    return create_sorted_lambda_constraint(coord_name, value)
 
 
-def is_complex_parsing_required(value: str) -> bool:
+def parse_range_string_to_dict(value: str) -> Dict[str, str]:
     """
-    Determine if the string being parsed requires complex parsing.
-    Currently, this is solely determined by the presence of a colon (:).
+    Splits up a string in the form [min:max:step] into a list of
+    [min, max, step].
 
     Args:
-        value:
-           A string that will be parsed.
+       value:
+          A string containing the range information.
+	  It is assumed that the input value is of the form: "[2:10]".
 
     Returns:
-        Flag value to indicate whether the string requires complex parsing.
+       A list containing the min and max (and step).
     """
-    return ":" in value
+    value = value.replace("[", "").replace("]", "").split(":")
+    return dict(zip(["min", "max", "step"], value))
 
 
 def create_constraint(value: Union[float, List[float]]) -> Union[Callable, List[int]]:
@@ -107,7 +107,7 @@ def create_constraint(value: Union[float, List[float]]) -> Union[Callable, List[
 
 def parse_constraint_list(
     constraints: List[str], units: Optional[List[str]] = None
-) -> Tuple[Constraint, Optional[Dict]]:
+) -> Tuple[Constraint, Optional[Dict], Optional[float], Optional[Dict]]:
     """
     For simple constraints of a key=value format, these are passed in as a
     list of strings and converted to key-value pairs prior to creating the
@@ -130,6 +130,8 @@ def parse_constraint_list(
     Returns:
         - A combination of all the constraints that were supplied.
         - A dictionary of unit keys and values
+        - A list of lists containing the min and max values for a longitude constraint
+	    - A dictionary of coordinate and the step value, i.e. a step of 2 will skip every other point
     """
 
     if units is None:
@@ -144,13 +146,27 @@ def parse_constraint_list(
 
     simple_constraints_dict = {}
     complex_constraints = []
+    longitude_constraint = None
+    thinning_values = {}
     for constraint_pair, unit_val in zip(constraints, list_units):
         key, value = constraint_pair.split("=", 1)
         key = key.strip(" ")
         value = value.strip(" ")
 
-        if is_complex_parsing_required(value):
-            complex_constraints.append(create_range_constraint(key, value))
+        if ":" in value:
+            range_dict = parse_range_string_to_dict(value)
+
+            # longitude is a circular coordinate, so needs to be treated in a different way to a normal constraint
+            if key == "longitude":
+                longitude_constraint = [
+                    FLOAT_DTYPE(range_dict[k]) for k in ["min", "max"]
+                ]
+            else:
+                complex_constraints.append(
+                    create_range_constraint(key, [range_dict["min"], range_dict["max"]])
+                )
+            if range_dict.get("step", None):
+                thinning_values[key] = int(range_dict["step"])
         else:
             try:
                 typed_value = literal_eval(value)
@@ -171,7 +187,7 @@ def parse_constraint_list(
     for constr in complex_constraints:
         constraints = constraints & constr
 
-    return constraints, units_dict
+    return constraints, units_dict, longitude_constraint, thinning_values
 
 
 def apply_extraction(
@@ -179,6 +195,7 @@ def apply_extraction(
     constraint: Constraint,
     units: Optional[Dict] = None,
     use_original_units: bool = True,
+    longitude_constraint: Optional[List] = None,
 ) -> Cube:
     """
     Using a set of constraints, extract a subcube from the provided cube if it
@@ -199,6 +216,10 @@ def apply_extraction(
             should be converted back to their original units. The default is
             True, indicating that the units should be converted back to the
             original units.
+        longitude_constraints:
+            List containing the min and max values for the longitude.
+            This has to be treated separately to the normal constraints due
+            to the circular nature of longitude.
 
     Returns:
         A single cube matching the input constraints, or None if no subcube
@@ -220,6 +241,20 @@ def apply_extraction(
                 except AttributeError:
                     # an empty output cube (None) is handled by the CLI
                     pass
+
+    if longitude_constraint:
+        # disable max_inclusive to better match python slicing behaviour
+        output_cube = output_cube.intersection(
+            longitude=longitude_constraint, ignore_bounds=True
+        )
+        # Below can be removed when https://github.com/SciTools/iris/issues/4119 is fixed
+        output_cube.coord("longitude").points = output_cube.coord(
+            "longitude"
+        ).points.astype(FLOAT_DTYPE)
+        if output_cube.coord("longitude").bounds is not None:
+            output_cube.coord("longitude").bounds = output_cube.coord(
+                "longitude"
+            ).bounds.astype(FLOAT_DTYPE)
 
     return output_cube
 
@@ -254,140 +289,34 @@ def extract_subcube(
         A single cube matching the input constraints, or None if no subcube
         is found within cube that matches the constraints.
     """
-    constraints, units = parse_constraint_list(constraints, units=units)
-    output_cube = apply_extraction(
-        cube, constraints, units=units, use_original_units=use_original_units
+    constraints, units, longitude_constraint, thinning_dict = parse_constraint_list(
+        constraints, units=units
     )
+    output_cube = apply_extraction(
+        cube, constraints, units, use_original_units, longitude_constraint
+    )
+
+    if thinning_dict:
+        output_cube = thin_cube(output_cube, thinning_dict)
+
     return output_cube
 
 
-def subset_data(
-    cube: Cube,
-    grid_spec: Optional[Dict[str, Dict[str, int]]] = None,
-    site_list: Optional[List] = None,
-) -> Cube:
-    """Extract a spatial cutout or subset of sites from data
-    to generate suite reference outputs.
+def thin_cube(cube: Cube, thinning_dict: Dict[str, int]) -> Cube:
+    """
+    Thin the coordinate by taking every X points, defined in the thinning dict as {coordinate: X}
 
     Args:
         cube:
-            Input dataset
-        grid_spec:
-            Dictionary containing bounding grid points and an integer "thinning
-            factor" for each of UK and global grid, to create cutouts.  Eg a
-            "thinning factor" of 10 would mean every 10th point being taken for
-            the cutout.  The expected dictionary has keys that are spatial coordinate
-            names, with values that are dictionaries with "min", "max" and "thin" keys.
-        site_list:
-            List of WMO site IDs to extract.  These IDs must match the type and format
-            of the "wmo_id" coordinate on the input spot cube.
+            The cube containing the coordinates to be thinned.
+        thinning_dict:
+            A dictionary of coordinate and the step value, i.e. a step of 2 will skip every other point
 
     Returns:
-        Subset of input cube as specified by input constraints
-
-    Raises:
-        ValueError:
-            If site_list is not provided for a spot data cube
-        ValueError:
-            If the spot data cube does not contain any of the required sites
-        ValueError:
-            If grid_spec is not provided for a gridded cube
-        ValueError:
-            If grid_spec does not contain entries for the spatial coordinates on
-            the input gridded data
-        ValueError:
-            If the grid_spec provided does not overlap with the cube domain
+        A cube with thinned coordinates.
     """
-    if cube.coords("spot_index"):
-        if site_list is None:
-            raise ValueError("site_list required to extract from spot data")
-
-        constraint = Constraint(coord_values={"wmo_id": lambda x: x in site_list})
-        result = cube.extract(constraint)
-        if result is None:
-            raise ValueError(
-                f"Cube does not contain any of the required sites: {site_list}"
-            )
-
-    else:
-        if grid_spec is None:
-            raise ValueError("grid_spec required to extract from gridded data")
-
-        x_coord = cube.coord(axis="x").name()
-        y_coord = cube.coord(axis="y").name()
-
-        for coord in [y_coord, x_coord]:
-            if coord not in grid_spec:
-                raise ValueError(
-                    f"Cube coordinates {y_coord}, {x_coord} are not present within "
-                    f"{grid_spec.keys()}"
-                )
-
-        def _create_cutout(cube, grid_spec):
-            """Given a gridded data cube and boundary limits for cutout dimensions,
-            create cutout.  Expects cube on either lat-lon or equal area grid.
-            """
-            x_coord = cube.coord(axis="x").name()
-            y_coord = cube.coord(axis="y").name()
-
-            xmin = grid_spec[x_coord]["min"]
-            xmax = grid_spec[x_coord]["max"]
-            ymin = grid_spec[y_coord]["min"]
-            ymax = grid_spec[y_coord]["max"]
-
-            # need to use cube intersection for circular coordinates (longitude)
-            if x_coord == "longitude":
-                lat_constraint = Constraint(latitude=lambda y: ymin <= y.point <= ymax)
-                cutout = cube.extract(lat_constraint)
-                if cutout is None:
-                    return cutout
-
-                cutout = cutout.intersection(longitude=(xmin, xmax), ignore_bounds=True)
-
-                # intersection creates a new coordinate with default datatype - we
-                # therefore need to re-cast to meet the IMPROVER standard
-                cutout.coord("longitude").points = cutout.coord(
-                    "longitude"
-                ).points.astype(FLOAT_DTYPE)
-                if cutout.coord("longitude").bounds is not None:
-                    cutout.coord("longitude").bounds = cutout.coord(
-                        "longitude"
-                    ).bounds.astype(FLOAT_DTYPE)
-
-            else:
-                x_constraint = Constraint(
-                    projection_x_coordinate=lambda x: xmin <= x.point <= xmax
-                )
-                y_constraint = Constraint(
-                    projection_y_coordinate=lambda y: ymin <= y.point <= ymax
-                )
-                cutout = cube.extract(x_constraint & y_constraint)
-
-            return cutout
-
-        cutout = _create_cutout(cube, grid_spec)
-
-        if cutout is None:
-            raise ValueError(
-                "Cube domain does not overlap with cutout specified:\n"
-                f"{x_coord}: {grid_spec[x_coord]}, {y_coord}: {grid_spec[y_coord]}"
-            )
-
-        original_coords = get_dim_coord_names(cutout)
-        thin_x = grid_spec[x_coord]["thin"]
-        thin_y = grid_spec[y_coord]["thin"]
-        result_list = CubeList()
-        try:
-            for subcube in cutout.slices([y_coord, x_coord]):
-                result_list.append(subcube[::thin_y, ::thin_x])
-        except ValueError as cause:
-            # error is raised if X or Y coordinate are single-valued (non-dimensional)
-            if "iterator" in str(cause) and "dimension" in str(cause):
-                raise ValueError("Function does not support single point extraction")
-            else:
-                raise
-
-        result = result_list.merge_cube()
-        enforce_coordinate_ordering(result, original_coords)
-
-    return result
+    coord_names = get_dim_coord_names(cube)
+    slices = [slice(None, None, None)] * len(coord_names)
+    for key, val in thinning_dict.items():
+        slices[coord_names.index(key)] = slice(None, None, val)
+    return cube[tuple(slices)]
