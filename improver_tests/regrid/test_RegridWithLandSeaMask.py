@@ -41,7 +41,8 @@ from iris.coords import DimCoord
 from iris.cube import Cube
 
 import improver.cli as imcli
-from improver.regrid.grid import convert_from_projection_to_latlons
+from improver.regrid.bilinear import basic_indexes
+from improver.regrid.grid import convert_from_projection_to_latlons, latlon_from_cube
 
 
 # function for creating cube from data, lats, lons
@@ -117,6 +118,42 @@ def define_source_target_grid_data():
 
     out_mask[6, 6] = 1
     out_mask[7, 6] = 1
+    out_mask[1, 0] = 0
+
+    cube_in = create_cube(data, in_lats, in_lons, "air_temperature", "Celsius")
+    cube_in_mask = create_cube(in_mask, in_lats, in_lons, "Land_Binary_Mask", "1")
+    cube_out_mask = create_cube(out_mask, out_lats, out_lons, "Land_Binary_Mask", "1")
+
+    return cube_in, cube_out_mask, cube_in_mask
+
+
+def define_source_target_grid_data_same_domain():
+    """ define cube_in, cube_in_mask,cube_out_mask, assume the same domain  """
+    # source (input) grid
+    in_lats = np.linspace(0, 15, 4)
+    in_lons = np.linspace(0, 40, 5)
+
+    # target (output) grid
+    out_lats = np.linspace(0, 15, 7)
+    out_lons = np.linspace(5, 40, 9)
+
+    # assume a set of nwp data
+    data = np.arange(20).reshape(4, 5)
+
+    # input grid mask info
+    in_mask = np.empty((4, 5), dtype=int)
+    in_mask[:, :] = 1
+    in_mask[0, 2] = 0
+    in_mask[2, 2:4] = 0
+    in_mask[3, 2:4] = 0
+
+    # output grid mask info
+    out_mask = np.empty((7, 9), dtype=int)
+    out_mask[:, :] = 1
+    out_mask[0, 3:6] = 0
+    out_mask[1, 4] = 0
+    out_mask[4:9, 4:8] = 0
+    out_mask[6, 6] = 1
     out_mask[1, 0] = 0
 
     cube_in = create_cube(data, in_lats, in_lons, "air_temperature", "Celsius")
@@ -204,6 +241,26 @@ def test_convert_from_projection_to_latlons():
     )
 
     np.testing.assert_allclose(out_latlons.data, expected_results, atol=1e-3)
+
+
+def test_basic_indexes():
+    """Test basic_indexes for identical source and target domain case """
+    cube_in, cube_out_mask, _ = define_source_target_grid_data_same_domain()
+    in_latlons = latlon_from_cube(cube_in)
+    out_latlons = latlon_from_cube(cube_out_mask)
+    in_lons_size = cube_in.coord(axis="x").shape[0]
+    indexes = basic_indexes(out_latlons, in_latlons, in_lons_size)
+    test_results = indexes[58:63, :]
+    expected_results = np.array(
+        [
+            [12, 17, 18, 13],
+            [12, 17, 18, 13],
+            [13, 18, 19, 14],
+            [13, 18, 19, 14],
+            [13, 18, 19, 14],
+        ]
+    )
+    np.testing.assert_array_equal(test_results, expected_results)
 
 
 def test_regrid_nearest_2():

@@ -34,8 +34,11 @@ Bilinear interpolation functions
 
 import numpy as np
 
+from improver.regrid.idw import (
+    inverse_distance_weighting,
+    nearest_input_pts,
+)
 from improver.regrid.grid import similar_surface_classify
-from improver.regrid.idw import inverse_distance_weighting, nearest_input_pts
 
 OPTIMUM_IDW_POWER = 1.80
 NUM_NEIGHBOURS = 4
@@ -108,7 +111,7 @@ def basic_indexes(out_latlons, in_latlons, in_lons_size):
     lat_max_equal = np.isclose(lat_max_in, lat_max_out)
     lon_max_equal = np.isclose(lon_max_in, lon_max_out)
     if lat_max_equal or lon_max_equal:
-        adjust_boundary_indexes(
+        indexes = adjust_boundary_indexes(
             in_lons_size,
             lat_max_equal,
             lon_max_equal,
@@ -117,7 +120,6 @@ def basic_indexes(out_latlons, in_latlons, in_lons_size):
             out_latlons,
             indexes,
         )
-
     return indexes
 
 
