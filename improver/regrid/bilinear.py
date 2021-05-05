@@ -34,11 +34,8 @@ Bilinear interpolation functions
 
 import numpy as np
 
-from improver.regrid.idw import (
-    inverse_distance_weighting,
-    nearest_input_pts,
-)
 from improver.regrid.grid import similar_surface_classify
+from improver.regrid.idw import inverse_distance_weighting, nearest_input_pts
 
 OPTIMUM_IDW_POWER = 1.80
 NUM_NEIGHBOURS = 4
@@ -149,9 +146,9 @@ def adjust_boundary_indexes(
         lon_max_in(float32):
             input grid's maximum longtitude
         out_latlons(numpy.ndarray):
-            target points's latitude-longitudes          
+            target points's latitude-longitudes
         indexes(numpy.ndarray):
-            Updated array of source grid point number for all target grid points          
+            Updated array of source grid point number for all target grid points
     Returns:
         numpy.ndarray:
             Updated array of source grid point number for all target grid points

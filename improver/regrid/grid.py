@@ -37,9 +37,6 @@ import numpy as np
 from iris.cube import Cube
 from scipy.interpolate import RegularGridInterpolator
 
-COMMON_LAT_NAMES = ["latitude", "lat", "lats"]
-COMMON_LON_NAMES = ["longitude", "lon", "lons"]
-
 
 def get_cube_coord_names(cube):
     """
@@ -56,29 +53,6 @@ def get_cube_coord_names(cube):
     return [coord.standard_name for coord in cube.dim_coords]
 
 
-def variable_name(cube, names):
-    """
-    Identify the name of a variable from a list of possible candidates.
-
-    Args:
-         cube (iris.cube.Cube):
-            input cube
-         names (List[str]):
-            possible name list
-    Return:
-         str:
-            matching name of the variable
-    """
-    coord_names = set(get_cube_coord_names(cube))
-    matched_names = coord_names.intersection(names)
-    if not matched_names:
-        raise ValueError(f"Unable to find a variable matching {names}")
-    elif len(matched_names) > 1:
-        raise ValueError(f"find more than a variable matching {names}")
-    else:
-        return list(matched_names)[0]
-
-
 def latlon_names(cube):
     """
     Identify the names of the latitude and longitude dimensions of cube
@@ -90,8 +64,8 @@ def latlon_names(cube):
     Return:
         str: names of latitude and longitude
     """
-    lats_name = variable_name(cube, COMMON_LAT_NAMES)
-    lons_name = variable_name(cube, COMMON_LON_NAMES)
+    lats_name = cube.coord(axis="y").standard_name
+    lons_name = cube.coord(axis="x").standard_name
     return lats_name, lons_name
 
 
