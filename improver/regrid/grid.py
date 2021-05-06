@@ -37,6 +37,26 @@ import numpy as np
 from iris.cube import Cube
 from scipy.interpolate import RegularGridInterpolator
 
+from improver.utilities.spatial import calculate_grid_spacing, lat_lon_determine
+
+
+def check_if_input_grid_is_valid(cube_in):
+    """
+    check if input source grid is on even-spacing, ascending lat/lon system
+    Args:
+         cube_in (iris.cube.Cube):
+            input source cube
+    Return:
+         error raised if specified condition is not met, otherwise None
+    """
+
+    if lat_lon_determine(cube_in) is not None:
+        raise ValueError("Input grid is not on a latitude/longitude system")
+    x_diff = calculate_grid_spacing(cube_in, "degree", axis="x")
+    y_diff = calculate_grid_spacing(cube_in, "degree", axis="y")
+    if x_diff < 0 or y_diff < 0:
+        raise ValueError("Input grid coordinates are not ascending.")
+
 
 def get_cube_coord_names(cube):
     """
@@ -167,45 +187,6 @@ def flatten_spatial_dimensions(cube):
     latlon_shape = [lats_len * lons_len] + list(in_values.shape[2:])
     in_values = np.reshape(in_values, latlon_shape)
     return in_values, lats_index, lons_index
-
-
-def convert_from_projection_to_latlons(cube_out, cube_in):
-    """
-    convert cube_out's LambertAzimuthalEqualArea's coord to GeogCS's lats/lons
-    output grid (cube_out) could be in LambertAzimuthalEqualArea system
-    cube_in is in GeogCS's lats/lons system.
-    Args:
-        cube_out (iris.cube.Cube):
-            target cube with LambertAzimuthalEqualArea's coord system
-        cube_in (iris.cube.Cube):
-            source cube with GeorCS (as reference coord system for conversion)
-
-    Returns:
-        numpy.ndarray:
-            latitude-longitude pairs for target grid points
-    """
-
-    # get coordinate points in native projection & transfer into xx,yy(1D)
-    proj_x = cube_out.coord("projection_x_coordinate").points
-    proj_y = cube_out.coord("projection_y_coordinate").points
-    yy, xx = np.meshgrid(proj_y, proj_x, indexing="ij")
-    yy = yy.flatten()
-    xx = xx.flatten()
-
-    # extract the native projection and convert it to a cartopy projection:
-    cs_nat = cube_out.coord_system()
-    cs_nat_cart = cs_nat.as_cartopy_projection()
-
-    # find target projection,convert it to a cartopy projection
-    cs_tgt = cube_in.coord("latitude").coord_system
-    cs_tgt_cart = cs_tgt.as_cartopy_projection()
-
-    # use cartopy's transform to convert coord.in native proj to coord in target proj
-    lons, lats, _ = cs_tgt_cart.transform_points(cs_nat_cart, xx, yy).T
-
-    out_latlons = np.dstack((lats, lons)).squeeze()
-
-    return out_latlons
 
 
 def classify_output_surface_type(cube_out_mask):

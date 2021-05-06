@@ -42,7 +42,7 @@ from iris.cube import Cube
 
 import improver.cli as imcli
 from improver.regrid.bilinear import basic_indexes
-from improver.regrid.grid import convert_from_projection_to_latlons, latlon_from_cube
+from improver.regrid.grid import latlon_from_cube
 
 
 # function for creating cube from data, lats, lons
@@ -161,86 +161,6 @@ def define_source_target_grid_data_same_domain():
     cube_out_mask = create_cube(out_mask, out_lats, out_lons, "Land_Binary_Mask", "1")
 
     return cube_in, cube_out_mask, cube_in_mask
-
-
-def create_cube_lambert():
-    """ define a cube with LambertAzimuthalEqualArea system """
-    cube_data = np.zeros([3, 3])
-    cube_v = Cube(cube_data)
-    coord_proj_y = DimCoord(
-        np.array([-1036000.0, -1034000.0, -1032000.0], dtype=np.float32),
-        bounds=np.array(
-            [
-                [-1037000.0, -1035000.0],
-                [-1035000.0, -1033000.0],
-                [-1033000.0, -1031000.0],
-            ],
-            dtype=np.float32,
-        ),
-        standard_name="projection_y_coordinate",
-        units="metres",
-        var_name="projection_y_coordinate",
-        coord_system=iris.coord_systems.LambertAzimuthalEqualArea(
-            latitude_of_projection_origin=54.9,
-            longitude_of_projection_origin=-2.5,
-            false_easting=0.0,
-            false_northing=0.0,
-            ellipsoid=iris.coord_systems.GeogCS(
-                semi_major_axis=6378137.0, semi_minor_axis=6356752.314140356
-            ),
-        ),
-    )
-
-    coord_proj_x = DimCoord(
-        np.array([-1158000.0, -1156000.0, -1154000.0], dtype=np.float32),
-        bounds=np.array(
-            [
-                [-1159000.0, -1157000.0],
-                [-1157000.0, -1155000.0],
-                [-1155000.0, -1153000.0],
-            ],
-            dtype=np.float32,
-        ),
-        standard_name="projection_x_coordinate",
-        units="metres",
-        var_name="projection_x_coordinate",
-        coord_system=iris.coord_systems.LambertAzimuthalEqualArea(
-            latitude_of_projection_origin=54.9,
-            longitude_of_projection_origin=-2.5,
-            false_easting=0.0,
-            false_northing=0.0,
-            ellipsoid=iris.coord_systems.GeogCS(
-                semi_major_axis=6378137.0, semi_minor_axis=6356752.314140356
-            ),
-        ),
-    )
-
-    cube_v.add_dim_coord(coord_proj_y, 0)
-    cube_v.add_dim_coord(coord_proj_x, 1)
-
-    return cube_v
-
-
-def test_convert_from_projection_to_latlons():
-    """Test convert_from_projection_to_latlons """
-    cube_in, _, _ = define_source_target_grid_data()
-    cube_lambert = create_cube_lambert()
-    out_latlons = convert_from_projection_to_latlons(cube_lambert, cube_in)
-    expected_results = np.array(
-        [
-            [44.517, -17.117],
-            [44.520, -17.092],
-            [44.524, -17.068],
-            [44.534, -17.122],
-            [44.538, -17.097],
-            [44.542, -17.072],
-            [44.552, -17.127],
-            [44.556, -17.102],
-            [44.560, -17.077],
-        ]
-    )
-
-    np.testing.assert_allclose(out_latlons.data, expected_results, atol=1e-3)
 
 
 def test_basic_indexes():

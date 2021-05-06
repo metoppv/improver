@@ -43,9 +43,9 @@ from improver.regrid.bilinear import (
     basic_weights,
 )
 from improver.regrid.grid import (
+    check_if_input_grid_is_valid,
     classify_input_surface_type,
     classify_output_surface_type,
-    convert_from_projection_to_latlons,
     create_regrid_cube,
     flatten_spatial_dimensions,
     latlon_from_cube,
@@ -55,6 +55,7 @@ from improver.regrid.grid import (
     unflatten_spatial_dimensions,
 )
 from improver.regrid.nearest import nearest_regrid, nearest_with_mask_regrid
+from improver.utilities.spatial import transform_grid_to_lat_lon
 
 NEAREST = "nearest"
 BILINEAR = "bilinear"
@@ -74,9 +75,8 @@ class RegridWithLandSeaMask(BasePlugin):
     The replacement data values are selected from a vicinity of points on the
     source-grid and the closest point of the correct mask is used.
     Where no match is found within the vicinity, the data value is not changed.
-    Note: regrid_mode options are "nearest-2", "nearest-with-mask-2","bilinear-2", 
+    Note: regrid_mode options are "nearest-2", "nearest-with-mask-2","bilinear-2",
     and "bilinear-with-mask-2" in this class.
-    
     """
 
     def __init__(self, regrid_mode="bilinear-2", vicinity_radius=25000.0):
@@ -86,7 +86,7 @@ class RegridWithLandSeaMask(BasePlugin):
         Args:
             regrid_mode (str):
                 Mode of interpolation in regridding.  Valid options are "bilinear-2",
-                "nearest-2","nearest-with-mask-2" and "bilinear-with-mask-2".  
+                "nearest-2","nearest-with-mask-2" and "bilinear-with-mask-2". 
                 The last two options trigger adjustment of regridded points to match
                 source points in terms of land / sea type.              
             vicinity_radius (float):
@@ -115,13 +115,17 @@ class RegridWithLandSeaMask(BasePlugin):
             iris.cube.Cube:
                 Regridded result cube
         """
+        # check if input source grid is on even-spacing, ascending lat/lon system
+        check_if_input_grid_is_valid(cube_in)
 
         # Gather output latitude/longitudes from output template cube
         if (
             cube_out_mask.coord(axis="x").standard_name == "projection_x_coordinate"
             and cube_out_mask.coord(axis="y").standard_name == "projection_y_coordinate"
         ):
-            out_latlons = convert_from_projection_to_latlons(cube_out_mask, cube_in)
+            out_latlons = np.dstack(transform_grid_to_lat_lon(cube_out_mask)).reshape(
+                (-1, 2)
+            )
         else:
             out_latlons = latlon_from_cube(cube_out_mask)
 

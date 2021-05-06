@@ -290,4 +290,4 @@ def test_regrid_bilinear_landmask_2_multi_realization(tmp_path):
         GLOBAL_UK_TITLE,
     ]
     run_cli(args)
-    acc.compare(output_path, kgo_path)
+    acc.compare(output_path, kgo_path, atol=0.05)
