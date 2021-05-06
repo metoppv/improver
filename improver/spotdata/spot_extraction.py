@@ -176,7 +176,7 @@ class SpotExtraction(BasePlugin):
             A spot data cube containing the extracted diagnostic data.
         """
 
-        neighbour_cube = build_spotdata_cube(
+        spot_diagnostic_cube = build_spotdata_cube(
             spot_values,
             diagnostic_cube.name(),
             diagnostic_cube.units,
@@ -187,7 +187,7 @@ class SpotExtraction(BasePlugin):
             scalar_coords=scalar_coords,
             additional_dims=additional_dims,
         )
-        return neighbour_cube
+        return spot_diagnostic_cube
 
     def process(
         self,

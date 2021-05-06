@@ -50,9 +50,18 @@ class Test_build_spotdata_cube(IrisTest):
         self.latitude = np.linspace(58.0, 59.5, 4)
         self.longitude = np.linspace(-0.25, 0.5, 4)
         self.wmo_id = ["03854", "03962", "03142", "03331"]
+        self.unique_site_id = ["00003854", "00003962", "00003142", "00003331"]
 
         self.neighbour_methods = ["nearest", "nearest_land"]
         self.grid_attributes = ["x_index", "y_index", "dz"]
+        self.args = (
+            "air_temperature",
+            "degC",
+            self.altitude,
+            self.latitude,
+            self.longitude,
+            self.wmo_id,
+        )
 
     def test_scalar(self):
         """Test output for a single site"""
@@ -81,15 +90,7 @@ class Test_build_spotdata_cube(IrisTest):
     def test_site_list(self):
         """Test output for a list of sites"""
         data = np.array([1.6, 1.3, 1.4, 1.1])
-        result = build_spotdata_cube(
-            data,
-            "air_temperature",
-            "degC",
-            self.altitude,
-            self.latitude,
-            self.longitude,
-            self.wmo_id,
-        )
+        result = build_spotdata_cube(data, *self.args)
 
         self.assertArrayAlmostEqual(result.data, data)
         self.assertArrayAlmostEqual(result.coord("altitude").points, self.altitude)
@@ -97,19 +98,36 @@ class Test_build_spotdata_cube(IrisTest):
         self.assertArrayAlmostEqual(result.coord("longitude").points, self.longitude)
         self.assertArrayEqual(result.coord("wmo_id").points, self.wmo_id)
 
+    def test_site_list_with_unique_id_coordinate(self):
+        """Test output for a list of sites with a unique_id_coordinate."""
+        data = np.array([1.6, 1.3, 1.4, 1.1])
+        result = build_spotdata_cube(
+            data,
+            *self.args,
+            unique_site_id=self.unique_site_id,
+            unique_site_id_name="met_office_site_id",
+        )
+
+        self.assertArrayEqual(
+            result.coord("met_office_site_id").points, self.unique_site_id
+        )
+
+    def test_site_list_with_unique_id_coordinate_missing_name(self):
+        """Test an error is raised if a unique_id_coordinate is provided but
+        no name for the resulting coordinate."""
+        data = np.array([1.6, 1.3, 1.4, 1.1])
+        msg = "A unique_site_id_name must be provided"
+        with self.assertRaisesRegex(ValueError, msg):
+            build_spotdata_cube(
+                data, *self.args, unique_site_id=self.unique_site_id,
+            )
+
     def test_neighbour_method(self):
         """Test output where neighbour_methods is populated"""
         data = np.array([[1.6, 1.3, 1.4, 1.1], [1.7, 1.5, 1.4, 1.3]])
 
         result = build_spotdata_cube(
-            data,
-            "air_temperature",
-            "degC",
-            self.altitude,
-            self.latitude,
-            self.longitude,
-            self.wmo_id,
-            neighbour_methods=self.neighbour_methods,
+            data, *self.args, neighbour_methods=self.neighbour_methods
         )
 
         self.assertArrayAlmostEqual(result.data, data)
@@ -129,14 +147,7 @@ class Test_build_spotdata_cube(IrisTest):
         )
 
         result = build_spotdata_cube(
-            data,
-            "air_temperature",
-            "degC",
-            self.altitude,
-            self.latitude,
-            self.longitude,
-            self.wmo_id,
-            grid_attributes=self.grid_attributes,
+            data, *self.args, grid_attributes=self.grid_attributes,
         )
 
         self.assertArrayAlmostEqual(result.data, data)
@@ -151,12 +162,7 @@ class Test_build_spotdata_cube(IrisTest):
         data = np.ones((2, 3, 4), dtype=np.float32)
         result = build_spotdata_cube(
             data,
-            "air_temperature",
-            "degC",
-            self.altitude,
-            self.latitude,
-            self.longitude,
-            self.wmo_id,
+            *self.args,
             neighbour_methods=self.neighbour_methods,
             grid_attributes=self.grid_attributes,
         )
@@ -175,12 +181,7 @@ class Test_build_spotdata_cube(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             build_spotdata_cube(
                 data,
-                "air_temperature",
-                "degC",
-                self.altitude,
-                self.latitude,
-                self.longitude,
-                self.wmo_id,
+                *self.args,
                 neighbour_methods=self.neighbour_methods,
                 grid_attributes=self.grid_attributes,
             )
@@ -194,12 +195,7 @@ class Test_build_spotdata_cube(IrisTest):
         data = np.ones((2, 4), dtype=np.float32)
         result = build_spotdata_cube(
             data,
-            "air_temperature",
-            "degC",
-            self.altitude,
-            self.latitude,
-            self.longitude,
-            self.wmo_id,
+            *self.args,
             scalar_coords=[time_coord, frt_coord, fp_coord],
             neighbour_methods=self.neighbour_methods,
         )
