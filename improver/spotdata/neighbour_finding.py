@@ -587,7 +587,13 @@ class NeighbourSelection(BasePlugin):
 
         # Create a list of WMO IDs if available. These are stored as strings
         # to accommodate the use of 'None' for unset IDs.
-        wmo_ids = [str(site.get("wmo_id", None)) for site in sites]
+        wmo_ids = []
+        for site in sites:
+            site_id = site.get("wmo_id", None)
+            if site_id:
+                wmo_ids.append("{:05d}".format(site["wmo_id"]))
+            else:
+                wmo_ids.append("None")
 
         # Construct a name to describe the neighbour finding method employed
         method_name = self.neighbour_finding_method_name()

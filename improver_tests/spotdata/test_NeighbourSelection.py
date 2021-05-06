@@ -668,12 +668,13 @@ class Test_process(Test_NeighbourSelection):
 
     def test_wmo_ids(self):
         """Test that the returned cube has the wmo_ids present when they are
-        available. Should be None when they are not provided."""
+        available. Should be None when they are not provided. WMO IDs are
+        stored as 5 digits encoded as strings, so zero-padding is expected."""
 
         plugin = NeighbourSelection()
         sites = self.global_sites + [self.global_sites.copy()[0].copy()]
         sites[1]["wmo_id"] = None
-        expected = ["1", "None"]
+        expected = ["00001", "None"]
 
         result = plugin.process(sites, self.global_orography, self.global_land_mask)
 
