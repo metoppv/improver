@@ -111,6 +111,10 @@ class Test_build_spotdata_cube(IrisTest):
         self.assertArrayEqual(
             result.coord("met_office_site_id").points, self.unique_site_id
         )
+        self.assertEqual(
+            result.coord("met_office_site_id").attributes["unique_site_identifier"],
+            "true",
+        )
 
     def test_site_list_with_unique_id_coordinate_missing_name(self):
         """Test an error is raised if a unique_id_coordinate is provided but

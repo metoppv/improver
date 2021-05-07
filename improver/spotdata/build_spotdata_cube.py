@@ -38,6 +38,8 @@ from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from numpy import ndarray
 
+from improver.spotdata import UNIQUE_ID_ATTRIBUTE
+
 
 def build_spotdata_cube(
     data: ndarray,
@@ -121,7 +123,10 @@ def build_spotdata_cube(
                 " provided."
             )
         unique_id_coord = AuxCoord(
-            unique_site_id, long_name=unique_site_id_name, units="no_unit"
+            unique_site_id,
+            long_name=unique_site_id_name,
+            units="no_unit",
+            attributes=UNIQUE_ID_ATTRIBUTE,
         )
 
     aux_coords_and_dims = []
