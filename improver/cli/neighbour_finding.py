@@ -50,6 +50,7 @@ def process(
     site_coordinate_options=None,
     site_x_coordinate=None,
     site_y_coordinate=None,
+    unique_site_id_name=None,
 ):
     """Create neighbour cubes for extracting spot data.
 
@@ -113,6 +114,11 @@ def process(
         site_y_coordinate (str):
             The key that identifies site y coordinates in the provided site
             dictionary. Defaults to latitude.
+        unique_site_id_name (str):
+            Key in the provided site list that corresponds to a unique ID for
+            every site. If this optional key is provided such an identifier must
+            exist for every site. This name will be used as the name for an
+            additional coordinate on the returned neighbour cube.
 
     Returns:
         iris.cube.Cube:
@@ -182,6 +188,7 @@ def process(
         "site_x_coordinate": site_x_coordinate,
         "node_limit": node_limit,
         "site_y_coordinate": site_y_coordinate,
+        "unique_site_id_name": unique_site_id_name,
     }
     fargs = (site_list, orography, land_sea_mask)
     kwargs = {k: v for (k, v) in args.items() if v is not None}
