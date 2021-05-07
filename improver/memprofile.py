@@ -37,19 +37,20 @@ from datetime import datetime
 from queue import Queue
 from resource import RUSAGE_SELF, getrusage
 from threading import Thread
+from typing import Callable, Tuple
 
 
-def memory_profile_start(outfile_prefix):
+def memory_profile_start(outfile_prefix: str) -> Tuple[Thread, Queue]:
     """Starts the memory tracking profiler.
 
     Args:
-        outfile_prefix (str):
+        outfile_prefix:
             Prefix for the generated output. 2 files will
             be generated: \\*_SNAPSHOT and \\*_MAX_TRACKER.
 
     Returns:
-        Active Thread tracking the memory.
-        Active Queue for communication to the thread.
+        - Active Thread tracking the memory.
+        - Active Queue for communication to the thread.
     """
     queue = Queue()
     thread = Thread(target=memory_monitor, args=(queue, outfile_prefix))
@@ -57,20 +58,20 @@ def memory_profile_start(outfile_prefix):
     return thread, queue
 
 
-def memory_profile_end(queue, thread):
+def memory_profile_end(queue: Queue, thread: Thread) -> None:
     """Ends the memory tracking profiler.
 
     Args:
-        queue (queue.Queue):
+        queue:
             Active queue instance to communicate with active thread.
-        thread (thread.Thread):
+        thread:
             Active thread instance running memory tracking.
     """
     queue.put("Stop")
     thread.join()
 
 
-def memory_monitor(queue, outfile_prefix):
+def memory_monitor(queue: Queue, outfile_prefix: str) -> None:
     """Function to track memory usage, should be run in a separate
     thread to the main program.
 
@@ -79,9 +80,9 @@ def memory_monitor(queue, outfile_prefix):
     performance overhead when using this.
 
     Args:
-        queue (queue.Queue):
+        queue:
             Active queue instance to communicate with the thread.
-        outfile_prefix (str):
+        outfile_prefix:
             Prefix for the generated output. 2 files will
             be generated: \\*_SNAPSHOT and \\*_MAX_TRACKER.
     """
@@ -112,15 +113,18 @@ def memory_monitor(queue, outfile_prefix):
             return
 
 
-def memory_profile_decorator(func, outfile_prefix):
+def memory_profile_decorator(func: Callable, outfile_prefix: str) -> Callable:
     """A decorator for convenience of running.
 
     Args:
         func:
             function to track the maximum memory of.
-        outfile_prefix (str):
+        outfile_prefix:
             Prefix for the generated output. 2 files will
             be generated: \\*_SNAPSHOT and \\*_MAX_TRACKER.
+
+    Returns:
+        The wrapper
     """
 
     def wrapper(*args, **kwargs):

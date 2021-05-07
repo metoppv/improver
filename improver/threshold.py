@@ -30,12 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing thresholding classes."""
 
-
 import operator
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
@@ -60,13 +61,15 @@ class BasicThreshold(PostProcessingPlugin):
 
     def __init__(
         self,
-        thresholds,
-        fuzzy_factor=None,
-        fuzzy_bounds=None,
-        threshold_units=None,
-        comparison_operator=">",
-        each_threshold_func=(),
-    ):
+        thresholds: Union[float, List[float]],
+        fuzzy_factor: Optional[float] = None,
+        fuzzy_bounds: Optional[
+            Union[Tuple[float, float], List[Tuple[float, float]]]
+        ] = None,
+        threshold_units: Optional[str] = None,
+        comparison_operator: str = ">",
+        each_threshold_func: Union[Callable, List[Callable]] = (),
+    ) -> None:
         """
         Set up for processing an in-or-out of threshold field, including the
         generation of fuzzy_bounds which are required to threshold an input
@@ -97,28 +100,28 @@ class BasicThreshold(PostProcessingPlugin):
                 7.5     |   1.0
 
         Args:
-            thresholds (float or list of float):
+            thresholds:
                 Values at which to evaluate the input data using the specified
                 comparison operator.
-            fuzzy_factor (float):
+            fuzzy_factor:
                 Optional: specifies lower bound for fuzzy membership value when
                 multiplied by each threshold. Upper bound is equivalent linear
                 distance above threshold.
-            fuzzy_bounds (tuple or list of tuple):
+            fuzzy_bounds:
                 Optional: lower and upper bounds for fuzziness. Each entry in list
                 should be a tuple of two floats representing the lower and upper
                 bounds respectively. Tuple or list should match length of (or scalar)
                 'thresholds' argument. Should not be set if fuzzy_factor is set.
-            threshold_units (str):
+            threshold_units:
                 Units of the threshold values. If not provided the units are
                 assumed to be the same as those of the input cube.
-            comparison_operator (str):
+            comparison_operator:
                 Indicates the comparison_operator to use with the threshold.
                 e.g. 'ge' or '>=' to evaluate 'data >= threshold' or '<' to
                 evaluate 'data < threshold'. When using fuzzy thresholds, there
                 is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
-            each_threshold_func (callable or sequence of callables):
+            each_threshold_func:
                 Callable or sequence of callables to apply after thresholding.
                 Eg vicinity processing or collapse over ensemble realizations.
 
@@ -168,7 +171,9 @@ class BasicThreshold(PostProcessingPlugin):
             each_threshold_func = (each_threshold_func,)
         self.each_threshold_func = each_threshold_func
 
-    def _generate_fuzzy_bounds(self, fuzzy_factor_loc):
+    def _generate_fuzzy_bounds(
+        self, fuzzy_factor_loc: float
+    ) -> List[Tuple[float, float]]:
         """Construct fuzzy bounds from a fuzzy factor.  If the fuzzy factor is 1,
         the fuzzy bounds match the threshold values for basic thresholding.
         """
@@ -181,7 +186,7 @@ class BasicThreshold(PostProcessingPlugin):
             fuzzy_bounds.append((lower_thr, upper_thr))
         return fuzzy_bounds
 
-    def _check_fuzzy_bounds(self):
+    def _check_fuzzy_bounds(self) -> None:
         """If fuzzy bounds have been set from the command line, check they
         are consistent with the required thresholds
         """
@@ -199,7 +204,7 @@ class BasicThreshold(PostProcessingPlugin):
                 raise ValueError(bounds_msg)
 
     @staticmethod
-    def _comparison_operator_dict():
+    def _comparison_operator_dict() -> Dict[str, Any]:
         """Generate dictionary linking string comparison operators to functions.
         Each key contains a dict of:
         - 'function': The operator function for this comparison_operator,
@@ -231,15 +236,15 @@ class BasicThreshold(PostProcessingPlugin):
         )
         return comparison_operator_dict
 
-    def _add_threshold_coord(self, cube, threshold):
+    def _add_threshold_coord(self, cube: Cube, threshold: float) -> None:
         """
         Add a scalar threshold-type coordinate with correct name and units
         to a 2D slice containing thresholded data.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing thresholded data (1s and 0s)
-            threshold (float):
+            threshold:
                 Value at which the data has been thresholded
         """
         coord = iris.coords.DimCoord(
@@ -249,7 +254,7 @@ class BasicThreshold(PostProcessingPlugin):
         coord.var_name = "threshold"
         cube.add_aux_coord(coord)
 
-    def _decode_comparison_operator_string(self):
+    def _decode_comparison_operator_string(self) -> None:
         """Sets self.comparison_operator based on
         self.comparison_operator_string. This is a dict containing the keys
         'function' and 'spp_string'.
@@ -270,7 +275,7 @@ class BasicThreshold(PostProcessingPlugin):
             )
             raise ValueError(msg)
 
-    def _update_metadata(self, cube):
+    def _update_metadata(self, cube: Cube) -> None:
         """Rename the cube and add attributes to the threshold coordinate
         after merging
         """
@@ -289,7 +294,7 @@ class BasicThreshold(PostProcessingPlugin):
         )
         cube.units = Unit(1)
 
-    def process(self, input_cube):
+    def process(self, input_cube: Cube) -> Cube:
         """Convert each point to a truth value based on provided threshold
         values. The truth value may or may not be fuzzy depending upon if
         fuzzy_bounds are supplied.  If the plugin has a "threshold_units"
@@ -297,14 +302,13 @@ class BasicThreshold(PostProcessingPlugin):
         the units of the input cube.
 
         Args:
-            input_cube (iris.cube.Cube):
+            input_cube:
                 Cube to threshold. The code is dimension-agnostic.
 
         Returns:
-            iris.cube.Cube:
-                Cube after a threshold has been applied. The data within this
-                cube will contain values between 0 and 1 to indicate whether
-                a given threshold has been exceeded or not.
+            Cube after a threshold has been applied. The data within this
+            cube will contain values between 0 and 1 to indicate whether
+            a given threshold has been exceeded or not.
 
                 The cube meta-data will contain:
                 * Input_cube name prepended with
@@ -318,7 +322,6 @@ class BasicThreshold(PostProcessingPlugin):
 
         Raises:
             ValueError: if a np.nan value is detected within the input cube.
-
         """
         if np.isnan(input_cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")

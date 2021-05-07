@@ -32,11 +32,14 @@
 
 import copy
 import itertools
+from typing import Optional, Tuple, Union
 
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import RMDI
@@ -55,7 +58,7 @@ Z0M_SEA = 0.0001
 
 
 class FrictionVelocity(BasePlugin):
-    """"Class to calculate the friction velocity.
+    """Class to calculate the friction velocity.
 
     This holds the function to calculate the friction velocity u_star,
     given a reference height h_ref, the velocity at the reference
@@ -63,24 +66,25 @@ class FrictionVelocity(BasePlugin):
 
     """
 
-    def __init__(self, u_href, h_ref, z_0, mask):
+    def __init__(
+        self, u_href: ndarray, h_ref: ndarray, z_0: ndarray, mask: ndarray
+    ) -> None:
         """Initialise the class.
 
         Args:
-            u_href (numpy.ndarray):
+            u_href:
                 A 2D array of float32 for the wind speed at h_ref
-            h_ref (numpy.ndarray):
+            h_ref:
                 A 2D array of float32 for the reference heights
-            z_0 (numpy.ndarray):
+            z_0:
                 A 2D array of float32 for the vegetative roughness lengths
-            mask (numpy.ndarray):
+            mask:
                 A 2D array of booleans where True indicates calculate u*
 
         Notes:
             * z_0 and h_ref need to have identical units.
             * the calculated friction velocity will have the units of the
                 supplied velocity u_href.
-
         """
         self.u_href = u_href
         self.h_ref = h_ref
@@ -93,7 +97,7 @@ class FrictionVelocity(BasePlugin):
         if not all(x == array_sizes[0] for x in array_sizes):
             raise ValueError("Different size input arrays u_href, h_ref, z_0, " "mask")
 
-    def process(self):
+    def process(self) -> ndarray:
         """Function to calculate the friction velocity.
 
         ustar = K * (u_href / ln(h_ref / z_0))
@@ -104,9 +108,7 @@ class FrictionVelocity(BasePlugin):
         roughness length.
 
         Returns:
-            numpy.ndarray:
-                A 2D array of float32 friction velocities
-
+            A 2D array of float32 friction velocities
         """
         ustar = np.full(self.u_href.shape, RMDI, dtype=np.float32)
         numerator = self.u_href[self.mask]
@@ -130,37 +132,44 @@ class RoughnessCorrectionUtilities:
      * model grid orography interpolated on post-processing grid modoro
      * height level 3D/ 1D grid
      * windspeed 3D field on height level 3D grid (from above).
-
     """
 
-    def __init__(self, a_over_s, sigma, z_0, pporo, modoro, ppres, modres):
+    def __init__(
+        self,
+        a_over_s: ndarray,
+        sigma: ndarray,
+        z_0: ndarray,
+        pporo: ndarray,
+        modoro: ndarray,
+        ppres: float,
+        modres: float,
+    ) -> None:
         """Set up roughness and height correction.
 
         This sets up the parameters used for roughness and height
         correction given the ancillary file inputs:
 
         Args:
-            a_over_s (numpy.ndarray):
+            a_over_s:
                 2D array float32 - Silhouette roughness field, dimensionless
                 ancillary data, calculated according to Robinson, D. (2008)
                 - Ancillary file creation for the UM, Unified Model
                 Documentation Paper 73.
-            sigma (numpy.ndarray):
+            sigma:
                 2D array float32 - Standard deviation field of height in the
                 grid cell, units of length
-            z_0 (numpy.ndarray):
+            z_0:
                 2D array float32 - Vegetative roughness height field,
                 units of length
-            pporo (numpy.ndarray):
+            pporo:
                 2D array float32 - Post processing grid orography field
-            modoro (numpy.ndarray):
+            modoro:
                 2D array float32 - Model orography field interpolated to post
                 processing grid
-            ppres (float):
+            ppres:
                 Float - Grid cell length of post processing grid
-            modres (float):
+            modres:
                 Float - Grid cell length of model grid
-
         """
         self.a_over_s = a_over_s
         self.z_0 = z_0
@@ -179,7 +188,7 @@ class RoughnessCorrectionUtilities:
         self._refinemask()  # HC mask needs to be updated for missing orography
         self.h_at0 = self._delta_height()  # pp orography - model orography
 
-    def _refinemask(self):
+    def _refinemask(self) -> None:
         """Remask over RMDI and NaN orography.
 
         The mask for HC needs to be False where either of the
@@ -187,14 +196,13 @@ class RoughnessCorrectionUtilities:
         done before because the mask is used to calculate the
         wavenumber which can and should be calculated for all points
         where h_over_2 and a_over_s is a valid number.
-
         """
         self.hcmask[self.pporo == RMDI] = False
         self.hcmask[self.modoro == RMDI] = False
         self.hcmask[np.isnan(self.pporo)] = False
         self.hcmask[np.isnan(self.modoro)] = False
 
-    def _setmask(self):
+    def _setmask(self) -> Tuple[ndarray, ndarray]:
         """Create a ~land-sea mask.
 
         Create a mask that is basically a land-sea mask:
@@ -203,14 +211,10 @@ class RoughnessCorrectionUtilities:
         h_over_2.
 
         Returns:
-            (tuple): tuple containing:
-                **hcmask** (numpy.ndarray):
-                    2D array of booleans- True for land-points,
-                    false for Sea (HC)
-                **rcmask** (numpy.ndarray):
-                    2D array of booleans- additionally False for
-                    invalid z_0 (RC)
-
+            - 2D array of booleans- True for land-points,
+              false for Sea (HC)
+            - 2D array of booleans- additionally False for
+              invalid z_0 (RC)
         """
         hcmask = np.full(self.h_over_2.shape, True, dtype=bool)
         hcmask[self.h_over_2 <= 0] = False
@@ -224,7 +228,7 @@ class RoughnessCorrectionUtilities:
         return hcmask, rcmask
 
     @staticmethod
-    def sigma2hover2(sigma):
+    def sigma2hover2(sigma: ndarray) -> ndarray:
         """Calculate the half peak-to-trough height.
 
         The ancillary data used to estimate the peak to trough height
@@ -237,24 +241,22 @@ class RoughnessCorrectionUtilities:
         height (h_o_2).
 
         Args:
-            sigma (numpy.ndarray):
+            sigma:
                 2D array of float32 - standard deviation of height in
                 grid cell.
 
         Returns:
-            numpy.ndarray:
-                2D array of float32 - half peak-to-trough height.
+            2D array of float32 - half peak-to-trough height.
 
         Comments:
             Points that had sigma = 0 (i.e. sea points) are set to
             RMDI.
-
         """
         h_o_2 = np.full(sigma.shape, RMDI, dtype=np.float32)
         h_o_2[sigma > 0] = sigma[sigma > 0] * np.sqrt(2.0)
         return h_o_2
 
-    def _calc_wav(self):
+    def _calc_wav(self) -> ndarray:
         """Calculate wavenumber k of typical orographic lengthscale.
 
         Function to calculate wavenumber k of typical orographic
@@ -298,10 +300,8 @@ class RoughnessCorrectionUtilities:
               = \\rm{a\\_over\\_s} * \\pi / \\rm{h\\_over\\_2}
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - wavenumber in units of inverse units of
-                supplied h_over_2.
-
+            2D array float32 - wavenumber in units of inverse units of
+            supplied h_over_2.
         """
         wavn = np.full(self.a_over_s.shape, RMDI, dtype=np.float32)
         wavn[self.hcmask] = (self.a_over_s[self.hcmask] * np.pi) / self.h_over_2[
@@ -312,7 +312,7 @@ class RoughnessCorrectionUtilities:
         wavn[abs(wavn) < np.pi / self.dx_max] = np.pi / self.dx_max
         return wavn
 
-    def _calc_h_ref(self):
+    def _calc_h_ref(self) -> ndarray:
         """Calculate the reference height for roughness correction.
 
         The reference height below which the flow is in equilibrium
@@ -333,9 +333,7 @@ class RoughnessCorrectionUtilities:
         epsilon in both Vosper and Clark)
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - reference height for roughness correction
-
+            2D array float32 - reference height for roughness correction
         """
         alpha = -np.log(ABSOLUTE_CORRECTION_TOL)
         tunable_param = np.full(self.wavenum.shape, RMDI, dtype=np.float32)
@@ -352,29 +350,29 @@ class RoughnessCorrectionUtilities:
         h_ref[~self.hcmask] = 0.0
         return h_ref
 
-    def calc_roughness_correction(self, hgrid, uold, mask):
+    def calc_roughness_correction(
+        self, hgrid: ndarray, uold: ndarray, mask: ndarray
+    ) -> ndarray:
         """Function to perform the roughness correction.
 
         Args:
-            hgrid (numpy.ndarray):
+            hgrid:
                 3D or 1D array float32 - height above orography
-            uold (numpy.ndarray):
+            uold:
                 3D array float32 - original velocities at hgrid.
-            mask (numpy.ndarray):
+            mask:
                  2D array of bools that is True for land-points, False for Sea
                  and False for invalid z_0.
 
         Returns:
-            numpy.ndarray:
-                3D np.array float32 - Corrected wind speed on hgrid. Above
-                href, this is equal to uold.
+            3D np.array float32 - Corrected wind speed on hgrid. Above
+            href, this is equal to uold.
 
         Comments:
             Replace the windspeed profile below the reference height with one
             that increases logarithmically with height, bound by the original
             velocity uhref at the reference height h_ref and by a 0 velocity at
             the vegetative roughness height z_0
-
         """
         uhref = self._calc_u_at_h(uold, hgrid, self.h_ref, mask)
         if hgrid.ndim == 1:
@@ -397,25 +395,30 @@ class RoughnessCorrectionUtilities:
 
         return unew
 
-    def _calc_u_at_h(self, u_in, h_in, hhere, mask, dolog=False):
+    def _calc_u_at_h(
+        self,
+        u_in: ndarray,
+        h_in: ndarray,
+        hhere: ndarray,
+        mask: ndarray,
+        dolog: bool = False,
+    ) -> ndarray:
         """Function to interpolate u_in on h_in at hhere.
 
         Args:
-            u_in (numpy.ndarray):
+            u_in:
                 3D array float32 - velocity on h_in layer, last dim is height
-            h_in(numpy.ndarray):
+            h_in:
                 3D or 1D array float32 - height layer array
-            hhere (numpy.ndarray):
+            hhere:
                 2D array float32 - height grid to interpolate at
-            mask (numpy.ndarray):
+            mask:
                 2D array of bools - mask the final result for uath
-            dolog (bool):
+            dolog:
                 if True, log interpolation, default False
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - velocity interpolated at h
-
+            2D array float32 - velocity interpolated at h
         """
         u_in = np.ma.masked_less(u_in, 0.0)
         h_in = np.ma.masked_less(h_in, 0.0)
@@ -464,26 +467,26 @@ class RoughnessCorrectionUtilities:
         return uath
 
     @staticmethod
-    def _interpolate_1d(xup, xlow, at_x, yup, ylow):
+    def _interpolate_1d(
+        xup: ndarray, xlow: ndarray, at_x: ndarray, yup: ndarray, ylow: ndarray
+    ) -> ndarray:
         """Simple 1D linear interpolation for 2D grid inputs level.
 
         Args:
-            xup (numpy.ndarray):
+            xup:
                 2D array float32 - upper x-bins
-            xlow (numpy.ndarray):
+            xlow:
                 2D array float32 - lower x-bins
-            at_x (numpy.ndarray):
+            at_x:
                 2D array float32 - x values to interpolate y at
-            yup (numpy.ndarray):
+            yup:
                 2D array float32 - y(xup)
-            ylow (numpy.ndarray):
+            ylow:
                 2D array float32 - y(xlow)
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - y(at_x) assuming a lin function
-                between xlow and xup
-
+            2D array float32 - y(at_x) assuming a lin function
+            between xlow and xup
         """
         interp = np.full(xup.shape, RMDI, dtype=np.float32)
         diffs = xup - xlow
@@ -496,27 +499,27 @@ class RoughnessCorrectionUtilities:
         return interp
 
     @staticmethod
-    def _interpolate_log(xup, xlow, at_x, yup, ylow):
+    def _interpolate_log(
+        xup: ndarray, xlow: ndarray, at_x: ndarray, yup: ndarray, ylow: ndarray
+    ) -> ndarray:
         """Simple 1D log interpolation y(x), except if lowest layer is
         ground level.
 
         Args:
-            xup (numpy.ndarray):
+            xup:
                 2D array float32 - upper x-bins
-            xlow (numpy.ndarray):
+            xlow:
                 2D array float32 - lower x-bins
-            at_x (numpy.ndarray):
+            at_x:
                 2D array float32 - x values to interpolate y at
-            yup (numpy.ndarray):
+            yup:
                 2D array float32 - y(xup)
-            ylow (numpy.ndarray):
+            ylow:
                 2D array float32 -y(xlow)
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - y(at_x) assuming a log function
-                between xlow and xup
-
+            2D array float32 - y(at_x) assuming a log function
+            between xlow and xup
         """
         ain = np.full(xup.shape, RMDI, dtype=np.float32)
         loginterp = np.full(xup.shape, RMDI, dtype=np.float32)
@@ -530,23 +533,28 @@ class RoughnessCorrectionUtilities:
         loginterp[mtest] = yup[mtest]
         return loginterp
 
-    def _calc_height_corr(self, u_a, heightg, mask, onemfrac):
+    def _calc_height_corr(
+        self,
+        u_a: ndarray,
+        heightg: ndarray,
+        mask: ndarray,
+        onemfrac: Union[float, ndarray],
+    ) -> ndarray:
         """Function to calculate the additive height correction.
 
         Args:
-            u_a (numpy.ndarray):
+            u_a:
                 2D array float32 - outer velocity, e.g. velocity at h_ref_orig
-            heightg (numpy.ndarray):
+            heightg:
                 1D or 3D array float32 - heights above orography
-            mask (numpy.ndarray):
+            mask:
                 3D array of bools - Masks the hc_add result
-            onemfrac (float or numpy.ndarray):
+            onemfrac:
                 Currently, scalar = 1. But can be a function of position and
                 height, e.g. a 3D array (float32)
 
         Returns:
-            numpy.ndarray:
-                3D array float32 - additive height correction to wind speed
+            3D array float32 - additive height correction to wind speed
 
         Comments:
             The height correction is a disturbance of the flow that
@@ -562,7 +570,6 @@ class RoughnessCorrectionUtilities:
 
             A final factor of 1 is assumed and omitted for the Bessel
             function term.
-
         """
         (xdim, ydim) = u_a.shape
         if heightg.ndim == 1:
@@ -578,38 +585,34 @@ class RoughnessCorrectionUtilities:
         hc_add[~mask, :] = 0
         return hc_add
 
-    def _delta_height(self):
+    def _delta_height(self) -> ndarray:
         """Function to calculate pp-grid diff from model grid.
 
         Calculate the difference between pp-grid height and model
         grid height.
 
         Returns:
-            numpy.ndarray:
-                2D array float32 - height difference, ppgrid-model
-
+            2D array float32 - height difference, ppgrid-model
         """
         delt_z = np.full(self.pporo.shape, RMDI, dtype=np.float32)
         delt_z[self.hcmask] = self.pporo[self.hcmask] - self.modoro[self.hcmask]
         return delt_z
 
-    def do_rc_hc_all(self, hgrid, uorig):
+    def do_rc_hc_all(self, hgrid: ndarray, uorig: ndarray) -> ndarray:
         """Function to call HC and RC (height and roughness corrections).
 
         Args:
-            hgrid (numpy.ndarray):
+            hgrid:
                 1D or 3D array float32 - height grid of wind input
-            uorig (numpy.ndarray):
+            uorig:
                 3D array float32 - wind speed on these levels
 
         Returns:
-            numpy.ndarray:
-                sum of  unew: 3D array float32 - RC corrected windspeed
-                on levels HC: 3D array float32 - HC additional part
+            - RC corrected windspeed
+            - HC additional part
 
         Friedrich, M. M., 2016
         Wind Downscaling Program (Internal Met Office Report)
-
         """
         if hgrid.ndim == 3:
             condition1 = (hgrid == RMDI).any(axis=2)
@@ -644,32 +647,32 @@ class RoughnessCorrection(PostProcessingPlugin):
 
     def __init__(
         self,
-        a_over_s_cube,
-        sigma_cube,
-        pporo_cube,
-        modoro_cube,
-        modres,
-        z0_cube=None,
-        height_levels_cube=None,
-    ):
+        a_over_s_cube: Cube,
+        sigma_cube: Cube,
+        pporo_cube: Cube,
+        modoro_cube: Cube,
+        modres: float,
+        z0_cube: Cube = None,
+        height_levels_cube: Optional[Cube] = None,
+    ) -> None:
         """Initialise the RoughnessCorrection instance.
 
         Args:
-            a_over_s_cube (iris.cube.Cube):
+            a_over_s_cube:
                 2D - model silhouette roughness on pp grid. dimensionless
-            sigma_cube (iris.cube.Cube):
+            sigma_cube:
                 2D - standard deviation of model orography height on pp grid.
                 In m.
-            pporo_cube (iris.cube.Cube):
+            pporo_cube:
                 2D - pp orography. In m
-            modoro_cube (iris.cube.Cube):
+            modoro_cube:
                 2D - model orography interpolated on pp grid. In m
-            modres (float):
+            modres:
                 original average model resolution in m
-            height_levels_cube (iris.cube.Cube):
+            height_levels_cube:
                 3D or 1D - height of input velocity field.
                 Can be position dependent
-            z0_cube (iris.cube.Cube):
+            z0_cube:
                 2D - vegetative roughness length in m. If not given, do not do
                 any RC
         """
@@ -703,24 +706,18 @@ class RoughnessCorrection(PostProcessingPlugin):
         self.z_name = None
         self.t_name = None
 
-    def find_coord_names(self, cube):
+    def find_coord_names(self, cube: Cube) -> Tuple[str, str, str, str]:
         """Extract x, y, z, and time coordinate names.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 some iris cube to find coordinate names from
 
         Returns:
-            (tuple): tuple containing:
-                **xname** (str):
-                    name of the axis name in x-direction
-                **yname** (str):
-                    name of the axis name in y-direction
-                **zname** (str):
-                    name of the axis name in z-direction
-                **tname** (str):
-                    name of the axis name in t-direction
-
+            - name of the axis name in x-direction
+            - name of the axis name in y-direction
+            - name of the axis name in z-direction
+            - name of the axis name in t-direction
         """
         clist = {cube.coords()[i].name() for i in range(len(cube.coords()))}
         try:
@@ -742,17 +739,15 @@ class RoughnessCorrection(PostProcessingPlugin):
             tname = None
         return xname, yname, zname, tname
 
-    def calc_av_ppgrid_res(self, a_cube):
+    def calc_av_ppgrid_res(self, a_cube: Cube) -> float:
         """Calculate average grid resolution from a cube.
 
         Args:
-            a_cube (iris.cube.Cube):
+            a_cube:
                 Cube to calculate average resolution of
 
         Returns:
-            np.float32:
-                Average grid resolution.
-
+            Average grid resolution.
         """
         x_name, y_name, _, _ = self.find_coord_names(a_cube)
         [exp_xname, exp_yname] = ["projection_x_coordinate", "projection_y_coordinate"]
@@ -773,7 +768,13 @@ class RoughnessCorrection(PostProcessingPlugin):
         return (abs(xres) + abs(yres)) / 2.0
 
     @staticmethod
-    def check_ancils(a_over_s_cube, sigma_cube, z0_cube, pp_oro_cube, model_oro_cube):
+    def check_ancils(
+        a_over_s_cube: Cube,
+        sigma_cube: Cube,
+        z0_cube: Optional[Cube],
+        pp_oro_cube: Cube,
+        model_oro_cube: Cube,
+    ) -> ndarray:
         """Check ancils grid and units.
 
         Check if ancil cubes are on the same grid and if they have the
@@ -781,21 +782,19 @@ class RoughnessCorrection(PostProcessingPlugin):
         if there is a general utils function made for it or so.
 
         Args:
-            a_over_s_cube (iris.cube.Cube):
+            a_over_s_cube:
                 holding the silhouette roughness field
-            sigma_cube (iris.cube.Cube):
+            sigma_cube:
                 holding the standard deviation of height in a grid cell
-            z0_cube (iris.cube.Cube or None):
+            z0_cube:
                 holding the vegetative roughness field
-            pp_oro_cube (iris.cube.Cube):
+            pp_oro_cube:
                 holding the post processing grid orography
-            model_oro_cube (iris.cube.Cube):
+            model_oro_cube:
                 holding the model orography on post processing grid
 
         Returns:
-            numpy.ndarray:
-                Containing bools describing whether or not the tests passed
-
+            Containing bools describing whether or not the tests passed
         """
         ancil_list = [a_over_s_cube, sigma_cube, pp_oro_cube, model_oro_cube]
         unwanted_coord_list = [
@@ -838,7 +837,7 @@ class RoughnessCorrection(PostProcessingPlugin):
             # entr[1])
         return np.array(oklist).all()  # replace by a return value of True
 
-    def find_coord_order(self, mcube):
+    def find_coord_order(self, mcube: Cube) -> Tuple[int, int, int, int]:
         """Extract coordinate ordering within a cube.
 
         Use coord_dims to assess the dimension associated with a particular
@@ -846,20 +845,14 @@ class RoughnessCorrection(PostProcessingPlugin):
         then a NaN value will be returned for that coordinate.
 
         Args:
-            mcube (iris.cube.Cube):
+            mcube:
                 cube to check the order of coordinate axis
 
         Returns:
-            (tuple): tuple containing:
-                **xpos** (int):
-                    position of x axis.
-                **ypos** (int):
-                    position of y axis.
-                **zpos** (int):
-                    position of z axis.
-                **tpos** (int):
-                    position of t axis.
-
+            - position of x axis.
+            - position of y axis.
+            - position of z axis.
+            - position of t axis.
         """
         coord_names = [self.x_name, self.y_name, self.z_name, self.t_name]
         positions = len(coord_names) * [np.nan]
@@ -868,7 +861,7 @@ class RoughnessCorrection(PostProcessingPlugin):
                 (positions[coord_index],) = mcube.coord_dims(coord_name)
         return positions
 
-    def find_heightgrid(self, wind):
+    def find_heightgrid(self, wind: Cube) -> ndarray:
         """Setup the height grid.
 
         Setup the height grid either from the 1D or 3D height grid
@@ -876,13 +869,11 @@ class RoughnessCorrection(PostProcessingPlugin):
         from the wind grid.
 
         Args:
-            wind (iris.cube.Cube):
+            wind:
                 3D or 4D - representing the wind data.
 
         Returns:
-            numpy.ndarray:
-                1D or 3D array - representing the height grid.
-
+            1D or 3D array - representing the height grid.
         """
         if self.height_levels is None:
             hld = wind.coord(self.z_name).points
@@ -910,18 +901,17 @@ class RoughnessCorrection(PostProcessingPlugin):
             hld = hld.data
         return hld
 
-    def check_wind_ancil(self, xwp, ywp):
+    def check_wind_ancil(self, xwp: int, ywp: int) -> None:
         """Check wind vs ancillary file grids.
 
         Check if wind and ancillary files are on the same grid and if
         they have the same ordering.
 
         Args:
-            xwp (int):
+            xwp:
                 representing the position of the x-axis in the wind cube
-            ywp (int):
+            ywp:
                 representing the position of the y-axis of the wind cube
-
         """
         xap, yap, _, _ = self.find_coord_order(self.pp_oro)
         if xwp - ywp != xap - yap:
@@ -929,23 +919,20 @@ class RoughnessCorrection(PostProcessingPlugin):
                 raise ValueError("ancillary grid different from wind grid")
             raise ValueError("xy-orientation: ancillary differ from wind")
 
-    def process(self, input_cube):
+    def process(self, input_cube: Cube) -> Cube:
         """Adjust the 4d wind field - cube - (x, y, z including times).
 
         Args:
-            input_cube (iris.cube.Cube):
+            input_cube:
                 The wind cube to be operated upon. Should be wind speed on
                 height_levels for all desired forecast times.
 
         Returns:
-            iris.cube.Cube:
-                The 4d wind field with roughness and height correction
-                applied in the same order as the input cube.
+            The 4d wind field with roughness and height correction
+            applied in the same order as the input cube.
 
-        Raises
-        ------
-        TypeError: If input_cube is not a cube.
-
+        Raises:
+            TypeError: If input_cube is not a cube.
         """
         if not isinstance(input_cube, iris.cube.Cube):
             msg = "wind input is not a cube, but {}"

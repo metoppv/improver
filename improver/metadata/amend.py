@@ -30,8 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing utilities for modifying cube metadata"""
 from datetime import datetime
+from typing import Any, Dict, List, Union
 
 from dateutil import tz
+from iris.cube import Cube, CubeList
 
 from improver.metadata.constants.mo_attributes import (
     GRID_ID_LOOKUP,
@@ -39,18 +41,15 @@ from improver.metadata.constants.mo_attributes import (
 )
 
 
-def update_stage_v110_metadata(cube):
+def update_stage_v110_metadata(cube: Cube) -> None:
     """Translates attributes relating to the grid_id attribute from StaGE
     version 1.1.0 to later StaGE versions.
     Cubes that have no "grid_id" attribute are not recognised as v1.1.0 and
     are ignored.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to modify attributes in (modified in place)
-
-    Returns:
-        None
     """
     try:
         grid_id = cube.attributes.pop("grid_id")
@@ -61,14 +60,14 @@ def update_stage_v110_metadata(cube):
     cube.attributes["mosg__grid_version"] = "1.1.0"
 
 
-def amend_attributes(cube, attributes_dict):
+def amend_attributes(cube: Cube, attributes_dict: Dict[str, Any]) -> None:
     """
     Add, update or remove attributes from a cube.  Modifies cube in place.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Input cube
-        attributes_dict (dict):
+        attributes_dict:
             Dictionary containing items of the form {attribute_name: value}.
             The "value" item is either the string "remove" or the new value
             of the attribute required.
@@ -80,18 +79,18 @@ def amend_attributes(cube, attributes_dict):
             cube.attributes[attribute_name] = value
 
 
-def set_history_attribute(cube, value, append=False):
+def set_history_attribute(cube: Cube, value: str, append: bool = False) -> None:
     """Add a history attribute to a cube. This uses the current datetime to
     generate the timestamp for the history attribute. The new history attribute
     will overwrite any existing history attribute unless the "append" option is
     set to True. The history attribute is of the form "Timestamp: Description".
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The cube to which the history attribute will be added.
-        value (str):
+        value:
             String defining details to be included in the history attribute.
-        append (bool):
+        append:
             If True, add to the existing history rather than replacing the
             existing attribute.  Default is False.
     """
@@ -104,21 +103,22 @@ def set_history_attribute(cube, value, append=False):
         cube.attributes["history"] = new_history
 
 
-def update_model_id_attr_attribute(cubes, model_id_attr):
+def update_model_id_attr_attribute(
+    cubes: Union[List[Cube], CubeList], model_id_attr: str
+) -> Dict:
     """Update the dictionary with the unique values of the model_id_attr
     attribute from within the input cubes. The model_id_attr attribute is
     expected on all cubes.
 
     Args:
-        cubes (list or iris.cube.CubeList):
+        cubes:
             List of input cubes that might have a model_id_attr attribute.
-        model_id_attr (str):
+        model_id_attr:
             Name of attribute expected on the input cubes. This attribute is
             expected on the cubes as a space-separated string.
 
     Returns:
-        dict:
-            Dictionary containing a model_id_attr key, if available.
+        Dictionary containing a model_id_attr key, if available.
 
     Raises:
         AttributeError: Expected to find the model_id_attr attribute on all

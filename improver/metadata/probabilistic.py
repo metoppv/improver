@@ -31,20 +31,26 @@
 """Utilities for interrogating IMPROVER probabilistic metadata"""
 
 import re
+from typing import Match, Optional
 
 import iris
+from iris.coords import Coord
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 
-def probability_cube_name_regex(cube_name):
+def probability_cube_name_regex(cube_name: str) -> Optional[Match]:
     """
     Regular expression matching IMPROVER probability cube name.  Returns
     None if the cube_name does not match the regular expression (ie does
     not start with 'probability_of').
 
     Args:
-        cube_name (str):
+        cube_name:
             Probability cube name
+
+    Returns:
+        The regex match
     """
     regex = re.compile(
         "(probability_of_)"  # always starts this way
@@ -55,19 +61,18 @@ def probability_cube_name_regex(cube_name):
     return regex.match(cube_name)
 
 
-def in_vicinity_name_format(cube_name):
+def in_vicinity_name_format(cube_name: str) -> str:
     """Generate the correct name format for an 'in_vicinity' probability
     cube, taking into account the 'above/below_threshold' or
     'between_thresholds' suffix required by convention.
 
     Args:
-        cube_name (str):
+        cube_name:
             The non-vicinity probability cube name to be formatted.
 
     Returns:
-        str:
-            Correctly formatted name following the accepted convention e.g.
-            'probability_of_X_in_vicinity_above_threshold'.
+        Correctly formatted name following the accepted convention e.g.
+        'probability_of_X_in_vicinity_above_threshold'.
     """
     regex = probability_cube_name_regex(cube_name)
     new_cube_name = "probability_of_{diag}_in_vicinity{thresh}".format(
@@ -76,20 +81,20 @@ def in_vicinity_name_format(cube_name):
     return new_cube_name
 
 
-def get_threshold_coord_name_from_probability_name(cube_name):
+def get_threshold_coord_name_from_probability_name(cube_name: str) -> str:
     """Get the name of the threshold coordinate from the name of the probability
     cube.  This can be used to set or modify a threshold coordinate name after
     renaming or conversion from probabilities to percentiles / realizations."""
     return _extract_diagnostic_name(cube_name)
 
 
-def get_diagnostic_cube_name_from_probability_name(cube_name):
+def get_diagnostic_cube_name_from_probability_name(cube_name: str) -> str:
     """Get the name of the original diagnostic cube, including vicinity, from
     the name of the probability cube."""
     return _extract_diagnostic_name(cube_name, check_vicinity=True)
 
 
-def _extract_diagnostic_name(cube_name, check_vicinity=False):
+def _extract_diagnostic_name(cube_name: str, check_vicinity: bool = False) -> str:
     """
     Extract the standard or long name X of the diagnostic from a probability
     cube name of the form 'probability_of_X_above/below_threshold',
@@ -97,9 +102,9 @@ def _extract_diagnostic_name(cube_name, check_vicinity=False):
     'probability_of_X_in_vicinity_above/below_threshold'.
 
     Args:
-        cube_name (str):
+        cube_name:
             The probability cube name
-        check_vicinity (bool):
+        check_vicinity:
             If False the function will return X as described above, which matches
             the name of the threshold-type coordinate on the cube.  If True, the
             cube name is checked to see whether it is a vicinity diagnostic, and
@@ -107,8 +112,7 @@ def _extract_diagnostic_name(cube_name, check_vicinity=False):
             equivalent diagnostic in percentile or realization space.
 
     Returns:
-        str:
-            The name of the diagnostic underlying this probability
+        The name of the diagnostic underlying this probability
 
     Raises:
         ValueError: If the input name does not match the expected regular
@@ -127,7 +131,7 @@ def _extract_diagnostic_name(cube_name, check_vicinity=False):
     return diagnostic_name
 
 
-def is_probability(cube):
+def is_probability(cube: Cube) -> bool:
     """Determines whether an iris.cube.Cube contains probability data at
     a range of thresholds"""
     try:
@@ -137,19 +141,18 @@ def is_probability(cube):
     return True
 
 
-def find_threshold_coordinate(cube):
+def find_threshold_coordinate(cube: Cube) -> Coord:
     """Find threshold coordinate in cube.
 
     Compatible with both the old (cube.coord("threshold")) and new
     (cube.coord.var_name == "threshold") IMPROVER metadata standards.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube containing thresholded probability data
 
     Returns:
-        iris.coords.Coord:
-            Threshold coordinate
+        Threshold coordinate
 
     Raises:
         TypeError: If cube is not of type iris.cube.Cube.
@@ -178,19 +181,18 @@ def find_threshold_coordinate(cube):
     return threshold_coord
 
 
-def probability_is_above_or_below(cube):
+def probability_is_above_or_below(cube: Cube) -> Optional[str]:
     """Checks the spp__relative_to_threshold attribute and outputs
     whether it is above or below the threshold given. If there isn't
     a spp__relative_to_threshold attribute it returns None.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube containing thresholded probability data
 
     Returns:
-        str:
-            Which indicates whether the cube has data that is
-            above or below the threshold
+        Which indicates whether the cube has data that is
+        above or below the threshold
     """
 
     threshold_attribute = None
@@ -204,15 +206,16 @@ def probability_is_above_or_below(cube):
     return threshold_attribute
 
 
-def find_percentile_coordinate(cube):
+def find_percentile_coordinate(cube: Cube) -> Coord:
     """Find percentile coord in cube.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube contain one or more percentiles.
+
     Returns:
-        iris.coords.Coord:
-            Percentile coordinate.
+        Percentile coordinate.
+
     Raises:
         TypeError: If cube is not of type iris.cube.Cube.
         CoordinateNotFoundError: If no percentile coordinate is found in cube.
@@ -243,14 +246,14 @@ def find_percentile_coordinate(cube):
     return perc_coord
 
 
-def format_cell_methods_for_probability(cube, threshold_name):
+def format_cell_methods_for_probability(cube: Cube, threshold_name: str) -> None:
     """Update cell methods on a diagnostic cube to reflect the fact that the
     data to which they now refer is on a coordinate.  Modifies cube in place.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to update
-        threshold_name (str):
+        threshold_name:
             Name of the threshold-type coordinate to which the cell
             method now refers
     """
@@ -266,12 +269,12 @@ def format_cell_methods_for_probability(cube, threshold_name):
     cube.cell_methods = cell_methods
 
 
-def format_cell_methods_for_diagnostic(cube):
+def format_cell_methods_for_diagnostic(cube: Cube) -> None:
     """Remove reference to threshold-type coordinate from cell method comments that
     were previously on a probability cube.  Modifies cube in place.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to update
     """
     cell_methods = []

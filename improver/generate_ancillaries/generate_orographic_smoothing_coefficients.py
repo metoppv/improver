@@ -31,9 +31,12 @@
 """A module for creating orographic smoothing coefficients"""
 
 import operator
+from typing import Dict, Optional
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -76,36 +79,36 @@ class OrographicSmoothingCoefficients(BasePlugin):
 
     def __init__(
         self,
-        min_gradient_smoothing_coefficient=0.5,
-        max_gradient_smoothing_coefficient=0.0,
-        power=1,
-        use_mask_boundary=False,
-        invert_mask=False,
-    ):
+        min_gradient_smoothing_coefficient: float = 0.5,
+        max_gradient_smoothing_coefficient: float = 0.0,
+        power: float = 1,
+        use_mask_boundary: bool = False,
+        invert_mask: bool = False,
+    ) -> None:
         """
         Initialise class.
 
         Args:
-            min_gradient_smoothing_coefficient (float):
+            min_gradient_smoothing_coefficient:
                 The value of recursive filter smoothing_coefficient to be used
                 where the orography gradient is a minimum. Generally this number
                 will be larger than the max_gradient_smoothing_coefficient as
                 quantities are likely to be smoothed more across flat terrain.
-            max_gradient_smoothing_coefficient (float):
+            max_gradient_smoothing_coefficient:
                 The value of recursive filter smoothing_coefficient to be used
                 where the orography gradient is a maximum. Generally this number
                 will be smaller than the min_gradient_smoothing_coefficient as
                 quantities are likely to be smoothed less across complex terrain.
-            power (float):
+            power:
                 The power to be used in the smoothing_coefficient equation
-            use_mask_boundary (bool):
+            use_mask_boundary:
                 A mask can be provided to this plugin to define a region in which
                 smoothing coefficients are set to zero, i.e. no smoothing. If this
                 option is set to True then rather than the whole masked region
                 being set to zero, only the cells that mark the transition from
                 masked to unmasked will be set to zero. The primary purpose for
                 this is to prevent smoothing across land-sea boundaries.
-            invert_mask (bool):
+            invert_mask:
                 By default, if a mask is provided and use_mask_boundary is False,
                 all the smoothing coefficients corresponding to a mask value of 1
                 will be zeroed. Setting invert_mask to True reverses this behaviour
@@ -137,21 +140,20 @@ class OrographicSmoothingCoefficients(BasePlugin):
         if invert_mask:
             self.mask_comparison = operator.le
 
-    def scale_smoothing_coefficients(self, cubes):
+    def scale_smoothing_coefficients(self, cubes: CubeList) -> CubeList:
         """
         This scales a set of smoothing_coefficients from input cubes to range
         between the min_gradient_smoothing_coefficient and the
         max_gradient_smoothing_coefficient.
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes:
                 A list of smoothing_coefficient cubes that we need to take the
                 minimum and maximum values from.
 
         Returns:
-            iris.cube.CubeList:
-                A list of smoothing_coefficient cubes scaled to within the
-                range specified.
+            A list of smoothing_coefficient cubes scaled to within the
+            range specified.
         """
         cube_min = min([abs(cube.data).min() for cube in cubes])
         cube_max = max([abs(cube.data).max() for cube in cubes])
@@ -172,7 +174,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
             scaled_cubes.append(scaled_cube)
         return scaled_cubes
 
-    def unnormalised_smoothing_coefficients(self, gradient_cube):
+    def unnormalised_smoothing_coefficients(self, gradient_cube: Cube) -> ndarray:
         """
         This generates initial smoothing_coefficient values from gradients
         using a simple power law, for which the power is set at initialisation.
@@ -180,34 +182,34 @@ class OrographicSmoothingCoefficients(BasePlugin):
         values equal to the input gradient_cube.
 
         Args:
-            gradient_cube (iris.cube.Cube):
+            gradient_cube:
                 A cube of the normalised gradient
 
         Returns:
-            numpy.ndarray:
-                An array containing the unscaled smoothing_coefficients.
+            An array containing the unscaled smoothing_coefficients.
         """
         return np.abs(gradient_cube.data) ** self.power
 
-    def create_coefficient_cube(self, data, template, cube_name, attributes):
+    def create_coefficient_cube(
+        self, data: ndarray, template: Cube, cube_name: str, attributes: Dict
+    ) -> Cube:
         """
         Update metadata in smoothing_coefficients cube. Remove any time
         coordinates and rename.
 
         Args:
-            data (numpy.ndarray):
+            data:
                 The smoothing coefficient data to store in the cube.
-            template (iris.cube.Cube):
+            template:
                 A gradient cube, the dimensions of which are used as a template
                 for the coefficient cube.
-            cube_name (str):
+            cube_name:
                 A name for the resultant cube
-            attributes (dict):
+            attributes:
                 A dictionary of attributes for the new cube.
 
         Returns:
-            iris.cube.Cube:
-                A new cube of smoothing_coefficients
+            A new cube of smoothing_coefficients
         """
         for coord in template.coords(dim_coords=False):
             for coord_name in ["time", "period", "realization"]:
@@ -227,7 +229,9 @@ class OrographicSmoothingCoefficients(BasePlugin):
             data=data,
         )
 
-    def zero_masked(self, smoothing_coefficient_x, smoothing_coefficient_y, mask):
+    def zero_masked(
+        self, smoothing_coefficient_x: Cube, smoothing_coefficient_y: Cube, mask: Cube
+    ) -> None:
         """
         Zero smoothing coefficients in regions or at boundaries defined by the
         provided mask. The changes are made in place to the input cubes. The
@@ -250,11 +254,11 @@ class OrographicSmoothingCoefficients(BasePlugin):
               unmasked are also set to 0. Has no effect if use_mask_boundary=True.
 
         Args:
-            smoothing_coefficient_x (iris.cube.Cube):
+            smoothing_coefficient_x:
                 Smoothing coefficients calculated along the x-dimension.
-            smoothing_coefficient_y (iris.cube.Cube):
+            smoothing_coefficient_y:
                 Smoothing coefficients calculated along the y-dimension.
-            mask (iris.cube.Cube):
+            mask:
                 The mask defining areas in which smoothing coefficients should
                 be zeroed.
         """
@@ -271,7 +275,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
         smoothing_coefficient_x.data[zero_points_x] = 0.0
         smoothing_coefficient_y.data[zero_points_y] = 0.0
 
-    def process(self, cube, mask=None):
+    def process(self, cube: Cube, mask: Optional[Cube] = None) -> CubeList:
         """
         This creates the smoothing_coefficient cubes. It returns one for the x
         direction and one for the y direction. It uses the
@@ -281,23 +285,20 @@ class OrographicSmoothingCoefficients(BasePlugin):
         user-specified max and min.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 A 2D field of orography on the grid for which
                 smoothing_coefficients are to be generated.
-            mask (iris.cube.Cube or None):
+            mask:
                 A mask that defines where the smoothing coefficients should
                 be zeroed. The mask must have the same spatial dimensions as
                 the orography cube. How the mask is used to zero smoothing
                 coefficients is determined by the plugin configuration arguments.
-        Returns:
-            (iris.cube.CubeList): containing:
-                **smoothing_coefficient_x** (iris.cube.Cube): A cube of
-                    orography-dependent smoothing_coefficients calculated in
-                    the x direction.
 
-                **smoothing_coefficient_y** (iris.cube.Cube): A cube of
-                    orography-dependent smoothing_coefficients calculated in
-                    the y direction.
+        Returns:
+            - A cube of orography-dependent smoothing_coefficients calculated in
+              the x direction.
+            - A cube of orography-dependent smoothing_coefficients calculated in
+              the y direction.
         """
         if not isinstance(cube, iris.cube.Cube):
             raise ValueError(

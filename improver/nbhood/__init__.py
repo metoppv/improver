@@ -30,8 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """init for nbhood"""
 
+from typing import List, Optional, Tuple, Union
 
-def radius_by_lead_time(radii, lead_times):
+
+def radius_by_lead_time(
+    radii: List[str], lead_times: Optional[List[str]] = None
+) -> Tuple[Union[float, List[float], Optional[List[int]]]]:
     """
     Parse radii and lead_times provided to CLIs that use neighbourhooding.
     If no lead times are provided, return the first radius for use at all
@@ -40,16 +44,15 @@ def radius_by_lead_time(radii, lead_times):
     an exception.
 
     Args:
-        radii (list of str):
+        radii:
             Radii as a list provided by clize.
-        lead_times (list of str or None):
+        lead_times:
             Lead times as a list provided by clize, or None if not set.
+
     Returns:
-        (tuple): tuple containing:
-            **radius_or_radii** (float or list of floats):
-                Radii as a float or list of floats.
-            **lead_times** (None or list of ints):
-                Lead times in hours as a list of ints or None.
+        - Radii as a float or list of floats.
+        - Lead times in hours as a list of ints or None.
+
     Raises:
         ValueError: If multiple radii are provided without any lead times.
         ValueError: If radii and lead_times lists are on unequal lengths.

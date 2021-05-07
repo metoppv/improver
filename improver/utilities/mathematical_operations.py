@@ -30,9 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain mathematical operations."""
 
+from typing import Any, List, Optional, Tuple, Union
+
 import iris
 import numpy as np
 import numpy.ma as ma
+from clize.parser import OptionParameter
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -56,26 +61,26 @@ class Integration(BasePlugin):
 
     def __init__(
         self,
-        coord_name_to_integrate,
-        start_point=None,
-        end_point=None,
-        positive_integration=False,
-    ):
+        coord_name_to_integrate: str,
+        start_point: Optional[float] = None,
+        end_point: Optional[float] = None,
+        positive_integration: bool = False,
+    ) -> None:
         """
         Initialise class.
 
         Args:
-            coord_name_to_integrate (str):
+            coord_name_to_integrate:
                 Name of the coordinate to be integrated.
-            start_point (float or None):
+            start_point:
                 Point at which to start the integration.
                 Default is None. If start_point is None, integration starts
                 from the first available point.
-            end_point (float or None):
+            end_point:
                 Point at which to end the integration.
                 Default is None. If end_point is None, integration will
                 continue until the last available point.
-            positive_integration (bool):
+            positive_integration:
                 Description of the direction in which to integrate.
                 True corresponds to the values within the array
                 increasing as the array index increases.
@@ -88,7 +93,7 @@ class Integration(BasePlugin):
         self.positive_integration = positive_integration
         self.input_cube = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<Integration: coord_name_to_integrate: {}, "
@@ -102,20 +107,18 @@ class Integration(BasePlugin):
         )
         return result
 
-    def ensure_monotonic_increase_in_chosen_direction(self, cube):
+    def ensure_monotonic_increase_in_chosen_direction(self, cube: Cube) -> Cube:
         """Ensure that the chosen coordinate is monotonically increasing in
         the specified direction.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube containing the coordinate to check.
                 Note that the input cube will be modified by this method.
 
         Returns:
-            iris.cube.Cube:
-                The cube containing a coordinate that is monotonically
-                increasing in the desired direction.
-
+            The cube containing a coordinate that is monotonically
+            increasing in the desired direction.
         """
         coord_name = self.coord_name_to_integrate
         increasing_order = np.all(np.diff(cube.coord(coord_name).points) > 0)
@@ -128,19 +131,16 @@ class Integration(BasePlugin):
 
         return cube
 
-    def prepare_for_integration(self):
+    def prepare_for_integration(self) -> Tuple[Cube, Cube]:
         """Prepare for integration by creating the cubes needed for the
         integration. These are separate cubes for representing the upper
         and lower limits of the integration.
 
         Returns:
-            (tuple): tuple containing:
-                **upper_bounds_cube** (iris.cube.Cube):
-                    Cube containing the upper bounds to be used during the
-                    integration.
-                **lower_bounds_cube** (iris.cube.Cube):
-                    Cube containing the lower bounds to be used during the
-                    integration.
+            - Cube containing the upper bounds to be used during the
+              integration.
+            - Cube containing the lower bounds to be used during the
+              integration.
         """
         if self.positive_integration:
             upper_bounds = self.input_cube.coord(self.coord_name_to_integrate).points[
@@ -166,7 +166,7 @@ class Integration(BasePlugin):
 
         return upper_bounds_cube, lower_bounds_cube
 
-    def _generate_output_name_and_units(self):
+    def _generate_output_name_and_units(self) -> Tuple[str, str]:
         """Gets suitable output name and units from input cube metadata"""
         new_name = f"{self.input_cube.name()}_integral"
         original_units = self.input_cube.units
@@ -174,26 +174,32 @@ class Integration(BasePlugin):
         new_units = "{} {}".format(original_units, integrated_units)
         return new_name, new_units
 
-    def _create_output_cube(self, template, data, points, bounds):
+    def _create_output_cube(
+        self,
+        template: Cube,
+        data: Union[List[float], ndarray],
+        points: Union[List[float], ndarray],
+        bounds: Union[List[float], ndarray],
+    ) -> Cube:
         """
         Populates a template cube with data from the integration
 
         Args:
-            template (iris.cube.Cube):
+            template:
                 Copy of upper or lower bounds cube, based on direction of
                 integration
-            data (list or numpy.ndarray):
+            data:
                 Integrated data
-            points (list or numpy.ndarray):
+            points:
                 Points values for the integrated coordinate. These will not
                 match the template cube if any slices were skipped in the
                 integration, and therefore are used to slice the template cube
                 to match the data array.
-            bounds (list or numpy.ndarray):
+            bounds:
                 Bounds values for the integrated coordinate
 
         Returns:
-            iris.cube.Cube
+            Cube with data from integration
         """
         # extract required slices from template cube
         template = template.extract(
@@ -231,7 +237,9 @@ class Integration(BasePlugin):
         enforce_coordinate_ordering(integrated_cube, ordered_dimensions)
         return integrated_cube
 
-    def perform_integration(self, upper_bounds_cube, lower_bounds_cube):
+    def perform_integration(
+        self, upper_bounds_cube: Cube, lower_bounds_cube: Cube
+    ) -> Cube:
         """Perform the integration.
 
         Integration is performed by firstly defining the stride as the
@@ -246,17 +254,15 @@ class Integration(BasePlugin):
         Integration is performed ONLY over positive values.
 
         Args:
-            upper_bounds_cube (iris.cube.Cube):
+            upper_bounds_cube:
                 Cube containing the upper bounds to be used during the
                 integration.
-            lower_bounds_cube (iris.cube.Cube):
+            lower_bounds_cube:
                 Cube containing the lower bounds to be used during the
                 integration.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the output from the integration.
-
+            Cube containing the output from the integration.
         """
 
         def skip_slice(upper_bound, lower_bound, direction, start_point, end_point):
@@ -336,20 +342,19 @@ class Integration(BasePlugin):
         )
         return integrated_cube
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """Integrate data along a specified coordinate.  Only positive values
         are integrated; zero and negative values are not included in the sum or
         as levels on the integrated cube.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the data to be integrated.
 
         Returns:
-            iris.cube.Cube:
-                The cube containing the result of the integration.
-                This will have the same name and units as the input cube (TODO
-                same name and units are incorrect - fix this).
+            The cube containing the result of the integration.
+            This will have the same name and units as the input cube (TODO
+            same name and units are incorrect - fix this).
         """
         self.input_cube = self.ensure_monotonic_increase_in_chosen_direction(cube)
         upper_bounds_cube, lower_bounds_cube = self.prepare_for_integration()
@@ -360,34 +365,38 @@ class Integration(BasePlugin):
 
 
 def fast_linear_fit(
-    x_data, y_data, axis=None, keepdims=False, gradient_only=False, with_nan=False
-):
+    x_data: ndarray,
+    y_data: ndarray,
+    axis: Optional[Union[int, Tuple[int, ...]]] = None,
+    keepdims: bool = False,
+    gradient_only: bool = False,
+    with_nan: bool = False,
+) -> Tuple[ndarray, ndarray]:
     """Uses a simple linear fit approach to calculate the
     gradient along specified axis (default is to fit all points).
     Uses vectorized operations, so it's much faster than using scipy lstsq
     in a loop. This function does not handle NaNs, but will work with masked arrays.
 
     Args:
-        x_data (numpy.ndarray):
+        x_data:
             x axis data.
-        y_data (numpy.ndarray):
+        y_data:
             y axis data.
-        axis (int or tuple of int):
+        axis:
             Optional argument, specifies the axis to operate on.
             Default is to flatten arrays and fit all points.
-        keepdims (bool):
+        keepdims:
             If this is set to True, the axes which are reduced are left in the
             result as dimensions with size one. With this option, the result
             will broadcast correctly against the input array.
-        gradient_only (bool):
+        gradient_only:
             If true only returns the gradient.
-        with_nan (bool):
+        with_nan:
             If true, there are NaNs in your data (that you know about).
 
     Returns:
-        Tuple[numpy.ndarray, numpy.ndarray]:
-            tuple with first element being the gradient between x and y, and
-            the second element being the calculated y-intercepts.
+        tuple with first element being the gradient between x and y, and
+        the second element being the calculated y-intercepts.
     """
     # Check that the positions of nans match in x and y
     if with_nan and not (np.isnan(x_data) == np.isnan(y_data)).all():

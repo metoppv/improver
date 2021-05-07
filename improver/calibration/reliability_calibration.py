@@ -32,10 +32,15 @@
 
 import operator
 import warnings
+from typing import Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
 import scipy
+from iris.coords import AuxCoord, DimCoord
+from iris.cube import Cube, CubeList
+from numpy import ndarray
+from numpy.ma.core import MaskedArray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
@@ -57,24 +62,24 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
     def __init__(
         self,
-        n_probability_bins=5,
-        single_value_lower_limit=False,
-        single_value_upper_limit=False,
-    ):
+        n_probability_bins: int = 5,
+        single_value_lower_limit: bool = False,
+        single_value_upper_limit: bool = False,
+    ) -> None:
         """
         Initialise class for creating reliability calibration tables. These
         tables include data columns entitled observation_count,
         sum_of_forecast_probabilities, and forecast_count, defined below.
 
-        n_probability_bins (int):
+        n_probability_bins:
             The total number of probability bins required in the reliability
             tables. If single value limits are turned on, these are included in
             this total.
-        single_value_lower_limit (bool):
+        single_value_lower_limit:
             Mandates that the lowest bin should be single valued,
             with a small precision tolerance, defined as 1.0E-6.
             The bin is thus 0 to 1.0E-6.
-        single_value_upper_limit (bool):
+        single_value_upper_limit:
             Mandates that the highest bin should be single valued,
             with a small precision tolerance, defined as 1.0E-6.
             The bin is thus (1 - 1.0E-6) to 1.
@@ -88,7 +93,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         )
         self.expected_table_shape = (len(self.table_columns), n_probability_bins)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         bin_values = ", ".join(
             ["[{:1.2f} --> {:1.2f}]".format(*item) for item in self.probability_bins]
@@ -97,8 +102,11 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         return result.format(bin_values)
 
     def _define_probability_bins(
-        self, n_probability_bins, single_value_lower_limit, single_value_upper_limit
-    ):
+        self,
+        n_probability_bins: int,
+        single_value_lower_limit: bool,
+        single_value_upper_limit: bool,
+    ) -> ndarray:
         """
         Define equally sized probability bins for use in a reliability table.
         The range 0 to 1 is divided into ranges to give n_probability bins.
@@ -107,25 +115,26 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         each with a width defined by self.single_value_tolerance.
 
         Args:
-            n_probability_bins (int):
+            n_probability_bins:
                 The total number of probability bins desired in the
                 reliability tables. This number includes the extrema bins
                 (equals 0 and equals 1) if single value limits are turned on,
                 in which case the minimum number of bins is 3.
-            single_value_lower_limit (bool):
+            single_value_lower_limit:
                 Mandates that the lowest bin should be single valued,
                 with a small precision tolerance, defined as 1.0E-6.
                 The bin is thus 0 to 1.0E-6.
-            single_value_upper_limit (bool):
+            single_value_upper_limit:
                 Mandates that the highest bin should be single valued,
                 with a small precision tolerance, defined as 1.0E-6.
                 The bin is thus (1 - 1.0E-6) to 1.
+
         Returns:
-            numpy.ndarray:
-                An array of 2-element arrays that contain the bounds of the
-                probability bins. These bounds are non-overlapping, with
-                adjacent bin boundaries spaced at the smallest representable
-                interval.
+            An array of 2-element arrays that contain the bounds of the
+            probability bins. These bounds are non-overlapping, with
+            adjacent bin boundaries spaced at the smallest representable
+            interval.
+
         Raises:
             ValueError: If trying to use both single_value_lower_limit and
                         single_value_upper_limit with 2 or fewer probability bins.
@@ -163,14 +172,13 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
         return bins
 
-    def _create_probability_bins_coord(self):
+    def _create_probability_bins_coord(self) -> DimCoord:
         """
         Construct a dimension coordinate describing the probability bins
         of the reliability table.
 
         Returns:
-            iris.coords.DimCoord:
-                A dimension coordinate describing probability bins.
+            A dimension coordinate describing probability bins.
         """
         values = np.mean(self.probability_bins, axis=1, dtype=np.float32)
         probability_bins_coord = iris.coords.DimCoord(
@@ -178,7 +186,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         )
         return probability_bins_coord
 
-    def _create_reliability_table_coords(self):
+    def _create_reliability_table_coords(self) -> Tuple[DimCoord, AuxCoord]:
         """
         Construct coordinates that describe the reliability table rows. These
         are observation_count, sum_of_forecast_probabilities, and
@@ -187,13 +195,10 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         _populate_reliability_bins function.
 
         Returns:
-            (tuple): tuple containing:
-                **index_coord** (iris.coords.DimCoord):
-                    A numerical index dimension coordinate.
-                **name_coord** (iris.coords.AuxCoord):
-                    An auxiliary coordinate that assigns names to the index
-                    coordinates, where these names correspond to the
-                    reliability table rows.
+            - A numerical index dimension coordinate.
+            - An auxiliary coordinate that assigns names to the index
+              coordinates, where these names correspond to the
+              reliability table rows.
         """
         index_coord = iris.coords.DimCoord(
             np.arange(len(self.table_columns), dtype=np.int32),
@@ -206,24 +211,26 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         return index_coord, name_coord
 
     @staticmethod
-    def _define_metadata(forecast_slice):
+    def _define_metadata(forecast_slice: Cube) -> Dict[str, str]:
         """
         Define metadata that is specifically required for reliability table
         cubes, whilst ensuring any mandatory attributes are also populated.
 
         Args:
-            forecast_slice (iris.cube.Cube):
+            forecast_slice:
                 The source cube from which to get pre-existing metadata of use.
+
         Returns:
-            dict:
-                A dictionary of attributes that are appropriate for the
-                reliability table cube.
+            A dictionary of attributes that are appropriate for the
+            reliability table cube.
         """
         attributes = generate_mandatory_attributes([forecast_slice])
         attributes["title"] = "Reliability calibration data table"
         return attributes
 
-    def _create_reliability_table_cube(self, forecast, threshold_coord):
+    def _create_reliability_table_cube(
+        self, forecast: Cube, threshold_coord: DimCoord
+    ) -> Cube:
         """
         Construct a reliability table cube and populate it with the provided
         data. The returned cube will include a cycle hour coordinate, which
@@ -232,18 +239,18 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         and spatial coordinates from the forecast cube.
 
         Args:
-            forecast (iris.cube.Cube):
+            forecast:
                 A cube slice across the spatial dimensions of the forecast
                 data. This slice provides the time and threshold values that
                 relate to the reliability_table_data.
-            threshold_coord (iris.coords.DimCoord):
+            threshold_coord:
                 The threshold coordinate.
+
         Returns:
-            iris.cube.Cube:
-                A reliability table cube.
+            A reliability table cube.
         """
 
-        def _get_coords_and_dims(coord_names):
+        def _get_coords_and_dims(coord_names: List[str],) -> List[Tuple[DimCoord, int]]:
             """Obtain the requested coordinates and their dimension index from
             the forecast slice cube."""
             coords_and_dims = []
@@ -293,26 +300,28 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
         return reliability_cube
 
-    def _populate_reliability_bins(self, forecast, truth):
+    def _populate_reliability_bins(
+        self, forecast: Union[MaskedArray, ndarray], truth: Union[MaskedArray, ndarray]
+    ) -> MaskedArray:
         """
         For an x-y slice at a single validity time and threshold, populate
         a reliability table using the provided truth.
 
         Args:
-            forecast (numpy.ndarray or numpy.ma.MaskedArray):
+            forecast:
                 An array containing data over an xy slice for a single validity
                 time and threshold.
-            truth (numpy.ndarray or numpy.ma.MaskedArray):
+            truth:
                 An array containing a thresholded gridded truth at an
                 equivalent validity time to the forecast array.
+
         Returns:
-            numpy.ma.MaskedArray:
-                An array containing reliability table data for a single time
-                and threshold. The leading dimension corresponds to the rows
-                of a calibration table, the second dimension to the number of
-                probability bins, and the trailing dimensions are the spatial
-                dimensions of the forecast and truth cubes (which are
-                equivalent).
+            An array containing reliability table data for a single time
+            and threshold. The leading dimension corresponds to the rows
+            of a calibration table, the second dimension to the number of
+            probability bins, and the trailing dimensions are the spatial
+            dimensions of the forecast and truth cubes (which are
+            equivalent).
         """
         observation_counts = []
         forecast_probabilities = []
@@ -339,26 +348,28 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
         return reliability_table.astype(np.float32)
 
-    def _populate_masked_reliability_bins(self, forecast, truth):
+    def _populate_masked_reliability_bins(
+        self, forecast: ndarray, truth: MaskedArray
+    ) -> MaskedArray:
         """
         Support populating the reliability table bins with a masked truth. If a
         masked truth is provided, a masked reliability table is returned.
 
         Args:
-            forecast (numpy.ndarray):
+            forecast:
                 An array containing data over an xy slice for a single validity
                 time and threshold.
-            truth (numpy.ma.MaskedArray):
+            truth:
                 An array containing a thresholded gridded truth at an
                 equivalent validity time to the forecast array.
+
         Returns:
-            numpy.ma.MaskedArray:
-                An array containing reliability table data for a single time
-                and threshold. The leading dimension corresponds to the rows
-                of a calibration table, the second dimension to the number of
-                probability bins, and the trailing dimensions are the spatial
-                dimensions of the forecast and truth cubes (which are
-                equivalent).
+            An array containing reliability table data for a single time
+            and threshold. The leading dimension corresponds to the rows
+            of a calibration table, the second dimension to the number of
+            probability bins, and the trailing dimensions are the spatial
+            dimensions of the forecast and truth cubes (which are
+            equivalent).
         """
         forecast = np.ma.masked_where(np.ma.getmask(truth), forecast)
         table = self._populate_reliability_bins(forecast, truth)
@@ -366,28 +377,30 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         table.data[table.mask] = 0
         return table
 
-    def _add_reliability_tables(self, forecast, truth, threshold_reliability):
+    def _add_reliability_tables(
+        self, forecast: Cube, truth: Cube, threshold_reliability: MaskedArray
+    ) -> Union[MaskedArray, ndarray]:
         """
         Add reliability tables. The presence of a masked truth is handled
         separately to ensure support for a mask that changes with validity time.
 
         Args:
-            forecast (numpy.ndarray):
+            forecast:
                 An array containing data over an xy slice for a single validity
                 time and threshold.
-            truth (numpy.ndarray or numpy.ma.MaskedArray):
+            truth:
                 An array containing a thresholded gridded truth at an
                 equivalent validity time to the forecast array.
-            threshold_reliability (numpy.ndarray or numpy.ma.MaskedArray):
+            threshold_reliability:
                 The current reliability table that will be added to.
+
         Returns:
-            numpy.ndarray or numpy.ma.MaskedArray:
-                An array containing reliability table data for a single time
-                and threshold. The leading dimension corresponds to the rows
-                of a calibration table, the second dimension to the number of
-                probability bins, and the trailing dimensions are the spatial
-                dimensions of the forecast and truth cubes (which are
-                equivalent).
+            An array containing reliability table data for a single time
+            and threshold. The leading dimension corresponds to the rows
+            of a calibration table, the second dimension to the number of
+            probability bins, and the trailing dimensions are the spatial
+            dimensions of the forecast and truth cubes (which are
+            equivalent).
         """
         if np.ma.is_masked(truth.data):
             table = self._populate_masked_reliability_bins(forecast.data, truth.data)
@@ -407,7 +420,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             )
         return threshold_reliability
 
-    def process(self, historic_forecasts, truths):
+    def process(self, historic_forecasts: Cube, truths: Cube) -> Cube:
         """
         Slice data over threshold and time coordinates to construct reliability
         tables. These are summed over time to give a single table for each
@@ -431,17 +444,18 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         threshold.
 
         Args:
-            historic_forecasts (iris.cube.Cube):
+            historic_forecasts:
                 A cube containing the historical forecasts used in calibration.
                 These are expected to all have a consistent cycle hour, that is
                 the hour in the forecast reference time.
-            truths (iris.cube.Cube):
+            truths:
                 A cube containing the thresholded gridded truths used in
                 calibration.
+
         Returns:
-            iris.cube.CubeList:
-                A cubelist of reliability table cubes, one for each threshold
-                in the historic forecast cubes.
+            A cubelist of reliability table cubes, one for each threshold
+            in the historic forecast cubes.
+
         Raises:
             ValueError: If the forecast and truth cubes have differing
                         threshold coordinates.
@@ -498,12 +512,12 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
     """This plugin enables the aggregation of multiple reliability calibration
     tables, and/or the aggregation over coordinates in the tables."""
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return "<AggregateReliabilityCalibrationTables>"
 
     @staticmethod
-    def _check_frt_coord(cubes):
+    def _check_frt_coord(cubes: Union[List[Cube], CubeList]) -> None:
         """
         Check that the reliability calibration tables do not have overlapping
         forecast reference time bounds. If these coordinates overlap in time it
@@ -512,9 +526,10 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
         contributions.
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes:
                 The list of reliability calibration tables for which the
                 forecast reference time coordinates should be checked.
+
         Raises:
             ValueError: If the bounds overlap.
         """
@@ -531,20 +546,27 @@ class AggregateReliabilityCalibrationTables(BasePlugin):
                 "construction of both tables. Cannot aggregate."
             )
 
-    def process(self, cubes, coordinates=None):
+    def process(
+        self,
+        cubes: Union[CubeList, List[Cube]],
+        coordinates: Optional[List[str]] = None,
+    ) -> Cube:
         """
         Aggregate the input reliability calibration table cubes and return the
         result.
 
         Args:
-            cubes (list or iris.cube.CubeList):
+            cubes:
                 The cube or cubes containing the reliability calibration tables
                 to aggregate.
-            coordinates (list or None):
+            coordinates:
                 A list of coordinates over which to aggregate the reliability
                 calibration table using summation. If the argument is None and
                 a single cube is provided, this cube will be returned
                 unchanged.
+
+        Returns:
+            Aggregated cube
         """
         coordinates = [] if coordinates is None else coordinates
 
@@ -588,17 +610,19 @@ class ManipulateReliabilityTable(BasePlugin):
     constant observation frequency.
     """
 
-    def __init__(self, minimum_forecast_count=200):
+    def __init__(self, minimum_forecast_count: int = 200) -> None:
         """
         Initialise class for manipulating a reliability table.
 
         Args:
-            minimum_forecast_count (int):
+            minimum_forecast_count:
                 The minimum number of forecast counts in a forecast probability
                 bin for it to be used in calibration.
                 The default value of 200 is that used in Flowerdew 2014.
+
         Raises:
             ValueError: If minimum_forecast_count is less than 1.
+
         References:
             Flowerdew J. 2014. Calibrating ensemble reliability whilst
             preserving spatial structure. Tellus, Ser. A Dyn. Meteorol.
@@ -613,18 +637,19 @@ class ManipulateReliabilityTable(BasePlugin):
         self.minimum_forecast_count = minimum_forecast_count
 
     @staticmethod
-    def _extract_reliability_table_components(reliability_table):
+    def _extract_reliability_table_components(
+        reliability_table: Cube,
+    ) -> Tuple[ndarray, ndarray, ndarray, DimCoord]:
         """Extract reliability table components from cube
 
         Args:
-            reliability_table (iris.cube.Cube):
+            reliability_table:
                 A reliability table to be manipulated.
 
         Returns:
-            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, iris.coords.DimCoord]:
-                Tuple containing the updated observation count,
-                forecast probability sum, forecast count and probability bin
-                coordinate.
+            Tuple containing the updated observation count,
+            forecast probability sum, forecast count and probability bin
+            coordinate.
         """
         observation_count = reliability_table.extract(
             iris.Constraint(table_row_name="observation_count")
@@ -644,43 +669,41 @@ class ManipulateReliabilityTable(BasePlugin):
         )
 
     @staticmethod
-    def _sum_pairs(array, upper):
+    def _sum_pairs(array: ndarray, upper: int) -> ndarray:
         """
         Returns a new array where a pair of values in the original array have
         been replaced by their sum. Combines the value in the upper index with
         the value in the upper-1 index.
 
         Args:
-            array (numpy.ndarray):
+            array:
                 Array to be modified.
-            upper (int):
+            upper:
                 Upper index of pair.
 
         Returns:
-            numpy.ndarray:
-                Array where a pair of values has been replaced by their sum.
+            Array where a pair of values has been replaced by their sum.
         """
         result = array.copy()
         result[upper - 1] = np.sum(array[upper - 1 : upper + 1])
         return np.delete(result, upper)
 
     @staticmethod
-    def _create_new_bin_coord(probability_bin_coord, upper):
+    def _create_new_bin_coord(probability_bin_coord: DimCoord, upper: int) -> DimCoord:
         """
         Create a new probability_bin coordinate by combining two adjacent
         points on the probability_bin coordinate. This matches the combination
         of the data for the two bins.
 
         Args:
-            probability_bin_coord (iris.coords.DimCoord):
+            probability_bin_coord:
                 Original probability bin coordinate.
-            upper (int):
+            upper:
                 Upper index of pair.
 
         Returns:
-            iris.coords.DimCoord:
-                Probability bin coordinate with updated points and bounds where
-                a pair of bins have been combined to create a single bin.
+            Probability bin coordinate with updated points and bounds where
+            a pair of bins have been combined to create a single bin.
         """
         old_bounds = probability_bin_coord.bounds
         new_bounds = np.concatenate(
@@ -698,11 +721,11 @@ class ManipulateReliabilityTable(BasePlugin):
 
     def _combine_undersampled_bins(
         self,
-        observation_count,
-        forecast_probability_sum,
-        forecast_count,
-        probability_bin_coord,
-    ):
+        observation_count: ndarray,
+        forecast_probability_sum: ndarray,
+        forecast_count: ndarray,
+        probability_bin_coord: DimCoord,
+    ) -> Tuple[ndarray, ndarray, ndarray, DimCoord]:
         """
         Combine bins that are under-sampled i.e. that have a lower forecast
         count than the minimum_forecast_count, so that information from these
@@ -714,20 +737,19 @@ class ManipulateReliabilityTable(BasePlugin):
         bins that are below the minimum forecast count criterion.
 
         Args:
-            observation_count (numpy.ndarray):
+            observation_count:
                 Observation count extracted from reliability table.
-            forecast_probability_sum (numpy.ndarray):
+            forecast_probability_sum:
                 Forecast probability sum extracted from reliability table.
-            forecast_count (numpy.ndarray):
+            forecast_count:
                 Forecast count extracted from reliability table.
-            probability_bin_coord (iris.coords.DimCoord):
+            probability_bin_coord:
                 Original probability bin coordinate.
-        Returns:
-            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, iris.coords.DimCoord]
-                Tuple containing the updated observation count,
-                forecast probability sum, forecast count and probability bin
-                coordinate.
 
+        Returns:
+            Tuple containing the updated observation count,
+            forecast probability sum, forecast count and probability bin
+            coordinate.
         """
         while (
             any(x < self.minimum_forecast_count for x in forecast_count)
@@ -773,11 +795,11 @@ class ManipulateReliabilityTable(BasePlugin):
 
     def _combine_bin_pair(
         self,
-        observation_count,
-        forecast_probability_sum,
-        forecast_count,
-        probability_bin_coord,
-    ):
+        observation_count: ndarray,
+        forecast_probability_sum: ndarray,
+        forecast_count: ndarray,
+        probability_bin_coord: DimCoord,
+    ) -> Tuple[ndarray, ndarray, ndarray, DimCoord]:
         """
         Combine a pair of bins when non-monotonicity of the observation
         frequency is detected. Iterate top-down from the highest forecast
@@ -785,20 +807,19 @@ class ManipulateReliabilityTable(BasePlugin):
         Only allow a single pair of bins to be combined.
 
         Args:
-            observation_count (numpy.ndarray):
+            observation_count:
                 Observation count extracted from reliability table.
-            forecast_probability_sum (numpy.ndarray):
+            forecast_probability_sum:
                 Forecast probability sum extracted from reliability table.
-            forecast_count (numpy.ndarray):
+            forecast_count:
                 Forecast count extracted from reliability table.
-            probability_bin_coord (iris.coords.DimCoord):
+            probability_bin_coord:
                 Original probability bin coordinate.
 
         Returns:
-            Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray, iris.coords.DimCoord]
-                Tuple containing the updated observation count,
-                forecast probability sum, forecast count and probability bin
-                coordinate.
+            Tuple containing the updated observation count,
+            forecast probability sum, forecast count and probability bin
+            coordinate.
         """
         observation_frequency = np.array(observation_count / forecast_count)
         for upper in np.arange(len(observation_frequency) - 1, 0, -1):
@@ -823,7 +844,9 @@ class ManipulateReliabilityTable(BasePlugin):
         )
 
     @staticmethod
-    def _assume_constant_observation_frequency(observation_count, forecast_count):
+    def _assume_constant_observation_frequency(
+        observation_count: ndarray, forecast_count: ndarray
+    ) -> ndarray:
         """
         Decide which end bin (highest probability bin or lowest probability
         bin) has the highest sample count. Iterate through the observation
@@ -836,15 +859,13 @@ class ManipulateReliabilityTable(BasePlugin):
         frequency.
 
         Args:
-            observation_count (numpy.ndarray):
+            observation_count:
                 Observation count extracted from reliability table.
-            forecast_count (numpy.ndarray):
+            forecast_count:
                 Forecast count extracted from reliability table.
 
         Returns:
-            numpy.ndarray:
-                Observation count computed from a monotonic observation frequency.
-
+            Observation count computed from a monotonic observation frequency.
         """
         observation_frequency = np.array(observation_count / forecast_count)
 
@@ -872,30 +893,29 @@ class ManipulateReliabilityTable(BasePlugin):
 
     @staticmethod
     def _update_reliability_table(
-        reliability_table,
-        observation_count,
-        forecast_probability_sum,
-        forecast_count,
-        probability_bin_coord,
-    ):
+        reliability_table: Cube,
+        observation_count: ndarray,
+        forecast_probability_sum: ndarray,
+        forecast_count: ndarray,
+        probability_bin_coord: DimCoord,
+    ) -> Cube:
         """
         Update the reliability table data and the probability bin coordinate.
 
         Args:
-            reliability_table (iris.cube.Cube):
+            reliability_table:
                 A reliability table to be manipulated.
-            observation_count (numpy.ndarray):
+            observation_count:
                 Observation count extracted from reliability table.
-            forecast_probability_sum (numpy.ndarray):
+            forecast_probability_sum:
                 Forecast probability sum extracted from reliability table.
-            forecast_count (numpy.ndarray):
+            forecast_count:
                 Forecast count extracted from reliability table.
-            probability_bin_coord (iris.coords.DimCoord):
+            probability_bin_coord:
                 Original probability bin coordinate.
 
         Returns:
-            iris.cube.Cube:
-                Updated reliability table.
+            Updated reliability table.
         """
         final_data = np.stack(
             [observation_count, forecast_probability_sum, forecast_count]
@@ -905,29 +925,28 @@ class ManipulateReliabilityTable(BasePlugin):
         reliability_table.replace_coord(probability_bin_coord)
         return reliability_table
 
-    def process(self, reliability_table):
+    def process(self, reliability_table: Cube) -> CubeList:
         """
         Apply the steps needed to produce a reliability diagram with a
         monotonic observation frequency.
 
         Args:
-            reliability_table (iris.cube.Cube):
+            reliability_table:
                 A reliability table to be manipulated. The only coordinates
                 expected on this cube are a threshold coordinate,
                 a table_row_index coordinate and corresponding table_row_name
                 coordinate and a probability_bin coordinate.
 
         Returns:
-            iris.cube.CubeList:
-                Containing a reliability table cube for each threshold in the
-                input reliablity table. For tables where monotonicity has been
-                enforced the probability_bin coordinate will have one less
-                bin than the tables that were already monotonic. If
-                under-sampled bins have been combined, then the probability_bin
-                coordinate will have been reduced until all bins have more than
-                the minimum_forecast_count if possible; a single under-sampled
-                bin will be returned if combining all bins is still insufficient
-                to reach the minimum_forecast_count.
+            CubeList containing a reliability table cube for each threshold in
+            the input reliablity table. For tables where monotonicity has been
+            enforced the probability_bin coordinate will have one less
+            bin than the tables that were already monotonic. If
+            under-sampled bins have been combined, then the probability_bin
+            coordinate will have been reduced until all bins have more than
+            the minimum_forecast_count if possible; a single under-sampled
+            bin will be returned if combining all bins is still insufficient
+            to reach the minimum_forecast_count.
         """
         threshold_coord = find_threshold_coordinate(reliability_table)
         reliability_table_cubelist = iris.cube.CubeList()
@@ -1005,7 +1024,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
     Oceanogr. 66.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialise class for applying reliability calibration.
 
@@ -1013,21 +1032,24 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         self.threshold_coord = None
 
     @staticmethod
-    def _extract_matching_reliability_table(forecast, reliability_table):
+    def _extract_matching_reliability_table(
+        forecast: Cube, reliability_table: Union[Cube, CubeList]
+    ) -> Cube:
         """
         Extract the reliability table with a threshold coordinate
         matching the forecast cube.
         If no matching reliability table is found raise an exception.
 
         Args:
-            forecast (iris.cube.Cube):
+            forecast:
                 The forecast to be calibrated.
-            reliability_table (iris.cube.CubeList):
+            reliability_table:
                 The reliability table to use for applying calibration.
+
         Returns:
-            iris.cube.Cube:
-                A reliability table who's threshold coordinate matches
-                the forecast cube.
+            A reliability table with a threshold coordinate that
+            matches the forecast cube.
+
         Raises:
             ValueError: If no matching reliability table is found.
         """
@@ -1045,7 +1067,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             )
         return extracted
 
-    def _ensure_monotonicity_across_thresholds(self, cube):
+    def _ensure_monotonicity_across_thresholds(self, cube: Cube) -> None:
         """
         Ensures that probabilities change monotonically relative to thresholds
         in the expected order, e.g. exceedance probabilities always remain the
@@ -1054,12 +1076,14 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         values increase.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The probability cube for which monotonicity is to be checked
                 and enforced. This cube is modified in place.
+
         Raises:
             ValueError: Threshold coordinate lacks the
                         spp__relative_to_threshold attribute.
+
         Warns:
             UserWarning: If the probabilities must be sorted to reinstate
                          expected monotonicity following calibration.
@@ -1096,7 +1120,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             warnings.warn(msg)
             cube.data = np.sort(cube.data, axis=threshold_dim)
 
-    def _calculate_reliability_probabilities(self, reliability_table):
+    def _calculate_reliability_probabilities(
+        self, reliability_table: Cube
+    ) -> Tuple[Optional[ndarray], Optional[ndarray]]:
         """
         Calculates forecast probabilities and observation frequencies from the
         reliability table. If fewer than two bins are provided, Nones are
@@ -1105,16 +1131,16 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         please see :class:`.ManipulateReliabilityTable`.
 
         Args:
-            reliability_table (iris.cube.Cube):
+            reliability_table:
                 A reliability table for a single threshold from which to
                 calculate the forecast probabilities and observation
                 frequencies.
+
         Returns:
-            Optional[Tuple[numpy.ndarray, numpy.ndarray]]:
-                Tuple containing forecast probabilities calculated by dividing
-                the sum of forecast probabilities by the forecast count and
-                observation frequency calculated by dividing the observation
-                count by the forecast count.
+            Tuple containing forecast probabilities calculated by dividing
+            the sum of forecast probabilities by the forecast count and
+            observation frequency calculated by dividing the observation
+            count by the forecast count.
         """
         observation_count = reliability_table.extract(
             iris.Constraint(table_row_name="observation_count")
@@ -1137,8 +1163,10 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
     @staticmethod
     def _interpolate(
-        forecast_threshold, reliability_probabilities, observation_frequencies
-    ):
+        forecast_threshold: Union[MaskedArray, ndarray],
+        reliability_probabilities: ndarray,
+        observation_frequencies: ndarray,
+    ) -> Union[MaskedArray, ndarray]:
         """
         Perform interpolation of the forecast probabilities using the
         reliability table data to produce the calibrated forecast. Where
@@ -1146,19 +1174,18 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         the forecast_threshold data is removed and reapplied after calibration.
 
         Args:
-            forecast_threshold (numpy.ndarray):
+            forecast_threshold:
                 The forecast probabilities to be calibrated.
-            reliability_probabilities (numpy.ndarray):
+            reliability_probabilities:
                 Probabilities taken from the reliability tables.
-            observation_frequencies (numpy.ndarray):
+            observation_frequencies:
                 Observation frequencies that relate to the reliability
                 probabilities, taken from the reliability tables.
 
         Returns:
-            numpy.ndarray:
-                The calibrated forecast probabilities. The final results are
-                clipped to ensure any extrapolation has not yielded
-                probabilities outside the range 0 to 1.
+            The calibrated forecast probabilities. The final results are
+            clipped to ensure any extrapolation has not yielded
+            probabilities outside the range 0 to 1.
         """
         shape = forecast_threshold.shape
         mask = forecast_threshold.mask if np.ma.is_masked(forecast_threshold) else None
@@ -1177,20 +1204,20 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         return np.clip(interpolated, 0, 1)
 
-    def process(self, forecast, reliability_table):
+    def process(self, forecast: Cube, reliability_table: Union[Cube, CubeList]) -> Cube:
         """
         Apply reliability calibration to a forecast. The reliability table
         and the forecast cube must share an identical threshold coordinate.
 
         Args:
-            forecast (iris.cube.Cube):
+            forecast:
                 The forecast to be calibrated.
-            reliability_table (iris.cube.Cube or iris.cube.CubeList):
+            reliability_table:
                 The reliability table to use for applying calibration.
                 x and y dimensions must be collapsed.
+
         Returns:
-            iris.cube.Cube:
-                The forecast cube following calibration.
+            The forecast cube following calibration.
         """
         self.threshold_coord = find_threshold_coordinate(forecast)
 

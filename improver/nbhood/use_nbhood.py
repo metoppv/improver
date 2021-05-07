@@ -30,9 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities for using neighbourhood processing."""
 
+from typing import List, Optional, Union
+
 import iris
 import numpy as np
 import numpy.ma as ma
+from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 from improver.nbhood.nbhood import NeighbourhoodProcessing
@@ -126,27 +129,27 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
 
     def __init__(
         self,
-        coord_for_masking,
-        radii,
-        lead_times=None,
-        collapse_weights=None,
-        weighted_mode=True,
-        sum_or_fraction="fraction",
-        re_mask=False,
-    ):
+        coord_for_masking: str,
+        radii: Union[float, List[float]],
+        lead_times: Optional[List[float]] = None,
+        collapse_weights: Optional[Cube] = None,
+        weighted_mode: bool = True,
+        sum_or_fraction: str = "fraction",
+        re_mask: bool = False,
+    ) -> None:
         """
         Initialise the class.
 
         Args:
-            coord_for_masking (str):
+            coord_for_masking:
                 String matching the name of the coordinate that will be used
                 for masking.
-            radii (float or list if defining lead times):
+            radii:
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
                 points east and north, based on the characteristic spacing
                 at the zero indices of the cube projection-x and y coords.
-            collapse_weights (iris.cube.Cube):
+            collapse_weights:
                 A cube from an ancillary file containing the weights for each
                 point in the 'coord_for_masking' at each grid point. If given,
                 the coord_for_masking coordinate will be collapsed using these
@@ -159,22 +162,22 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 when calculating the result. In this case the result returned
                 from the process method of this plugin will have the same
                 points masked.
-            lead_times (list):
+            lead_times:
                 List of lead times or forecast periods, at which the radii
                 within 'radii' are defined. The lead times are expected
                 in hours.
-            weighted_mode (bool):
+            weighted_mode:
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
                 If False, use a circle with constant weighting.
-            sum_or_fraction (str):
+            sum_or_fraction:
                 Identifier for whether sum or fraction should be returned from
                 neighbourhooding. The sum represents the sum of the
                 neighbourhood.
                 The fraction represents the sum of the neighbourhood divided by
                 the neighbourhood area. "fraction" is the default.
                 Valid options are "sum" or "fraction".
-            re_mask (bool):
+            re_mask:
                 If re_mask is True, the original un-neighbourhood processed
                 mask is applied to mask out the neighbourhood processed cube.
                 If re_mask is False, the original un-neighbourhood processed
@@ -196,7 +199,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             message = "re_mask should be set to False when using collapse_weights"
             raise ValueError(message)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<ApplyNeighbourhoodProcessingWithAMask: "
@@ -215,7 +218,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             self.re_mask,
         )
 
-    def collapse_mask_coord(self, cube):
+    def collapse_mask_coord(self, cube: Cube) -> Cube:
         """
         Collapse the chosen coordinate with the available weights. The result
         of the neighbourhood processing is taken into account to renormalize
@@ -224,16 +227,14 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         probability.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the array to which the square neighbourhood
                 with a mask has been applied.
                 Dimensions self.coord_for_masking, y and x.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing the weighted mean from neighbourhood after
-                collapsing the chosen coordinate.
-
+            Cube containing the weighted mean from neighbourhood after
+            collapsing the chosen coordinate.
         """
         # Mask out any NaNs in the neighbourhood data so that Iris ignores
         # them when calculating the weighted mean.
@@ -253,28 +254,27 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         result.remove_coord(self.coord_for_masking)
         return result
 
-    def process(self, cube, mask_cube):
+    def process(self, cube: Cube, mask_cube: Cube) -> Cube:
         """
         Apply neighbourhood processing with a mask to the input cube,
         collapsing the coord_for_masking if collapse_weights have been provided.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing the array to which the square neighbourhood
                 will be applied.
-            mask_cube (iris.cube.Cube):
+            mask_cube:
                 Cube containing the array to be used as a mask. The data in
                 this array is not an instance of numpy.ma.MaskedArray. Any sea
                 points that should be ignored are set to zeros in every layer
                 of the mask_cube.
-        Returns:
-            iris.cube.Cube:
-                Cube containing the smoothed field after the square
-                neighbourhood method has been applied when applying masking
-                for each point along the coord_for_masking coordinate.
-                The resulting cube is concatenated so that the dimension
-                coordinates match the input cube.
 
+        Returns:
+            Cube containing the smoothed field after the square
+            neighbourhood method has been applied when applying masking
+            for each point along the coord_for_masking coordinate.
+            The resulting cube is concatenated so that the dimension
+            coordinates match the input cube.
         """
         plugin = NeighbourhoodProcessing(
             self.neighbourhood_method,

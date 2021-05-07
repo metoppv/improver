@@ -31,8 +31,11 @@
 """Module for loading cubes."""
 
 import contextlib
+from typing import List, Optional, Union
 
 import iris
+from iris import Constraint
+from iris.cube import Cube, CubeList
 
 from improver.utilities.cube_manipulation import (
     MergeCubes,
@@ -72,28 +75,31 @@ def iris_nimrod_patcher():
                 yield
 
 
-def load_cubelist(filepath, constraints=None, no_lazy_load=False):
+def load_cubelist(
+    filepath: Union[str, List[str]],
+    constraints: Optional[Union[Constraint, str]] = None,
+    no_lazy_load: bool = False,
+) -> CubeList:
     """Load cubes from filepath(s) into a cubelist. Strips off all
     var names except for "threshold"-type coordinates, where this is different
     from the standard or long name.
 
     Args:
-        filepath (str or list):
+        filepath:
             Filepath(s) that will be loaded.
-        constraints (iris.Constraint, str or None):
+        constraints:
             Constraint to be applied when loading from the input filepath.
             This can be in the form of an iris.Constraint or could be a string
             that is intended to match the name of the cube.
             The default is None.
-        no_lazy_load (bool):
+        no_lazy_load:
             If True, bypass cube deferred (lazy) loading and load the whole
             cube into memory. This can increase performance at the cost of
             memory. If False (default) then lazy load.
 
     Returns:
-        iris.cube.CubeList:
-            CubeList that has been created from the input filepath given the
-            constraints provided.
+        CubeList that has been created from the input filepath given the
+        constraints provided.
     """
     # Remove legacy metadata prefix cube if present
     constraints = (
@@ -139,29 +145,32 @@ def load_cubelist(filepath, constraints=None, no_lazy_load=False):
     return cubes
 
 
-def load_cube(filepath, constraints=None, no_lazy_load=False):
+def load_cube(
+    filepath: Union[str, List[str]],
+    constraints: Optional[Union[Constraint, str]] = None,
+    no_lazy_load: bool = False,
+) -> Cube:
     """Load the filepath provided using Iris into a cube. Strips off all
     var names except for "threshold"-type coordinates, where this is different
     from the standard or long name.
 
     Args:
-        filepath (str or list):
+        filepath:
             Filepath that will be loaded or list of filepaths that can be
             merged into a single cube.
-        constraints (iris.Constraint, str or None):
+        constraints:
             Constraint to be applied when loading from the input filepath.
             This can be in the form of an iris.Constraint or could be a string
             that is intended to match the name of the cube.
             The default is None.
-        no_lazy_load (bool):
+        no_lazy_load:
             If True, bypass cube deferred (lazy) loading and load the whole
             cube into memory. This can increase performance at the cost of
             memory. If False (default) then lazy load.
 
     Returns:
-        iris.cube.Cube:
-            Cube that has been loaded from the input filepath given the
-            constraints provided.
+        Cube that has been loaded from the input filepath given the
+        constraints provided.
     """
     cubes = load_cubelist(filepath, constraints, no_lazy_load)
     # Merge loaded cubes

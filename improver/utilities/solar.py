@@ -31,9 +31,12 @@
 """ Utilities to find the relative position of the sun."""
 
 import datetime as dt
+from typing import Union
 
 import iris
 import numpy as np
+from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -43,7 +46,7 @@ from improver.metadata.utilities import (
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 
 
-def calc_solar_declination(day_of_year):
+def calc_solar_declination(day_of_year: int) -> float:
     """
     Calculate the Declination for the day of the year.
 
@@ -52,12 +55,11 @@ def calc_solar_declination(day_of_year):
     https://www.esrl.noaa.gov/gmd/grad/solcalc/sollinks.html
 
     Args:
-        day_of_year (int):
+        day_of_year:
             Day of the year 0 to 365, 0 = 1st January
 
     Returns:
-        float:
-            Declination in degrees.North-South
+        Declination in degrees.North-South
     """
     # Declination (degrees):
     # = -(axial_tilt)*cos(360./orbital_year * day_of_year - solstice_offset)
@@ -68,7 +70,9 @@ def calc_solar_declination(day_of_year):
     return solar_declination
 
 
-def calc_solar_hour_angle(longitudes, day_of_year, utc_hour):
+def calc_solar_hour_angle(
+    longitudes: Union[float, ndarray], day_of_year: int, utc_hour: float
+) -> Union[float, ndarray]:
     """
     Calculate the Solar Hour angle for each element of an array of longitudes.
 
@@ -77,16 +81,16 @@ def calc_solar_hour_angle(longitudes, day_of_year, utc_hour):
     https://www.esrl.noaa.gov/gmd/grad/solcalc/sollinks.html
 
     Args:
-        longitudes (float or numpy.ndarray):
+        longitudes:
             A single Longitude or array of Longitudes
             longitudes needs to be between 180.0 and -180.0 degrees
-        day_of_year (int):
+        day_of_year:
             Day of the year 0 to 365, 0 = 1st January
-        utc_hour (float):
+        utc_hour:
             Hour of the day in UTC
 
     Returns:
-        solar_hour_angle (float or numpy.ndarray)
+        solar_hour_angle
             Hour angles in degrees East-West
     """
     if day_of_year < 0 or day_of_year > 365:
@@ -115,29 +119,32 @@ def calc_solar_hour_angle(longitudes, day_of_year, utc_hour):
 
 
 def calc_solar_elevation(
-    latitudes, longitudes, day_of_year, utc_hour, return_sine=False
-):
+    latitudes: Union[float, ndarray],
+    longitudes: Union[float, ndarray],
+    day_of_year: int,
+    utc_hour: float,
+    return_sine: bool = False,
+) -> Union[float, ndarray]:
     """
     Calculate the Solar elevation.
 
     Args:
-        latitudes (float or numpy.ndarray):
+        latitudes:
             A single Latitude or array of Latitudes
             latitudes needs to be between -90.0 and 90.0
-        longitudes (float or numpy.ndarray):
+        longitudes:
             A single Longitude or array of Longitudes
             longitudes needs to be between 180.0 and -180.0
-        day_of_year (int):
+        day_of_year:
             Day of the year 0 to 365, 0 = 1st January
-        utc_hour (float):
+        utc_hour:
             Hour of the day in UTC in hours
-        return_sine (bool):
+        return_sine:
             If True return sine of solar elevation.
             Default False.
 
     Returns:
-        float or numpy.ndarray:
-            Solar elevation in degrees for each location.
+        Solar elevation in degrees for each location.
     """
     if np.min(latitudes) < -90.0 or np.max(latitudes) > 90.0:
         msg = "Latitudes must be between -90.0 and 90.0"
@@ -164,23 +171,24 @@ def calc_solar_elevation(
     return solar_elevation
 
 
-def daynight_terminator(longitudes, day_of_year, utc_hour):
+def daynight_terminator(
+    longitudes: ndarray, day_of_year: int, utc_hour: float
+) -> ndarray:
     """
     Calculate the Latitude values of the daynight terminator
     for the given longitudes.
 
     Args:
-        longitudes (numpy.ndarray):
+        longitudes:
             Array of longitudes.
             longitudes needs to be between 180.0 and -180.0 degrees
-        day_of_year (int):
+        day_of_year:
             Day of the year 0 to 365, 0 = 1st January
-        utc_hour (float):
+        utc_hour:
             Hour of the day in UTC
 
     Returns:
-        numpy.ndarray:
-            latitudes of the daynight terminator
+        latitudes of the daynight terminator
     """
     if day_of_year < 0 or day_of_year > 365:
         msg = "Day of the year must be between 0 and 365"
@@ -202,30 +210,29 @@ class DayNightMask(BasePlugin):
     Plugin Class to generate a daynight mask for the provided cube
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """ Initial the DayNightMask Object """
         self.night = 0
         self.day = 1
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<DayNightMask : " "Day = {}, Night = {}>".format(self.day, self.night)
         return result
 
-    def _create_daynight_mask(self, cube):
+    def _create_daynight_mask(self, cube: Cube) -> Cube:
         """
         Create blank daynight mask cube
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 cube with the times and coordinates required for mask
 
         Returns:
-            iris.cube.Cube:
-                Blank daynight mask cube. The resulting cube will be the
-                same shape as the time, y, and x coordinate, other coordinates
-                will be ignored although they might appear as attributes
-                on the cube as it is extracted from the first slice.
+            Blank daynight mask cube. The resulting cube will be the
+            same shape as the time, y, and x coordinate, other coordinates
+            will be ignored although they might appear as attributes
+            on the cube as it is extracted from the first slice.
         """
         slice_coords = [cube.coord(axis="y"), cube.coord(axis="x")]
         if cube.coord("time") in cube.coords(dim_coords=True):
@@ -253,21 +260,22 @@ class DayNightMask(BasePlugin):
         )
         return daynight_mask
 
-    def _daynight_lat_lon_cube(self, mask_cube, day_of_year, utc_hour):
+    def _daynight_lat_lon_cube(
+        self, mask_cube: Cube, day_of_year: int, utc_hour: float
+    ) -> Cube:
         """
         Calculate the daynight mask for the provided Lat Lon cube
 
         Args:
-            mask_cube (iris.cube.Cube):
+            mask_cube:
                 daynight mask cube - data initially set to self.night
-            day_of_year (int):
+            day_of_year:
                 day of the year 0 to 365, 0 = 1st January
-            utc_hour (float):
+            utc_hour:
                 Hour in UTC
 
         Returns:
-            iris.cube.Cube:
-                daynight mask cube - daytime set to self.day
+            daynight mask cube - daytime set to self.day
         """
         lons = mask_cube.coord("longitude").points
         lats = mask_cube.coord("latitude").points
@@ -284,7 +292,7 @@ class DayNightMask(BasePlugin):
         mask_cube.data[index] = self.day
         return mask_cube
 
-    def process(self, cube):
+    def process(self, cube: Cube) -> Cube:
         """
         Calculate the daynight mask for the provided cube. Note that only the
         hours and minutes of the dtval variable are used. To ensure consistent
@@ -298,17 +306,16 @@ class DayNightMask(BasePlugin):
            dt(2017, 1, 1, 12, 0, 30)  -- +30 --> dt(2017, 1, 1, 12, 1, 0)
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 input cube
 
         Returns:
-            iris.cube.Cube:
-                daynight mask cube, daytime set to self.day
-                nighttime set to self.night.
-                The resulting cube will be the same shape as
-                the time, y, and x coordinate, other coordinates
-                will be ignored although they might appear as attributes
-                on the cube as it is extracted from the first slice.
+            daynight mask cube, daytime set to self.day
+            nighttime set to self.night.
+            The resulting cube will be the same shape as
+            the time, y, and x coordinate, other coordinates
+            will be ignored although they might appear as attributes
+            on the cube as it is extracted from the first slice.
         """
         daynight_mask = self._create_daynight_mask(cube)
 

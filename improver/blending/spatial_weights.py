@@ -31,9 +31,11 @@
 """Module to adjust weights spatially based on missing data in input cubes."""
 
 import warnings
+from typing import Tuple, Union
 
 import iris
 import numpy as np
+from iris.cube import Cube
 from scipy.ndimage.morphology import distance_transform_edt
 
 from improver import BasePlugin
@@ -53,14 +55,14 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
     in addition to the one dimension in the initial cube of weights.
     """
 
-    def __init__(self, blend_coord, fuzzy_length=10):
+    def __init__(self, blend_coord: str, fuzzy_length: Union[int, float] = 10) -> None:
         """
         Initialise class.
 
         Args:
-            blend_coord (str):
+            blend_coord:
                 Coordinate over which the input 1D weights will vary
-            fuzzy_length (int or float):
+            fuzzy_length:
                 Distance, in grid squares, over which the weights from the input
                 data mask are smoothed. This is used to calculate a fuzzy
                 scaling factor for the input weights based on how far away each
@@ -76,14 +78,14 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         self.blend_coord = blend_coord
         self.blend_axis = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = "<SpatiallyVaryingWeightsFromMask: fuzzy_length: {}>".format(
             self.fuzzy_length
         )
         return result
 
-    def _create_template_slice(self, cube_to_collapse):
+    def _create_template_slice(self, cube_to_collapse: Cube) -> Cube:
         """
         Create a template cube from a slice of the cube we are collapsing.
         The slice will be over blend_coord, y and x and will remove any other
@@ -92,15 +94,14 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         vary in another dimension an error is raised.
 
         Args:
-            cube_to_collapse (iris.cube.Cube):
+            cube_to_collapse:
                 The cube that will be collapsed along the blend_coord
                 using the spatial weights generated using this plugin. Must
                 be masked where there is invalid data.
 
         Returns:
-            iris.cube.Cube:
-                A cube with dimensions blend_coord, y, x, on which to shape the
-                output weights cube.
+            A cube with dimensions blend_coord, y, x, on which to shape the
+            output weights cube.
 
         Raises:
             ValueError: if the blend coordinate is associated with more than
@@ -143,7 +144,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         # Return slice template
         return first_slice
 
-    def _normalise_initial_weights(self, weights):
+    def _normalise_initial_weights(self, weights: Cube) -> None:
         """Normalise weights so that they add up to 1 along the blend dimension
         at each spatial point.  This is different from the normalisation that
         happens after the application of fuzzy smoothing near mask boundaries.
@@ -151,7 +152,7 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         being the leading dimension, as enforced in self._create_template_slice.
 
         Args:
-            weights (iris.cube.Cube):
+            weights:
                 3D weights containing zeros for masked points, but before
                 fuzzy smoothing
         """
@@ -160,21 +161,18 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
             weights_sum > 0, np.divide(weights.data, weights_sum), 0
         ).astype(FLOAT_DTYPE)
 
-    def _rescale_masked_weights(self, weights):
+    def _rescale_masked_weights(self, weights: Cube) -> Tuple[Cube, Cube]:
         """Apply fuzzy smoothing to weights at the edge of masked areas
 
         Args:
-            weights (iris.cube.Cube):
+            weights:
                 Pre-normalised weights where the weights of masked data points
                 have been set to 0
 
         Returns:
-            (tuple): tuple containing:
-                **weights** (iris.cube.Cube):
-                    Weights where MASKED slices have been rescaled, but UNMASKED
-                    slices have not
-                **rescaled** (iris.cube.Cube):
-                    Binary (0/1) map showing which weights have been rescaled
+            - Weights where MASKED slices have been rescaled, but UNMASKED
+              slices have not
+            - Binary (0/1) map showing which weights have been rescaled
         """
         is_rescaled = iris.cube.CubeList()
         rescaled_weights = iris.cube.CubeList()
@@ -216,17 +214,17 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
 
         return weights, rescaled
 
-    def _rescale_unmasked_weights(self, weights, is_rescaled):
+    def _rescale_unmasked_weights(self, weights: Cube, is_rescaled: Cube) -> None:
         """Increase weights of unmasked slices at locations where masked slices
         have been smoothed, so that the sum of weights over self.blend_coord is
         re-normalised (sums to 1) at each point and the relative weightings of
         multiple unmasked slices are preserved.  Modifies weights cube in place.
 
         Args:
-            weights (iris.cube.Cube):
+            weights:
                 Cube of weights to which fuzzy smoothing has been applied to any
                 masked slices
-            is_rescaled (iris.cube.Cube):
+            is_rescaled:
                 Cube matching weights.shape, with value of 1 where masked weights
                 have been rescaled, and 0 where they are unchanged.
         """
@@ -242,7 +240,9 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         )
         weights.data = normalised_weights.astype(FLOAT_DTYPE)
 
-    def process(self, cube_to_collapse, one_dimensional_weights_cube):
+    def process(
+        self, cube_to_collapse: Cube, one_dimensional_weights_cube: Cube
+    ) -> Cube:
         """
         Create fuzzy spatial weights based on missing data in the cube we
         are going to collapse and combine these with 1D weights along the
@@ -257,23 +257,22 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
         5. Increase weights of unmasked layers near the mask boundary.
 
         Args:
-            cube_to_collapse (iris.cube.Cube):
+            cube_to_collapse:
                 The cube that will be collapsed along self.blend_coord
                 using the spatial weights generated using this plugin. Must
                 be masked where there is invalid data. The mask may only
                 vary along the blend and spatial coordinates, and not along
                 any other dimensions on the cube.
-            one_dimensional_weights_cube (iris.cube.Cube):
+            one_dimensional_weights_cube:
                 A cube containing a single dimension coordinate with the same
                 name given blend_coord. This cube contains 1D weights
                 that will be applied along the blend_coord but need
                 adjusting spatially based on missing data.
 
         Returns:
-            iris.cube.Cube:
-                A cube containing normalised 3D spatial weights based on the
-                cube_to_collapse mask and the one_dimensional weights supplied.
-                Has dimensions: self.blend_coord, y, x.
+            A cube containing normalised 3D spatial weights based on the
+            cube_to_collapse mask and the one_dimensional weights supplied.
+            Has dimensions: self.blend_coord, y, x.
         """
         template_cube = self._create_template_slice(cube_to_collapse)
         (self.blend_axis,) = template_cube.coord_dims(self.blend_coord)

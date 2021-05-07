@@ -30,7 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provide support utilities for time lagging ensembles"""
 
+from typing import List, Union
+
 import numpy as np
+from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
@@ -40,7 +43,7 @@ from improver.utilities.cube_manipulation import MergeCubes
 class GenerateTimeLaggedEnsemble(BasePlugin):
     """Combine realizations from different forecast cycles into one cube"""
 
-    def process(self, cubelist):
+    def process(self, cubelist: Union[List[Cube], CubeList]) -> Cube:
         """
         Take an input cubelist containing forecasts from different cycles and
         merges them into a single cube.
@@ -53,12 +56,11 @@ class GenerateTimeLaggedEnsemble(BasePlugin):
             3. Concatenate into one cube along the realization axis.
 
         Args:
-            cubelist (iris.cube.CubeList or list of iris.cube.Cube):
+            cubelist:
                 List of input forecasts
 
         Returns:
-            iris.cube.Cube:
-                Concatenated forecasts
+            Concatenated forecasts
         """
         cubelist = rebadge_forecasts_as_latest_cycle(cubelist)
 

@@ -31,6 +31,7 @@
 """A plugin to calculate probability of sleet"""
 
 import numpy as np
+from iris.cube import Cube
 
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
@@ -38,21 +39,20 @@ from improver.metadata.utilities import (
 )
 
 
-def calculate_sleet_probability(prob_of_snow, prob_of_rain):
+def calculate_sleet_probability(prob_of_snow: Cube, prob_of_rain: Cube) -> Cube:
     """
     This calculates the probability of sleet using the calculation:
     prob(sleet) = 1 - (prob(snow) + prob(rain))
 
     Args:
-      prob_of_snow (iris.cube.Cube):
+      prob_of_snow:
         Cube of the probability of snow. This can be a fraction (0 <= x <= 1) or
         categorical (0 or 1)
-      prob_of_rain (iris.cube.Cube):
+      prob_of_rain:
         Cube of the probability of rain. This can be a fraction (0 <= x <= 1) or
         categorical (0 or 1)
 
     Returns:
-      iris.cube.Cube:
         Cube of the probability of sleet. This will be fractional or categorical,
         matching the highest precision of the inputs.
 

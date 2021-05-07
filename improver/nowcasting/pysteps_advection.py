@@ -31,9 +31,12 @@
 """Semi-Lagrangian backward advection plugin using pysteps"""
 
 from datetime import timedelta
+from typing import Dict, List, Optional
 
 import numpy as np
 from iris.coords import AuxCoord
+from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes, set_history_attribute
@@ -55,27 +58,26 @@ class PystepsExtrapolate(BasePlugin):
         pysteps.extrapolation.semilagrangian.extrapolate.html
     """
 
-    def __init__(self, interval, max_lead_time):
+    def __init__(self, interval: int, max_lead_time: int) -> None:
         """
         Initialise the plugin
 
         Args:
-            interval (int):
+            interval:
                 Lead time interval, in minutes
-            max_lead_time (int):
+            max_lead_time:
                 Maximum lead time required, in minutes
         """
         self.interval = interval
         self.num_timesteps = max_lead_time // interval
 
-    def _get_advectable_precip_rate(self):
+    def _get_advectable_precip_rate(self) -> ndarray:
         """
         From the initial cube, generate a precipitation rate array in mm h-1
         with orographic enhancement subtracted, as required for advection
 
         Returns:
-            np.ndarray:
-                2D precipitation rate array in mm h-1
+            2D precipitation rate array in mm h-1
         """
         (self.analysis_cube,) = ApplyOrographicEnhancement("subtract").process(
             self.analysis_cube, self.orogenh
@@ -83,40 +85,40 @@ class PystepsExtrapolate(BasePlugin):
         self.analysis_cube.convert_units("mm h-1")
         return np.ma.filled(self.analysis_cube.data, np.nan)
 
-    def _generate_displacement_array(self, ucube, vcube):
+    def _generate_displacement_array(self, ucube: Cube, vcube: Cube) -> ndarray:
         """
         Create displacement array of shape (2 x m x n) required by pysteps
         algorithm
 
         Args:
-            ucube (iris.cube.Cube):
+            ucube:
                 Cube of x-advection velocities
-            vcube (iris.cube.Cube):
+            vcube:
                 Cube of y-advection velocities
 
         Returns:
-            displacement (np.ndarray):
-                Array of shape (2, m, n) containing the x- and y-components
-                of the m*n displacement field (format required for pysteps
-                extrapolation algorithm)
+            Array of shape (2, m, n) containing the x- and y-components
+            of the m*n displacement field (format required for pysteps
+            extrapolation algorithm)
         """
 
-        def _calculate_displacement(cube, interval, gridlength):
+        def _calculate_displacement(
+            cube: Cube, interval: int, gridlength: float
+        ) -> ndarray:
             """
             Calculate displacement for each time step using velocity cube and
             time interval
 
             Args:
-                cube (iris.cube.Cube):
+                cube:
                     Cube of velocities in the x or y direction
-                interval (int):
+                interval:
                     Lead time interval, in minutes
-                gridlength (float):
+                gridlength:
                     Size of grid square, in metres
 
             Returns:
-                np.ndarray:
-                    Array of displacements in grid squares per time step
+                Array of displacements in grid squares per time step
             """
             cube_ms = cube.copy()
             cube_ms.convert_units("m s-1")
@@ -155,18 +157,17 @@ class PystepsExtrapolate(BasePlugin):
         if attribute_changes is not None:
             amend_attributes(self.analysis_cube, attribute_changes)
 
-    def _set_up_output_cubes(self, all_forecasts):
+    def _set_up_output_cubes(self, all_forecasts: ndarray) -> CubeList:
         """
         Convert 3D numpy array into list of cubes with correct time metadata.
         All other metadata are inherited from self.analysis_cube.
 
         Args:
-            all_forecasts (np.ndarray):
+            all_forecasts:
                 Array of 2D forecast fields returned by extrapolation function
 
         Returns:
-            forecast_cubes (iris.cube.CubeList):
-                List of extrapolated cubes with correct time coordinates
+            List of extrapolated cubes with correct time coordinates
         """
         current_datetime = iris_time_to_datetime(self.analysis_cube.coord("time"))[0]
         forecast_cubes = [self.analysis_cube.copy()]
@@ -185,23 +186,24 @@ class PystepsExtrapolate(BasePlugin):
             forecast_cubes.append(new_cube)
         return forecast_cubes
 
-    def _generate_forecast_cubes(self, all_forecasts, attributes_dict):
+    def _generate_forecast_cubes(
+        self, all_forecasts: ndarray, attributes_dict: Optional[Dict]
+    ) -> List[Cube]:
         """
         Convert forecast arrays into IMPROVER output cubes with re-added
         orographic enhancement
 
         Args:
-            all_forecasts (np.ndarray):
+            all_forecasts:
                 Array of 2D forecast fields returned by extrapolation function
-            attributes_dict (dict or None):
+            attributes_dict:
                 Dictionary containing information for amending the attributes
                 of the output cube.
 
         Returns:
-            forecast_cubes (list):
-                List of iris.cube.Cube instances containing forecasts at all
-                required lead times, and conforming to the IMPROVER metadata
-                standard.
+            List of iris.cube.Cube instances containing forecasts at all
+            required lead times, and conforming to the IMPROVER metadata
+            standard.
         """
         # re-mask forecast data
         all_forecasts = np.ma.masked_invalid(all_forecasts)
@@ -220,30 +222,34 @@ class PystepsExtrapolate(BasePlugin):
         return forecast_cubes
 
     def process(
-        self, initial_cube, ucube, vcube, orographic_enhancement, attributes_dict=None
-    ):
+        self,
+        initial_cube: Cube,
+        ucube: Cube,
+        vcube: Cube,
+        orographic_enhancement: Cube,
+        attributes_dict: Optional[Dict] = None,
+    ) -> List[Cube]:
         """
         Extrapolate the initial precipitation field using the velocities
         provided to the required forecast lead times
 
         Args:
-            initial_cube (iris.cube.Cube):
+            initial_cube:
                 Cube of precipitation at initial time
-            ucube (iris.cube.Cube):
+            ucube:
                 x-advection velocities
-            vcube (iris.cube.Cube):
+            vcube:
                 y-advection velocities
-            orographic_enhancement (iris.cube.Cube):
+            orographic_enhancement:
                 Cube containing orographic enhancement fields at all required
                 lead times
-            attributes_dict (dict or None):
+            attributes_dict:
                 Dictionary containing information for amending the attributes
                 of the output cube.
 
         Returns:
-            forecast_cubes (list):
-                List of extrapolated iris.cube.Cube instances at the required
-                lead times (including T+0 / analysis time)
+            List of extrapolated iris.cube.Cube instances at the required
+            lead times (including T+0 / analysis time)
         """
         # ensure input cube is suitable for advection
         if "rate" not in initial_cube.name():

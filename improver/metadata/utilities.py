@@ -32,10 +32,16 @@
 
 import hashlib
 import pprint
+from typing import Any, Dict, List, Optional, Type, Union
 
 import dask.array as da
 import iris
 import numpy as np
+from cf_units import Unit
+from iris._cube_coord_common import LimitedAttributeDict
+from iris.cube import Cube
+from numpy import ndarray
+from numpy.ma.core import MaskedArray
 
 from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
@@ -44,42 +50,41 @@ from improver.metadata.constants.attributes import (
 
 
 def create_new_diagnostic_cube(
-    name,
-    units,
-    template_cube,
-    mandatory_attributes,
-    optional_attributes=None,
-    data=None,
-    dtype=np.float32,
-):
+    name: str,
+    units: Union[Unit, str],
+    template_cube: Cube,
+    mandatory_attributes: Union[Dict[str, str], LimitedAttributeDict],
+    optional_attributes: Optional[Union[Dict[str, str], LimitedAttributeDict]] = None,
+    data: Optional[Union[MaskedArray, ndarray]] = None,
+    dtype: Type = np.float32,
+) -> Cube:
     """
     Creates a new diagnostic cube with suitable metadata.
 
     Args:
-        name (str):
+        name:
             Standard or long name for output cube
-        units (str or cf_units.Unit):
+        units:
             Units for output cube
-        template_cube (iris.cube.Cube):
+        template_cube:
             Cube from which to copy dimensional and auxiliary coordinates
-        mandatory_attributes (dict):
+        mandatory_attributes:
             Dictionary containing values for the mandatory attributes
             "title", "source" and "institution".  These are overridden by
             values in the optional_attributes dictionary, if specified.
-        optional_attributes (dict or None):
+        optional_attributes:
             Dictionary of optional attribute names and values.  If values for
             mandatory attributes are included in this dictionary they override
             the values of mandatory_attributes.
-        data (numpy.ndarray or None):
+        data:
             Data array.  If not set, cube is filled with zeros using a lazy
             data object, as this will be overwritten later by the caller
             routine.
-        dtype (numpy.dtype):
+        dtype:
             Datatype for dummy cube data if "data" argument is None.
 
     Returns:
-        iris.cube.Cube:
-            Cube with correct metadata to accommodate new diagnostic field
+        Cube with correct metadata to accommodate new diagnostic field
     """
     attributes = mandatory_attributes
     if optional_attributes is not None:
@@ -115,7 +120,9 @@ def create_new_diagnostic_cube(
     return cube
 
 
-def generate_mandatory_attributes(diagnostic_cubes, model_id_attr=None):
+def generate_mandatory_attributes(
+    diagnostic_cubes: List[Cube], model_id_attr: Optional[str] = None
+) -> Dict[str, str]:
     """
     Function to generate mandatory attributes for new diagnostics that are
     generated using several different model diagnostics as input to the
@@ -123,14 +130,14 @@ def generate_mandatory_attributes(diagnostic_cubes, model_id_attr=None):
     otherwise set a default value.
 
     Args:
-        diagnostic_cubes (list):
+        diagnostic_cubes:
             List of diagnostic cubes used in calculating the new diagnostic
-        model_id_attr (str or None):
+        model_id_attr:
             Name of attribute used to identify source model for blending,
             if required
 
     Returns:
-        dict: Dictionary of mandatory attribute "key": "value" pairs.
+        Dictionary of mandatory attribute "key": "value" pairs.
     """
     missing_value = object()
     attr_dicts = [cube.attributes for cube in diagnostic_cubes]
@@ -149,37 +156,37 @@ def generate_mandatory_attributes(diagnostic_cubes, model_id_attr=None):
     return attributes
 
 
-def generate_hash(data_in):
+def generate_hash(data_in: Any) -> str:
     """
     Generate a hash from the data_in that can be used to uniquely identify
     equivalent data_in.
 
     Args:
-        data_in (any):
+        data_in:
             The data from which a hash is to be generated. This can be of any
             type that can be pretty printed.
+
     Returns:
-        str:
-            A hexadecimal string which is a hash hexdigest of the data as a
-            string.
+        A hexadecimal string which is a hash hexdigest of the data as a
+        string.
     """
     bytestring = pprint.pformat(data_in).encode("utf-8")
     return hashlib.sha256(bytestring).hexdigest()
 
 
-def create_coordinate_hash(cube):
+def create_coordinate_hash(cube: Cube) -> str:
     """
     Generate a hash based on the input cube's x and y coordinates. This
     acts as a unique identifier for the grid which can be used to allow two
     grids to be compared.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             The cube from which x and y coordinates will be used to
             generate a hash.
+
     Returns:
-        str:
-            A hash created using the x and y coordinates of the input cube.
+        A hash created using the x and y coordinates of the input cube.
     """
     hashable_data = []
     for axis in ("x", "y"):

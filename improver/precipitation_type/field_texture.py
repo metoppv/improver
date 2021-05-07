@@ -31,9 +31,13 @@
 """ Module containing plugin to calculate whether or not the input field texture
     exceeds a given threshold."""
 
+from typing import Optional
+
 import iris
 import numpy as np
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.probabilistic import find_threshold_coordinate
@@ -63,41 +67,39 @@ class FieldTexture(BasePlugin):
 
     def __init__(
         self,
-        nbhood_radius,
-        textural_threshold,
-        diagnostic_threshold,
-        model_id_attr=None,
-    ):
+        nbhood_radius: float,
+        textural_threshold: float,
+        diagnostic_threshold: float,
+        model_id_attr: Optional[str] = None,
+    ) -> None:
         """
-
         Args:
-            nbhood_radius (float):
+            nbhood_radius:
                 The neighbourhood radius in metres within which the number of potential
                 transitions should be calculated. This forms the denominator in the
                 calculation of the ratio of actual to potential transitions that indicates a
                 field's texture. A larger radius should be used for diagnosing larger-scale
                 textural features.
 
-            textural_threshold (float):
+            textural_threshold:
                 A unit-less threshold value that defines the ratio value above which
                 the field is considered rough and below which the field is considered
                 smoother.
 
-            diagnostic_threshold (float):
+            diagnostic_threshold:
                 A user defined threshold value related either to cloud or precipitation,
                 used to extract the corresponding dimensional cube with assumed units of 1.
 
-            model_id_attr (str):
+            model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending.
-
         """
         self.nbhood_radius = nbhood_radius
         self.textural_threshold = textural_threshold
         self.diagnostic_threshold = diagnostic_threshold
         self.model_id_attr = model_id_attr
 
-    def _calculate_ratio(self, cube, cube_name, radius):
+    def _calculate_ratio(self, cube: Cube, cube_name: str, radius: float) -> Cube:
         """
         Calculates the ratio of actual to potential value transitions in a
         neighbourhood about each cell.
@@ -124,19 +126,16 @@ class FieldTexture(BasePlugin):
         is set to 1.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 Input data in cube format containing a two-dimensional field
                 of binary data.
-
-            cube_name (str):
+            cube_name:
                 Name of input data cube, used for determining output texture cube name.
-
-            radius (float):
+            radius:
                 Radius for neighbourhood in metres.
 
         Returns:
-            iris.cube.Cube:
-                A ratio between 0 and 1 of actual transitions over potential transitions.
+            A ratio between 0 and 1 of actual transitions over potential transitions.
         """
         # Calculate the potential transitions within neighbourhoods.
         potential_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
@@ -178,7 +177,7 @@ class FieldTexture(BasePlugin):
         return ratio
 
     @staticmethod
-    def _calculate_transitions(data):
+    def _calculate_transitions(data: ndarray) -> ndarray:
         """
         Identifies actual transitions present in a binary field. These transitions
         are defined as the number of cells of value zero that directly neighbour
@@ -187,12 +186,11 @@ class FieldTexture(BasePlugin):
         transitions for cells of value 0 is set to 0.
 
         Args:
-            data (numpy.ndarray):
+            data:
                 A NumPy array of the input cube for data manipulation.
 
         Returns:
-            numpy.ndarray:
-                A NumPy array containing the transitions for ratio calculation.
+            A NumPy array containing the transitions for ratio calculation.
         """
         padded_data = np.pad(data, 1, mode="edge")
         diff_x = np.abs(np.diff(padded_data, axis=1))
@@ -203,22 +201,21 @@ class FieldTexture(BasePlugin):
         cell_sum = np.where(data > 0, cell_sum, 0)
         return cell_sum
 
-    def process(self, input_cube):
+    def process(self, input_cube: Cube) -> Cube:
         """
         Calculates a field of texture to use in differentiating solid and
         more scattered features.
 
         Args:
-            input_cube (iris.cube.Cube):
+            input_cube:
                 Input data in cube format containing the field for which the
                 texture is to be assessed.
 
         Returns:
-            iris.cube.Cube:
-                A cube containing either the mean across realization of the
-                thresholded ratios to give the field texture, if a realization
-                coordinate is present, or the thresholded ratios directly, if
-                no realization coordinate is present.
+            A cube containing either the mean across realization of the
+            thresholded ratios to give the field texture, if a realization
+            coordinate is present, or the thresholded ratios directly, if
+            no realization coordinate is present.
         """
 
         values = np.unique(input_cube.data)

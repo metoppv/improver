@@ -34,7 +34,9 @@ dependencies:
   - filelock
   - isort=5.*
   - mock
+  - mypy
   - pylint
   - pytest
   - pytest-cov
   - safety
+  - sphinx-autodoc-typehints

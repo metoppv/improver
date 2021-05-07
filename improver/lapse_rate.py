@@ -30,9 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing lapse rate calculation plugins."""
 
+from typing import Optional, Tuple
+
 import iris
 import numpy as np
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR
@@ -52,13 +56,13 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
     """Class to apply a lapse rate adjustment to a temperature data forecast"""
 
     @staticmethod
-    def _check_dim_coords(temperature, lapse_rate):
+    def _check_dim_coords(temperature: Cube, lapse_rate: Cube) -> None:
         """Throw an error if the dimension coordinates are not the same for
         temperature and lapse rate cubes
 
         Args:
-            temperature (iris.cube.Cube)
-            lapse_rate (iris.cube.Cube)
+            temperature
+            lapse_rate
         """
         for crd in temperature.coords(dim_coords=True):
             try:
@@ -72,18 +76,18 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
                     "Lapse rate cube has no coordinate " '"{}"'.format(crd.name())
                 )
 
-    def _calc_orog_diff(self, source_orog, dest_orog):
+    def _calc_orog_diff(self, source_orog: Cube, dest_orog: Cube) -> Cube:
         """Get difference in orography heights, in metres
 
         Args:
-            source_orog (iris.cube.Cube):
+            source_orog:
                 2D cube of source orography heights (units modified in place)
-            dest_orog (iris.cube.Cube):
+            dest_orog:
                 2D cube of destination orography heights (units modified in
                 place)
 
         Returns:
-            iris.cube.Cube
+            The difference cube
         """
         source_orog.convert_units("m")
         dest_orog.convert_units("m")
@@ -92,23 +96,24 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         )
         return orog_diff
 
-    def process(self, temperature, lapse_rate, source_orog, dest_orog):
+    def process(
+        self, temperature: Cube, lapse_rate: Cube, source_orog: Cube, dest_orog: Cube
+    ) -> Cube:
         """Applies lapse rate correction to temperature forecast.  All cubes'
         units are modified in place.
 
         Args:
-            temperature (iris.cube.Cube):
+            temperature:
                 Input temperature field to be adjusted
-            lapse_rate (iris.cube.Cube):
+            lapse_rate:
                 Cube of pre-calculated lapse rates
-            source_orog (iris.cube.Cube):
+            source_orog:
                 2D cube of source orography heights
-            dest_orog (iris.cube.Cube):
+            dest_orog:
                 2D cube of destination orography heights
 
         Returns:
-            iris.cube.Cube:
-                Lapse-rate adjusted temperature field, in Kelvin
+            Lapse-rate adjusted temperature field, in Kelvin
         """
         lapse_rate.convert_units("K m-1")
         self.xy_coords = [lapse_rate.coord(axis="y"), lapse_rate.coord(axis="x")]
@@ -170,33 +175,29 @@ class LapseRate(BasePlugin):
 
     def __init__(
         self,
-        max_height_diff=35,
-        nbhood_radius=7,
-        max_lapse_rate=-3 * DALR,
-        min_lapse_rate=DALR,
-    ):
+        max_height_diff: float = 35,
+        nbhood_radius: int = 7,
+        max_lapse_rate: float = -3 * DALR,
+        min_lapse_rate: float = DALR,
+    ) -> None:
         """
         The class is called with the default constraints for the processing
         code.
 
         Args:
-            max_height_diff (float):
+            max_height_diff:
                 Maximum allowable height difference between the central point
                 and points in the neighbourhood over which the lapse rate will
                 be calculated (metres).
                 The default value of 35m is from the referenced paper.
-
-            nbhood_radius (int):
+            nbhood_radius:
                 Radius of neighbourhood around each point. The neighbourhood
                 will be a square array with side length 2*nbhood_radius + 1.
                 The default value of 7 is from the referenced paper.
-
-            max_lapse_rate (float):
+            max_lapse_rate:
                 Maximum lapse rate allowed.
-
-            min_lapse_rate (float):
+            min_lapse_rate:
                 Minimum lapse rate allowed.
-
         """
 
         self.max_height_diff = max_height_diff
@@ -224,7 +225,7 @@ class LapseRate(BasePlugin):
         # of the array is non NaN.
         self.ind_central_point = self.nbhood_size // 2
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         desc = (
             "<LapseRate: max_height_diff: {}, nbhood_radius: {},"
@@ -237,22 +238,19 @@ class LapseRate(BasePlugin):
         )
         return desc
 
-    def _create_windows(self, temp, orog):
+    def _create_windows(self, temp: ndarray, orog: ndarray) -> Tuple[ndarray, ndarray]:
         """Uses neighbourhood tools to pad and generate rolling windows
         of the temp and orog datasets.
 
         Args:
-            temp (numpy.ndarray):
+            temp:
                 2D array (single realization) of temperature data, in Kelvin
-            orog (numpy.ndarray):
+            orog:
                 2D array of orographies, in metres
 
         Returns:
-            (tuple): tuple_containing:
-                **views of temp** (numpy.ndarray):
-                    Rolling windows of the padded temperature dataset.
-                **views of orog** (numpy.ndarray):
-                    Rolling windows of the padded orography dataset.
+            - Rolling windows of the padded temperature dataset.
+            - Rolling windows of the padded orography dataset.
         """
         window_shape = (self.nbhood_size, self.nbhood_size)
         orog_windows = neighbourhood_tools.pad_and_roll(
@@ -264,22 +262,24 @@ class LapseRate(BasePlugin):
         return temp_windows, orog_windows
 
     def _generate_lapse_rate_array(
-        self, temperature_data, orography_data, land_sea_mask_data
-    ):
+        self,
+        temperature_data: ndarray,
+        orography_data: ndarray,
+        land_sea_mask_data: ndarray,
+    ) -> ndarray:
         """
         Calculate lapse rates and apply filters
 
         Args:
-            temperature_data (numpy.ndarray):
+            temperature_data:
                 2D array (single realization) of temperature data, in Kelvin
-            orography_data (numpy.ndarray):
+            orography_data:
                 2D array of orographies, in metres
-            land_sea_mask_data (numpy.ndarray):
+            land_sea_mask_data:
                 2D land-sea mask
 
         Returns:
-            numpy.ndarray:
-                Lapse rate values
+            Lapse rate values
         """
         # Fill sea points with NaN values.
         temperature_data = np.where(land_sea_mask_data, temperature_data, np.nan)
@@ -335,24 +335,29 @@ class LapseRate(BasePlugin):
         )
         return lapse_rate_array
 
-    def process(self, temperature, orography, land_sea_mask, model_id_attr=None):
+    def process(
+        self,
+        temperature: Cube,
+        orography: Cube,
+        land_sea_mask: Cube,
+        model_id_attr: Optional[str] = None,
+    ) -> Cube:
         """Calculates the lapse rate from the temperature and orography cubes.
 
         Args:
-            temperature (iris.cube.Cube):
+            temperature:
                 Cube of air temperatures (K).
-            orography (iris.cube.Cube):
+            orography:
                 Cube containing orography data (metres)
-            land_sea_mask (iris.cube.Cube):
+            land_sea_mask:
                 Cube containing a binary land-sea mask. True for land-points
                 and False for Sea.
-            model_id_attr (str):
+            model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending. This is inherited from the input temperature cube.
 
         Returns:
-            iris.cube.Cube:
-                Cube containing lapse rate (K m-1)
+            Cube containing lapse rate (K m-1)
 
         Raises
         ------

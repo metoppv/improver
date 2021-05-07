@@ -31,10 +31,13 @@
 """Class for Temporal Interpolation calculations."""
 
 from datetime import datetime, timedelta
+from typing import List, Optional, Tuple
 
 import iris
 import numpy as np
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.constants.time_types import TIME_COORDS
@@ -55,13 +58,16 @@ class TemporalInterpolation(BasePlugin):
     """
 
     def __init__(
-        self, interval_in_minutes=None, times=None, interpolation_method="linear"
-    ):
+        self,
+        interval_in_minutes: Optional[int] = None,
+        times: Optional[List[datetime]] = None,
+        interpolation_method: str = "linear",
+    ) -> None:
         """
         Initialise class.
 
         Args:
-            interval_in_minutes (int):
+            interval_in_minutes:
                 Specifies the interval in minutes at which to interpolate
                 between the two input cubes. A number of minutes which does not
                 divide up the interval equally will raise an exception.
@@ -69,17 +75,16 @@ class TemporalInterpolation(BasePlugin):
                    | e.g. cube_t0 valid at 03Z, cube_t1 valid at 06Z,
                    | interval_in_minutes = 60 --> interpolate to 04Z and 05Z.
 
-            times (list or tuple of datetime.datetime):
+            times:
                 A list of datetime objects specifying the times to which to
                 interpolate.
-            interpolation_method (str):
+            interpolation_method:
                 Method of interpolation to use. Default is linear.
                 Only methods in known_interpolation_methods can be used.
 
         Raises:
             ValueError: If neither interval_in_minutes nor times are set.
             ValueError: If interpolation method not in known list.
-
         """
         if interval_in_minutes is None and times is None:
             raise ValueError(
@@ -103,7 +108,7 @@ class TemporalInterpolation(BasePlugin):
             )
         self.interpolation_method = interpolation_method
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
             "<TemporalInterpolation: interval_in_minutes: {}, " "times: {}, method: {}>"
@@ -112,24 +117,25 @@ class TemporalInterpolation(BasePlugin):
             self.interval_in_minutes, self.times, self.interpolation_method
         )
 
-    def construct_time_list(self, initial_time, final_time):
+    def construct_time_list(
+        self, initial_time: datetime, final_time: datetime
+    ) -> List[Tuple[str, List[datetime]]]:
         """
         A function to construct a list of datetime objects formatted
         appropriately for use by iris' interpolation method.
 
         Args:
-            initial_time (datetime.datetime):
+            initial_time:
                 The start of the period over which a time list is to be
                 constructed.
-            final_time (datetime.datetime).
+            final_time:
                 The end of the period over which a time list is to be
                 constructed.
 
         Returns:
-            list of Tuple[str, List[datetime.datetime]]:
-                A list containing a tuple that specifies the coordinate and a
-                list of points along that coordinate to which to interpolate,
-                as required by the iris interpolation method, e.g.::
+            A list containing a tuple that specifies the coordinate and a
+            list of points along that coordinate to which to interpolate,
+            as required by the iris interpolation method, e.g.::
 
                     [('time', [<datetime object 0>,
                                <datetime object 1>])]
@@ -173,7 +179,7 @@ class TemporalInterpolation(BasePlugin):
         return [("time", time_list)]
 
     @staticmethod
-    def enforce_time_coords_dtype(cube):
+    def enforce_time_coords_dtype(cube: Cube) -> Cube:
         """
         Enforce the data type of the time, forecast_reference_time and
         forecast_period within the cube, so that time coordinates do not
@@ -183,19 +189,16 @@ class TemporalInterpolation(BasePlugin):
         The units of forecast_period are enforced to be seconds with a datatype
         of int32. This functions modifies the cube in-place.
 
-
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 The cube that will have the datatype and units for the
                 time, forecast_reference_time and forecast_period coordinates
                 enforced.
 
         Returns:
-            iris.cube.Cube:
-                Cube where the datatype and units for the
-                time, forecast_reference_time and forecast_period coordinates
-                have been enforced.
-
+            Cube where the datatype and units for the
+            time, forecast_reference_time and forecast_period coordinates
+            have been enforced.
         """
         for coord_name in ["time", "forecast_reference_time", "forecast_period"]:
             coord_spec = TIME_COORDS[coord_name]
@@ -208,21 +211,20 @@ class TemporalInterpolation(BasePlugin):
         return cube
 
     @staticmethod
-    def calc_sin_phi(dtval, lats, lons):
+    def calc_sin_phi(dtval: datetime, lats: ndarray, lons: ndarray) -> ndarray:
         """
         Calculate sin of solar elevation
 
         Args:
-            dtval (datetime.datetime):
+            dtval:
                 Date and time.
-            lats (numpy.ndarray):
+            lats:
                 Array 2d of latitudes for each point
-            lons (numpy.ndarray):
+            lons:
                 Array 2d of longitudes for each point
-        Returns:
-            numpy.ndarray:
-                Array of sine of solar elevation at each point
 
+        Returns:
+            Array of sine of solar elevation at each point
         """
         day_of_year = (dtval - datetime(dtval.year, 1, 1)).days
         utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
@@ -232,22 +234,19 @@ class TemporalInterpolation(BasePlugin):
         return sin_phi
 
     @staticmethod
-    def calc_lats_lons(cube):
+    def calc_lats_lons(cube: Cube) -> Tuple[ndarray, ndarray]:
         """
         Calculate the lats and lons of each point from a non-latlon cube,
         or output a 2d array of lats and lons, if the input cube has latitude
         and longitude coordinates.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 cube containing x and y axis
-        Returns:
-            (tuple): tuple containing:
-                **lats** (numpy.ndarray):
-                    2d Array of latitudes for each point.
-                **lons** (numpy.ndarray):
-                    2d Array of longitudes for each point.
 
+        Returns:
+            - 2d Array of latitudes for each point.
+            - 2d Array of longitudes for each point.
         """
         trg_crs = lat_lon_determine(cube)
         if trg_crs is not None:
@@ -260,7 +259,7 @@ class TemporalInterpolation(BasePlugin):
             lons = np.repeat(lons_col[np.newaxis, :], len(lats_row), axis=0)
         return lats, lons
 
-    def solar_interpolate(self, diag_cube, interpolated_cube):
+    def solar_interpolate(self, diag_cube: Cube, interpolated_cube: Cube) -> CubeList:
         """
         Temporal Interpolation code using solar elevation for
         parameters (e.g. solar radiation parameters like
@@ -270,16 +269,15 @@ class TemporalInterpolation(BasePlugin):
         horizon.
 
         Args:
-            diag_cube (iris.cube.Cube):
+            diag_cube:
                 cube containing diagnostic data valid at the beginning
                 of the period and at the end of the period.
-            interpolated_cube (iris.cube.Cube):
+            interpolated_cube:
                 cube containing Linear interpolation of
                 diag_cube at interpolation times in time_list.
-        Returns:
-            iris.cube.CubeList:
-                A list of cubes interpolated to the desired times.
 
+        Returns:
+            A list of cubes interpolated to the desired times.
         """
 
         interpolated_cubes = iris.cube.CubeList()
@@ -335,21 +333,19 @@ class TemporalInterpolation(BasePlugin):
         return interpolated_cubes
 
     @staticmethod
-    def daynight_interpolate(interpolated_cube):
+    def daynight_interpolate(interpolated_cube: Cube) -> CubeList:
         """
         Set linearly interpolated data to zero for parameters
         (e.g. solar radiation parameters) which are zero if the
         sun is below the horizon.
 
         Args:
-            interpolated_cube (iris.cube.Cube):
+            interpolated_cube:
                 cube containing Linear interpolation of
                 cube at interpolation times in time_list.
 
         Returns:
-            iris.cube.CubeList:
-                A list of cubes interpolated to the desired times.
-
+            A list of cubes interpolated to the desired times.
         """
         daynightplugin = DayNightMask()
         daynight_mask = daynightplugin(interpolated_cube)
@@ -357,22 +353,21 @@ class TemporalInterpolation(BasePlugin):
         interpolated_cube.data[..., index] = 0.0
         return iris.cube.CubeList(list(interpolated_cube.slices_over("time")))
 
-    def process(self, cube_t0, cube_t1):
+    def process(self, cube_t0: Cube, cube_t1: Cube) -> CubeList:
         """
         Interpolate data to intermediate times between validity times of
         cube_t0 and cube_t1.
 
         Args:
-            cube_t0 (iris.cube.Cube):
+            cube_t0:
                 A diagnostic cube valid at the beginning of the period within
                 which interpolation is to be permitted.
-            cube_t1 (iris.cube.Cube):
+            cube_t1:
                 A diagnostic cube valid at the end of the period within which
                 interpolation is to be permitted.
 
         Returns:
-            iris.cube.CubeList:
-                A list of cubes interpolated to the desired times.
+            A list of cubes interpolated to the desired times.
 
         Raises:
             TypeError: If cube_t0 and cube_t1 are not of type iris.cube.Cube.

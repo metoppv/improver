@@ -30,8 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities to support weighted blending"""
 
+from typing import Dict, List, Optional
+
 import numpy as np
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from numpy import int64
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.metadata.amend import amend_attributes
@@ -45,20 +49,19 @@ from improver.utilities.round import round_close
 from improver.utilities.temporal import cycletime_to_number
 
 
-def find_blend_dim_coord(cube, blend_coord):
+def find_blend_dim_coord(cube: Cube, blend_coord: str) -> str:
     """
     Find the name of the dimension coordinate across which to perform the blend,
     since the input "blend_coord" may be an auxiliary coordinate.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to be blended
-        blend_coord (str):
+        blend_coord:
             Name of coordinate to blend over
 
     Returns:
-        str:
-            Name of dimension coordinate associated with blend dimension
+        Name of dimension coordinate associated with blend dimension
 
     Raises:
         ValueError:
@@ -78,21 +81,20 @@ def find_blend_dim_coord(cube, blend_coord):
     return cube.coord(dimensions=blend_dim[0], dim_coords=True).name()
 
 
-def get_coords_to_remove(cube, blend_coord):
+def get_coords_to_remove(cube: Cube, blend_coord: str) -> Optional[List[str]]:
     """
     Generate a list of coordinate names associated with the blend
     dimension.  Unless these are time-related coordinates, they should be
     removed after blending.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Cube to be blended
-        blend_coord (str):
+        blend_coord:
             Name of coordinate over which the blend will be performed
 
     Returns:
-        list:
-            List of names of coordinates to remove
+        List of names of coordinates to remove
     """
     try:
         (blend_dim,) = cube.coord_dims(blend_coord)
@@ -112,13 +114,13 @@ def get_coords_to_remove(cube, blend_coord):
 
 
 def update_blended_metadata(
-    cube,
-    blend_coord,
-    coords_to_remove=None,
-    cycletime=None,
-    attributes_dict=None,
-    model_id_attr=None,
-):
+    cube: Cube,
+    blend_coord: str,
+    coords_to_remove: Optional[List[str]] = None,
+    cycletime: Optional[str] = None,
+    attributes_dict: Optional[Dict[str, str]] = None,
+    model_id_attr: Optional[str] = None,
+) -> None:
     """
     Update metadata as required after blending
     - For cycle and model blending, set a single forecast reference time
@@ -132,18 +134,18 @@ def update_blended_metadata(
     Modifies cube in place.
 
     Args:
-        cube (iris.cube.Cube):
+        cube:
             Blended cube
-        blend_coord (str):
+        blend_coord:
             Name of coordinate over which blending has been performed
-        coords_to_remove (list of str):
+        coords_to_remove:
             Name of scalar coordinates to be removed from the blended cube
-        cycletime (str):
+        cycletime:
             Current cycletime in YYYYMMDDTHHmmZ format
-        model_id_attr (str):
+        model_id_attr:
             Name of attribute for use in model blending, to record the names of
             contributing models on the blended output
-        attributes_dict (dict):
+        attributes_dict:
             Optional user-defined attributes to add to the cube
     """
     if blend_coord in ["forecast_reference_time", MODEL_BLEND_COORD]:
@@ -168,7 +170,7 @@ def update_blended_metadata(
             cube.attributes[attr] = MANDATORY_ATTRIBUTE_DEFAULTS[attr]
 
 
-def _set_blended_time_coords(blended_cube, cycletime):
+def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> None:
     """
     For cycle and model blending:
     - Add a "blend_time" coordinate equal to the current cycletime
@@ -180,8 +182,8 @@ def _set_blended_time_coords(blended_cube, cycletime):
     Modifies cube in place.
 
     Args:
-        blended_cube (iris.cube.Cube)
-        cycletime (str):
+        blended_cube
+        cycletime:
             Current cycletime in YYYYMMDDTHHmmZ format
     """
     try:
@@ -202,20 +204,19 @@ def _set_blended_time_coords(blended_cube, cycletime):
         blended_cube.coord(coord).attributes.update({"deprecation_message": msg})
 
 
-def _get_cycletime_point(cube, cycletime):
+def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
     """
     For cycle and model blending, establish the current cycletime to set on
     the cube after blending.
 
     Args:
-        blended_cube (iris.cube.Cube)
-        cycletime (str):
+        blended_cube
+        cycletime:
             Current cycletime in YYYYMMDDTHHmmZ format
 
     Returns:
-        numpy.int64:
-            Cycle time point in units matching the input cube forecast reference
-            time coordinate
+        Cycle time point in units matching the input cube forecast reference
+        time coordinate
     """
     frt_coord = cube.coord("forecast_reference_time")
     frt_units = frt_coord.units.origin
