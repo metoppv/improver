@@ -69,12 +69,9 @@ NUM_NEIGHBOURS = 4
 
 class RegridWithLandSeaMask(BasePlugin):
     """
-    Replace data values at points where the nearest-regridding technique
-    selects a source grid-point with an opposite land-sea-mask value to the
-    target grid-point.
-    The replacement data values are selected from a vicinity of points on the
-    source-grid and the closest point of the correct mask is used.
-    Where no match is found within the vicinity, the data value is not changed.
+    Nearest-neighbour and bilinear regridding with or without land-sea mask
+    awareness. When land-sea mask considered, surface-type-mismatched source
+    points are excluded from field regridding calculation for target points.
     Note: regrid_mode options are "nearest-2", "nearest-with-mask-2","bilinear-2",
     and "bilinear-with-mask-2" in this class.
     """
@@ -82,13 +79,13 @@ class RegridWithLandSeaMask(BasePlugin):
     def __init__(self, regrid_mode="bilinear-2", vicinity_radius=25000.0):
         """
         Initialise class
-        
+
         Args:
             regrid_mode (str):
                 Mode of interpolation in regridding.  Valid options are "bilinear-2",
                 "nearest-2","nearest-with-mask-2" and "bilinear-with-mask-2". 
                 The last two options trigger adjustment of regridded points to match
-                source points in terms of land / sea type.              
+                source points in terms of land / sea type.
             vicinity_radius (float):
                 Radius of vicinity to search for a coastline, in metres
         """

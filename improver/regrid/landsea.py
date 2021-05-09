@@ -47,9 +47,12 @@ from improver.utilities.spatial import OccurrenceWithinVicinity
 
 
 class RegridLandSea(BasePlugin):
-    """Regrid a field with the option to adjust the output so that regridded land
-    points always take values from a land point on the source grid, and vice versa
-    for sea points"""
+    """Nearest-neighbour and bilinear regridding with or without land-sea mask
+    awareness. When land-sea mask considered, surface-type-mismatched source
+    points are excluded from field regridding calculation for target points.
+    For example, for regridding a field using nearest-neighbour approach with
+    land-sea awareness, regridded land points always take values from a land
+    point on the source grid, and vice versa for sea points"""
 
     REGRID_REQUIRES_LANDMASK = {
         "bilinear": False,
@@ -99,73 +102,6 @@ class RegridLandSea(BasePlugin):
         self.landmask_vicinity = None if landmask is None else landmask_vicinity
         self.landmask_name = "land_binary_mask"
 
-    def _adjust_landsea(self, cube, target_grid):
-        """
-        Adjust regridded data using differences between the target landmask
-        and that obtained by regridding the source grid landmask, to ensure
-        that the "land" or "sea" nature of the points in the regridded cube
-        matches that of the target grid.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube after initial regridding
-            target_grid (iris.cube.Cube):
-                Cube containing landmask data on the target grid
-
-        Returns:
-            iris.cube.Cube: Adjusted cube
-        """
-        if self.landmask_name not in self.landmask_source_grid.name():
-            msg = "Expected {} in input_landmask cube but found {}".format(
-                self.landmask_name, repr(self.landmask_source_grid)
-            )
-            warnings.warn(msg)
-
-        if self.landmask_name not in target_grid.name():
-            msg = "Expected {} in target_grid cube but found {}".format(
-                self.landmask_name, repr(target_grid)
-            )
-            warnings.warn(msg)
-
-        return AdjustLandSeaPoints(vicinity_radius=self.landmask_vicinity)(
-            cube, self.landmask_source_grid, target_grid
-        )
-
-    def _regrid_landsea_2(self, cube, target_grid, regrid_mode):
-        """
-        Adjust regridded data using differences between the target landmask
-        and that obtained by regridding the source grid landmask, to ensure
-        that the "land" or "sea" nature of the points in the regridded cube
-        matches that of the target grid.
-
-        Args:
-            cube (iris.cube.Cube):
-                Cube to be regridded
-            target_grid (iris.cube.Cube):
-                Cube containing landmask data on the target grid
-            regrid_mode (str):
-                Mode string - nearest-with-mask-2 or bilinear-with-mask-2
-
-        Returns:
-            iris.cube.Cube: Regridded cube
-        """
-        if regrid_mode in ("nearest-with-mask-2", "bilinear-with-mask-2"):
-            if self.landmask_name not in self.landmask_source_grid.name():
-                msg = "Expected {} in input_landmask cube but found {}".format(
-                    self.landmask_name, repr(self.landmask_source_grid)
-                )
-                warnings.warn(msg)
-
-            if self.landmask_name not in target_grid.name():
-                msg = "Expected {} in target_grid cube but found {}".format(
-                    self.landmask_name, repr(target_grid)
-                )
-                warnings.warn(msg)
-
-        return RegridWithLandSeaMask(
-            regrid_mode=regrid_mode, vicinity_radius=self.landmask_vicinity
-        )(cube, self.landmask_source_grid, target_grid)
-
     def _regrid_to_target(self, cube, target_grid, regridded_title, regrid_mode):
         """
         Regrid cube to target_grid, inherit grid attributes and update title
@@ -187,6 +123,23 @@ class RegridLandSea(BasePlugin):
         Returns:
             iris.cube.Cube: Regridded cube with updated attributes
         """
+        if regrid_mode in (
+            "nearest-with-mask",
+            "nearest-with-mask-2",
+            "bilinear-with-mask-2",
+        ):
+            if self.landmask_name not in self.landmask_source_grid.name():
+                msg = "Expected {} in input_landmask cube but found {}".format(
+                    self.landmask_name, repr(self.landmask_source_grid)
+                )
+                warnings.warn(msg)
+
+            if self.landmask_name not in target_grid.name():
+                msg = "Expected {} in target_grid cube but found {}".format(
+                    self.landmask_name, repr(target_grid)
+                )
+                warnings.warn(msg)
+
         # basic categories (1) Iris-based (2) new nearest based  (3) new bilinear-based
         if regrid_mode in ("bilinear", "nearest", "nearest-with-mask"):
             if "nearest" in regrid_mode:
@@ -197,7 +150,9 @@ class RegridLandSea(BasePlugin):
 
             # Iris regridding is used, and then adjust if land_sea mask is considered
             if self.REGRID_REQUIRES_LANDMASK[regrid_mode]:
-                cube = self._adjust_landsea(cube, target_grid)
+                cube = AdjustLandSeaPoints(vicinity_radius=self.landmask_vicinity)(
+                    cube, self.landmask_source_grid, target_grid
+                )
 
             # identify grid-describing attributes on source cube that need updating
             # MOSG_GRID_ATTRIBUTES={"mosg__grid_type","mosg__grid_version", "mosg__grid_domain"}
@@ -219,7 +174,9 @@ class RegridLandSea(BasePlugin):
             "bilinear-2",
             "bilinear-with-mask-2",
         ):
-            cube = self._regrid_landsea_2(cube, target_grid, regrid_mode)
+            cube = RegridWithLandSeaMask(
+                regrid_mode=regrid_mode, vicinity_radius=self.landmask_vicinity
+            )(cube, self.landmask_source_grid, target_grid)
 
         cube.attributes["title"] = (
             MANDATORY_ATTRIBUTE_DEFAULTS["title"]

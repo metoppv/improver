@@ -68,6 +68,14 @@ def apply_weights(indexes, in_values, weights):
 def basic_indexes(out_latlons, in_latlons, in_lons_size):
     """
     locating source points for each target point
+    Calculate the surrounding source points indexes for a given output point (x)
+    with the following spatial layout:
+            lon
+        2 . --- . 3
+          |     |
+     lat  |  x  |
+          |     |
+        1 . --- . 4
 
     Args:
         in_latlons(numpy.ndarray):
@@ -78,7 +86,7 @@ def basic_indexes(out_latlons, in_latlons, in_lons_size):
             source grid's longitude dimension
 
     Returns:
-        numpy.ndarray:
+        numpy.ndarray(total number of target points, 4) :
             Updated array of source grid point number for all target grid points
     """
     # Set up input points spacing values
@@ -92,14 +100,14 @@ def basic_indexes(out_latlons, in_latlons, in_lons_size):
     m_lon = m_lon.astype(int)
 
     # Four surrounding input points for each output point, in a rectangle shape
-    index0 = n_lat * in_lons_size + m_lon
-    index1 = index0 + in_lons_size
-    index2 = index1 + 1
-    index3 = index0 + 1
+    index1 = n_lat * in_lons_size + m_lon
+    index2 = index1 + in_lons_size
+    index3 = index2 + 1
+    index4 = index1 + 1
 
     # Rearrange order to match expected output style
     # note: lat (X) but ordering  (lat0, lon0)(lat0,lon1)....(lat0,lon_last),(lat1,lon0),
-    indexes = np.transpose([index0, index1, index2, index3])
+    indexes = np.transpose([index1, index2, index3, index4])
 
     # if identical max latitude and/or longitude between source/target grids,index algorithm
     # needs change at relevant boundary
@@ -150,7 +158,7 @@ def adjust_boundary_indexes(
         indexes(numpy.ndarray):
             Updated array of source grid point number for all target grid points
     Returns:
-        numpy.ndarray:
+        numpy.ndarray (total number of target points, 4):
             Updated array of source grid point number for all target grid points
     """
     # find a list of target points with its latitude
@@ -206,7 +214,7 @@ def basic_weights(index_range, indexes, out_latlons, in_latlons, in_lons_size):
             source grid's longitude dimension
 
     Returns:
-        numpy.ndarray:
+        numpy.ndarray (len(index_range),4):
             weigting array of source grid point number for target grid points
     """
     # Set up input points spacing values
@@ -220,13 +228,13 @@ def basic_weights(index_range, indexes, out_latlons, in_latlons, in_lons_size):
     # Input point 1 - left bottom input point
     lat_1 = in_latlons[indexes[index_range, 0], 0]
     lon_1 = in_latlons[indexes[index_range, 0], 1]
-    # Input point 2 - right bottom input point
+    # Input point 2 - left-top input point
     lat2_lat = lat_1 + lat_spacing - out_lats
     # Input point 3 - right top input point
     lon3_lon = lon_1 + lon_spacing - out_lons
     lon_lon1 = out_lons - lon_1
     lat_lat1 = out_lats - lat_1
-    # Input point 4 (left top) is implied by the others
+    # Input point 4 (right-bottom) is implied by the others
 
     weight1 = lat2_lat * lon3_lon / latlon_area
     weight2 = lat_lat1 * lon3_lon / latlon_area
@@ -249,7 +257,18 @@ def adjust_for_surface_mismatch(
 ):
     """
     updating source points and weighting for mismatched-source-point cases
-
+    (1) triangle interpolation function is used for only one mismatched source point and
+        target point is within the triangle formed with three matched sourced point
+    (2) In one of 3 cases (a)one false source points, three true source points but the target
+        point is outside triangle (b)Two false source points, two true source points (c) three
+        false source points, one true source pointfor, find four surrounding source points
+        using KDtree, and regridding with inverse distance weighting(IDW) if matched source 
+        point is available
+    (3) In case of four mismatched source points(zero matched source point), Look up 8 points
+        with specified distance limit (input) using KD tree, and then check if there are any
+        same-type source points. If yes, pick up the points of the same type, and do IDW
+        interpolation. If no, ignore surface type and just do normal bilinear interpolation
+ 
     Args:
         in_latlons(numpy.ndarray):
             source points's latitude-longitudes
