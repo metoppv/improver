@@ -43,7 +43,7 @@ from improver.regrid.bilinear import (
     basic_weights,
 )
 from improver.regrid.grid import (
-    check_if_input_grid_is_valid,
+    calculate_input_grid_spacing,
     classify_input_surface_type,
     classify_output_surface_type,
     create_regrid_cube,
@@ -113,7 +113,8 @@ class RegridWithLandSeaMask(BasePlugin):
                 Regridded result cube
         """
         # check if input source grid is on even-spacing, ascending lat/lon system
-        check_if_input_grid_is_valid(cube_in)
+        # return grid spacing for latitude and logitude
+        lat_spacing, lon_spacing = calculate_input_grid_spacing(cube_in)
 
         # Gather output latitude/longitudes from output template cube
         if (
@@ -149,7 +150,9 @@ class RegridWithLandSeaMask(BasePlugin):
         in_values, lats_index, lons_index = flatten_spatial_dimensions(cube_in)
 
         # Locate nearby input points for output points
-        indexes = basic_indexes(out_latlons, in_latlons, in_lons_size)
+        indexes = basic_indexes(
+            out_latlons, in_latlons, in_lons_size, lat_spacing, lon_spacing
+        )
 
         if WITH_MASK in self.regrid_mode:
             in_classified = classify_input_surface_type(cube_in_mask, in_latlons)
@@ -193,7 +196,13 @@ class RegridWithLandSeaMask(BasePlugin):
             # pylint: disable=unsubscriptable-object
             index_range = np.arange(weights.shape[0])
             weights[index_range] = basic_weights(
-                index_range, indexes, out_latlons, in_latlons, in_lons_size
+                index_range,
+                indexes,
+                out_latlons,
+                in_latlons,
+                in_lons_size,
+                lat_spacing,
+                lon_spacing,
             )
 
             if WITH_MASK in self.regrid_mode:
@@ -209,6 +218,8 @@ class RegridWithLandSeaMask(BasePlugin):
                     surface_type_mask,
                     in_lons_size,
                     self.vicinity,
+                    lat_spacing,
+                    lon_spacing,
                 )
 
             # apply bilinear rule

@@ -42,7 +42,7 @@ from iris.cube import Cube
 
 import improver.cli as imcli
 from improver.regrid.bilinear import basic_indexes
-from improver.regrid.grid import latlon_from_cube
+from improver.regrid.grid import calculate_input_grid_spacing, latlon_from_cube
 
 
 # function for creating cube from data, lats, lons
@@ -169,7 +169,10 @@ def test_basic_indexes():
     in_latlons = latlon_from_cube(cube_in)
     out_latlons = latlon_from_cube(cube_out_mask)
     in_lons_size = cube_in.coord(axis="x").shape[0]
-    indexes = basic_indexes(out_latlons, in_latlons, in_lons_size)
+    lat_spacing, lon_spacing = calculate_input_grid_spacing(cube_in)
+    indexes = basic_indexes(
+        out_latlons, in_latlons, in_lons_size, lat_spacing, lon_spacing
+    )
     test_results = indexes[58:63, :]
     expected_results = np.array(
         [

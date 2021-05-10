@@ -65,7 +65,7 @@ def apply_weights(indexes, in_values, weights):
     return out_values
 
 
-def basic_indexes(out_latlons, in_latlons, in_lons_size):
+def basic_indexes(out_latlons, in_latlons, in_lons_size, lat_spacing, lon_spacing):
     """
     Calculate the surrounding source point indexes for given target points 
 
@@ -76,14 +76,15 @@ def basic_indexes(out_latlons, in_latlons, in_lons_size):
             target points's latitude-longitudes
         in_lons_size (int):
             source grid's longitude dimension
+        lat_spacing (float32) :
+            input grid latitude spacing (unit: degree)
+        lon_spacing (float32):
+            input grid longitude spacing (unit: degree)
 
     Returns:
         numpy.ndarray(total number of target points, 4) :
             Updated array of source grid point number for all target grid points
     """
-    # Set up input points spacing values
-    lat_spacing = in_latlons[in_lons_size, 0] - in_latlons[0, 0]
-    lon_spacing = in_latlons[1, 1] - in_latlons[0, 1]
 
     # Calculate input/output offset, expressed in terms of the spacing
     n_lat = (out_latlons[:, 0] - in_latlons[0, 0]) // lat_spacing
@@ -190,7 +191,15 @@ def adjust_boundary_indexes(
     return indexes
 
 
-def basic_weights(index_range, indexes, out_latlons, in_latlons, in_lons_size):
+def basic_weights(
+    index_range,
+    indexes,
+    out_latlons,
+    in_latlons,
+    in_lons_size,
+    lat_spacing,
+    lon_spacing,
+):
     """
     calculate weighting for selecting target points using standard bilinear function
     Args:
@@ -204,14 +213,16 @@ def basic_weights(index_range, indexes, out_latlons, in_latlons, in_lons_size):
             target points's latitude-longitudes
         in_lons_size (int):
             source grid's longitude dimension
+        lat_spacing (float32) :
+            input grid latitude spacing (unit: degree)
+        lon_spacing (float32):
+            input grid longitude spacing (unit: degree)
 
     Returns:
         numpy.ndarray (len(index_range),4):
             weigting array of source grid point number for target grid points
     """
     # Set up input points spacing values
-    lat_spacing = in_latlons[in_lons_size, 0] - in_latlons[0, 0]
-    lon_spacing = in_latlons[1, 1] - in_latlons[0, 1]
     latlon_area = lat_spacing * lon_spacing
 
     out_lats = out_latlons[index_range, 0]
@@ -246,6 +257,8 @@ def adjust_for_surface_mismatch(
     surface_type_mask,
     in_lons_size,
     vicinity,
+    lat_spacing,
+    lon_spacing,
 ):
     """
     updating source points and weighting for mismatched-source-point cases
@@ -280,7 +293,10 @@ def adjust_for_surface_mismatch(
             longitude dimension in cube_in
         vicinity (float32):
             radius of specified searching domain (unit: m)
-
+        lat_spacing (float32) :
+            input grid latitude spacing (unit: degree)
+        lon_spacing (float32):
+            input grid longitude spacing (unit: degree)
     Returns:
         Tuple[numpy.ndarray, numpy.ndarray]:
             updated array of source grid point index and weights for all
@@ -303,6 +319,8 @@ def adjust_for_surface_mismatch(
         out_latlons,
         in_latlons,
         in_lons_size,
+        lat_spacing,
+        lon_spacing,
     )
 
     # Cases with two and three mismatched input points
@@ -342,6 +360,8 @@ def adjust_for_surface_mismatch(
             out_classified,
             in_lons_size,
             vicinity,
+            lat_spacing,
+            lon_spacing,
         )
 
     return weights, indexes
@@ -355,6 +375,8 @@ def one_mismatched_input_point(
     out_latlons,
     in_latlons,
     in_lons_size,
+    lat_spacing,
+    lon_spacing,
 ):
     """
     updating source points and weighting for one mismatched source-point cases
@@ -376,6 +398,10 @@ def one_mismatched_input_point(
             target points's latitude-longitudes
         in_lons_size (int):
             source grid's longitude dimension
+        lat_spacing (float32) :
+            input grid latitude spacing (unit: degree)
+        lon_spacing (float32):
+            input grid longitude spacing (unit: degree)
 
     Returns:
          Tuple[numpy.ndarray,numpy.ndarray]:
@@ -383,9 +409,6 @@ def one_mismatched_input_point(
             excluded_indexes: target points which are not handled in this function
     """
 
-    # Set up input points spacing values
-    lat_spacing = in_latlons[in_lons_size, 0] - in_latlons[0, 0]
-    lon_spacing = in_latlons[1, 1] - in_latlons[0, 1]
     lat_lon_area = lat_spacing * lon_spacing
     excluded_indexes = np.array([], dtype=int)
 
@@ -474,6 +497,8 @@ def lakes_islands(
     out_classified,
     in_lons_size,
     vicinity,
+    lat_spacing,
+    lon_spacing,
 ):
     """
     updating source points and weighting for 4-false-source-point cases
@@ -502,6 +527,10 @@ def lakes_islands(
             source grid's longitude dimension
         vicinity (float32):
             radius of specified searching domain (unit: m)
+        lat_spacing (float32) :
+            input grid latitude spacing (unit: degree)
+        lon_spacing (float32):
+            input grid longitude spacing (unit: degree)
 
     Returns:
         Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
@@ -544,7 +573,13 @@ def lakes_islands(
         # revert back to the basic bilinear weights, indexes unchanged
         no_match_indexes = lake_island_indexes[points_with_no_match]
         weights[no_match_indexes] = basic_weights(
-            no_match_indexes, indexes, out_latlons, in_latlons, in_lons_size
+            no_match_indexes,
+            indexes,
+            out_latlons,
+            in_latlons,
+            in_lons_size,
+            lat_spacing,
+            lon_spacing,
         )
 
     points_with_match = np.where(count_matching_surface > 0)[0]

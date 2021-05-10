@@ -40,22 +40,33 @@ from scipy.interpolate import RegularGridInterpolator
 from improver.utilities.spatial import calculate_grid_spacing, lat_lon_determine
 
 
-def check_if_input_grid_is_valid(cube_in):
+def calculate_input_grid_spacing(cube_in):
     """
+    calculate grid spacing in latitude and logitude
     check if input source grid is on even-spacing, ascending lat/lon system
     Args:
          cube_in (iris.cube.Cube):
             input source cube
-    Return:
-         error raised if specified condition is not met, otherwise None
+            
+    Returns:
+         Grid spacing in latitude and logitude (unit: degree)
+    
+    Raises:
+         ValueError: if input grid is not on a latitude/longitude system or
+         Input grid coordinates are not ascending.       
     """
-
+    # check if in lat/lon system
     if lat_lon_determine(cube_in) is not None:
         raise ValueError("Input grid is not on a latitude/longitude system")
-    x_diff = calculate_grid_spacing(cube_in, "degree", axis="x")
-    y_diff = calculate_grid_spacing(cube_in, "degree", axis="y")
-    if x_diff < 0 or y_diff < 0:
+
+    # calculate grid spacing
+    lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x")
+    lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y")
+    print("lon_lat_spacing", lon_spacing, lat_spacing)
+
+    if lon_spacing < 0 or lat_spacing < 0:
         raise ValueError("Input grid coordinates are not ascending.")
+    return lat_spacing, lon_spacing
 
 
 def get_cube_coord_names(cube):
