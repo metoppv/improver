@@ -31,7 +31,7 @@
 
 """Spot data extraction from diagnostic fields using neighbour cubes."""
 
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import iris
 import numpy as np
@@ -43,8 +43,11 @@ from improver import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.utilities import create_coordinate_hash
+from improver.spotdata import UNIQUE_ID_ATTRIBUTE
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+
+(UNIQUE_ID_KEY,) = [k for k in UNIQUE_ID_ATTRIBUTE.keys()]
 
 
 class SpotExtraction(BasePlugin):
@@ -145,12 +148,39 @@ class SpotExtraction(BasePlugin):
         return diagnostic_cube.data[..., y_indices, x_indices]
 
     @staticmethod
+    def check_for_unique_id(neighbour_cube: Cube) -> Optional[Tuple[ndarray, str]]:
+        """
+        Determine if there is a unique ID coordinate, and if so return
+        the values and name of that coordinate.
+
+        Args:
+            neighbour_cube:
+                This cube on which to look for a unique site ID coordinate.
+
+        Returns:
+            - array of unique site IDs
+            - name of unique site ID coordinate
+        """
+        try:
+            (unique_id_coord,) = [
+                crd
+                for crd in neighbour_cube.coords()
+                if UNIQUE_ID_KEY in crd.attributes
+            ]
+        except ValueError:
+            return None, None
+        else:
+            return unique_id_coord.points, unique_id_coord.name()
+
+    @staticmethod
     def build_diagnostic_cube(
         neighbour_cube: Cube,
         diagnostic_cube: Cube,
         spot_values: ndarray,
         additional_dims: Optional[List[DimCoord]] = None,
         scalar_coords: Optional[List[AuxCoord]] = None,
+        unique_site_id: Optional[Union[List[str], ndarray]] = None,
+        unique_site_id_name: Optional[str] = None,
     ) -> Cube:
         """
         Builds a spot data cube containing the extracted diagnostic values.
@@ -171,11 +201,15 @@ class SpotExtraction(BasePlugin):
             scalar_coords:
                 Optional list containing iris.coord.AuxCoords with all scalar coordinates
                 relevant for the spot sites.
+            unique_site_id:
+                Optional list of 8-digit unique site identifiers.
+            unique_site_id_name:
+                String to name the unique_site_id coordinate. Required if
+                unique_site_id is in use.
 
         Returns:
             A spot data cube containing the extracted diagnostic data.
         """
-
         spot_diagnostic_cube = build_spotdata_cube(
             spot_values,
             diagnostic_cube.name(),
@@ -184,6 +218,8 @@ class SpotExtraction(BasePlugin):
             neighbour_cube.coord(axis="y").points,
             neighbour_cube.coord(axis="x").points,
             neighbour_cube.coord("wmo_id").points,
+            unique_site_id=unique_site_id,
+            unique_site_id_name=unique_site_id_name,
             scalar_coords=scalar_coords,
             additional_dims=additional_dims,
         )
@@ -222,6 +258,9 @@ class SpotExtraction(BasePlugin):
         # Check we are using a matched neighbour/diagnostic cube pair
         check_grid_match([neighbour_cube, diagnostic_cube])
 
+        # Get the unique_site_id if it is present on the neighbour cbue
+        unique_site_id, unique_site_id_name = self.check_for_unique_id(neighbour_cube)
+
         coordinate_cube = self.extract_coordinates(neighbour_cube)
 
         spot_values = self.extract_diagnostic_data(coordinate_cube, diagnostic_cube)
@@ -237,6 +276,8 @@ class SpotExtraction(BasePlugin):
             spot_values,
             scalar_coords=scalar_coords,
             additional_dims=additional_dims,
+            unique_site_id=unique_site_id,
+            unique_site_id_name=unique_site_id_name,
         )
 
         # Copy attributes from the diagnostic cube that describe the data's
@@ -245,6 +286,11 @@ class SpotExtraction(BasePlugin):
         spotdata_cube.attributes["model_grid_hash"] = neighbour_cube.attributes[
             "model_grid_hash"
         ]
+
+        # Remove the unique_site_id coordinate attribute as it is internal
+        # metadata only
+        if unique_site_id is not None:
+            spotdata_cube.coord(unique_site_id_name).attributes.pop(UNIQUE_ID_KEY)
 
         # Remove grid attributes and update title
         for attr in MOSG_GRID_ATTRIBUTES:

@@ -49,7 +49,7 @@ def build_spotdata_cube(
     latitude: ndarray,
     longitude: ndarray,
     wmo_id: Union[str, List[str]],
-    unique_site_id: Optional[Union[str, List[str]]] = None,
+    unique_site_id: Optional[Union[List[str], ndarray]] = None,
     unique_site_id_name: Optional[str] = None,
     scalar_coords: Optional[List[AuxCoord]] = None,
     neighbour_methods: Optional[List[str]] = None,
@@ -92,9 +92,8 @@ def build_spotdata_cube(
         wmo_id:
             String or list of 5-digit WMO site identifiers.
         unique_site_id:
-            Optional string or list of 8-digit unique site identifiers. If
-            provided, this is expected to be a complete list with a unique
-            identifier for every site.
+            Optional list of 8-digit unique site identifiers. If provided, this
+            is expected to be a complete list with a unique identifier for every site.
         unique_site_id_name:
             String to name the unique_site_id coordinate. Required if
             unique_site_id is in use.
@@ -116,7 +115,7 @@ def build_spotdata_cube(
     lat_coord = AuxCoord(latitude, "latitude", units="degrees")
     lon_coord = AuxCoord(longitude, "longitude", units="degrees")
     wmo_id_coord = AuxCoord(wmo_id, long_name="wmo_id", units="no_unit")
-    if unique_site_id:
+    if unique_site_id is not None:
         if not unique_site_id_name:
             raise ValueError(
                 "A unique_site_id_name must be provided if a unique_site_id is"
@@ -183,7 +182,7 @@ def build_spotdata_cube(
 
     dim_coords_and_dims.append((spot_index, current_dim))
     coords = [alt_coord, lat_coord, lon_coord, wmo_id_coord]
-    if unique_site_id:
+    if unique_site_id is not None:
         coords.append(unique_id_coord)
     for coord in coords:
         aux_coords_and_dims.append((coord, current_dim))

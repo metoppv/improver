@@ -45,16 +45,17 @@ UK_SPOT_TITLE = "IMPROVER UK Spot Values"
 
 
 @pytest.mark.parametrize(
-    "extra_args,kgo_file",
+    "neighbour_cube,extra_args,kgo_file",
     (
-        ([], "nearest_uk_temperatures.nc"),
-        (["--similar-altitude"], "mindz_uk_temperatures.nc"),
+        ("all_methods_uk.nc", [], "nearest_uk_temperatures.nc"),
+        ("all_methods_uk.nc", ["--similar-altitude"], "mindz_uk_temperatures.nc"),
+        ("all_methods_uk_unique_ids.nc", [], "nearest_uk_temperatures_unique_ids.nc"),
     ),
 )
-def test_nearest_uk(tmp_path, extra_args, kgo_file):
+def test_nearest_uk(tmp_path, neighbour_cube, extra_args, kgo_file):
     """Test spot extraction using nearest location"""
     kgo_dir = acc.kgo_root() / "spot-extract"
-    neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
+    neighbour_path = kgo_dir / f"inputs/{neighbour_cube}"
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     kgo_path = kgo_dir / f"outputs/{kgo_file}"
     output_path = tmp_path / "output.nc"

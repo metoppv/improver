@@ -605,13 +605,18 @@ class NeighbourSelection(BasePlugin):
 
         # Create a list of unique site IDs if available. These are stored as
         # string representations of 8-digit numbers.
-        unique_site_ids = []
+        unique_site_ids = None
         if self.unique_site_id_name:
+            unique_site_ids = []
             for site in sites:
                 try:
-                    unique_site_ids.append("{:08d}".format(site[self.unique_site_id_name]))
+                    unique_site_ids.append(
+                        "{:08d}".format(site[self.unique_site_id_name])
+                    )
                 except KeyError:
-                    raise ValueError("The unique_site_id is not available for every site")
+                    raise ValueError(
+                        "The unique_site_id is not available for every site"
+                    )
 
             if len(set(unique_site_ids)) != len(sites):
                 raise ValueError("The unique_site_id is not unique for every site")
