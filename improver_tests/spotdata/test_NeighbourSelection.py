@@ -672,9 +672,13 @@ class Test_process(Test_NeighbourSelection):
         stored as 5 digits encoded as strings, so zero-padding is expected."""
 
         plugin = NeighbourSelection()
-        sites = self.global_sites + [self.global_sites.copy()[0].copy()]
-        sites[1]["wmo_id"] = None
-        expected = ["00001", "None"]
+        sites = self.global_sites + [
+            self.global_sites.copy()[0].copy(),
+            self.global_sites.copy()[0].copy(),
+        ]
+        sites[1].pop("wmo_id")
+        sites[2]["wmo_id"] = None
+        expected = ["00001", "None", "None"]
         result = plugin.process(sites, self.global_orography, self.global_land_mask)
 
         self.assertArrayEqual(result.coord("wmo_id").points, expected)
