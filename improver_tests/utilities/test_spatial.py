@@ -202,6 +202,10 @@ class Test_calculate_grid_spacing(IrisTest):
         """Test outputs with lat-lon grid in degrees"""
         result = calculate_grid_spacing(self.lat_lon_cube, "degrees")
         self.assertAlmostEqual(result, 10.0)
+        cube_copy = self.lat_lon_cube.copy()
+        cube_copy.coord("longitude").points = [-19.99999, -10.0, 0.0, 10.0, 20.00001]
+        result = calculate_grid_spacing(cube_copy, "degrees")
+        self.assertAlmostEqual(result, 10.0)
 
     def test_incorrect_units(self):
         """Test ValueError for incorrect units"""
