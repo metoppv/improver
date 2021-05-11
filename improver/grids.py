@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain standard grid projection definitions."""
 
+from .constants import ABSOLUTE_ZERO
+
 from iris.coord_systems import GeogCS, LambertAzimuthalEqualArea
 
 # Global grid coordinate reference system
