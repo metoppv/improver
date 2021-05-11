@@ -208,6 +208,9 @@ class Test_calculate_grid_spacing(IrisTest):
         cube_copy.coord("longitude").points = [-19.99999, -10.0, 0.0, 10.0, 20.00001]
         result = calculate_grid_spacing(cube_copy, "degrees")
         self.assertAlmostEqual(result, 10.0)
+        cube_copy.coord("longitude").points = [20.00001, 10.0, 0.0, -10.0, -19.99999]
+        result = calculate_grid_spacing(cube_copy, "degrees")
+        self.assertAlmostEqual(result, -10.0)
 
     def test_lat_lon_not_equal_spacing(self):
         cube_copy = self.lat_lon_cube.copy()
