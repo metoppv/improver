@@ -30,4 +30,4 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Top level constants"""
 
-UNIQUE_ID_ATTRIBUTE = {"unique_site_identifier": "true"}
+UNIQUE_ID_ATTRIBUTE = "unique_site_identifier"

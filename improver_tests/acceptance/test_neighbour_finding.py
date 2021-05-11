@@ -249,7 +249,7 @@ def test_unset_wmo_ids_with_unique_ids(tmp_path):
         orography_path,
         landmask_path,
         sites_path,
-        "--unique-site-id-name",
+        "--unique-site-id-key",
         "met_office_site_id",
         "--output",
         output_path,

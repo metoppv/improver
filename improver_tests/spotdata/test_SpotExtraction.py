@@ -42,8 +42,6 @@ from improver.spotdata import UNIQUE_ID_ATTRIBUTE
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.spot_extraction import SpotExtraction
 
-(UNIQUE_ID_KEY,) = [k for k in UNIQUE_ID_ATTRIBUTE.keys()]
-
 
 class Test_SpotExtraction(IrisTest):
 
@@ -114,8 +112,8 @@ class Test_SpotExtraction(IrisTest):
         self.latitudes = np.array([10, 10, 20, 20])
         self.longitudes = np.array([10, 10, 20, 20])
         self.wmo_ids = np.arange(4)
-        self.unique_site_ids = np.arange(4)
-        self.unique_site_id_name = "met_office_site_id"
+        self.unique_site_id = np.arange(4)
+        self.unique_site_id_key = "met_office_site_id"
         grid_attributes = ["x_index", "y_index", "vertical_displacement"]
         neighbour_methods = ["nearest", "nearest_land"]
         neighbour_cube = build_spotdata_cube(
@@ -126,8 +124,8 @@ class Test_SpotExtraction(IrisTest):
             self.latitudes,
             self.longitudes,
             self.wmo_ids,
-            unique_site_id=self.unique_site_ids,
-            unique_site_id_name=self.unique_site_id_name,
+            unique_site_id=self.unique_site_id,
+            unique_site_id_key=self.unique_site_id_key,
             grid_attributes=grid_attributes,
             neighbour_methods=neighbour_methods,
         )
@@ -235,18 +233,17 @@ class Test_check_for_unique_id(Test_SpotExtraction):
         """Test that the IDs and coordinate name are returned if a unique site
         ID coordinate is present on the neighbour cube."""
         plugin = SpotExtraction()
-        result_id, result_name = plugin.check_for_unique_id(self.neighbour_cube)
-        self.assertArrayEqual(result_id, self.unique_site_ids)
-        self.assertEqual(result_name, self.unique_site_id_name)
+        result = plugin.check_for_unique_id(self.neighbour_cube)
+        self.assertArrayEqual(result[0], self.unique_site_id)
+        self.assertEqual(result[1], self.unique_site_id_key)
 
     def test_unique_is_not_present(self):
         """Test that Nones are returned if no unique site ID coordinate is
         present on the neighbour cube."""
         self.neighbour_cube.remove_coord("met_office_site_id")
         plugin = SpotExtraction()
-        result_id, result_name = plugin.check_for_unique_id(self.neighbour_cube)
-        self.assertIsNone(result_id)
-        self.assertIsNone(result_name)
+        result = plugin.check_for_unique_id(self.neighbour_cube)
+        self.assertIsNone(result)
 
 
 class Test_build_diagnostic_cube(Test_SpotExtraction):
@@ -261,15 +258,15 @@ class Test_build_diagnostic_cube(Test_SpotExtraction):
             self.neighbour_cube,
             self.diagnostic_cube_xy,
             spot_values,
-            unique_site_id=self.unique_site_ids,
-            unique_site_id_name=self.unique_site_id_name,
+            unique_site_id=self.unique_site_id,
+            unique_site_id_key=self.unique_site_id_key,
         )
         self.assertArrayEqual(result.coord("latitude").points, self.latitudes)
         self.assertArrayEqual(result.coord("longitude").points, self.longitudes)
         self.assertArrayEqual(result.coord("altitude").points, self.altitudes)
         self.assertArrayEqual(result.coord("wmo_id").points, self.wmo_ids)
         self.assertArrayEqual(
-            result.coord(self.unique_site_id_name).points, self.unique_site_ids
+            result.coord(self.unique_site_id_key).points, self.unique_site_id
         )
         self.assertArrayEqual(result.data, spot_values)
 
@@ -375,7 +372,7 @@ class Test_process(Test_SpotExtraction):
         result = plugin.process(self.neighbour_cube, self.diagnostic_cube_xy)
         self.assertNotIn(
             UNIQUE_ID_ATTRIBUTE,
-            [att for att in result.coord(self.unique_site_id_name).attributes],
+            [att for att in result.coord(self.unique_site_id_key).attributes],
         )
 
 

@@ -673,8 +673,8 @@ class Test_process(Test_NeighbourSelection):
 
         plugin = NeighbourSelection()
         sites = self.global_sites + [
-            self.global_sites.copy()[0].copy(),
-            self.global_sites.copy()[0].copy(),
+            self.global_sites[0].copy(),
+            self.global_sites[0].copy(),
         ]
         sites[1].pop("wmo_id")
         sites[2]["wmo_id"] = None
@@ -688,8 +688,8 @@ class Test_process(Test_NeighbourSelection):
         provided. These are stored as 8 digits encoded as strings, so
         zero-padding is expected."""
 
-        plugin = NeighbourSelection(unique_site_id_name="met_office_site_id")
-        sites = self.global_sites + [self.global_sites.copy()[0].copy()]
+        plugin = NeighbourSelection(unique_site_id_key="met_office_site_id")
+        sites = self.global_sites + [self.global_sites[0].copy()]
         sites[0]["met_office_site_id"] = sites[0]["wmo_id"]
         sites[1]["wmo_id"] = None
         sites[1]["met_office_site_id"] = 353
@@ -702,13 +702,13 @@ class Test_process(Test_NeighbourSelection):
         """Test that an error is raised if the list of unique IDs is incomplete,
         or if it contains duplicate IDs."""
 
-        plugin = NeighbourSelection(unique_site_id_name="met_office_site_id")
-        sites = self.global_sites + [self.global_sites.copy()[0].copy()]
+        plugin = NeighbourSelection(unique_site_id_key="met_office_site_id")
+        sites = self.global_sites + [self.global_sites[0].copy()]
         sites[0]["met_office_site_id"] = sites[0]["wmo_id"]
 
         # unique_site_id not set for every site
         msg = "The unique_site_id is not available for every site"
-        with self.assertRaisesRegex(ValueError, msg):
+        with self.assertRaisesRegex(KeyError, msg):
             plugin.process(sites, self.global_orography, self.global_land_mask)
 
         # duplicate site id used

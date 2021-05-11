@@ -50,7 +50,7 @@ class Test_build_spotdata_cube(IrisTest):
         self.latitude = np.linspace(58.0, 59.5, 4)
         self.longitude = np.linspace(-0.25, 0.5, 4)
         self.wmo_id = ["03854", "03962", "03142", "03331"]
-        self.unique_site_id = ["00003854", "00003962", "00003142", "00003331"]
+        self.unique_site_id = [id.zfill(8) for id in self.wmo_id]
 
         self.neighbour_methods = ["nearest", "nearest_land"]
         self.grid_attributes = ["x_index", "y_index", "dz"]
@@ -105,7 +105,7 @@ class Test_build_spotdata_cube(IrisTest):
             data,
             *self.args,
             unique_site_id=self.unique_site_id,
-            unique_site_id_name="met_office_site_id",
+            unique_site_id_key="met_office_site_id",
         )
 
         self.assertArrayEqual(
@@ -120,7 +120,7 @@ class Test_build_spotdata_cube(IrisTest):
         """Test an error is raised if a unique_id_coordinate is provided but
         no name for the resulting coordinate."""
         data = np.array([1.6, 1.3, 1.4, 1.1])
-        msg = "A unique_site_id_name must be provided"
+        msg = "A unique_site_id_key must be provided"
         with self.assertRaisesRegex(ValueError, msg):
             build_spotdata_cube(
                 data, *self.args, unique_site_id=self.unique_site_id,

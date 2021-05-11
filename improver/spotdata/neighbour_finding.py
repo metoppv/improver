@@ -76,7 +76,7 @@ class NeighbourSelection(BasePlugin):
         site_x_coordinate: str = "longitude",
         site_y_coordinate: str = "latitude",
         node_limit: int = 36,
-        unique_site_id_name: Optional[str] = None,
+        unique_site_id_key: Optional[str] = None,
     ) -> None:
         """
         Args:
@@ -104,7 +104,7 @@ class NeighbourSelection(BasePlugin):
                 The upper limit for the number of nearest neighbours to return
                 when querying the tree for a selection of neighbours from which
                 one matching the minimum_dz constraint will be picked.
-            unique_site_id_name:
+            unique_site_id_key:
                 Key in the provided site list that corresponds to a unique ID
                 for every site. If this optional key is provided such an
                 identifier must exist for every site. This key will also be
@@ -119,7 +119,7 @@ class NeighbourSelection(BasePlugin):
         self.site_y_coordinate = site_y_coordinate
         self.site_altitude = "altitude"
         self.node_limit = node_limit
-        self.unique_site_id_name = unique_site_id_name
+        self.unique_site_id_key = unique_site_id_key
         self.global_coordinate_system = False
 
     def __repr__(self) -> str:
@@ -480,6 +480,12 @@ class NeighbourSelection(BasePlugin):
             A cube containing both the spot site information and for each
             the grid point indices of its nearest neighbour as per the
             imposed constraints.
+
+        Raises:
+            KeyError: If a unique_site_id is in use but unique_site_id is not
+                      available for every site in sites.
+            ValueError: If a unique_site_id is in use but the unique_site_id is
+                        not unique for every site.
         """
         # Check if we are dealing with a global grid.
         self.global_coordinate_system = orography.coord(axis="x").circular
@@ -605,20 +611,20 @@ class NeighbourSelection(BasePlugin):
 
         # Create a list of unique site IDs if available. These are stored as
         # string representations of 8-digit numbers.
-        unique_site_ids = None
-        if self.unique_site_id_name:
-            unique_site_ids = []
+        unique_site_id = None
+        if self.unique_site_id_key:
+            unique_site_id = []
             for site in sites:
                 try:
-                    unique_site_ids.append(
-                        "{:08d}".format(site[self.unique_site_id_name])
+                    unique_site_id.append(
+                        "{:08d}".format(site[self.unique_site_id_key])
                     )
-                except KeyError:
-                    raise ValueError(
+                except KeyError as err:
+                    raise KeyError(
                         "The unique_site_id is not available for every site"
-                    )
+                    ) from err
 
-            if len(set(unique_site_ids)) != len(sites):
+            if len(set(unique_site_id)) != len(sites):
                 raise ValueError("The unique_site_id is not unique for every site")
 
         # Construct a name to describe the neighbour finding method employed
@@ -652,8 +658,8 @@ class NeighbourSelection(BasePlugin):
             latitudes.astype(np.float32),
             longitudes.astype(np.float32),
             wmo_ids,
-            unique_site_id=unique_site_ids,
-            unique_site_id_name=self.unique_site_id_name,
+            unique_site_id=unique_site_id,
+            unique_site_id_key=self.unique_site_id_key,
             neighbour_methods=[method_name],
             grid_attributes=["x_index", "y_index", "vertical_displacement"],
         )

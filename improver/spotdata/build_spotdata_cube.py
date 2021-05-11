@@ -38,7 +38,7 @@ from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 from numpy import ndarray
 
-from improver.spotdata import UNIQUE_ID_ATTRIBUTE
+from . import UNIQUE_ID_ATTRIBUTE
 
 
 def build_spotdata_cube(
@@ -50,7 +50,7 @@ def build_spotdata_cube(
     longitude: ndarray,
     wmo_id: Union[str, List[str]],
     unique_site_id: Optional[Union[List[str], ndarray]] = None,
-    unique_site_id_name: Optional[str] = None,
+    unique_site_id_key: Optional[str] = None,
     scalar_coords: Optional[List[AuxCoord]] = None,
     neighbour_methods: Optional[List[str]] = None,
     grid_attributes: Optional[List[str]] = None,
@@ -94,7 +94,7 @@ def build_spotdata_cube(
         unique_site_id:
             Optional list of 8-digit unique site identifiers. If provided, this
             is expected to be a complete list with a unique identifier for every site.
-        unique_site_id_name:
+        unique_site_id_key:
             String to name the unique_site_id coordinate. Required if
             unique_site_id is in use.
         scalar_coords:
@@ -116,16 +116,16 @@ def build_spotdata_cube(
     lon_coord = AuxCoord(longitude, "longitude", units="degrees")
     wmo_id_coord = AuxCoord(wmo_id, long_name="wmo_id", units="no_unit")
     if unique_site_id is not None:
-        if not unique_site_id_name:
+        if not unique_site_id_key:
             raise ValueError(
-                "A unique_site_id_name must be provided if a unique_site_id is"
+                "A unique_site_id_key must be provided if a unique_site_id is"
                 " provided."
             )
         unique_id_coord = AuxCoord(
             unique_site_id,
-            long_name=unique_site_id_name,
+            long_name=unique_site_id_key,
             units="no_unit",
-            attributes=UNIQUE_ID_ATTRIBUTE,
+            attributes={UNIQUE_ID_ATTRIBUTE: "true"},
         )
 
     aux_coords_and_dims = []
