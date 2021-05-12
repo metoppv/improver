@@ -227,8 +227,8 @@ class Test_calculate_grid_spacing(IrisTest):
         result = calculate_grid_spacing(self.lat_lon_cube, "degrees")
         self.assertAlmostEqual(result, -10.0)
 
-    def test_lat_lon_not_equal_spacing(self):
-        """Test outputs with lat-lon grid in degrees"""
+    def test_lat_lon_unequal_spacing(self):
+        """Test ValueError for unequal spacing with lat-lon grid"""
         self.lat_lon_cube.coord("longitude").points = [
             -19.998,
             -10.0,
