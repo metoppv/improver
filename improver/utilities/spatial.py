@@ -106,7 +106,7 @@ def calculate_grid_spacing(
         diffs_diff = np.diff(diffs)
         diffs_mean = np.mean(diffs)
 
-        if np.any(abs(diffs_diff) > rtol * diffs_mean):
+        if np.any(abs(diffs_diff) > rtol * abs(diffs_mean)):
             raise ValueError(
                 "Coordinate {} points are not equally spaced".format(coord.name())
             )
