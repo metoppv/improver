@@ -259,7 +259,7 @@ class SpotExtraction(BasePlugin):
 
         # Get the unique_site_id if it is present on the neighbour cbue
         unique_site_id_data = self.check_for_unique_id(neighbour_cube)
-        if unique_site_id_data is not None:
+        if unique_site_id_data:
             unique_site_id = unique_site_id_data[0]
             unique_site_id_key = unique_site_id_data[1]
         else:
