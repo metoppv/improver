@@ -62,7 +62,7 @@ def calculate_input_grid_spacing(cube_in):
     # calculate grid spacing
     lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x")
     lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y")
- 
+
     if lon_spacing < 0 or lat_spacing < 0:
         raise ValueError("Input grid coordinates are not ascending.")
     return lat_spacing, lon_spacing
