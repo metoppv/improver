@@ -34,7 +34,6 @@ from typing import Dict, List, Optional
 
 import numpy as np
 from iris.cube import Cube
-from iris.exceptions import CoordinateNotFoundError
 from numpy import int64
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD

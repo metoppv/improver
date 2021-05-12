@@ -30,12 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain mathematical operations."""
 
-from typing import Any, List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import iris
 import numpy as np
 import numpy.ma as ma
-from clize.parser import OptionParameter
 from iris.cube import Cube
 from numpy import ndarray
 

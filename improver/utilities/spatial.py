@@ -31,7 +31,7 @@
 """ Provides support utilities."""
 
 import copy
-from typing import Any, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 
 import cartopy.crs as ccrs
 import iris
