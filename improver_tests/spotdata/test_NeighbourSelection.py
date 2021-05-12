@@ -706,7 +706,7 @@ class Test_process(Test_NeighbourSelection):
         sites = self.global_sites + [self.global_sites[0].copy()]
         sites[0]["met_office_site_id"] = sites[0]["wmo_id"]
 
-        # unique_site_id not set for every site
+        # unique_site_id only set for the first site
         msg = "The unique_site_id is not available for every site"
         with self.assertRaisesRegex(KeyError, msg):
             plugin.process(sites, self.global_orography, self.global_land_mask)
