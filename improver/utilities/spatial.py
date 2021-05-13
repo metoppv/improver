@@ -77,7 +77,7 @@ def check_if_grid_is_equal_area(
 
 
 def calculate_grid_spacing(
-    cube: Cube, units: Union[Unit, str], axis: str = "x", rtol: float = 1.0e-5
+    cube: Cube, units: Union[Unit, str], axis: str = "x", rtol: float = 0.0
 ) -> float:
     """
     Returns the grid spacing of a given spatial axis
@@ -100,23 +100,15 @@ def calculate_grid_spacing(
     """
     coord = cube.coord(axis=axis).copy()
     coord.convert_units(units)
-    diffs = np.unique(np.diff(coord.points))
+    diffs = np.diff(coord.points)
+    diffs_mean = np.mean(diffs)
 
-    if len(diffs) > 1:
-        diffs_diff = np.diff(diffs)
-        diffs_mean = np.mean(diffs)
-
-        if np.any(abs(diffs_diff) > rtol * abs(diffs_mean)):
-            raise ValueError(
-                "Coordinate {} points are not equally spaced".format(coord.name())
-            )
-        # use average spacing for considering tiny difference due to rounding error
-        spacing = (coord.points[-1] - coord.points[0]) / (len(coord.points) - 1.0)
-
+    if np.any(abs(diffs - diffs_mean) > rtol * abs(diffs_mean)):
+        raise ValueError(
+            "Coordinate {} points are not equally spaced".format(coord.name())
+        )
     else:
-        spacing = diffs[0]
-
-    return spacing
+        return diffs_mean
 
 
 def distance_to_number_of_grid_cells(
