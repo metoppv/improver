@@ -35,6 +35,7 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
@@ -52,8 +53,6 @@ from improver.utilities.cube_extraction import (
     parse_constraint_list,
 )
 from improver.utilities.cube_manipulation import get_dim_coord_names
-
-import pytest
 
 
 def islambda(function):
